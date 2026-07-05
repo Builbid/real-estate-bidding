@@ -137,7 +137,8 @@ export function HomePageContent({
                       href="/register?role=bidder"
                       aria-label={`${t('home.hero.imBuilder')} — register as contractor or construction firm`}
                     >
-                      {t('home.hero.imBuilder')}
+                      {t('home.hero.imBuilder')}{' '}
+                      <ArrowRight className="w-5 h-5" />
                     </Link>
                   </Button>
                 )}

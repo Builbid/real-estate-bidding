@@ -117,15 +117,8 @@ export function Navbar({ overlay = false }: NavbarProps) {
             </div>
           ) : (
             <Button
-              variant="outline"
-              size="sm"
               asChild
-              className={cn(
-                'hidden md:inline-flex',
-                overlay
-                  ? 'border-white/30 text-slate-100 hover:bg-white/10 hover:text-white'
-                  : undefined,
-              )}
+              className="hidden md:inline-flex"
             >
               <Link href="/login">{t('common.signIn')}</Link>
             </Button>
@@ -262,7 +255,7 @@ export function PublicNavbar() {
           <span className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">BuilBid</span>
         </Link>
         <div className="flex items-center gap-3 sm:gap-4">
-          <Button variant="outline" size="sm" asChild><Link href="/login">{t('common.signIn')}</Link></Button>
+          <Button asChild><Link href="/login">{t('common.signIn')}</Link></Button>
           <LanguageSwitcher />
           <ThemeToggle />
         </div>
