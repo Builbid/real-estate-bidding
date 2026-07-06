@@ -1,4 +1,4 @@
-import DISTRICTS_BY_STATE from './indianDistrictsData.json';
+import DISTRICTS from '@/app/data/districts.json';
 
 export interface IndianDistrict {
   district: string;
@@ -10,9 +10,7 @@ export function formatIndianDistrict({ district, state }: IndianDistrict): strin
   return `${district}, ${state}`;
 }
 
-export const INDIAN_DISTRICTS: IndianDistrict[] = Object.entries(DISTRICTS_BY_STATE).flatMap(
-  ([state, districts]) => districts.map((district) => ({ district, state })),
-);
+export const INDIAN_DISTRICTS: IndianDistrict[] = DISTRICTS;
 
 const formattedLookup = new Map<string, IndianDistrict>(
   INDIAN_DISTRICTS.map((entry) => [formatIndianDistrict(entry).toLowerCase(), entry]),
