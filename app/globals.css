@@ -100,9 +100,8 @@
 
   html.profile-drawer-open,
   body.profile-drawer-open {
-    overflow-y: auto !important;
-    height: auto;
-    min-height: 100%;
+    overflow: hidden !important;
+    height: 100vh !important;
   }
 
   .scrollbar-thin::-webkit-scrollbar {

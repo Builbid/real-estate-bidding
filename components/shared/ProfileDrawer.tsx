@@ -50,7 +50,6 @@ export function ProfileDrawer({
   const badgeColor = ROLE_BADGES[normalizedRole] ?? 'teal';
   const roleLabel = t(`roles.${normalizedRole}` as 'roles.owner');
 
-  const drawerRef = useRef<HTMLElement>(null);
   const savedScrollY = useRef(0);
   const [mounted, setMounted] = useState(false);
 
@@ -70,53 +69,17 @@ export function ProfileDrawer({
       appRoot.style.left = '0';
       appRoot.style.right = '0';
       appRoot.style.width = '100%';
-      appRoot.style.overflow = 'hidden';
     }
 
     document.documentElement.classList.add('profile-drawer-open');
     document.body.classList.add('profile-drawer-open');
-
-    const syncScrollHeight = () => {
-      const drawerHeight = drawerRef.current?.offsetHeight ?? 0;
-      document.body.style.height = `${Math.max(drawerHeight, window.innerHeight)}px`;
-    };
-
-    const syncDrawerPosition = () => {
-      if (drawerRef.current) {
-        drawerRef.current.style.transform = `translate3d(0, -${window.scrollY}px, 0)`;
-      }
-    };
-
-    const onScroll = () => {
-      syncDrawerPosition();
-    };
-
-    const rafId = window.requestAnimationFrame(() => {
-      syncScrollHeight();
-      window.scrollTo(0, 0);
-      syncDrawerPosition();
-    });
-
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', syncScrollHeight);
-
-    const drawerEl = drawerRef.current;
-    const resizeObserver =
-      drawerEl && typeof ResizeObserver !== 'undefined'
-        ? new ResizeObserver(syncScrollHeight)
-        : null;
-    if (drawerEl && resizeObserver) {
-      resizeObserver.observe(drawerEl);
-    }
+    document.body.style.overflow = 'hidden';
+    document.body.style.height = '100vh';
 
     return () => {
-      window.cancelAnimationFrame(rafId);
-      window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', syncScrollHeight);
-      resizeObserver?.disconnect();
-
       document.documentElement.classList.remove('profile-drawer-open');
       document.body.classList.remove('profile-drawer-open');
+      document.body.style.overflow = '';
       document.body.style.height = '';
 
       if (appRoot) {
@@ -125,30 +88,24 @@ export function ProfileDrawer({
         appRoot.style.left = '';
         appRoot.style.right = '';
         appRoot.style.width = '';
-        appRoot.style.overflow = '';
-      }
-
-      if (drawerRef.current) {
-        drawerRef.current.style.transform = '';
       }
 
       window.scrollTo(0, savedScrollY.current);
     };
-  }, [open, profile.mobile, profile.physical_address, profile.full_name]);
+  }, [open]);
 
   if (!open || !mounted) return null;
 
   return createPortal(
-    <>
+    <div className="fixed inset-0 z-50 overflow-y-auto overscroll-contain">
       <div
-        className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm"
         onClick={() => onOpenChange(false)}
         aria-hidden="true"
       />
 
       <aside
-        ref={drawerRef}
-        className="fixed top-0 right-0 z-50 w-80 bg-card border-l border-border shadow-2xl animate-in slide-in-from-right duration-200 will-change-transform"
+        className="relative ml-auto w-80 min-h-full bg-card border-l border-border shadow-2xl animate-in slide-in-from-right duration-200"
         aria-label={t('nav.myProfile')}
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
@@ -231,7 +188,7 @@ export function ProfileDrawer({
           </button>
         </div>
       </aside>
-    </>,
+    </div>,
     document.body,
   );
 }
