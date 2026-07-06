@@ -98,6 +98,10 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
+  body.profile-drawer-open {
+    overflow: hidden !important;
+  }
+
   .scrollbar-thin::-webkit-scrollbar {
     width: 4px;
     height: 4px;

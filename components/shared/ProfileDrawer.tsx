@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { X, LogOut, Mail, Phone, MapPin, BadgeCheck } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { UserAvatar } from '@/components/shared/UserAvatar';
@@ -43,16 +44,22 @@ export function ProfileDrawer({
   const badgeColor = ROLE_BADGES[normalizedRole] ?? 'teal';
   const roleLabel = t(`roles.${normalizedRole}` as 'roles.owner');
 
+  useEffect(() => {
+    if (!open) return;
+    document.body.classList.add('profile-drawer-open');
+    return () => document.body.classList.remove('profile-drawer-open');
+  }, [open]);
+
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
+    <div className="fixed inset-0 z-50 flex justify-end overflow-hidden">
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         onClick={() => onOpenChange(false)}
       />
 
-      <aside className="relative flex flex-col w-80 h-full bg-card border-l border-border shadow-2xl animate-in slide-in-from-right duration-200">
+      <aside className="relative w-80 h-full overflow-y-auto bg-card border-l border-border shadow-2xl animate-in slide-in-from-right duration-200">
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <h2 className="text-sm font-semibold text-foreground">{t('nav.myProfile')}</h2>
           <button
@@ -77,7 +84,7 @@ export function ProfileDrawer({
           </div>
         </div>
 
-        <div className="flex-1 px-5 py-5 space-y-3 overflow-y-auto">
+        <div className="px-5 py-5 space-y-3">
           <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">
             Account Details
           </p>
