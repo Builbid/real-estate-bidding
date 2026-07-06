@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Clock, ArrowRight } from 'lucide-react';
+import { Clock, ArrowRight, CalendarDays } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { CountdownTicker } from '@/components/shared/CountdownTicker';
@@ -14,6 +14,7 @@ import {
   getProjectFloorAreaDisplay,
 } from '@/lib/project/display';
 import { formatBidRatePerSqft } from '@/lib/firm/bidDisplay';
+import { formatProjectPostedAt } from '@/lib/utils';
 import type { Project, Bid } from '@/lib/types';
 
 interface FirmAuctionRowProps {
@@ -32,6 +33,7 @@ export function FirmAuctionRow({ project, myBid }: FirmAuctionRowProps) {
   const finishingBadge = getFinishingBadge(project.finishing_level);
   const floorArea = getProjectFloorAreaDisplay(project);
   const budget = getProjectBudgetDisplay(project);
+  const postedAt = formatProjectPostedAt(project.created_at);
 
   function handleRowClick() {
     if (!hasProjectId) {
@@ -85,6 +87,15 @@ export function FirmAuctionRow({ project, myBid }: FirmAuctionRowProps) {
             <>
               <span className="text-muted-foreground/60">·</span>
               <span>{budget}</span>
+            </>
+          )}
+          {postedAt && (
+            <>
+              <span className="text-muted-foreground/60">·</span>
+              <span className="inline-flex items-center gap-1">
+                <CalendarDays className="w-3 h-3" />
+                Posted {postedAt}
+              </span>
             </>
           )}
         </div>

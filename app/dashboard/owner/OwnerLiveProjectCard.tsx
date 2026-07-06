@@ -1,6 +1,6 @@
 'use client';
 
-import { Lock, Clock, Users } from 'lucide-react';
+import { Lock, Clock, Users, CalendarDays } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AuctionCountdown } from './AuctionCountdown';
@@ -9,6 +9,7 @@ import { UnifiedBidRankings } from './project/[id]/UnifiedBidRankings';
 import {
   TRACK_LABELS,
   getConstructionLabel,
+  formatProjectPostedAt,
   type ProjectPhase,
 } from '@/lib/utils';
 import { cn } from '@/lib/utils';
@@ -45,6 +46,7 @@ export function OwnerLiveProjectCard({
   priority,
 }: OwnerLiveProjectCardProps) {
   const configLabel = getConstructionLabel(project.track_type, project.sub_configuration);
+  const postedAt = formatProjectPostedAt(project.created_at);
   const isReveal = biddingHasEnded;
   const canSelect =
     biddingHasEnded &&
@@ -93,6 +95,15 @@ export function OwnerLiveProjectCard({
               <Users className="w-3 h-3" />
               {bidCount} bid{bidCount !== 1 ? 's' : ''}
             </div>
+            {postedAt && (
+              <>
+                <span className="text-muted-foreground/60 hidden sm:inline">·</span>
+                <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
+                  <CalendarDays className="w-3 h-3" />
+                  Posted {postedAt}
+                </span>
+              </>
+            )}
           </div>
         </div>
 

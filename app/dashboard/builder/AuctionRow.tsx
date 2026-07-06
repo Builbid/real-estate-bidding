@@ -7,7 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { CountdownTicker } from '@/components/shared/CountdownTicker';
 import { useCountdown } from '@/lib/hooks/useCountdown';
-import { TRACK_LABELS, getConstructionLabel } from '@/lib/utils';
+import { CalendarDays } from 'lucide-react';
+import { TRACK_LABELS, getConstructionLabel, formatProjectPostedAt } from '@/lib/utils';
 import type { Project, Bid } from '@/lib/types';
 
 interface AuctionRowProps {
@@ -24,6 +25,7 @@ export function AuctionRow({ project, myBid }: AuctionRowProps) {
   const bidHref = `/dashboard/builder/bid/${project.id}`;
 
   const configLabel = getConstructionLabel(project.track_type, project.sub_configuration);
+  const postedAt = formatProjectPostedAt(project.created_at);
 
   return (
     <div
@@ -49,10 +51,19 @@ export function AuctionRow({ project, myBid }: AuctionRowProps) {
           )}
         </div>
         <p className="text-sm font-semibold text-foreground truncate">{project.title}</p>
-        <div className="flex items-center gap-3 mt-1">
+        <div className="flex flex-wrap items-center gap-3 mt-1">
           <span className="text-xs text-muted-foreground">{project.district}</span>
           <span className="text-muted-foreground/60">·</span>
           <span className="text-xs text-muted-foreground">{configLabel}</span>
+          {postedAt && (
+            <>
+              <span className="text-muted-foreground/60">·</span>
+              <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
+                <CalendarDays className="w-3 h-3" />
+                Posted {postedAt}
+              </span>
+            </>
+          )}
         </div>
       </div>
 

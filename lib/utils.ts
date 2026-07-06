@@ -120,6 +120,21 @@ export function formatRelativeTime(dateISO: string | null | undefined): string {
   return `${days}d ago`;
 }
 
+/** Full date + time when a project was posted (Indian locale). */
+export function formatProjectPostedAt(dateISO: string | null | undefined): string | null {
+  if (!dateISO) return null;
+  const d = new Date(dateISO);
+  if (!Number.isFinite(d.getTime())) return null;
+  return d.toLocaleString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+}
+
 // ─── Track type display ─────────────────────────────────────
 export const TRACK_LABELS: Record<TrackType, string> = {
   RCC:       'RCC Construction',

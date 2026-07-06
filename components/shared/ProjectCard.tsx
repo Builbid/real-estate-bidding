@@ -1,12 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { MapPin, Layers, Clock, Users, ArrowRight, Building } from 'lucide-react';
+import { MapPin, Layers, Clock, Users, ArrowRight, Building, CalendarDays } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { CountdownTicker } from './CountdownTicker';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { cn, formatProjectPostedAt } from '@/lib/utils';
 import { BuildingConfigSummary } from '@/components/construction/BuildingConfigSummary';
 import {
   getFinishingBadge,
@@ -44,6 +44,7 @@ export function ProjectCard({
   const floorArea = getProjectFloorAreaDisplay(project);
   const budgetDisplay = getProjectBudgetDisplay(project);
   const finishingBadge = getFinishingBadge(project.finishing_level);
+  const postedAt = formatProjectPostedAt(project.created_at);
 
   return (
     <Card className={cn(
@@ -84,6 +85,12 @@ export function ProjectCard({
             <h3 className="text-base font-semibold text-foreground leading-snug line-clamp-2 group-hover:text-emerald-400 transition-colors">
               {project.title}
             </h3>
+            {postedAt && (isActive || isFrozen) && (
+              <p className="text-[11px] text-muted-foreground mt-1 inline-flex items-center gap-1">
+                <CalendarDays className="w-3 h-3" />
+                {t('project.postedOn')} {postedAt}
+              </p>
+            )}
           </div>
           <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-secondary border border-border flex items-center justify-center">
             <Building className="w-5 h-5 text-muted-foreground" />

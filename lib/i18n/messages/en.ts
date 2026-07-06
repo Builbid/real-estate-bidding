@@ -142,6 +142,7 @@ export const en = {
     lowestBidRate: 'Lowest Bid Rate',
     biddingClosesIn: 'Bidding Closes In',
     selectionWindow: 'Selection Window',
+    postedOn: 'Posted',
     constructionScope: 'Construction Scope',
     backToAuctions: 'Back to Auctions',
     viewProject: 'View Project',

@@ -144,6 +144,7 @@ export const as: Messages = {
     lowestBidRate: 'Lowest Bid Rate',
     biddingClosesIn: 'Bidding বন্ধ হ’ব',
     selectionWindow: 'Selection Window',
+    postedOn: 'Posted',
     constructionScope: 'Construction Scope',
     backToAuctions: 'Auctions লৈ উভতি যাওক',
     viewProject: 'Project চাওক',
