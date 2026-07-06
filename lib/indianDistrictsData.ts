@@ -313,11 +313,15 @@ export const INDIAN_DISTRICTS: IndianDistrict[] = [
     "state": "Assam"
   },
   {
-    "district": "Kamrup Metro",
+    "district": "Kamrup Metropolitan",
     "state": "Assam"
   },
   {
     "district": "Karbi Anglong",
+    "state": "Assam"
+  },
+  {
+    "district": "Karimganj",
     "state": "Assam"
   },
   {
@@ -333,7 +337,7 @@ export const INDIAN_DISTRICTS: IndianDistrict[] = [
     "state": "Assam"
   },
   {
-    "district": "Marigaon",
+    "district": "Morigaon",
     "state": "Assam"
   },
   {
@@ -353,11 +357,7 @@ export const INDIAN_DISTRICTS: IndianDistrict[] = [
     "state": "Assam"
   },
   {
-    "district": "South Salmara Mancachar",
-    "state": "Assam"
-  },
-  {
-    "district": "Sribhumi",
+    "district": "South Salmara-Mankachar",
     "state": "Assam"
   },
   {
