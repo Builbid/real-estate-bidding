@@ -12,7 +12,6 @@ import { SignOutConfirmDialog } from '@/components/shared/SignOutConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ThemeToggle } from '@/components/shared/ThemeToggle';
-import { LanguageSwitcher } from '@/components/shared/LanguageSwitcher';
 import { useTranslation } from '@/lib/context/LanguageProvider';
 import { cn } from '@/lib/utils';
 import { normalizeRole, getDashboardPath } from '@/lib/auth/roles';
@@ -124,16 +123,13 @@ export function Navbar({ overlay = false }: NavbarProps) {
             </Button>
           )}
 
-          <div className="flex items-center gap-2 sm:gap-3">
-            <LanguageSwitcher overlay={overlay} />
-            <ThemeToggle
-              className={
-                overlay
-                  ? 'border-white/30 text-slate-100 hover:bg-white/10 hover:text-white'
-                  : undefined
-              }
-            />
-          </div>
+          <ThemeToggle
+            className={
+              overlay
+                ? 'border-white/30 text-slate-100 hover:bg-white/10 hover:text-white'
+                : undefined
+            }
+          />
 
           {/* Mobile: avatar initial */}
           {profile && (
@@ -256,7 +252,6 @@ export function PublicNavbar() {
         </Link>
         <div className="flex items-center gap-3 sm:gap-4">
           <Button asChild><Link href="/login">{t('common.signIn')}</Link></Button>
-          <LanguageSwitcher />
           <ThemeToggle />
         </div>
       </div>
