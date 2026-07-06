@@ -4,10 +4,10 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
-  formatIndianCity,
-  searchIndianCities,
-  type IndianCity,
-} from '@/lib/indianCities';
+  formatIndianDistrict,
+  searchIndianDistricts,
+  type IndianDistrict,
+} from '@/lib/indianDistricts';
 
 interface IndianCityAutocompleteProps {
   value: string;
@@ -21,8 +21,8 @@ interface IndianCityAutocompleteProps {
 export function IndianCityAutocomplete({
   value,
   onChange,
-  label = 'City',
-  placeholder = 'Search city anywhere in India…',
+  label = 'District',
+  placeholder = 'Search district anywhere in India...',
   disabled = false,
   error,
 }: IndianCityAutocompleteProps) {
@@ -32,7 +32,7 @@ export function IndianCityAutocomplete({
   const [query, setQuery] = useState(value);
   const [activeIndex, setActiveIndex] = useState(-1);
 
-  const suggestions = searchIndianCities(query);
+  const suggestions = searchIndianDistricts(query);
 
   useEffect(() => {
     setQuery(value);
@@ -50,8 +50,8 @@ export function IndianCityAutocomplete({
     return () => document.removeEventListener('mousedown', handlePointerDown);
   }, []);
 
-  function selectCity(city: IndianCity) {
-    const formatted = formatIndianCity(city);
+  function selectDistrict(district: IndianDistrict) {
+    const formatted = formatIndianDistrict(district);
     setQuery(formatted);
     onChange(formatted);
     setOpen(false);
@@ -85,7 +85,7 @@ export function IndianCityAutocomplete({
 
     if (event.key === 'Enter' && activeIndex >= 0 && suggestions[activeIndex]) {
       event.preventDefault();
-      selectCity(suggestions[activeIndex]);
+      selectDistrict(suggestions[activeIndex]);
       return;
     }
 
@@ -143,8 +143,8 @@ export function IndianCityAutocomplete({
           role="listbox"
           className="absolute top-full z-50 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-border bg-popover py-1 shadow-lg"
         >
-          {suggestions.map((city, index) => {
-            const labelText = formatIndianCity(city);
+          {suggestions.map((district, index) => {
+            const labelText = formatIndianDistrict(district);
             return (
               <li key={labelText} role="option" aria-selected={index === activeIndex}>
                 <button
@@ -156,7 +156,7 @@ export function IndianCityAutocomplete({
                       : 'hover:bg-secondary/80',
                   )}
                   onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => selectCity(city)}
+                  onClick={() => selectDistrict(district)}
                   onMouseEnter={() => setActiveIndex(index)}
                 >
                   {labelText}
@@ -169,7 +169,7 @@ export function IndianCityAutocomplete({
 
       {open && query.trim() && suggestions.length === 0 && (
         <div className="absolute top-full z-50 mt-1 w-full rounded-lg border border-border bg-popover px-3 py-2.5 text-sm text-muted-foreground shadow-lg">
-          No matching cities. Try a different spelling.
+          No matching districts. Try a different spelling.
         </div>
       )}
     </div>

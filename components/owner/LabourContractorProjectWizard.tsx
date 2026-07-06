@@ -15,7 +15,7 @@ import { ConstructionTypeSelector } from '@/components/construction/Construction
 import { BuildingConfigSummary } from '@/components/construction/BuildingConfigSummary';
 import { sortBuildingTypes } from '@/lib/buildingConfig';
 import type { BuildingType, ConstructionTypesMap } from '@/lib/buildingConfig';
-import { parseIndianCitySelection } from '@/lib/indianCities';
+import { parseIndianDistrictSelection } from '@/lib/indianDistricts';
 import { IndianCityAutocomplete } from '@/components/shared/IndianCityAutocomplete';
 import { cn } from '@/lib/utils';
 import { createProjectAction } from '@/app/actions/createProject';
@@ -51,6 +51,14 @@ const EMPTY_FORM: FormState = {
   construction_types: {},
 };
 
+function parsePlotArea(value: string): number | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const parsed = parseFloat(trimmed);
+  if (Number.isNaN(parsed) || parsed <= 0) return null;
+  return parsed;
+}
+
 export function LabourContractorProjectWizard() {
   const router = useRouter();
   const { profile } = useProfile();
@@ -60,13 +68,50 @@ export function LabourContractorProjectWizard() {
   const [step2Error, setStep2Error] = useState<string | null>(null);
   const [step3Error, setStep3Error] = useState<string | null>(null);
   const [step3ValidationAttempted, setStep3ValidationAttempted] = useState(false);
+  const [step1ValidationAttempted, setStep1ValidationAttempted] = useState(false);
+  const [step1Errors, setStep1Errors] = useState<{
+    title?: string;
+    location?: string;
+    plot_area_sqft?: string;
+  }>({});
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((f) => ({ ...f, [key]: value }));
+    if (step1ValidationAttempted && (key === 'title' || key === 'location' || key === 'plot_area_sqft')) {
+      setStep1Errors((errors) => {
+        const next = { ...errors };
+        delete next[key];
+        return next;
+      });
+    }
   }
 
-  const canGoStep2 = form.title.trim() && !!parseIndianCitySelection(form.location);
+  function tryGoStep2() {
+    const errors: typeof step1Errors = {};
+
+    if (!form.title.trim()) {
+      errors.title = 'Project title is required.';
+    }
+
+    if (!parseIndianDistrictSelection(form.location)) {
+      errors.location = 'Please select a district from the suggestions list.';
+    }
+
+    if (parsePlotArea(form.plot_area_sqft) === null) {
+      errors.plot_area_sqft = 'Plot area is required and must be a positive number.';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setStep1ValidationAttempted(true);
+      setStep1Errors(errors);
+      return;
+    }
+
+    setStep1ValidationAttempted(false);
+    setStep1Errors({});
+    setStep(2);
+  }
 
   function tryGoStep3() {
     if (form.building_types.length === 0) {
@@ -100,9 +145,16 @@ export function LabourContractorProjectWizard() {
     setLoading(true);
     setError(null);
 
-    const citySelection = parseIndianCitySelection(form.location);
-    if (!citySelection) {
-      setError('Please select a city from the suggestions list.');
+    const districtSelection = parseIndianDistrictSelection(form.location);
+    if (!districtSelection) {
+      setError('Please select a district from the suggestions list.');
+      setLoading(false);
+      return;
+    }
+
+    const plotArea = parsePlotArea(form.plot_area_sqft);
+    if (plotArea === null) {
+      setError('Plot area is required and must be a positive number.');
       setLoading(false);
       return;
     }
@@ -112,9 +164,9 @@ export function LabourContractorProjectWizard() {
       description: form.description.trim() || undefined,
       building_types: form.building_types,
       construction_types: form.construction_types,
-      district: citySelection.city,
-      state: citySelection.state,
-      plot_area_sqft: form.plot_area_sqft ? parseFloat(form.plot_area_sqft) : null,
+      district: districtSelection.district,
+      state: districtSelection.state,
+      plot_area_sqft: plotArea,
       bidding_minutes: parseInt(form.bidding_minutes, 10),
     });
 
@@ -190,9 +242,10 @@ export function LabourContractorProjectWizard() {
               <Input
                 label="Project Title"
                 type="text"
-                placeholder="e.g. 2BHK Residential Construction, Guwahati"
+                placeholder="e.g. 2BHK Residential Construction, Delhi"
                 value={form.title}
                 onChange={(e) => update('title', e.target.value)}
+                error={step1ValidationAttempted ? step1Errors.title : undefined}
                 required
               />
 
@@ -211,15 +264,19 @@ export function LabourContractorProjectWizard() {
               <IndianCityAutocomplete
                 value={form.location}
                 onChange={(v) => update('location', v)}
+                error={step1ValidationAttempted ? step1Errors.location : undefined}
               />
 
               <Input
-                label="Plot Area (sqft, optional)"
+                label="Plot Area (sqft)"
                 type="number"
                 placeholder="e.g. 1500"
                 value={form.plot_area_sqft}
                 onChange={(e) => update('plot_area_sqft', e.target.value)}
+                error={step1ValidationAttempted ? step1Errors.plot_area_sqft : undefined}
                 prefix={<MapPin className="w-3.5 h-3.5" />}
+                required
+                min={1}
               />
 
               <div className="flex flex-col gap-1.5">
@@ -240,7 +297,7 @@ export function LabourContractorProjectWizard() {
                 </p>
               </div>
 
-              <Button size="lg" className="w-full" disabled={!canGoStep2} onClick={() => setStep(2)}>
+              <Button size="lg" className="w-full" onClick={tryGoStep2}>
                 Continue <ArrowRight className="w-4 h-4" />
               </Button>
             </div>
@@ -368,7 +425,7 @@ export function LabourContractorProjectWizard() {
               <div className="rounded-xl bg-secondary/50 border border-border divide-y divide-border">
                 {[
                   { label: 'Project Title', value: form.title },
-                  { label: 'City', value: form.location },
+                  { label: 'District', value: form.location },
                   {
                     label: 'Building Types',
                     value: (
@@ -389,9 +446,7 @@ export function LabourContractorProjectWizard() {
                         : '24 hours from launch',
                   },
                   { label: 'Selection Window', value: '5 minutes after bids close' },
-                  ...(form.plot_area_sqft
-                    ? [{ label: 'Plot Area', value: `${form.plot_area_sqft} sqft` }]
-                    : []),
+                  { label: 'Plot Area', value: `${form.plot_area_sqft} sqft` },
                 ].map(({ label, value }) => (
                   <div key={label} className="flex items-center justify-between gap-4 px-4 py-3">
                     <span className="text-xs text-muted-foreground flex-shrink-0">{label}</span>
@@ -436,6 +491,8 @@ export function LabourContractorProjectWizard() {
                   onClick={() => {
                     setStep(1);
                     setForm(EMPTY_FORM);
+                    setStep1ValidationAttempted(false);
+                    setStep1Errors({});
                   }}
                 >
                   Post Another

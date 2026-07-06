@@ -21,7 +21,7 @@ interface CreateProjectBase {
 export interface CreateLabourProjectInput extends CreateProjectBase {
   service_type?: 'labour_contractor'
   construction_types: ConstructionTypesMap
-  plot_area_sqft?: number | null
+  plot_area_sqft: number
 }
 
 export interface CreateFirmProjectInput extends CreateProjectBase {
@@ -87,7 +87,14 @@ export async function createProjectAction(
     insertPayload.drawing_url = firm.drawing_url ?? null
   } else {
     const labour = input as CreateLabourProjectInput
-    insertPayload.plot_area_sqft = labour.plot_area_sqft ?? null
+    if (
+      labour.plot_area_sqft == null ||
+      !Number.isFinite(labour.plot_area_sqft) ||
+      labour.plot_area_sqft <= 0
+    ) {
+      return { error: 'Plot area is required and must be a positive number.' }
+    }
+    insertPayload.plot_area_sqft = labour.plot_area_sqft
   }
 
   const { data: project, error } = await supabase
