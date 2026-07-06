@@ -27,17 +27,26 @@ export function FirmAuctionRow({ project, myBid }: FirmAuctionRowProps) {
 
   const hasBid = !!myBid;
   const isExpired = countdown.isExpired;
-  const bidHref = `/dashboard/firm/bid/${project.id}`;
+  const hasProjectId = Boolean(project?.id);
+  const bidHref = hasProjectId ? `/dashboard/firm/bid/${project.id}` : '/dashboard/firm';
   const finishingBadge = getFinishingBadge(project.finishing_level);
   const floorArea = getProjectFloorAreaDisplay(project);
   const budget = getProjectBudgetDisplay(project);
 
+  function handleRowClick() {
+    if (!hasProjectId) {
+      console.error('FirmAuctionRow: project.id is missing — cannot open bid page');
+      return;
+    }
+    router.push(bidHref);
+  }
+
   return (
     <div
-      onClick={() => router.push(bidHref)}
-      className={`flex items-center gap-4 p-4 rounded-xl border bg-card/80 dark:bg-card/60 hover:border-violet-500/30 transition-colors cursor-pointer ${
-        hasBid ? 'border-violet-500/30' : 'border-border'
-      }`}
+      onClick={handleRowClick}
+      className={`flex items-center gap-4 p-4 rounded-xl border bg-card/80 dark:bg-card/60 hover:border-violet-500/30 transition-colors ${
+        hasProjectId ? 'cursor-pointer' : 'cursor-not-allowed opacity-70'
+      } ${hasBid ? 'border-violet-500/30' : 'border-border'}`}
     >
       <div className="flex-1 min-w-0">
         <div className="flex flex-wrap items-center gap-2 mb-1">
@@ -87,7 +96,7 @@ export function FirmAuctionRow({ project, myBid }: FirmAuctionRowProps) {
       </div>
 
       <div onClick={(e) => { if (!isExpired) e.stopPropagation(); }}>
-        {isExpired ? (
+        {isExpired || !hasProjectId ? (
           <Button size="sm" variant={hasBid ? 'outline' : 'default'} disabled>
             {hasBid ? 'Update Bid' : 'Place Bid'}
             <ArrowRight className="w-3.5 h-3.5 ml-1" />

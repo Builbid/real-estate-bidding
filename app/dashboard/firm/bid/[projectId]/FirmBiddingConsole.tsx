@@ -314,6 +314,8 @@ export function FirmBiddingConsole({
                 floorAreaSqft={project.floor_area_sqft}
                 biddingEndsAt={project.bidding_ends_at}
                 highlightFirmId={firmId}
+                viewerCompanyName={companyName}
+                assumeAuthenticated
                 showViewProfile={false}
               />
             </CardContent>

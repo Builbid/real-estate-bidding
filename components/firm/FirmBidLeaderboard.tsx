@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trophy, TrendingDown, EyeOff, Clock } from 'lucide-react';
@@ -25,6 +25,9 @@ interface FirmBidLeaderboardProps {
   biddingEndsAt: string;
   initialFirms?: Record<string, PublicFirmProfile>;
   highlightFirmId?: string | null;
+  viewerCompanyName?: string | null;
+  /** When true, skip the sign-in gate (bid console is already auth-protected server-side). */
+  assumeAuthenticated?: boolean;
   showViewProfile?: boolean;
   compact?: boolean;
 }
@@ -42,10 +45,12 @@ export function FirmBidLeaderboard({
   biddingEndsAt,
   initialFirms,
   highlightFirmId,
+  viewerCompanyName,
+  assumeAuthenticated = false,
   showViewProfile = true,
   compact = false,
 }: FirmBidLeaderboardProps) {
-  const supabase = createClient();
+  const supabaseRef = useRef(createClient());
   const { bids, loading } = useRealtimeFirmBids(projectId);
   const { profile } = useProfile();
   const [firms, setFirms] = useState<Record<string, PublicFirmProfile>>(initialFirms ?? {});
@@ -53,7 +58,7 @@ export function FirmBidLeaderboard({
 
   const isActive = projectStatus === 'active_24h';
   const isFrozen = projectStatus === 'frozen_24h';
-  const isLoggedIn = !!profile;
+  const isLoggedIn = assumeAuthenticated || !!profile || !!highlightFirmId;
   const biddingClosed = !isActive && !isFrozen;
 
   useEffect(() => {
@@ -63,12 +68,13 @@ export function FirmBidLeaderboard({
 
     if (missingIds.length === 0) return;
 
+    const supabase = supabaseRef.current;
     supabase
       .from('firms_public')
       .select('*')
       .in('id', missingIds)
-      .then(({ data }) => {
-        if (!data) return;
+      .then(({ data, error }) => {
+        if (error || !data) return;
         setFirms((prev) => ({
           ...prev,
           ...Object.fromEntries(
@@ -144,10 +150,13 @@ export function FirmBidLeaderboard({
           {bids.map((bid, index) => {
             const rank = index + 1;
             const rankStyle = RANK_STYLES[rank] ?? 'text-muted-foreground bg-secondary/30 border-border';
-            const isMe = profile?.id === bid.builder_id || highlightFirmId === bid.builder_id;
+            const isMe = highlightFirmId === bid.builder_id || profile?.id === bid.builder_id;
             const isLowest = index === 0;
             const firm = bid.builder_id ? firms[bid.builder_id] : undefined;
-            const companyName = firm?.company_name ?? (isMe ? profile?.company_name : null) ?? `Firm #${bid.builder_id?.slice(-6).toUpperCase() ?? '?'}`;
+            const companyName =
+              firm?.company_name
+              ?? (isMe ? (viewerCompanyName ?? profile?.company_name) : null)
+              ?? `Firm #${bid.builder_id?.slice(-6).toUpperCase() ?? '?'}`;
             const city = getFirmCityLabel(firm);
             const years = firm?.years_in_business;
             const rate = getBidDisplayRate(bid);

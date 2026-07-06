@@ -1,8 +1,10 @@
 export const dynamic = 'force-dynamic';
 
 import { getAuthUser } from '@/lib/supabase/getUser';
-import { redirect, notFound } from 'next/navigation';
+import { notFound } from 'next/navigation';
+import { normalizeRole } from '@/lib/auth/roles';
 import { CrossBiddingBlocked } from '@/components/firm/CrossBiddingBlocked';
+import { RoleGuardBlocked } from '@/components/firm/RoleGuardBlocked';
 import { FirmBiddingConsole } from './FirmBiddingConsole';
 import { isFirmProject } from '@/lib/project/display';
 import type { Project, Bid } from '@/lib/types';
@@ -14,21 +16,34 @@ interface PageProps {
 async function getData(projectId: string) {
   const { supabase, userId, role, email, fullName } = await getAuthUser();
 
-  const { data: dbProfile } = await supabase.from('profiles').select('*').eq('id', userId).single();
-  const profile = dbProfile ?? {
-    id: userId, email, full_name: fullName, role,
-    mobile: null, physical_address: null, pincode: null,
-    company_name: null, logo_url: null,
-    created_at: '', updated_at: '',
-  };
+  await supabase.rpc('expire_active_projects');
 
-  if (profile.role !== 'construction_firm') redirect('/dashboard');
+  const { data: dbProfile } = await supabase.from('profiles').select('*').eq('id', userId).single();
+  const effectiveRole = normalizeRole(dbProfile?.role ?? role);
+
+  if (effectiveRole !== 'construction_firm') {
+    return { blocked: 'wrong_role' as const, profile: null, project: null, existingBid: null, userId };
+  }
+
+  const profile = dbProfile ?? {
+    id: userId,
+    email,
+    full_name: fullName,
+    role: effectiveRole,
+    mobile: null,
+    physical_address: null,
+    pincode: null,
+    company_name: null,
+    logo_url: null,
+    created_at: '',
+    updated_at: '',
+  };
 
   const { data: project } = await supabase.from('projects').select('*').eq('id', projectId).single();
   if (!project) notFound();
 
   if (!isFirmProject(project as Project)) {
-    return { blocked: 'contractor_only' as const, profile: null, project: null, existingBid: null };
+    return { blocked: 'contractor_only' as const, profile: null, project: null, existingBid: null, userId };
   }
 
   const { data: existingBid } = await supabase
@@ -51,21 +66,22 @@ export default async function FirmBidPage({ params }: PageProps) {
   const { projectId } = await params;
   const data = await getData(projectId);
 
+  if (data.blocked === 'wrong_role') {
+    return (
+      <RoleGuardBlocked
+        message="This project requires a Construction Firm account."
+        backHref="/dashboard/builder"
+        backLabel="Back to Contractor Console"
+      />
+    );
+  }
+
   if (data.blocked === 'contractor_only') {
     return <CrossBiddingBlocked variant="contractor_only" backHref="/dashboard/firm" />;
   }
 
   const { project, existingBid, profile, userId } = data;
   if (!project || !profile) notFound();
-
-  const inGracePeriod =
-    project.status === 'frozen_24h' &&
-    project.selection_ends_at != null &&
-    new Date(project.selection_ends_at) > new Date();
-
-  if (project.status !== 'active_24h' && !inGracePeriod) {
-    redirect('/dashboard/firm');
-  }
 
   return (
     <FirmBiddingConsole

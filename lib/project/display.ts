@@ -1,5 +1,5 @@
 import type { FinishingLevel, ServiceType } from '@/lib/types';
-import { getFinishingClassBadge } from '@/lib/firm/finishingLevel';
+import { FINISHING_LEVEL_CONFIG, getFinishingClassBadge } from '@/lib/firm/finishingLevel';
 import { formatBudgetRange } from '@/lib/formatIndianCurrency';
 
 export function getProjectServiceType(project: { service_type?: ServiceType | null }): ServiceType {
@@ -36,5 +36,6 @@ export function getProjectBudgetDisplay(project: {
 
 export function getFinishingBadge(level: FinishingLevel | null | undefined): string | null {
   if (!level) return null;
+  if (!(level in FINISHING_LEVEL_CONFIG)) return null;
   return getFinishingClassBadge(level);
 }

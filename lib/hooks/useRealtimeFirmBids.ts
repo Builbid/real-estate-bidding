@@ -1,8 +1,12 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { createClient } from '../supabase/client';
 import type { Bid } from '../types';
+
+const BID_COLUMNS_BASE =
+  'id, project_id, rates, total_sum_metric, created_at, updated_at, builder_id';
+const BID_COLUMNS_EXTENDED = `${BID_COLUMNS_BASE}, single_rate, service_type`;
 
 /**
  * Realtime bids for construction firm projects — separate from useRealtimeBids
@@ -12,30 +16,39 @@ export function useRealtimeFirmBids(projectId: string) {
   const [bids, setBids] = useState<Bid[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const supabase = createClient();
+  const supabaseRef = useRef(createClient());
 
   const fetchBids = useCallback(async () => {
-    const { data, error: fetchError } = await supabase
+    const supabase = supabaseRef.current;
+
+    const extended = await supabase
       .from('bids_public')
-      .select('*')
+      .select(BID_COLUMNS_EXTENDED)
       .eq('project_id', projectId)
       .order('total_sum_metric', { ascending: true });
 
-    if (fetchError) {
-      setError(fetchError.message);
+    const response = extended.error
+      ? await supabase
+          .from('bids_public')
+          .select(BID_COLUMNS_BASE)
+          .eq('project_id', projectId)
+          .order('total_sum_metric', { ascending: true })
+      : extended;
+
+    if (response.error) {
+      setError(response.error.message);
+      setBids([]);
     } else {
-      const firmBids = ((data ?? []) as Bid[]).filter(
-        (b) => b.service_type === 'construction_firm' || b.single_rate != null,
-      );
-      setBids(firmBids);
+      setError(null);
+      setBids((response.data ?? []) as Bid[]);
     }
     setLoading(false);
-  }, [projectId, supabase]);
+  }, [projectId]);
 
   useEffect(() => {
     fetchBids();
 
+    const supabase = supabaseRef.current;
     const channel = supabase
       .channel(`firm-bids:${projectId}`)
       .on(
@@ -55,7 +68,7 @@ export function useRealtimeFirmBids(projectId: string) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [projectId, fetchBids, supabase]);
+  }, [projectId, fetchBids]);
 
   return { bids, loading, error, refetch: fetchBids };
 }
