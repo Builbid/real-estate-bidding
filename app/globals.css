@@ -98,8 +98,11 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
+  html.profile-drawer-open,
   body.profile-drawer-open {
-    overflow: hidden !important;
+    overflow-y: auto !important;
+    height: auto;
+    min-height: 100%;
   }
 
   .scrollbar-thin::-webkit-scrollbar {
