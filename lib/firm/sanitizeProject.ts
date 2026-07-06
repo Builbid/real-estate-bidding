@@ -22,6 +22,13 @@ function parseJsonObject<T extends Record<string, unknown>>(raw: unknown): T | n
 }
 
 function normalizeBuildingTypes(raw: unknown): BuildingType[] {
+  if (typeof raw === 'string') {
+    try {
+      raw = JSON.parse(raw) as unknown;
+    } catch {
+      return [];
+    }
+  }
   if (!Array.isArray(raw)) return [];
   return raw.filter(
     (t): t is BuildingType => typeof t === 'string' && VALID_BUILDING_TYPES.has(t),

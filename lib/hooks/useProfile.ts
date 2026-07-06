@@ -2,14 +2,12 @@
 
 import { useOptionalProfileUpdate } from '../context/ProfileProvider';
 
+/** Profile from dashboard ProfileProvider — never throws. */
 export function useProfile() {
   const ctx = useOptionalProfileUpdate();
-  if (!ctx) {
-    throw new Error('useProfile must be used within ProfileProvider');
-  }
   return {
-    profile: ctx.profile,
-    loading: ctx.loading,
-    clearProfile: ctx.clearProfile,
+    profile: ctx?.profile ?? null,
+    loading: ctx?.loading ?? false,
+    clearProfile: ctx?.clearProfile ?? (() => {}),
   };
 }

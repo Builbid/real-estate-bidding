@@ -2,8 +2,10 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, CheckCircle2, AlertCircle, Clock, Download, FileText,
+  TrendingDown, Trophy,
 } from 'lucide-react';
 import { CountdownTicker } from '@/components/shared/CountdownTicker';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,13 +14,18 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { BuildingConfigSummary } from '@/components/construction/BuildingConfigSummary';
 import { FirmLogo } from '@/components/firm/FirmLogo';
-import { FirmBidLeaderboard } from '@/components/firm/FirmBidLeaderboard';
 import { useRealtimeFirmBids } from '@/lib/hooks/useRealtimeFirmBids';
+import { createClient } from '@/lib/supabase/client';
 import {
   getFinishingBadge,
   getProjectBudgetDisplay,
   getProjectFloorAreaDisplay,
 } from '@/lib/project/display';
+import {
+  formatBidRatePerSqft,
+  formatEstimatedTotal,
+  formatEstimatedTotalLabel,
+} from '@/lib/firm/bidDisplay';
 import {
   BID_RATE_ERROR,
   getBidRateFieldError,
@@ -28,10 +35,9 @@ import {
   sanitizeBidRateInput,
   validateSingleRate,
 } from '@/lib/validation/singleRate';
-import { formatEstimatedTotalLabel } from '@/lib/firm/bidDisplay';
 import { submitFirmBidAction } from '@/app/actions/firmBid';
-import { cn } from '@/lib/utils';
-import type { Project, Bid } from '@/lib/types';
+import { cn, formatRelativeTime } from '@/lib/utils';
+import type { Project, Bid, PublicFirmProfile } from '@/lib/types';
 
 interface Props {
   project: Project;
@@ -49,8 +55,10 @@ export function FirmBiddingConsole({
   logoUrl,
 }: Props) {
   const leaderboardRef = useRef<HTMLDivElement>(null);
+  const supabaseRef = useRef(createClient());
   const projectId = project?.id ?? '';
-  const { bids } = useRealtimeFirmBids(projectId);
+  const { bids, loading: bidsLoading } = useRealtimeFirmBids(projectId);
+  const [firms, setFirms] = useState<Record<string, PublicFirmProfile>>({});
 
   const safeCompanyName = companyName?.trim() || 'Your Firm';
   const buildingTypes = project?.building_types ?? [];
@@ -77,6 +85,30 @@ export function FirmBiddingConsole({
   const finishingBadge = getFinishingBadge(project?.finishing_level ?? null);
   const floorAreaDisplay = getProjectFloorAreaDisplay(project);
   const budgetDisplay = getProjectBudgetDisplay(project);
+
+  useEffect(() => {
+    const missingIds = bids
+      .map((b) => b.builder_id)
+      .filter((id): id is string => !!id && !firms[id]);
+
+    if (missingIds.length === 0) return;
+
+    const supabase = supabaseRef.current;
+    supabase
+      .from('firms_public')
+      .select('*')
+      .in('id', missingIds)
+      .then(({ data, error: fetchError }) => {
+        if (fetchError || !data) return;
+        setFirms((prev) => ({
+          ...prev,
+          ...Object.fromEntries(
+            (data as PublicFirmProfile[]).map((f) => [f.id, f]),
+          ),
+        }));
+      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bids]);
 
   useEffect(() => {
     if (!rateInput) {
@@ -234,11 +266,9 @@ export function FirmBiddingConsole({
                 <p className="text-xs text-muted-foreground">
                   Location: {project?.district ?? 'Location not specified'}
                 </p>
-                {budgetDisplay ? (
-                  <p className="text-xs text-muted-foreground">Budget: {budgetDisplay}</p>
-                ) : (
-                  <p className="text-xs text-muted-foreground">Budget: Not specified</p>
-                )}
+                <p className="text-xs text-muted-foreground">
+                  Budget: {budgetDisplay ?? 'Not specified'}
+                </p>
                 {project?.drawing_url ? (
                   <a
                     href={project.drawing_url}
@@ -336,19 +366,108 @@ export function FirmBiddingConsole({
         <div ref={leaderboardRef} className="min-w-0">
           <Card className={cn('h-full', !isBiddingOpen && 'opacity-95')}>
             <CardHeader className="p-4 pb-2">
-              <CardTitle className="text-base">Live Leaderboard</CardTitle>
+              <CardTitle className="flex items-center justify-between text-base">
+                <div className="flex items-center gap-2">
+                  <TrendingDown className="w-4 h-4 text-emerald-400" />
+                  Live Leaderboard
+                </div>
+                {isBiddingOpen && project?.bidding_ends_at && (
+                  <CountdownTicker targetDateISO={project.bidding_ends_at} compact />
+                )}
+              </CardTitle>
             </CardHeader>
             <CardContent className="px-4 pb-4 pt-0">
-              <FirmBidLeaderboard
-                projectId={projectId}
-                projectStatus={project?.status ?? 'completed'}
-                floorAreaSqft={floorAreaSqft}
-                biddingEndsAt={project?.bidding_ends_at ?? new Date().toISOString()}
-                highlightFirmId={firmId}
-                viewerCompanyName={safeCompanyName}
-                assumeAuthenticated
-                showViewProfile={false}
-              />
+              {bidsLoading ? (
+                <div className="space-y-2">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="h-16 rounded-lg bg-secondary/50 animate-pulse" />
+                  ))}
+                </div>
+              ) : bids.length === 0 ? (
+                <div className="flex flex-col items-center justify-center gap-3 py-10 rounded-xl bg-secondary/30 border border-border text-center">
+                  <Trophy className="w-8 h-8 text-muted-foreground/60" />
+                  <p className="text-sm font-semibold text-foreground">No Bids Yet</p>
+                  <p className="text-xs text-muted-foreground">Be the first firm to submit a competitive rate.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <AnimatePresence mode="popLayout">
+                    {bids.map((bid, index) => {
+                      const isMe = bid.builder_id === firmId;
+                      const isLowest = index === 0;
+                      const firm = bid.builder_id ? firms[bid.builder_id] : undefined;
+                      const rowName = isMe
+                        ? safeCompanyName
+                        : firm?.company_name ?? (bid.builder_id ? `Firm #${bid.builder_id.slice(-6).toUpperCase()}` : 'Firm');
+                      const estTotal = formatEstimatedTotal(
+                        bid.single_rate ?? bid.total_sum_metric ?? bid.rates?.ground_rate ?? 0,
+                        floorAreaSqft,
+                      );
+
+                      return (
+                        <motion.div
+                          key={bid.id}
+                          layout
+                          initial={{ opacity: 0, x: 10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, scale: 0.96 }}
+                          transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+                          className={cn(
+                            'relative flex flex-wrap items-center gap-3 px-3 py-3 rounded-lg border',
+                            isLowest ? 'bg-emerald-500/5 border-emerald-500/25' : 'bg-secondary/30 border-border',
+                            isMe && 'ring-1 ring-violet-500/40',
+                          )}
+                        >
+                          {isLowest && (
+                            <div className="absolute -top-px left-0 right-0 h-0.5 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-t-lg" />
+                          )}
+
+                          <div className={cn(
+                            'flex-shrink-0 w-8 h-8 rounded-md border text-xs font-bold flex items-center justify-center',
+                            index === 0 ? 'text-amber-400 bg-amber-500/10 border-amber-500/30'
+                              : index === 1 ? 'text-slate-300 bg-slate-500/10 border-slate-400/30'
+                              : index === 2 ? 'text-orange-400 bg-orange-500/10 border-orange-500/30'
+                              : 'text-muted-foreground bg-secondary/30 border-border',
+                          )}>
+                            {index < 3 ? ['🥇', '🥈', '🥉'][index] : index + 1}
+                          </div>
+
+                          <FirmLogo
+                            companyName={rowName}
+                            logoUrl={isMe ? (logoUrl ?? firm?.logo_url) : firm?.logo_url}
+                            size="md"
+                          />
+
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold text-foreground truncate">{rowName}</p>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <Clock className="w-2.5 h-2.5 text-muted-foreground/80" />
+                              <p className="text-[10px] text-muted-foreground/80">
+                                {formatRelativeTime(bid.created_at)}
+                              </p>
+                              {isMe && (
+                                <span className="text-[10px] font-semibold text-violet-400 bg-violet-500/10 px-1.5 py-0.5 rounded">You</span>
+                              )}
+                              {isLowest && (
+                                <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">Lowest Bid 🏆</span>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="text-right flex-shrink-0">
+                            <p className={cn('text-base font-bold tabular-nums', isLowest ? 'text-emerald-400' : 'text-foreground')}>
+                              {formatBidRatePerSqft(bid)}
+                            </p>
+                            {estTotal && (
+                              <p className="text-[10px] text-muted-foreground">~{estTotal} total</p>
+                            )}
+                          </div>
+                        </motion.div>
+                      );
+                    })}
+                  </AnimatePresence>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

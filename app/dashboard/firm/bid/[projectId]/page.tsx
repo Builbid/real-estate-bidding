@@ -1,12 +1,13 @@
 export const dynamic = 'force-dynamic';
 
 import { getAuthUser } from '@/lib/supabase/getUser';
+import { isRedirectError } from 'next/dist/client/components/redirect-error';
 import { notFound } from 'next/navigation';
 import { normalizeRole } from '@/lib/auth/roles';
 import { CrossBiddingBlocked } from '@/components/firm/CrossBiddingBlocked';
 import { RoleGuardBlocked } from '@/components/firm/RoleGuardBlocked';
 import { FirmBidFetchError } from '@/components/firm/FirmBidFetchError';
-import { FirmBiddingConsole } from './FirmBiddingConsole';
+import { FirmBiddingConsoleLoader } from './FirmBiddingConsoleLoader';
 import { isFirmProject } from '@/lib/project/display';
 import { sanitizeFirmBid, sanitizeFirmProject } from '@/lib/firm/sanitizeProject';
 import type { Bid, Profile, Project } from '@/lib/types';
@@ -111,6 +112,18 @@ async function getData(projectId: string): Promise<PageData> {
       userId,
     };
   } catch (err) {
+    if (isRedirectError(err)) {
+      throw err;
+    }
+    if (
+      err &&
+      typeof err === 'object' &&
+      'digest' in err &&
+      typeof (err as { digest: string }).digest === 'string' &&
+      (err as { digest: string }).digest.startsWith('NEXT_NOT_FOUND')
+    ) {
+      throw err;
+    }
     console.error('[FirmBidPage] unexpected error:', err);
     return { blocked: 'fetch_error' };
   }
@@ -149,7 +162,7 @@ export default async function FirmBidPage({ params }: PageProps) {
   const { project, existingBid, profile, userId } = data;
 
   return (
-    <FirmBiddingConsole
+    <FirmBiddingConsoleLoader
       project={project}
       existingBid={existingBid}
       firmId={userId}
