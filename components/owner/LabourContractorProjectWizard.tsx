@@ -15,8 +15,10 @@ import { ConstructionTypeSelector } from '@/components/construction/Construction
 import { BuildingConfigSummary } from '@/components/construction/BuildingConfigSummary';
 import { sortBuildingTypes } from '@/lib/buildingConfig';
 import type { BuildingType, ConstructionTypesMap } from '@/lib/buildingConfig';
-import { parseIndianDistrictSelection } from '@/lib/indianDistricts';
-import { IndianCityAutocomplete } from '@/components/shared/IndianCityAutocomplete';
+import {
+  IndianCityAutocomplete,
+  parseIndianDistrictSelection,
+} from '@/components/shared/IndianCityAutocomplete';
 import { cn } from '@/lib/utils';
 import { createProjectAction } from '@/app/actions/createProject';
 
@@ -78,10 +80,15 @@ export function LabourContractorProjectWizard() {
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((f) => ({ ...f, [key]: value }));
-    if (step1ValidationAttempted && (key === 'title' || key === 'location' || key === 'plot_area_sqft')) {
+    if (
+      step1ValidationAttempted &&
+      (key === 'title' || key === 'location' || key === 'plot_area_sqft')
+    ) {
       setStep1Errors((errors) => {
         const next = { ...errors };
-        delete next[key];
+        if (key === 'title') delete next.title;
+        if (key === 'location') delete next.location;
+        if (key === 'plot_area_sqft') delete next.plot_area_sqft;
         return next;
       });
     }

@@ -1,13 +1,40 @@
 'use client';
 
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import {
-  formatIndianDistrict,
-  searchIndianDistricts,
-  type IndianDistrict,
-} from '@/lib/indianDistricts';
+import { INDIAN_DISTRICTS, type IndianDistrict } from '@/lib/indianDistrictsData';
+
+export type { IndianDistrict };
+
+function formatDistrictLabel({ district, state }: IndianDistrict): string {
+  return `${district}, ${state}`;
+}
+
+function searchDistricts(query: string, limit = 10): IndianDistrict[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return [];
+
+  const matches: IndianDistrict[] = [];
+  for (const entry of INDIAN_DISTRICTS) {
+    const label = formatDistrictLabel(entry).toLowerCase();
+    if (label.includes(q) || entry.district.toLowerCase().includes(q)) {
+      matches.push(entry);
+      if (matches.length >= limit) break;
+    }
+  }
+  return matches;
+}
+
+const districtLookup = new Map<string, IndianDistrict>(
+  INDIAN_DISTRICTS.map((entry) => [formatDistrictLabel(entry).toLowerCase(), entry]),
+);
+
+export function parseIndianDistrictSelection(value: string): IndianDistrict | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  return districtLookup.get(trimmed.toLowerCase()) ?? null;
+}
 
 interface IndianCityAutocompleteProps {
   value: string;
@@ -32,7 +59,7 @@ export function IndianCityAutocomplete({
   const [query, setQuery] = useState(value);
   const [activeIndex, setActiveIndex] = useState(-1);
 
-  const suggestions = searchIndianDistricts(query);
+  const suggestions = useMemo(() => searchDistricts(query), [query]);
 
   useEffect(() => {
     setQuery(value);
@@ -51,7 +78,7 @@ export function IndianCityAutocomplete({
   }, []);
 
   function selectDistrict(district: IndianDistrict) {
-    const formatted = formatIndianDistrict(district);
+    const formatted = formatDistrictLabel(district);
     setQuery(formatted);
     onChange(formatted);
     setOpen(false);
@@ -144,7 +171,7 @@ export function IndianCityAutocomplete({
           className="absolute top-full z-50 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-border bg-popover py-1 shadow-lg"
         >
           {suggestions.map((district, index) => {
-            const labelText = formatIndianDistrict(district);
+            const labelText = formatDistrictLabel(district);
             return (
               <li key={labelText} role="option" aria-selected={index === activeIndex}>
                 <button

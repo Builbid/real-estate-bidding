@@ -1,4 +1,9 @@
-[
+export interface IndianDistrict {
+  district: string;
+  state: string;
+}
+
+export const INDIAN_DISTRICTS: IndianDistrict[] = [
   {
     "district": "Nicobars",
     "state": "Andaman and Nicobar Islands"
@@ -3135,4 +3140,4 @@
     "district": "Uttar Dinajpur",
     "state": "West Bengal"
   }
-]
+] as IndianDistrict[];
