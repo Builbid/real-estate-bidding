@@ -106,8 +106,11 @@ export const STATUS_CONFIG = {
   cancelled:   { label: 'Cancelled',     color: 'red',     badge: 'bg-red-500/15 text-red-700 border-red-500/30 dark:text-red-400' },
 } as const;
 
-export function formatRelativeTime(dateISO: string): string {
-  const diff = Date.now() - new Date(dateISO).getTime();
+export function formatRelativeTime(dateISO: string | null | undefined): string {
+  if (!dateISO) return '—';
+  const ts = new Date(dateISO).getTime();
+  if (!Number.isFinite(ts)) return '—';
+  const diff = Date.now() - ts;
   const minutes = Math.floor(diff / 60000);
   if (minutes < 1) return 'just now';
   if (minutes < 60) return `${minutes}m ago`;

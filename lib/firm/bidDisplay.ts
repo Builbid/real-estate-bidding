@@ -3,11 +3,14 @@ import { formatIndianCompact } from '@/lib/formatIndianCurrency';
 
 /** Display rate for any bid — firm uses single_rate when present */
 export function getBidDisplayRate(bid: Bid): number {
-  return bid.single_rate ?? bid.total_sum_metric;
+  const rate = bid.single_rate ?? bid.total_sum_metric ?? bid.rates?.ground_rate;
+  return typeof rate === 'number' && Number.isFinite(rate) && rate > 0 ? rate : 0;
 }
 
 export function formatBidRatePerSqft(bid: Bid): string {
-  return `₹${getBidDisplayRate(bid).toLocaleString('en-IN')}/sqft`;
+  const rate = getBidDisplayRate(bid);
+  if (rate <= 0) return '—';
+  return `₹${rate.toLocaleString('en-IN')}/sqft`;
 }
 
 export function formatEstimatedTotal(rate: number, floorAreaSqft: number | null | undefined): string | null {

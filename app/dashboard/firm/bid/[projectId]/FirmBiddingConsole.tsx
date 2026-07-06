@@ -49,11 +49,16 @@ export function FirmBiddingConsole({
   logoUrl,
 }: Props) {
   const leaderboardRef = useRef<HTMLDivElement>(null);
-  const { bids } = useRealtimeFirmBids(project.id);
+  const projectId = project?.id ?? '';
+  const { bids } = useRealtimeFirmBids(projectId);
+
+  const safeCompanyName = companyName?.trim() || 'Your Firm';
+  const buildingTypes = project?.building_types ?? [];
+  const floorAreaSqft = project?.floor_area_sqft ?? null;
 
   const initialRate = existingBid?.single_rate ?? existingBid?.total_sum_metric;
   const [rateInput, setRateInput] = useState(() =>
-    initialRate ? String(Math.trunc(initialRate)) : '',
+    initialRate && Number.isFinite(initialRate) ? String(Math.trunc(initialRate)) : '',
   );
   const [rateError, setRateError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -61,15 +66,15 @@ export function FirmBiddingConsole({
   const [successRank, setSuccessRank] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const isGracePeriod = project.status === 'frozen_24h';
-  const isBiddingOpen = project.status === 'active_24h' || isGracePeriod;
+  const isGracePeriod = project?.status === 'frozen_24h';
+  const isBiddingOpen = project?.status === 'active_24h' || isGracePeriod;
   const parsedRate = parseBidRateValue(rateInput);
-  const canSubmit = isValidBidRate(parsedRate) && !rateError;
+  const canSubmit = isValidBidRate(parsedRate) && !rateError && Boolean(projectId);
 
   const myCurrentBid = bids.find((b) => b.builder_id === firmId);
   const myRank = bids.findIndex((b) => b.builder_id === firmId) + 1;
 
-  const finishingBadge = getFinishingBadge(project.finishing_level);
+  const finishingBadge = getFinishingBadge(project?.finishing_level ?? null);
   const floorAreaDisplay = getProjectFloorAreaDisplay(project);
   const budgetDisplay = getProjectBudgetDisplay(project);
 
@@ -88,6 +93,11 @@ export function FirmBiddingConsole({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!projectId) {
+      setError('Project not found. Please go back and try again.');
+      return;
+    }
+
     const validation = validateSingleRate(parsedRate);
     if (!validation.valid) {
       setRateError(validation.message);
@@ -100,7 +110,7 @@ export function FirmBiddingConsole({
     setSuccess(false);
 
     const bidId = existingBid?.id ?? myCurrentBid?.id ?? null;
-    const result = await submitFirmBidAction(project.id, parsedRate!, bidId);
+    const result = await submitFirmBidAction(projectId, parsedRate!, bidId);
 
     if (result.error) {
       setError(parseBidDbError(result.error));
@@ -117,6 +127,21 @@ export function FirmBiddingConsole({
       leaderboardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 300);
     setTimeout(() => setSuccess(false), 4000);
+  }
+
+  if (!projectId) {
+    return (
+      <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-6 text-center text-sm text-red-400">
+        Could not load project details. Please go back and try again.
+        <div className="mt-4">
+          <Button asChild variant="outline">
+            <Link href="/dashboard/firm">
+              <ArrowLeft className="w-4 h-4" /> Back to Firm Console
+            </Link>
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -139,7 +164,9 @@ export function FirmBiddingConsole({
             )}
             <Badge variant="violet">Construction Firm</Badge>
           </div>
-          <h1 className="text-lg font-bold text-foreground leading-snug">{project.title}</h1>
+          <h1 className="text-lg font-bold text-foreground leading-snug">
+            {project?.title ?? 'Untitled Project'}
+          </h1>
         </div>
       </div>
 
@@ -151,7 +178,7 @@ export function FirmBiddingConsole({
               Bidding has closed but you can still submit or update your bid during the grace period.
             </p>
           </div>
-          {project.selection_ends_at && (
+          {project?.selection_ends_at && (
             <Card className="border-amber-500/20">
               <CardHeader className="p-4 pb-2">
                 <CardTitle className="text-xs text-amber-400 uppercase tracking-wider">Selection Period</CardTitle>
@@ -162,7 +189,7 @@ export function FirmBiddingConsole({
             </Card>
           )}
         </>
-      ) : project.status === 'active_24h' ? (
+      ) : project?.status === 'active_24h' && project?.bidding_ends_at ? (
         <Card className="border-emerald-500/20">
           <CardHeader className="p-4 pb-2">
             <CardTitle className="text-xs text-emerald-400 uppercase tracking-wider">Auction Closes In</CardTitle>
@@ -182,9 +209,9 @@ export function FirmBiddingConsole({
           <Card>
             <CardHeader className="p-4 pb-2">
               <div className="flex items-center gap-3">
-                <FirmLogo companyName={companyName} logoUrl={logoUrl} size="md" />
+                <FirmLogo companyName={safeCompanyName} logoUrl={logoUrl ?? null} size="md" />
                 <div>
-                  <p className="text-sm font-bold text-foreground">{companyName}</p>
+                  <p className="text-sm font-bold text-foreground">{safeCompanyName}</p>
                   <p className="text-[10px] text-muted-foreground">Bidding as Construction Firm</p>
                 </div>
               </div>
@@ -192,7 +219,7 @@ export function FirmBiddingConsole({
             <CardContent className="px-4 pb-4 pt-0 space-y-3">
               <div className="rounded-lg border border-border bg-secondary/20 p-3 space-y-2 text-sm">
                 <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Project Summary</p>
-                {project.building_types && project.building_types.length > 0 && (
+                {buildingTypes.length > 0 && (
                   <BuildingConfigSummary project={project} compact />
                 )}
                 {finishingBadge && (
@@ -202,13 +229,17 @@ export function FirmBiddingConsole({
                   </div>
                 )}
                 <p className="text-xs text-muted-foreground">
-                  Floor area: {floorAreaDisplay ?? 'Not specified by owner'}
+                  Floor area: {floorAreaDisplay ?? 'Not specified'}
                 </p>
-                <p className="text-xs text-muted-foreground">Location: {project.district}</p>
-                {budgetDisplay && (
+                <p className="text-xs text-muted-foreground">
+                  Location: {project?.district ?? 'Location not specified'}
+                </p>
+                {budgetDisplay ? (
                   <p className="text-xs text-muted-foreground">Budget: {budgetDisplay}</p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">Budget: Not specified</p>
                 )}
-                {project.drawing_url ? (
+                {project?.drawing_url ? (
                   <a
                     href={project.drawing_url}
                     target="_blank"
@@ -250,7 +281,7 @@ export function FirmBiddingConsole({
                     <div>
                       <p className="text-sm font-semibold text-foreground">Your Rate</p>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        Enter your rate per square foot for the complete project (materials + labour included)
+                        Enter your complete rate per sqft (materials + labour + finishing included)
                       </p>
                     </div>
 
@@ -271,11 +302,11 @@ export function FirmBiddingConsole({
                       <p className="text-xs text-amber-400">{BID_RATE_ERROR}</p>
                     )}
 
-                    {parsedRate && isValidBidRate(parsedRate) && project.floor_area_sqft ? (
+                    {parsedRate && isValidBidRate(parsedRate) && floorAreaSqft ? (
                       <p className="text-sm text-foreground">
                         Estimated Total:{' '}
                         <span className="font-bold text-emerald-400">
-                          {formatEstimatedTotalLabel(parsedRate, project.floor_area_sqft)}
+                          {formatEstimatedTotalLabel(parsedRate, floorAreaSqft)}
                         </span>
                       </p>
                     ) : (
@@ -309,12 +340,12 @@ export function FirmBiddingConsole({
             </CardHeader>
             <CardContent className="px-4 pb-4 pt-0">
               <FirmBidLeaderboard
-                projectId={project.id}
-                projectStatus={project.status}
-                floorAreaSqft={project.floor_area_sqft}
-                biddingEndsAt={project.bidding_ends_at}
+                projectId={projectId}
+                projectStatus={project?.status ?? 'completed'}
+                floorAreaSqft={floorAreaSqft}
+                biddingEndsAt={project?.bidding_ends_at ?? new Date().toISOString()}
                 highlightFirmId={firmId}
-                viewerCompanyName={companyName}
+                viewerCompanyName={safeCompanyName}
                 assumeAuthenticated
                 showViewProfile={false}
               />

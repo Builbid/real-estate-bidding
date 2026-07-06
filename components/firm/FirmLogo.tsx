@@ -14,8 +14,10 @@ const SIZE_MAP = {
   xl: 'w-20 h-20 text-xl',
 };
 
-function getInitials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
+function getInitials(name: string | null | undefined): string {
+  const safe = (name ?? '').trim();
+  if (!safe) return 'CF';
+  const parts = safe.split(/\s+/).filter(Boolean);
   if (parts.length === 0) return 'CF';
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return (parts[0][0] + parts[1][0]).toUpperCase();
@@ -23,13 +25,14 @@ function getInitials(name: string): string {
 
 export function FirmLogo({ companyName, logoUrl, size = 'md', className }: FirmLogoProps) {
   const sizeClass = SIZE_MAP[size];
+  const displayName = companyName?.trim() || 'Construction Firm';
 
   if (logoUrl) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
         src={logoUrl}
-        alt={companyName}
+        alt={displayName}
         className={cn(
           'rounded-full object-cover border-2 border-violet-500/30 flex-shrink-0 bg-secondary',
           sizeClass,
@@ -49,7 +52,7 @@ export function FirmLogo({ companyName, logoUrl, size = 'md', className }: FirmL
       )}
       aria-hidden
     >
-      {getInitials(companyName)}
+      {getInitials(displayName)}
     </div>
   );
 }

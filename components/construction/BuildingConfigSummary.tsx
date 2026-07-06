@@ -28,19 +28,31 @@ export function BuildingConfigSummary({
   compact = false,
   className,
 }: BuildingConfigSummaryProps) {
-  if (!hasNewBuildingConfig(project)) {
+  const buildingTypes = Array.isArray(project.building_types)
+    ? project.building_types.filter((t): t is BuildingType => typeof t === 'string')
+    : [];
+
+  const safeProject = {
+    ...project,
+    building_types: buildingTypes,
+    construction_types: (project.construction_types ?? {}) as ConstructionTypesMap,
+    track_type: project.track_type ?? 'RCC',
+    sub_configuration: project.sub_configuration ?? {},
+  };
+
+  if (!hasNewBuildingConfig(safeProject)) {
     return (
       <ConstructionMatrixSummary
-        trackType={project.track_type}
-        subConfiguration={project.sub_configuration}
+        trackType={safeProject.track_type}
+        subConfiguration={safeProject.sub_configuration}
         compact={compact}
         className={className}
       />
     );
   }
 
-  const types = sortBuildingTypes(project.building_types ?? []);
-  const constructionTypes = (project.construction_types ?? {}) as ConstructionTypesMap;
+  const types = sortBuildingTypes(buildingTypes);
+  const constructionTypes = safeProject.construction_types;
 
   if (compact) {
     return (

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { createClient } from '../supabase/client';
+import { sanitizeFirmBid } from '@/lib/firm/sanitizeProject';
 import type { Bid } from '../types';
 
 const BID_COLUMNS_BASE =
@@ -40,7 +41,12 @@ export function useRealtimeFirmBids(projectId: string) {
       setBids([]);
     } else {
       setError(null);
-      setBids((response.data ?? []) as Bid[]);
+      const rows = (response.data ?? []) as Record<string, unknown>[];
+      setBids(
+        rows
+          .map((row) => sanitizeFirmBid(row))
+          .filter((b): b is Bid => b != null),
+      );
     }
     setLoading(false);
   }, [projectId]);
