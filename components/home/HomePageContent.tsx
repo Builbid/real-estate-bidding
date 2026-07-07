@@ -9,6 +9,7 @@ import { Navbar } from '@/components/shared/Navbar';
 import { HeroBackgroundSlideshow } from '@/components/shared/HeroBackgroundSlideshow';
 import { ProjectCard } from '@/components/shared/ProjectCard';
 import { ActiveProjectsShowcaseGrid } from '@/components/home/ActiveProjectsShowcaseGrid';
+import { FeaturedFirmsSection } from '@/components/home/FeaturedFirmsSection';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/lib/context/LanguageProvider';
 import { useOptionalProfileUpdate } from '@/lib/context/ProfileProvider';
@@ -145,6 +146,8 @@ export function HomePageContent({
           ))}
         </div>
       </section>
+
+      <FeaturedFirmsSection />
 
       <section id="live-auctions" className="max-w-7xl mx-auto px-4 sm:px-6 py-16">
         <div className="mb-12">

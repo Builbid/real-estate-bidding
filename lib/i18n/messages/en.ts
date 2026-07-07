@@ -82,6 +82,14 @@ export const en = {
       totalProjects: 'Total Projects',
       bidsSubmitted: 'Bids Submitted',
     },
+    featuredFirms: {
+      title: 'Verified Construction Partners',
+      subtitle: 'Browse trusted builders on BuilBid',
+      viewPortfolio: 'View Portfolio',
+      reviews: '({count} reviews)',
+      scrollLeft: 'Scroll firms left',
+      scrollRight: 'Scroll firms right',
+    },
     auctions: {
       liveTitle: 'Live Auctions',
       open: '{count} open',

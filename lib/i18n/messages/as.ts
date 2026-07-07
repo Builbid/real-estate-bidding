@@ -84,6 +84,14 @@ export const as: Messages = {
       totalProjects: 'Total Projects',
       bidsSubmitted: 'Bids দিয়া হৈছে',
     },
+    featuredFirms: {
+      title: 'Verified Construction Partners',
+      subtitle: 'Browse trusted builders on BuilBid',
+      viewPortfolio: 'View Portfolio',
+      reviews: '({count} reviews)',
+      scrollLeft: 'Scroll firms left',
+      scrollRight: 'Scroll firms right',
+    },
     auctions: {
       liveTitle: 'Live Auctions',
       open: '{count} open',
