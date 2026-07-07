@@ -99,6 +99,7 @@ export const as: Messages = {
     auctions: {
       liveTitle: 'Live Auctions',
       open: '{count} open',
+      swipeHint: 'Swipe to see more auctions',
       bidNow: 'Bid দিয়ক',
       viewDashboard: 'Dashboard চাওক',
       signUpToBid: 'Bid দিবলৈ Sign Up',

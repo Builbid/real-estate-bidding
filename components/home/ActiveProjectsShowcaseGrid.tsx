@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import { ShowcaseProjectCard } from './ShowcaseProjectCard';
@@ -30,6 +30,17 @@ const FILTER_OPTIONS: { id: ServiceFilter; label: string }[] = [
   { id: 'construction_firm', label: 'Construction Firm' },
 ];
 
+/** Once per full page load — avoids replaying the swipe hint on re-renders. */
+let auctionSwipeHintPlayed = false;
+
+function shouldPlaySwipeHint(): boolean {
+  if (auctionSwipeHintPlayed) return false;
+  if (typeof window === 'undefined') return false;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return false;
+  auctionSwipeHintPlayed = true;
+  return true;
+}
+
 export function ActiveProjectsShowcaseGrid({
   projects: initialProjects,
   isAuthenticated,
@@ -37,8 +48,12 @@ export function ActiveProjectsShowcaseGrid({
 }: ActiveProjectsShowcaseGridProps) {
   const { t } = useTranslation();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const scrollRafRef = useRef<number | null>(null);
   const [expiredIds, setExpiredIds] = useState<Set<string>>(() => new Set());
   const [serviceFilter, setServiceFilter] = useState<ServiceFilter>('all');
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [playSwipeHint] = useState(shouldPlaySwipeHint);
 
   const handleExpire = useCallback((projectId: string) => {
     setExpiredIds((prev) => {
@@ -68,27 +83,100 @@ export function ActiveProjectsShowcaseGrid({
   }, [liveProjects, serviceFilter]);
 
   const sectionLink = getShowcaseSectionLink(isAuthenticated, role);
+  const hasMultipleCards = filteredProjects.length > 1;
+
+  const updateActiveIndex = useCallback(() => {
+    const track = scrollRef.current;
+    if (!track) return;
+
+    const trackLeft = track.getBoundingClientRect().left;
+    let closest = 0;
+    let minDistance = Infinity;
+
+    cardRefs.current.forEach((card, index) => {
+      if (!card) return;
+      const distance = Math.abs(card.getBoundingClientRect().left - trackLeft);
+      if (distance < minDistance) {
+        minDistance = distance;
+        closest = index;
+      }
+    });
+
+    setActiveIndex(closest);
+  }, []);
+
+  useEffect(() => {
+    cardRefs.current.length = filteredProjects.length;
+  }, [filteredProjects]);
+
+  useEffect(() => {
+    const track = scrollRef.current;
+    if (!track || filteredProjects.length === 0) return;
+
+    const onScroll = () => {
+      if (scrollRafRef.current != null) return;
+      scrollRafRef.current = requestAnimationFrame(() => {
+        scrollRafRef.current = null;
+        updateActiveIndex();
+      });
+    };
+
+    track.addEventListener('scroll', onScroll, { passive: true });
+    updateActiveIndex();
+
+    return () => {
+      track.removeEventListener('scroll', onScroll);
+      if (scrollRafRef.current != null) {
+        cancelAnimationFrame(scrollRafRef.current);
+        scrollRafRef.current = null;
+      }
+    };
+  }, [filteredProjects, updateActiveIndex]);
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ left: 0, behavior: 'auto' });
+    setActiveIndex(0);
+  }, [serviceFilter]);
+
+  useEffect(() => {
+    setActiveIndex((prev) =>
+      filteredProjects.length === 0 ? 0 : Math.min(prev, filteredProjects.length - 1),
+    );
+  }, [filteredProjects.length]);
 
   function scroll(direction: 'left' | 'right') {
     const el = scrollRef.current;
     if (!el) return;
-    const amount = Math.max(el.clientWidth * 0.85, 300);
+    const amount = Math.max(el.clientWidth * 0.82, 280);
     el.scrollBy({ left: direction === 'left' ? -amount : amount, behavior: 'smooth' });
   }
 
   return (
     <div className="group/carousel relative">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-        <div className="flex items-center gap-3">
-          <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          <h2 className="text-xl font-bold text-foreground">{t('home.auctions.liveTitle')}</h2>
-          <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-semibold">
-            {t('home.auctions.open', { count: filteredProjects.length })}
-          </span>
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <h2 className="text-xl font-bold text-foreground">{t('home.auctions.liveTitle')}</h2>
+            {filteredProjects.length > 0 && (
+              <span className="rounded-full border border-border bg-secondary/60 px-2 py-0.5 text-xs font-semibold tabular-nums text-muted-foreground">
+                {activeIndex + 1} / {filteredProjects.length}
+              </span>
+            )}
+            <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-semibold">
+              {t('home.auctions.open', { count: filteredProjects.length })}
+            </span>
+          </div>
+          {hasMultipleCards && (
+            <p className="mt-1.5 flex items-center gap-1 text-xs text-muted-foreground">
+              {t('home.auctions.swipeHint')}
+              <ArrowRight className="h-3 w-3 animate-swipe-arrow-nudge" aria-hidden />
+            </p>
+          )}
         </div>
         <Link
           href={sectionLink.href}
-          className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+          className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1 shrink-0"
         >
           {t(sectionLink.labelKey)}{' '}
           <ArrowRight className="w-3.5 h-3.5" />
@@ -114,58 +202,96 @@ export function ActiveProjectsShowcaseGrid({
       </div>
 
       {filteredProjects.length > 0 ? (
-        <div className="relative -mx-4 sm:-mx-6">
-          <button
-            type="button"
-            onClick={() => scroll('left')}
-            aria-label={t('home.featuredFirms.scrollLeft')}
-            className={cn(
-              'absolute left-2 sm:left-4 top-1/2 z-10 hidden -translate-y-1/2 md:flex',
-              'h-9 w-9 items-center justify-center rounded-full',
-              'border border-border bg-card/95 text-foreground shadow-md backdrop-blur',
-              'opacity-0 transition-opacity duration-200 group-hover/carousel:opacity-100',
-              'hover:border-emerald-500/40 hover:bg-emerald-500/10',
-            )}
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </button>
+        <div>
+          <div className="relative -mx-4 sm:-mx-6">
+            <button
+              type="button"
+              onClick={() => scroll('left')}
+              aria-label={t('home.featuredFirms.scrollLeft')}
+              className={cn(
+                'absolute left-2 sm:left-4 top-1/2 z-10 hidden -translate-y-1/2 md:flex',
+                'h-9 w-9 items-center justify-center rounded-full',
+                'border border-border bg-card/95 text-foreground shadow-md backdrop-blur',
+                'opacity-0 transition-opacity duration-200 group-hover/carousel:opacity-100',
+                'hover:border-emerald-500/40 hover:bg-emerald-500/10',
+              )}
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
 
-          <button
-            type="button"
-            onClick={() => scroll('right')}
-            aria-label={t('home.featuredFirms.scrollRight')}
-            className={cn(
-              'absolute right-2 sm:right-4 top-1/2 z-10 hidden -translate-y-1/2 md:flex',
-              'h-9 w-9 items-center justify-center rounded-full',
-              'border border-border bg-card/95 text-foreground shadow-md backdrop-blur',
-              'opacity-0 transition-opacity duration-200 group-hover/carousel:opacity-100',
-              'hover:border-emerald-500/40 hover:bg-emerald-500/10',
-            )}
-          >
-            <ChevronRight className="h-5 w-5" />
-          </button>
+            <button
+              type="button"
+              onClick={() => scroll('right')}
+              aria-label={t('home.featuredFirms.scrollRight')}
+              className={cn(
+                'absolute right-2 sm:right-4 top-1/2 z-10 hidden -translate-y-1/2 md:flex',
+                'h-9 w-9 items-center justify-center rounded-full',
+                'border border-border bg-card/95 text-foreground shadow-md backdrop-blur',
+                'opacity-0 transition-opacity duration-200 group-hover/carousel:opacity-100',
+                'hover:border-emerald-500/40 hover:bg-emerald-500/10',
+              )}
+            >
+              <ChevronRight className="h-5 w-5" />
+            </button>
 
-          <div
-            ref={scrollRef}
-            className={cn(
-              'flex gap-4 overflow-x-auto scroll-smooth px-4 sm:px-6 pb-1',
-              'snap-x snap-mandatory scrollbar-hide',
-              'md:px-12',
-            )}
-          >
-            {filteredProjects.map((project) => (
+            {hasMultipleCards && (
               <div
-                key={project.id}
-                className="w-[min(85vw,360px)] flex-shrink-0 snap-start"
-              >
-                <ShowcaseProjectCard
-                  project={project}
-                  role={role}
-                  onExpire={handleExpire}
-                />
-              </div>
-            ))}
+                className="pointer-events-none absolute inset-y-0 right-0 z-[5] w-14 bg-gradient-to-l from-background to-transparent"
+                aria-hidden
+              />
+            )}
+
+            <div
+              ref={scrollRef}
+              className={cn(
+                'flex gap-4 overflow-x-auto scroll-smooth px-4 sm:px-6 pb-1',
+                'snap-x snap-mandatory scrollbar-hide',
+                'md:px-12',
+              )}
+            >
+              {filteredProjects.map((project, index) => (
+                <div
+                  key={project.id}
+                  ref={(el) => {
+                    cardRefs.current[index] = el;
+                  }}
+                  className={cn(
+                    'flex-[0_0_82%] snap-start sm:flex-[0_0_82%]',
+                    index === 0 && playSwipeHint && hasMultipleCards && 'animate-auction-swipe-hint',
+                  )}
+                >
+                  <ShowcaseProjectCard
+                    project={project}
+                    role={role}
+                    onExpire={handleExpire}
+                  />
+                </div>
+              ))}
+            </div>
           </div>
+
+          {hasMultipleCards && (
+            <div
+              className="mt-4 flex items-center justify-center gap-1.5"
+              role="tablist"
+              aria-label={t('home.auctions.liveTitle')}
+            >
+              {filteredProjects.map((project, index) => (
+                <span
+                  key={project.id}
+                  role="tab"
+                  aria-selected={index === activeIndex}
+                  aria-label={`Auction ${index + 1} of ${filteredProjects.length}`}
+                  className={cn(
+                    'h-1.5 rounded-full transition-all duration-300',
+                    index === activeIndex
+                      ? 'w-6 bg-emerald-500'
+                      : 'w-1.5 bg-muted-foreground/30',
+                  )}
+                />
+              ))}
+            </div>
+          )}
         </div>
       ) : (
         <div className="rounded-2xl border border-dashed border-border bg-card/40 px-6 py-16 text-center">

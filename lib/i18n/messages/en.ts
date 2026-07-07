@@ -97,6 +97,7 @@ export const en = {
     auctions: {
       liveTitle: 'Live Auctions',
       open: '{count} open',
+      swipeHint: 'Swipe to see more auctions',
       bidNow: 'Bid Now',
       viewDashboard: 'View Dashboard',
       signUpToBid: 'Sign Up to Bid',

@@ -173,6 +173,39 @@
     }
   }
 
+  .animate-auction-swipe-hint {
+    animation: auction-swipe-hint 1.4s ease-in-out 0.4s 1 both;
+  }
+
+  @keyframes auction-swipe-hint {
+    0%, 100% {
+      transform: translateX(0);
+    }
+    50% {
+      transform: translateX(-34px);
+    }
+  }
+
+  .animate-swipe-arrow-nudge {
+    animation: swipe-arrow-nudge 1.5s ease-in-out infinite;
+  }
+
+  @keyframes swipe-arrow-nudge {
+    0%, 100% {
+      transform: translateX(0);
+    }
+    50% {
+      transform: translateX(6px);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-auction-swipe-hint,
+    .animate-swipe-arrow-nudge {
+      animation: none;
+    }
+  }
+
   .bg-grid {
     background-image:
       linear-gradient(hsl(var(--border) / 0.6) 1px, transparent 1px),
