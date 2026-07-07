@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import {
-  Building2, TrendingUp, Shield, Zap, Users, ArrowRight,
+  Building2, Shield, ArrowRight,
   Activity, Gavel, Star, Clock, BadgeCheck,
 } from 'lucide-react';
 import { Navbar } from '@/components/shared/Navbar';
@@ -37,45 +37,6 @@ export function HomePageContent({
   const liveRole = profileCtx?.profile
     ? normalizeRole(profileCtx.profile.role)
     : role;
-
-  const FEATURES = [
-    {
-      icon: Shield,
-      title: t('home.features.privacyTitle'),
-      description: t('home.features.privacyDesc'),
-      gradient: 'from-violet-500/20 to-violet-500/5',
-      border: 'border-violet-500/20',
-      iconBg: 'bg-violet-500/15 border-violet-500/30',
-      iconColor: 'text-violet-400',
-    },
-    {
-      icon: Zap,
-      title: t('home.features.realtimeTitle'),
-      description: t('home.features.realtimeDesc'),
-      gradient: 'from-amber-500/20 to-amber-500/5',
-      border: 'border-amber-500/20',
-      iconBg: 'bg-amber-500/15 border-amber-500/30',
-      iconColor: 'text-amber-400',
-    },
-    {
-      icon: TrendingUp,
-      title: t('home.features.marketTitle'),
-      description: t('home.features.marketDesc'),
-      gradient: 'from-blue-500/20 to-blue-500/5',
-      border: 'border-blue-500/20',
-      iconBg: 'bg-blue-500/15 border-blue-500/30',
-      iconColor: 'text-blue-400',
-    },
-    {
-      icon: Users,
-      title: t('home.features.multiRoleTitle'),
-      description: t('home.features.multiRoleDesc'),
-      gradient: 'from-rose-500/20 to-rose-500/5',
-      border: 'border-rose-500/20',
-      iconBg: 'bg-rose-500/15 border-rose-500/30',
-      iconColor: 'text-rose-400',
-    },
-  ];
 
   const STATS_CONFIG = [
     { key: 'active', label: t('home.stats.activeAuctions'), icon: Activity, iconBg: 'bg-blue-500/15', iconBorder: 'border-blue-500/30', iconColor: 'text-blue-400' },
@@ -207,31 +168,6 @@ export function HomePageContent({
           </div>
         )}
 
-      </section>
-
-      <section className="border-t border-border bg-card/80 dark:bg-card/60">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-16">
-          <div className="text-center mb-12">
-            <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-3">
-              {t('home.features.sectionTitle')}
-            </h2>
-            <p className="text-muted-foreground max-w-xl mx-auto">{t('home.features.sectionDesc')}</p>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {FEATURES.map(({ icon: Icon, title, description, gradient, border, iconBg, iconColor }) => (
-              <div
-                key={title}
-                className={`rounded-xl border ${border} bg-gradient-to-br ${gradient} p-5 hover:scale-[1.02] transition-transform`}
-              >
-                <div className={`w-10 h-10 rounded-lg ${iconBg} border flex items-center justify-center mb-4`}>
-                  <Icon className={`w-5 h-5 ${iconColor}`} />
-                </div>
-                <h3 className="text-sm font-semibold text-foreground mb-2">{title}</h3>
-                <p className="text-xs text-muted-foreground leading-relaxed">{description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
       </section>
     </div>
   );
