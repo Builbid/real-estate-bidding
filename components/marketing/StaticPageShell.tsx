@@ -1,0 +1,64 @@
+import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
+import { Navbar } from '@/components/shared/Navbar';
+import { cn } from '@/lib/utils';
+
+interface StaticPageShellProps {
+  title: string;
+  subtitle?: string;
+  lastUpdated?: string;
+  children: React.ReactNode;
+  className?: string;
+}
+
+export function StaticPageShell({
+  title,
+  subtitle,
+  lastUpdated,
+  children,
+  className,
+}: StaticPageShellProps) {
+  return (
+    <>
+      <Navbar />
+      <main className={cn('max-w-3xl mx-auto px-4 sm:px-6 py-10 pb-16', className)}>
+        <Link
+          href="/"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to Home
+        </Link>
+
+        <header className="mb-10 border-b border-border pb-8">
+          <h1 className="text-3xl sm:text-4xl font-bold text-foreground tracking-tight">{title}</h1>
+          {subtitle && (
+            <p className="mt-3 text-base text-muted-foreground leading-relaxed">{subtitle}</p>
+          )}
+          {lastUpdated && (
+            <p className="mt-4 text-xs text-muted-foreground/80">Last updated: {lastUpdated}</p>
+          )}
+        </header>
+
+        <article className="space-y-8 text-sm sm:text-[15px] leading-relaxed text-foreground/90">
+          {children}
+        </article>
+      </main>
+    </>
+  );
+}
+
+export function StaticSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section>
+      <h2 className="text-lg font-semibold text-foreground mb-3">{title}</h2>
+      <div className="space-y-3 text-muted-foreground">{children}</div>
+    </section>
+  );
+}

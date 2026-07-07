@@ -36,13 +36,13 @@ export function Footer({ compact }: FooterProps) {
   const PLATFORM_LINKS = [
     { label: t('footer.exploreProjects'), href: '/' },
     { label: t('footer.activeBids'), href: '/#live-auctions' },
-    { label: t('footer.forBuilders'), href: '/register' },
+    { label: t('footer.forBuilders'), href: '/signup' },
   ] as const;
 
   const COMPANY_LINKS = [
-    { label: t('footer.aboutUs'), href: '/#about' },
-    { label: t('footer.contact'), href: '/#contact' },
-    { label: t('footer.careers'), href: '/#careers' },
+    { label: t('footer.aboutUs'), href: '/about' },
+    { label: t('footer.contact'), href: '/contact' },
+    { label: t('footer.careers'), href: '/careers' },
   ] as const;
 
   const LEGAL_LINKS = [
