@@ -154,7 +154,7 @@ export function HomePageContent({
 
       <FeaturedFirmsSection />
 
-      <section id="live-auctions" className="max-w-7xl mx-auto px-4 sm:px-6 py-16">
+      <section id="live-auctions" className="max-w-7xl mx-auto px-4 sm:px-6 pt-8 pb-12 sm:pt-10 sm:pb-16">
         <div className="mb-12">
           <ActiveProjectsShowcaseGrid
             projects={showcaseProjects}

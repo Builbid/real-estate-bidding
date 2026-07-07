@@ -28,7 +28,7 @@ export function FeaturedPartnersCarousel({
   function scroll(direction: 'left' | 'right') {
     const el = scrollRef.current;
     if (!el) return;
-    const amount = Math.max(el.clientWidth * 0.75, 280);
+    const amount = Math.max(el.clientWidth * 0.75, 172);
     el.scrollBy({ left: direction === 'left' ? -amount : amount, behavior: 'smooth' });
   }
 
@@ -36,9 +36,9 @@ export function FeaturedPartnersCarousel({
 
   return (
     <div className={cn('group relative', className)}>
-      <div className="mb-5 sm:mb-6">
-        <h2 className="text-lg font-bold text-foreground sm:text-xl">{title}</h2>
-        <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
+      <div className="mb-3">
+        <h2 className="text-base font-bold text-foreground sm:text-lg">{title}</h2>
+        <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p>
       </div>
 
       <div className="relative">
@@ -79,7 +79,7 @@ export function FeaturedPartnersCarousel({
         <div
           ref={scrollRef}
           className={cn(
-            'flex gap-4 overflow-x-auto scroll-smooth px-0.5 pb-1',
+            'flex gap-3 overflow-x-auto scroll-smooth px-0.5 pb-0.5',
             'snap-x snap-mandatory scrollbar-hide',
             'md:px-10',
           )}

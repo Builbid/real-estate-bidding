@@ -11,7 +11,7 @@ export function FeaturedFirmsSection() {
   const { t } = useTranslation();
 
   return (
-    <section className="border-b border-border bg-background py-12 sm:py-14">
+    <section className="border-b border-border bg-background py-6 sm:py-8">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <FeaturedPartnersCarousel
           title={t('home.featuredFirms.labourTitle')}
@@ -25,7 +25,7 @@ export function FeaturedFirmsSection() {
           subtitle={t('home.featuredFirms.firmsSubtitle')}
           firms={DEMO_CONSTRUCTION_FIRMS}
           partnerType="construction_firm"
-          className="mt-12 sm:mt-14"
+          className="mt-6 sm:mt-7"
         />
       </div>
     </section>
