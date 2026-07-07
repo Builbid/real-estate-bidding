@@ -86,12 +86,14 @@ export const as: Messages = {
       bidsSubmitted: 'Bids দিয়া হৈছে',
     },
     featuredFirms: {
-      title: 'Verified Construction Partners',
-      subtitle: 'Browse trusted builders on BuilBid',
+      labourTitle: 'Top Labour Contractors',
+      labourSubtitle: 'Browse trusted labour contractors on BuilBid',
+      firmsTitle: 'Top Construction Firms',
+      firmsSubtitle: 'Browse verified construction firms on BuilBid',
       viewPortfolio: 'View Portfolio',
       reviews: '({count} reviews)',
-      scrollLeft: 'Scroll firms left',
-      scrollRight: 'Scroll firms right',
+      scrollLeft: 'Scroll partners left',
+      scrollRight: 'Scroll partners right',
     },
     auctions: {
       liveTitle: 'Live Auctions',

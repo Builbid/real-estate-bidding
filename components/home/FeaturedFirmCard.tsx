@@ -6,10 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { FirmLogo } from '@/components/firm/FirmLogo';
 import { cn } from '@/lib/utils';
-import type { DemoFirm } from '@/lib/data/demoFirms';
+import type { DemoFirm, DemoPartnerType } from '@/lib/data/demoFirms';
 
 interface FeaturedFirmCardProps {
   firm: DemoFirm;
+  partnerType: DemoPartnerType;
   viewPortfolioLabel: string;
   reviewsLabel: string;
 }
@@ -40,7 +41,14 @@ function StarRating({ rating }: { rating: number }) {
   );
 }
 
-export function FeaturedFirmCard({ firm, viewPortfolioLabel, reviewsLabel }: FeaturedFirmCardProps) {
+export function FeaturedFirmCard({
+  firm,
+  partnerType,
+  viewPortfolioLabel,
+  reviewsLabel,
+}: FeaturedFirmCardProps) {
+  const isLabour = partnerType === 'labour_contractor';
+
   return (
     <article
       className={cn(
@@ -48,7 +56,9 @@ export function FeaturedFirmCard({ firm, viewPortfolioLabel, reviewsLabel }: Fea
         'flex flex-col rounded-2xl border border-slate-200 bg-white p-5',
         'dark:border-slate-800 dark:bg-slate-900/50 dark:backdrop-blur',
         'shadow-sm transition-all duration-300',
-        'hover:-translate-y-0.5 hover:border-violet-500/30 hover:shadow-md',
+        isLabour
+          ? 'hover:-translate-y-0.5 hover:border-amber-500/30 hover:shadow-md'
+          : 'hover:-translate-y-0.5 hover:border-violet-500/30 hover:shadow-md',
       )}
     >
       <div className="mb-4 flex items-start gap-3">
@@ -69,7 +79,12 @@ export function FeaturedFirmCard({ firm, viewPortfolioLabel, reviewsLabel }: Fea
 
       <Badge
         variant="default"
-        className="mb-4 w-fit border-violet-500/20 bg-violet-500/10 text-[11px] text-violet-700 dark:text-violet-300"
+        className={cn(
+          'mb-4 w-fit text-[11px]',
+          isLabour
+            ? 'border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300'
+            : 'border-violet-500/20 bg-violet-500/10 text-violet-700 dark:text-violet-300',
+        )}
       >
         {firm.specialty}
       </Badge>
@@ -80,9 +95,10 @@ export function FeaturedFirmCard({ firm, viewPortfolioLabel, reviewsLabel }: Fea
         className={cn(
           'mt-auto w-full group/btn',
           'border-slate-200 bg-slate-50 text-slate-900',
-          'hover:border-violet-500/40 hover:bg-violet-50 hover:text-violet-700',
           'dark:border-slate-700 dark:bg-slate-800/40 dark:text-slate-100',
-          'dark:hover:border-violet-500/40 dark:hover:bg-violet-500/10 dark:hover:text-violet-300',
+          isLabour
+            ? 'hover:border-amber-500/40 hover:bg-amber-50 hover:text-amber-700 dark:hover:border-amber-500/40 dark:hover:bg-amber-500/10 dark:hover:text-amber-300'
+            : 'hover:border-violet-500/40 hover:bg-violet-50 hover:text-violet-700 dark:hover:border-violet-500/40 dark:hover:bg-violet-500/10 dark:hover:text-violet-300',
         )}
         asChild
       >
