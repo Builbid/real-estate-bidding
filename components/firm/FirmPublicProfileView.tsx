@@ -14,6 +14,10 @@ interface FirmPublicProfileViewProps {
   portfolio: FirmPortfolioItem[];
   showSelect?: boolean;
   projectId?: string;
+  aboutText?: string;
+  rating?: number;
+  reviewCount?: number;
+  specialty?: string;
 }
 
 export function FirmPublicProfileView({
@@ -21,6 +25,10 @@ export function FirmPublicProfileView({
   portfolio,
   showSelect = false,
   projectId,
+  aboutText,
+  rating,
+  reviewCount,
+  specialty,
 }: FirmPublicProfileViewProps) {
   const [galleryPhotos, setGalleryPhotos] = useState<string[] | null>(null);
   const [galleryTitle, setGalleryTitle] = useState('');
@@ -34,7 +42,19 @@ export function FirmPublicProfileView({
         <div className="flex-1">
           <h1 className="text-2xl font-bold text-foreground">{firm.company_name}</h1>
           <p className="text-sm text-muted-foreground mt-1">{city}{firm.pincode ? `, ${firm.pincode}` : ''}</p>
+          {(rating != null || reviewCount != null) && (
+            <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+              <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+              <span className="font-semibold tabular-nums text-foreground">{rating?.toFixed(1)}</span>
+              {reviewCount != null && <span>· {reviewCount} reviews</span>}
+            </div>
+          )}
           <div className="flex flex-wrap gap-2 mt-3">
+            {specialty && (
+              <span className="text-xs px-2.5 py-1 rounded-full bg-violet-500/10 text-violet-400 border border-violet-500/20 font-semibold">
+                {specialty}
+              </span>
+            )}
             {firm.years_in_business != null && (
               <span className="text-xs px-2.5 py-1 rounded-full bg-violet-500/10 text-violet-400 border border-violet-500/20 font-semibold">
                 {firm.years_in_business} years in business
@@ -62,6 +82,9 @@ export function FirmPublicProfileView({
       <Card>
         <CardContent className="pt-6 pb-6 space-y-3">
           <h2 className="text-sm font-bold text-foreground uppercase tracking-wider">About</h2>
+          {aboutText && (
+            <p className="text-sm text-muted-foreground leading-relaxed">{aboutText}</p>
+          )}
           {firm.gst_masked && (
             <p className="text-sm text-muted-foreground">
               <span className="text-foreground font-medium">GST Number:</span> {firm.gst_masked}
