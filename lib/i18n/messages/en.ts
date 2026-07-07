@@ -8,6 +8,7 @@ export const en = {
   common: {
     signIn: 'Sign In',
     signUp: 'Sign Up',
+    createAccount: 'Create Account',
     signOut: 'Sign Out',
     dashboard: 'Dashboard',
     home: 'Home',

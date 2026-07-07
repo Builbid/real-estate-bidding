@@ -10,6 +10,7 @@ export const as: Messages = {
   common: {
     signIn: 'লগ ইন',
     signUp: 'Sign Up',
+    createAccount: 'Create Account',
     signOut: 'লগ আউট',
     dashboard: 'Dashboard',
     home: 'Home',
