@@ -94,3 +94,9 @@ export function formatShowcaseRemaining(targetDateISO: string): {
 export function isProjectBiddingLive(project: Pick<Project, 'status' | 'bidding_ends_at'>): boolean {
   return project.status === 'active_24h' && new Date(project.bidding_ends_at) > new Date();
 }
+
+export function sortShowcaseProjectsByLatest(projects: ShowcaseProject[]): ShowcaseProject[] {
+  return [...projects].sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+  );
+}

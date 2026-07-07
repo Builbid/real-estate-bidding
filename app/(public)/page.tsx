@@ -22,7 +22,6 @@ async function getActiveShowcaseProjects(): Promise<ShowcaseProject[]> {
     .select('*, owner:profiles_public!owner_id(id, full_name), bids(count)')
     .eq('status', 'active_24h')
     .gt('bidding_ends_at', now)
-    .order('plot_area_sqft', { ascending: false, nullsFirst: false })
     .order('created_at', { ascending: false })
     .limit(10);
 

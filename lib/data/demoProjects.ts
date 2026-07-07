@@ -1,6 +1,7 @@
 import { deriveLegacyProjectFields } from '@/lib/buildingConfig';
 import type { BuildingType, ConstructionTypesMap } from '@/lib/buildingConfig';
 import type { ShowcaseProject } from '@/lib/projectShowcase';
+import { sortShowcaseProjectsByLatest } from '@/lib/projectShowcase';
 import type { FinishingLevel, ServiceType } from '@/lib/types';
 
 const DEMO_OWNER_ID = '00000000-0000-4000-a000-000000000001';
@@ -290,5 +291,5 @@ export function mergeShowcaseProjects(
 ): ShowcaseProject[] {
   const realIds = new Set(realProjects.map((project) => project.id));
   const demos = demoProjects.filter((project) => !realIds.has(project.id));
-  return [...realProjects, ...demos];
+  return sortShowcaseProjectsByLatest([...realProjects, ...demos]);
 }
