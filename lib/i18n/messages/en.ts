@@ -61,6 +61,7 @@ export const en = {
   },
   home: {
     hero: {
+      platformBadge: 'Live Construction Bidding Platform',
       titlePrefix: 'The Next-Gen',
       construction: 'Construction',
       bidding: 'Bidding',

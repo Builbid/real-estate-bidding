@@ -64,32 +64,37 @@ export function HomePageContent({
           <div className="absolute bottom-0 left-1/2 w-[500px] h-[200px] bg-blue-500/6 rounded-full blur-3xl" />
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-16 sm:pt-20 pb-8 sm:pb-12 relative z-10">
-          <div className="max-w-3xl mx-auto text-center">
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold leading-snug tracking-tight mb-3 sm:mb-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-14 sm:pt-16 pb-5 sm:pb-8 relative z-10">
+          <div className="max-w-2xl mx-auto text-center">
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-violet-400/45 bg-violet-500/20 px-3 py-1 mb-2.5 text-[11px] sm:text-xs font-semibold text-violet-100 shadow-sm backdrop-blur-sm">
+              <Gavel className="w-3 h-3 text-emerald-400 flex-shrink-0" />
+              {t('home.hero.platformBadge')}
+            </div>
+
+            <h1 className="text-3xl sm:text-4xl font-extrabold leading-[1.15] tracking-tight mb-2 sm:mb-3">
               <span className="text-white">{t('home.hero.titlePrefix')}</span>{' '}
               <span className="text-violet-400">{t('home.hero.construction')}</span>{' '}
               <span className="text-amber-400">{t('home.hero.bidding')}</span>{' '}
               <span className="text-white">{t('home.hero.titleSuffix')}</span>
             </h1>
 
-            <p className="text-sm sm:text-base text-slate-100 mb-5 sm:mb-6 max-w-lg mx-auto leading-snug">
+            <p className="text-sm sm:text-base text-slate-100 mb-4 max-w-xs sm:max-w-md mx-auto leading-snug">
               {t('home.hero.subtitle')}
             </p>
 
-            <div className="flex flex-col items-center justify-center gap-2">
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <div className="flex flex-col items-center justify-center gap-1.5">
+              <div className="flex flex-row items-stretch justify-center gap-3 w-full max-w-md mx-auto">
                 <Button
                   size="default"
                   asChild
-                  className="h-auto w-auto min-w-[160px] py-2.5 px-6 text-base"
+                  className="flex-1 min-w-0 h-auto py-3 px-3 text-sm sm:text-base"
                 >
                   <Link
                     href={liveAuthenticated ? `/dashboard/${liveRole}` : '/register?role=owner'}
                     aria-label={liveAuthenticated ? t('home.hero.goDashboard') : `${t('home.hero.startPosting')} — register as project owner`}
                   >
-                    {liveAuthenticated ? t('home.hero.goDashboard') : t('home.hero.startPosting')}{' '}
-                    <ArrowRight className="w-4 h-4" />
+                    <span className="truncate">{liveAuthenticated ? t('home.hero.goDashboard') : t('home.hero.startPosting')}</span>{' '}
+                    <ArrowRight className="w-3.5 h-3.5 flex-shrink-0" />
                   </Link>
                 </Button>
                 {!liveAuthenticated && (
@@ -97,20 +102,20 @@ export function HomePageContent({
                     size="default"
                     variant="outline"
                     asChild
-                    className="h-auto w-auto min-w-[160px] py-2.5 px-6 text-base border-white/30 text-white hover:bg-white/10 hover:text-white"
+                    className="flex-1 min-w-0 h-auto py-3 px-3 text-sm sm:text-base border-white/30 text-white hover:bg-white/10 hover:text-white"
                   >
                     <Link
                       href="/register?role=bidder"
                       aria-label={`${t('home.hero.imBuilder')} — register as contractor or construction firm`}
                     >
-                      {t('home.hero.imBuilder')}{' '}
-                      <ArrowRight className="w-4 h-4" />
+                      <span className="truncate">{t('home.hero.imBuilder')}</span>{' '}
+                      <ArrowRight className="w-3.5 h-3.5 flex-shrink-0" />
                     </Link>
                   </Button>
                 )}
               </div>
               {!liveAuthenticated && (
-                <p className="text-xs sm:text-sm text-slate-200 mt-1">
+                <p className="text-[11px] sm:text-xs text-slate-200">
                   Already have an account?{' '}
                   <Link href="/login" className="text-violet-300 hover:text-violet-200 underline underline-offset-2">
                     Sign in
@@ -119,10 +124,10 @@ export function HomePageContent({
               )}
             </div>
 
-            <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 mt-5 sm:mt-6">
+            <div className="flex flex-nowrap items-center justify-center gap-x-3 sm:gap-x-4 mt-3 sm:mt-4 overflow-x-auto scrollbar-hide">
               {TRUST_BADGES.map(({ icon: Icon, text, color }) => (
-                <div key={text} className="flex items-center gap-1 text-xs text-slate-200">
-                  <Icon className={`w-3 h-3 ${color}`} />
+                <div key={text} className="flex items-center gap-1 text-[10px] sm:text-xs text-slate-200 whitespace-nowrap flex-shrink-0">
+                  <Icon className={`w-2.5 h-2.5 sm:w-3 sm:h-3 ${color}`} />
                   <span>{text}</span>
                 </div>
               ))}

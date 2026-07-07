@@ -63,6 +63,7 @@ export const as: Messages = {
   },
   home: {
     hero: {
+      platformBadge: 'Live Construction Bidding Platform',
       titlePrefix: 'নতুন প্ৰজন্মৰ',
       construction: 'Construction',
       bidding: 'Bidding',
