@@ -5,14 +5,36 @@ export interface ShowcaseProject extends Project {
   owner?: Pick<PublicProfile, 'id' | 'full_name'>;
   bid_count: number;
   lowest_rate: number | null;
+  isDemo?: boolean;
 }
 
 export type ShowcaseCardAction = 'viewDetails' | 'bidNow';
 
+function isDemoProjectId(projectId: string): boolean {
+  return projectId.startsWith('demo-');
+}
+
 export function getShowcaseCardAction(
   projectId: string,
   role: string | null,
+  options?: { isDemo?: boolean },
 ): { href: string; action: ShowcaseCardAction } {
+  const isDemo = options?.isDemo ?? isDemoProjectId(projectId);
+
+  if (isDemo) {
+    if (!role) {
+      return { href: '/signup', action: 'viewDetails' };
+    }
+    const normalized = normalizeRole(role);
+    if (normalized === 'labour_contractor') {
+      return { href: '/dashboard/builder', action: 'bidNow' };
+    }
+    if (normalized === 'construction_firm') {
+      return { href: '/dashboard/firm', action: 'bidNow' };
+    }
+    return { href: getDashboardPath(normalized), action: 'viewDetails' };
+  }
+
   const normalized = normalizeRole(role);
   if (normalized === 'labour_contractor') {
     return { href: `/dashboard/builder/bid/${projectId}`, action: 'bidNow' };

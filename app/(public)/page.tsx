@@ -3,6 +3,7 @@ import { HomePageContent } from '@/components/home/HomePageContent';
 import type { Project } from '@/lib/types';
 import type { ShowcaseProject } from '@/lib/projectShowcase';
 import { isProjectBiddingLive } from '@/lib/projectShowcase';
+import { getDemoShowcaseProjects, mergeShowcaseProjects } from '@/lib/data/demoProjects';
 import { normalizeRole } from '@/lib/auth/roles';
 
 type ProjectRow = Project & {
@@ -100,7 +101,11 @@ async function getAuthStatus() {
 }
 
 export default async function HomePage() {
-  const showcaseProjects = await getActiveShowcaseProjects();
+  const realShowcaseProjects = await getActiveShowcaseProjects();
+  const showcaseProjects = mergeShowcaseProjects(
+    realShowcaseProjects,
+    getDemoShowcaseProjects(),
+  );
   const [frozenProjects, stats, auth] = await Promise.all([
     getFrozenProjects(),
     getStats(showcaseProjects.filter(isProjectBiddingLive).length),

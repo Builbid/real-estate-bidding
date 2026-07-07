@@ -34,7 +34,7 @@ export function ShowcaseProjectCard({
   onExpire,
 }: ShowcaseProjectCardProps) {
   const { t } = useTranslation();
-  const { href, action } = getShowcaseCardAction(project.id, role);
+  const { href, action } = getShowcaseCardAction(project.id, role, { isDemo: project.isDemo });
   const [remaining, setRemaining] = useState(() =>
     formatShowcaseRemaining(project.bidding_ends_at)
   );
