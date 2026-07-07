@@ -13,9 +13,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ThemeToggle } from '@/components/shared/ThemeToggle';
 import {
-  CreateAccountDropdownMenu,
-  CreateAccountPopover,
-} from '@/components/shared/CreateAccountDropdown';
+  CreateAccountButton,
+} from '@/components/shared/CreateAccountButton';
 import { useTranslation } from '@/lib/context/LanguageProvider';
 import { cn } from '@/lib/utils';
 import { normalizeRole, getDashboardPath } from '@/lib/auth/roles';
@@ -126,7 +125,7 @@ export function Navbar({ overlay = false }: NavbarProps) {
               >
                 {t('common.signIn')}
               </Link>
-              <CreateAccountPopover />
+              <CreateAccountButton />
             </div>
           ) : (
             <Button
@@ -138,7 +137,7 @@ export function Navbar({ overlay = false }: NavbarProps) {
           )}
 
           {!profile && overlay && (
-            <CreateAccountPopover compact triggerClassName="sm:hidden" />
+            <CreateAccountButton compact className="sm:hidden" />
           )}
 
           {profile && overlay && (
@@ -231,10 +230,22 @@ export function Navbar({ overlay = false }: NavbarProps) {
                 </button>
               </>
             ) : overlay ? (
-              <CreateAccountDropdownMenu
-                onNavigate={() => setMenuOpen(false)}
-                itemClassName="px-3 py-2.5 text-foreground/80 hover:text-foreground rounded-lg"
-              />
+              <>
+                <Link
+                  href="/signup"
+                  onClick={() => setMenuOpen(false)}
+                  className="px-3 py-2.5 text-sm font-medium text-foreground rounded-lg hover:bg-accent transition-colors"
+                >
+                  {t('common.createAccount')}
+                </Link>
+                <Link
+                  href="/login"
+                  onClick={() => setMenuOpen(false)}
+                  className="px-3 py-2.5 text-sm text-foreground/80 hover:text-foreground rounded-lg hover:bg-accent transition-colors"
+                >
+                  {t('common.signIn')}
+                </Link>
+              </>
             ) : (
               <Link href="/login" onClick={() => setMenuOpen(false)}
                 className="px-3 py-2.5 text-sm text-foreground/80 hover:text-foreground rounded-lg hover:bg-accent transition-colors">
