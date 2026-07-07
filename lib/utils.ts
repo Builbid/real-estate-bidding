@@ -135,6 +135,35 @@ export function formatProjectPostedAt(dateISO: string | null | undefined): strin
   });
 }
 
+/** Relative posted time for cards — "2 hours ago" or "on 5 July 2026". */
+export function formatProjectPostedDisplay(dateISO: string | null | undefined): string | null {
+  if (!dateISO) return null;
+  const d = new Date(dateISO);
+  const ts = d.getTime();
+  if (!Number.isFinite(ts)) return null;
+
+  const diff = Date.now() - ts;
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return 'just now';
+  if (minutes < 60) {
+    return `${minutes} minute${minutes === 1 ? '' : 's'} ago`;
+  }
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) {
+    return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+  }
+  const days = Math.floor(hours / 24);
+  if (days < 7) {
+    return `${days} day${days === 1 ? '' : 's'} ago`;
+  }
+
+  return `on ${d.toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  })}`;
+}
+
 // ─── Track type display ─────────────────────────────────────
 export const TRACK_LABELS: Record<TrackType, string> = {
   RCC:       'RCC Construction',

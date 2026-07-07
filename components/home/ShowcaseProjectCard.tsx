@@ -1,11 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowRight, Clock, Layers } from 'lucide-react';
+import { ArrowRight, Clock, Layers, CalendarDays } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { BuildingConfigSummary } from '@/components/construction/BuildingConfigSummary';
-import { cn, formatRate, TRACK_LABELS } from '@/lib/utils';
+import { cn, formatRate, formatProjectPostedDisplay, TRACK_LABELS } from '@/lib/utils';
 import {
   getFinishingBadge,
   getProjectBudgetDisplay,
@@ -69,6 +69,7 @@ export function ShowcaseProjectCard({
   const floorAreaDisplay = getProjectFloorAreaDisplay(project);
   const budgetDisplay = getProjectBudgetDisplay(project);
   const finishingBadge = getFinishingBadge(project.finishing_level);
+  const postedDisplay = formatProjectPostedDisplay(project.created_at);
 
   const specifications = [
     { label: t('home.showcase.specLocation'), value: project.district },
@@ -172,21 +173,29 @@ export function ShowcaseProjectCard({
       </div>
 
       <div className="flex flex-1 flex-col p-5">
-        <div className="mb-4 grid grid-cols-2 gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-800/30">
-          <div>
-            <p className="text-sm font-bold text-slate-900 dark:text-slate-100">
-              {floorAreaDisplay ?? t('home.showcase.openBidding')}
-            </p>
+        <div className="mb-4 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-800/30">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <p className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                {floorAreaDisplay ?? t('home.showcase.openBidding')}
+              </p>
+            </div>
+            <div>
+              <p className="mb-0.5 flex items-center gap-1 text-[10px] uppercase tracking-wider text-slate-500">
+                <Layers className="h-3 w-3" />
+                {t('home.showcase.activeBids')}
+              </p>
+              <p className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                {project.bid_count}
+              </p>
+            </div>
           </div>
-          <div>
-            <p className="mb-0.5 flex items-center gap-1 text-[10px] uppercase tracking-wider text-slate-500">
-              <Layers className="h-3 w-3" />
-              {t('home.showcase.activeBids')}
+          {postedDisplay && (
+            <p className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-700 flex items-center gap-1 text-xs text-slate-500">
+              <CalendarDays className="h-3 w-3 flex-shrink-0" />
+              {t('project.postedOn')} {postedDisplay}
             </p>
-            <p className="text-sm font-bold text-slate-900 dark:text-slate-100">
-              {project.bid_count}
-            </p>
-          </div>
+          )}
         </div>
 
         <Button
