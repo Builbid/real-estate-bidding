@@ -48,10 +48,10 @@ export function ProjectCard({
 
   return (
     <Card className={cn(
-      'group relative overflow-hidden transition-all duration-300',
-      'hover:border-border hover:shadow-2xl hover:shadow-black/20',
-      isActive && 'border-emerald-500/20 hover:border-emerald-500/40',
-      isFrozen && 'border-indigo-500/20 hover:border-indigo-500/30',
+      'group relative overflow-hidden transition-all duration-300 rounded-2xl',
+      'hover:shadow-xl hover:shadow-black/10 dark:hover:shadow-black/40 hover:-translate-y-0.5',
+      isActive && 'border-emerald-500/25 hover:border-emerald-500/45',
+      isFrozen && 'border-indigo-500/25 hover:border-indigo-500/40',
     )}>
       {/* Status strip */}
       <div className={cn(

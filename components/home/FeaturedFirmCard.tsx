@@ -27,7 +27,7 @@ function StarRating({ rating }: { rating: number }) {
               'h-2.5 w-2.5',
               filled && 'fill-amber-400 text-amber-400',
               half && 'fill-amber-400/45 text-amber-400',
-              !filled && !half && 'text-slate-300 dark:text-slate-600',
+              !filled && !half && 'text-muted-foreground/30',
             )}
           />
         );
@@ -47,49 +47,54 @@ export function FeaturedFirmCard({
   return (
     <article
       className={cn(
-        'snap-start flex-shrink-0 w-[172px] min-w-[160px]',
-        'flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-3',
-        'dark:border-slate-800 dark:bg-slate-900/50 dark:backdrop-blur',
-        'shadow-sm transition-all duration-200',
+        'surface-card relative snap-start flex w-[172px] min-w-[160px] flex-shrink-0 flex-col gap-2.5 overflow-hidden p-3.5',
+        'transition-all duration-300 hover:-translate-y-0.5',
         isLabour
-          ? 'hover:border-amber-500/30 hover:shadow-md'
-          : 'hover:border-violet-500/30 hover:shadow-md',
+          ? 'hover:border-amber-500/35 hover:shadow-lg hover:shadow-amber-500/[0.08]'
+          : 'hover:border-violet-500/35 hover:shadow-lg hover:shadow-violet-500/[0.08]',
       )}
     >
-      <div className="flex items-center gap-2 min-w-0">
+      <div
+        className={cn(
+          'absolute inset-x-0 top-0 h-0.5 rounded-t-2xl opacity-80',
+          isLabour ? 'bg-gradient-to-r from-amber-400 to-orange-400' : 'bg-gradient-to-r from-violet-400 to-indigo-500',
+        )}
+      />
+
+      <div className="flex min-w-0 items-center gap-2">
         <FirmLogo
           companyName={firm.name}
           logoUrl={firm.logoUrl}
           size="sm"
-          className="!w-10 !h-10 text-[10px]"
+          className="!h-10 !w-10 text-[10px] ring-2 ring-background"
         />
         <div className="min-w-0 flex-1">
-          <h3 className="truncate text-sm font-semibold leading-tight text-slate-900 dark:text-white">
+          <h3 className="truncate text-sm font-semibold leading-tight text-foreground">
             {firm.name}
           </h3>
-          <p className="mt-0.5 flex items-center gap-0.5 text-[10px] text-slate-500 dark:text-slate-400">
+          <p className="mt-0.5 flex items-center gap-0.5 text-xs text-muted-foreground">
             <MapPin className="h-2.5 w-2.5 flex-shrink-0" />
             <span className="truncate">{firm.location}</span>
           </p>
         </div>
       </div>
 
-      <div className="flex items-center gap-1 min-w-0 text-[10px] text-slate-500 dark:text-slate-400">
+      <div className="flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
         <StarRating rating={firm.rating} />
-        <span className="font-semibold tabular-nums text-slate-700 dark:text-slate-300">
+        <span className="font-semibold tabular-nums text-foreground/90">
           {firm.rating.toFixed(1)}
         </span>
-        <span className="text-slate-300 dark:text-slate-600">·</span>
+        <span className="text-border">·</span>
         <span className="truncate">{reviewsLabel}</span>
       </div>
 
-      <div className="flex items-center justify-between gap-1.5 min-w-0">
+      <div className="flex min-w-0 items-center justify-between gap-1.5">
         <span
           className={cn(
-            'truncate rounded-full px-1.5 py-0.5 text-[10px] font-medium leading-none',
+            'truncate rounded-full px-2 py-0.5 text-xs font-medium leading-none shadow-sm',
             isLabour
-              ? 'border border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300'
-              : 'border border-violet-500/20 bg-violet-500/10 text-violet-700 dark:text-violet-300',
+              ? 'border border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-300'
+              : 'border border-violet-500/25 bg-violet-500/10 text-violet-700 dark:text-violet-300',
           )}
         >
           {firm.specialty}
@@ -98,7 +103,7 @@ export function FeaturedFirmCard({
           href={firm.portfolioLink}
           aria-label={viewPortfolioLabel}
           className={cn(
-            'inline-flex flex-shrink-0 items-center gap-0.5 text-[10px] font-semibold whitespace-nowrap',
+            'inline-flex flex-shrink-0 items-center gap-0.5 whitespace-nowrap text-xs font-semibold transition-colors',
             isLabour
               ? 'text-amber-700 hover:text-amber-600 dark:text-amber-300 dark:hover:text-amber-200'
               : 'text-violet-700 hover:text-violet-600 dark:text-violet-300 dark:hover:text-violet-200',

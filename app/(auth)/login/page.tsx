@@ -127,7 +127,7 @@ function LoginPageContent() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-border bg-card/80 dark:bg-card/60 backdrop-blur-sm shadow-2xl p-8">
+        <div className="rounded-2xl border border-border/80 bg-card/80 dark:bg-card/60 backdrop-blur-md shadow-xl shadow-black/[0.06] p-8">
           <Suspense
             fallback={
               <div className="flex items-center justify-center py-8">

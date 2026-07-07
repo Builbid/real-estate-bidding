@@ -64,7 +64,7 @@ export function Navbar({ overlay = false }: NavbarProps) {
         'top-0 z-50 w-full',
         overlay
           ? 'absolute bg-transparent'
-          : 'sticky border-b border-border/80 bg-background/95 backdrop-blur-xl'
+          : 'sticky border-b border-border/70 bg-background/90 backdrop-blur-xl shadow-sm shadow-black/[0.04]'
       )}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 flex h-16 items-center justify-between">
@@ -75,7 +75,7 @@ export function Navbar({ overlay = false }: NavbarProps) {
           aria-label="BuilBid Home"
           className="flex items-center gap-2.5 group cursor-pointer hover:opacity-80 transition-opacity no-underline"
         >
-          <div className="flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-lg bg-violet-500/10 border border-violet-500/30 group-hover:bg-violet-500/20 transition-colors">
+          <div className="flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-violet-500/10 border border-violet-500/30 group-hover:bg-violet-500/20 group-hover:shadow-md group-hover:shadow-violet-500/10 transition-all">
             <Building2 className="w-6 h-6 sm:w-7 sm:h-7 text-violet-400" />
           </div>
           <span
@@ -284,7 +284,7 @@ export function PublicNavbar() {
           aria-label="BuilBid Home"
           className="flex items-center gap-2.5 group cursor-pointer hover:opacity-80 transition-opacity no-underline"
         >
-          <div className="flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-lg bg-violet-500/10 border border-violet-500/30 group-hover:bg-violet-500/20 transition-colors">
+          <div className="flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-violet-500/10 border border-violet-500/30 group-hover:bg-violet-500/20 group-hover:shadow-md group-hover:shadow-violet-500/10 transition-all">
             <Building2 className="w-6 h-6 sm:w-7 sm:h-7 text-violet-400" />
           </div>
           <span className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">BuilBid</span>

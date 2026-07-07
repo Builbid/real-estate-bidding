@@ -4,24 +4,24 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-semibold ring-offset-background transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',
+  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-semibold ring-offset-background transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',
   {
     variants: {
       variant: {
         default:
-          'bg-emerald-500 text-white hover:bg-emerald-600 dark:hover:bg-emerald-400 shadow-lg shadow-emerald-500/20 active:scale-[0.98]',
+          'bg-gradient-to-b from-emerald-500 to-emerald-600 text-white hover:from-emerald-400 hover:to-emerald-500 btn-glow-emerald active:scale-[0.98]',
         destructive:
-          'bg-red-500 text-white hover:bg-red-600 dark:hover:bg-red-400 shadow-lg shadow-red-500/20',
+          'bg-gradient-to-b from-red-500 to-red-600 text-white hover:from-red-400 hover:to-red-500 shadow-lg shadow-red-500/20 active:scale-[0.98]',
         outline:
-          'border border-border bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground',
+          'border border-border/80 bg-card/50 text-foreground shadow-sm hover:bg-accent/80 hover:border-emerald-500/30 hover:text-foreground backdrop-blur-sm',
         secondary:
-          'bg-secondary text-secondary-foreground hover:bg-secondary/80',
+          'bg-secondary/80 text-secondary-foreground border border-border/50 shadow-sm hover:bg-secondary',
         ghost:
-          'text-muted-foreground hover:text-foreground hover:bg-accent',
+          'text-muted-foreground hover:text-foreground hover:bg-accent/70',
         link:
           'text-emerald-600 dark:text-emerald-400 underline-offset-4 hover:underline p-0 h-auto',
         indigo:
-          'bg-indigo-600 text-white hover:bg-indigo-700 dark:hover:bg-indigo-500 shadow-lg shadow-indigo-500/20',
+          'bg-gradient-to-b from-indigo-500 to-indigo-600 text-white hover:from-indigo-400 hover:to-indigo-500 shadow-lg shadow-indigo-500/20 active:scale-[0.98]',
       },
       size: {
         default: 'h-10 px-5 py-2',

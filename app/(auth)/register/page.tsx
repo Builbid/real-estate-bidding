@@ -271,7 +271,7 @@ function RegisterPageContent() {
         )}
 
         <div className={cn(
-          'rounded-2xl border border-border bg-card/80 dark:bg-card/60 backdrop-blur-sm shadow-2xl p-8 transition-all',
+          'rounded-2xl border border-border/80 bg-card/80 dark:bg-card/60 backdrop-blur-md shadow-xl shadow-black/[0.06] p-8 transition-all',
           successFlash && 'ring-2 ring-emerald-500/50',
         )}>
 

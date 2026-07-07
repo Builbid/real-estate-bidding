@@ -45,7 +45,7 @@ export function SignupRoleSelection() {
           </Link>
         </p>
 
-        <div className="rounded-2xl border border-border bg-card/80 dark:bg-card/60 backdrop-blur-sm shadow-2xl p-8">
+        <div className="rounded-2xl border border-border/80 bg-card/80 dark:bg-card/60 backdrop-blur-md shadow-xl shadow-black/[0.06] p-8">
           <p className="text-sm font-semibold text-foreground/80 mb-4">How will you use BuilBid?</p>
           <div className="space-y-3">
             {SIGNUP_ROLE_CARDS.map((card) => {
@@ -56,7 +56,7 @@ export function SignupRoleSelection() {
                   href={card.href}
                   className={cn(
                     'block w-full text-left px-4 py-4 rounded-xl border-2 transition-all duration-200',
-                    'hover:scale-[1.01] active:scale-[0.99]',
+                    'hover:scale-[1.01] active:scale-[0.99] shadow-sm hover:shadow-md',
                     'border-border bg-secondary/30 hover:border-muted-foreground/30 hover:bg-secondary/50',
                     isFirm && 'border-violet-500/20 bg-violet-500/[0.03] hover:border-violet-500/40 hover:bg-violet-500/[0.06]',
                     card.accent === 'teal' && 'hover:border-teal-500/40 hover:shadow-md hover:shadow-teal-500/10',

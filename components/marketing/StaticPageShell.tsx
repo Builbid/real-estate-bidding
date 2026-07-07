@@ -30,7 +30,7 @@ export function StaticPageShell({
           Back to Home
         </Link>
 
-        <header className="mb-10 border-b border-border pb-8">
+        <header className="mb-10 rounded-2xl border border-border/70 bg-card/50 p-6 sm:p-8 shadow-sm backdrop-blur-sm">
           <h1 className="text-3xl sm:text-4xl font-bold text-foreground tracking-tight">{title}</h1>
           {subtitle && (
             <p className="mt-3 text-base text-muted-foreground leading-relaxed">{subtitle}</p>
@@ -56,7 +56,7 @@ export function StaticSection({
   children: React.ReactNode;
 }) {
   return (
-    <section>
+    <section className="surface-panel rounded-2xl p-5 sm:p-6">
       <h2 className="text-lg font-semibold text-foreground mb-3">{title}</h2>
       <div className="space-y-3 text-muted-foreground">{children}</div>
     </section>

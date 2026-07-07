@@ -85,16 +85,10 @@ export function ShowcaseProjectCard({
   ];
 
   return (
-    <article
-      className={cn(
-        'group relative flex flex-col overflow-hidden rounded-2xl',
-        'border border-slate-200 bg-white text-slate-900',
-        'dark:border-slate-800 dark:bg-slate-900/50 dark:text-white dark:backdrop-blur',
-        'transition-all duration-300 ease-in-out',
-        'hover:-translate-y-1 hover:border-emerald-500/30',
-      )}
-    >
-      <div className="border-b border-slate-200 px-5 pt-4 pb-4 dark:border-slate-800/80">
+    <article className="surface-card-interactive group relative flex flex-col overflow-hidden">
+      <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-600 opacity-90" />
+
+      <div className="border-b border-border/70 px-5 pt-5 pb-4">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap gap-2">
             <Badge variant="emerald" className="text-xs">
@@ -105,22 +99,22 @@ export function ShowcaseProjectCard({
               {getServiceBadgeLabel(serviceType)}
             </Badge>
             {finishingBadge && (
-              <Badge className="text-xs border-slate-300 bg-slate-100 text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200">
+              <Badge variant="default" className="text-xs">
                 {finishingBadge}
               </Badge>
             )}
             {!isFirm && (
-              <Badge className="border-slate-200 bg-slate-100 text-xs text-slate-700 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-200">
+              <Badge variant="default" className="text-xs text-muted-foreground">
                 {TRACK_LABELS[project.track_type]}
               </Badge>
             )}
           </div>
           <div
             className={cn(
-              'flex items-center gap-1.5 rounded-lg border px-2.5 py-1',
-              'border-slate-200 bg-slate-50 dark:border-slate-700/80 dark:bg-slate-800/60',
+              'flex items-center gap-1.5 rounded-lg border px-2.5 py-1 shadow-sm',
+              'border-border/70 bg-muted/40',
               remaining.isUrgent &&
-                'border-red-400/40 bg-red-50 dark:bg-red-950/40',
+                'border-red-400/40 bg-red-500/10',
             )}
           >
             <Clock
@@ -144,7 +138,7 @@ export function ShowcaseProjectCard({
           </div>
         </div>
 
-        <h3 className="line-clamp-2 text-lg font-bold leading-snug text-slate-900 transition-colors group-hover:text-emerald-600 dark:text-white dark:group-hover:text-emerald-400">
+        <h3 className="line-clamp-2 text-lg font-bold leading-snug text-foreground transition-colors group-hover:text-emerald-600 dark:group-hover:text-emerald-400">
           {project.title}
         </h3>
 
@@ -154,15 +148,15 @@ export function ShowcaseProjectCard({
           </div>
         )}
 
-        <ul className="mt-3 space-y-1.5 text-sm leading-relaxed text-slate-600 dark:text-slate-400">
+        <ul className="mt-3 space-y-1.5 text-sm leading-relaxed text-muted-foreground">
           {specifications.map((spec) => (
             <li key={spec.label} className="flex gap-2">
               <span
                 aria-hidden
-                className="mt-2 h-1 w-1 flex-shrink-0 rounded-full bg-emerald-500 dark:bg-emerald-400"
+                className="mt-2 h-1 w-1 flex-shrink-0 rounded-full bg-emerald-500"
               />
               <span>
-                <span className="font-medium text-slate-800 dark:text-slate-300">
+                <span className="font-medium text-foreground/90">
                   {spec.label}:
                 </span>{' '}
                 {spec.value}
@@ -173,25 +167,25 @@ export function ShowcaseProjectCard({
       </div>
 
       <div className="flex flex-1 flex-col p-5">
-        <div className="mb-4 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-800/30">
+        <div className="surface-inset mb-4 p-3">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <p className="text-sm font-bold text-slate-900 dark:text-slate-100">
+              <p className="text-sm font-bold text-foreground">
                 {floorAreaDisplay ?? t('home.showcase.openBidding')}
               </p>
             </div>
             <div>
-              <p className="mb-0.5 flex items-center gap-1 text-[10px] uppercase tracking-wider text-slate-500">
+              <p className="mb-0.5 flex items-center gap-1 text-xs uppercase tracking-wider text-muted-foreground">
                 <Layers className="h-3 w-3" />
                 {t('home.showcase.activeBids')}
               </p>
-              <p className="text-sm font-bold text-slate-900 dark:text-slate-100">
+              <p className="text-sm font-bold text-foreground">
                 {project.bid_count}
               </p>
             </div>
           </div>
           {postedDisplay && (
-            <p className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-700 flex items-center gap-1 text-xs text-slate-500">
+            <p className="mt-2 flex items-center gap-1 border-t border-border/60 pt-2 text-xs text-muted-foreground">
               <CalendarDays className="h-3 w-3 flex-shrink-0" />
               {t('project.postedOn')} {postedDisplay}
             </p>
@@ -201,13 +195,7 @@ export function ShowcaseProjectCard({
         <Button
           variant="outline"
           size="sm"
-          className={cn(
-            'mt-auto w-full group/btn',
-            'border-slate-200 bg-slate-50 text-slate-900',
-            'hover:border-emerald-500/40 hover:bg-emerald-50 hover:text-emerald-700',
-            'dark:border-slate-700 dark:bg-slate-800/40 dark:text-slate-100',
-            'dark:hover:border-emerald-500/40 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-300',
-          )}
+          className="mt-auto w-full group/btn rounded-xl border-emerald-500/20 bg-emerald-500/[0.04] hover:bg-emerald-500/10"
           asChild
         >
           <Link href={href}>

@@ -56,7 +56,7 @@ export function Footer({ compact }: FooterProps) {
   ] as const;
 
   return (
-    <footer className="border-t border-border bg-background">
+    <footer className="border-t border-border/80 bg-gradient-to-b from-background to-secondary/30">
       <div className={`max-w-7xl mx-auto px-6 ${compact ? 'py-8' : 'py-12'}`}>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-8">
           <div className="sm:col-span-2 lg:col-span-1">
@@ -65,7 +65,7 @@ export function Footer({ compact }: FooterProps) {
               aria-label="BuilBid Home"
               className="inline-flex items-center gap-2.5 group mb-4 cursor-pointer hover:opacity-80 transition-opacity no-underline"
             >
-              <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-violet-500/10 border border-violet-500/30 group-hover:bg-violet-500/20 transition-colors">
+              <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-violet-500/10 border border-violet-500/30 group-hover:bg-violet-500/20 group-hover:shadow-md group-hover:shadow-violet-500/10 transition-all">
                 <Building2 className="w-5 h-5 text-violet-400" />
               </div>
               <span className="text-base font-bold text-foreground tracking-tight">BuilBid</span>

@@ -12,7 +12,7 @@ export function HomeMarqueeTicker() {
   return (
     <section
       aria-label={text}
-      className="relative z-10 overflow-hidden border-t border-white/10 bg-black/25 backdrop-blur-sm"
+      className="relative z-10 overflow-hidden border-t border-white/15 bg-gradient-to-r from-black/30 via-black/25 to-black/30 backdrop-blur-md"
     >
       <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-16 bg-gradient-to-r from-black/40 to-transparent sm:w-24" />
       <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-16 bg-gradient-to-l from-black/40 to-transparent sm:w-24" />

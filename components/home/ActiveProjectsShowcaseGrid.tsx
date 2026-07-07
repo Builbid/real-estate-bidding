@@ -190,10 +190,10 @@ export function ActiveProjectsShowcaseGrid({
             type="button"
             onClick={() => setServiceFilter(id)}
             className={cn(
-              'px-3 py-1.5 rounded-full text-xs font-semibold border transition-all',
+              'px-3 py-1.5 rounded-full text-xs font-semibold border transition-all shadow-sm',
               serviceFilter === id
-                ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-700 dark:text-emerald-300'
-                : 'bg-secondary/50 border-border text-muted-foreground hover:text-foreground',
+                ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-700 dark:text-emerald-300 shadow-emerald-500/10'
+                : 'bg-secondary/50 border-border/70 text-muted-foreground hover:text-foreground hover:border-border',
             )}
           >
             {label}

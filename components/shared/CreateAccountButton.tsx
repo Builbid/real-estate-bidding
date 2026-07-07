@@ -17,8 +17,8 @@ export function CreateAccountButton({ compact, className }: CreateAccountButtonP
     <Button
       size="sm"
       asChild
-      className={cn(
-        'h-8 rounded-full shadow-md shadow-emerald-500/20',
+        className={cn(
+        'h-8 rounded-full btn-glow-emerald',
         compact ? 'px-3 text-xs' : 'px-4 text-sm',
         className,
       )}

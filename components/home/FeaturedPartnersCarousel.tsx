@@ -36,9 +36,9 @@ export function FeaturedPartnersCarousel({
 
   return (
     <div className={cn('group relative', className)}>
-      <div className="mb-3">
-        <h2 className="text-base font-bold text-foreground sm:text-lg">{title}</h2>
-        <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p>
+      <div className="mb-4">
+        <h2 className="text-base font-bold text-foreground sm:text-lg tracking-tight">{title}</h2>
+        <p className="mt-1 text-xs text-muted-foreground sm:text-sm">{subtitle}</p>
       </div>
 
       <div className="relative">
