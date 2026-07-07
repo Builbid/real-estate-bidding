@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { Building2, LayoutDashboard, LogOut, Menu, X } from 'lucide-react';
+import { Building2, LayoutDashboard, LogOut, Menu, X, ChevronDown } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useProfile } from '@/lib/hooks/useProfile';
 import { UserAvatar } from '@/components/shared/UserAvatar';
@@ -12,6 +12,7 @@ import { SignOutConfirmDialog } from '@/components/shared/SignOutConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ThemeToggle } from '@/components/shared/ThemeToggle';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useTranslation } from '@/lib/context/LanguageProvider';
 import { cn } from '@/lib/utils';
 import { normalizeRole, getDashboardPath } from '@/lib/auth/roles';
@@ -114,12 +115,90 @@ export function Navbar({ overlay = false }: NavbarProps) {
                 <LogOut className="w-4 h-4" />
               </Button>
             </div>
+          ) : overlay ? (
+            <div className="hidden sm:flex items-center gap-2">
+              <Link
+                href="/login"
+                className="px-2 py-1 text-sm font-medium text-slate-200 hover:text-white transition-colors"
+              >
+                {t('common.signIn')}
+              </Link>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    size="sm"
+                    className="h-8 rounded-full px-4 text-sm shadow-md shadow-emerald-500/20"
+                  >
+                    {t('common.signUp')}
+                    <ChevronDown className="w-3.5 h-3.5 opacity-80" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-56 p-2">
+                  <Link
+                    href="/register?role=owner"
+                    className="block rounded-md px-3 py-2 text-sm font-medium hover:bg-accent transition-colors"
+                  >
+                    {t('home.hero.startPosting')}
+                  </Link>
+                  <Link
+                    href="/register?role=bidder"
+                    className="block rounded-md px-3 py-2 text-sm font-medium hover:bg-accent transition-colors"
+                  >
+                    {t('home.hero.imBuilder')}
+                  </Link>
+                </PopoverContent>
+              </Popover>
+            </div>
           ) : (
             <Button
               asChild
               className="hidden md:inline-flex"
             >
               <Link href="/login">{t('common.signIn')}</Link>
+            </Button>
+          )}
+
+          {!profile && overlay && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  size="sm"
+                  className="sm:hidden h-8 rounded-full px-3 text-xs shadow-md shadow-emerald-500/20"
+                >
+                  {t('common.signUp')}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-56 p-2">
+                <Link
+                  href="/register?role=owner"
+                  className="block rounded-md px-3 py-2 text-sm font-medium hover:bg-accent transition-colors"
+                >
+                  {t('home.hero.startPosting')}
+                </Link>
+                <Link
+                  href="/register?role=bidder"
+                  className="block rounded-md px-3 py-2 text-sm font-medium hover:bg-accent transition-colors"
+                >
+                  {t('home.hero.imBuilder')}
+                </Link>
+                <Link
+                  href="/login"
+                  className="block rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-accent transition-colors"
+                >
+                  {t('common.signIn')}
+                </Link>
+              </PopoverContent>
+            </Popover>
+          )}
+
+          {profile && overlay && (
+            <Button
+              asChild
+              size="sm"
+              variant="outline"
+              className="sm:hidden h-8 rounded-full px-3 text-xs border-white/30 text-white hover:bg-white/10 hover:text-white"
+            >
+              <Link href={getDashboardPath(normalizedRole!)}>{t('common.dashboard')}</Link>
             </Button>
           )}
 
@@ -200,6 +279,30 @@ export function Navbar({ overlay = false }: NavbarProps) {
                 >
                   <LogOut className="w-4 h-4" /> {t('common.signOut')}
                 </button>
+              </>
+            ) : overlay ? (
+              <>
+                <Link
+                  href="/login"
+                  onClick={() => setMenuOpen(false)}
+                  className="px-3 py-2.5 text-sm text-foreground/80 hover:text-foreground rounded-lg hover:bg-accent transition-colors"
+                >
+                  {t('common.signIn')}
+                </Link>
+                <Link
+                  href="/register?role=owner"
+                  onClick={() => setMenuOpen(false)}
+                  className="px-3 py-2.5 text-sm text-foreground/80 hover:text-foreground rounded-lg hover:bg-accent transition-colors"
+                >
+                  {t('home.hero.startPosting')}
+                </Link>
+                <Link
+                  href="/register?role=bidder"
+                  onClick={() => setMenuOpen(false)}
+                  className="px-3 py-2.5 text-sm text-foreground/80 hover:text-foreground rounded-lg hover:bg-accent transition-colors"
+                >
+                  {t('home.hero.imBuilder')}
+                </Link>
               </>
             ) : (
               <Link href="/login" onClick={() => setMenuOpen(false)}
