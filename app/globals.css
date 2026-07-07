@@ -154,6 +154,25 @@
     font-variant-numeric: tabular-nums;
   }
 
+  .animate-marquee-ltr {
+    animation: marquee-ltr 32s linear infinite;
+  }
+
+  @keyframes marquee-ltr {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(0);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-marquee-ltr {
+      animation: none;
+    }
+  }
+
   .bg-grid {
     background-image:
       linear-gradient(hsl(var(--border) / 0.6) 1px, transparent 1px),

@@ -9,6 +9,7 @@ import { HeroBackgroundSlideshow } from '@/components/shared/HeroBackgroundSlide
 import { ProjectCard } from '@/components/shared/ProjectCard';
 import { ActiveProjectsShowcaseGrid } from '@/components/home/ActiveProjectsShowcaseGrid';
 import { FeaturedFirmsSection } from '@/components/home/FeaturedFirmsSection';
+import { HomeMarqueeTicker } from '@/components/home/HomeMarqueeTicker';
 import { useTranslation } from '@/lib/context/LanguageProvider';
 import type { Project } from '@/lib/types';
 import type { ShowcaseProject } from '@/lib/projectShowcase';
@@ -64,6 +65,8 @@ export function HomePageContent({
             </h1>
           </div>
         </div>
+
+        <HomeMarqueeTicker />
       </section>
 
       <section className="border-y border-border bg-card/80 dark:bg-card/60">
