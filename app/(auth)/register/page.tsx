@@ -69,11 +69,22 @@ const ROLE_CARDS = [
   },
 ];
 
-type RoleParam = 'owner' | 'bidder' | null;
+type RoleParam = 'owner' | 'bidder' | 'labour_contractor' | 'construction_firm' | null;
 
 function parseRoleParam(value: string | null): RoleParam {
-  if (value === 'owner' || value === 'bidder') return value;
+  if (
+    value === 'owner' ||
+    value === 'bidder' ||
+    value === 'labour_contractor' ||
+    value === 'construction_firm'
+  ) {
+    return value;
+  }
   return null;
+}
+
+function isDirectRegisterRole(param: RoleParam): param is SignUpRole {
+  return param === 'owner' || param === 'labour_contractor' || param === 'construction_firm';
 }
 
 function RegisterPageContent() {
@@ -81,8 +92,10 @@ function RegisterPageContent() {
   const searchParams = useSearchParams();
   const roleParam = parseRoleParam(searchParams.get('role'));
 
-  const [step, setStep] = useState<Step>(() => (roleParam === 'owner' ? 2 : 1));
-  const [role, setRole] = useState<RegisterRole>(() => (roleParam === 'owner' ? 'owner' : null));
+  const [step, setStep] = useState<Step>(() => (isDirectRegisterRole(roleParam) ? 2 : 1));
+  const [role, setRole] = useState<RegisterRole>(() =>
+    isDirectRegisterRole(roleParam) ? roleParam : null,
+  );
   const [showPw, setShowPw] = useState(false);
   const [email, setEmail] = useState('');
   const [fullName, setFullName] = useState('');
@@ -199,6 +212,8 @@ function RegisterPageContent() {
 
   const visibleCards = useMemo(() => {
     if (roleParam === 'owner') return ROLE_CARDS.filter((c) => c.role === 'owner');
+    if (roleParam === 'labour_contractor') return ROLE_CARDS.filter((c) => c.role === 'labour_contractor');
+    if (roleParam === 'construction_firm') return ROLE_CARDS.filter((c) => c.role === 'construction_firm');
     if (roleParam === 'bidder') return ROLE_CARDS.filter((c) => c.role !== 'owner');
     return ROLE_CARDS;
   }, [roleParam]);
@@ -206,11 +221,20 @@ function RegisterPageContent() {
   const pageSubtitle =
     roleParam === 'owner'
       ? 'Create your owner account to post your construction project'
+      : roleParam === 'labour_contractor'
+        ? 'Create your labour contractor account to browse and bid on projects'
+        : roleParam === 'construction_firm'
+          ? 'Create your construction firm account to bid on turnkey projects'
       : roleParam === 'bidder'
         ? 'Create your account to start bidding on construction projects'
         : 'Join BuilBid — the professional construction bidding platform';
 
-  const loginHref = roleParam ? `/login?role=${roleParam}` : '/login';
+  const loginHref =
+    roleParam === 'labour_contractor' || roleParam === 'construction_firm' || roleParam === 'bidder'
+      ? '/login?role=bidder'
+      : roleParam
+        ? `/login?role=${roleParam}`
+        : '/login';
 
   return (
     <div className="flex-1 bg-background text-foreground flex items-center justify-center p-4">
