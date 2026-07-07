@@ -12,9 +12,8 @@ import { SignOutConfirmDialog } from '@/components/shared/SignOutConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ThemeToggle } from '@/components/shared/ThemeToggle';
-import {
-  CreateAccountButton,
-} from '@/components/shared/CreateAccountButton';
+import { CreateAccountButton } from '@/components/shared/CreateAccountButton';
+import { MobileGuestAuthMenu } from '@/components/shared/MobileGuestAuthMenu';
 import { useTranslation } from '@/lib/context/LanguageProvider';
 import { cn } from '@/lib/utils';
 import { normalizeRole, getDashboardPath } from '@/lib/auth/roles';
@@ -118,7 +117,7 @@ export function Navbar({ overlay = false }: NavbarProps) {
               </Button>
             </div>
           ) : overlay ? (
-            <div className="hidden sm:flex items-center gap-2">
+            <div className="hidden md:flex items-center gap-2">
               <Link
                 href="/login"
                 className="px-2 py-1 text-sm font-medium text-slate-200 hover:text-white transition-colors"
@@ -134,10 +133,6 @@ export function Navbar({ overlay = false }: NavbarProps) {
             >
               <Link href="/login">{t('common.signIn')}</Link>
             </Button>
-          )}
-
-          {!profile && overlay && (
-            <CreateAccountButton compact className="sm:hidden" />
           )}
 
           {profile && overlay && (
@@ -230,22 +225,7 @@ export function Navbar({ overlay = false }: NavbarProps) {
                 </button>
               </>
             ) : overlay ? (
-              <>
-                <Link
-                  href="/signup"
-                  onClick={() => setMenuOpen(false)}
-                  className="px-3 py-2.5 text-sm font-medium text-foreground rounded-lg hover:bg-accent transition-colors"
-                >
-                  {t('common.createAccount')}
-                </Link>
-                <Link
-                  href="/login"
-                  onClick={() => setMenuOpen(false)}
-                  className="px-3 py-2.5 text-sm text-foreground/80 hover:text-foreground rounded-lg hover:bg-accent transition-colors"
-                >
-                  {t('common.signIn')}
-                </Link>
-              </>
+              <MobileGuestAuthMenu onNavigate={() => setMenuOpen(false)} />
             ) : (
               <Link href="/login" onClick={() => setMenuOpen(false)}
                 className="px-3 py-2.5 text-sm text-foreground/80 hover:text-foreground rounded-lg hover:bg-accent transition-colors">
