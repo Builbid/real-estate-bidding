@@ -38,8 +38,8 @@ export function HomePageContent({
   ];
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <section className="relative overflow-hidden">
+    <div className="min-h-screen text-foreground">
+      <section className="relative min-h-screen w-full overflow-hidden">
         <HeroBackgroundSlideshow />
         <Navbar overlay />
 
@@ -49,7 +49,7 @@ export function HomePageContent({
           <div className="absolute bottom-0 left-1/2 w-[500px] h-[200px] bg-blue-500/6 rounded-full blur-3xl" />
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-[4.25rem] pb-4 sm:pt-[4.5rem] sm:pb-5 relative z-10">
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pt-[4.25rem] pb-4 sm:pt-[4.5rem] sm:pb-5">
           <div className="max-w-xl mx-auto text-center">
             <div className="inline-flex items-center gap-1.5 rounded-full border border-violet-400/40 bg-violet-500/25 px-3 py-1 mb-2.5 text-[11px] sm:text-xs font-semibold text-violet-50 shadow-lg shadow-violet-900/20 backdrop-blur-md">
               <Gavel className="w-2.5 h-2.5 text-emerald-400 flex-shrink-0" />
@@ -83,33 +83,34 @@ export function HomePageContent({
             ))}
           </div>
         </div>
-      </section>
 
-      <section id="live-auctions" className="max-w-7xl mx-auto px-4 sm:px-6 pt-8 pb-10 sm:pt-10 sm:pb-12">
-        <div className="mb-8 sm:mb-10">
-          <ActiveProjectsShowcaseGrid
-            projects={showcaseProjects}
-            isAuthenticated={isAuthenticated}
-            role={role}
-          />
-        </div>
-
-        {frozenProjects.length > 0 && (
+        <section id="live-auctions" className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pt-8 pb-10 sm:pt-10 sm:pb-12">
           <div className="mb-8 sm:mb-10">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-2 h-2 rounded-full bg-violet-400" />
-              <h2 className="text-xl font-bold text-foreground">{t('home.auctions.selectionTitle')}</h2>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-400 border border-violet-500/20 font-semibold">
-                {t('home.auctions.projects', { count: frozenProjects.length })}
-              </span>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {frozenProjects.map((project) => (
-                <ProjectCard key={project.id} project={project} isAuthenticated={isAuthenticated} />
-              ))}
-            </div>
+            <ActiveProjectsShowcaseGrid
+              projects={showcaseProjects}
+              isAuthenticated={isAuthenticated}
+              role={role}
+              heroOverlay
+            />
           </div>
-        )}
+
+          {frozenProjects.length > 0 && (
+            <div className="mb-8 sm:mb-10">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-2 h-2 rounded-full bg-violet-400" />
+                <h2 className="text-xl font-bold text-white">{t('home.auctions.selectionTitle')}</h2>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-violet-400/15 text-violet-200 border border-violet-300/25 font-semibold">
+                  {t('home.auctions.projects', { count: frozenProjects.length })}
+                </span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                {frozenProjects.map((project) => (
+                  <ProjectCard key={project.id} project={project} isAuthenticated={isAuthenticated} />
+                ))}
+              </div>
+            </div>
+          )}
+        </section>
       </section>
 
       <FeaturedFirmsSection />

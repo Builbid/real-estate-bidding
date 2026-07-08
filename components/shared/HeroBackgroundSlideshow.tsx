@@ -24,18 +24,19 @@ export function HeroBackgroundSlideshow() {
   }, []);
 
   return (
-    <div className="absolute inset-0 z-0" aria-hidden="true">
+    <div className="absolute inset-0 z-0 h-full w-full min-h-full" aria-hidden="true">
       {HERO_IMAGES.map((src, index) => (
         <div
           key={src}
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-opacity duration-1000 ease-in-out"
+          className="absolute inset-0 h-full w-full bg-cover bg-center bg-no-repeat transition-opacity duration-1000 ease-in-out"
           style={{
             backgroundImage: `url(${src})`,
+            backgroundSize: 'cover',
             opacity: index === activeIndex ? 1 : 0,
           }}
         />
       ))}
-      <div className="absolute inset-0 bg-slate-950/80" />
+      <div className="absolute inset-0 h-full w-full bg-slate-950/80" />
     </div>
   );
 }

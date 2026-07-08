@@ -22,6 +22,7 @@ interface ActiveProjectsShowcaseGridProps {
   projects: ShowcaseProject[];
   isAuthenticated: boolean;
   role: string | null;
+  heroOverlay?: boolean;
 }
 
 const FILTER_OPTIONS: { id: ServiceFilter; label: string }[] = [
@@ -45,6 +46,7 @@ export function ActiveProjectsShowcaseGrid({
   projects: initialProjects,
   isAuthenticated,
   role,
+  heroOverlay = false,
 }: ActiveProjectsShowcaseGridProps) {
   const { t } = useTranslation();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -157,9 +159,16 @@ export function ActiveProjectsShowcaseGrid({
         <div>
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <h2 className="text-xl font-bold text-foreground">{t('home.auctions.liveTitle')}</h2>
+            <h2 className={cn('text-xl font-bold', heroOverlay ? 'text-white' : 'text-foreground')}>
+              {t('home.auctions.liveTitle')}
+            </h2>
             {filteredProjects.length > 0 && (
-              <span className="rounded-full border border-border bg-secondary/60 px-2 py-0.5 text-xs font-semibold tabular-nums text-muted-foreground">
+              <span className={cn(
+                'rounded-full border px-2 py-0.5 text-xs font-semibold tabular-nums',
+                heroOverlay
+                  ? 'border-white/20 bg-white/10 text-white/80'
+                  : 'border-border bg-secondary/60 text-muted-foreground',
+              )}>
                 {activeIndex + 1} / {filteredProjects.length}
               </span>
             )}
@@ -168,7 +177,7 @@ export function ActiveProjectsShowcaseGrid({
             </span>
           </div>
           {hasMultipleCards && (
-            <p className="mt-1.5 flex items-center gap-1 text-xs text-muted-foreground">
+            <p className={cn('mt-1.5 flex items-center gap-1 text-xs', heroOverlay ? 'text-white/70' : 'text-muted-foreground')}>
               {t('home.auctions.swipeHint')}
               <ArrowRight className="h-3 w-3 animate-swipe-arrow-nudge" aria-hidden />
             </p>
@@ -176,7 +185,10 @@ export function ActiveProjectsShowcaseGrid({
         </div>
         <Link
           href={sectionLink.href}
-          className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1 shrink-0"
+          className={cn(
+            'text-sm transition-colors flex items-center gap-1 shrink-0',
+            heroOverlay ? 'text-white/70 hover:text-white' : 'text-muted-foreground hover:text-foreground',
+          )}
         >
           {t(sectionLink.labelKey)}{' '}
           <ArrowRight className="w-3.5 h-3.5" />
@@ -192,8 +204,12 @@ export function ActiveProjectsShowcaseGrid({
             className={cn(
               'px-3 py-1.5 rounded-full text-xs font-semibold border transition-all shadow-sm',
               serviceFilter === id
-                ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-700 dark:text-emerald-300 shadow-emerald-500/10'
-                : 'bg-secondary/50 border-border/70 text-muted-foreground hover:text-foreground hover:border-border',
+                ? heroOverlay
+                  ? 'bg-emerald-400/20 border-emerald-300/40 text-emerald-100 shadow-emerald-500/10'
+                  : 'bg-emerald-500/15 border-emerald-500/40 text-emerald-700 dark:text-emerald-300 shadow-emerald-500/10'
+                : heroOverlay
+                  ? 'bg-white/5 border-white/15 text-white/70 hover:text-white hover:border-white/25'
+                  : 'bg-secondary/50 border-border/70 text-muted-foreground hover:text-foreground hover:border-border',
             )}
           >
             {label}
@@ -236,7 +252,10 @@ export function ActiveProjectsShowcaseGrid({
 
             {hasMultipleCards && (
               <div
-                className="pointer-events-none absolute inset-y-0 right-0 z-[5] w-14 bg-gradient-to-l from-background to-transparent"
+                className={cn(
+                  'pointer-events-none absolute inset-y-0 right-0 z-[5] w-14 bg-gradient-to-l to-transparent',
+                  heroOverlay ? 'from-slate-950/90' : 'from-background',
+                )}
                 aria-hidden
               />
             )}
