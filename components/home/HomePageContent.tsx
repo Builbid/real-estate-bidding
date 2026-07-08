@@ -70,7 +70,7 @@ export function HomePageContent({
             {STATS_CONFIG.map(({ key, label, icon: Icon, iconBorder, iconColor }) => (
               <div
                 key={key}
-                className="flex items-center gap-2.5 sm:gap-3 rounded-xl border border-white/20 bg-transparent px-3 py-3 sm:px-4 sm:py-3.5"
+                className="flex items-center gap-2.5 sm:gap-3 bg-transparent px-3 py-3 sm:px-4 sm:py-3.5"
               >
                 <div className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border bg-transparent sm:h-10 sm:w-10 ${iconBorder}`}>
                   <Icon className={`h-4 w-4 sm:h-5 sm:w-5 ${iconColor}`} />
