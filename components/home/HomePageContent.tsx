@@ -31,10 +31,10 @@ export function HomePageContent({
   const { t } = useTranslation();
 
   const STATS_CONFIG = [
-    { key: 'active', label: t('home.stats.activeAuctions'), icon: Activity, iconBg: 'bg-blue-400/20', iconBorder: 'border-blue-300/30', iconColor: 'text-blue-200' },
-    { key: 'frozen', label: t('home.stats.pendingSelection'), icon: Clock, iconBg: 'bg-violet-400/20', iconBorder: 'border-violet-300/30', iconColor: 'text-violet-200' },
-    { key: 'total', label: t('home.stats.totalProjects'), icon: Building2, iconBg: 'bg-amber-400/20', iconBorder: 'border-amber-300/30', iconColor: 'text-amber-200' },
-    { key: 'bids', label: t('home.stats.bidsSubmitted'), icon: Gavel, iconBg: 'bg-rose-400/20', iconBorder: 'border-rose-300/30', iconColor: 'text-rose-200' },
+    { key: 'active', label: t('home.stats.activeAuctions'), icon: Activity, iconBg: 'bg-blue-400/15', iconBorder: 'border-blue-300/25', iconColor: 'text-blue-100' },
+    { key: 'frozen', label: t('home.stats.pendingSelection'), icon: Clock, iconBg: 'bg-violet-400/15', iconBorder: 'border-violet-300/25', iconColor: 'text-violet-100' },
+    { key: 'total', label: t('home.stats.totalProjects'), icon: Building2, iconBg: 'bg-amber-400/15', iconBorder: 'border-amber-300/25', iconColor: 'text-amber-100' },
+    { key: 'bids', label: t('home.stats.bidsSubmitted'), icon: Gavel, iconBg: 'bg-rose-400/15', iconBorder: 'border-rose-300/25', iconColor: 'text-rose-100' },
   ];
 
   return (
@@ -70,14 +70,14 @@ export function HomePageContent({
             {STATS_CONFIG.map(({ key, label, icon: Icon, iconBg, iconBorder, iconColor }) => (
               <div
                 key={key}
-                className="flex items-center gap-2.5 sm:gap-3 rounded-xl border border-white/10 bg-white/5 px-3 py-3 backdrop-blur-md sm:px-4 sm:py-3.5"
+                className="flex items-center gap-2.5 sm:gap-3 rounded-xl border border-white/15 bg-zinc-950/20 px-3 py-3 shadow-lg shadow-black/25 backdrop-blur-md ring-1 ring-white/10 sm:px-4 sm:py-3.5"
               >
-                <div className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border sm:h-10 sm:w-10 ${iconBg} ${iconBorder}`}>
+                <div className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border backdrop-blur-sm sm:h-10 sm:w-10 ${iconBg} ${iconBorder}`}>
                   <Icon className={`h-4 w-4 sm:h-5 sm:w-5 ${iconColor}`} />
                 </div>
                 <div>
-                  <p className="text-lg font-bold tabular-nums text-white sm:text-xl">{statValues[key].toLocaleString()}</p>
-                  <p className="text-xs leading-tight text-white/70">{label}</p>
+                  <p className="text-lg font-bold tabular-nums text-white drop-shadow-sm sm:text-xl">{statValues[key].toLocaleString()}</p>
+                  <p className="text-xs leading-tight text-white/85">{label}</p>
                 </div>
               </div>
             ))}
