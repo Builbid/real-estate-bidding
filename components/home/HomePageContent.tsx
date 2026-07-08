@@ -9,7 +9,6 @@ import { HeroBackgroundSlideshow } from '@/components/shared/HeroBackgroundSlide
 import { ProjectCard } from '@/components/shared/ProjectCard';
 import { ActiveProjectsShowcaseGrid } from '@/components/home/ActiveProjectsShowcaseGrid';
 import { FeaturedFirmsSection } from '@/components/home/FeaturedFirmsSection';
-import { HomeMarqueeTicker } from '@/components/home/HomeMarqueeTicker';
 import { useTranslation } from '@/lib/context/LanguageProvider';
 import type { Project } from '@/lib/types';
 import type { ShowcaseProject } from '@/lib/projectShowcase';
@@ -65,8 +64,6 @@ export function HomePageContent({
             </h1>
           </div>
         </div>
-
-        <HomeMarqueeTicker />
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pt-5 sm:pt-6 pb-8 sm:pb-10">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">

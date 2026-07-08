@@ -159,25 +159,6 @@
     font-variant-numeric: tabular-nums;
   }
 
-  .animate-marquee-ltr {
-    animation: marquee-ltr 32s linear infinite;
-  }
-
-  @keyframes marquee-ltr {
-    from {
-      transform: translateX(-100%);
-    }
-    to {
-      transform: translateX(0);
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .animate-marquee-ltr {
-      animation: none;
-    }
-  }
-
   .animate-auction-swipe-hint {
     animation: auction-swipe-hint 1.4s ease-in-out 0.4s 1 both;
   }
