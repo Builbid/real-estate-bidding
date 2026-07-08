@@ -39,7 +39,7 @@ export function HomePageContent({
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <section className="relative w-full overflow-hidden">
+      <section className="relative flex h-screen w-full flex-col overflow-hidden">
         <HeroBackgroundSlideshow />
         <Navbar overlay />
 
@@ -49,7 +49,7 @@ export function HomePageContent({
           <div className="absolute bottom-0 left-1/2 w-[500px] h-[200px] bg-blue-500/6 rounded-full blur-3xl" />
         </div>
 
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pt-[4.25rem] pb-4 sm:pt-[4.5rem] sm:pb-5">
+        <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-1 flex-col justify-between px-4 pb-8 pt-[4.25rem] sm:px-6 sm:pb-10 sm:pt-[4.5rem]">
           <div className="max-w-xl mx-auto text-center">
             <div className="inline-flex items-center gap-1.5 rounded-full border border-violet-400/40 bg-violet-500/25 px-3 py-1 mb-2.5 text-[11px] sm:text-xs font-semibold text-violet-50 shadow-lg shadow-violet-900/20 backdrop-blur-md">
               <Gavel className="w-2.5 h-2.5 text-emerald-400 flex-shrink-0" />
@@ -63,10 +63,8 @@ export function HomePageContent({
               <span className="text-white">{t('home.hero.titleSuffix')}</span>
             </h1>
           </div>
-        </div>
 
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pt-5 sm:pt-6 pb-8 sm:pb-10">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
             {STATS_CONFIG.map(({ key, label, icon: Icon, iconBorder, iconColor }) => (
               <div
                 key={key}
@@ -85,7 +83,7 @@ export function HomePageContent({
         </div>
       </section>
 
-      <section id="live-auctions" className="max-w-7xl mx-auto px-4 sm:px-6 pt-8 pb-10 sm:pt-10 sm:pb-12">
+      <section id="live-auctions" className="bg-background max-w-7xl mx-auto px-4 sm:px-6 pt-8 pb-10 sm:pt-10 sm:pb-12">
         <div className="mb-8 sm:mb-10">
           <ActiveProjectsShowcaseGrid
             projects={showcaseProjects}
