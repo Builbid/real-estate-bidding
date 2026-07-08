@@ -31,10 +31,10 @@ export function HomePageContent({
   const { t } = useTranslation();
 
   const STATS_CONFIG = [
-    { key: 'active', label: t('home.stats.activeAuctions'), icon: Activity, iconBg: 'bg-blue-400/15', iconBorder: 'border-blue-300/25', iconColor: 'text-blue-100' },
-    { key: 'frozen', label: t('home.stats.pendingSelection'), icon: Clock, iconBg: 'bg-violet-400/15', iconBorder: 'border-violet-300/25', iconColor: 'text-violet-100' },
-    { key: 'total', label: t('home.stats.totalProjects'), icon: Building2, iconBg: 'bg-amber-400/15', iconBorder: 'border-amber-300/25', iconColor: 'text-amber-100' },
-    { key: 'bids', label: t('home.stats.bidsSubmitted'), icon: Gavel, iconBg: 'bg-rose-400/15', iconBorder: 'border-rose-300/25', iconColor: 'text-rose-100' },
+    { key: 'active', label: t('home.stats.activeAuctions'), icon: Activity, iconBg: 'bg-blue-400/10', iconBorder: 'border-blue-300/20', iconColor: 'text-blue-100' },
+    { key: 'frozen', label: t('home.stats.pendingSelection'), icon: Clock, iconBg: 'bg-violet-400/10', iconBorder: 'border-violet-300/20', iconColor: 'text-violet-100' },
+    { key: 'total', label: t('home.stats.totalProjects'), icon: Building2, iconBg: 'bg-amber-400/10', iconBorder: 'border-amber-300/20', iconColor: 'text-amber-100' },
+    { key: 'bids', label: t('home.stats.bidsSubmitted'), icon: Gavel, iconBg: 'bg-rose-400/10', iconBorder: 'border-rose-300/20', iconColor: 'text-rose-100' },
   ];
 
   return (
@@ -70,7 +70,7 @@ export function HomePageContent({
             {STATS_CONFIG.map(({ key, label, icon: Icon, iconBg, iconBorder, iconColor }) => (
               <div
                 key={key}
-                className="flex items-center gap-2.5 sm:gap-3 rounded-xl border border-white/15 bg-zinc-950/20 px-3 py-3 shadow-lg shadow-black/25 backdrop-blur-md ring-1 ring-white/10 sm:px-4 sm:py-3.5"
+                className="flex items-center gap-2.5 sm:gap-3 rounded-xl border border-white/10 bg-zinc-950/10 px-3 py-3 shadow-md shadow-black/20 backdrop-blur-lg ring-1 ring-white/5 sm:px-4 sm:py-3.5"
               >
                 <div className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border backdrop-blur-sm sm:h-10 sm:w-10 ${iconBg} ${iconBorder}`}>
                   <Icon className={`h-4 w-4 sm:h-5 sm:w-5 ${iconColor}`} />
