@@ -32,10 +32,10 @@ export function HomePageContent({
   const { t } = useTranslation();
 
   const STATS_CONFIG = [
-    { key: 'active', label: t('home.stats.activeAuctions'), icon: Activity, iconBg: 'bg-blue-500/15', iconBorder: 'border-blue-500/30', iconColor: 'text-blue-400' },
-    { key: 'frozen', label: t('home.stats.pendingSelection'), icon: Clock, iconBg: 'bg-violet-500/15', iconBorder: 'border-violet-500/30', iconColor: 'text-violet-400' },
-    { key: 'total', label: t('home.stats.totalProjects'), icon: Building2, iconBg: 'bg-amber-500/15', iconBorder: 'border-amber-500/30', iconColor: 'text-amber-400' },
-    { key: 'bids', label: t('home.stats.bidsSubmitted'), icon: Gavel, iconBg: 'bg-rose-500/15', iconBorder: 'border-rose-500/30', iconColor: 'text-rose-400' },
+    { key: 'active', label: t('home.stats.activeAuctions'), icon: Activity, iconBg: 'bg-blue-400/20', iconBorder: 'border-blue-300/30', iconColor: 'text-blue-200' },
+    { key: 'frozen', label: t('home.stats.pendingSelection'), icon: Clock, iconBg: 'bg-violet-400/20', iconBorder: 'border-violet-300/30', iconColor: 'text-violet-200' },
+    { key: 'total', label: t('home.stats.totalProjects'), icon: Building2, iconBg: 'bg-amber-400/20', iconBorder: 'border-amber-300/30', iconColor: 'text-amber-200' },
+    { key: 'bids', label: t('home.stats.bidsSubmitted'), icon: Gavel, iconBg: 'bg-rose-400/20', iconBorder: 'border-rose-300/30', iconColor: 'text-rose-200' },
   ];
 
   return (
@@ -67,21 +67,24 @@ export function HomePageContent({
         </div>
 
         <HomeMarqueeTicker />
-      </section>
 
-      <section className="border-y border-border/80 bg-card/60 backdrop-blur-md shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 sm:py-6 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-          {STATS_CONFIG.map(({ key, label, icon: Icon, iconBg, iconBorder, iconColor }) => (
-            <div key={key} className="surface-panel flex items-center gap-2.5 sm:gap-3 px-3 py-3 sm:px-4 sm:py-3.5">
-              <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl ${iconBg} border ${iconBorder} flex items-center justify-center flex-shrink-0 shadow-sm`}>
-                <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${iconColor}`} />
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 pt-5 sm:pt-6 pb-8 sm:pb-10">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+            {STATS_CONFIG.map(({ key, label, icon: Icon, iconBg, iconBorder, iconColor }) => (
+              <div
+                key={key}
+                className="flex items-center gap-2.5 sm:gap-3 rounded-xl border border-white/10 bg-white/5 px-3 py-3 backdrop-blur-md sm:px-4 sm:py-3.5"
+              >
+                <div className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border sm:h-10 sm:w-10 ${iconBg} ${iconBorder}`}>
+                  <Icon className={`h-4 w-4 sm:h-5 sm:w-5 ${iconColor}`} />
+                </div>
+                <div>
+                  <p className="text-lg font-bold tabular-nums text-white sm:text-xl">{statValues[key].toLocaleString()}</p>
+                  <p className="text-xs leading-tight text-white/70">{label}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-lg sm:text-xl font-bold text-foreground tabular-nums">{statValues[key].toLocaleString()}</p>
-                <p className="text-xs text-muted-foreground leading-tight">{label}</p>
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </section>
 
