@@ -45,11 +45,6 @@ export function HomePageContent({
 
         <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-1 flex-col justify-between px-4 pb-8 pt-[4.25rem] sm:px-6 sm:pb-10 sm:pt-[4.5rem]">
           <div className="max-w-xl mx-auto text-center">
-            <div className="inline-flex items-center gap-1.5 rounded-full border border-violet-200 bg-violet-50 px-3 py-1 mb-2.5 text-[11px] sm:text-xs font-semibold text-violet-700">
-              <Gavel className="w-2.5 h-2.5 text-emerald-600 flex-shrink-0" />
-              {t('home.hero.platformBadge')}
-            </div>
-
             <h1 className="text-2xl sm:text-3xl font-extrabold leading-[1.12] tracking-tight">
               <span className="text-slate-900">{t('home.hero.titlePrefix')}</span>{' '}
               <span className="text-violet-600">{t('home.hero.construction')}</span>{' '}
