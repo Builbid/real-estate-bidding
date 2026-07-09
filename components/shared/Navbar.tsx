@@ -81,7 +81,7 @@ export function Navbar({ overlay = false }: NavbarProps) {
           <span
             className={cn(
               'hidden sm:block text-xl sm:text-2xl font-bold tracking-tight',
-              overlay ? 'text-slate-100' : 'text-foreground',
+              'text-foreground',
             )}
           >
             BuilBid
@@ -119,7 +119,7 @@ export function Navbar({ overlay = false }: NavbarProps) {
             <div className="hidden md:flex items-center gap-2">
               <Link
                 href="/login"
-                className="px-2 py-1 text-sm font-medium text-slate-200 hover:text-white transition-colors"
+                className="px-2 py-1 text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors"
               >
                 {t('common.signIn')}
               </Link>
@@ -139,7 +139,7 @@ export function Navbar({ overlay = false }: NavbarProps) {
               asChild
               size="sm"
               variant="outline"
-              className="sm:hidden h-8 rounded-full px-3 text-xs border-white/30 text-white hover:bg-white/10 hover:text-white"
+              className="sm:hidden h-8 rounded-full px-3 text-xs border-slate-300 text-slate-800 hover:bg-slate-100 hover:text-slate-900"
             >
               <Link href={getDashboardPath(normalizedRole!)}>{t('common.dashboard')}</Link>
             </Button>
@@ -148,7 +148,7 @@ export function Navbar({ overlay = false }: NavbarProps) {
           <ThemeToggle
             className={
               overlay
-                ? 'border-white/30 text-slate-100 hover:bg-white/10 hover:text-white'
+                ? 'border-slate-300 text-slate-800 hover:bg-slate-100 hover:text-slate-900'
                 : undefined
             }
           />
@@ -177,7 +177,7 @@ export function Navbar({ overlay = false }: NavbarProps) {
             className={cn(
               'md:hidden p-2 rounded-lg transition-colors',
               overlay
-                ? 'text-slate-200 hover:text-white hover:bg-white/10'
+                ? 'text-slate-700 hover:text-slate-900 hover:bg-slate-100'
                 : 'text-muted-foreground hover:text-foreground hover:bg-accent',
             )}
             onClick={() => setMenuOpen(!menuOpen)}

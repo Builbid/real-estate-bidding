@@ -31,51 +31,45 @@ export function HomePageContent({
   const { t } = useTranslation();
 
   const STATS_CONFIG = [
-    { key: 'active', label: t('home.stats.activeAuctions'), icon: Activity, iconBorder: 'border-white/20', iconColor: 'text-blue-200' },
-    { key: 'frozen', label: t('home.stats.pendingSelection'), icon: Clock, iconBorder: 'border-white/20', iconColor: 'text-violet-200' },
-    { key: 'total', label: t('home.stats.totalProjects'), icon: Building2, iconBorder: 'border-white/20', iconColor: 'text-amber-200' },
-    { key: 'bids', label: t('home.stats.bidsSubmitted'), icon: Gavel, iconBorder: 'border-white/20', iconColor: 'text-rose-200' },
+    { key: 'active', label: t('home.stats.activeAuctions'), icon: Activity, iconBorder: 'border-slate-200', iconColor: 'text-blue-600', iconBg: 'bg-blue-50' },
+    { key: 'frozen', label: t('home.stats.pendingSelection'), icon: Clock, iconBorder: 'border-slate-200', iconColor: 'text-violet-600', iconBg: 'bg-violet-50' },
+    { key: 'total', label: t('home.stats.totalProjects'), icon: Building2, iconBorder: 'border-slate-200', iconColor: 'text-amber-600', iconBg: 'bg-amber-50' },
+    { key: 'bids', label: t('home.stats.bidsSubmitted'), icon: Gavel, iconBorder: 'border-slate-200', iconColor: 'text-rose-600', iconBg: 'bg-rose-50' },
   ];
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <section className="relative flex h-screen w-full flex-col overflow-hidden">
+      <section className="relative flex h-screen w-full flex-col overflow-hidden bg-white">
         <HeroBackgroundSlideshow />
         <Navbar overlay />
 
-        <div className="absolute inset-0 pointer-events-none z-[1]">
-          <div className="absolute top-0 left-1/4 w-[600px] h-[400px] bg-violet-500/8 rounded-full blur-3xl" />
-          <div className="absolute top-1/3 right-1/4 w-[400px] h-[300px] bg-amber-500/6 rounded-full blur-3xl" />
-          <div className="absolute bottom-0 left-1/2 w-[500px] h-[200px] bg-blue-500/6 rounded-full blur-3xl" />
-        </div>
-
         <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-1 flex-col justify-between px-4 pb-8 pt-[4.25rem] sm:px-6 sm:pb-10 sm:pt-[4.5rem]">
           <div className="max-w-xl mx-auto text-center">
-            <div className="inline-flex items-center gap-1.5 rounded-full border border-violet-400/40 bg-violet-500/25 px-3 py-1 mb-2.5 text-[11px] sm:text-xs font-semibold text-violet-50 shadow-lg shadow-violet-900/20 backdrop-blur-md">
-              <Gavel className="w-2.5 h-2.5 text-emerald-400 flex-shrink-0" />
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-violet-200 bg-violet-50 px-3 py-1 mb-2.5 text-[11px] sm:text-xs font-semibold text-violet-700">
+              <Gavel className="w-2.5 h-2.5 text-emerald-600 flex-shrink-0" />
               {t('home.hero.platformBadge')}
             </div>
 
-            <h1 className="text-2xl sm:text-3xl font-extrabold leading-[1.12] tracking-tight drop-shadow-sm">
-              <span className="text-white">{t('home.hero.titlePrefix')}</span>{' '}
-              <span className="text-violet-400">{t('home.hero.construction')}</span>{' '}
-              <span className="text-amber-400">{t('home.hero.bidding')}</span>{' '}
-              <span className="text-white">{t('home.hero.titleSuffix')}</span>
+            <h1 className="text-2xl sm:text-3xl font-extrabold leading-[1.12] tracking-tight">
+              <span className="text-slate-900">{t('home.hero.titlePrefix')}</span>{' '}
+              <span className="text-violet-600">{t('home.hero.construction')}</span>{' '}
+              <span className="text-amber-600">{t('home.hero.bidding')}</span>{' '}
+              <span className="text-slate-900">{t('home.hero.titleSuffix')}</span>
             </h1>
           </div>
 
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
-            {STATS_CONFIG.map(({ key, label, icon: Icon, iconBorder, iconColor }) => (
+            {STATS_CONFIG.map(({ key, label, icon: Icon, iconBorder, iconColor, iconBg }) => (
               <div
                 key={key}
                 className="flex items-center gap-2.5 sm:gap-3 bg-transparent px-3 py-3 sm:px-4 sm:py-3.5"
               >
-                <div className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border bg-transparent sm:h-10 sm:w-10 ${iconBorder}`}>
+                <div className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border sm:h-10 sm:w-10 ${iconBorder} ${iconBg}`}>
                   <Icon className={`h-4 w-4 sm:h-5 sm:w-5 ${iconColor}`} />
                 </div>
                 <div>
-                  <p className="text-lg font-bold tabular-nums text-white drop-shadow-sm sm:text-xl">{statValues[key].toLocaleString()}</p>
-                  <p className="text-xs leading-tight text-white/90">{label}</p>
+                  <p className="text-lg font-bold tabular-nums text-slate-900 sm:text-xl">{statValues[key].toLocaleString()}</p>
+                  <p className="text-xs leading-tight text-slate-600">{label}</p>
                 </div>
               </div>
             ))}
