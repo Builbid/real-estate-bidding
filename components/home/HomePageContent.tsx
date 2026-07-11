@@ -39,12 +39,12 @@ export function HomePageContent({
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <section className="relative flex h-screen w-full flex-col overflow-hidden bg-white">
+      <section className="relative overflow-hidden bg-white">
         <HeroBackgroundSlideshow />
         <Navbar overlay />
 
-        <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-1 flex-col justify-between px-4 pb-8 pt-[4.25rem] sm:px-6 sm:pb-10 sm:pt-[4.5rem]">
-          <div className="max-w-xl mx-auto text-center">
+        <div className="relative z-10 mx-auto w-full max-w-7xl px-4 pb-6 pt-[4.25rem] sm:px-6 sm:pb-8 sm:pt-[4.5rem]">
+          <div className="mx-auto mb-6 max-w-xl text-center sm:mb-8">
             <h1 className="text-2xl sm:text-3xl font-extrabold leading-[1.12] tracking-tight">
               <span className="text-slate-900">{t('home.hero.titlePrefix')}</span>{' '}
               <span className="text-violet-600">{t('home.hero.construction')}</span>{' '}
