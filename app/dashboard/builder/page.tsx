@@ -39,11 +39,23 @@ async function getData() {
     .eq('builder_id', userId)
     .order('created_at', { ascending: false });
 
-  return { profile, projects: (projects ?? []) as Project[], myBids: (myBids ?? []) as Bid[], userId };
+  const bidProjectIds = (myBids ?? []).map((b) => b.project_id);
+  const bidProjectsMap = new Map<string, Project>();
+
+  if (bidProjectIds.length > 0) {
+    const { data: bidProjects } = await supabase
+      .from('projects')
+      .select('*')
+      .in('id', bidProjectIds);
+
+    (bidProjects ?? []).forEach((p) => bidProjectsMap.set(p.id, p as Project));
+  }
+
+  return { profile, projects: (projects ?? []) as Project[], myBids: (myBids ?? []) as Bid[], bidProjectsMap, userId };
 }
 
 export default async function BuilderDashboard() {
-  const { profile, projects, myBids, userId } = await getData();
+  const { profile, projects, myBids, bidProjectsMap, userId } = await getData();
 
   const activeProjects = projects.filter((p) => p.status === 'active_24h');
   const graceProjects  = projects.filter(
@@ -184,11 +196,13 @@ export default async function BuilderDashboard() {
           <h2 className="text-base font-semibold text-muted-foreground mb-4">My Bid History</h2>
           <div className="space-y-2">
             {myBids.slice(0, 10).map((bid) => {
-              const project = projects.find((p) => p.id === bid.project_id);
+              const project =
+                bidProjectsMap.get(bid.project_id) ??
+                projects.find((p) => p.id === bid.project_id);
               return (
                 <div key={bid.id} className="flex items-center gap-4 px-4 py-3 rounded-xl border border-border bg-card/80 dark:bg-card/60">
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-foreground truncate">{project?.title ?? 'Project'}</p>
+                    <p className="text-sm font-semibold text-foreground truncate">{project?.title ?? 'Untitled Project'}</p>
                     <p className="text-xs text-muted-foreground">{project?.district ?? ''}</p>
                   </div>
                   <div className="text-right">

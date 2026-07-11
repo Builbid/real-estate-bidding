@@ -222,7 +222,7 @@ export default async function FirmDashboardPage() {
                 <div key={bid.id} className="flex items-center gap-4 px-4 py-3 rounded-xl border border-border bg-card/80">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-foreground truncate">
-                      {project?.title ?? 'Project'}
+                      {project?.title ?? 'Untitled Project'}
                     </p>
                     <p className="text-xs text-muted-foreground">{project?.district ?? ''}</p>
                   </div>
