@@ -39,11 +39,12 @@ export function HomePageContent({
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <Navbar overlay authHint={{ isAuthenticated, role }} />
+
       <section className="relative overflow-x-hidden bg-white">
         <HeroBackgroundSlideshow />
-        <Navbar overlay authHint={{ isAuthenticated, role }} />
 
-        <div className="relative z-0 mx-auto w-full max-w-7xl px-4 pb-6 pt-4 sm:px-6 sm:pb-8 sm:pt-6">
+        <div className="relative mx-auto w-full max-w-7xl px-4 pb-6 pt-4 sm:px-6 sm:pb-8 sm:pt-6">
           <div className="mx-auto mb-6 max-w-xl text-center sm:mb-8">
             <h1 className="text-2xl sm:text-3xl font-extrabold leading-[1.12] tracking-tight">
               <span className="text-slate-900">{t('home.hero.titlePrefix')}</span>{' '}

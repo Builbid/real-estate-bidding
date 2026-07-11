@@ -48,6 +48,11 @@ export function Navbar({ overlay = false, authHint }: NavbarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [signOutOpen, setSignOutOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (authHint?.isAuthenticated && !profile) {
@@ -90,95 +95,17 @@ export function Navbar({ overlay = false, authHint }: NavbarProps) {
 
   const avatarGradient = normalizedRole ? (ROLE_AVATAR[normalizedRole] ?? ROLE_AVATAR.labour_contractor) : '';
 
-  const mobileMenu = menuOpen ? (
-    <div className="fixed inset-0 z-[100] md:hidden">
-      <button
-        type="button"
-        className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"
-        aria-label="Close menu"
-        onClick={() => setMenuOpen(false)}
-      />
-      <div className="absolute left-0 right-0 top-16 max-h-[calc(100dvh-4rem)] overflow-y-auto border-b border-border bg-background shadow-xl">
-        {isLoggedIn && (
-          <div className="flex items-center gap-3 border-b border-border bg-card/80 px-4 py-3 dark:bg-card/60">
-            <UserAvatar
-              name={profile?.full_name ?? 'User'}
-              avatarUrl={profile?.avatar_url}
-              size="sm"
-              gradient={avatarGradient}
-              className="flex-shrink-0"
-            />
-            <div className="flex min-w-0 flex-col">
-              <span className="truncate text-sm font-semibold text-foreground">{profile?.full_name ?? 'User'}</span>
-              <Badge variant={ROLE_BADGES[normalizedRole ?? 'labour_contractor']} className="mt-0.5 self-start py-0 text-[10px]">
-                {roleLabel}
-              </Badge>
-            </div>
-          </div>
-        )}
-
-        <div className="flex flex-col gap-1 px-4 py-3">
-          {isLoggedIn ? (
-            <>
-              <NavLink
-                href={normalizedRole ? getDashboardPath(normalizedRole) : '/dashboard'}
-                prefetch
-                onClick={() => setMenuOpen(false)}
-                className={cn(NAV_MENU_ITEM, 'flex items-center gap-2.5 px-3 py-2.5 text-sm text-foreground/80 hover:bg-accent hover:text-foreground')}
-              >
-                <LayoutDashboard className="h-4 w-4 text-violet-400" /> {t('common.dashboard')}
-              </NavLink>
-              <NavIconButton
-                onClick={() => { setMenuOpen(false); setSignOutOpen(true); }}
-                className={cn(NAV_MENU_ITEM, 'flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm text-red-400 hover:bg-accent hover:text-red-300')}
-              >
-                <LogOut className="h-4 w-4" /> {t('common.signOut')}
-              </NavIconButton>
-            </>
-          ) : overlay ? (
-            <>
-              <NavLink
-                href="/signup"
-                prefetch
-                onClick={() => setMenuOpen(false)}
-                className={cn(NAV_MENU_ITEM, 'flex min-h-11 items-center px-3 py-2.5 text-sm font-medium text-foreground hover:bg-accent')}
-              >
-                {t('common.createAccount')}
-              </NavLink>
-              <NavLink
-                href="/login"
-                prefetch
-                onClick={() => setMenuOpen(false)}
-                className={cn(NAV_MENU_ITEM, 'flex min-h-11 items-center px-3 py-2.5 text-sm text-foreground/80 hover:bg-accent hover:text-foreground')}
-              >
-                {t('common.signIn')}
-              </NavLink>
-            </>
-          ) : (
-            <NavLink
-              href="/login"
-              prefetch
-              onClick={() => setMenuOpen(false)}
-              className={cn(NAV_MENU_ITEM, 'px-3 py-2.5 text-sm text-foreground/80 hover:bg-accent hover:text-foreground')}
-            >
-              {t('common.signIn')}
-            </NavLink>
-          )}
-        </div>
-      </div>
-    </div>
-  ) : null;
-
   return (
+    <>
     <header
       className={cn(
-        'top-0 z-50 w-full pointer-events-auto',
+        'sticky top-0 z-[200] w-full isolate pointer-events-auto',
         overlay
-          ? 'sticky bg-white/90 backdrop-blur-md'
-          : 'sticky border-b border-border/70 bg-background/90 backdrop-blur-xl shadow-sm shadow-black/[0.04]'
+          ? 'bg-white/95 backdrop-blur-md'
+          : 'border-b border-border/70 bg-background/95 backdrop-blur-xl shadow-sm shadow-black/[0.04]'
       )}
     >
-      <div className="relative z-50 mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
+      <div className="relative mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
 
         {/* Logo */}
         <NavLink
@@ -251,7 +178,7 @@ export function Navbar({ overlay = false, authHint }: NavbarProps) {
               asChild
               size="sm"
               variant="outline"
-              className="sm:hidden h-8 rounded-full px-3 text-xs border-slate-300 text-slate-800 hover:bg-slate-100 hover:text-slate-900"
+              className="hidden h-8 rounded-full px-3 text-xs border-slate-300 text-slate-800 hover:bg-slate-100 hover:text-slate-900 min-[480px]:inline-flex lg:hidden"
             >
               <Link href={getDashboardPath(normalizedRole!)} prefetch>{t('common.dashboard')}</Link>
             </Button>
@@ -265,68 +192,154 @@ export function Navbar({ overlay = false, authHint }: NavbarProps) {
             }
           />
 
-          {/* Mobile: avatar initial */}
-          {isLoggedIn && (
-            <div className="md:hidden">
-              <NavIconButton
-                onClick={() => setProfileOpen(true)}
-                className="rounded-full hover:ring-2 hover:ring-border flex-shrink-0"
-                aria-label="Open profile"
-              >
-                <UserAvatar
-                  name={profile?.full_name ?? 'User'}
-                  avatarUrl={profile?.avatar_url}
-                  size="xs"
-                  gradient={avatarGradient}
-                />
-              </NavIconButton>
-            </div>
-          )}
-
-          {/* Mobile menu toggle */}
-          <NavIconButton
+          {/* Mobile menu toggle — keep top bar minimal so the button stays tappable */}
+          <button
+            type="button"
             className={cn(
-              'relative z-[51] md:hidden p-2',
+              'inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg transition-colors lg:hidden',
               overlay
                 ? 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
                 : 'text-muted-foreground hover:bg-accent hover:text-foreground',
             )}
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setMenuOpen((open) => !open);
-            }}
+            onClick={() => setMenuOpen((open) => !open)}
             aria-expanded={menuOpen}
+            aria-controls="mobile-nav-menu"
             aria-label={menuOpen ? 'Close menu' : 'Open menu'}
           >
-            {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </NavIconButton>
+            {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
         </div>
       </div>
-
-      {typeof document !== 'undefined' && mobileMenu
-        ? createPortal(mobileMenu, document.body)
-        : null}
-
-      <SignOutConfirmDialog
-        open={signOutOpen}
-        onOpenChange={setSignOutOpen}
-        onConfirm={handleSignOut}
-      />
-
-      {isLoggedIn && profile && (
-        <ProfileDrawer
-          open={profileOpen}
-          onOpenChange={setProfileOpen}
-          profile={profile}
-          avatarGradient={avatarGradient}
-          onSignOut={() => {
-            setProfileOpen(false);
-            setSignOutOpen(true);
-          }}
-        />
-      )}
     </header>
+
+    {mounted && menuOpen && createPortal(
+      <div className="fixed inset-0 z-[180] flex lg:hidden">
+        <button
+          type="button"
+          className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+          aria-label="Close menu"
+          onClick={() => setMenuOpen(false)}
+        />
+
+        <aside
+          id="mobile-nav-menu"
+          className="relative flex h-full w-[min(20rem,88vw)] flex-col border-r border-border bg-card shadow-2xl"
+        >
+          <div className="flex items-center justify-between border-b border-border px-5 py-4">
+            <span className="text-sm font-bold text-foreground">Menu</span>
+            <button
+              type="button"
+              onClick={() => setMenuOpen(false)}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground"
+              aria-label="Close menu"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          {isLoggedIn && (
+            <div className="flex items-center gap-3 border-b border-border px-4 py-3">
+              <UserAvatar
+                name={profile?.full_name ?? 'User'}
+                avatarUrl={profile?.avatar_url}
+                size="sm"
+                gradient={avatarGradient}
+                className="flex-shrink-0"
+              />
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-foreground">{profile?.full_name ?? 'User'}</p>
+                <Badge variant={ROLE_BADGES[normalizedRole ?? 'labour_contractor']} className="mt-0.5 self-start py-0 text-[10px]">
+                  {roleLabel}
+                </Badge>
+              </div>
+            </div>
+          )}
+
+          <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
+            {isLoggedIn ? (
+              <>
+                <NavLink
+                  href={normalizedRole ? getDashboardPath(normalizedRole) : '/dashboard'}
+                  prefetch
+                  onClick={() => setMenuOpen(false)}
+                  className={cn(NAV_MENU_ITEM, 'flex items-center gap-2.5 px-3 py-3 text-sm text-foreground hover:bg-accent')}
+                >
+                  <LayoutDashboard className="h-4 w-4 text-violet-400" />
+                  {t('common.dashboard')}
+                </NavLink>
+                {profile && (
+                  <button
+                    type="button"
+                    onClick={() => { setMenuOpen(false); setProfileOpen(true); }}
+                    className={cn(NAV_MENU_ITEM, 'flex w-full items-center gap-2.5 px-3 py-3 text-left text-sm text-foreground hover:bg-accent')}
+                  >
+                    <Building2 className="h-4 w-4 text-violet-400" />
+                    {t('nav.myProfile')}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => { setMenuOpen(false); setSignOutOpen(true); }}
+                  className={cn(NAV_MENU_ITEM, 'flex w-full items-center gap-2.5 px-3 py-3 text-left text-sm text-red-400 hover:bg-red-500/10')}
+                >
+                  <LogOut className="h-4 w-4" />
+                  {t('common.signOut')}
+                </button>
+              </>
+            ) : overlay ? (
+              <>
+                <NavLink
+                  href="/signup"
+                  prefetch
+                  onClick={() => setMenuOpen(false)}
+                  className={cn(NAV_MENU_ITEM, 'flex min-h-11 items-center px-3 py-3 text-sm font-medium text-foreground hover:bg-accent')}
+                >
+                  {t('common.createAccount')}
+                </NavLink>
+                <NavLink
+                  href="/login"
+                  prefetch
+                  onClick={() => setMenuOpen(false)}
+                  className={cn(NAV_MENU_ITEM, 'flex min-h-11 items-center px-3 py-3 text-sm text-foreground hover:bg-accent')}
+                >
+                  {t('common.signIn')}
+                </NavLink>
+              </>
+            ) : (
+              <NavLink
+                href="/login"
+                prefetch
+                onClick={() => setMenuOpen(false)}
+                className={cn(NAV_MENU_ITEM, 'flex min-h-11 items-center px-3 py-3 text-sm text-foreground hover:bg-accent')}
+              >
+                {t('common.signIn')}
+              </NavLink>
+            )}
+          </nav>
+        </aside>
+      </div>,
+      document.body,
+    )}
+
+    <SignOutConfirmDialog
+      open={signOutOpen}
+      onOpenChange={setSignOutOpen}
+      onConfirm={handleSignOut}
+    />
+
+    {isLoggedIn && profile && (
+      <ProfileDrawer
+        open={profileOpen}
+        onOpenChange={setProfileOpen}
+        profile={profile}
+        avatarGradient={avatarGradient}
+        onSignOut={() => {
+          setProfileOpen(false);
+          setSignOutOpen(true);
+        }}
+      />
+    )}
+    </>
   );
 }
 

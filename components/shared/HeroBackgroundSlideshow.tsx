@@ -2,6 +2,9 @@
 
 export function HeroBackgroundSlideshow() {
   return (
-    <div className="absolute inset-0 z-0 h-full w-full min-h-full bg-white" aria-hidden="true" />
+    <div
+      className="pointer-events-none absolute inset-0 z-0 h-full w-full min-h-full bg-white"
+      aria-hidden="true"
+    />
   );
 }
