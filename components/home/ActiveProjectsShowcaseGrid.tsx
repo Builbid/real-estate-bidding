@@ -12,8 +12,10 @@ import {
   type ShowcaseProject,
 } from '@/lib/projectShowcase';
 import { getProjectServiceType } from '@/lib/project/display';
+import { getUniqueDistrictsFromProjects, matchesDistrictFilter } from '@/lib/project/districtFilter';
 import type { ServiceType } from '@/lib/types';
 import { useTranslation } from '@/lib/context/LanguageProvider';
+import { ProjectDistrictFilter, type DistrictFilterValue } from '@/components/shared/ProjectDistrictFilter';
 import { cn } from '@/lib/utils';
 
 type ServiceFilter = 'all' | ServiceType;
@@ -54,6 +56,7 @@ export function ActiveProjectsShowcaseGrid({
   const scrollRafRef = useRef<number | null>(null);
   const [expiredIds, setExpiredIds] = useState<Set<string>>(() => new Set());
   const [serviceFilter, setServiceFilter] = useState<ServiceFilter>('all');
+  const [districtFilter, setDistrictFilter] = useState<DistrictFilterValue>('all');
   const [activeIndex, setActiveIndex] = useState(0);
   const [playSwipeHint] = useState(shouldPlaySwipeHint);
 
@@ -76,13 +79,20 @@ export function ActiveProjectsShowcaseGrid({
     [initialProjects, expiredIds],
   );
 
+  const availableDistricts = useMemo(
+    () => getUniqueDistrictsFromProjects(liveProjects),
+    [liveProjects],
+  );
+
   const filteredProjects = useMemo(() => {
-    const filtered =
-      serviceFilter === 'all'
-        ? liveProjects
-        : liveProjects.filter((p) => getProjectServiceType(p) === serviceFilter);
+    const filtered = liveProjects.filter((project) => {
+      const matchesService =
+        serviceFilter === 'all' || getProjectServiceType(project) === serviceFilter;
+      const matchesDistrict = matchesDistrictFilter(project.district, districtFilter);
+      return matchesService && matchesDistrict;
+    });
     return sortShowcaseProjectsByLatest(filtered);
-  }, [liveProjects, serviceFilter]);
+  }, [liveProjects, serviceFilter, districtFilter]);
 
   const sectionLink = getShowcaseSectionLink(isAuthenticated, role);
   const hasMultipleCards = filteredProjects.length > 1;
@@ -138,7 +148,7 @@ export function ActiveProjectsShowcaseGrid({
   useEffect(() => {
     scrollRef.current?.scrollTo({ left: 0, behavior: 'auto' });
     setActiveIndex(0);
-  }, [serviceFilter]);
+  }, [serviceFilter, districtFilter]);
 
   useEffect(() => {
     setActiveIndex((prev) =>
@@ -195,7 +205,7 @@ export function ActiveProjectsShowcaseGrid({
         </Link>
       </div>
 
-      <div className="flex flex-wrap gap-2 mb-6">
+      <div className="flex flex-wrap items-center gap-2 mb-6">
         {FILTER_OPTIONS.map(({ id, label }) => (
           <button
             key={id}
@@ -215,6 +225,14 @@ export function ActiveProjectsShowcaseGrid({
             {label}
           </button>
         ))}
+        {availableDistricts.length > 0 && (
+          <ProjectDistrictFilter
+            value={districtFilter}
+            onChange={setDistrictFilter}
+            districts={availableDistricts}
+            heroOverlay={heroOverlay}
+          />
+        )}
       </div>
 
       {filteredProjects.length > 0 ? (

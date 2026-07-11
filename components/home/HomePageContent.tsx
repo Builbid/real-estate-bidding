@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo, useState } from 'react';
 import {
   Building2,
   Activity, Gavel, Clock,
@@ -9,6 +10,8 @@ import { HeroBackgroundSlideshow } from '@/components/shared/HeroBackgroundSlide
 import { ProjectCard } from '@/components/shared/ProjectCard';
 import { ActiveProjectsShowcaseGrid } from '@/components/home/ActiveProjectsShowcaseGrid';
 import { FeaturedFirmsSection } from '@/components/home/FeaturedFirmsSection';
+import { ProjectDistrictFilter, type DistrictFilterValue } from '@/components/shared/ProjectDistrictFilter';
+import { getUniqueDistrictsFromProjects, matchesDistrictFilter } from '@/lib/project/districtFilter';
 import { useTranslation } from '@/lib/context/LanguageProvider';
 import type { Project } from '@/lib/types';
 import type { ShowcaseProject } from '@/lib/projectShowcase';
@@ -29,6 +32,17 @@ export function HomePageContent({
   role,
 }: HomePageContentProps) {
   const { t } = useTranslation();
+  const [frozenDistrictFilter, setFrozenDistrictFilter] = useState<DistrictFilterValue>('all');
+
+  const frozenDistricts = useMemo(
+    () => getUniqueDistrictsFromProjects(frozenProjects),
+    [frozenProjects],
+  );
+
+  const filteredFrozenProjects = useMemo(
+    () => frozenProjects.filter((project) => matchesDistrictFilter(project.district, frozenDistrictFilter)),
+    [frozenProjects, frozenDistrictFilter],
+  );
 
   const STATS_CONFIG = [
     { key: 'active', label: t('home.stats.activeAuctions'), icon: Activity, iconBorder: 'border-slate-200', iconColor: 'text-blue-600', iconBg: 'bg-blue-50' },
@@ -84,18 +98,33 @@ export function HomePageContent({
 
         {frozenProjects.length > 0 && (
           <div className="mb-8 sm:mb-10">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-2 h-2 rounded-full bg-violet-400" />
-              <h2 className="text-xl font-bold text-foreground">{t('home.auctions.selectionTitle')}</h2>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-400 border border-violet-500/20 font-semibold">
-                {t('home.auctions.projects', { count: frozenProjects.length })}
-              </span>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-2 h-2 rounded-full bg-violet-400" />
+                <h2 className="text-xl font-bold text-foreground">{t('home.auctions.selectionTitle')}</h2>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-400 border border-violet-500/20 font-semibold">
+                  {t('home.auctions.projects', { count: filteredFrozenProjects.length })}
+                </span>
+              </div>
+              {frozenDistricts.length > 0 && (
+                <ProjectDistrictFilter
+                  value={frozenDistrictFilter}
+                  onChange={setFrozenDistrictFilter}
+                  districts={frozenDistricts}
+                />
+              )}
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {frozenProjects.map((project) => (
-                <ProjectCard key={project.id} project={project} isAuthenticated={isAuthenticated} />
-              ))}
-            </div>
+            {filteredFrozenProjects.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                {filteredFrozenProjects.map((project) => (
+                  <ProjectCard key={project.id} project={project} isAuthenticated={isAuthenticated} />
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-dashed border-border bg-card/40 px-6 py-10 text-center">
+                <p className="text-sm text-muted-foreground">{t('home.auctions.noDistrictProjects')}</p>
+              </div>
+            )}
           </div>
         )}
       </section>
