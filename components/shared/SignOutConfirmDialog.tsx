@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import {
   Dialog,
@@ -22,23 +22,47 @@ export function SignOutConfirmDialog({
   onConfirm,
 }: SignOutConfirmDialogProps) {
   const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  async function handleYes() {
+  useEffect(() => {
+    if (!open) {
+      setPending(false);
+      setError(null);
+    }
+  }, [open]);
+
+  function handleYes() {
     setPending(true);
+    setError(null);
+
     try {
-      await onConfirm();
+      const result = onConfirm();
+      if (result && typeof (result as Promise<void>).then === 'function') {
+        void (result as Promise<void>).catch((err: unknown) => {
+          console.error('[SignOutConfirmDialog] Sign out failed:', err);
+          setError('Could not sign out. Please try again.');
+          setPending(false);
+        });
+      }
       onOpenChange(false);
-    } catch {
+    } catch (err) {
+      console.error('[SignOutConfirmDialog] Sign out failed:', err);
+      setError('Could not sign out. Please try again.');
       setPending(false);
     }
   }
 
   return (
-    <Dialog open={open} onOpenChange={(next) => !pending && onOpenChange(next)}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
           <DialogTitle>Sign out?</DialogTitle>
         </DialogHeader>
+        {error && (
+          <p className="text-sm text-red-500" role="alert">
+            {error}
+          </p>
+        )}
         <div className="flex justify-end gap-2 mt-2">
           <Button
             type="button"
