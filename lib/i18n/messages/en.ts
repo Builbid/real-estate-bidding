@@ -19,7 +19,7 @@ export const en = {
     sqft: 'sqft',
   },
   roles: {
-    owner: 'Project Owner',
+    owner: 'Client',
     labour_contractor: 'Labour Contractor',
     construction_firm: 'Construction Firm',
     admin: 'Admin',
@@ -70,7 +70,7 @@ export const en = {
       subtitle:
         'Post your real estate projects, receive best-market rates from verified builders, and close deals via transparent auctions.',
       goDashboard: 'Go to Dashboard',
-      startPosting: 'Sign up as Project owner',
+      startPosting: 'Sign up as Client',
       imBuilder: 'Sign up as Bidder',
     },
     trust: {
@@ -109,7 +109,7 @@ export const en = {
     },
     showcase: {
       liveBadge: 'Live Bidding',
-      projectOwner: 'Project Owner',
+      projectOwner: 'Client',
       leadingRate: 'Leading Rate',
       activeBids: 'Active Bids',
       openBidding: 'Open for Bids',
@@ -135,7 +135,7 @@ export const en = {
         'Competitive per-sqft rate bidding across RCC and Assam-type construction tracks.',
       multiRoleTitle: 'Multi-Role Workflows',
       multiRoleDesc:
-        'Separate, purpose-built dashboards for Project Owners, Builders, and Admins.',
+        'Separate, purpose-built dashboards for Clients, Builders, and Admins.',
     },
     cta: {
       welcomeBack: 'Welcome back!',
@@ -203,7 +203,7 @@ export const en = {
     noAccount: "Don't have an account?",
     registerLink: 'Create one free',
     registerTitle: 'Create your account',
-    registerSubtitle: 'Join BuilBid as a Project Owner or Builder',
+    registerSubtitle: 'Join BuilBid as a Client or Builder',
     fullName: 'Full name',
     confirmPassword: 'Confirm password',
     hasAccount: 'Already have an account?',

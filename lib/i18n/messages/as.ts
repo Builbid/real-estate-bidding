@@ -21,7 +21,7 @@ export const as: Messages = {
     sqft: 'sqft',
   },
   roles: {
-    owner: 'Project Owner',
+    owner: 'Client',
     labour_contractor: 'Labour Contractor',
     construction_firm: 'Construction Firm',
     admin: 'Admin',
@@ -111,7 +111,7 @@ export const as: Messages = {
     },
     showcase: {
       liveBadge: 'Live Bidding',
-      projectOwner: 'Project Owner',
+      projectOwner: 'Client',
       leadingRate: 'Leading Rate',
       activeBids: 'Active Bids',
       openBidding: 'Open for Bids',
@@ -137,7 +137,7 @@ export const as: Messages = {
         'RCC আৰু Assam-type construction ৰ বাবে competitive per-sqft rate bidding।',
       multiRoleTitle: 'Multi-Role Workflows',
       multiRoleDesc:
-        'Project Owner, Builder আৰু Admin ৰ বাবে আলাদা dashboard।',
+        'Client, Builder আৰু Admin ৰ বাবে আলাদা dashboard।',
     },
     cta: {
       welcomeBack: 'Welcome back!',
@@ -205,7 +205,7 @@ export const as: Messages = {
     noAccount: 'Account নাই?',
     registerLink: 'Free ত বনাওক',
     registerTitle: 'Account বনাওক',
-    registerSubtitle: 'BuilBid ত Project Owner বা Builder হিচাপে join কৰক',
+    registerSubtitle: 'BuilBid ত Client বা Builder হিচাপে join কৰক',
     fullName: 'Full name',
     confirmPassword: 'Password confirm',
     hasAccount: 'Account আছে?',

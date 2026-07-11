@@ -25,7 +25,7 @@ export default function TermsPage() {
       <StaticSection title="2. About BuilBid">
         <p>
           BuilBid is a technology platform that facilitates construction project auctions
-          between project owners and bidders (labour contractors and construction firms).
+          between clients and bidders (labour contractors and construction firms).
           BuilBid is a marketplace — we are not a construction company, contractor, employer
           of builders, or party to construction contracts formed between users.
         </p>
@@ -42,7 +42,7 @@ export default function TermsPage() {
       </StaticSection>
 
       <StaticSection title="4. User roles & responsibilities">
-        <p><strong className="text-foreground">Project owners</strong> agree to:</p>
+        <p><strong className="text-foreground">Clients</strong> agree to:</p>
         <ul className="list-disc pl-5 space-y-2 mt-2 mb-4">
           <li>Post accurate project specifications, including scope, area, location, and construction type.</li>
           <li>Run auctions in good faith and honour the selection process after bidding closes.</li>
@@ -53,7 +53,7 @@ export default function TermsPage() {
           <li>Submit good-faith bids they intend to honour if selected.</li>
           <li>Maintain valid profile information, including GST details where applicable for firms.</li>
           <li>Not collude with other bidders to fix rates or manipulate auction outcomes.</li>
-          <li>Deliver work in accordance with agreements reached directly with the project owner after selection.</li>
+          <li>Deliver work in accordance with agreements reached directly with the client after selection.</li>
         </ul>
       </StaticSection>
 
@@ -63,7 +63,7 @@ export default function TermsPage() {
           <li>Bid rates must comply with platform formatting rules (e.g., whole-number ₹/sqft rates ending in 0 or 5 for labour contracts).</li>
           <li>Live rankings are calculated automatically based on submitted rates and displayed rules.</li>
           <li>Withdrawn bids may not be reinstated. BuilBid&apos;s records of bid timestamps are authoritative for dispute resolution.</li>
-          <li>After bidding closes, projects enter a selection phase during which owners review profiles and choose a partner.</li>
+          <li>After bidding closes, projects enter a selection phase during which clients review profiles and choose a partner.</li>
         </ul>
       </StaticSection>
 

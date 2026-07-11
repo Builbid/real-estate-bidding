@@ -64,7 +64,7 @@ const LABOUR_TEMPLATES: DemoProjectTemplate[] = [
   {
     id: 'demo-labour-3',
     title: 'G+2 RCC Residential — Dibrugarh',
-    description: 'Three-floor RCC build; owner supplies materials. Labour-only contract.',
+    description: 'Three-floor RCC build; client supplies materials. Labour-only contract.',
     district: 'Dibrugarh',
     service_type: 'labour_contractor',
     building_types: ['RCC Ground Floor', 'RCC 1st Floor', 'RCC 2nd Floor'],

@@ -132,7 +132,7 @@ export default async function AdminDashboard() {
               <div className="grid grid-cols-2 gap-3 mb-4">
                 <div className="px-3 py-2.5 rounded-lg bg-teal-500/5 border border-teal-500/15 text-center">
                   <p className="text-lg font-bold text-foreground">{owners.length}</p>
-                  <p className="text-[10px] text-teal-400 uppercase tracking-wider">Owners</p>
+                  <p className="text-[10px] text-teal-400 uppercase tracking-wider">Clients</p>
                 </div>
                 <div className="px-3 py-2.5 rounded-lg bg-emerald-500/5 border border-emerald-500/15 text-center">
                   <p className="text-lg font-bold text-foreground">{bidders.length}</p>

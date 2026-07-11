@@ -90,7 +90,7 @@ export function PortfolioManager({ builderId }: PortfolioManagerProps) {
           </Button>
         </div>
         <p className="text-xs text-muted-foreground mt-1">
-          Showcase previous projects — visible to project owners on your profile.
+          Showcase previous projects — visible to clients on your profile.
         </p>
       </CardHeader>
       <CardContent className="space-y-4">

@@ -31,7 +31,7 @@ const ROLE_CARDS = [
   {
     role: 'owner' as const,
     emoji: '🏠',
-    title: 'Project Owner',
+    title: 'Client',
     subtitle: 'I want to build a house or construction project',
     bullets: [
       'Post your project for free',
@@ -51,7 +51,7 @@ const ROLE_CARDS = [
       'Bid your best ₹/sqft rate',
       'Win construction contracts',
     ],
-    noteBadge: 'Owner supplies material',
+    noteBadge: 'Client supplies material',
     accent: 'emerald',
   },
   {
@@ -203,7 +203,7 @@ function RegisterPageContent() {
 
   const roleLabel =
     role === 'owner'
-      ? 'Project Owner'
+      ? 'Client'
       : role === 'labour_contractor'
         ? 'Labour Contractor'
         : role === 'construction_firm'
@@ -220,7 +220,7 @@ function RegisterPageContent() {
 
   const pageSubtitle =
     roleParam === 'owner'
-      ? 'Create your owner account to post your construction project'
+      ? 'Create your client account to post your construction project'
       : roleParam === 'labour_contractor'
         ? 'Create your labour contractor account to browse and bid on projects'
         : roleParam === 'construction_firm'

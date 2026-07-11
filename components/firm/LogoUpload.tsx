@@ -127,7 +127,7 @@ export function LogoUpload({
         <span className="text-muted-foreground/80">(Optional)</span>
       </p>
       <p className="text-[10px] text-muted-foreground/70 text-center max-w-[240px]">
-        Firms with a logo appear more professional to project owners
+        Firms with a logo appear more professional to clients
       </p>
 
       {error && (

@@ -126,7 +126,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                 <div>
                   <p className="text-sm font-semibold text-indigo-300 mb-1">Bidding Closed — Selection Phase</p>
                   <p className="text-xs text-indigo-400/70 mb-3">
-                    The 24-hour bidding window has ended. If you are the project owner, sign in to view full builder profiles and select your builder.
+                    The 24-hour bidding window has ended. If you are the client, sign in to view full builder profiles and select your builder.
                   </p>
                   <Button size="sm" variant="indigo" asChild>
                     <Link href="/login">Sign In to Select Builder</Link>

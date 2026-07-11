@@ -145,7 +145,7 @@ export default async function OwnerDashboard() {
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Owner Dashboard</h1>
+          <h1 className="text-2xl font-bold text-foreground">Client Dashboard</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Welcome back, <span className="text-foreground font-semibold">{profile.full_name}</span>
           </p>

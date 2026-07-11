@@ -63,7 +63,7 @@ export async function selectBuilderAction(
     .single()
 
   const builderLabel = builderName ?? (isFirmProject ? 'the selected firm' : 'the selected builder')
-  const ownerName    = ownerProfile?.full_name ?? 'The project owner'
+  const ownerName    = ownerProfile?.full_name ?? 'The client'
 
   const ownerBody = isFirmProject
     ? `🎉 ${builderLabel} has been selected for your project! Our team will arrange a meeting to finalize the construction agreement.${bidAmt ? ` Winning bid: ${bidAmt}.` : ''}`

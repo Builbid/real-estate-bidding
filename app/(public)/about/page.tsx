@@ -5,7 +5,7 @@ import { StaticPageShell, StaticSection } from '@/components/marketing/StaticPag
 export const metadata: Metadata = {
   title: 'About Us',
   description:
-    'Learn about BuilBid — Assam\'s professional construction bidding platform connecting project owners with verified contractors and firms.',
+    'Learn about BuilBid — Assam\'s professional construction bidding platform connecting clients with verified contractors and firms.',
 };
 
 export default function AboutPage() {
@@ -17,13 +17,13 @@ export default function AboutPage() {
       <StaticSection title="Our mission">
         <p>
           BuilBid exists to replace opaque, relationship-driven construction deals with open,
-          time-bound auctions where every qualified builder competes on merit. Project owners
+          time-bound auctions where every qualified builder competes on merit. Clients
           deserve market-clear pricing. Contractors and construction firms deserve a fair shot
           at winning work — regardless of who they know.
         </p>
         <p>
           We built BuilBid because the construction industry in our region still runs on
-          phone calls, WhatsApp forwards, and guesswork. That leaves owners overpaying and
+          phone calls, WhatsApp forwards, and guesswork. That leaves clients overpaying and
           skilled builders underutilized. Our platform brings structure, visibility, and
           accountability to every project.
         </p>
@@ -31,13 +31,13 @@ export default function AboutPage() {
 
       <StaticSection title="What we do">
         <p>
-          BuilBid is a multi-role construction bidding platform. Project owners post real
+          BuilBid is a multi-role construction bidding platform. Clients post real
           estate projects with clear specifications — plot area, construction type (RCC or
           Assam-type), timelines, and scope. Verified labour contractors and construction
           firms submit competitive per-sqft rate bids during a live 24-hour auction window.
         </p>
         <p>
-          Rankings update in real time. When bidding closes, owners review anonymized
+          Rankings update in real time. When bidding closes, clients review anonymized
           leaderboards, compare rates and builder profiles, and select the partner that
           best fits their project — all without exposing private contact details until a
           match is made.
@@ -47,12 +47,12 @@ export default function AboutPage() {
       <StaticSection title="Who we serve">
         <ul className="list-disc pl-5 space-y-2">
           <li>
-            <strong className="text-foreground">Project owners</strong> — homeowners, developers,
+            <strong className="text-foreground">Clients</strong> — homeowners, developers,
             and landowners posting residential and commercial construction projects.
           </li>
           <li>
             <strong className="text-foreground">Labour contractors</strong> — skilled builders
-            bidding labour-only contracts where the owner supplies materials.
+            bidding labour-only contracts where the client supplies materials.
           </li>
           <li>
             <strong className="text-foreground">Construction firms</strong> — turnkey contractors

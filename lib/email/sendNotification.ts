@@ -52,7 +52,7 @@ function buildHtml(d: SelectionEmailData): string {
       <h1 style="color:#fff;font-size:22px;font-weight:700;margin:0 0 6px">${d.isFirmProject ? 'Construction Firm Selected ✅' : 'Builder Selected ✅'}</h1>
       <p style="color:#94a3b8;font-size:14px;margin:0">${d.isFirmProject
         ? 'Congratulations! A construction firm has been selected on BuilBid.'
-        : 'A project owner has selected a builder on BuilBid Platform'}</p>
+        : 'A client has selected a builder on BuilBid Platform'}</p>
     </div>
 
     <!-- Project -->
@@ -65,7 +65,7 @@ function buildHtml(d: SelectionEmailData): string {
     )}
 
     <!-- Owner -->
-    ${section('Project Owner', '#0f766e',
+    ${section('Client', '#0f766e',
       row('Name', d.ownerName) +
       row('Email', d.ownerEmail) +
       row('Mobile', d.ownerMobile ?? '—') +

@@ -18,7 +18,7 @@ export default function PrivacyPage() {
         <p>
           BuilBid (&ldquo;we&rdquo;, &ldquo;us&rdquo;, &ldquo;our&rdquo;) operates the BuilBid
           construction bidding platform at builbid.in and related services. We are committed
-          to protecting the personal information of project owners, labour contractors,
+          to protecting the personal information of clients, labour contractors,
           construction firms, and visitors to our website.
         </p>
         <p>
@@ -45,7 +45,7 @@ export default function PrivacyPage() {
           <li>Create and manage your account</li>
           <li>Run live construction auctions and display real-time bid rankings</li>
           <li>Verify builder and firm identities on the platform</li>
-          <li>Facilitate connections between owners and selected bidders after a match</li>
+          <li>Facilitate connections between clients and selected bidders after a match</li>
           <li>Send transactional emails (account confirmation, auction notifications, selection updates)</li>
           <li>Improve platform security, prevent fraud, and enforce our Terms of Service</li>
           <li>Comply with applicable legal obligations</li>
@@ -60,7 +60,7 @@ export default function PrivacyPage() {
           A core feature of BuilBid is protecting private contact information during the
           bidding phase. Builder names and profile photos may appear on public leaderboards,
           but phone numbers, email addresses, and exact locations are not shared with other
-          users until a project owner selects a winning bidder and both parties agree to connect.
+          users until a client selects a winning bidder and both parties agree to connect.
         </p>
       </StaticSection>
 

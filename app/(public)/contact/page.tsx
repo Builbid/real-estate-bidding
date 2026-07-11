@@ -33,7 +33,7 @@ export default function ContactPage() {
   return (
     <StaticPageShell
       title="Contact Us"
-      subtitle="We are here to help project owners, contractors, and construction firms get the most out of BuilBid."
+      subtitle="We are here to help clients, contractors, and construction firms get the most out of BuilBid."
     >
       <StaticSection title="Reach our team">
         <p>
@@ -66,7 +66,7 @@ export default function ContactPage() {
           <div>
             <p className="font-medium text-foreground">BuilBid</p>
             <p>Guwahati, Assam, India</p>
-            <p className="text-xs mt-1">Serving project owners and builders across Assam and Northeast India.</p>
+            <p className="text-xs mt-1">Serving clients and builders across Assam and Northeast India.</p>
           </div>
         </div>
       </StaticSection>

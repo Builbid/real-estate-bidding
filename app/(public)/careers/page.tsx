@@ -27,7 +27,7 @@ const OPEN_ROLES = [
     location: 'Guwahati / Hybrid',
     type: 'Full-time',
     summary:
-      'Support project owners and bidders through their first auction, resolve account issues, and gather product feedback.',
+      'Support clients and bidders through their first auction, resolve account issues, and gather product feedback.',
   },
 ] as const;
 

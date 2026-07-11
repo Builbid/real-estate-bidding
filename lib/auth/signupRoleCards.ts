@@ -2,7 +2,7 @@ export const SIGNUP_ROLE_CARDS = [
   {
     role: 'owner' as const,
     emoji: '🏠',
-    title: 'Project Owner',
+    title: 'Client',
     subtitle: 'I want to build a house or construction project',
     bullets: [
       'Post your project for free',
@@ -23,7 +23,7 @@ export const SIGNUP_ROLE_CARDS = [
       'Bid your best ₹/sqft rate',
       'Win construction contracts',
     ],
-    noteBadge: 'Owner supplies material',
+    noteBadge: 'Client supplies material',
     accent: 'emerald' as const,
     href: '/signup/bidder/labour-contractor',
   },

@@ -89,7 +89,7 @@ function LoginPageContent() {
 
   const title =
     roleParam === 'owner'
-      ? 'Owner Login'
+      ? 'Client Login'
       : roleParam === 'bidder'
         ? 'Contractor / Firm Login'
         : 'Welcome back'
