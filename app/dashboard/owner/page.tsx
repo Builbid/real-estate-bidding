@@ -126,11 +126,17 @@ async function getData() {
       (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
     );
 
-  return { profile, userId, selectionRequired, liveAuctions, completed };
+  const cancelled = allProjects
+    .filter((p) => p.status === 'cancelled')
+    .sort(
+      (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+    );
+
+  return { profile, userId, selectionRequired, liveAuctions, completed, cancelled };
 }
 
 export default async function OwnerDashboard() {
-  const { profile, userId, selectionRequired, liveAuctions, completed } = await getData();
+  const { profile, userId, selectionRequired, liveAuctions, completed, cancelled } = await getData();
 
   const totalLive = selectionRequired.length + liveAuctions.length;
 
@@ -244,13 +250,29 @@ export default async function OwnerDashboard() {
         </Card>
       )}
 
+      {/* Cancelled — owners can remove expired / unused listings */}
+      {cancelled.length > 0 && (
+        <div>
+          <h2 className="text-base font-semibold text-muted-foreground mb-4">Cancelled Projects</h2>
+          <div className="space-y-3">
+            {cancelled.map((project) => (
+              <ArchivedProjectRow
+                key={project.id}
+                project={project}
+                bidCount={project.bids?.[0]?.count ?? 0}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Completed — compact rows with View button, most recent first */}
       {completed.length > 0 && (
         <div>
           <h2 className="text-base font-semibold text-muted-foreground mb-4">Completed Projects</h2>
           <div className="space-y-3">
             {completed.map((project) => (
-              <CompletedProjectRow
+              <ArchivedProjectRow
                 key={project.id}
                 project={project}
                 bidCount={project.bids?.[0]?.count ?? 0}
@@ -263,7 +285,7 @@ export default async function OwnerDashboard() {
   );
 }
 
-function CompletedProjectRow({
+function ArchivedProjectRow({
   project,
   bidCount,
 }: {
