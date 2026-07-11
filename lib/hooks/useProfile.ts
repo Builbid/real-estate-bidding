@@ -9,5 +9,6 @@ export function useProfile() {
     profile: ctx?.profile ?? null,
     loading: ctx?.loading ?? false,
     clearProfile: ctx?.clearProfile ?? (() => {}),
+    refreshProfile: ctx?.refreshProfile ?? (async () => {}),
   };
 }

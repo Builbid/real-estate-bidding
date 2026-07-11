@@ -9,6 +9,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import type { Profile } from '@/lib/types';
 import { normalizeRole } from '@/lib/auth/roles';
@@ -55,12 +56,13 @@ export function ProfileProvider({
   const [profile, setProfile] = useState<Profile | null>(initialProfile ?? null);
   const [loading, setLoading] = useState(!initialProfile);
   const supabaseRef = useRef(createClient());
+  const pathname = usePathname();
 
   const refreshProfile = useCallback(async () => {
     const supabase = supabaseRef.current;
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      setProfile(null);
+      // Keep the current profile on transient misses — SIGNED_OUT clears explicitly.
       setLoading(false);
       return;
     }
@@ -86,7 +88,7 @@ export function ProfileProvider({
 
   useEffect(() => {
     void refreshProfile();
-  }, [refreshProfile]);
+  }, [pathname, refreshProfile]);
 
   useEffect(() => {
     const supabase = supabaseRef.current;

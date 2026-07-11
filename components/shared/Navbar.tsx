@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Building2, LayoutDashboard, LogOut, Menu, X } from 'lucide-react';
 import { useProfile } from '@/lib/hooks/useProfile';
 import { UserAvatar } from '@/components/shared/UserAvatar';
@@ -36,17 +36,30 @@ const ROLE_AVATAR: Record<string, string> = {
 
 interface NavbarProps {
   overlay?: boolean;
+  /** Server-verified session hint — keeps navbar logged-in after dashboard → home navigation */
+  authHint?: { isAuthenticated: boolean; role: string | null };
 }
 
-export function Navbar({ overlay = false }: NavbarProps) {
+export function Navbar({ overlay = false, authHint }: NavbarProps) {
   const router      = useRouter();
-  const { profile, clearProfile } = useProfile();
+  const { profile, clearProfile, refreshProfile } = useProfile();
   const { t }       = useTranslation();
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [signOutOpen, setSignOutOpen] = useState(false);
 
-  const normalizedRole = profile ? normalizeRole(profile.role) : null;
+  useEffect(() => {
+    if (authHint?.isAuthenticated && !profile) {
+      void refreshProfile();
+    }
+  }, [authHint, profile, refreshProfile]);
+
+  const isLoggedIn = Boolean(profile) || Boolean(authHint?.isAuthenticated);
+  const normalizedRole = profile
+    ? normalizeRole(profile.role)
+    : authHint?.role
+      ? normalizeRole(authHint.role)
+      : null;
   const roleLabel = normalizedRole ? t(`roles.${normalizedRole}` as 'roles.owner') : '';
 
   function handleSignOut() {
@@ -90,7 +103,7 @@ export function Navbar({ overlay = false }: NavbarProps) {
 
         {/* Right side */}
         <div className="flex items-center gap-3 sm:gap-4">
-          {profile ? (
+          {isLoggedIn ? (
             <div className="hidden md:flex items-center gap-3">
               <NavIconButton
                 onClick={() => setProfileOpen(true)}
@@ -98,8 +111,8 @@ export function Navbar({ overlay = false }: NavbarProps) {
                 aria-label="Open profile"
               >
                 <UserAvatar
-                  name={profile.full_name}
-                  avatarUrl={profile.avatar_url}
+                  name={profile?.full_name ?? 'User'}
+                  avatarUrl={profile?.avatar_url}
                   size="xs"
                   gradient={avatarGradient}
                   className="!h-8 !w-8 text-xs ring-1 ring-border"
@@ -134,7 +147,7 @@ export function Navbar({ overlay = false }: NavbarProps) {
             </Button>
           )}
 
-          {profile && overlay && (
+          {isLoggedIn && overlay && (
             <Button
               asChild
               size="sm"
@@ -154,7 +167,7 @@ export function Navbar({ overlay = false }: NavbarProps) {
           />
 
           {/* Mobile: avatar initial */}
-          {profile && (
+          {isLoggedIn && (
             <div className="md:hidden">
               <NavIconButton
                 onClick={() => setProfileOpen(true)}
@@ -162,8 +175,8 @@ export function Navbar({ overlay = false }: NavbarProps) {
                 aria-label="Open profile"
               >
                 <UserAvatar
-                  name={profile.full_name}
-                  avatarUrl={profile.avatar_url}
+                  name={profile?.full_name ?? 'User'}
+                  avatarUrl={profile?.avatar_url}
                   size="xs"
                   gradient={avatarGradient}
                 />
@@ -191,17 +204,17 @@ export function Navbar({ overlay = false }: NavbarProps) {
       {menuOpen && (
         <div className="md:hidden border-t border-border bg-background flex flex-col">
           {/* Logged-in user chip */}
-          {profile && (
+          {isLoggedIn && (
             <div className="px-4 py-3 border-b border-border flex items-center gap-3 bg-card/80 dark:bg-card/60">
               <UserAvatar
-                name={profile.full_name}
-                avatarUrl={profile.avatar_url}
+                name={profile?.full_name ?? 'User'}
+                avatarUrl={profile?.avatar_url}
                 size="sm"
                 gradient={avatarGradient}
                 className="flex-shrink-0"
               />
               <div className="flex flex-col min-w-0">
-                <span className="text-sm font-semibold text-foreground truncate">{profile.full_name}</span>
+                <span className="text-sm font-semibold text-foreground truncate">{profile?.full_name ?? 'User'}</span>
                 <Badge variant={ROLE_BADGES[normalizedRole ?? 'labour_contractor']} className="mt-0.5 text-[10px] py-0 self-start">
                   {roleLabel}
                 </Badge>
@@ -210,10 +223,10 @@ export function Navbar({ overlay = false }: NavbarProps) {
           )}
 
           <div className="px-4 py-3 flex flex-col gap-1">
-            {profile ? (
+            {isLoggedIn ? (
               <>
                 <NavLink
-                  href="/dashboard"
+                  href={normalizedRole ? getDashboardPath(normalizedRole) : '/dashboard'}
                   prefetch
                   onClick={() => setMenuOpen(false)}
                   className={cn(NAV_MENU_ITEM, 'flex items-center gap-2.5 px-3 py-2.5 text-sm text-foreground/80 hover:text-foreground hover:bg-accent')}
@@ -266,7 +279,7 @@ export function Navbar({ overlay = false }: NavbarProps) {
         onConfirm={handleSignOut}
       />
 
-      {profile && (
+      {isLoggedIn && profile && (
         <ProfileDrawer
           open={profileOpen}
           onOpenChange={setProfileOpen}
