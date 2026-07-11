@@ -7,6 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { UserAvatar } from '@/components/shared/UserAvatar';
 import { useTranslation } from '@/lib/context/LanguageProvider';
 import { normalizeRole } from '@/lib/auth/roles';
+import { NAV_PRESSABLE } from '@/lib/navStyles';
+import { cn } from '@/lib/utils';
 
 const ROLE_BADGES: Record<string, 'amber' | 'teal' | 'indigo' | 'violet'> = {
   owner: 'amber',
@@ -181,7 +183,10 @@ export function ProfileDrawer({
           <button
             type="button"
             onClick={onSignOut}
-            className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg text-sm font-medium text-red-400 border border-red-500/20 hover:bg-red-500/10 transition-colors"
+            className={cn(
+              NAV_PRESSABLE,
+              'flex items-center justify-center gap-2 w-full py-2.5 rounded-lg text-sm font-medium text-red-400 border border-red-500/20 hover:bg-red-500/10 active:bg-red-500/5',
+            )}
           >
             <LogOut className="w-4 h-4" />
             {t('common.signOut')}

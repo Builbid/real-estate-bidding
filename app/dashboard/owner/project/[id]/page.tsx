@@ -2,10 +2,12 @@ export const dynamic = 'force-dynamic';
 
 import { getAuthUser } from '@/lib/supabase/getUser';
 import { redirect, notFound } from 'next/navigation';
-import Link from 'next/link';
 import { ArrowLeft, Lock, UserCheck, Clock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { NavLink } from '@/components/shared/NavLink';
+import { NAV_ICON_BUTTON } from '@/lib/navStyles';
+import { cn } from '@/lib/utils';
 import { AuctionCountdown } from '../../AuctionCountdown';
 import { STATUS_CONFIG, TRACK_LABELS } from '@/lib/utils';
 import { ConstructionMatrixSummary } from '@/components/construction/ConstructionMatrixSummary';
@@ -152,9 +154,13 @@ export default async function OwnerProjectPage({ params }: PageProps) {
     <div className="max-w-4xl mx-auto space-y-6">
       {/* ── Page header ────────────────────────────────────────── */}
       <div className="flex items-center gap-3">
-        <Link href="/dashboard/owner" className="text-muted-foreground hover:text-foreground transition-colors">
+        <NavLink
+          href="/dashboard/owner"
+          prefetch
+          className={cn(NAV_ICON_BUTTON, 'p-1 text-muted-foreground hover:text-foreground')}
+        >
           <ArrowLeft className="w-5 h-5" />
-        </Link>
+        </NavLink>
         <div className="flex-1 min-w-0">
           <h1 className="text-xl font-bold text-foreground truncate">{project.title}</h1>
           <p className="text-xs text-muted-foreground mt-0.5">

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Loader2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -26,14 +27,14 @@ export function SignOutConfirmDialog({
     setPending(true);
     try {
       await onConfirm();
-    } finally {
-      setPending(false);
       onOpenChange(false);
+    } catch {
+      setPending(false);
     }
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(next) => !pending && onOpenChange(next)}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
           <DialogTitle>Sign out?</DialogTitle>
@@ -53,7 +54,14 @@ export function SignOutConfirmDialog({
             onClick={handleYes}
             disabled={pending}
           >
-            Yes
+            {pending ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Signing out…
+              </>
+            ) : (
+              'Yes'
+            )}
           </Button>
         </div>
       </DialogContent>

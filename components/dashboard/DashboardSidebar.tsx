@@ -1,17 +1,21 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
-import { signOutAction } from '@/app/actions/auth';
-import { SignOutConfirmDialog } from '@/components/shared/SignOutConfirmDialog';
+import { useRouter } from 'next/navigation';
 import {
   Building2, LayoutDashboard, Building, Shield, LogOut, Home, ChevronRight, Settings,
 } from 'lucide-react';
 import { useTranslation } from '@/lib/context/LanguageProvider';
 import { LanguageSwitcher } from '@/components/shared/LanguageSwitcher';
 import { SidebarUserChip } from '@/app/dashboard/SidebarUserChip';
+import { SignOutConfirmDialog } from '@/components/shared/SignOutConfirmDialog';
+import { NavLink } from '@/components/shared/NavLink';
+import { NavIconButton } from '@/components/shared/NavIconButton';
 import type { UserRole } from '@/lib/types';
 import { normalizeRole } from '@/lib/auth/roles';
+import { clientSignOut } from '@/lib/auth/clientSignOut';
+import { NAV_LOGO_LINK, NAV_MENU_ITEM } from '@/lib/navStyles';
+import { cn } from '@/lib/utils';
 
 type NavRole = UserRole;
 
@@ -45,6 +49,7 @@ export function DashboardSidebar({
   avatarGradient,
 }: DashboardSidebarProps) {
   const { t } = useTranslation();
+  const router = useRouter();
   const [signOutOpen, setSignOutOpen] = useState(false);
   const normalizedRole = normalizeRole(role);
   const navItems = NAV_CONFIG[normalizedRole] ?? NAV_CONFIG.labour_contractor;
@@ -52,10 +57,11 @@ export function DashboardSidebar({
 
   return (
     <aside className="hidden lg:flex flex-col w-60 border-r border-border bg-card/50">
-      <Link
+      <NavLink
         href="/"
+        prefetch
         aria-label="BuilBid Home"
-        className="flex items-center gap-2.5 px-5 py-5 border-b border-border cursor-pointer hover:opacity-80 transition-opacity no-underline"
+        className={cn(NAV_LOGO_LINK, 'px-5 py-5 border-b border-border hover:opacity-90')}
       >
         <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-violet-500/10 border border-violet-500/30">
           <Building2 className="w-4 h-4 text-violet-400" />
@@ -66,7 +72,7 @@ export function DashboardSidebar({
             {t('common.platform')}
           </span>
         </div>
-      </Link>
+      </NavLink>
 
       <div className="px-4 py-3 border-b border-border flex items-center justify-between gap-2">
         <div className="flex-1 min-w-0">
@@ -81,42 +87,44 @@ export function DashboardSidebar({
 
       <nav className="flex-1 px-3 py-4 space-y-1">
         {navItems.map(({ href, icon: Icon, labelKey }) => (
-          <Link
+          <NavLink
             key={href}
             href={href}
-            className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors group"
+            prefetch
+            className={cn(NAV_MENU_ITEM, 'flex items-center gap-2.5 px-3 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent group')}
           >
             <Icon className="w-4 h-4 flex-shrink-0" />
             <span className="font-medium">{t(labelKey)}</span>
             <ChevronRight className="w-3.5 h-3.5 ml-auto opacity-0 group-hover:opacity-50 transition-opacity" />
-          </Link>
+          </NavLink>
         ))}
         <div className="pt-3 border-t border-border mt-3">
-          <Link
+          <NavLink
             href="/"
-            className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            prefetch
+            className={cn(NAV_MENU_ITEM, 'flex items-center gap-2.5 px-3 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent')}
           >
             <Home className="w-4 h-4" />
             <span>{t('nav.homePublicFeed')}</span>
-          </Link>
+          </NavLink>
         </div>
       </nav>
 
       <div className="px-3 py-4 border-t border-border">
-        <button
+        <NavIconButton
           type="button"
           onClick={() => setSignOutOpen(true)}
-          className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:text-red-400 hover:bg-accent transition-colors w-full text-left"
+          className={cn(NAV_MENU_ITEM, 'flex items-center gap-2.5 px-3 py-2.5 text-sm text-muted-foreground hover:text-red-400 hover:bg-accent w-full text-left')}
         >
           <LogOut className="w-4 h-4" />
           <span>{t('common.signOut')}</span>
-        </button>
+        </NavIconButton>
       </div>
 
       <SignOutConfirmDialog
         open={signOutOpen}
         onOpenChange={setSignOutOpen}
-        onConfirm={signOutAction}
+        onConfirm={() => clientSignOut(router)}
       />
     </aside>
   );

@@ -13,11 +13,11 @@ const buttonVariants = cva(
         destructive:
           'bg-gradient-to-b from-red-500 to-red-600 text-white hover:from-red-400 hover:to-red-500 shadow-lg shadow-red-500/20 active:scale-[0.98]',
         outline:
-          'border border-border/80 bg-card/50 text-foreground shadow-sm hover:bg-accent/80 hover:border-emerald-500/30 hover:text-foreground backdrop-blur-sm',
+          'border border-border/80 bg-card/50 text-foreground shadow-sm hover:bg-accent/80 hover:border-emerald-500/30 hover:text-foreground backdrop-blur-sm active:opacity-70 active:scale-[0.98] active:bg-accent',
         secondary:
-          'bg-secondary/80 text-secondary-foreground border border-border/50 shadow-sm hover:bg-secondary',
+          'bg-secondary/80 text-secondary-foreground border border-border/50 shadow-sm hover:bg-secondary active:opacity-70 active:scale-[0.98]',
         ghost:
-          'text-muted-foreground hover:text-foreground hover:bg-accent/70',
+          'text-muted-foreground hover:text-foreground hover:bg-accent/70 active:opacity-70 active:scale-[0.97] active:bg-accent/90',
         link:
           'text-emerald-600 dark:text-emerald-400 underline-offset-4 hover:underline p-0 h-auto',
         indigo:

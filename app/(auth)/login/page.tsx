@@ -7,6 +7,9 @@ import { Building2, Mail, Lock, Eye, EyeOff, ArrowRight, ArrowLeft, AlertCircle 
 import { signInAction } from '@/app/actions/auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { NavLink } from '@/components/shared/NavLink'
+import { NAV_BACK_LINK } from '@/lib/navStyles'
+import { cn } from '@/lib/utils'
 
 type RoleParam = 'owner' | 'bidder' | null
 
@@ -109,12 +112,9 @@ function LoginPageContent() {
 
       <div className="relative w-full max-w-md">
         {roleParam && (
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
-          >
+          <NavLink href="/" prefetch className={cn(NAV_BACK_LINK, 'mb-4')}>
             <ArrowLeft className="w-4 h-4" /> Back
-          </Link>
+          </NavLink>
         )}
 
         <div className="flex flex-col items-center gap-3 mb-8">

@@ -4,11 +4,12 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Building2, LayoutDashboard, LogOut, Menu, X } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
 import { useProfile } from '@/lib/hooks/useProfile';
 import { UserAvatar } from '@/components/shared/UserAvatar';
 import { ProfileDrawer } from '@/components/shared/ProfileDrawer';
 import { SignOutConfirmDialog } from '@/components/shared/SignOutConfirmDialog';
+import { NavLink } from '@/components/shared/NavLink';
+import { NavIconButton } from '@/components/shared/NavIconButton';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ThemeToggle } from '@/components/shared/ThemeToggle';
@@ -16,6 +17,8 @@ import { CreateAccountButton } from '@/components/shared/CreateAccountButton';
 import { useTranslation } from '@/lib/context/LanguageProvider';
 import { cn } from '@/lib/utils';
 import { normalizeRole, getDashboardPath } from '@/lib/auth/roles';
+import { clientSignOut } from '@/lib/auth/clientSignOut';
+import { NAV_LOGO_LINK, NAV_MENU_ITEM } from '@/lib/navStyles';
 
 const ROLE_BADGES: Record<string, 'amber' | 'teal' | 'indigo' | 'violet'> = {
   owner: 'amber',
@@ -42,18 +45,14 @@ export function Navbar({ overlay = false }: NavbarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [signOutOpen, setSignOutOpen] = useState(false);
-  const supabase    = createClient();
 
   const normalizedRole = profile ? normalizeRole(profile.role) : null;
   const roleLabel = normalizedRole ? t(`roles.${normalizedRole}` as 'roles.owner') : '';
 
-  async function handleSignOut() {
-    clearProfile();
+  function handleSignOut() {
     setProfileOpen(false);
     setMenuOpen(false);
-    await supabase.auth.signOut();
-    router.push('/');
-    router.refresh();
+    clientSignOut(router, { onClear: clearProfile });
   }
 
   const avatarGradient = normalizedRole ? (ROLE_AVATAR[normalizedRole] ?? ROLE_AVATAR.labour_contractor) : '';
@@ -70,12 +69,13 @@ export function Navbar({ overlay = false }: NavbarProps) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 flex h-16 items-center justify-between">
 
         {/* Logo */}
-        <Link
+        <NavLink
           href="/"
+          prefetch
           aria-label="BuilBid Home"
-          className="flex items-center gap-2.5 group cursor-pointer hover:opacity-80 transition-opacity no-underline"
+          className={cn(NAV_LOGO_LINK, 'hover:opacity-90')}
         >
-          <div className="flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-violet-500/10 border border-violet-500/30 group-hover:bg-violet-500/20 group-hover:shadow-md group-hover:shadow-violet-500/10 transition-all">
+          <div className="flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-violet-500/10 border border-violet-500/30 group-hover:bg-violet-500/20 group-hover:shadow-md group-hover:shadow-violet-500/10 transition-all group-active:opacity-80">
             <Building2 className="w-6 h-6 sm:w-7 sm:h-7 text-violet-400" />
           </div>
           <span
@@ -86,16 +86,15 @@ export function Navbar({ overlay = false }: NavbarProps) {
           >
             BuilBid
           </span>
-        </Link>
+        </NavLink>
 
         {/* Right side */}
         <div className="flex items-center gap-3 sm:gap-4">
           {profile ? (
             <div className="hidden md:flex items-center gap-3">
-              <button
-                type="button"
+              <NavIconButton
                 onClick={() => setProfileOpen(true)}
-                className="rounded-full hover:ring-2 hover:ring-border transition-all flex-shrink-0"
+                className="rounded-full hover:ring-2 hover:ring-border flex-shrink-0"
                 aria-label="Open profile"
               >
                 <UserAvatar
@@ -105,7 +104,7 @@ export function Navbar({ overlay = false }: NavbarProps) {
                   gradient={avatarGradient}
                   className="!h-8 !w-8 text-xs ring-1 ring-border"
                 />
-              </button>
+              </NavIconButton>
               <Button
                 variant="ghost"
                 size="icon"
@@ -117,12 +116,13 @@ export function Navbar({ overlay = false }: NavbarProps) {
             </div>
           ) : overlay ? (
             <div className="hidden md:flex items-center gap-2">
-              <Link
+              <NavLink
                 href="/login"
-                className="px-2 py-1 text-sm font-medium text-slate-700 hover:text-slate-900 transition-colors"
+                prefetch
+                className="px-2 py-1 text-sm font-medium text-slate-700 hover:text-slate-900"
               >
                 {t('common.signIn')}
-              </Link>
+              </NavLink>
               <CreateAccountButton />
             </div>
           ) : (
@@ -130,7 +130,7 @@ export function Navbar({ overlay = false }: NavbarProps) {
               asChild
               className="hidden md:inline-flex"
             >
-              <Link href="/login">{t('common.signIn')}</Link>
+              <Link href="/login" prefetch>{t('common.signIn')}</Link>
             </Button>
           )}
 
@@ -141,7 +141,7 @@ export function Navbar({ overlay = false }: NavbarProps) {
               variant="outline"
               className="sm:hidden h-8 rounded-full px-3 text-xs border-slate-300 text-slate-800 hover:bg-slate-100 hover:text-slate-900"
             >
-              <Link href={getDashboardPath(normalizedRole!)}>{t('common.dashboard')}</Link>
+              <Link href={getDashboardPath(normalizedRole!)} prefetch>{t('common.dashboard')}</Link>
             </Button>
           )}
 
@@ -156,10 +156,9 @@ export function Navbar({ overlay = false }: NavbarProps) {
           {/* Mobile: avatar initial */}
           {profile && (
             <div className="md:hidden">
-              <button
-                type="button"
+              <NavIconButton
                 onClick={() => setProfileOpen(true)}
-                className="rounded-full hover:ring-2 hover:ring-border transition-all flex-shrink-0"
+                className="rounded-full hover:ring-2 hover:ring-border flex-shrink-0"
                 aria-label="Open profile"
               >
                 <UserAvatar
@@ -168,22 +167,23 @@ export function Navbar({ overlay = false }: NavbarProps) {
                   size="xs"
                   gradient={avatarGradient}
                 />
-              </button>
+              </NavIconButton>
             </div>
           )}
 
           {/* Mobile menu toggle */}
-          <button
+          <NavIconButton
             className={cn(
-              'md:hidden p-2 rounded-lg transition-colors',
+              'md:hidden p-2',
               overlay
                 ? 'text-slate-700 hover:text-slate-900 hover:bg-slate-100'
                 : 'text-muted-foreground hover:text-foreground hover:bg-accent',
             )}
             onClick={() => setMenuOpen(!menuOpen)}
+            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
           >
             {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
+          </NavIconButton>
         </div>
       </div>
 
@@ -212,39 +212,49 @@ export function Navbar({ overlay = false }: NavbarProps) {
           <div className="px-4 py-3 flex flex-col gap-1">
             {profile ? (
               <>
-                <Link href="/dashboard" onClick={() => setMenuOpen(false)}
-                  className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-foreground/80 hover:text-foreground rounded-lg hover:bg-accent transition-colors">
+                <NavLink
+                  href="/dashboard"
+                  prefetch
+                  onClick={() => setMenuOpen(false)}
+                  className={cn(NAV_MENU_ITEM, 'flex items-center gap-2.5 px-3 py-2.5 text-sm text-foreground/80 hover:text-foreground hover:bg-accent')}
+                >
                   <LayoutDashboard className="w-4 h-4 text-violet-400" /> {t('common.dashboard')}
-                </Link>
-                <button
+                </NavLink>
+                <NavIconButton
                   onClick={() => { setMenuOpen(false); setSignOutOpen(true); }}
-                  className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-red-400 hover:text-red-300 rounded-lg hover:bg-accent transition-colors text-left"
+                  className={cn(NAV_MENU_ITEM, 'flex items-center gap-2.5 px-3 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-accent w-full text-left')}
                 >
                   <LogOut className="w-4 h-4" /> {t('common.signOut')}
-                </button>
+                </NavIconButton>
               </>
             ) : overlay ? (
               <>
-                <Link
+                <NavLink
                   href="/signup"
+                  prefetch
                   onClick={() => setMenuOpen(false)}
-                  className="flex min-h-11 items-center rounded-lg px-3 py-2.5 text-sm font-medium text-foreground hover:bg-accent transition-colors"
+                  className={cn(NAV_MENU_ITEM, 'flex min-h-11 items-center px-3 py-2.5 text-sm font-medium text-foreground hover:bg-accent')}
                 >
                   {t('common.createAccount')}
-                </Link>
-                <Link
+                </NavLink>
+                <NavLink
                   href="/login"
+                  prefetch
                   onClick={() => setMenuOpen(false)}
-                  className="flex min-h-11 items-center rounded-lg px-3 py-2.5 text-sm text-foreground/80 hover:text-foreground hover:bg-accent transition-colors"
+                  className={cn(NAV_MENU_ITEM, 'flex min-h-11 items-center px-3 py-2.5 text-sm text-foreground/80 hover:text-foreground hover:bg-accent')}
                 >
                   {t('common.signIn')}
-                </Link>
+                </NavLink>
               </>
             ) : (
-              <Link href="/login" onClick={() => setMenuOpen(false)}
-                className="px-3 py-2.5 text-sm text-foreground/80 hover:text-foreground rounded-lg hover:bg-accent transition-colors">
+              <NavLink
+                href="/login"
+                prefetch
+                onClick={() => setMenuOpen(false)}
+                className={cn(NAV_MENU_ITEM, 'px-3 py-2.5 text-sm text-foreground/80 hover:text-foreground hover:bg-accent')}
+              >
                 {t('common.signIn')}
-              </Link>
+              </NavLink>
             )}
           </div>
         </div>
@@ -279,18 +289,19 @@ export function PublicNavbar() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/80 bg-background/95 backdrop-blur-xl">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 flex h-16 items-center justify-between">
-        <Link
+        <NavLink
           href="/"
+          prefetch
           aria-label="BuilBid Home"
-          className="flex items-center gap-2.5 group cursor-pointer hover:opacity-80 transition-opacity no-underline"
+          className={cn(NAV_LOGO_LINK, 'hover:opacity-90')}
         >
           <div className="flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-violet-500/10 border border-violet-500/30 group-hover:bg-violet-500/20 group-hover:shadow-md group-hover:shadow-violet-500/10 transition-all">
             <Building2 className="w-6 h-6 sm:w-7 sm:h-7 text-violet-400" />
           </div>
           <span className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">BuilBid</span>
-        </Link>
+        </NavLink>
         <div className="flex items-center gap-3 sm:gap-4">
-          <Button asChild><Link href="/login">{t('common.signIn')}</Link></Button>
+          <Button asChild><Link href="/login" prefetch>{t('common.signIn')}</Link></Button>
           <ThemeToggle />
         </div>
       </div>

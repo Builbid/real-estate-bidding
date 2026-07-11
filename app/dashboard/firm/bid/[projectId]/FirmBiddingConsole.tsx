@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, CheckCircle2, AlertCircle, Clock, Download, FileText,
   TrendingDown, Trophy,
 } from 'lucide-react';
+import { NavLink } from '@/components/shared/NavLink';
+import { NAV_BACK_LINK, NAV_ICON_BUTTON } from '@/lib/navStyles';
 import { CountdownTicker } from '@/components/shared/CountdownTicker';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -167,9 +168,9 @@ export function FirmBiddingConsole({
         Could not load project details. Please go back and try again.
         <div className="mt-4">
           <Button asChild variant="outline">
-            <Link href="/dashboard/firm">
+            <NavLink href="/dashboard/firm" prefetch className={NAV_BACK_LINK}>
               <ArrowLeft className="w-4 h-4" /> Back to Firm Console
-            </Link>
+            </NavLink>
           </Button>
         </div>
       </div>
@@ -179,9 +180,13 @@ export function FirmBiddingConsole({
   return (
     <div className="w-full space-y-4">
       <div className="flex items-center gap-3">
-        <Link href="/dashboard/firm" className="text-muted-foreground hover:text-foreground transition-colors">
+        <NavLink
+          href="/dashboard/firm"
+          prefetch
+          className={cn(NAV_ICON_BUTTON, 'p-1 text-muted-foreground hover:text-foreground')}
+        >
           <ArrowLeft className="w-5 h-5" />
-        </Link>
+        </NavLink>
         <div className="flex-1">
           <div className="flex flex-wrap items-center gap-2 mb-1">
             {isGracePeriod ? (

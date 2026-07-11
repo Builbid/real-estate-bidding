@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, TrendingDown, Info, CheckCircle2, AlertCircle,
   RefreshCw, Building, Layers, Clock
 } from 'lucide-react';
+import { NavLink } from '@/components/shared/NavLink';
+import { NAV_ICON_BUTTON } from '@/lib/navStyles';
 import { useRealtimeBids } from '@/lib/hooks/useRealtimeBids';
 import { CountdownTicker } from '@/components/shared/CountdownTicker';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -189,9 +190,13 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
     <div className="w-full space-y-4">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <Link href="/dashboard/builder" className="text-muted-foreground hover:text-foreground transition-colors">
+        <NavLink
+          href="/dashboard/builder"
+          prefetch
+          className={cn(NAV_ICON_BUTTON, 'p-1 text-muted-foreground hover:text-foreground')}
+        >
           <ArrowLeft className="w-5 h-5" />
-        </Link>
+        </NavLink>
         <div className="flex-1">
           <div className="flex flex-wrap items-center gap-2 mb-1">
             {isGracePeriod ? (

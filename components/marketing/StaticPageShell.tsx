@@ -1,7 +1,8 @@
-import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { Navbar } from '@/components/shared/Navbar';
+import { NavLink } from '@/components/shared/NavLink';
 import { cn } from '@/lib/utils';
+import { NAV_BACK_LINK } from '@/lib/navStyles';
 
 interface StaticPageShellProps {
   title: string;
@@ -22,13 +23,10 @@ export function StaticPageShell({
     <>
       <Navbar />
       <main className={cn('max-w-3xl mx-auto px-4 sm:px-6 py-10 pb-16', className)}>
-        <Link
-          href="/"
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8"
-        >
+        <NavLink href="/" prefetch className={cn(NAV_BACK_LINK, 'mb-8')}>
           <ArrowLeft className="w-4 h-4" />
           Back to Home
-        </Link>
+        </NavLink>
 
         <header className="mb-10 rounded-2xl border border-border/70 bg-card/50 p-6 sm:p-8 shadow-sm backdrop-blur-sm">
           <h1 className="text-3xl sm:text-4xl font-bold text-foreground tracking-tight">{title}</h1>
