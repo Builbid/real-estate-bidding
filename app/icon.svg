@@ -1,7 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
-  <rect width="32" height="32" rx="8" fill="#0f172a"/>
-  <text x="7" y="21.5" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13" font-weight="700" letter-spacing="-0.06em" fill="#f8fafc">B</text>
-  <text x="15.5" y="21.5" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13" font-weight="800" letter-spacing="-0.06em" fill="#a78bfa">B</text>
-  <circle cx="25" cy="8" r="2.5" fill="#34d399"/>
-  <path d="M7 25.5 L15 25.5 L18 22.5 L24 25.5" stroke="#34d399" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+  <defs>
+    <linearGradient id="g" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#4c1d95"/>
+      <stop offset="55%" stop-color="#7c3aed"/>
+      <stop offset="100%" stop-color="#10b981"/>
+    </linearGradient>
+  </defs>
+  <rect width="32" height="32" rx="9" fill="url(#g)"/>
+  <path d="M7.5 14.5 L16 7.5 L24.5 14.5" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.35"/>
+  <text x="8.5" y="22" font-family="ui-sans-serif, system-ui, sans-serif" font-size="14" font-weight="700" letter-spacing="-0.08em" fill="#ffffff" opacity="0.92">B</text>
+  <text x="17" y="22" font-family="ui-sans-serif, system-ui, sans-serif" font-size="14" font-weight="900" letter-spacing="-0.08em" fill="#d9f99d">B</text>
+  <circle cx="24.5" cy="7.5" r="2.3" fill="#34d399"/>
+  <circle cx="24.5" cy="7.5" r="3.8" stroke="#6ee7b7" stroke-width="0.8" opacity="0.5"/>
 </svg>
