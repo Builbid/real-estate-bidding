@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Building2, LayoutDashboard, LogOut, Menu, X } from 'lucide-react';
 import { useProfile } from '@/lib/hooks/useProfile';
 import { UserAvatar } from '@/components/shared/UserAvatar';
@@ -54,6 +55,25 @@ export function Navbar({ overlay = false, authHint }: NavbarProps) {
     }
   }, [authHint, profile, refreshProfile]);
 
+  useEffect(() => {
+    if (!menuOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [menuOpen]);
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') setMenuOpen(false);
+    }
+    if (menuOpen) {
+      window.addEventListener('keydown', onKeyDown);
+      return () => window.removeEventListener('keydown', onKeyDown);
+    }
+  }, [menuOpen]);
+
   const isLoggedIn = Boolean(profile) || Boolean(authHint?.isAuthenticated);
   const normalizedRole = profile
     ? normalizeRole(profile.role)
@@ -70,16 +90,95 @@ export function Navbar({ overlay = false, authHint }: NavbarProps) {
 
   const avatarGradient = normalizedRole ? (ROLE_AVATAR[normalizedRole] ?? ROLE_AVATAR.labour_contractor) : '';
 
+  const mobileMenu = menuOpen ? (
+    <div className="fixed inset-0 z-[100] md:hidden">
+      <button
+        type="button"
+        className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"
+        aria-label="Close menu"
+        onClick={() => setMenuOpen(false)}
+      />
+      <div className="absolute left-0 right-0 top-16 max-h-[calc(100dvh-4rem)] overflow-y-auto border-b border-border bg-background shadow-xl">
+        {isLoggedIn && (
+          <div className="flex items-center gap-3 border-b border-border bg-card/80 px-4 py-3 dark:bg-card/60">
+            <UserAvatar
+              name={profile?.full_name ?? 'User'}
+              avatarUrl={profile?.avatar_url}
+              size="sm"
+              gradient={avatarGradient}
+              className="flex-shrink-0"
+            />
+            <div className="flex min-w-0 flex-col">
+              <span className="truncate text-sm font-semibold text-foreground">{profile?.full_name ?? 'User'}</span>
+              <Badge variant={ROLE_BADGES[normalizedRole ?? 'labour_contractor']} className="mt-0.5 self-start py-0 text-[10px]">
+                {roleLabel}
+              </Badge>
+            </div>
+          </div>
+        )}
+
+        <div className="flex flex-col gap-1 px-4 py-3">
+          {isLoggedIn ? (
+            <>
+              <NavLink
+                href={normalizedRole ? getDashboardPath(normalizedRole) : '/dashboard'}
+                prefetch
+                onClick={() => setMenuOpen(false)}
+                className={cn(NAV_MENU_ITEM, 'flex items-center gap-2.5 px-3 py-2.5 text-sm text-foreground/80 hover:bg-accent hover:text-foreground')}
+              >
+                <LayoutDashboard className="h-4 w-4 text-violet-400" /> {t('common.dashboard')}
+              </NavLink>
+              <NavIconButton
+                onClick={() => { setMenuOpen(false); setSignOutOpen(true); }}
+                className={cn(NAV_MENU_ITEM, 'flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm text-red-400 hover:bg-accent hover:text-red-300')}
+              >
+                <LogOut className="h-4 w-4" /> {t('common.signOut')}
+              </NavIconButton>
+            </>
+          ) : overlay ? (
+            <>
+              <NavLink
+                href="/signup"
+                prefetch
+                onClick={() => setMenuOpen(false)}
+                className={cn(NAV_MENU_ITEM, 'flex min-h-11 items-center px-3 py-2.5 text-sm font-medium text-foreground hover:bg-accent')}
+              >
+                {t('common.createAccount')}
+              </NavLink>
+              <NavLink
+                href="/login"
+                prefetch
+                onClick={() => setMenuOpen(false)}
+                className={cn(NAV_MENU_ITEM, 'flex min-h-11 items-center px-3 py-2.5 text-sm text-foreground/80 hover:bg-accent hover:text-foreground')}
+              >
+                {t('common.signIn')}
+              </NavLink>
+            </>
+          ) : (
+            <NavLink
+              href="/login"
+              prefetch
+              onClick={() => setMenuOpen(false)}
+              className={cn(NAV_MENU_ITEM, 'px-3 py-2.5 text-sm text-foreground/80 hover:bg-accent hover:text-foreground')}
+            >
+              {t('common.signIn')}
+            </NavLink>
+          )}
+        </div>
+      </div>
+    </div>
+  ) : null;
+
   return (
     <header
       className={cn(
-        'top-0 z-50 w-full',
+        'top-0 z-50 w-full pointer-events-auto',
         overlay
-          ? 'absolute bg-transparent'
+          ? 'sticky bg-white/90 backdrop-blur-md'
           : 'sticky border-b border-border/70 bg-background/90 backdrop-blur-xl shadow-sm shadow-black/[0.04]'
       )}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 flex h-16 items-center justify-between">
+      <div className="relative z-50 mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
 
         {/* Logo */}
         <NavLink
@@ -187,12 +286,17 @@ export function Navbar({ overlay = false, authHint }: NavbarProps) {
           {/* Mobile menu toggle */}
           <NavIconButton
             className={cn(
-              'md:hidden p-2',
+              'relative z-[51] md:hidden p-2',
               overlay
-                ? 'text-slate-700 hover:text-slate-900 hover:bg-slate-100'
-                : 'text-muted-foreground hover:text-foreground hover:bg-accent',
+                ? 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+                : 'text-muted-foreground hover:bg-accent hover:text-foreground',
             )}
-            onClick={() => setMenuOpen(!menuOpen)}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setMenuOpen((open) => !open);
+            }}
+            aria-expanded={menuOpen}
             aria-label={menuOpen ? 'Close menu' : 'Open menu'}
           >
             {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -200,78 +304,9 @@ export function Navbar({ overlay = false, authHint }: NavbarProps) {
         </div>
       </div>
 
-      {/* Mobile drawer */}
-      {menuOpen && (
-        <div className="md:hidden border-t border-border bg-background flex flex-col">
-          {/* Logged-in user chip */}
-          {isLoggedIn && (
-            <div className="px-4 py-3 border-b border-border flex items-center gap-3 bg-card/80 dark:bg-card/60">
-              <UserAvatar
-                name={profile?.full_name ?? 'User'}
-                avatarUrl={profile?.avatar_url}
-                size="sm"
-                gradient={avatarGradient}
-                className="flex-shrink-0"
-              />
-              <div className="flex flex-col min-w-0">
-                <span className="text-sm font-semibold text-foreground truncate">{profile?.full_name ?? 'User'}</span>
-                <Badge variant={ROLE_BADGES[normalizedRole ?? 'labour_contractor']} className="mt-0.5 text-[10px] py-0 self-start">
-                  {roleLabel}
-                </Badge>
-              </div>
-            </div>
-          )}
-
-          <div className="px-4 py-3 flex flex-col gap-1">
-            {isLoggedIn ? (
-              <>
-                <NavLink
-                  href={normalizedRole ? getDashboardPath(normalizedRole) : '/dashboard'}
-                  prefetch
-                  onClick={() => setMenuOpen(false)}
-                  className={cn(NAV_MENU_ITEM, 'flex items-center gap-2.5 px-3 py-2.5 text-sm text-foreground/80 hover:text-foreground hover:bg-accent')}
-                >
-                  <LayoutDashboard className="w-4 h-4 text-violet-400" /> {t('common.dashboard')}
-                </NavLink>
-                <NavIconButton
-                  onClick={() => { setMenuOpen(false); setSignOutOpen(true); }}
-                  className={cn(NAV_MENU_ITEM, 'flex items-center gap-2.5 px-3 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-accent w-full text-left')}
-                >
-                  <LogOut className="w-4 h-4" /> {t('common.signOut')}
-                </NavIconButton>
-              </>
-            ) : overlay ? (
-              <>
-                <NavLink
-                  href="/signup"
-                  prefetch
-                  onClick={() => setMenuOpen(false)}
-                  className={cn(NAV_MENU_ITEM, 'flex min-h-11 items-center px-3 py-2.5 text-sm font-medium text-foreground hover:bg-accent')}
-                >
-                  {t('common.createAccount')}
-                </NavLink>
-                <NavLink
-                  href="/login"
-                  prefetch
-                  onClick={() => setMenuOpen(false)}
-                  className={cn(NAV_MENU_ITEM, 'flex min-h-11 items-center px-3 py-2.5 text-sm text-foreground/80 hover:text-foreground hover:bg-accent')}
-                >
-                  {t('common.signIn')}
-                </NavLink>
-              </>
-            ) : (
-              <NavLink
-                href="/login"
-                prefetch
-                onClick={() => setMenuOpen(false)}
-                className={cn(NAV_MENU_ITEM, 'px-3 py-2.5 text-sm text-foreground/80 hover:text-foreground hover:bg-accent')}
-              >
-                {t('common.signIn')}
-              </NavLink>
-            )}
-          </div>
-        </div>
-      )}
+      {typeof document !== 'undefined' && mobileMenu
+        ? createPortal(mobileMenu, document.body)
+        : null}
 
       <SignOutConfirmDialog
         open={signOutOpen}
