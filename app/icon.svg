@@ -1,13 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
-  <rect width="32" height="32" rx="7" fill="#0f172a"/>
-  <rect x="1.5" y="1.5" width="29" height="29" rx="6" fill="rgba(139,92,246,0.12)" stroke="rgba(139,92,246,0.35)" stroke-width="1"/>
-  <g transform="translate(7 5)" stroke="#a78bfa" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" fill="none">
-    <path d="M5 18V3a1.5 1.5 0 0 1 1.5-1.5h7A1.5 1.5 0 0 1 15 3v15"/>
-    <path d="M5 10H3.5A1.5 1.5 0 0 0 2 11.5V17a1.5 1.5 0 0 0 1.5 1.5H5"/>
-    <path d="M15 7.5h1.5A1.5 1.5 0 0 1 18 9v8a1.5 1.5 0 0 1-1.5 1.5H15"/>
-    <path d="M8 5h4"/>
-    <path d="M8 8h4"/>
-    <path d="M8 11h4"/>
-    <path d="M8 14h4"/>
-  </g>
+  <rect width="32" height="32" rx="8" fill="#0f172a"/>
+  <text x="7" y="21.5" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13" font-weight="700" letter-spacing="-0.06em" fill="#f8fafc">B</text>
+  <text x="15.5" y="21.5" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13" font-weight="800" letter-spacing="-0.06em" fill="#a78bfa">B</text>
+  <circle cx="25" cy="8" r="2.5" fill="#34d399"/>
+  <path d="M7 25.5 L15 25.5 L18 22.5 L24 25.5" stroke="#34d399" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

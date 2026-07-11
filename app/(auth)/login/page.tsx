@@ -3,7 +3,8 @@
 import { Suspense, useActionState, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { Building2, Mail, Lock, Eye, EyeOff, ArrowRight, ArrowLeft, AlertCircle } from 'lucide-react'
+import { Mail, Lock, Eye, EyeOff, ArrowRight, ArrowLeft, AlertCircle } from 'lucide-react'
+import { BuilBidLogo } from '@/components/shared/BuilBidLogo'
 import { signInAction } from '@/app/actions/auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -118,9 +119,7 @@ function LoginPageContent() {
         )}
 
         <div className="flex flex-col items-center gap-3 mb-8">
-          <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/30">
-            <Building2 className="w-7 h-7 text-emerald-400" />
-          </div>
+          <BuilBidLogo size="xl" />
           <div className="text-center">
             <h1 className="text-2xl font-bold text-foreground tracking-tight">{title}</h1>
             <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
-  Menu, X, Building2, LayoutDashboard, Building,
+  Menu, X, LayoutDashboard, Building,
   Shield, LogOut, Home, User, ChevronRight, Settings,
   CheckCheck, Trophy, Award, Bell,
 } from 'lucide-react'
@@ -22,6 +22,7 @@ import { NavIconButton } from '@/components/shared/NavIconButton'
 import { useTranslation } from '@/lib/context/LanguageProvider'
 import { normalizeRole } from '@/lib/auth/roles'
 import { clientSignOut } from '@/lib/auth/clientSignOut'
+import { BuilBidLogo } from '@/components/shared/BuilBidLogo'
 import { NAV_LOGO_LINK, NAV_MENU_ITEM } from '@/lib/navStyles'
 
 interface ProfileData {
@@ -113,10 +114,8 @@ export function TopBar({ profile, roleColor, avatarGradient }: TopBarProps) {
           aria-label="BuilBid Home"
           className={cn(NAV_LOGO_LINK, 'lg:hidden hover:opacity-90')}
         >
-          <div className="w-6 h-6 rounded-md bg-violet-500/10 border border-violet-500/30 flex items-center justify-center">
-            <Building2 className="w-3.5 h-3.5 text-violet-400" />
-          </div>
-          <span className="text-sm font-bold text-foreground">BuilBid</span>
+          <BuilBidLogo size="sm" compact className="sm:hidden" />
+          <BuilBidLogo size="sm" className="hidden sm:inline-flex" />
         </NavLink>
 
         <div className="flex-1" />
@@ -177,13 +176,11 @@ export function TopBar({ profile, roleColor, avatarGradient }: TopBarProps) {
                 onClick={() => setMenuOpen(false)}
                 className={cn(NAV_LOGO_LINK, 'hover:opacity-90')}
               >
-                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-violet-500/10 border border-violet-500/30">
-                  <Building2 className="w-4 h-4 text-violet-400" />
-                </div>
-                <div className="flex flex-col leading-none">
-                  <span className="text-sm font-bold text-foreground">BuilBid</span>
-                  <span className="text-[10px] text-muted-foreground uppercase tracking-widest">Platform</span>
-                </div>
+                <BuilBidLogo
+                  size="sm"
+                  showTagline
+                  tagline="Platform"
+                />
               </NavLink>
               <NavIconButton onClick={() => setMenuOpen(false)}
                 className="w-8 h-8 text-muted-foreground hover:text-foreground hover:bg-accent"

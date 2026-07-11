@@ -3,8 +3,9 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  Building2, LayoutDashboard, Building, Shield, LogOut, Home, ChevronRight, Settings,
+  LayoutDashboard, Building, Shield, LogOut, Home, ChevronRight, Settings,
 } from 'lucide-react';
+import { BuilBidLogo } from '@/components/shared/BuilBidLogo';
 import { useTranslation } from '@/lib/context/LanguageProvider';
 import { LanguageSwitcher } from '@/components/shared/LanguageSwitcher';
 import { SidebarUserChip } from '@/app/dashboard/SidebarUserChip';
@@ -63,15 +64,11 @@ export function DashboardSidebar({
         aria-label="BuilBid Home"
         className={cn(NAV_LOGO_LINK, 'px-5 py-5 border-b border-border hover:opacity-90')}
       >
-        <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-violet-500/10 border border-violet-500/30">
-          <Building2 className="w-4 h-4 text-violet-400" />
-        </div>
-        <div className="flex flex-col leading-none">
-          <span className="text-sm font-bold text-foreground">BuilBid</span>
-          <span className="text-[10px] text-muted-foreground uppercase tracking-widest">
-            {t('common.platform')}
-          </span>
-        </div>
+        <BuilBidLogo
+          size="sm"
+          showTagline
+          tagline={t('common.platform')}
+        />
       </NavLink>
 
       <div className="px-4 py-3 border-b border-border flex items-center justify-between gap-2">

@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { Building2, BadgeCheck, Shield, Star } from 'lucide-react';
+import { BadgeCheck, Shield, Star } from 'lucide-react';
+import { BuilBidLogo } from '@/components/shared/BuilBidLogo';
 import { useTranslation } from '@/lib/context/LanguageProvider';
 
 function LinkedInIcon({ className }: { className?: string }) {
@@ -65,10 +66,7 @@ export function Footer({ compact }: FooterProps) {
               aria-label="BuilBid Home"
               className="inline-flex items-center gap-2.5 group mb-4 cursor-pointer hover:opacity-80 transition-opacity no-underline"
             >
-              <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-violet-500/10 border border-violet-500/30 group-hover:bg-violet-500/20 group-hover:shadow-md group-hover:shadow-violet-500/10 transition-all">
-                <Building2 className="w-5 h-5 text-violet-400" />
-              </div>
-              <span className="text-base font-bold text-foreground tracking-tight">BuilBid</span>
+              <BuilBidLogo size="sm" />
             </Link>
             <p className="text-sm text-muted-foreground leading-relaxed max-w-xs">
               {t('footer.tagline')}

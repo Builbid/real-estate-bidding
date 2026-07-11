@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Building2, LayoutDashboard, LogOut, Menu, X } from 'lucide-react';
+import { LayoutDashboard, LogOut, Menu, User, X } from 'lucide-react';
+import { BuilBidLogo } from '@/components/shared/BuilBidLogo';
 import { useProfile } from '@/lib/hooks/useProfile';
 import { UserAvatar } from '@/components/shared/UserAvatar';
 import { ProfileDrawer } from '@/components/shared/ProfileDrawer';
@@ -114,17 +115,8 @@ export function Navbar({ overlay = false, authHint }: NavbarProps) {
           aria-label="BuilBid Home"
           className={cn(NAV_LOGO_LINK, 'hover:opacity-90')}
         >
-          <div className="flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-violet-500/10 border border-violet-500/30 group-hover:bg-violet-500/20 group-hover:shadow-md group-hover:shadow-violet-500/10 transition-all group-active:opacity-80">
-            <Building2 className="w-6 h-6 sm:w-7 sm:h-7 text-violet-400" />
-          </div>
-          <span
-            className={cn(
-              'hidden sm:block text-xl sm:text-2xl font-bold tracking-tight',
-              'text-foreground',
-            )}
-          >
-            BuilBid
-          </span>
+          <BuilBidLogo size="md" compact className="sm:hidden" />
+          <BuilBidLogo size="md" className="hidden sm:inline-flex" />
         </NavLink>
 
         {/* Right side */}
@@ -273,7 +265,7 @@ export function Navbar({ overlay = false, authHint }: NavbarProps) {
                     onClick={() => { setMenuOpen(false); setProfileOpen(true); }}
                     className={cn(NAV_MENU_ITEM, 'flex w-full items-center gap-2.5 px-3 py-3 text-left text-sm text-foreground hover:bg-accent')}
                   >
-                    <Building2 className="h-4 w-4 text-violet-400" />
+                    <User className="h-4 w-4 text-violet-400" />
                     {t('nav.myProfile')}
                   </button>
                 )}
@@ -356,10 +348,7 @@ export function PublicNavbar() {
           aria-label="BuilBid Home"
           className={cn(NAV_LOGO_LINK, 'hover:opacity-90')}
         >
-          <div className="flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-violet-500/10 border border-violet-500/30 group-hover:bg-violet-500/20 group-hover:shadow-md group-hover:shadow-violet-500/10 transition-all">
-            <Building2 className="w-6 h-6 sm:w-7 sm:h-7 text-violet-400" />
-          </div>
-          <span className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">BuilBid</span>
+          <BuilBidLogo size="md" />
         </NavLink>
         <div className="flex items-center gap-3 sm:gap-4">
           <Button asChild><Link href="/login" prefetch>{t('common.signIn')}</Link></Button>

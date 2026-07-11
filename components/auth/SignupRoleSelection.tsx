@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { Building2, ArrowLeft } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
+import { BuilBidLogo } from '@/components/shared/BuilBidLogo';
 import { SIGNUP_ROLE_CARDS } from '@/lib/auth/signupRoleCards';
 import { cn } from '@/lib/utils';
 
@@ -19,11 +20,8 @@ export function SignupRoleSelection() {
         </Link>
 
         <div className="flex flex-col items-center gap-3 mb-8">
-          <Link
-            href="/"
-            className="flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 hover:bg-emerald-500/20 transition-colors"
-          >
-            <Building2 className="w-7 h-7 text-emerald-400" />
+          <Link href="/" className="hover:opacity-90 transition-opacity">
+            <BuilBidLogo size="xl" />
           </Link>
           <div className="text-center">
             <h1 className="text-2xl font-bold text-foreground tracking-tight">Create your account</h1>

@@ -4,9 +4,10 @@ import { Suspense, useRef, useState, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
-  Building2, User, Mail, Lock, Phone, MapPin, Eye, EyeOff,
+  User, Mail, Lock, Phone, MapPin, Eye, EyeOff,
   ArrowRight, ArrowLeft, AlertCircle, CheckCircle2, Check, X,
 } from 'lucide-react';
+import { BuilBidLogo } from '@/components/shared/BuilBidLogo';
 import { signUpAction, type SignUpRole } from '@/app/actions/auth';
 import { uploadBuilderAvatar } from '@/lib/avatar/uploadBuilderAvatar';
 import { uploadFirmLogo } from '@/lib/firm/uploadFirmLogo';
@@ -253,8 +254,8 @@ function RegisterPageContent() {
         )}
 
         <div className="flex flex-col items-center gap-3 mb-8">
-          <Link href="/" className="flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 hover:bg-emerald-500/20 transition-colors">
-            <Building2 className="w-7 h-7 text-emerald-400" />
+          <Link href="/" className="hover:opacity-90 transition-opacity">
+            <BuilBidLogo size="xl" />
           </Link>
           <div className="text-center">
             <h1 className="text-2xl font-bold text-foreground tracking-tight">Create your account</h1>
