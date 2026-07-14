@@ -12,10 +12,20 @@ const OPTIONS: { value: Locale; labelKey: 'language.english' | 'language.assames
 ];
 
 interface LanguageSwitcherProps {
-  /** Lighter styling when overlaid on hero slideshow */
+  /** Styling when placed on the homepage hero / light header bar */
   overlay?: boolean;
   className?: string;
 }
+
+const triggerBase =
+  'inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold shadow-sm transition-colors';
+
+const triggerVariants = {
+  default:
+    'border-slate-300 bg-white text-slate-800 hover:bg-slate-50 dark:border-border dark:bg-card dark:text-foreground dark:hover:bg-accent',
+  overlay:
+    'border-slate-300 bg-white/95 text-slate-800 hover:bg-white hover:border-slate-400',
+} as const;
 
 export function LanguageSwitcher({ overlay = false, className }: LanguageSwitcherProps) {
   const { locale, setLocale, t } = useTranslation();
@@ -28,10 +38,8 @@ export function LanguageSwitcher({ overlay = false, className }: LanguageSwitche
           type="button"
           aria-label={t('language.label')}
           className={cn(
-            'inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors',
-            overlay
-              ? 'border-white/30 bg-black/20 text-white hover:bg-black/30'
-              : 'border-border bg-card/80 text-foreground hover:bg-accent',
+            triggerBase,
+            overlay ? triggerVariants.overlay : triggerVariants.default,
             className,
           )}
         >

@@ -182,7 +182,7 @@ export function ActiveProjectsShowcaseGrid({
                 {activeIndex + 1} / {filteredProjects.length}
               </span>
             )}
-            <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-semibold">
+            <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-800 dark:text-emerald-400 border border-emerald-600/25 dark:border-emerald-500/20 font-semibold">
               {t('home.auctions.open', { count: filteredProjects.length })}
             </span>
           </div>
@@ -216,10 +216,10 @@ export function ActiveProjectsShowcaseGrid({
               serviceFilter === id
                 ? heroOverlay
                   ? 'bg-emerald-400/20 border-emerald-300/40 text-emerald-100 shadow-emerald-500/10'
-                  : 'bg-emerald-500/15 border-emerald-500/40 text-emerald-700 dark:text-emerald-300 shadow-emerald-500/10'
+                  : 'bg-emerald-500/15 border-emerald-600/35 text-emerald-800 dark:border-emerald-500/40 dark:text-emerald-300 shadow-emerald-500/10'
                 : heroOverlay
                   ? 'bg-white/5 border-white/15 text-white/70 hover:text-white hover:border-white/25'
-                  : 'bg-secondary/50 border-border/70 text-muted-foreground hover:text-foreground hover:border-border',
+                  : 'border-slate-300 bg-slate-50 text-slate-700 hover:border-slate-400 hover:bg-white hover:text-slate-900 dark:bg-secondary/50 dark:border-border/70 dark:text-muted-foreground dark:hover:text-foreground dark:hover:border-border',
             )}
           >
             {label}

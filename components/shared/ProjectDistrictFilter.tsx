@@ -64,10 +64,10 @@ export function ProjectDistrictFilter({
             isActive
               ? heroOverlay
                 ? 'bg-sky-400/20 border-sky-300/40 text-sky-100 shadow-sky-500/10'
-                : 'bg-sky-500/15 border-sky-500/40 text-sky-700 dark:text-sky-300 shadow-sky-500/10'
+                : 'bg-sky-500/15 border-sky-600/35 text-sky-800 dark:border-sky-500/40 dark:text-sky-300 shadow-sky-500/10'
               : heroOverlay
                 ? 'bg-white/5 border-white/15 text-white/70 hover:text-white hover:border-white/25'
-                : 'bg-secondary/50 border-border/70 text-muted-foreground hover:text-foreground hover:border-border',
+                : 'border-slate-300 bg-slate-50 text-slate-700 hover:border-slate-400 hover:bg-white hover:text-slate-900 dark:bg-secondary/50 dark:border-border/70 dark:text-muted-foreground dark:hover:text-foreground dark:hover:border-border',
           )}
         >
           <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden />

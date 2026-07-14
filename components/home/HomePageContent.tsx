@@ -100,9 +100,9 @@ export function HomePageContent({
           <div className="mb-8 sm:mb-10">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
               <div className="flex items-center gap-3">
-                <div className="w-2 h-2 rounded-full bg-violet-400" />
+                <div className="w-2 h-2 rounded-full bg-violet-500 dark:bg-violet-400" />
                 <h2 className="text-xl font-bold text-foreground">{t('home.auctions.selectionTitle')}</h2>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-400 border border-violet-500/20 font-semibold">
+                <span className="text-xs px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-700 dark:text-violet-400 border border-violet-500/25 font-semibold">
                   {t('home.auctions.projects', { count: filteredFrozenProjects.length })}
                 </span>
               </div>

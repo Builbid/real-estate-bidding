@@ -36,8 +36,8 @@ export function ThemeToggle({ className, iconOnly = true }: ThemeToggleProps) {
       title={isDark ? 'Light mode' : 'Dark mode'}
       className={cn(
         iconOnly
-          ? 'w-9 h-9 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-colors'
-          : 'inline-flex h-9 items-center gap-2 rounded-lg border border-border px-3 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors',
+          ? 'w-9 h-9 rounded-lg border flex items-center justify-center transition-colors border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-900 dark:border-border dark:bg-transparent dark:text-muted-foreground dark:hover:text-foreground dark:hover:bg-accent'
+          : 'inline-flex h-9 items-center gap-2 rounded-lg border px-3 text-sm transition-colors border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-900 dark:border-border dark:bg-transparent dark:text-muted-foreground dark:hover:text-foreground dark:hover:bg-accent',
         className,
       )}
     >

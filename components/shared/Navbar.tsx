@@ -15,6 +15,7 @@ import { NavIconButton } from '@/components/shared/NavIconButton';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ThemeToggle } from '@/components/shared/ThemeToggle';
+import { LanguageSwitcher } from '@/components/shared/LanguageSwitcher';
 import { CreateAccountButton } from '@/components/shared/CreateAccountButton';
 import { useTranslation } from '@/lib/context/LanguageProvider';
 import { cn } from '@/lib/utils';
@@ -102,7 +103,7 @@ export function Navbar({ overlay = false, authHint }: NavbarProps) {
       className={cn(
         'sticky top-0 z-[200] w-full isolate pointer-events-auto',
         overlay
-          ? 'bg-white/95 backdrop-blur-md'
+          ? 'border-b border-slate-200/80 bg-white/95 backdrop-blur-md text-slate-900'
           : 'border-b border-border/70 bg-background/95 backdrop-blur-xl shadow-sm shadow-black/[0.04]'
       )}
     >
@@ -113,7 +114,10 @@ export function Navbar({ overlay = false, authHint }: NavbarProps) {
           href="/"
           prefetch
           aria-label="BuilBid Home"
-          className={cn(NAV_LOGO_LINK, 'hover:opacity-90')}
+          className={cn(
+            NAV_LOGO_LINK,
+            overlay ? 'text-slate-900 hover:opacity-90' : 'text-foreground hover:opacity-90',
+          )}
         >
           <BuilBidLogo size="md" compact className="sm:hidden" />
           <BuilBidLogo size="md" className="hidden sm:inline-flex" />
@@ -141,6 +145,7 @@ export function Navbar({ overlay = false, authHint }: NavbarProps) {
                 size="icon"
                 onClick={() => setSignOutOpen(true)}
                 title={t('common.signOut')}
+                className={overlay ? 'text-slate-700 hover:text-slate-900 hover:bg-slate-100' : undefined}
               >
                 <LogOut className="w-4 h-4" />
               </Button>
@@ -176,10 +181,11 @@ export function Navbar({ overlay = false, authHint }: NavbarProps) {
             </Button>
           )}
 
+          <LanguageSwitcher overlay={overlay} />
           <ThemeToggle
             className={
               overlay
-                ? 'border-slate-300 text-slate-800 hover:bg-slate-100 hover:text-slate-900'
+                ? 'border-slate-300 bg-white text-slate-800 hover:bg-slate-50 hover:text-slate-900'
                 : undefined
             }
           />
