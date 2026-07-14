@@ -112,9 +112,9 @@ const FloorBlock = forwardRef<HTMLDivElement, FloorBlockProps>(function FloorBlo
   const tooltipSteps = getConstructionTooltipSteps(buildingType, infoContext);
 
   const greenSelected =
-    'border-[#22c55e] bg-[#1c2f1a] shadow-[0_0_16px_rgba(34,197,94,0.12)]';
+    'border-2 border-[#22c55e] bg-[#1c2f1a] shadow-[0_0_16px_rgba(34,197,94,0.12)]';
   const purpleSelected =
-    'border-[#818cf8] bg-[#1a1f3a] shadow-[0_0_16px_rgba(129,140,248,0.12)]';
+    'border-2 border-[#818cf8] bg-[#1a1f3a] shadow-[0_0_16px_rgba(129,140,248,0.12)]';
   const selectedShell = accent === 'green' ? greenSelected : purpleSelected;
 
   const greenLabel = 'text-[#86efac]';
@@ -153,10 +153,10 @@ const FloorBlock = forwardRef<HTMLDivElement, FloorBlockProps>(function FloorBlo
         </div>
         <span
           className={cn(
-            'flex-shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold',
+            'flex-shrink-0 text-[10px]',
             selected
-              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/40'
-              : 'bg-white/10 text-white/60 border border-white/10',
+              ? 'rounded-full px-2.5 py-1 font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-400/40'
+              : 'font-medium text-white/45',
           )}
         >
           {selected ? '✓ Selected' : 'Choose →'}
@@ -170,7 +170,7 @@ const FloorBlock = forwardRef<HTMLDivElement, FloorBlockProps>(function FloorBlo
           </p>
         )}
 
-        <div className="rounded-xl border border-border/80 dark:border-white/10 bg-white/80 dark:bg-[#0a1018] p-1 grid grid-cols-2 gap-1">
+        <div className="flex gap-3">
           <ToggleButton
             emoji="🏗"
             label="Skeleton Only"
@@ -270,10 +270,14 @@ function ToggleButton({
       onFocus={onHover}
       onClick={onClick}
       className={cn(
-        'relative min-h-[44px] rounded-lg border px-2 py-2.5 text-left transition-all',
+        'relative flex-1 min-h-[44px] rounded-xl p-3 text-left transition-all active:scale-[0.98]',
         isSelected
           ? selectedShell
-          : 'border-transparent bg-transparent text-[#94a3b8] dark:text-[#334155] hover:bg-black/[0.03] dark:hover:bg-white/[0.03]',
+          : cn(
+              'border-[1.5px] border-[#e2e8f0] dark:border-gray-600',
+              'bg-gray-50 dark:bg-gray-800/40',
+              'hover:bg-gray-100 dark:hover:bg-gray-800/70',
+            ),
       )}
     >
       {isSelected && (
@@ -286,11 +290,11 @@ function ToggleButton({
           <Check className="h-2.5 w-2.5 text-white" strokeWidth={3} />
         </span>
       )}
-      <span className="text-base leading-none block mb-1">{emoji}</span>
+      <span className="text-base leading-none block mb-1 opacity-100">{emoji}</span>
       <span
         className={cn(
           'block text-xs font-bold leading-tight',
-          isSelected ? selectedLabel : 'text-foreground/80 dark:text-[#64748b]',
+          isSelected ? selectedLabel : 'text-foreground dark:text-gray-200',
         )}
       >
         {label}
@@ -298,7 +302,7 @@ function ToggleButton({
       <span
         className={cn(
           'block text-[10px] leading-snug mt-0.5',
-          isSelected ? selectedSub : 'text-muted-foreground/80',
+          isSelected ? selectedSub : 'text-muted-foreground',
         )}
       >
         {subLabel}
