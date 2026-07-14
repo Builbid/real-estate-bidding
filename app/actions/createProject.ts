@@ -24,6 +24,7 @@ export interface CreateLabourProjectInput extends CreateProjectBase {
 
 export interface CreateFirmProjectInput extends CreateProjectBase {
   service_type: 'construction_firm'
+  construction_types?: ConstructionTypesMap
   floor_area_sqft?: number | null
   finishing_level: FinishingLevel
   budget_range_min?: number | null
@@ -51,7 +52,8 @@ export async function createProjectAction(
   const serviceType: ServiceType = isFirm ? 'construction_firm' : 'labour_contractor'
 
   const constructionTypes: ConstructionTypesMap = isFirm
-    ? buildFirmConstructionTypes(input.building_types)
+    ? (input as CreateFirmProjectInput).construction_types ??
+      buildFirmConstructionTypes(input.building_types)
     : (input as CreateLabourProjectInput).construction_types
 
   const biddingEndsAt = new Date(
