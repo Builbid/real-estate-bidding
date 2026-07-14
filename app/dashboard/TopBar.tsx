@@ -84,7 +84,7 @@ export function TopBar({ profile, roleColor, avatarGradient }: TopBarProps) {
   const [signOutOpen, setSignOutOpen] = useState(false)
 
   const { notifications, unreadCount, markAllRead, markRead } = useNotifications()
-  const { profile: liveProfile } = useDashboardProfile()
+  const { profile: liveProfile, clearProfile } = useDashboardProfile()
 
   const displayProfile = liveProfile ?? profile
   const normalizedRole = normalizeRole(displayProfile.role)
@@ -346,7 +346,7 @@ export function TopBar({ profile, roleColor, avatarGradient }: TopBarProps) {
       <SignOutConfirmDialog
         open={signOutOpen}
         onOpenChange={setSignOutOpen}
-        onConfirm={() => clientSignOut(router)}
+        onConfirm={() => clientSignOut(router, { onClear: clearProfile })}
       />
     </>
   )

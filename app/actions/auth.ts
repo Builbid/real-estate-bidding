@@ -45,6 +45,11 @@ export async function signInAction(
     redirect(nextPath)
   }
 
+  const metaRole = data.user.user_metadata?.role as string | undefined;
+  if (metaRole) {
+    redirect(getDashboardPath(metaRole));
+  }
+
   const { data: profile } = await supabase
     .from('profiles')
     .select('role')
@@ -175,6 +180,6 @@ export async function signUpAction(
 // ─── Sign Out ───────────────────────────────────────────────────────────────
 export async function signOutAction(): Promise<void> {
   const supabase = await createClient()
-  await supabase.auth.signOut()
+  await supabase.auth.signOut({ scope: 'local' })
   redirect('/login')
 }

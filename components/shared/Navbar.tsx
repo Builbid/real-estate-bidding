@@ -89,10 +89,10 @@ export function Navbar({ overlay = false, authHint }: NavbarProps) {
       : null;
   const roleLabel = normalizedRole ? t(`roles.${normalizedRole}` as 'roles.owner') : '';
 
-  function handleSignOut() {
+  async function handleSignOut() {
     setProfileOpen(false);
     setMenuOpen(false);
-    clientSignOut(router, { onClear: clearProfile });
+    await clientSignOut(router, { onClear: clearProfile });
   }
 
   const avatarGradient = normalizedRole ? (ROLE_AVATAR[normalizedRole] ?? ROLE_AVATAR.labour_contractor) : '';

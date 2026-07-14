@@ -1,11 +1,11 @@
 'use client'
 
-import { Suspense, useActionState, useState } from 'react'
+import { Suspense, useEffect, useState, type FormEvent } from 'react'
 import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Mail, Lock, Eye, EyeOff, ArrowRight, ArrowLeft, AlertCircle } from 'lucide-react'
 import { BuilBidLogo } from '@/components/shared/BuilBidLogo'
-import { signInAction } from '@/app/actions/auth'
+import { clientSignIn } from '@/lib/auth/clientSignIn'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { NavLink } from '@/components/shared/NavLink'
@@ -20,24 +20,60 @@ function parseRoleParam(value: string | null): RoleParam {
 }
 
 function LoginForm({ roleParam }: { roleParam: RoleParam }) {
+  const router = useRouter()
   const searchParams = useSearchParams()
   const nextPath = searchParams.get('next') ?? (roleParam === 'owner' ? '/dashboard/owner' : '')
 
-  const [state, formAction, pending] = useActionState(signInAction, { error: null })
+  const [error, setError] = useState<string | null>(null)
+  const [pending, setPending] = useState(false)
   const [showPw, setShowPw] = useState(false)
+
+  useEffect(() => {
+    router.prefetch('/dashboard/owner')
+    router.prefetch('/dashboard/builder')
+    router.prefetch('/dashboard/firm')
+    router.prefetch('/dashboard/admin')
+  }, [router])
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setPending(true)
+    setError(null)
+
+    const form = new FormData(event.currentTarget)
+    const email = (form.get('email') as string | null)?.trim() ?? ''
+    const password = (form.get('password') as string | null) ?? ''
+
+    if (!email || !password) {
+      setError('Email and password are required.')
+      setPending(false)
+      return
+    }
+
+    const result = await clientSignIn(email, password)
+    if (result.error) {
+      setError(result.error)
+      setPending(false)
+      return
+    }
+
+    const destination =
+      nextPath && nextPath.startsWith('/') ? nextPath : result.redirectPath
+
+    router.replace(destination)
+    router.refresh()
+  }
 
   return (
     <>
-      {state.error && (
+      {error && (
         <div className="flex items-start gap-3 mb-6 p-3.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400">
           <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-          <p className="text-sm">{state.error}</p>
+          <p className="text-sm">{error}</p>
         </div>
       )}
 
-      <form action={formAction} className="space-y-5">
-        {nextPath ? <input type="hidden" name="next" value={nextPath} /> : null}
-
+      <form onSubmit={handleSubmit} className="space-y-5">
         <Input
           label="Email address"
           name="email"
@@ -46,6 +82,7 @@ function LoginForm({ roleParam }: { roleParam: RoleParam }) {
           prefix={<Mail className="w-3.5 h-3.5" />}
           required
           autoComplete="email"
+          disabled={pending}
         />
 
         <Input
@@ -65,6 +102,7 @@ function LoginForm({ roleParam }: { roleParam: RoleParam }) {
           }
           required
           autoComplete="current-password"
+          disabled={pending}
         />
 
         <Button type="submit" size="lg" className="w-full" disabled={pending}>

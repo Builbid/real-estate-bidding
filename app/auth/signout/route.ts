@@ -3,14 +3,12 @@ export const dynamic = 'force-dynamic';
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse, type NextRequest } from 'next/server';
 
-const SIGN_OUT_TIMEOUT_MS = 5000;
-
 async function signOutWithTimeout(): Promise<void> {
   const supabase = await createClient();
   await Promise.race([
-    supabase.auth.signOut(),
+    supabase.auth.signOut({ scope: 'local' }),
     new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error('Sign-out timed out')), SIGN_OUT_TIMEOUT_MS);
+      setTimeout(() => reject(new Error('Sign-out timed out')), 1500);
     }),
   ]);
 }

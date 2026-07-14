@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { BuilBidLogo } from '@/components/shared/BuilBidLogo';
 import { useTranslation } from '@/lib/context/LanguageProvider';
+import { useProfile } from '@/lib/hooks/useProfile';
 import { LanguageSwitcher } from '@/components/shared/LanguageSwitcher';
 import { SidebarUserChip } from '@/app/dashboard/SidebarUserChip';
 import { SignOutConfirmDialog } from '@/components/shared/SignOutConfirmDialog';
@@ -51,6 +52,7 @@ export function DashboardSidebar({
 }: DashboardSidebarProps) {
   const { t } = useTranslation();
   const router = useRouter();
+  const { clearProfile } = useProfile();
   const [signOutOpen, setSignOutOpen] = useState(false);
   const normalizedRole = normalizeRole(role);
   const navItems = NAV_CONFIG[normalizedRole] ?? NAV_CONFIG.labour_contractor;
@@ -121,7 +123,7 @@ export function DashboardSidebar({
       <SignOutConfirmDialog
         open={signOutOpen}
         onOpenChange={setSignOutOpen}
-        onConfirm={() => clientSignOut(router)}
+        onConfirm={() => clientSignOut(router, { onClear: clearProfile })}
       />
     </aside>
   );

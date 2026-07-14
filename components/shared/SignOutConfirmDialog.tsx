@@ -31,19 +31,12 @@ export function SignOutConfirmDialog({
     }
   }, [open]);
 
-  function handleYes() {
+  async function handleYes() {
     setPending(true);
     setError(null);
 
     try {
-      const result = onConfirm();
-      if (result && typeof (result as Promise<void>).then === 'function') {
-        void (result as Promise<void>).catch((err: unknown) => {
-          console.error('[SignOutConfirmDialog] Sign out failed:', err);
-          setError('Could not sign out. Please try again.');
-          setPending(false);
-        });
-      }
+      await onConfirm();
       onOpenChange(false);
     } catch (err) {
       console.error('[SignOutConfirmDialog] Sign out failed:', err);

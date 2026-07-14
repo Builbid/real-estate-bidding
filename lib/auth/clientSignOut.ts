@@ -1,20 +1,26 @@
 'use client';
 
 import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
+import { createClient } from '@/lib/supabase/client';
 
 /**
- * Sign out with instant UI feedback: clear local profile state, then hard-navigate
- * to the server sign-out route so Supabase cookies are cleared before landing on home.
+ * Fast client sign-out: clear local session cookies immediately, then client-navigate.
+ * Avoids a full server round-trip through /auth/signout.
  */
-export function clientSignOut(
-  _router: AppRouterInstance,
+export async function clientSignOut(
+  router: AppRouterInstance,
   options?: { redirectTo?: string; onClear?: () => void },
-): void {
-  const redirectTo = options?.redirectTo ?? '/';
+): Promise<void> {
   options?.onClear?.();
 
-  if (typeof window === 'undefined') return;
+  try {
+    const supabase = createClient();
+    await supabase.auth.signOut({ scope: 'local' });
+  } catch (err) {
+    console.error('[clientSignOut] local sign-out failed:', err);
+  }
 
-  const next = encodeURIComponent(redirectTo);
-  window.location.assign(`/auth/signout?next=${next}`);
+  const redirectTo = options?.redirectTo ?? '/';
+  router.replace(redirectTo);
+  router.refresh();
 }

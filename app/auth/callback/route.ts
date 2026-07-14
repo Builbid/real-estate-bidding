@@ -40,10 +40,14 @@ export async function GET(request: NextRequest) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (!error) {
-      // Fetch the user's role and redirect to the correct dashboard
       const { data: { user } } = await supabase.auth.getUser()
 
       if (user) {
+        const metaRole = user.user_metadata?.role as string | undefined
+        if (metaRole) {
+          return NextResponse.redirect(`${origin}${getDashboardPath(metaRole)}`)
+        }
+
         const { data: profile } = await supabase
           .from('profiles')
           .select('role')
