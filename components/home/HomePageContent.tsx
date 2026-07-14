@@ -10,6 +10,7 @@ import { HeroBackgroundSlideshow } from '@/components/shared/HeroBackgroundSlide
 import { ProjectCard } from '@/components/shared/ProjectCard';
 import { ActiveProjectsShowcaseGrid } from '@/components/home/ActiveProjectsShowcaseGrid';
 import { FeaturedFirmsSection } from '@/components/home/FeaturedFirmsSection';
+import { OwnerPostProjectFab } from '@/components/owner/OwnerPostProjectFab';
 import { ProjectDistrictFilter, type DistrictFilterValue } from '@/components/shared/ProjectDistrictFilter';
 import { getUniqueDistrictsFromProjects, matchesDistrictFilter } from '@/lib/project/districtFilter';
 import { useTranslation } from '@/lib/context/LanguageProvider';
@@ -22,6 +23,7 @@ interface HomePageContentProps {
   statValues: Record<string, number>;
   isAuthenticated: boolean;
   role: string | null;
+  ownerHasProjects?: boolean;
 }
 
 export function HomePageContent({
@@ -30,6 +32,7 @@ export function HomePageContent({
   statValues,
   isAuthenticated,
   role,
+  ownerHasProjects = false,
 }: HomePageContentProps) {
   const { t } = useTranslation();
   const [frozenDistrictFilter, setFrozenDistrictFilter] = useState<DistrictFilterValue>('all');
@@ -87,7 +90,7 @@ export function HomePageContent({
         </div>
       </section>
 
-      <section id="live-auctions" className="bg-background max-w-7xl mx-auto px-4 sm:px-6 pt-8 pb-10 sm:pt-10 sm:pb-12">
+      <section id="live-auctions" className="bg-background max-w-7xl mx-auto px-4 sm:px-6 pt-8 pb-24 sm:pt-10 sm:pb-24">
         <div className="mb-8 sm:mb-10">
           <ActiveProjectsShowcaseGrid
             projects={showcaseProjects}
@@ -130,6 +133,11 @@ export function HomePageContent({
       </section>
 
       <FeaturedFirmsSection />
+
+      <OwnerPostProjectFab
+        role={role}
+        emphasize={role === 'owner' && !ownerHasProjects}
+      />
     </div>
   );
 }
