@@ -82,13 +82,17 @@
 
   html,
   body {
+    overflow-x: clip;
     overflow-y: auto !important;
     height: auto;
     min-height: 100%;
+    max-width: 100%;
   }
 
   html {
     scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 
   body {
@@ -143,6 +147,15 @@
     margin: 0;
   }
   input[type=number] { -moz-appearance: textfield; }
+
+  /* iOS Safari auto-zooms focused fields below 16px — keep forms at readable size on mobile */
+  @media (max-width: 767px) {
+    input:not([type='checkbox']):not([type='radio']):not([type='hidden']):not([type='file']),
+    select,
+    textarea {
+      font-size: 16px;
+    }
+  }
 }
 
 @layer utilities {

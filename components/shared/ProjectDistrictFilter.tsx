@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { MapPin, Search, X } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { searchDistrictOptions } from '@/lib/project/districtFilter';
@@ -25,6 +25,15 @@ export function ProjectDistrictFilter({
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    // Avoid iOS auto-zoom from autofocus on small search fields
+    if (window.matchMedia('(min-width: 768px)').matches) {
+      searchRef.current?.focus();
+    }
+  }, [open]);
 
   const filteredOptions = useMemo(
     () => searchDistrictOptions(query, districts),
@@ -94,12 +103,12 @@ export function ProjectDistrictFilter({
           <div className="relative">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
             <input
+              ref={searchRef}
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={t('home.auctions.searchDistrict')}
-              className="h-8 w-full rounded-md border border-border bg-background pl-8 pr-2 text-xs text-foreground outline-none placeholder:text-muted-foreground focus:border-sky-500/50"
-              autoFocus
+              className="h-9 w-full rounded-md border border-border bg-background pl-8 pr-2 text-base md:text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-sky-500/50"
             />
           </div>
         </div>
