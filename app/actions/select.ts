@@ -2,7 +2,7 @@
 
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient }      from '@/lib/supabase/server'
-import { sendSelectionNotification } from '@/lib/email/sendNotification'
+import { sendSelectionNotification, sendUserNotificationEmail } from '@/lib/email/sendNotification'
 import { getConstructionLabel } from '@/lib/utils'
 import type { SubConfiguration, TrackType } from '@/lib/types'
 import { revalidatePath } from 'next/cache'
@@ -146,6 +146,19 @@ export async function selectBuilderAction(
       builderMobile:    builderFull?.mobile             ?? null,
       builderAddress:   builderFull?.physical_address   ?? null,
     })
+
+    await Promise.all([
+      sendUserNotificationEmail({
+        to:    ownerProfile?.email ?? '',
+        title: ownerTitle,
+        body:  ownerBody,
+      }),
+      sendUserNotificationEmail({
+        to:    builderFull?.email ?? '',
+        title: builderTitle,
+        body:  builderBody,
+      }),
+    ])
   } catch (err) {
     console.error('Selection email failed (non-fatal):', err)
   }
