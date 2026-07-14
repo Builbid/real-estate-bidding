@@ -126,6 +126,7 @@ export interface Project {
   district: string;
   state: string;
   plot_area_sqft?: number | null;
+  pincode?: string | null;
   total_floors: 1 | 2 | 3;
   status: ProjectStatus;
   bidding_ends_at: string;

@@ -10,14 +10,16 @@ import { Card, CardContent } from '@/components/ui/card';
 import { BuildingTypeSelector } from '@/components/construction/BuildingTypeSelector';
 import { ConstructionTypeSelector } from '@/components/construction/ConstructionTypeSelector';
 import { BuildingConfigSummary } from '@/components/construction/BuildingConfigSummary';
-import { AssamDistrictSelect } from '@/components/owner/AssamDistrictSelect';
 import { FinishingLevelSelector } from '@/components/owner/FinishingLevelSelector';
 import { DrawingUploadStep, type DrawingChoice } from '@/components/owner/DrawingUploadStep';
 import { WizardProjectTextFields } from '@/components/owner/WizardProjectTextFields';
 import { CountdownTicker } from '@/components/shared/CountdownTicker';
+import {
+  IndianCityAutocomplete,
+  parseIndianDistrictSelection,
+} from '@/components/shared/IndianCityAutocomplete';
 import { sortBuildingTypes } from '@/lib/buildingConfig';
 import type { BuildingType, ConstructionTypesMap } from '@/lib/buildingConfig';
-import { ASSAM_OTHER } from '@/lib/assamDistricts';
 import { FINISHING_LEVEL_CONFIG } from '@/lib/firm/finishingLevel';
 import {
   formatBudgetRange,
@@ -27,6 +29,7 @@ import {
 import { uploadProjectDrawing } from '@/lib/project/uploadDrawing';
 import { createProjectAction } from '@/app/actions/createProject';
 import { hasContactInfo, hasProjectContactViolation } from '@/lib/validation/projectContactInfo';
+import { formatPincodeInput, validatePincode } from '@/lib/validation/pincode';
 import type { FinishingLevel } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
@@ -46,8 +49,8 @@ const PROGRESS_LABELS = [
 interface FirmFormState {
   title: string;
   description: string;
-  district: string;
-  districtOther: string;
+  location: string;
+  pincode: string;
   floor_area_sqft: string;
   budget_min: string;
   budget_max: string;
@@ -60,8 +63,8 @@ interface FirmFormState {
 const EMPTY_FORM: FirmFormState = {
   title: '',
   description: '',
-  district: '',
-  districtOther: '',
+  location: '',
+  pincode: '',
   floor_area_sqft: '',
   budget_min: '',
   budget_max: '',
@@ -70,15 +73,6 @@ const EMPTY_FORM: FirmFormState = {
   finishing_level: null,
   drawing_choice: null,
 };
-
-function resolveDistrict(form: FirmFormState): { district: string; state: string } | null {
-  if (!form.district) return null;
-  if (form.district === ASSAM_OTHER) {
-    if (!form.districtOther.trim()) return null;
-    return { district: form.districtOther.trim(), state: 'Assam' };
-  }
-  return { district: form.district, state: 'Assam' };
-}
 
 export function ConstructionFirmProjectWizard() {
   const router = useRouter();
@@ -93,16 +87,28 @@ export function ConstructionFirmProjectWizard() {
   const [step2Error, setStep2Error] = useState<string | null>(null);
   const [step3Error, setStep3Error] = useState<string | null>(null);
   const [step3ValidationAttempted, setStep3ValidationAttempted] = useState(false);
+  const [step1ValidationAttempted, setStep1ValidationAttempted] = useState(false);
+  const [step1Errors, setStep1Errors] = useState<{
+    location?: string;
+    pincode?: string;
+  }>({});
   const [biddingEndsAt, setBiddingEndsAt] = useState<string | null>(null);
   const [projectId, setProjectId] = useState<string | null>(null);
 
   function update<K extends keyof FirmFormState>(key: K, value: FirmFormState[K]) {
     setForm((f) => ({ ...f, [key]: value }));
+    if (step1ValidationAttempted && (key === 'location' || key === 'pincode')) {
+      setStep1Errors((errors) => {
+        const next = { ...errors };
+        if (key === 'location') delete next.location;
+        if (key === 'pincode') delete next.pincode;
+        return next;
+      });
+    }
   }
 
-  const districtOk = !!resolveDistrict(form);
   const contactViolation = hasProjectContactViolation(form.title, form.description);
-  const canStep2 = form.title.trim().length >= 5 && districtOk && !contactViolation;
+  const canStep2 = form.title.trim().length >= 5 && !contactViolation;
   const budgetPreview = formatBudgetRange(
     parseIndianAmount(form.budget_min),
     parseIndianAmount(form.budget_max),
@@ -119,7 +125,24 @@ export function ConstructionFirmProjectWizard() {
     orderedBuildingTypes.every((t) => !!form.construction_types[t]);
 
   function tryGoStep2() {
-    if (form.title.trim().length < 5 || !districtOk) return;
+    if (form.title.trim().length < 5) return;
+
+    const errors: typeof step1Errors = {};
+
+    if (!parseIndianDistrictSelection(form.location)) {
+      errors.location = 'Please select a district from the suggestions list.';
+    }
+
+    const pincodeError = validatePincode(form.pincode);
+    if (pincodeError) {
+      errors.pincode = pincodeError;
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setStep1ValidationAttempted(true);
+      setStep1Errors(errors);
+      return;
+    }
 
     if (contactViolation) {
       if (hasContactInfo(form.title)) {
@@ -132,6 +155,8 @@ export function ConstructionFirmProjectWizard() {
       return;
     }
 
+    setStep1ValidationAttempted(false);
+    setStep1Errors({});
     setStep(2);
   }
 
@@ -159,8 +184,8 @@ export function ConstructionFirmProjectWizard() {
 
   async function handleSubmit() {
     if (!profile || !form.finishing_level) return;
-    const loc = resolveDistrict(form);
-    if (!loc) return;
+    const districtSelection = parseIndianDistrictSelection(form.location);
+    if (!districtSelection) return;
 
     setLoading(true);
     setError(null);
@@ -171,14 +196,22 @@ export function ConstructionFirmProjectWizard() {
       return;
     }
 
+    const pincodeError = validatePincode(form.pincode);
+    if (pincodeError) {
+      setError(pincodeError);
+      setLoading(false);
+      return;
+    }
+
     const result = await createProjectAction({
       service_type: 'construction_firm',
       title: form.title.trim(),
       description: form.description.trim() || undefined,
       building_types: form.building_types,
       construction_types: form.construction_types,
-      district: loc.district,
-      state: loc.state,
+      district: districtSelection.district,
+      state: districtSelection.state,
+      pincode: form.pincode.trim() || undefined,
       floor_area_sqft: form.floor_area_sqft ? parseFloat(form.floor_area_sqft) : null,
       finishing_level: form.finishing_level,
       budget_range_min: parseIndianAmount(form.budget_min),
@@ -283,11 +316,20 @@ export function ConstructionFirmProjectWizard() {
                 descriptionRef={descriptionRef}
               />
 
-              <AssamDistrictSelect
-                value={form.district}
-                otherValue={form.districtOther}
-                onChange={(v) => update('district', v)}
-                onOtherChange={(v) => update('districtOther', v)}
+              <IndianCityAutocomplete
+                value={form.location}
+                onChange={(v) => update('location', v)}
+                error={step1ValidationAttempted ? step1Errors.location : undefined}
+              />
+
+              <Input
+                label="Pincode"
+                type="text"
+                inputMode="numeric"
+                placeholder="e.g. 781001"
+                value={form.pincode}
+                onChange={(e) => update('pincode', formatPincodeInput(e.target.value))}
+                error={step1ValidationAttempted ? step1Errors.pincode : undefined}
               />
 
               <div>
@@ -494,7 +536,12 @@ export function ConstructionFirmProjectWizard() {
                 {[
                   { label: 'Service Type', value: '🏗️ Construction Firm', editStep: null },
                   { label: 'Project Title', value: form.title, editStep: 1 as Step },
-                  { label: 'City', value: resolveDistrict(form)?.district ?? '—', editStep: 1 as Step },
+                  { label: 'District', value: form.location || '—', editStep: 1 as Step },
+                  {
+                    label: 'Pincode',
+                    value: form.pincode.trim() || 'Not specified',
+                    editStep: 1 as Step,
+                  },
                   {
                     label: 'Floor Area',
                     value: form.floor_area_sqft ? `${form.floor_area_sqft} sqft` : 'Not specified',

@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import type { BuildingType, ConstructionTypesMap } from '@/lib/buildingConfig'
 import { deriveLegacyProjectFields } from '@/lib/buildingConfig'
 import { buildFirmConstructionTypes } from '@/lib/firm/projectDefaults'
+import { validatePincode } from '@/lib/validation/pincode'
 import type { FinishingLevel, ServiceType } from '@/lib/types'
 
 interface CreateProjectBase {
@@ -12,6 +13,7 @@ interface CreateProjectBase {
   building_types: BuildingType[]
   district: string
   state: string
+  pincode?: string | null
   bidding_minutes: number
   service_type?: ServiceType
 }
@@ -48,6 +50,12 @@ export async function createProjectAction(
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   if (!user || authError) return { error: 'Not authenticated' }
 
+  const pincodeRaw = input.pincode?.trim() ?? ''
+  if (pincodeRaw) {
+    const pincodeError = validatePincode(pincodeRaw)
+    if (pincodeError) return { error: pincodeError }
+  }
+
   const isFirm = input.service_type === 'construction_firm'
   const serviceType: ServiceType = isFirm ? 'construction_firm' : 'labour_contractor'
 
@@ -72,6 +80,7 @@ export async function createProjectAction(
     construction_types: constructionTypes,
     district: input.district,
     state: input.state,
+    pincode: pincodeRaw || null,
     total_floors: legacy.total_floors,
     status: 'active_24h',
     bidding_ends_at: biddingEndsAt,

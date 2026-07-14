@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowRight, ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useProfile } from '@/lib/hooks/useProfile';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
@@ -20,6 +21,7 @@ import {
   parseIndianDistrictSelection,
 } from '@/components/shared/IndianCityAutocomplete';
 import { hasContactInfo, hasProjectContactViolation } from '@/lib/validation/projectContactInfo';
+import { formatPincodeInput, validatePincode } from '@/lib/validation/pincode';
 import { cn } from '@/lib/utils';
 import { createProjectAction } from '@/app/actions/createProject';
 
@@ -38,6 +40,7 @@ interface FormState {
   title: string;
   description: string;
   location: string;
+  pincode: string;
   bidding_minutes: string;
   building_types: BuildingType[];
   construction_types: ConstructionTypesMap;
@@ -47,6 +50,7 @@ const EMPTY_FORM: FormState = {
   title: '',
   description: '',
   location: '',
+  pincode: '',
   bidding_minutes: String(BIDDING_MINUTES),
   building_types: [],
   construction_types: {},
@@ -67,6 +71,7 @@ export function LabourContractorProjectWizard() {
   const [step1Errors, setStep1Errors] = useState<{
     title?: string;
     location?: string;
+    pincode?: string;
   }>({});
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
 
@@ -74,11 +79,12 @@ export function LabourContractorProjectWizard() {
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((f) => ({ ...f, [key]: value }));
-    if (step1ValidationAttempted && (key === 'title' || key === 'location')) {
+    if (step1ValidationAttempted && (key === 'title' || key === 'location' || key === 'pincode')) {
       setStep1Errors((errors) => {
         const next = { ...errors };
         if (key === 'title') delete next.title;
         if (key === 'location') delete next.location;
+        if (key === 'pincode') delete next.pincode;
         return next;
       });
     }
@@ -93,6 +99,11 @@ export function LabourContractorProjectWizard() {
 
     if (!parseIndianDistrictSelection(form.location)) {
       errors.location = 'Please select a district from the suggestions list.';
+    }
+
+    const pincodeError = validatePincode(form.pincode);
+    if (pincodeError) {
+      errors.pincode = pincodeError;
     }
 
     if (Object.keys(errors).length > 0) {
@@ -169,6 +180,7 @@ export function LabourContractorProjectWizard() {
       construction_types: form.construction_types,
       district: districtSelection.district,
       state: districtSelection.state,
+      pincode: form.pincode.trim() || undefined,
       bidding_minutes: parseInt(form.bidding_minutes, 10),
     });
 
@@ -255,6 +267,16 @@ export function LabourContractorProjectWizard() {
                 value={form.location}
                 onChange={(v) => update('location', v)}
                 error={step1ValidationAttempted ? step1Errors.location : undefined}
+              />
+
+              <Input
+                label="Pincode"
+                type="text"
+                inputMode="numeric"
+                placeholder="e.g. 781001"
+                value={form.pincode}
+                onChange={(e) => update('pincode', formatPincodeInput(e.target.value))}
+                error={step1ValidationAttempted ? step1Errors.pincode : undefined}
               />
 
               <div className="flex flex-col gap-1.5">
@@ -404,6 +426,10 @@ export function LabourContractorProjectWizard() {
                 {[
                   { label: 'Project Title', value: form.title },
                   { label: 'District', value: form.location },
+                  {
+                    label: 'Pincode',
+                    value: form.pincode.trim() || 'Not specified',
+                  },
                   {
                     label: 'Building Types',
                     value: (
