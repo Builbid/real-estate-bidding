@@ -1,6 +1,5 @@
 'use server'
 
-import { after } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient }      from '@/lib/supabase/server'
 import { sendSelectionNotification } from '@/lib/email/sendNotification'
@@ -152,23 +151,26 @@ export async function selectBuilderAction(
     console.error('Selection email failed (non-fatal):', err)
   }
 
-  // 5. WhatsApp to selected builder/firm — background, never blocks selection
-  after(async () => {
-    try {
-      await notifySelectedBuilder({
-        builderId,
-        isFirmProject,
-        projectTitle: existing.title,
-        district: existing.district,
-        constructionType: constructionLabel,
-        bidAmount: bidAmt || null,
-        clientName: ownerName,
-        recipientDisplayName: builderName,
-      })
-    } catch (err) {
-      console.error('[whatsapp] Selection notify failed (non-fatal):', err)
+  // 5. WhatsApp to selected builder/firm — best-effort, never blocks selection
+  try {
+    const waResult = await notifySelectedBuilder({
+      builderId,
+      isFirmProject,
+      projectTitle: existing.title,
+      district: existing.district,
+      constructionType: constructionLabel,
+      bidAmount: bidAmt || null,
+      clientName: ownerName,
+      recipientDisplayName: builderName,
+    })
+    if (waResult.skipped) {
+      console.info('[whatsapp] Selection alert skipped:', waResult.reason)
+    } else if (!waResult.sent) {
+      console.warn('[whatsapp] Selection alert failed:', waResult.error)
     }
-  })
+  } catch (err) {
+    console.error('[whatsapp] Selection notify failed (non-fatal):', err)
+  }
 
   revalidatePath(`/dashboard/owner/project/${projectId}`)
   return { error: null }

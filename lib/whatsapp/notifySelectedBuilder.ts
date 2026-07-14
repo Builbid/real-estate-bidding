@@ -64,9 +64,14 @@ export async function notifySelectedBuilder(
 
   const mobile = profile.mobile ? normalizePhoneE164(profile.mobile) : null;
   if (!mobile) {
-    console.info(`[whatsapp] Selected builder ${input.builderId} has no valid mobile — skipping`);
+    console.info(
+      `[whatsapp] Selected builder ${input.builderId} has no valid mobile (stored: ${profile.mobile ?? 'empty'}) — skipping`,
+    );
     return { skipped: true, reason: 'no_mobile', sent: false };
   }
+
+  const maskedMobile = `${mobile.slice(0, 3)}***${mobile.slice(-4)}`;
+  console.info(`[whatsapp] Sending selection alert to ${maskedMobile} (${input.builderId})`);
 
   const recipientName =
     input.recipientDisplayName ??

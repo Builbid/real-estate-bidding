@@ -33,6 +33,19 @@ export async function sendWhatsAppMessage(
   return { ok: false, error: 'Unsupported WhatsApp provider' };
 }
 
+function parseProviderError(raw: string): string {
+  if (!raw) return '';
+  try {
+    const parsed = JSON.parse(raw) as { message?: string; code?: number };
+    if (parsed.message) {
+      return parsed.code ? `[${parsed.code}] ${parsed.message}` : parsed.message;
+    }
+  } catch {
+    // plain text response
+  }
+  return raw.slice(0, 500);
+}
+
 async function sendViaTwilio(
   twilio: { accountSid: string; authToken: string; from: string },
   to: string,
@@ -64,7 +77,7 @@ async function sendViaTwilio(
 
   if (!res.ok) {
     const text = await res.text().catch(() => '');
-    return { ok: false, status: res.status, error: text || res.statusText };
+    return { ok: false, status: res.status, error: parseProviderError(text) || res.statusText };
   }
 
   return { ok: true, status: res.status };
