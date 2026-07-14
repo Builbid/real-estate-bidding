@@ -3,7 +3,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient }      from '@/lib/supabase/server'
 import { sendSelectionNotification } from '@/lib/email/sendNotification'
-import { notifySelectedBuilder } from '@/lib/whatsapp/notifySelectedBuilder'
+import { notifySelection } from '@/lib/notifications/notifySelection'
 import { getConstructionLabel } from '@/lib/utils'
 import type { SubConfiguration, TrackType } from '@/lib/types'
 import { revalidatePath } from 'next/cache'
@@ -151,9 +151,9 @@ export async function selectBuilderAction(
     console.error('Selection email failed (non-fatal):', err)
   }
 
-  // 5. WhatsApp to selected builder/firm — best-effort, never blocks selection
+  // 5. SMS (+ production WhatsApp) to selected builder/firm — best-effort
   try {
-    const waResult = await notifySelectedBuilder({
+    await notifySelection({
       builderId,
       isFirmProject,
       projectTitle: existing.title,
@@ -163,13 +163,8 @@ export async function selectBuilderAction(
       clientName: ownerName,
       recipientDisplayName: builderName,
     })
-    if (waResult.skipped) {
-      console.info('[whatsapp] Selection alert skipped:', waResult.reason)
-    } else if (!waResult.sent) {
-      console.warn('[whatsapp] Selection alert failed:', waResult.error)
-    }
   } catch (err) {
-    console.error('[whatsapp] Selection notify failed (non-fatal):', err)
+    console.error('[notify] Selection outbound alert failed (non-fatal):', err)
   }
 
   revalidatePath(`/dashboard/owner/project/${projectId}`)

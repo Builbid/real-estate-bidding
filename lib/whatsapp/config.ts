@@ -1,3 +1,5 @@
+import { getTwilioCredentials } from '@/lib/twilio/credentials';
+
 export type WhatsAppProvider = 'twilio' | 'generic';
 
 export interface WhatsAppConfig {
@@ -14,9 +16,18 @@ export interface WhatsAppConfig {
   };
 }
 
+/** WhatsApp sends only when production credentials are explicitly enabled. */
+export function isWhatsAppProductionEnabled(): boolean {
+  return process.env.WHATSAPP_PRODUCTION === 'true';
+}
+
 /** Read WhatsApp settings from environment variables (never log secrets). */
 export function getWhatsAppConfig(): WhatsAppConfig | null {
   if (process.env.WHATSAPP_ENABLED === 'false') {
+    return null;
+  }
+
+  if (!isWhatsAppProductionEnabled()) {
     return null;
   }
 
@@ -29,17 +40,15 @@ export function getWhatsAppConfig(): WhatsAppConfig | null {
     return { enabled: true, provider, generic: { apiUrl, apiKey } };
   }
 
-  const accountSid =
-    process.env.TWILIO_ACCOUNT_SID?.trim() ?? process.env.WHATSAPP_API_KEY?.trim();
-  const authToken = process.env.TWILIO_AUTH_TOKEN?.trim();
+  const creds = getTwilioCredentials();
   const from = process.env.TWILIO_WHATSAPP_FROM?.trim();
 
-  if (!accountSid || !authToken || !from) return null;
+  if (!creds || !from) return null;
 
   return {
     enabled: true,
     provider: 'twilio',
-    twilio: { accountSid, authToken, from },
+    twilio: { accountSid: creds.accountSid, authToken: creds.authToken, from },
   };
 }
 

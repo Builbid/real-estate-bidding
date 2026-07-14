@@ -1,5 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/admin';
-import { getWhatsAppConfig } from './config';
+import { getWhatsAppConfig, isWhatsAppProductionEnabled } from './config';
 import { buildNewProjectInvitationMessage, type NewProjectWhatsAppPayload } from './newProjectMessage';
 import { sendWhatsAppMessage } from './sendMessage';
 import { normalizePhoneE164 } from './phone';
@@ -22,7 +22,13 @@ export async function notifyBuildersNewProject(
 ): Promise<NotifyBuildersResult> {
   const config = getWhatsAppConfig();
   if (!config) {
-    console.info('[whatsapp] Skipping new-project alerts — WhatsApp not configured');
+    if (!isWhatsAppProductionEnabled() && process.env.TWILIO_WHATSAPP_FROM?.trim()) {
+      console.info(
+        '[whatsapp] New-project alerts disabled until WHATSAPP_PRODUCTION=true (sandbox not used in app)',
+      );
+    } else {
+      console.info('[whatsapp] Skipping new-project alerts — WhatsApp not configured');
+    }
     return {
       skipped: true,
       reason: 'not_configured',
