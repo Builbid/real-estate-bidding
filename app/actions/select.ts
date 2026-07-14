@@ -1,8 +1,10 @@
 'use server'
 
+import { after } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient }      from '@/lib/supabase/server'
 import { sendSelectionNotification } from '@/lib/email/sendNotification'
+import { notifySelectedBuilder } from '@/lib/whatsapp/notifySelectedBuilder'
 import { getConstructionLabel } from '@/lib/utils'
 import type { SubConfiguration, TrackType } from '@/lib/types'
 import { revalidatePath } from 'next/cache'
@@ -149,6 +151,24 @@ export async function selectBuilderAction(
   } catch (err) {
     console.error('Selection email failed (non-fatal):', err)
   }
+
+  // 5. WhatsApp to selected builder/firm — background, never blocks selection
+  after(async () => {
+    try {
+      await notifySelectedBuilder({
+        builderId,
+        isFirmProject,
+        projectTitle: existing.title,
+        district: existing.district,
+        constructionType: constructionLabel,
+        bidAmount: bidAmt || null,
+        clientName: ownerName,
+        recipientDisplayName: builderName,
+      })
+    } catch (err) {
+      console.error('[whatsapp] Selection notify failed (non-fatal):', err)
+    }
+  })
 
   revalidatePath(`/dashboard/owner/project/${projectId}`)
   return { error: null }
