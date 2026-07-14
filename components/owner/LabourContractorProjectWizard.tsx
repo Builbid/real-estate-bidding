@@ -1,11 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, ArrowLeft, CheckCircle2, AlertCircle, MapPin } from 'lucide-react';
+import { ArrowRight, ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useProfile } from '@/lib/hooks/useProfile';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
@@ -13,12 +12,14 @@ import {
 import { BuildingTypeSelector } from '@/components/construction/BuildingTypeSelector';
 import { ConstructionTypeSelector } from '@/components/construction/ConstructionTypeSelector';
 import { BuildingConfigSummary } from '@/components/construction/BuildingConfigSummary';
+import { WizardProjectTextFields } from '@/components/owner/WizardProjectTextFields';
 import { sortBuildingTypes } from '@/lib/buildingConfig';
 import type { BuildingType, ConstructionTypesMap } from '@/lib/buildingConfig';
 import {
   IndianCityAutocomplete,
   parseIndianDistrictSelection,
 } from '@/components/shared/IndianCityAutocomplete';
+import { hasContactInfo, hasProjectContactViolation } from '@/lib/validation/projectContactInfo';
 import { cn } from '@/lib/utils';
 import { createProjectAction } from '@/app/actions/createProject';
 
@@ -37,7 +38,6 @@ interface FormState {
   title: string;
   description: string;
   location: string;
-  plot_area_sqft: string;
   bidding_minutes: string;
   building_types: BuildingType[];
   construction_types: ConstructionTypesMap;
@@ -47,23 +47,16 @@ const EMPTY_FORM: FormState = {
   title: '',
   description: '',
   location: '',
-  plot_area_sqft: '',
   bidding_minutes: String(BIDDING_MINUTES),
   building_types: [],
   construction_types: {},
 };
 
-function parsePlotArea(value: string): number | null {
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-  const parsed = parseFloat(trimmed);
-  if (Number.isNaN(parsed) || parsed <= 0) return null;
-  return parsed;
-}
-
 export function LabourContractorProjectWizard() {
   const router = useRouter();
   const { profile } = useProfile();
+  const titleRef = useRef<HTMLInputElement>(null);
+  const descriptionRef = useRef<HTMLTextAreaElement>(null);
   const [step, setStep] = useState<Step>(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -74,21 +67,18 @@ export function LabourContractorProjectWizard() {
   const [step1Errors, setStep1Errors] = useState<{
     title?: string;
     location?: string;
-    plot_area_sqft?: string;
   }>({});
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
 
+  const contactViolation = hasProjectContactViolation(form.title, form.description);
+
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((f) => ({ ...f, [key]: value }));
-    if (
-      step1ValidationAttempted &&
-      (key === 'title' || key === 'location' || key === 'plot_area_sqft')
-    ) {
+    if (step1ValidationAttempted && (key === 'title' || key === 'location')) {
       setStep1Errors((errors) => {
         const next = { ...errors };
         if (key === 'title') delete next.title;
         if (key === 'location') delete next.location;
-        if (key === 'plot_area_sqft') delete next.plot_area_sqft;
         return next;
       });
     }
@@ -105,13 +95,20 @@ export function LabourContractorProjectWizard() {
       errors.location = 'Please select a district from the suggestions list.';
     }
 
-    if (parsePlotArea(form.plot_area_sqft) === null) {
-      errors.plot_area_sqft = 'Plot area is required and must be a positive number.';
-    }
-
     if (Object.keys(errors).length > 0) {
       setStep1ValidationAttempted(true);
       setStep1Errors(errors);
+      return;
+    }
+
+    if (contactViolation) {
+      if (hasContactInfo(form.title)) {
+        titleRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        titleRef.current?.focus();
+      } else {
+        descriptionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        descriptionRef.current?.focus();
+      }
       return;
     }
 
@@ -159,9 +156,8 @@ export function LabourContractorProjectWizard() {
       return;
     }
 
-    const plotArea = parsePlotArea(form.plot_area_sqft);
-    if (plotArea === null) {
-      setError('Plot area is required and must be a positive number.');
+    if (hasProjectContactViolation(form.title, form.description)) {
+      setError('Remove contact details from the project title or description before submitting.');
       setLoading(false);
       return;
     }
@@ -173,7 +169,6 @@ export function LabourContractorProjectWizard() {
       construction_types: form.construction_types,
       district: districtSelection.district,
       state: districtSelection.state,
-      plot_area_sqft: plotArea,
       bidding_minutes: parseInt(form.bidding_minutes, 10),
     });
 
@@ -246,44 +241,20 @@ export function LabourContractorProjectWizard() {
             <div className="space-y-5">
               <h2 className="text-base font-semibold text-foreground">Project Information</h2>
 
-              <Input
-                label="Project Title"
-                type="text"
-                placeholder="e.g. 2BHK Residential Construction, Delhi"
-                value={form.title}
-                onChange={(e) => update('title', e.target.value)}
-                error={step1ValidationAttempted ? step1Errors.title : undefined}
-                required
+              <WizardProjectTextFields
+                title={form.title}
+                description={form.description}
+                onTitleChange={(v) => update('title', v)}
+                onDescriptionChange={(v) => update('description', v)}
+                titleRequiredError={step1ValidationAttempted ? step1Errors.title : undefined}
+                titleRef={titleRef}
+                descriptionRef={descriptionRef}
               />
-
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Description (optional)
-                </label>
-                <textarea
-                  className="w-full min-h-[80px] rounded-lg border border-border bg-card/80 dark:bg-card/60 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/80 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all resize-none"
-                  placeholder="Additional notes about the project..."
-                  value={form.description}
-                  onChange={(e) => update('description', e.target.value)}
-                />
-              </div>
 
               <IndianCityAutocomplete
                 value={form.location}
                 onChange={(v) => update('location', v)}
                 error={step1ValidationAttempted ? step1Errors.location : undefined}
-              />
-
-              <Input
-                label="Plot Area (sqft)"
-                type="number"
-                placeholder="e.g. 1500"
-                value={form.plot_area_sqft}
-                onChange={(e) => update('plot_area_sqft', e.target.value)}
-                error={step1ValidationAttempted ? step1Errors.plot_area_sqft : undefined}
-                prefix={<MapPin className="w-3.5 h-3.5" />}
-                required
-                min={1}
               />
 
               <div className="flex flex-col gap-1.5">
@@ -304,7 +275,7 @@ export function LabourContractorProjectWizard() {
                 </p>
               </div>
 
-              <Button size="lg" className="w-full" onClick={tryGoStep2}>
+              <Button size="lg" className="w-full" disabled={contactViolation} onClick={tryGoStep2}>
                 Continue <ArrowRight className="w-4 h-4" />
               </Button>
             </div>
@@ -453,7 +424,6 @@ export function LabourContractorProjectWizard() {
                         : '24 hours from launch',
                   },
                   { label: 'Selection Window', value: '5 minutes after bids close' },
-                  { label: 'Plot Area', value: `${form.plot_area_sqft} sqft` },
                 ].map(({ label, value }) => (
                   <div key={label} className="flex items-center justify-between gap-4 px-4 py-3">
                     <span className="text-xs text-muted-foreground flex-shrink-0">{label}</span>

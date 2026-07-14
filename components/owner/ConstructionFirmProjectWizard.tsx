@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useProfile } from '@/lib/hooks/useProfile';
@@ -12,6 +12,7 @@ import { BuildingConfigSummary } from '@/components/construction/BuildingConfigS
 import { AssamDistrictSelect } from '@/components/owner/AssamDistrictSelect';
 import { FinishingLevelSelector } from '@/components/owner/FinishingLevelSelector';
 import { DrawingUploadStep, type DrawingChoice } from '@/components/owner/DrawingUploadStep';
+import { WizardProjectTextFields } from '@/components/owner/WizardProjectTextFields';
 import { CountdownTicker } from '@/components/shared/CountdownTicker';
 import { sortBuildingTypes } from '@/lib/buildingConfig';
 import type { BuildingType } from '@/lib/buildingConfig';
@@ -24,6 +25,7 @@ import {
 } from '@/lib/formatIndianCurrency';
 import { uploadProjectDrawing } from '@/lib/project/uploadDrawing';
 import { createProjectAction } from '@/app/actions/createProject';
+import { hasContactInfo, hasProjectContactViolation } from '@/lib/validation/projectContactInfo';
 import type { FinishingLevel } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
@@ -77,6 +79,8 @@ function resolveDistrict(form: FirmFormState): { district: string; state: string
 export function ConstructionFirmProjectWizard() {
   const router = useRouter();
   const { profile } = useProfile();
+  const titleRef = useRef<HTMLInputElement>(null);
+  const descriptionRef = useRef<HTMLTextAreaElement>(null);
   const [step, setStep] = useState<Step>(1);
   const [form, setForm] = useState<FirmFormState>(EMPTY_FORM);
   const [drawingFile, setDrawingFile] = useState<File | null>(null);
@@ -91,7 +95,8 @@ export function ConstructionFirmProjectWizard() {
   }
 
   const districtOk = !!resolveDistrict(form);
-  const canStep2 = form.title.trim().length >= 5 && districtOk;
+  const contactViolation = hasProjectContactViolation(form.title, form.description);
+  const canStep2 = form.title.trim().length >= 5 && districtOk && !contactViolation;
   const budgetPreview = formatBudgetRange(
     parseIndianAmount(form.budget_min),
     parseIndianAmount(form.budget_max),
@@ -102,6 +107,23 @@ export function ConstructionFirmProjectWizard() {
     form.drawing_choice === 'firm_creates' ||
     (form.drawing_choice === 'upload' && !!drawingFile);
 
+  function tryGoStep2() {
+    if (form.title.trim().length < 5 || !districtOk) return;
+
+    if (contactViolation) {
+      if (hasContactInfo(form.title)) {
+        titleRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        titleRef.current?.focus();
+      } else {
+        descriptionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        descriptionRef.current?.focus();
+      }
+      return;
+    }
+
+    setStep(2);
+  }
+
   async function handleSubmit() {
     if (!profile || !form.finishing_level) return;
     const loc = resolveDistrict(form);
@@ -109,6 +131,12 @@ export function ConstructionFirmProjectWizard() {
 
     setLoading(true);
     setError(null);
+
+    if (hasProjectContactViolation(form.title, form.description)) {
+      setError('Remove contact details from the project title or description before submitting.');
+      setLoading(false);
+      return;
+    }
 
     const result = await createProjectAction({
       service_type: 'construction_firm',
@@ -207,28 +235,19 @@ export function ConstructionFirmProjectWizard() {
             <div className="space-y-5">
               <h2 className="text-base font-semibold text-foreground">Project Information</h2>
 
-              <Input
-                label="Project Title *"
-                type="text"
-                placeholder="e.g. 3BHK Residential Home, Guwahati"
-                value={form.title}
-                onChange={(e) => update('title', e.target.value)}
-                required
+              <WizardProjectTextFields
+                title={form.title}
+                description={form.description}
+                onTitleChange={(v) => update('title', v)}
+                onDescriptionChange={(v) => update('description', v)}
+                titleLabel="Project Title *"
+                descriptionLabel="Additional Notes (Optional)"
+                titlePlaceholder="e.g. 3BHK Residential Home, Guwahati"
+                descriptionPlaceholder="Any special requirements, preferences, or notes for the construction firm..."
+                descriptionMaxLength={500}
+                titleRef={titleRef}
+                descriptionRef={descriptionRef}
               />
-
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Additional Notes (Optional)
-                </label>
-                <textarea
-                  className="w-full min-h-[80px] rounded-lg border border-border bg-card/80 px-3 py-2 text-sm resize-none"
-                  placeholder="Any special requirements, preferences, or notes for the construction firm..."
-                  value={form.description}
-                  maxLength={500}
-                  onChange={(e) => update('description', e.target.value.slice(0, 500))}
-                />
-                <p className="text-[10px] text-muted-foreground text-right">{form.description.length}/500</p>
-              </div>
 
               <AssamDistrictSelect
                 value={form.district}
@@ -239,7 +258,7 @@ export function ConstructionFirmProjectWizard() {
 
               <div>
                 <Input
-                  label="Total Floor Area (sqft)"
+                  label="Approximate Plot Area (sqft)"
                   type="number"
                   min={100}
                   max={50000}
@@ -247,8 +266,9 @@ export function ConstructionFirmProjectWizard() {
                   value={form.floor_area_sqft}
                   onChange={(e) => update('floor_area_sqft', e.target.value)}
                 />
-                <p className="text-[11px] text-muted-foreground mt-1">Combined area of all floors you want constructed</p>
-                <p className="text-[11px] text-indigo-400/70 mt-0.5">Builders will bid in ₹ per sqft based on this</p>
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Optional — helps firms estimate total project cost
+                </p>
               </div>
 
               <div>
@@ -279,7 +299,7 @@ export function ConstructionFirmProjectWizard() {
                 )}
               </div>
 
-              <Button size="lg" className="w-full" disabled={!canStep2} onClick={() => setStep(2)}>
+              <Button size="lg" className="w-full" disabled={!canStep2} onClick={tryGoStep2}>
                 Continue <ArrowRight className="w-4 h-4" />
               </Button>
             </div>
