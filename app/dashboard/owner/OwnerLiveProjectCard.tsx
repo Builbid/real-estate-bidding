@@ -6,14 +6,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AuctionCountdown } from './AuctionCountdown';
 import { DeleteProjectButton } from './DeleteProjectButton';
 import { UnifiedBidRankings } from './project/[id]/UnifiedBidRankings';
+import { UnifiedFirmBidRankings } from './project/[id]/UnifiedFirmBidRankings';
+import { OwnerProjectPhaseProvider, useOwnerProjectPhaseContext } from '@/lib/context/OwnerProjectPhaseContext';
 import {
   TRACK_LABELS,
   getConstructionLabel,
   formatProjectPostedAt,
-  type ProjectPhase,
 } from '@/lib/utils';
 import { cn } from '@/lib/utils';
-import type { Project, Bid } from '@/lib/types';
+import { isFirmProject } from '@/lib/project/display';
+import type { Project, Bid, PublicFirmProfile } from '@/lib/types';
 
 interface BuilderInfo {
   id: string;
@@ -26,33 +28,25 @@ interface BuilderInfo {
 export interface OwnerLiveProjectCardProps {
   project: Project;
   bidCount: number;
-  phase: ProjectPhase;
   initialBids: Bid[];
   initialBuilders: Record<string, BuilderInfo>;
-  biddingHasEnded: boolean;
+  initialFirms?: Record<string, PublicFirmProfile>;
   userId: string;
   priority?: boolean;
 }
 
-/** Inline live auction + selection UI for the owner dashboard. */
-export function OwnerLiveProjectCard({
-  project,
+function OwnerLiveProjectCardBody({
   bidCount,
-  phase,
   initialBids,
   initialBuilders,
-  biddingHasEnded,
+  initialFirms = {},
   userId,
   priority,
 }: OwnerLiveProjectCardProps) {
+  const { project, phase, canSelect } = useOwnerProjectPhaseContext();
+  const isFirm = isFirmProject(project);
   const configLabel = getConstructionLabel(project.track_type, project.sub_configuration);
   const postedAt = formatProjectPostedAt(project.created_at);
-  const isReveal = biddingHasEnded;
-  const canSelect =
-    biddingHasEnded &&
-    !project.selected_builder_id &&
-    project.status !== 'completed' &&
-    project.status !== 'cancelled';
 
   return (
     <div
@@ -61,7 +55,6 @@ export function OwnerLiveProjectCard({
         priority ? 'border-indigo-500/30 bg-indigo-500/5' : 'border-border'
       )}
     >
-      {/* ── Header ─────────────────────────────────────────── */}
       <div className="flex flex-wrap items-start gap-4 p-4 border-b border-border">
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2 mb-1">
@@ -71,16 +64,10 @@ export function OwnerLiveProjectCard({
                 Live Bidding
               </Badge>
             )}
-            {phase === 'transitioning' && (
-              <Badge variant="default">
-                <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground animate-pulse" />
-                Closing…
-              </Badge>
-            )}
-            {phase === 'select' && (
+            {phase === 'select' && canSelect && (
               <Badge variant="indigo">
                 <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
-                Select Builder
+                {isFirm ? 'Select Firm' : 'Select Builder'}
               </Badge>
             )}
             <Badge>{TRACK_LABELS[project.track_type]}</Badge>
@@ -114,7 +101,7 @@ export function OwnerLiveProjectCard({
               <AuctionCountdown targetDateISO={project.bidding_ends_at} projectId={project.id} compact />
             </div>
           )}
-          {phase === 'select' && project.selection_ends_at && (
+          {canSelect && project.selection_ends_at && (
             <div className="flex flex-col items-end gap-0.5">
               <span className="text-[10px] text-red-400 uppercase tracking-wider font-semibold animate-pulse">
                 Select now
@@ -126,7 +113,6 @@ export function OwnerLiveProjectCard({
         </div>
       </div>
 
-      {/* ── Live auction body ────────────────────────────────── */}
       <div className="p-4 space-y-4">
         {(phase === 'live' || canSelect) && (
           <div className="flex flex-wrap items-start gap-4">
@@ -163,10 +149,10 @@ export function OwnerLiveProjectCard({
             <Lock className="w-4 h-4 text-indigo-400 flex-shrink-0 mt-0.5" />
             <div>
               <p className="text-sm font-semibold text-indigo-300 mb-1">
-                Bidding Closed — Select Your Builder
+                Bidding Closed — {isFirm ? 'Select Your Construction Firm' : 'Select Your Builder'}
               </p>
               <p className="text-xs text-indigo-400/70">
-                Choose a builder before the timer expires. Contact details remain private until
+                Choose a {isFirm ? 'firm' : 'builder'} before the timer expires. Contact details remain private until
                 you award the contract. If no selection is made, this project will be automatically
                 cancelled.
               </p>
@@ -178,17 +164,8 @@ export function OwnerLiveProjectCard({
           <div className="p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/15 flex items-start gap-3">
             <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse mt-1.5 flex-shrink-0" />
             <p className="text-xs text-emerald-300">
-              Live auction in progress. Builder names and profile photos are visible on the
+              Live auction in progress. {isFirm ? 'Firm' : 'Builder'} names and profile photos are visible on the
               leaderboard; contact details stay private. Rankings update in real-time.
-            </p>
-          </div>
-        )}
-
-        {phase === 'transitioning' && (
-          <div className="p-3 rounded-xl bg-secondary/50 border border-border flex items-start gap-3">
-            <div className="w-2 h-2 rounded-full bg-muted-foreground animate-pulse mt-1.5 flex-shrink-0" />
-            <p className="text-xs text-muted-foreground">
-              Bidding has ended — finalizing results…
             </p>
           </div>
         )}
@@ -203,17 +180,30 @@ export function OwnerLiveProjectCard({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <UnifiedBidRankings
-              project={project}
-              initialBids={initialBids}
-              initialBuilders={initialBuilders}
-              isReveal={isReveal}
-              isFrozen={canSelect || project.status === 'frozen_24h'}
-              userId={userId}
-            />
+            {isFirm ? (
+              <UnifiedFirmBidRankings
+                initialBids={initialBids}
+                initialFirms={initialFirms}
+              />
+            ) : (
+              <UnifiedBidRankings
+                initialBids={initialBids}
+                initialBuilders={initialBuilders}
+                userId={userId}
+              />
+            )}
           </CardContent>
         </Card>
       </div>
     </div>
+  );
+}
+
+/** Inline live auction + selection UI for the owner dashboard. */
+export function OwnerLiveProjectCard(props: OwnerLiveProjectCardProps) {
+  return (
+    <OwnerProjectPhaseProvider initialProject={props.project}>
+      <OwnerLiveProjectCardBody {...props} />
+    </OwnerProjectPhaseProvider>
   );
 }

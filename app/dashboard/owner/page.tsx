@@ -194,10 +194,8 @@ export default async function OwnerDashboard() {
                 key={bundle.project.id}
                 project={bundle.project}
                 bidCount={bundle.bidCount}
-                phase={bundle.phase}
                 initialBids={bundle.bids}
                 initialBuilders={bundle.builders}
-                biddingHasEnded={bundle.biddingHasEnded}
                 userId={userId}
                 priority
               />
@@ -219,10 +217,8 @@ export default async function OwnerDashboard() {
                 key={bundle.project.id}
                 project={bundle.project}
                 bidCount={bundle.bidCount}
-                phase={bundle.phase}
                 initialBids={bundle.bids}
                 initialBuilders={bundle.builders}
-                biddingHasEnded={bundle.biddingHasEnded}
                 userId={userId}
               />
             ))}

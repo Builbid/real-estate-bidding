@@ -12,6 +12,7 @@ import { UserAvatar } from '@/components/shared/UserAvatar';
 import { computeRatingStats } from '@/lib/builderRatings';
 import { BuilderPortfolioModal } from './BuilderPortfolioModal';
 import { SelectBuilderButton } from './SelectBuilderButton';
+import { useOwnerProjectPhaseContext } from '@/lib/context/OwnerProjectPhaseContext';
 import type { Project, Bid } from '@/lib/types';
 
 interface BuilderInfo {
@@ -23,19 +24,17 @@ interface BuilderInfo {
 }
 
 interface Props {
-  project: Project;
   initialBids: Bid[];
   initialBuilders: Record<string, BuilderInfo>;
-  isReveal: boolean;
-  isFrozen: boolean;
   userId: string;
 }
 
 const RANK_MEDAL = ['🥇', '🥈', '🥉'];
 
 export function UnifiedBidRankings({
-  project, initialBids, initialBuilders, isReveal, isFrozen, userId,
+  initialBids, initialBuilders, userId,
 }: Props) {
+  const { project, isReveal, isFrozen } = useOwnerProjectPhaseContext();
   const supabase = createClient();
   const { bids: realtimeBids, loading } = useRealtimeBids(project.id);
 
@@ -129,7 +128,7 @@ export function UnifiedBidRankings({
             Bid Rankings — {bids.length} bid{bids.length !== 1 ? 's' : ''}
           </span>
         </div>
-        {!isCompleted && (
+        {!isCompleted && !isFrozen && (
           <div className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             <span className="text-[11px] text-muted-foreground">Live</span>

@@ -11,21 +11,20 @@ import { SelectFirmButton } from '@/components/firm/SelectFirmButton';
 import { formatBidRatePerSqft, formatEstimatedTotal, getBidDisplayRate } from '@/lib/firm/bidDisplay';
 import { formatRelativeTime } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { useOwnerProjectPhaseContext } from '@/lib/context/OwnerProjectPhaseContext';
 import type { Project, Bid, PublicFirmProfile } from '@/lib/types';
 
 interface Props {
-  project: Project;
   initialBids: Bid[];
   initialFirms: Record<string, PublicFirmProfile>;
-  isReveal: boolean;
-  isFrozen: boolean;
 }
 
 const RANK_MEDAL = ['🥇', '🥈', '🥉'];
 
 export function UnifiedFirmBidRankings({
-  project, initialBids, initialFirms, isReveal, isFrozen,
+  initialBids, initialFirms,
 }: Props) {
+  const { project, isReveal, isFrozen } = useOwnerProjectPhaseContext();
   const supabase = createClient();
   const { bids: realtimeBids, loading } = useRealtimeFirmBids(project.id);
   const [firms, setFirms] = useState<Record<string, PublicFirmProfile>>(initialFirms);
@@ -83,7 +82,7 @@ export function UnifiedFirmBidRankings({
             Live Bids — {bids.length} bid{bids.length !== 1 ? 's' : ''}
           </span>
         </div>
-        {!isCompleted && (
+        {!isCompleted && !isFrozen && (
           <div className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             <span className="text-[11px] text-muted-foreground">Live</span>
