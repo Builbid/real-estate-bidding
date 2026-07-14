@@ -1,12 +1,10 @@
 'use server'
 
-import { after } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { notifyBuildersNewProject } from '@/lib/whatsapp/notifyBuildersNewProject'
 import type { BuildingType, ConstructionTypesMap } from '@/lib/buildingConfig'
 import { deriveLegacyProjectFields } from '@/lib/buildingConfig'
 import { buildFirmConstructionTypes } from '@/lib/firm/projectDefaults'
-import type { FinishingLevel, ServiceType, SubConfiguration, TrackType } from '@/lib/types'
+import type { FinishingLevel, ServiceType } from '@/lib/types'
 
 interface CreateProjectBase {
   title: string
@@ -104,21 +102,6 @@ export async function createProjectAction(
     .single()
 
   if (error) return { error: error.message }
-
-  after(async () => {
-    try {
-      await notifyBuildersNewProject({
-        title: project.title,
-        district: project.district,
-        state: project.state,
-        track_type: project.track_type as TrackType,
-        sub_configuration: project.sub_configuration as SubConfiguration,
-        bidding_ends_at: project.bidding_ends_at,
-      })
-    } catch (err) {
-      console.error('[whatsapp] Background notify failed:', err)
-    }
-  })
 
   return { error: null, projectId: project.id, biddingEndsAt: project.bidding_ends_at }
 }

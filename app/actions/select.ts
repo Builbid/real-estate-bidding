@@ -3,7 +3,6 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient }      from '@/lib/supabase/server'
 import { sendSelectionNotification } from '@/lib/email/sendNotification'
-import { notifySelection } from '@/lib/notifications/notifySelection'
 import { getConstructionLabel } from '@/lib/utils'
 import type { SubConfiguration, TrackType } from '@/lib/types'
 import { revalidatePath } from 'next/cache'
@@ -149,22 +148,6 @@ export async function selectBuilderAction(
     })
   } catch (err) {
     console.error('Selection email failed (non-fatal):', err)
-  }
-
-  // 5. SMS (+ production WhatsApp) to selected builder/firm — best-effort
-  try {
-    await notifySelection({
-      builderId,
-      isFirmProject,
-      projectTitle: existing.title,
-      district: existing.district,
-      constructionType: constructionLabel,
-      bidAmount: bidAmt || null,
-      clientName: ownerName,
-      recipientDisplayName: builderName,
-    })
-  } catch (err) {
-    console.error('[notify] Selection outbound alert failed (non-fatal):', err)
   }
 
   revalidatePath(`/dashboard/owner/project/${projectId}`)
