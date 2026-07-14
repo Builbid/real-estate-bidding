@@ -6,6 +6,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Mail, Lock, Eye, EyeOff, ArrowRight, ArrowLeft, AlertCircle } from 'lucide-react'
 import { BuilBidLogo } from '@/components/shared/BuilBidLogo'
 import { clientSignIn } from '@/lib/auth/clientSignIn'
+import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton'
+import { AuthDivider } from '@/components/auth/AuthDivider'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { NavLink } from '@/components/shared/NavLink'
@@ -34,6 +36,12 @@ function LoginForm({ roleParam }: { roleParam: RoleParam }) {
     router.prefetch('/dashboard/firm')
     router.prefetch('/dashboard/admin')
   }, [router])
+
+  useEffect(() => {
+    if (searchParams.get('error') === 'confirmation_failed') {
+      setError('Sign in failed. Please try again or use another method.')
+    }
+  }, [searchParams])
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -73,6 +81,14 @@ function LoginForm({ roleParam }: { roleParam: RoleParam }) {
         </div>
       )}
 
+      <GoogleSignInButton
+        nextPath={nextPath && nextPath.startsWith('/') ? nextPath : undefined}
+        roleHint={roleParam === 'owner' ? 'owner' : roleParam === 'bidder' ? 'labour_contractor' : null}
+        disabled={pending}
+      />
+
+      <AuthDivider />
+
       <form onSubmit={handleSubmit} className="space-y-5">
         <Input
           label="Email address"
@@ -85,25 +101,37 @@ function LoginForm({ roleParam }: { roleParam: RoleParam }) {
           disabled={pending}
         />
 
-        <Input
-          label="Password"
-          name="password"
-          type={showPw ? 'text' : 'password'}
-          placeholder="••••••••"
-          prefix={<Lock className="w-3.5 h-3.5" />}
-          suffix={
-            <button
-              type="button"
-              onClick={() => setShowPw(!showPw)}
-              className="text-muted-foreground hover:text-foreground/80 transition-colors"
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              Password
+            </span>
+            <Link
+              href="/forgot-password"
+              className="text-xs font-medium text-emerald-600 hover:text-emerald-500 dark:text-emerald-400 dark:hover:text-emerald-300 transition-colors"
             >
-              {showPw ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-            </button>
-          }
-          required
-          autoComplete="current-password"
-          disabled={pending}
-        />
+              Forgot password?
+            </Link>
+          </div>
+          <Input
+            name="password"
+            type={showPw ? 'text' : 'password'}
+            placeholder="••••••••"
+            prefix={<Lock className="w-3.5 h-3.5" />}
+            suffix={
+              <button
+                type="button"
+                onClick={() => setShowPw(!showPw)}
+                className="text-muted-foreground hover:text-foreground/80 transition-colors"
+              >
+                {showPw ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+              </button>
+            }
+            required
+            autoComplete="current-password"
+            disabled={pending}
+          />
+        </div>
 
         <Button type="submit" size="lg" className="w-full" disabled={pending}>
           {pending ? (
