@@ -2,11 +2,12 @@
 
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react';
+import { ArrowRight, ArrowLeft, CheckCircle2, AlertCircle, Info } from 'lucide-react';
 import { useProfile } from '@/lib/hooks/useProfile';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { BuildingTypeSelector } from '@/components/construction/BuildingTypeSelector';
 import { ConstructionTypeSelector } from '@/components/construction/ConstructionTypeSelector';
 import { BuildingConfigSummary } from '@/components/construction/BuildingConfigSummary';
@@ -333,8 +334,39 @@ export function ConstructionFirmProjectWizard() {
               />
 
               <div>
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <label
+                    htmlFor="floor-area-sqft"
+                    className="text-xs font-medium text-muted-foreground uppercase tracking-wider"
+                  >
+                    Total Slab Area of all the Floors (Approximate)
+                  </label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button
+                        type="button"
+                        aria-label="How total slab area is used to estimate construction cost"
+                        className="inline-flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                      >
+                        <Info className="h-3.5 w-3.5" />
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent side="top" align="start" className="text-xs max-w-[280px]">
+                      <p className="font-semibold text-foreground mb-1.5">
+                        Approximate construction cost
+                      </p>
+                      <p className="text-muted-foreground leading-snug">
+                        Construction firms bid a ₹/sqft rate. The approximate total cost of
+                        building your home is calculated by multiplying:
+                      </p>
+                      <p className="mt-2 font-medium text-foreground leading-snug">
+                        Firm construction rate × Total slab area
+                      </p>
+                    </PopoverContent>
+                  </Popover>
+                </div>
                 <Input
-                  label="Total Slab Area of All the Floors (sqft)"
+                  id="floor-area-sqft"
                   type="number"
                   min={100}
                   max={50000}
@@ -543,7 +575,7 @@ export function ConstructionFirmProjectWizard() {
                     editStep: 1 as Step,
                   },
                   {
-                    label: 'Total Slab Area of All the Floors',
+                    label: 'Total Slab Area of all the Floors (Approximate)',
                     value: form.floor_area_sqft ? `${form.floor_area_sqft} sqft` : 'Not specified',
                     editStep: 1 as Step,
                   },
