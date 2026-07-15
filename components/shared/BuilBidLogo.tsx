@@ -14,174 +14,65 @@ interface BuilBidLogoProps {
   className?: string;
 }
 
-const HEIGHT: Record<LogoSize, number> = {
-  xs: 18,
-  sm: 22,
-  md: 28,
-  lg: 34,
-  xl: 44,
-};
-
-const WIDTH: Record<LogoSize, number> = {
-  xs: 108,
-  sm: 128,
-  md: 156,
-  lg: 188,
-  xl: 228,
-};
-
-const MONO_SIZE: Record<LogoSize, number> = {
-  xs: 24,
-  sm: 28,
+const MARK_SIZE: Record<LogoSize, number> = {
+  xs: 22,
+  sm: 26,
   md: 32,
-  lg: 36,
-  xl: 44,
+  lg: 38,
+  xl: 48,
 };
 
-function LogoDefs({ variant }: { variant: LogoVariant }) {
+const WORD_SIZE: Record<LogoSize, string> = {
+  xs: 'text-[15px]',
+  sm: 'text-[17px]',
+  md: 'text-[21px]',
+  lg: 'text-[25px]',
+  xl: 'text-[32px]',
+};
+
+const ACCENT_HEIGHT: Record<LogoSize, number> = {
+  xs: 10,
+  sm: 11,
+  md: 13,
+  lg: 15,
+  xl: 18,
+};
+
+function LogoDefs({ id, variant }: { id: string; variant: LogoVariant }) {
   const bidStart = variant === 'muted' ? '#8b5cf6' : '#7c3aed';
+  const bidMid = variant === 'muted' ? '#6366f1' : '#6d28d9';
   const bidEnd = variant === 'muted' ? '#34d399' : '#10b981';
 
   return (
     <defs>
-      <linearGradient id="bb-bid-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor={bidStart} />
+      <linearGradient id={`${id}-mark`} x1="0%" y1="100%" x2="100%" y2="0%">
+        <stop offset="0%" stopColor={bidMid} />
+        <stop offset="55%" stopColor={bidStart} />
         <stop offset="100%" stopColor={bidEnd} />
       </linearGradient>
-      <linearGradient id="bb-mark-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor={variant === 'muted' ? '#7c3aed' : '#6d28d9'} />
-        <stop offset="100%" stopColor={variant === 'muted' ? '#10b981' : '#059669'} />
+      <linearGradient id={`${id}-shine`} x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#ffffff" stopOpacity="0.35" />
+        <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
       </linearGradient>
-      <linearGradient id="bb-mono-grad" x1="0%" y1="100%" x2="100%" y2="0%">
-        <stop offset="0%" stopColor="#4c1d95" />
-        <stop offset="55%" stopColor="#7c3aed" />
-        <stop offset="100%" stopColor="#10b981" />
+      <linearGradient id={`${id}-bid-text`} x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" stopColor={bidStart} />
+        <stop offset="100%" stopColor={bidEnd} />
       </linearGradient>
     </defs>
   );
 }
 
-/** Abstract building frame + rising bid arrow */
-function LogoMark({ variant }: { variant: LogoVariant }) {
-  const stroke = variant === 'muted' ? '#e2e8f0' : '#ffffff';
-
-  return (
-    <g transform="translate(0, 2)">
-      <rect x="0" y="0" width="26" height="26" rx="7" fill="url(#bb-mark-grad)" />
-      <path
-        d="M6.5 15.5 L13 9.5 L19.5 15.5"
-        stroke={stroke}
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        opacity="0.95"
-      />
-      <path
-        d="M8.5 15.5 V19.5 M17.5 15.5 V19.5"
-        stroke={stroke}
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        opacity="0.75"
-      />
-      <path
-        d="M8.5 19.5 H17.5"
-        stroke={stroke}
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        opacity="0.75"
-      />
-      <path
-        d="M13 12.5 V17.5 M11.2 15.2 L13 17.5 L14.8 15.2"
-        stroke="#a7f3d0"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <circle cx="20.5" cy="6.5" r="2.2" fill="#34d399" />
-      <circle cx="20.5" cy="6.5" r="3.6" stroke="#34d399" strokeWidth="0.8" opacity="0.45" />
-    </g>
-  );
-}
-
-function WordmarkSvg({
-  height,
-  width,
-  variant,
-  showAccent,
-}: {
-  height: number;
-  width: number;
-  variant: LogoVariant;
-  showAccent: boolean;
-}) {
-  const builColor = variant === 'muted' ? '#64748b' : 'currentColor';
-
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 156 32"
-      width={width}
-      height={height}
-      fill="none"
-      aria-hidden
-      className="block shrink-0"
-    >
-      <LogoDefs variant={variant} />
-      <LogoMark variant={variant} />
-
-      <text
-        x="34"
-        y="21.5"
-        fontFamily="ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
-        fontSize="19.5"
-        fontWeight="600"
-        letterSpacing="-0.045em"
-        fill={builColor}
-      >
-        Buil
-      </text>
-
-      <circle cx="78" cy="16.5" r="2.4" fill="#10b981" opacity="0.9" />
-      <circle cx="78" cy="16.5" r="4.2" stroke="#10b981" strokeWidth="0.9" opacity="0.28" />
-
-      <text
-        x="86"
-        y="21.5"
-        fontFamily="ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
-        fontSize="19.5"
-        fontWeight="800"
-        letterSpacing="-0.045em"
-        fill="url(#bb-bid-grad)"
-      >
-        Bid
-      </text>
-
-      {showAccent && (
-        <g opacity="0.95">
-          <rect x="86" y="25" width="3" height="4" rx="1" fill="#7c3aed" opacity="0.55" />
-          <rect x="91.5" y="23" width="3" height="6" rx="1" fill="#7c3aed" opacity="0.75" />
-          <rect x="97" y="20.5" width="3" height="8.5" rx="1" fill="url(#bb-bid-grad)" />
-          <path
-            d="M86 27.5 H103.5"
-            stroke="url(#bb-bid-grad)"
-            strokeWidth="1.2"
-            strokeLinecap="round"
-            opacity="0.35"
-          />
-        </g>
-      )}
-    </svg>
-  );
-}
-
-function MonogramSvg({
+/** Stacked slabs + rising bid arrow */
+function LogoMark({
   size,
   variant,
+  id,
 }: {
   size: number;
   variant: LogoVariant;
+  id: string;
 }) {
-  const letterColor = variant === 'muted' ? '#f8fafc' : '#ffffff';
+  const slab = variant === 'muted' ? '#f8fafc' : '#ffffff';
 
   return (
     <svg
@@ -193,43 +84,62 @@ function MonogramSvg({
       aria-hidden
       className="block shrink-0"
     >
-      <LogoDefs variant={variant} />
-      <rect x="1" y="1" width="30" height="30" rx="9" fill="url(#bb-mono-grad)" />
+      <LogoDefs id={id} variant={variant} />
+      <rect x="1" y="1" width="30" height="30" rx="9" fill={`url(#${id}-mark)`} />
+      <rect x="1" y="1" width="30" height="30" rx="9" fill={`url(#${id}-shine)`} />
+
+      {/* Floor slabs */}
+      <rect x="6" y="19" width="14" height="2.2" rx="1" fill={slab} opacity="0.55" />
+      <rect x="6" y="15" width="14" height="2.2" rx="1" fill={slab} opacity="0.75" />
+      <rect x="6" y="11" width="14" height="2.2" rx="1" fill={slab} opacity="0.95" />
+
+      {/* Rising bid arrow */}
       <path
-        d="M7.5 14.5 L16 7.5 L24.5 14.5"
-        stroke={letterColor}
-        strokeWidth="1.5"
+        d="M19.5 21.5 V10.5 M19.5 10.5 L16.5 13.5 M19.5 10.5 L22.5 13.5"
+        stroke="#bbf7d0"
+        strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
-        opacity="0.35"
       />
-      <text
-        x="8.5"
-        y="22"
-        fontFamily="ui-sans-serif, system-ui, sans-serif"
-        fontSize="14"
-        fontWeight="700"
-        letterSpacing="-0.08em"
-        fill={letterColor}
-        opacity="0.92"
-      >
-        B
-      </text>
-      <text
-        x="17"
-        y="22"
-        fontFamily="ui-sans-serif, system-ui, sans-serif"
-        fontSize="14"
-        fontWeight="900"
-        letterSpacing="-0.08em"
-        fill="#d9f99d"
-      >
-        B
-      </text>
-      <circle cx="24.5" cy="7.5" r="2.3" fill="#34d399" />
-      <circle cx="24.5" cy="7.5" r="3.8" stroke="#6ee7b7" strokeWidth="0.8" opacity="0.5" />
+
+      {/* Live pulse dot */}
+      <circle cx="24.5" cy="7.5" r="2.1" fill="#34d399" />
+      <circle cx="24.5" cy="7.5" r="3.4" stroke="#6ee7b7" strokeWidth="0.9" opacity="0.45" />
     </svg>
   );
+}
+
+function BidAccentBars({ height, variant }: { height: number; variant: LogoVariant }) {
+  const c1 = variant === 'muted' ? '#a78bfa' : '#7c3aed';
+  const c2 = variant === 'muted' ? '#818cf8' : '#6366f1';
+  const c3 = variant === 'muted' ? '#34d399' : '#10b981';
+  const line = variant === 'muted' ? '#a78bfa66' : '#10b98159';
+
+  return (
+    <svg
+      width={height * 1.35}
+      height={height}
+      viewBox="0 0 18 13"
+      fill="none"
+      aria-hidden
+      className="shrink-0 opacity-90"
+    >
+      <rect x="0" y="9" width="3" height="4" rx="1" fill={c1} opacity="0.45" />
+      <rect x="5" y="6" width="3" height="7" rx="1" fill={c2} opacity="0.65" />
+      <rect x="10" y="2" width="3" height="11" rx="1" fill={c3} />
+      <path d="M0 12.5 H16" stroke={line} strokeWidth="1" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function MonogramSvg({
+  size,
+  variant,
+}: {
+  size: number;
+  variant: LogoVariant;
+}) {
+  return <LogoMark size={size} variant={variant} id="bb-mono" />;
 }
 
 export function BuilBidLogo({
@@ -241,24 +151,63 @@ export function BuilBidLogo({
   tagline,
   className,
 }: BuilBidLogoProps) {
+  const markId = compact ? 'bb-mono' : 'bb-word';
+  const builClass =
+    variant === 'muted'
+      ? 'text-slate-500 dark:text-slate-400'
+      : 'text-slate-900 dark:text-slate-100';
+  const bidClass =
+    variant === 'muted'
+      ? 'bg-gradient-to-r from-violet-500 to-emerald-400 bg-clip-text text-transparent'
+      : 'bg-gradient-to-r from-violet-600 via-indigo-600 to-emerald-500 bg-clip-text text-transparent';
+
   if (compact) {
     return (
       <span className={cn('inline-flex items-center', className)}>
-        <MonogramSvg size={MONO_SIZE[size]} variant={variant} />
+        <MonogramSvg size={MARK_SIZE[size]} variant={variant} />
       </span>
     );
   }
 
   return (
     <span className={cn('inline-flex flex-col', className)}>
-      <WordmarkSvg
-        height={HEIGHT[size]}
-        width={WIDTH[size]}
-        variant={variant}
-        showAccent={showAccent}
-      />
+      <span className="inline-flex items-center gap-2 sm:gap-2.5">
+        <LogoMark size={MARK_SIZE[size]} variant={variant} id={markId} />
+
+        <span
+          className={cn(
+            'inline-flex items-baseline font-bold leading-none tracking-tight',
+            WORD_SIZE[size],
+          )}
+        >
+          <span className={cn('font-semibold', builClass)}>Buil</span>
+          <span
+            className={cn(
+              'relative font-extrabold',
+              bidClass,
+              variant === 'default' && 'bb-logo-bid-shine',
+            )}
+          >
+            Bid
+            <span
+              className={cn(
+                'absolute -bottom-0.5 left-0 right-0 h-[2px] rounded-full opacity-70',
+                variant === 'muted'
+                  ? 'bg-gradient-to-r from-violet-400/60 to-emerald-400/60'
+                  : 'bg-gradient-to-r from-violet-500 to-emerald-500',
+              )}
+              aria-hidden
+            />
+          </span>
+        </span>
+
+        {showAccent && (
+          <BidAccentBars height={ACCENT_HEIGHT[size]} variant={variant} />
+        )}
+      </span>
+
       {showTagline && tagline && (
-        <span className="mt-0.5 pl-[34px] text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+        <span className="mt-1 pl-[calc(var(--bb-mark,2rem)+0.5rem)] text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
           {tagline}
         </span>
       )}
