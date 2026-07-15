@@ -1,3 +1,6 @@
+'use client';
+
+import { useId } from 'react';
 import { cn } from '@/lib/utils';
 
 type LogoSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
@@ -135,11 +138,13 @@ function BidAccentBars({ height, variant }: { height: number; variant: LogoVaria
 function MonogramSvg({
   size,
   variant,
+  id,
 }: {
   size: number;
   variant: LogoVariant;
+  id: string;
 }) {
-  return <LogoMark size={size} variant={variant} id="bb-mono" />;
+  return <LogoMark size={size} variant={variant} id={id} />;
 }
 
 export function BuilBidLogo({
@@ -151,20 +156,21 @@ export function BuilBidLogo({
   tagline,
   className,
 }: BuilBidLogoProps) {
-  const markId = compact ? 'bb-mono' : 'bb-word';
+  const uid = useId().replace(/:/g, '');
+  const markId = compact ? `${uid}-mono` : `${uid}-word`;
   const builClass =
     variant === 'muted'
-      ? 'text-slate-500 dark:text-slate-400'
-      : 'text-slate-900 dark:text-slate-100';
+      ? 'text-slate-600 dark:text-slate-400'
+      : 'text-slate-900 dark:text-slate-50';
   const bidClass =
     variant === 'muted'
-      ? 'bg-gradient-to-r from-violet-500 to-emerald-400 bg-clip-text text-transparent'
-      : 'bg-gradient-to-r from-violet-600 via-indigo-600 to-emerald-500 bg-clip-text text-transparent';
+      ? 'text-violet-600 dark:text-emerald-400'
+      : 'text-violet-700 dark:text-transparent dark:bg-gradient-to-r dark:from-violet-400 dark:via-indigo-400 dark:to-emerald-400 dark:bg-clip-text';
 
   if (compact) {
     return (
       <span className={cn('inline-flex items-center', className)}>
-        <MonogramSvg size={MARK_SIZE[size]} variant={variant} />
+        <MonogramSvg size={MARK_SIZE[size]} variant={variant} id={`${uid}-mono`} />
       </span>
     );
   }
@@ -181,20 +187,14 @@ export function BuilBidLogo({
           )}
         >
           <span className={cn('font-semibold', builClass)}>Buil</span>
-          <span
-            className={cn(
-              'relative font-extrabold',
-              bidClass,
-              variant === 'default' && 'bb-logo-bid-shine',
-            )}
-          >
+          <span className={cn('relative font-extrabold', bidClass)}>
             Bid
             <span
               className={cn(
-                'absolute -bottom-0.5 left-0 right-0 h-[2px] rounded-full opacity-70',
+                'absolute -bottom-0.5 left-0 right-0 h-[2px] rounded-full opacity-80',
                 variant === 'muted'
-                  ? 'bg-gradient-to-r from-violet-400/60 to-emerald-400/60'
-                  : 'bg-gradient-to-r from-violet-500 to-emerald-500',
+                  ? 'bg-violet-400/60 dark:bg-gradient-to-r dark:from-violet-400/60 dark:to-emerald-400/60'
+                  : 'bg-gradient-to-r from-violet-600 to-emerald-600 dark:from-violet-400 dark:to-emerald-400',
               )}
               aria-hidden
             />
