@@ -185,8 +185,8 @@ export function BuilBidLogo({
   const markId = compact ? `${uid}-mono` : `${uid}-word`;
   const builClass =
     variant === 'muted'
-      ? 'text-neutral-600 dark:text-neutral-400'
-      : 'text-neutral-950 dark:text-neutral-100';
+      ? '!text-[#525252] dark:!text-[#a1a1a1]'
+      : '!text-[#0a0a0a] dark:!text-[#f5f5f5]';
   const bidClass =
     variant === 'muted'
       ? 'text-[#a3842f] dark:text-[#d4b84a]'
