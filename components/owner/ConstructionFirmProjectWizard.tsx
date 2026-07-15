@@ -334,7 +334,7 @@ export function ConstructionFirmProjectWizard() {
 
               <div>
                 <Input
-                  label="Approximate Plot Area (sqft)"
+                  label="Total Slab Area of All the Floors (sqft)"
                   type="number"
                   min={100}
                   max={50000}
@@ -543,7 +543,7 @@ export function ConstructionFirmProjectWizard() {
                     editStep: 1 as Step,
                   },
                   {
-                    label: 'Floor Area',
+                    label: 'Total Slab Area of All the Floors',
                     value: form.floor_area_sqft ? `${form.floor_area_sqft} sqft` : 'Not specified',
                     editStep: 1 as Step,
                   },
