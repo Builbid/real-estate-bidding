@@ -5,7 +5,9 @@ import { Camera, CheckCircle2, Loader2, Upload, X } from 'lucide-react';
 import { UserAvatar } from '@/components/shared/UserAvatar';
 import { Button } from '@/components/ui/button';
 import { removeBuilderAvatarAction } from '@/app/actions/profile';
+import { removeServiceProviderAvatarAction } from '@/app/actions/serviceProvider';
 import { uploadBuilderAvatar, prepareAvatarFile } from '@/lib/avatar/uploadBuilderAvatar';
+import { uploadServiceProviderAvatar } from '@/lib/avatar/uploadServiceProviderAvatar';
 import { AVATAR_ACCEPT, validateAvatarFile } from '@/lib/avatar/constants';
 import { useOptionalProfileUpdate } from '@/lib/context/ProfileProvider';
 import { cn } from '@/lib/utils';
@@ -22,6 +24,8 @@ interface AvatarUploadProps {
   compact?: boolean;
   /** Minimal dashed-circle layout for the registration form (first field). */
   registration?: boolean;
+  /** Where to persist the photo — labour contractors use profiles; hire-services providers use service_providers. */
+  accountType?: 'labour_contractor' | 'service_provider';
 }
 
 export function AvatarUpload({
@@ -32,6 +36,7 @@ export function AvatarUpload({
   deferred = false,
   compact = false,
   registration = false,
+  accountType = 'labour_contractor',
 }: AvatarUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -83,7 +88,9 @@ export function AvatarUpload({
 
     setPreview(URL.createObjectURL(file));
 
-    const result = await uploadBuilderAvatar(file);
+    const upload =
+      accountType === 'service_provider' ? uploadServiceProviderAvatar : uploadBuilderAvatar;
+    const result = await upload(file);
 
     if (result.error) {
       setError(result.error);
@@ -121,7 +128,9 @@ export function AvatarUpload({
     }
 
     setUploading(true);
-    const result = await removeBuilderAvatarAction();
+    const remove =
+      accountType === 'service_provider' ? removeServiceProviderAvatarAction : removeBuilderAvatarAction;
+    const result = await remove();
     if (result.error) {
       setError(result.error);
     } else {
@@ -132,6 +141,11 @@ export function AvatarUpload({
     }
     setUploading(false);
   }
+
+  const trustHint =
+    accountType === 'service_provider'
+      ? 'Clients are more likely to contact providers with a clear profile photo.'
+      : 'Contractors with a profile photo get more owner trust';
 
   if (registration) {
     return (
@@ -185,7 +199,7 @@ export function AvatarUpload({
         />
 
         <p className="text-[11px] text-muted-foreground text-center max-w-[220px] leading-snug">
-          Contractors with a profile photo get more owner trust
+          {trustHint}
         </p>
 
         {error && (
@@ -249,7 +263,7 @@ export function AvatarUpload({
 
       {!compact && (
         <p className="text-xs text-muted-foreground text-center max-w-xs">
-          Contractors with a profile photo get more owner trust.{' '}
+          {trustHint}{' '}
           <span className="text-muted-foreground/80">(Optional)</span>
         </p>
       )}

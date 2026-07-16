@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { Star } from 'lucide-react';
 import { VerifiedBadge } from '@/components/services/VerifiedBadge';
+import { UserAvatar } from '@/components/shared/UserAvatar';
 import type { ServiceProviderPublic } from '@/lib/types/hireServices';
 import { cn } from '@/lib/utils';
 
@@ -20,7 +21,15 @@ export function ProviderListCard({ provider, categorySlug }: ProviderListCardPro
         'hover:border-emerald-500/35 hover:shadow-md transition-all',
       )}
     >
-      <div className="flex items-start justify-between gap-2">
+      <div className="flex items-start gap-3 sm:gap-4">
+        <UserAvatar
+          name={provider.full_name}
+          avatarUrl={provider.avatar_url}
+          size="md"
+          gradient="from-emerald-500 to-teal-600"
+          className="shrink-0"
+        />
+        <div className="flex-1 min-w-0 flex items-start justify-between gap-2">
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="text-base font-semibold text-foreground">{provider.full_name}</h3>
@@ -32,6 +41,7 @@ export function ProviderListCard({ provider, categorySlug }: ProviderListCardPro
           <Star className="h-4 w-4 fill-amber-400 text-amber-400" aria-hidden />
           <span className="font-semibold tabular-nums">{provider.rating_avg.toFixed(1)}</span>
           <span className="text-muted-foreground text-xs">({provider.review_count})</span>
+        </div>
         </div>
       </div>
       {provider.starting_rate != null && (

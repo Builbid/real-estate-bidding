@@ -2,7 +2,97 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { AVATAR_BUCKET } from '@/lib/avatar/constants';
 import { stripMobileDigits, validateMobile } from '@/lib/validation/mobile';
+
+function isValidStoredAvatarUrl(url: string, userId: string): boolean {
+  try {
+    const base = url.split('?')[0];
+    const parsed = new URL(base);
+    const expected = `/storage/v1/object/public/${AVATAR_BUCKET}/${userId}/avatar`;
+    return parsed.pathname.startsWith(`${expected}.`);
+  } catch {
+    return false;
+  }
+}
+
+async function assertServiceProvider(supabase: Awaited<ReturnType<typeof createClient>>, userId: string) {
+  const { data } = await supabase.from('service_providers').select('id').eq('id', userId).maybeSingle();
+  return Boolean(data);
+}
+
+export async function saveServiceProviderAvatarUrlAction(
+  avatarUrl: string,
+): Promise<{ error: string | null; avatarUrl?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return { error: 'You must be signed in to upload a photo.' };
+  }
+
+  if (!isValidStoredAvatarUrl(avatarUrl, user.id)) {
+    return { error: 'Invalid profile photo URL.' };
+  }
+
+  if (!(await assertServiceProvider(supabase, user.id))) {
+    return { error: 'Only service provider accounts can upload a profile photo here.' };
+  }
+
+  const { error: updateError } = await supabase
+    .from('service_providers')
+    .update({ avatar_url: avatarUrl })
+    .eq('id', user.id);
+
+  if (updateError) {
+    return { error: updateError.message || 'Could not save profile photo.' };
+  }
+
+  revalidatePath('/provider/dashboard');
+  revalidatePath(`/hire-services/provider/${user.id}`);
+  revalidatePath('/hire-services', 'layout');
+
+  return { error: null, avatarUrl };
+}
+
+export async function removeServiceProviderAvatarAction(): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return { error: 'You must be signed in.' };
+  }
+
+  if (!(await assertServiceProvider(supabase, user.id))) {
+    return { error: 'Not a service provider account.' };
+  }
+
+  const { data: existingFiles } = await supabase.storage.from(AVATAR_BUCKET).list(user.id);
+
+  if (existingFiles && existingFiles.length > 0) {
+    const pathsToRemove = existingFiles.map((f) => `${user.id}/${f.name}`);
+    await supabase.storage.from(AVATAR_BUCKET).remove(pathsToRemove);
+  }
+
+  const { error: updateError } = await supabase
+    .from('service_providers')
+    .update({ avatar_url: null })
+    .eq('id', user.id);
+
+  if (updateError) {
+    return { error: updateError.message || 'Could not remove profile photo.' };
+  }
+
+  revalidatePath('/provider/dashboard');
+  revalidatePath(`/hire-services/provider/${user.id}`);
+  revalidatePath('/hire-services', 'layout');
+
+  return { error: null };
+}
 
 export async function upsertServiceProviderProfileAction(
   _prev: { error: string | null; success: boolean },

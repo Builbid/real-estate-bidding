@@ -90,7 +90,7 @@ export function ProfileProvider({
 
     const { data: sp } = await supabase
       .from('service_providers')
-      .select('full_name, phone, categories, is_verified')
+      .select('full_name, phone, categories, is_verified, avatar_url')
       .eq('id', user.id)
       .maybeSingle();
 
@@ -110,6 +110,7 @@ export function ProfileProvider({
         ...buildFallbackProfile(user),
         full_name: sp.full_name,
         mobile: sp.phone,
+        avatar_url: sp.avatar_url ?? null,
         role: 'service_provider',
         role_display: roleDisplay,
         is_verified: sp.is_verified ?? false,

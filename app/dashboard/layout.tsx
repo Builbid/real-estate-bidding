@@ -26,7 +26,7 @@ async function getUser() {
 
   const { data: sp } = await supabase
     .from('service_providers')
-    .select('full_name, phone, categories, is_verified')
+    .select('full_name, phone, categories, is_verified, avatar_url')
     .eq('id', userId)
     .maybeSingle();
 
@@ -48,9 +48,9 @@ async function getUser() {
       role: 'service_provider' as const,
       role_display: roleDisplay,
       mobile: sp.phone,
+      avatar_url: sp.avatar_url ?? null,
       physical_address: null,
       pincode: null,
-      avatar_url: null,
       is_verified: sp.is_verified ?? false,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),

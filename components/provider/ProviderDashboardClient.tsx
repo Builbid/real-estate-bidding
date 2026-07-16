@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { BadgeCheck, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { AvatarUpload } from '@/components/builder/AvatarUpload';
 import { IndianCityAutocomplete, parseIndianDistrictSelection } from '@/components/shared/IndianCityAutocomplete';
 import { updateCallbackStatusAction } from '@/app/actions/callbackRequest';
 import { updateServiceProviderProfileAction } from '@/app/actions/serviceProvider';
@@ -22,7 +24,13 @@ export function ProviderDashboardClient({
   categories,
   callbacks,
 }: ProviderDashboardClientProps) {
+  const router = useRouter();
   const [fullName, setFullName] = useState(provider.full_name);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(provider.avatar_url ?? null);
+
+  useEffect(() => {
+    setAvatarUrl(provider.avatar_url ?? null);
+  }, [provider.avatar_url]);
   const [district, setDistrict] = useState(provider.district);
   const [locationLabel, setLocationLabel] = useState(provider.district);
   const [bio, setBio] = useState(provider.bio ?? '');
@@ -138,6 +146,21 @@ export function ProviderDashboardClient({
             ))}
           </ul>
         )}
+      </section>
+
+      <section>
+        <h2 className="text-lg font-semibold text-foreground mb-4">Profile photo</h2>
+        <div className="rounded-xl border border-border p-5 flex justify-center">
+          <AvatarUpload
+            fullName={fullName}
+            avatarUrl={avatarUrl}
+            accountType="service_provider"
+            onUploaded={(url) => {
+              setAvatarUrl(url);
+              router.refresh();
+            }}
+          />
+        </div>
       </section>
 
       <section>

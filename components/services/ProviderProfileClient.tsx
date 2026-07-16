@@ -4,6 +4,7 @@ import { useActionState, useState } from 'react';
 import Link from 'next/link';
 import { MessageCircle, Phone, Star } from 'lucide-react';
 import { VerifiedBadge } from '@/components/services/VerifiedBadge';
+import { UserAvatar } from '@/components/shared/UserAvatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { createCallbackRequestAction } from '@/app/actions/callbackRequest';
@@ -26,26 +27,37 @@ export function ProviderProfileClient({ provider, isLoggedIn, loginNext }: Provi
   return (
     <div className="space-y-8">
       <div className="rounded-2xl border border-border bg-card/60 p-6 sm:p-8">
-        <div className="flex flex-wrap items-center gap-2 mb-1">
-          <h1 className="text-2xl font-bold text-foreground">{provider.full_name}</h1>
-          {provider.is_verified && <VerifiedBadge />}
-        </div>
-        <p className="text-muted-foreground">{provider.district}</p>
+        <div className="flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-5">
+          <UserAvatar
+            name={provider.full_name}
+            avatarUrl={provider.avatar_url}
+            size="xl"
+            gradient="from-emerald-500 to-teal-600"
+            className="shrink-0 mx-auto sm:mx-0"
+          />
+          <div className="min-w-0 flex-1 text-center sm:text-left">
+            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mb-1">
+              <h1 className="text-2xl font-bold text-foreground">{provider.full_name}</h1>
+              {provider.is_verified && <VerifiedBadge />}
+            </div>
+            <p className="text-muted-foreground">{provider.district}</p>
 
-        <div className="mt-4 flex flex-wrap items-center gap-4 text-sm">
-          <span className="inline-flex items-center gap-1.5 font-semibold text-foreground">
-            <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
-            {provider.rating_avg.toFixed(1)}
-            <span className="font-normal text-muted-foreground">
-              ({provider.review_count} review{provider.review_count === 1 ? '' : 's'})
-            </span>
-          </span>
-          {provider.starting_rate != null && (
-            <span>
-              <span className="text-muted-foreground">Starting from </span>
-              <span className="font-semibold">₹{Number(provider.starting_rate).toLocaleString('en-IN')}</span>
-            </span>
-          )}
+            <div className="mt-4 flex flex-wrap items-center justify-center sm:justify-start gap-4 text-sm">
+              <span className="inline-flex items-center gap-1.5 font-semibold text-foreground">
+                <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+                {provider.rating_avg.toFixed(1)}
+                <span className="font-normal text-muted-foreground">
+                  ({provider.review_count} review{provider.review_count === 1 ? '' : 's'})
+                </span>
+              </span>
+              {provider.starting_rate != null && (
+                <span>
+                  <span className="text-muted-foreground">Starting from </span>
+                  <span className="font-semibold">₹{Number(provider.starting_rate).toLocaleString('en-IN')}</span>
+                </span>
+              )}
+            </div>
+          </div>
         </div>
 
         {provider.bio && (

@@ -15,6 +15,7 @@ export interface ServiceProvider {
   starting_rate: number | null;
   bio: string | null;
   work_photo_urls: string[];
+  avatar_url?: string | null;
   rating_avg: number;
   review_count: number;
   status: 'active' | 'inactive';
