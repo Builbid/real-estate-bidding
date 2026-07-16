@@ -6,7 +6,11 @@ alter table public.service_providers
 comment on column public.service_providers.avatar_url is
   'Public profile photo URL stored in builder-avatars bucket ({user_id}/avatar.jpg)';
 
-create or replace view public.service_providers_public as
+-- CREATE OR REPLACE VIEW cannot insert a column before existing ones (PG treats it as
+-- renaming columns). Drop and recreate after adding avatar_url on the base table.
+drop view if exists public.service_providers_public;
+
+create view public.service_providers_public as
   select
     id,
     full_name,

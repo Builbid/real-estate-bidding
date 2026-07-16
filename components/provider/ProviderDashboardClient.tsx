@@ -3,7 +3,7 @@
 import { useState, useTransition, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { BadgeCheck, Loader2 } from 'lucide-react';
+import { BadgeCheck, Loader2, Phone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { AvatarUpload } from '@/components/builder/AvatarUpload';
@@ -11,6 +11,7 @@ import { IndianCityAutocomplete, parseIndianDistrictSelection } from '@/componen
 import { updateCallbackStatusAction } from '@/app/actions/callbackRequest';
 import { updateServiceProviderProfileAction } from '@/app/actions/serviceProvider';
 import type { CallbackRequest, ServiceCategory, ServiceProvider } from '@/lib/types/hireServices';
+import { formatMobileDisplay, stripMobileDigits } from '@/lib/validation/mobile';
 import { cn } from '@/lib/utils';
 
 interface ProviderDashboardClientProps {
@@ -112,7 +113,17 @@ export function ProviderDashboardClient({
               <li key={cb.id} className="rounded-xl border border-border p-4 bg-card/40">
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
-                    <p className="text-sm font-semibold text-foreground">{cb.client_phone}</p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-semibold text-foreground tabular-nums">
+                        {formatMobileDisplay(cb.client_phone)}
+                      </p>
+                      <Button asChild size="sm" variant="outline" className="h-8 gap-1.5 shrink-0">
+                        <a href={`tel:+91${stripMobileDigits(cb.client_phone)}`}>
+                          <Phone className="h-3.5 w-3.5" aria-hidden />
+                          Call client
+                        </a>
+                      </Button>
+                    </div>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       {new Date(cb.created_at).toLocaleString('en-IN')}
                     </p>
