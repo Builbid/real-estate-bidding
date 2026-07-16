@@ -28,10 +28,20 @@ export async function proxy(request: NextRequest) {
     }
   )
 
-  // Required: keeps the session alive without any redirect side-effects.
-  await supabase.auth.getUser()
+  const { pathname } = request.nextUrl;
 
-  return supabaseResponse
+  // Only validate session with Auth server on routes that need fresh JWT (avoids ~200–500ms on public pages).
+  const needsAuthServerCheck =
+    pathname.startsWith('/dashboard') ||
+    pathname.startsWith('/provider') ||
+    pathname.startsWith('/admin') ||
+    pathname.startsWith('/auth');
+
+  if (needsAuthServerCheck) {
+    await supabase.auth.getUser();
+  }
+
+  return supabaseResponse;
 }
 
 export const config = {

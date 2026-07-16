@@ -26,32 +26,33 @@ export interface ResolvedUser {
 export async function getAuthUser(): Promise<ResolvedUser> {
   const supabase = await createClient()
 
-  // ── 1. Verify JWT with Supabase Auth ────────────────────────────
-  let userId: string | null  = null
-  let email: string          = ''
-  let meta: Record<string, string> = {}
+  // Session from cookie — proxy already refreshed JWT on protected routes.
+  const { data: { session } } = await supabase.auth.getSession()
 
-  const { data: { user } } = await supabase.auth.getUser()
-
-  if (user?.id) {
-    userId = user.id
-    email  = user.email ?? ''
-    meta   = (user.user_metadata ?? {}) as Record<string, string>
-  } else {
-    // ── 2. Fallback: read JWT from cookie without network call ──────
-    const { data: { session } } = await supabase.auth.getSession()
-    if (session?.user?.id) {
-      userId = session.user.id
-      email  = session.user.email ?? ''
-      meta   = (session.user.user_metadata ?? {}) as Record<string, string>
+  if (session?.user?.id) {
+    const meta = (session.user.user_metadata ?? {}) as Record<string, string>
+    return {
+      supabase,
+      userId: session.user.id,
+      email: session.user.email ?? '',
+      role: normalizeRole(meta.role),
+      fullName: meta.full_name ?? '',
     }
   }
 
-  if (!userId) redirect('/login')
+  // Fallback: network validate (e.g. first load without proxy refresh)
+  const { data: { user } } = await supabase.auth.getUser()
 
-  // ── 3. Role from JWT metadata (works even if DB/RLS is broken) ──
-  const metaRole = normalizeRole(meta.role)
-  const fullName  = meta.full_name ?? ''
+  if (user?.id) {
+    const meta = (user.user_metadata ?? {}) as Record<string, string>
+    return {
+      supabase,
+      userId: user.id,
+      email: user.email ?? '',
+      role: normalizeRole(meta.role),
+      fullName: meta.full_name ?? '',
+    }
+  }
 
-  return { supabase, userId, email, role: metaRole, fullName }
+  redirect('/login')
 }

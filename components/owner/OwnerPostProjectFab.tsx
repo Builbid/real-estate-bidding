@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Briefcase, Plus, Upload, X } from 'lucide-react';
+import { NavLink } from '@/components/shared/NavLink';
 import { cn } from '@/lib/utils';
 
 const UPLOAD_PROJECT_HREF = '/dashboard/owner/new-project';
@@ -16,6 +17,7 @@ interface OwnerPostProjectFabProps {
 }
 
 export function OwnerPostProjectFab({ role, emphasize = false }: OwnerPostProjectFabProps) {
+  const router = useRouter();
   const [expanded, setExpanded] = useState(false);
   const [showIntroPulse, setShowIntroPulse] = useState(false);
   const [tooltipVisible, setTooltipVisible] = useState(false);
@@ -34,6 +36,12 @@ export function OwnerPostProjectFab({ role, emphasize = false }: OwnerPostProjec
       /* storage unavailable */
     }
   }, [isOwner]);
+
+  useEffect(() => {
+    if (!isOwner) return;
+    router.prefetch(UPLOAD_PROJECT_HREF);
+    router.prefetch(HIRE_SERVICES_HREF);
+  }, [isOwner, router]);
 
   useEffect(() => {
     if (!expanded) return;
@@ -97,8 +105,9 @@ export function OwnerPostProjectFab({ role, emphasize = false }: OwnerPostProjec
         )}
         aria-hidden={!expanded}
       >
-        <Link
+        <NavLink
           href={UPLOAD_PROJECT_HREF}
+          prefetch
           onClick={() => {
             markIntroSeen();
             setExpanded(false);
@@ -112,9 +121,10 @@ export function OwnerPostProjectFab({ role, emphasize = false }: OwnerPostProjec
         >
           <Upload className="h-4 w-4 text-emerald-600 shrink-0" />
           Upload Project
-        </Link>
-        <Link
+        </NavLink>
+        <NavLink
           href={HIRE_SERVICES_HREF}
+          prefetch
           onClick={() => {
             markIntroSeen();
             setExpanded(false);
@@ -128,7 +138,7 @@ export function OwnerPostProjectFab({ role, emphasize = false }: OwnerPostProjec
         >
           <Briefcase className="h-4 w-4 text-violet-600 shrink-0" />
           Hire Services
-        </Link>
+        </NavLink>
       </div>
 
       <div className="relative flex items-center">
