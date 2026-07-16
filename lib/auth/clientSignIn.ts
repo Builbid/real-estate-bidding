@@ -18,6 +18,18 @@ export async function clientSignIn(
     return { error: error.message, redirectPath: '/dashboard' };
   }
 
+  const userId = data.user.id;
+
+  const { data: provider } = await supabase
+    .from('service_providers')
+    .select('id')
+    .eq('id', userId)
+    .maybeSingle();
+
+  if (provider) {
+    return { error: null, redirectPath: '/provider/dashboard' };
+  }
+
   const metaRole = data.user.user_metadata?.role as string | undefined;
   if (metaRole) {
     return { error: null, redirectPath: getDashboardPath(metaRole) };

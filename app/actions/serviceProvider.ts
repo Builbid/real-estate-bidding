@@ -25,7 +25,7 @@ export async function upsertServiceProviderProfileAction(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: 'Please verify your phone first.', success: false };
+  if (!user) return { error: 'Please sign in first.', success: false };
 
   let resolvedCategoryIds = categoryIds.filter(Boolean);
   if (resolvedCategoryIds.length === 0 && categorySlug) {
@@ -186,4 +186,108 @@ export async function adminSetProviderVerifiedAction(
   revalidatePath('/admin/verifications');
   revalidatePath(`/hire-services/provider/${providerId}`);
   return { error: null };
+}
+
+export async function registerTradeProviderAction(
+  _prev: { error: string | null; success: boolean },
+  formData: FormData,
+): Promise<{ error: string | null; success: boolean }> {
+  const fullName = (formData.get('full_name') as string | null)?.trim() ?? '';
+  const email = (formData.get('email') as string | null)?.trim() ?? '';
+  const password = (formData.get('password') as string | null) ?? '';
+  const phone = stripMobileDigits((formData.get('phone') as string | null) ?? '');
+  const district = (formData.get('district') as string | null)?.trim() ?? '';
+  const bio = (formData.get('bio') as string | null)?.trim() ?? '';
+  const startingRateRaw = (formData.get('starting_rate') as string | null)?.trim() ?? '';
+  const categoryIds = formData.getAll('category_ids') as string[];
+  const categorySlug = (formData.get('category_slug') as string | null)?.trim() ?? '';
+
+  if (!fullName || !email || !password) {
+    return { error: 'Please fill in all required fields.', success: false };
+  }
+  if (password.length < 8) {
+    return { error: 'Password must be at least 8 characters.', success: false };
+  }
+  const phoneError = validateMobile(phone);
+  if (phoneError) return { error: phoneError, success: false };
+  if (!district) return { error: 'District is required.', success: false };
+
+  const supabase = await createClient();
+
+  let resolvedCategoryIds = categoryIds.filter(Boolean);
+  if (resolvedCategoryIds.length === 0 && categorySlug) {
+    const { data: cat } = await supabase
+      .from('service_categories')
+      .select('id')
+      .eq('slug', categorySlug)
+      .maybeSingle();
+    if (cat?.id) resolvedCategoryIds = [cat.id];
+  }
+  if (resolvedCategoryIds.length === 0) {
+    return { error: 'Select a valid service role.', success: false };
+  }
+
+  let startingRate: number | null = null;
+  if (startingRateRaw) {
+    const parsed = parseFloat(startingRateRaw);
+    if (Number.isNaN(parsed) || parsed < 0) {
+      return { error: 'Starting rate must be a valid number.', success: false };
+    }
+    startingRate = parsed;
+  }
+
+  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://builbid.in';
+  const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      emailRedirectTo: `${origin}/auth/callback?next=/provider/dashboard`,
+      data: { full_name: fullName, hire_service_provider: true },
+    },
+  });
+
+  if (signUpError) {
+    return { error: signUpError.message || 'Sign-up failed.', success: false };
+  }
+  if (!signUpData.user) {
+    return { error: 'Could not create account.', success: false };
+  }
+
+  const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+  if (signInError) {
+    return {
+      error:
+        'Account created. Please check your email to confirm, then sign in at /login.',
+      success: false,
+    };
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { error: 'Sign-in failed after registration.', success: false };
+  }
+
+  const { error: providerError } = await supabase.from('service_providers').upsert(
+    {
+      id: user.id,
+      full_name: fullName,
+      phone,
+      district,
+      categories: resolvedCategoryIds,
+      starting_rate: startingRate,
+      bio: bio || null,
+      status: 'active',
+      is_verified: false,
+    },
+    { onConflict: 'id' },
+  );
+
+  if (providerError) {
+    return { error: providerError.message, success: false };
+  }
+
+  revalidatePath('/provider/dashboard');
+  return { error: null, success: true };
 }

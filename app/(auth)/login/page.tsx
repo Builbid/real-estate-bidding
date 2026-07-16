@@ -35,6 +35,7 @@ function LoginForm({ roleParam }: { roleParam: RoleParam }) {
     router.prefetch('/dashboard/builder')
     router.prefetch('/dashboard/firm')
     router.prefetch('/dashboard/admin')
+    router.prefetch('/provider/dashboard')
   }, [router])
 
   useEffect(() => {
@@ -203,11 +204,24 @@ function LoginPageContent() {
             <LoginForm roleParam={roleParam} />
           </Suspense>
 
-          <div className="mt-6 pt-6 border-t border-border text-center">
+          <div className="mt-6 pt-6 border-t border-border text-center space-y-3">
             <p className="text-sm text-muted-foreground">
               Don&apos;t have an account?{' '}
               <Link href={registerHref} className="text-emerald-400 hover:text-emerald-300 font-semibold transition-colors">
                 Create one free
+              </Link>
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Hire Services provider?{' '}
+              <Link
+                href="/login?next=/provider/dashboard"
+                className="text-emerald-600 dark:text-emerald-400 font-medium hover:underline"
+              >
+                Sign in with email
+              </Link>
+              {' · '}
+              <Link href="/signup/provider" className="text-emerald-600 dark:text-emerald-400 font-medium hover:underline">
+                Register
               </Link>
             </p>
           </div>
