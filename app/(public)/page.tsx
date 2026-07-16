@@ -91,22 +91,23 @@ async function getAuthStatus() {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { isAuthenticated: false, role: null, ownerHasProjects: false };
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
+    const { data: sp } = await supabase
+      .from('service_providers')
+      .select('id')
       .eq('id', user.id)
       .maybeSingle();
 
-    let role = normalizeRole(profile?.role);
-    if (!profile) {
-      const { data: sp } = await supabase
-        .from('service_providers')
-        .select('id')
+    let role: ReturnType<typeof normalizeRole>;
+    if (sp) {
+      role = 'service_provider';
+    } else {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
         .eq('id', user.id)
         .maybeSingle();
-      if (sp) {
-        role = 'service_provider';
-      } else {
+      role = normalizeRole(profile?.role);
+      if (!profile) {
         const meta = user.user_metadata as Record<string, unknown> | undefined;
         if (
           meta?.role === 'service_provider' ||

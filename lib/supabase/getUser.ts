@@ -11,6 +11,20 @@ function resolveRoleFromMetadata(meta: Record<string, unknown>): UserRole {
   return normalizeRole(meta.role as string | undefined)
 }
 
+async function resolveUserRole(
+  supabase: SupabaseClient,
+  userId: string,
+  meta: Record<string, unknown>,
+): Promise<UserRole> {
+  const { data: sp } = await supabase
+    .from('service_providers')
+    .select('id')
+    .eq('id', userId)
+    .maybeSingle()
+  if (sp) return 'service_provider'
+  return resolveRoleFromMetadata(meta)
+}
+
 export interface ResolvedUser {
   supabase: SupabaseClient
   userId: string
@@ -38,11 +52,12 @@ export async function getAuthUser(): Promise<ResolvedUser> {
 
   if (session?.user?.id) {
     const meta = (session.user.user_metadata ?? {}) as Record<string, unknown>
+    const role = await resolveUserRole(supabase, session.user.id, meta)
     return {
       supabase,
       userId: session.user.id,
       email: session.user.email ?? '',
-      role: resolveRoleFromMetadata(meta),
+      role,
       fullName: (meta.full_name as string | undefined) ?? '',
     }
   }
@@ -52,11 +67,12 @@ export async function getAuthUser(): Promise<ResolvedUser> {
 
   if (user?.id) {
     const meta = (user.user_metadata ?? {}) as Record<string, unknown>
+    const role = await resolveUserRole(supabase, user.id, meta)
     return {
       supabase,
       userId: user.id,
       email: user.email ?? '',
-      role: resolveRoleFromMetadata(meta),
+      role,
       fullName: (meta.full_name as string | undefined) ?? '',
     }
   }

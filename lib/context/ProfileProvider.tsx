@@ -13,6 +13,11 @@ import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import type { Profile } from '@/lib/types';
 import { normalizeRole } from '@/lib/auth/roles';
+import {
+  fetchServiceProviderRoleDisplay,
+  mergeServiceProviderProfile,
+  SERVICE_PROVIDER_PROFILE_SELECT,
+} from '@/lib/profile/serviceProviderProfile';
 
 interface ProfileContextValue {
   profile: Profile | null;
@@ -76,11 +81,24 @@ export function ProfileProvider({
       return;
     }
 
-    const { data: row } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .maybeSingle();
+    const [{ data: row }, { data: sp }] = await Promise.all([
+      supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
+      supabase
+        .from('service_providers')
+        .select(SERVICE_PROVIDER_PROFILE_SELECT)
+        .eq('id', user.id)
+        .maybeSingle(),
+    ]);
+
+    if (sp) {
+      const roleDisplay = await fetchServiceProviderRoleDisplay(supabase, sp.categories ?? []);
+      const base = row
+        ? ({ ...(row as Profile), role: normalizeRole((row as Profile).role) } as Profile)
+        : buildFallbackProfile(user);
+      setProfile(mergeServiceProviderProfile(base, sp, roleDisplay));
+      setLoading(false);
+      return;
+    }
 
     if (row) {
       setProfile(row as Profile);
@@ -88,36 +106,7 @@ export function ProfileProvider({
       return;
     }
 
-    const { data: sp } = await supabase
-      .from('service_providers')
-      .select('full_name, phone, categories, is_verified, avatar_url')
-      .eq('id', user.id)
-      .maybeSingle();
-
-    if (sp) {
-      let roleDisplay: string | null = null;
-      const categoryIds = sp.categories ?? [];
-      if (categoryIds.length > 0) {
-        const { data: cat } = await supabase
-          .from('service_categories')
-          .select('name')
-          .eq('id', categoryIds[0])
-          .maybeSingle();
-        if (cat?.name) roleDisplay = cat.name;
-      }
-
-      setProfile({
-        ...buildFallbackProfile(user),
-        full_name: sp.full_name,
-        mobile: sp.phone,
-        avatar_url: sp.avatar_url ?? null,
-        role: 'service_provider',
-        role_display: roleDisplay,
-        is_verified: sp.is_verified ?? false,
-      });
-    } else {
-      setProfile(buildFallbackProfile(user));
-    }
+    setProfile(buildFallbackProfile(user));
     setLoading(false);
   }, []);
 

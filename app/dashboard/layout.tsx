@@ -8,6 +8,11 @@ import { ProfileProvider } from '@/lib/context/ProfileProvider';
 import { DashboardSidebar } from '@/components/dashboard/DashboardSidebar';
 import type { Profile, UserRole } from '@/lib/types';
 import { normalizeRole } from '@/lib/auth/roles';
+import {
+  fetchServiceProviderRoleDisplay,
+  mergeServiceProviderProfile,
+  SERVICE_PROVIDER_PROFILE_SELECT,
+} from '@/lib/profile/serviceProviderProfile';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -16,51 +21,42 @@ interface DashboardLayoutProps {
 async function getUser() {
   const { supabase, userId, email, role, fullName } = await getAuthUser();
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', userId)
-    .maybeSingle();
-
-  if (profile) return profile;
-
-  const { data: sp } = await supabase
-    .from('service_providers')
-    .select('full_name, phone, categories, is_verified, avatar_url')
-    .eq('id', userId)
-    .maybeSingle();
+  const [{ data: profile }, { data: sp }] = await Promise.all([
+    supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
+    supabase
+      .from('service_providers')
+      .select(SERVICE_PROVIDER_PROFILE_SELECT)
+      .eq('id', userId)
+      .maybeSingle(),
+  ]);
 
   if (sp) {
-    let roleDisplay: string | null = null;
-    const categoryIds = sp.categories ?? [];
-    if (categoryIds.length > 0) {
-      const { data: cat } = await supabase
-        .from('service_categories')
-        .select('name')
-        .eq('id', categoryIds[0])
-        .maybeSingle();
-      if (cat?.name) roleDisplay = cat.name;
-    }
-    return {
-      id: userId,
-      email,
-      full_name: sp.full_name,
-      role: 'service_provider' as const,
-      role_display: roleDisplay,
-      mobile: sp.phone,
-      avatar_url: sp.avatar_url ?? null,
-      physical_address: null,
-      pincode: null,
-      is_verified: sp.is_verified ?? false,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
+    const roleDisplay = await fetchServiceProviderRoleDisplay(supabase, sp.categories ?? []);
+    const base = profile
+      ? ({ ...(profile as Profile), role: normalizeRole((profile as Profile).role) } as Profile)
+      : ({
+          id: userId,
+          email,
+          full_name: fullName || 'User',
+          role,
+          mobile: null,
+          physical_address: null,
+          pincode: null,
+          avatar_url: null,
+          is_verified: false,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        } as Profile);
+    return mergeServiceProviderProfile(base, sp, roleDisplay);
   }
+
+  if (profile) return profile;
 
   return {
     id: userId, email, full_name: fullName || 'User', role,
     mobile: null, physical_address: null, pincode: null,
     avatar_url: null,
+    is_verified: false,
     created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
   };
 }
