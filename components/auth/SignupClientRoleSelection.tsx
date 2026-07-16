@@ -4,7 +4,7 @@ import { BuilBidLogo } from '@/components/shared/BuilBidLogo';
 import { SIGNUP_ROLE_CARDS } from '@/lib/auth/signupRoleCards';
 import { cn } from '@/lib/utils';
 
-export function SignupRoleSelection() {
+export function SignupClientRoleSelection() {
   return (
     <div className="flex-1 bg-background text-foreground flex items-center justify-center p-4">
       <div className="absolute inset-0 pointer-events-none">
@@ -13,7 +13,7 @@ export function SignupRoleSelection() {
 
       <div className="relative w-full max-w-lg">
         <Link
-          href="/"
+          href="/signup"
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
         >
           <ArrowLeft className="w-4 h-4" /> Back

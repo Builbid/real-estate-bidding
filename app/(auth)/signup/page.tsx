@@ -1,5 +1,5 @@
-import { SignupRoleSelection } from '@/components/auth/SignupRoleSelection';
+import { SignupAccountTypeSelection } from '@/components/auth/SignupAccountTypeSelection';
 
 export default function SignupPage() {
-  return <SignupRoleSelection />;
+  return <SignupAccountTypeSelection />;
 }

@@ -14,12 +14,32 @@ export async function upsertServiceProviderProfileAction(
   const bio = (formData.get('bio') as string | null)?.trim() ?? '';
   const startingRateRaw = (formData.get('starting_rate') as string | null)?.trim() ?? '';
   const categoryIds = formData.getAll('category_ids') as string[];
+  const categorySlug = (formData.get('category_slug') as string | null)?.trim() ?? '';
 
   if (!fullName) return { error: 'Full name is required.', success: false };
   const phoneError = validateMobile(phone);
   if (phoneError) return { error: phoneError, success: false };
   if (!district) return { error: 'District is required.', success: false };
-  if (categoryIds.length === 0) return { error: 'Select at least one service category.', success: false };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: 'Please verify your phone first.', success: false };
+
+  let resolvedCategoryIds = categoryIds.filter(Boolean);
+  if (resolvedCategoryIds.length === 0 && categorySlug) {
+    const { data: cat } = await supabase
+      .from('service_categories')
+      .select('id')
+      .eq('slug', categorySlug)
+      .maybeSingle();
+    if (cat?.id) resolvedCategoryIds = [cat.id];
+  }
+
+  if (resolvedCategoryIds.length === 0) {
+    return { error: 'Select at least one service category.', success: false };
+  }
 
   let startingRate: number | null = null;
   if (startingRateRaw) {
@@ -30,19 +50,13 @@ export async function upsertServiceProviderProfileAction(
     startingRate = parsed;
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: 'Please verify your phone first.', success: false };
-
   const { error } = await supabase.from('service_providers').upsert(
     {
       id: user.id,
       full_name: fullName,
       phone,
       district,
-      categories: categoryIds,
+      categories: resolvedCategoryIds,
       starting_rate: startingRate,
       bio: bio || null,
       status: 'active',
