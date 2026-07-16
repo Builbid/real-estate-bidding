@@ -33,8 +33,13 @@ export async function updateSession(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
-  // Guard: unauthenticated user hitting any /dashboard/* path → send to /login
-  if (pathname.startsWith('/dashboard') && !user) {
+  // Guard: unauthenticated user hitting protected paths → send to /login
+  if (
+    (pathname.startsWith('/dashboard') ||
+      pathname.startsWith('/provider') ||
+      pathname.startsWith('/admin')) &&
+    !user
+  ) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = '/login';
     loginUrl.searchParams.set('next', pathname); // preserve intended destination
