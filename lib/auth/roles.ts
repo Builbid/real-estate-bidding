@@ -12,6 +12,8 @@ export function normalizeRole(role: string | null | undefined): UserRole {
       return 'labour_contractor';
     case 'construction_firm':
       return 'construction_firm';
+    case 'service_provider':
+      return 'service_provider';
     default:
       return 'labour_contractor';
   }
@@ -29,6 +31,8 @@ export function getDashboardPath(role: string | null | undefined): string {
       return '/dashboard/firm';
     case 'admin':
       return '/dashboard/admin';
+    case 'service_provider':
+      return '/provider/dashboard';
     default:
       return '/dashboard/builder';
   }

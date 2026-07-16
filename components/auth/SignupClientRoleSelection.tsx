@@ -52,6 +52,7 @@ export function SignupClientRoleSelection() {
                 <Link
                   key={card.role}
                   href={card.href}
+                  prefetch
                   className={cn(
                     'block w-full text-left px-4 py-4 rounded-xl border-2 transition-all duration-200',
                     'hover:scale-[1.01] active:scale-[0.99] shadow-sm hover:shadow-md',

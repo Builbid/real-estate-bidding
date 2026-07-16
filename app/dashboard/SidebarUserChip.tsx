@@ -7,7 +7,7 @@ import { useDashboardProfile } from '@/lib/context/ProfileProvider';
 interface SidebarUserChipProps {
   avatarGradient: string;
   roleLabel: string;
-  roleColor: 'amber' | 'teal' | 'indigo' | 'violet';
+  roleColor: 'amber' | 'teal' | 'indigo' | 'violet' | 'emerald';
 }
 
 export function SidebarUserChip({ avatarGradient, roleLabel, roleColor }: SidebarUserChipProps) {

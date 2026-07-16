@@ -23,7 +23,7 @@ export function CreateAccountButton({ compact, className }: CreateAccountButtonP
         className,
       )}
     >
-      <Link href="/signup">{t('common.createAccount')}</Link>
+      <Link href="/signup" prefetch>{t('common.createAccount')}</Link>
     </Button>
   );
 }

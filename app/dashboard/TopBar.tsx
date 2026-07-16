@@ -40,16 +40,17 @@ interface ProfileData {
 
 interface TopBarProps {
   profile: ProfileData
-  roleColor: 'amber' | 'teal' | 'indigo' | 'violet'
+  roleColor: 'amber' | 'teal' | 'indigo' | 'violet' | 'emerald'
   avatarGradient: string
 }
 
 // Role badge colors aligned with the new palette
-const ROLE_BADGES: Record<string, 'amber' | 'teal' | 'indigo' | 'violet'> = {
+const ROLE_BADGES: Record<string, 'amber' | 'teal' | 'indigo' | 'violet' | 'emerald'> = {
   owner:              'amber',
   labour_contractor:  'teal',
   construction_firm:  'violet',
   admin:              'indigo',
+  service_provider:   'emerald',
 }
 
 const NAV_ITEMS: Record<string, { href: string; icon: React.ComponentType<{ className?: string }>; labelKey: string }[]> = {

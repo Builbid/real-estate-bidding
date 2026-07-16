@@ -20,14 +20,16 @@ import { CreateAccountButton } from '@/components/shared/CreateAccountButton';
 import { useTranslation } from '@/lib/context/LanguageProvider';
 import { cn } from '@/lib/utils';
 import { normalizeRole, getDashboardPath } from '@/lib/auth/roles';
+import { getProfileRoleLabel } from '@/lib/auth/profileRoleLabel';
 import { clientSignOut } from '@/lib/auth/clientSignOut';
 import { NAV_LOGO_LINK, NAV_MENU_ITEM } from '@/lib/navStyles';
 
-const ROLE_BADGES: Record<string, 'amber' | 'teal' | 'indigo' | 'violet'> = {
+const ROLE_BADGES: Record<string, 'amber' | 'teal' | 'indigo' | 'violet' | 'emerald'> = {
   owner: 'amber',
   labour_contractor: 'teal',
   construction_firm: 'violet',
   admin: 'indigo',
+  service_provider: 'emerald',
 };
 
 const ROLE_AVATAR: Record<string, string> = {
@@ -35,6 +37,7 @@ const ROLE_AVATAR: Record<string, string> = {
   labour_contractor: 'from-blue-400 to-cyan-500',
   construction_firm: 'from-violet-400 to-indigo-600',
   admin: 'from-violet-400 to-indigo-600',
+  service_provider: 'from-emerald-400 to-teal-500',
 };
 
 interface NavbarProps {
@@ -87,7 +90,11 @@ export function Navbar({ overlay = false, authHint }: NavbarProps) {
     : authHint?.role
       ? normalizeRole(authHint.role)
       : null;
-  const roleLabel = normalizedRole ? t(`roles.${normalizedRole}` as 'roles.owner') : '';
+  const roleLabel = profile
+    ? getProfileRoleLabel(profile, t)
+    : normalizedRole
+      ? t(`roles.${normalizedRole}` as 'roles.owner')
+      : '';
 
   async function handleSignOut() {
     setProfileOpen(false);

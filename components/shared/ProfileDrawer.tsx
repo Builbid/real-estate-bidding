@@ -7,20 +7,23 @@ import { Badge } from '@/components/ui/badge';
 import { UserAvatar } from '@/components/shared/UserAvatar';
 import { useTranslation } from '@/lib/context/LanguageProvider';
 import { normalizeRole } from '@/lib/auth/roles';
+import { getProfileRoleLabel } from '@/lib/auth/profileRoleLabel';
 import { NAV_PRESSABLE } from '@/lib/navStyles';
 import { cn } from '@/lib/utils';
 
-const ROLE_BADGES: Record<string, 'amber' | 'teal' | 'indigo' | 'violet'> = {
+const ROLE_BADGES: Record<string, 'amber' | 'teal' | 'indigo' | 'violet' | 'emerald'> = {
   owner: 'amber',
   labour_contractor: 'teal',
   construction_firm: 'violet',
   admin: 'indigo',
+  service_provider: 'emerald',
 };
 
 export interface ProfileDrawerData {
   full_name: string;
   email: string;
   role: string;
+  role_display?: string | null;
   mobile?: string | null;
   physical_address?: string | null;
   pincode?: string | null;
@@ -50,7 +53,7 @@ export function ProfileDrawer({
   const { t } = useTranslation();
   const normalizedRole = normalizeRole(profile.role);
   const badgeColor = ROLE_BADGES[normalizedRole] ?? 'teal';
-  const roleLabel = t(`roles.${normalizedRole}` as 'roles.owner');
+  const roleLabel = getProfileRoleLabel(profile, t);
 
   const savedScrollY = useRef(0);
   const [mounted, setMounted] = useState(false);

@@ -25,6 +25,7 @@ export const as: Messages = {
     labour_contractor: 'Labour Contractor',
     construction_firm: 'Construction Firm',
     admin: 'Admin',
+    service_provider: 'Service Provider',
   },
   status: {
     active_24h: 'Live Bidding',

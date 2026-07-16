@@ -4,7 +4,7 @@
 
 import type { BuildingType, ConstructionTypesMap } from './buildingConfig';
 
-export type UserRole = 'owner' | 'labour_contractor' | 'construction_firm' | 'admin';
+export type UserRole = 'owner' | 'labour_contractor' | 'construction_firm' | 'admin' | 'service_provider';
 export type ServiceType = 'labour_contractor' | 'construction_firm';
 export type FinishingLevel = 'basic' | 'standard' | 'premium';
 export type TrackType = 'RCC' | 'AssamType';
@@ -46,6 +46,8 @@ export interface Profile {
   is_verified: boolean;
   created_at: string;
   updated_at: string;
+  /** Hire Services trade label (e.g. Painter) — not stored on profiles table */
+  role_display?: string | null;
 }
 
 export interface PublicProfile {

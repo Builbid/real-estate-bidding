@@ -19,7 +19,7 @@ import { clientSignOut } from '@/lib/auth/clientSignOut';
 import { NAV_LOGO_LINK, NAV_MENU_ITEM } from '@/lib/navStyles';
 import { cn } from '@/lib/utils';
 
-type NavRole = UserRole;
+type NavRole = Exclude<UserRole, 'service_provider'>;
 
 const NAV_CONFIG: Record<NavRole, { href: string; icon: typeof LayoutDashboard; labelKey: string }[]> = {
   owner: [
@@ -41,7 +41,7 @@ const NAV_CONFIG: Record<NavRole, { href: string; icon: typeof LayoutDashboard; 
 
 interface DashboardSidebarProps {
   role: UserRole | string;
-  roleColor: 'amber' | 'teal' | 'indigo' | 'violet';
+  roleColor: 'amber' | 'teal' | 'indigo' | 'violet' | 'emerald';
   avatarGradient: string;
 }
 
@@ -55,7 +55,10 @@ export function DashboardSidebar({
   const { clearProfile } = useProfile();
   const [signOutOpen, setSignOutOpen] = useState(false);
   const normalizedRole = normalizeRole(role);
-  const navItems = NAV_CONFIG[normalizedRole] ?? NAV_CONFIG.labour_contractor;
+  const navItems =
+    normalizedRole === 'service_provider'
+      ? NAV_CONFIG.labour_contractor
+      : NAV_CONFIG[normalizedRole];
   const roleLabel = t(`roles.${normalizedRole}` as 'roles.owner');
 
   return (

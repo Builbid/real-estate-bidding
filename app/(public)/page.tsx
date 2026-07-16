@@ -92,8 +92,31 @@ async function getAuthStatus() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { isAuthenticated: false, role: null, ownerHasProjects: false };
     const { data: profile } = await supabase
-      .from('profiles').select('role').eq('id', user.id).single();
-    const role = normalizeRole(profile?.role);
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    let role = normalizeRole(profile?.role);
+    if (!profile) {
+      const { data: sp } = await supabase
+        .from('service_providers')
+        .select('id')
+        .eq('id', user.id)
+        .maybeSingle();
+      if (sp) {
+        role = 'service_provider';
+      } else {
+        const meta = user.user_metadata as Record<string, unknown> | undefined;
+        if (
+          meta?.role === 'service_provider' ||
+          meta?.hire_service_provider === true ||
+          meta?.hire_service_provider === 'true'
+        ) {
+          role = 'service_provider';
+        }
+      }
+    }
     let ownerHasProjects = false;
     if (role === 'owner') {
       const { count } = await supabase

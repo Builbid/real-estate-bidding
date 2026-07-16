@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { AlertCircle, ArrowLeft, ArrowRight, CheckCircle2, Eye, EyeOff, Loader2, Mail, Lock } from 'lucide-react';
@@ -22,13 +22,8 @@ import {
   getTradeCategorySlug,
   SERVICE_PROVIDER_SIGNUP_ROLES,
 } from '@/lib/auth/serviceProviderSignupRoles';
-import type { ServiceCategory } from '@/lib/types/hireServices';
 
 type Step = 'role' | 'account';
-
-interface ProviderSignupFormProps {
-  categories: ServiceCategory[];
-}
 
 function RoleSelect({
   value,
@@ -60,7 +55,7 @@ function RoleSelect({
   );
 }
 
-export function ProviderSignupForm({ categories }: ProviderSignupFormProps) {
+export function ProviderSignupForm() {
   const router = useRouter();
 
   const [step, setStep] = useState<Step>('role');
@@ -78,10 +73,6 @@ export function ProviderSignupForm({ categories }: ProviderSignupFormProps) {
   const [error, setError] = useState<string | null>(null);
 
   const tradeCategorySlug = providerRole ? getTradeCategorySlug(providerRole) : null;
-  const tradeCategoryId = useMemo(() => {
-    if (!tradeCategorySlug) return null;
-    return categories.find((c) => c.slug === tradeCategorySlug)?.id ?? null;
-  }, [categories, tradeCategorySlug]);
 
   const roleLabel =
     SERVICE_PROVIDER_SIGNUP_ROLES.find((r) => r.value === providerRole)?.label ?? '';
@@ -130,9 +121,7 @@ export function ProviderSignupForm({ categories }: ProviderSignupFormProps) {
     formData.set('district', district);
     formData.set('starting_rate', startingRate);
     formData.set('bio', bio);
-    if (tradeCategoryId) {
-      formData.append('category_ids', tradeCategoryId);
-    } else {
+    if (tradeCategorySlug) {
       formData.set('category_slug', tradeCategorySlug);
     }
 

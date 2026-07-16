@@ -242,7 +242,7 @@ export async function registerTradeProviderAction(
     password,
     options: {
       emailRedirectTo: `${origin}/auth/callback?next=/provider/dashboard`,
-      data: { full_name: fullName, hire_service_provider: true },
+      data: { full_name: fullName, role: 'service_provider', hire_service_provider: true },
     },
   });
 
