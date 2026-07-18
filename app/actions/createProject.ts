@@ -5,7 +5,8 @@ import type { BuildingType, ConstructionTypesMap } from '@/lib/buildingConfig'
 import { deriveLegacyProjectFields } from '@/lib/buildingConfig'
 import { buildFirmConstructionTypes } from '@/lib/firm/projectDefaults'
 import { validatePincode } from '@/lib/validation/pincode'
-import type { FinishingLevel, ServiceType } from '@/lib/types'
+import type { FinishingLevel, ServiceType, SubConfiguration } from '@/lib/types'
+import { sendNewProjectAnnouncementEmails } from '@/lib/email/newProjectAnnouncement'
 
 interface CreateProjectBase {
   title: string
@@ -111,6 +112,21 @@ export async function createProjectAction(
     .single()
 
   if (error) return { error: error.message }
+
+  try {
+    await sendNewProjectAnnouncementEmails({
+      projectId: project.id,
+      title: project.title,
+      district: project.district,
+      state: input.state,
+      track_type: project.track_type,
+      sub_configuration: (project.sub_configuration ?? {}) as SubConfiguration,
+      bidding_ends_at: project.bidding_ends_at,
+      serviceType,
+    })
+  } catch (emailErr) {
+    console.error('New project announcement email failed (non-fatal):', emailErr)
+  }
 
   return { error: null, projectId: project.id, biddingEndsAt: project.bidding_ends_at }
 }

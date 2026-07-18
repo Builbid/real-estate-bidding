@@ -23,6 +23,8 @@ interface UserNotificationEmailData {
   to:    string;
   title: string;
   body:  string;
+  actionUrl?: string;
+  actionLabel?: string;
 }
 
 function escapeHtml(text: string): string {
@@ -51,10 +53,17 @@ function getMailTransporter(): { transporter: Transporter; from: string } {
   return { transporter, from: `"BuilBid Platform" <${gmailUser}>` };
 }
 
-function buildUserNotificationHtml(title: string, body: string): string {
+function buildUserNotificationHtml(
+  title: string,
+  body: string,
+  actionUrl?: string,
+  actionLabel?: string,
+): string {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim() || 'https://builbid.in';
   const safeTitle = escapeHtml(title);
   const safeBody  = escapeHtml(body);
+  const href = actionUrl?.trim() || `${siteUrl}/dashboard`;
+  const buttonLabel = escapeHtml(actionLabel?.trim() || 'Open Dashboard');
 
   return `<!DOCTYPE html>
 <html>
@@ -77,8 +86,8 @@ function buildUserNotificationHtml(title: string, body: string): string {
     </div>
 
     <div style="text-align:center;margin-bottom:32px">
-      <a href="${siteUrl}/dashboard" style="display:inline-block;background:#7c3aed;color:#fff;text-decoration:none;font-size:14px;font-weight:600;padding:12px 24px;border-radius:8px">
-        Open Dashboard
+      <a href="${href}" style="display:inline-block;background:#7c3aed;color:#fff;text-decoration:none;font-size:14px;font-weight:600;padding:12px 24px;border-radius:8px">
+        ${buttonLabel}
       </a>
     </div>
 
@@ -107,7 +116,12 @@ export async function sendUserNotificationEmail(data: UserNotificationEmailData)
     from,
     to,
     subject: data.title,
-    html:    buildUserNotificationHtml(data.title, data.body),
+    html:    buildUserNotificationHtml(
+      data.title,
+      data.body,
+      data.actionUrl,
+      data.actionLabel,
+    ),
   });
 
   console.log('User notification email sent:', info.messageId, '→', to);
