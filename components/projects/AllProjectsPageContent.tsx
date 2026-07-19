@@ -8,7 +8,6 @@ import { ShowcaseProjectCard } from '@/components/home/ShowcaseProjectCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { loadActiveProjectsPage } from '@/app/actions/projects';
-import { PROJECTS_PAGE_SIZE } from '@/lib/projects/fetchActiveProjectsPage';
 import type { ShowcaseProject } from '@/lib/projectShowcase';
 import { NavLink } from '@/components/shared/NavLink';
 import { NAV_BACK_LINK } from '@/lib/navStyles';
@@ -25,18 +24,13 @@ interface AllProjectsPageContentProps {
 export function AllProjectsPageContent({
   initialProjects,
   initialTotal,
-  initialHasMore,
-  initialNextOffset,
   role,
 }: AllProjectsPageContentProps) {
   const [projects, setProjects] = useState(initialProjects);
   const [total, setTotal] = useState(initialTotal);
-  const [hasMore, setHasMore] = useState(initialHasMore);
-  const [nextOffset, setNextOffset] = useState(initialNextOffset);
   const [locationSearch, setLocationSearch] = useState('');
   const [activeSearch, setActiveSearch] = useState('');
   const [isPending, startTransition] = useTransition();
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const searchRequestId = useRef(0);
 
   const runSearch = useCallback((query: string) => {
@@ -45,13 +39,10 @@ export function AllProjectsPageContent({
       const result = await loadActiveProjectsPage({
         offset: 0,
         search: query,
-        limit: PROJECTS_PAGE_SIZE,
       });
       if (requestId !== searchRequestId.current) return;
       setProjects(result.projects);
       setTotal(result.total);
-      setHasMore(result.hasMore);
-      setNextOffset(result.nextOffset);
       setActiveSearch(query.trim());
     });
   }, []);
@@ -65,28 +56,6 @@ export function AllProjectsPageContent({
 
     return () => window.clearTimeout(handle);
   }, [locationSearch, activeSearch, runSearch]);
-
-  async function handleViewMore() {
-    if (!hasMore || isLoadingMore || isPending) return;
-    setIsLoadingMore(true);
-    try {
-      const result = await loadActiveProjectsPage({
-        offset: nextOffset,
-        search: activeSearch,
-        limit: PROJECTS_PAGE_SIZE,
-      });
-      setProjects((prev) => {
-        const seen = new Set(prev.map((project) => project.id));
-        const appended = result.projects.filter((project) => !seen.has(project.id));
-        return [...prev, ...appended];
-      });
-      setTotal(result.total);
-      setHasMore(result.hasMore);
-      setNextOffset(result.nextOffset);
-    } finally {
-      setIsLoadingMore(false);
-    }
-  }
 
   const handleExpire = useCallback((projectId: string) => {
     setProjects((prev) => prev.filter((project) => project.id !== projectId));
@@ -129,38 +98,22 @@ export function AllProjectsPageContent({
         </div>
 
         {projects.length > 0 ? (
-          <>
-            <div
-              className={cn(
-                'grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3',
-                isPending && 'opacity-70 transition-opacity',
-              )}
-            >
-              {projects.map((project) => (
-                <ShowcaseProjectCard
-                  key={project.id}
-                  project={project}
-                  role={role}
-                  onExpire={handleExpire}
-                />
-              ))}
-            </div>
-
-            {hasMore && (
-              <div className="mt-8 flex justify-center">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="lg"
-                  onClick={handleViewMore}
-                  disabled={isLoadingMore || isPending}
-                  className="min-w-[10rem]"
-                >
-                  {isLoadingMore ? 'Loading…' : 'View More'}
-                </Button>
-              </div>
+          <div
+            className={cn(
+              'grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3',
+              isPending && 'opacity-70 transition-opacity',
             )}
-          </>
+          >
+            {projects.map((project) => (
+              <ShowcaseProjectCard
+                key={project.id}
+                project={project}
+                role={role}
+                onExpire={handleExpire}
+                showCopyButton
+              />
+            ))}
+          </div>
         ) : (
           <div className="rounded-2xl border border-dashed border-border bg-card/40 px-6 py-16 text-center">
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-emerald-500/20 bg-emerald-500/10">

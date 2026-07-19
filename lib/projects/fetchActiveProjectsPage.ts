@@ -1,8 +1,9 @@
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '@/lib/supabase/server';
 import type { Project } from '@/lib/types';
 import type { ShowcaseProject } from '@/lib/projectShowcase';
+import { PROJECTS_PAGE_SIZE } from '@/lib/projects/constants';
 
-export const PROJECTS_PAGE_SIZE = 12;
+export { PROJECTS_PAGE_SIZE };
 
 type ProjectRow = Project & {
   owner: { id: string; full_name: string } | null;
@@ -30,7 +31,7 @@ async function attachLowestRates(
 ): Promise<ShowcaseProject[]> {
   if (rows.length === 0) return [];
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const projectIds = rows.map((row) => row.id);
   const { data: bidRows } = await supabase
     .from('bids')
@@ -60,17 +61,16 @@ export async function fetchActiveProjectsPage(options: {
   search?: string;
   expireStale?: boolean;
 }): Promise<ActiveProjectsPageResult> {
-  const offset = Math.max(0, options.offset ?? 0);
-  const limit = Math.max(1, Math.min(options.limit ?? PROJECTS_PAGE_SIZE, 48));
   const search = sanitizeSearchTerm(options.search ?? '');
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const now = new Date().toISOString();
 
-  if (options.expireStale !== false && offset === 0) {
+  if (options.expireStale !== false) {
     await supabase.rpc('expire_active_projects');
   }
 
+  // Fetch all live active projects — no .limit() / .range() pagination.
   let query = supabase
     .from('projects')
     .select('*, owner:profiles_public!owner_id(id, full_name), bids(count)', {
@@ -86,22 +86,21 @@ export async function fetchActiveProjectsPage(options: {
     );
   }
 
-  const { data, count, error } = await query.range(offset, offset + limit - 1);
+  const { data, count, error } = await query;
 
   if (error) {
     console.error('fetchActiveProjectsPage:', error.message);
-    return { projects: [], total: 0, hasMore: false, nextOffset: offset };
+    return { projects: [], total: 0, hasMore: false, nextOffset: 0 };
   }
 
   const rows = (data ?? []) as ProjectRow[];
   const projects = await attachLowestRates(rows);
   const total = count ?? projects.length;
-  const nextOffset = offset + projects.length;
 
   return {
     projects,
     total,
-    hasMore: nextOffset < total,
-    nextOffset,
+    hasMore: false,
+    nextOffset: projects.length,
   };
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowRight, Clock, Layers, CalendarDays } from 'lucide-react';
+import { ArrowRight, Clock, Copy, Layers, CalendarDays } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { BuildingConfigSummary } from '@/components/construction/BuildingConfigSummary';
@@ -26,19 +26,35 @@ interface ShowcaseProjectCardProps {
   project: ShowcaseProject;
   role: string | null;
   onExpire?: (projectId: string) => void;
+  showCopyButton?: boolean;
+}
+
+function buildProjectCopyText(project: ShowcaseProject): string {
+  const location = [project.district, project.state].filter(Boolean).join(', ');
+  const rate =
+    project.lowest_rate != null ? formatRate(project.lowest_rate) : 'Not available';
+
+  return [
+    `Title: ${project.title}`,
+    `Location: ${location || 'Not available'}`,
+    `Rate: ${rate}`,
+  ].join('\n');
 }
 
 export function ShowcaseProjectCard({
   project,
   role,
   onExpire,
+  showCopyButton = false,
 }: ShowcaseProjectCardProps) {
   const { t } = useTranslation();
   const { href, action } = getShowcaseCardAction(project.id, role, { isDemo: project.isDemo });
   const [remaining, setRemaining] = useState(() =>
     formatShowcaseRemaining(project.bidding_ends_at)
   );
+  const [copied, setCopied] = useState(false);
   const expiredRef = useRef(false);
+  const copiedResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     expiredRef.current = false;
@@ -61,6 +77,23 @@ export function ShowcaseProjectCard({
       if (interval) clearInterval(interval);
     };
   }, [project.bidding_ends_at, project.id, onExpire]);
+
+  useEffect(() => {
+    return () => {
+      if (copiedResetRef.current) clearTimeout(copiedResetRef.current);
+    };
+  }, []);
+
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(buildProjectCopyText(project));
+      setCopied(true);
+      if (copiedResetRef.current) clearTimeout(copiedResetRef.current);
+      copiedResetRef.current = setTimeout(() => setCopied(false), 2000);
+    } catch (error) {
+      console.error('Failed to copy project details:', error);
+    }
+  }
 
   if (remaining.isExpired) return null;
 
@@ -194,19 +227,34 @@ export function ShowcaseProjectCard({
           )}
         </div>
 
-        <Button
-          variant="outline"
-          size="sm"
-          className="mt-auto w-full group/btn rounded-xl border-emerald-500/20 bg-emerald-500/[0.04] hover:bg-emerald-500/10"
-          asChild
-        >
-          <Link href={href}>
-            <span>
-              {action === 'bidNow' ? t('home.auctions.bidNow') : t('common.viewDetails')}
-            </span>
-            <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover/btn:translate-x-0.5" />
-          </Link>
-        </Button>
+        <div className="mt-auto flex flex-col gap-2">
+          {showCopyButton && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleCopy}
+              className="w-full rounded-xl"
+              aria-label={copied ? 'Copied project details' : 'Copy project details'}
+            >
+              <Copy className="h-3.5 w-3.5" />
+              <span>{copied ? 'Copied!' : 'Copy'}</span>
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full group/btn rounded-xl border-emerald-500/20 bg-emerald-500/[0.04] hover:bg-emerald-500/10"
+            asChild
+          >
+            <Link href={href}>
+              <span>
+                {action === 'bidNow' ? t('home.auctions.bidNow') : t('common.viewDetails')}
+              </span>
+              <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover/btn:translate-x-0.5" />
+            </Link>
+          </Button>
+        </div>
       </div>
     </article>
   );
