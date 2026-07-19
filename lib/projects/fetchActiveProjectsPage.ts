@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/client';
 import type { Project } from '@/lib/types';
 import type { ShowcaseProject } from '@/lib/projectShowcase';
 
@@ -30,7 +30,7 @@ async function attachLowestRates(
 ): Promise<ShowcaseProject[]> {
   if (rows.length === 0) return [];
 
-  const supabase = await createClient();
+  const supabase = createClient();
   const projectIds = rows.map((row) => row.id);
   const { data: bidRows } = await supabase
     .from('bids')
@@ -64,7 +64,7 @@ export async function fetchActiveProjectsPage(options: {
   const limit = Math.max(1, Math.min(options.limit ?? PROJECTS_PAGE_SIZE, 48));
   const search = sanitizeSearchTerm(options.search ?? '');
 
-  const supabase = await createClient();
+  const supabase = createClient();
   const now = new Date().toISOString();
 
   if (options.expireStale !== false && offset === 0) {
