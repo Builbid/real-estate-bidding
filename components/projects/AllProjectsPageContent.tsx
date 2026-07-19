@@ -110,6 +110,7 @@ export function AllProjectsPageContent({
                 project={project}
                 role={role}
                 onExpire={handleExpire}
+                hideWhenExpired={false}
                 showCopyButton
               />
             ))}

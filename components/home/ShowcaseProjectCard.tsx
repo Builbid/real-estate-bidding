@@ -26,6 +26,8 @@ interface ShowcaseProjectCardProps {
   project: ShowcaseProject;
   role: string | null;
   onExpire?: (projectId: string) => void;
+  /** When false, expired cards stay visible instead of unmounting. */
+  hideWhenExpired?: boolean;
   showCopyButton?: boolean;
 }
 
@@ -45,7 +47,8 @@ export function ShowcaseProjectCard({
   project,
   role,
   onExpire,
-  showCopyButton = false,
+  hideWhenExpired = true,
+  showCopyButton = true,
 }: ShowcaseProjectCardProps) {
   const { t } = useTranslation();
   const { href, action } = getShowcaseCardAction(project.id, role, { isDemo: project.isDemo });
@@ -66,7 +69,9 @@ export function ShowcaseProjectCard({
 
       if (next.isExpired && !expiredRef.current) {
         expiredRef.current = true;
-        onExpire?.(project.id);
+        if (hideWhenExpired) {
+          onExpire?.(project.id);
+        }
       }
     }
 
@@ -76,7 +81,7 @@ export function ShowcaseProjectCard({
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [project.bidding_ends_at, project.id, onExpire]);
+  }, [project.bidding_ends_at, project.id, onExpire, hideWhenExpired]);
 
   useEffect(() => {
     return () => {
@@ -95,7 +100,7 @@ export function ShowcaseProjectCard({
     }
   }
 
-  if (remaining.isExpired) return null;
+  if (hideWhenExpired && remaining.isExpired) return null;
 
   const isFirm = isFirmProject(project);
   const serviceType = getProjectServiceType(project);
@@ -238,7 +243,7 @@ export function ShowcaseProjectCard({
               aria-label={copied ? 'Copied project details' : 'Copy project details'}
             >
               <Copy className="h-3.5 w-3.5" />
-              <span>{copied ? 'Copied!' : 'Copy'}</span>
+              <span>{copied ? 'Copied!' : 'Copy Details'}</span>
             </Button>
           )}
           <Button

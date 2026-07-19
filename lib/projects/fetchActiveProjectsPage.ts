@@ -64,20 +64,18 @@ export async function fetchActiveProjectsPage(options: {
   const search = sanitizeSearchTerm(options.search ?? '');
 
   const supabase = await createClient();
-  const now = new Date().toISOString();
 
   if (options.expireStale !== false) {
     await supabase.rpc('expire_active_projects');
   }
 
-  // Fetch all live active projects — no .limit() / .range() pagination.
+  // Fetch all active projects — no .limit(1), .single(), .limit(), or .range().
   let query = supabase
     .from('projects')
     .select('*, owner:profiles_public!owner_id(id, full_name), bids(count)', {
       count: 'exact',
     })
     .eq('status', 'active_24h')
-    .gt('bidding_ends_at', now)
     .order('created_at', { ascending: false });
 
   if (search) {

@@ -22,8 +22,7 @@ async function getActiveShowcaseProjects(): Promise<ShowcaseProject[]> {
     .select('*, owner:profiles_public!owner_id(id, full_name), bids(count)')
     .eq('status', 'active_24h')
     .gt('bidding_ends_at', now)
-    .order('created_at', { ascending: false })
-    .limit(10);
+    .order('created_at', { ascending: false });
 
   const rows = (data ?? []) as ProjectRow[];
   if (rows.length === 0) return [];
