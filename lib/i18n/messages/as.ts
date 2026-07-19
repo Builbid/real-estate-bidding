@@ -103,6 +103,7 @@ export const as: Messages = {
       swipeHint: 'Swipe to see more auctions',
       bidNow: 'Bid দিয়ক',
       viewDashboard: 'Dashboard চাওক',
+      viewAllProjects: 'সকলো Project চাওক',
       signUpToBid: 'Bid দিবলৈ Sign Up',
       selectionTitle: 'Selection Phase',
       projects: '{count} projects',

@@ -101,6 +101,7 @@ export const en = {
       swipeHint: 'Swipe to see more auctions',
       bidNow: 'Bid Now',
       viewDashboard: 'View Dashboard',
+      viewAllProjects: 'View All Projects',
       signUpToBid: 'Sign Up to Bid',
       selectionTitle: 'Selection Phase',
       projects: '{count} projects',

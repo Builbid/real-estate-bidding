@@ -48,7 +48,7 @@ export function getShowcaseCardAction(
 export function getShowcaseSectionLink(
   isAuthenticated: boolean,
   role: string | null,
-): { href: string; labelKey: 'home.auctions.signUpToBid' | 'home.auctions.bidNow' | 'home.auctions.viewDashboard' } {
+): { href: string; labelKey: 'home.auctions.signUpToBid' | 'home.auctions.bidNow' | 'home.auctions.viewAllProjects' } {
   if (!isAuthenticated) {
     return { href: '/register', labelKey: 'home.auctions.signUpToBid' };
   }
@@ -58,7 +58,7 @@ export function getShowcaseSectionLink(
   if (normalizeRole(role) === 'construction_firm') {
     return { href: '/dashboard/firm', labelKey: 'home.auctions.bidNow' };
   }
-  return { href: getDashboardPath(normalizeRole(role)), labelKey: 'home.auctions.viewDashboard' };
+  return { href: '/projects', labelKey: 'home.auctions.viewAllProjects' };
 }
 
 export function formatShowcaseRemaining(targetDateISO: string): {
