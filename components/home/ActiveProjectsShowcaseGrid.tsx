@@ -2,9 +2,10 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight, Sparkles } from 'lucide-react';
+import { ArrowRight, Search, Sparkles } from 'lucide-react';
 import { ShowcaseProjectCard } from './ShowcaseProjectCard';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   getShowcaseSectionLink,
   isProjectBiddingLive,
@@ -12,10 +13,8 @@ import {
   type ShowcaseProject,
 } from '@/lib/projectShowcase';
 import { getProjectServiceType } from '@/lib/project/display';
-import { getUniqueDistrictsFromProjects, matchesDistrictFilter } from '@/lib/project/districtFilter';
 import type { ServiceType } from '@/lib/types';
 import { useTranslation } from '@/lib/context/LanguageProvider';
-import { ProjectDistrictFilter, type DistrictFilterValue } from '@/components/shared/ProjectDistrictFilter';
 import { cn } from '@/lib/utils';
 
 type ServiceFilter = 'all' | ServiceType;
@@ -33,6 +32,22 @@ const FILTER_OPTIONS: { id: ServiceFilter; label: string }[] = [
   { id: 'construction_firm', label: 'Construction Firm' },
 ];
 
+function matchesLocationSearch(project: ShowcaseProject, query: string): boolean {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+
+  const city =
+    typeof (project as ShowcaseProject & { city?: string | null }).city === 'string'
+      ? (project as ShowcaseProject & { city?: string | null }).city
+      : null;
+
+  const fields = [project.title, city, project.district, project.state].filter(
+    (value): value is string => Boolean(value && value.trim()),
+  );
+
+  return fields.some((field) => field.toLowerCase().includes(q));
+}
+
 export function ActiveProjectsShowcaseGrid({
   projects: initialProjects,
   isAuthenticated,
@@ -42,7 +57,7 @@ export function ActiveProjectsShowcaseGrid({
   const { t } = useTranslation();
   const [expiredIds, setExpiredIds] = useState<Set<string>>(() => new Set());
   const [serviceFilter, setServiceFilter] = useState<ServiceFilter>('all');
-  const [districtFilter, setDistrictFilter] = useState<DistrictFilterValue>('all');
+  const [locationSearch, setLocationSearch] = useState('');
 
   const handleExpire = useCallback((projectId: string) => {
     setExpiredIds((prev) => {
@@ -63,22 +78,17 @@ export function ActiveProjectsShowcaseGrid({
     [initialProjects, expiredIds],
   );
 
-  const availableDistricts = useMemo(
-    () => getUniqueDistrictsFromProjects(liveProjects),
-    [liveProjects],
-  );
-
   const filteredProjects = useMemo(() => {
     const filtered = liveProjects.filter((project) => {
       const matchesService =
         serviceFilter === 'all' || getProjectServiceType(project) === serviceFilter;
-      const matchesDistrict = matchesDistrictFilter(project.district, districtFilter);
-      return matchesService && matchesDistrict;
+      return matchesService && matchesLocationSearch(project, locationSearch);
     });
     return sortShowcaseProjectsByLatest(filtered);
-  }, [liveProjects, serviceFilter, districtFilter]);
+  }, [liveProjects, serviceFilter, locationSearch]);
 
   const sectionLink = getShowcaseSectionLink(isAuthenticated, role);
+  const hasActiveSearch = locationSearch.trim().length > 0;
 
   return (
     <div className="relative">
@@ -106,7 +116,7 @@ export function ActiveProjectsShowcaseGrid({
         </Link>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 mb-6">
+      <div className="mb-3 flex flex-wrap items-center gap-2">
         {FILTER_OPTIONS.map(({ id, label }) => (
           <button
             key={id}
@@ -126,14 +136,21 @@ export function ActiveProjectsShowcaseGrid({
             {label}
           </button>
         ))}
-        {availableDistricts.length > 0 && (
-          <ProjectDistrictFilter
-            value={districtFilter}
-            onChange={setDistrictFilter}
-            districts={availableDistricts}
-            heroOverlay={heroOverlay}
-          />
-        )}
+      </div>
+
+      <div className="mb-6 max-w-md">
+        <Input
+          type="search"
+          value={locationSearch}
+          onChange={(event) => setLocationSearch(event.target.value)}
+          placeholder="Search by specific location"
+          aria-label="Search by specific location"
+          prefix={<Search className="h-4 w-4" />}
+          className={cn(
+            heroOverlay &&
+              'border-white/20 bg-white/10 text-white placeholder:text-white/60 focus:border-emerald-300/50 focus:ring-emerald-300/30',
+          )}
+        />
       </div>
 
       {filteredProjects.length > 0 ? (
@@ -152,9 +169,17 @@ export function ActiveProjectsShowcaseGrid({
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
             <Sparkles className="h-6 w-6 text-emerald-500" />
           </div>
-          <h3 className="text-lg font-semibold text-foreground mb-2">{t('home.showcase.emptyTitle')}</h3>
-          <p className="text-sm text-muted-foreground max-w-md mx-auto mb-6">{t('home.showcase.emptyDesc')}</p>
-          {!isAuthenticated && (
+          <h3 className="text-lg font-semibold text-foreground mb-2">
+            {hasActiveSearch || serviceFilter !== 'all'
+              ? 'No matching projects'
+              : t('home.showcase.emptyTitle')}
+          </h3>
+          <p className="text-sm text-muted-foreground max-w-md mx-auto mb-6">
+            {hasActiveSearch || serviceFilter !== 'all'
+              ? 'Try a different location, project name, or service filter.'
+              : t('home.showcase.emptyDesc')}
+          </p>
+          {!isAuthenticated && !hasActiveSearch && serviceFilter === 'all' && (
             <Button asChild>
               <Link href="/register?role=owner">{t('home.hero.startPosting')}</Link>
             </Button>
