@@ -85,12 +85,12 @@ export function ShowcaseProjectCard({
   ];
 
   return (
-    <article className="surface-card-interactive group relative flex flex-col overflow-hidden">
+    <article className="surface-card-interactive group relative flex h-full min-w-0 flex-col overflow-hidden">
       <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-600 opacity-90" />
 
-      <div className="border-b border-border/70 px-5 pt-5 pb-4">
+      <div className="min-w-0 border-b border-border/70 px-5 pt-5 pb-4">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <div className="flex flex-wrap gap-2">
+          <div className="flex min-w-0 flex-wrap gap-2">
             <Badge variant="emerald" className="text-xs">
               <span className="mr-1 h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
               {t('home.showcase.liveBadge')}
@@ -111,7 +111,7 @@ export function ShowcaseProjectCard({
           </div>
           <div
             className={cn(
-              'flex items-center gap-1.5 rounded-lg border px-2.5 py-1 shadow-sm',
+              'flex max-w-full items-center gap-1.5 rounded-lg border px-2.5 py-1 shadow-sm',
               'border-border/70 bg-muted/40',
               remaining.isUrgent &&
                 'border-red-400/40 bg-red-500/10',
@@ -127,7 +127,7 @@ export function ShowcaseProjectCard({
             />
             <span
               className={cn(
-                'text-xs font-semibold tabular-nums tracking-tight',
+                'truncate text-xs font-semibold tabular-nums tracking-tight',
                 remaining.isUrgent
                   ? 'text-red-600 dark:text-red-300'
                   : 'text-emerald-700 dark:text-emerald-200',
@@ -138,7 +138,7 @@ export function ShowcaseProjectCard({
           </div>
         </div>
 
-        <h3 className="line-clamp-2 text-lg font-bold leading-snug text-foreground transition-colors group-hover:text-emerald-600 dark:group-hover:text-emerald-400">
+        <h3 className="line-clamp-2 break-words text-lg font-bold leading-snug text-foreground transition-colors group-hover:text-emerald-600 dark:group-hover:text-emerald-400">
           {project.title}
         </h3>
 
@@ -150,12 +150,12 @@ export function ShowcaseProjectCard({
 
         <ul className="mt-3 space-y-1.5 text-sm leading-relaxed text-muted-foreground">
           {specifications.map((spec) => (
-            <li key={spec.label} className="flex gap-2">
+            <li key={spec.label} className="flex min-w-0 gap-2">
               <span
                 aria-hidden
                 className="mt-2 h-1 w-1 flex-shrink-0 rounded-full bg-emerald-500"
               />
-              <span>
+              <span className="min-w-0 break-words">
                 <span className="font-medium text-foreground/90">
                   {spec.label}:
                 </span>{' '}
@@ -166,18 +166,18 @@ export function ShowcaseProjectCard({
         </ul>
       </div>
 
-      <div className="flex flex-1 flex-col p-5">
-        <div className="surface-inset mb-4 p-3">
+      <div className="flex min-w-0 flex-1 flex-col p-5">
+        <div className="surface-inset mb-4 min-w-0 p-3">
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <p className="text-sm font-bold text-foreground">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-bold text-foreground">
                 {floorAreaDisplay ?? t('home.showcase.openBidding')}
               </p>
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="mb-0.5 flex items-center gap-1 text-xs uppercase tracking-wider text-muted-foreground">
-                <Layers className="h-3 w-3" />
-                {t('home.showcase.activeBids')}
+                <Layers className="h-3 w-3 flex-shrink-0" />
+                <span className="truncate">{t('home.showcase.activeBids')}</span>
               </p>
               <p className="text-sm font-bold text-foreground">
                 {project.bid_count}
@@ -185,9 +185,11 @@ export function ShowcaseProjectCard({
             </div>
           </div>
           {postedDisplay && (
-            <p className="mt-2 flex items-center gap-1 border-t border-border/60 pt-2 text-xs text-muted-foreground">
+            <p className="mt-2 flex min-w-0 items-center gap-1 border-t border-border/60 pt-2 text-xs text-muted-foreground">
               <CalendarDays className="h-3 w-3 flex-shrink-0" />
-              {t('project.postedOn')} {postedDisplay}
+              <span className="truncate">
+                {t('project.postedOn')} {postedDisplay}
+              </span>
             </p>
           )}
         </div>
