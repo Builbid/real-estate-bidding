@@ -111,7 +111,6 @@ export function AllProjectsPageContent({
                 role={role}
                 onExpire={handleExpire}
                 hideWhenExpired={false}
-                showCopyButton
               />
             ))}
           </div>

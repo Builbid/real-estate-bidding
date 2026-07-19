@@ -69,7 +69,7 @@ export async function fetchActiveProjectsPage(options: {
     await supabase.rpc('expire_active_projects');
   }
 
-  // Fetch all active projects — no .limit(1), .single(), .limit(), or .range().
+  // Return every active_24h row — intentionally no .limit() / .single() / .range().
   let query = supabase
     .from('projects')
     .select('*, owner:profiles_public!owner_id(id, full_name), bids(count)', {
@@ -84,7 +84,7 @@ export async function fetchActiveProjectsPage(options: {
     );
   }
 
-  const { data, count, error } = await query;
+  const { data, count, error } = await query; // unrestricted result set
 
   if (error) {
     console.error('fetchActiveProjectsPage:', error.message);
