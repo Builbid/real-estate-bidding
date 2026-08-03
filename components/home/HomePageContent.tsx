@@ -108,7 +108,7 @@ export function HomePageContent({
                     <Link href="/signup/client">{t('home.hero.startPosting')}</Link>
                   </Button>
                   <Button asChild size="lg" variant="outline" className="rounded-xl">
-                    <Link href="/signup/bidder/labour-contractor">{t('home.hero.imBuilder')}</Link>
+                    <Link href="/signup/provider">{t('home.hero.serviceProviderSignup')}</Link>
                   </Button>
                 </>
               )}

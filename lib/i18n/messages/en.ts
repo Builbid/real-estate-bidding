@@ -76,7 +76,7 @@ export const en = {
         'Post your real estate projects, receive best-market rates from verified builders, and close deals via transparent auctions.',
       goDashboard: 'Go to Dashboard',
       startPosting: 'Sign up as Client',
-      imBuilder: 'Sign up as Bidder',
+      serviceProviderSignup: 'Sign up as Service Provider',
     },
     trust: {
       verifiedBuilders: 'Verified Builders',

@@ -78,7 +78,7 @@ export const as: Messages = {
         'আপোনাৰ project post কৰক, verified builders ৰ পৰা ভাল rate পাব, transparent auction ৰ জৰিয়তে deal close কৰক।',
       goDashboard: 'Dashboard লৈ যাওক',
       startPosting: 'Post Your Project',
-      imBuilder: 'Participate on Bid →',
+      serviceProviderSignup: 'Sign up as Service Provider',
     },
     trust: {
       verifiedBuilders: 'Verified Builders',
