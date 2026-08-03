@@ -9,6 +9,8 @@ import {
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { STAT_ICON_STYLES, type StatIconColor } from '@/lib/dashboard/statIconStyles';
+import { cn } from '@/lib/utils';
 import { CountdownTicker } from '@/components/shared/CountdownTicker';
 import { STATUS_CONFIG } from '@/lib/utils';
 import { FirmAuctionRow } from './AuctionRow';
@@ -121,16 +123,16 @@ export default async function FirmDashboardPage() {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: 'Open Auctions', value: activeProjects.length, icon: Building2, color: 'emerald' },
-          { label: 'My Active Bids', value: bidsPlaced.length, icon: TrendingUp, color: 'indigo' },
-          { label: 'Contracts Won', value: wins.length, icon: Award, color: 'amber' },
-          { label: 'Total Participated', value: myBids.length, icon: CheckCircle2, color: 'violet' },
+          { label: 'Open Auctions', value: activeProjects.length, icon: Building2, color: 'emerald' as StatIconColor },
+          { label: 'My Active Bids', value: bidsPlaced.length, icon: TrendingUp, color: 'indigo' as StatIconColor },
+          { label: 'Contracts Won', value: wins.length, icon: Award, color: 'amber' as StatIconColor },
+          { label: 'Total Participated', value: myBids.length, icon: CheckCircle2, color: 'violet' as StatIconColor },
         ].map(({ label, value, icon: Icon, color }) => (
           <Card key={label}>
             <CardContent className="pt-5 pb-5">
               <div className="flex items-center gap-3">
-                <div className={`w-9 h-9 rounded-lg bg-${color}-500/10 border border-${color}-500/20 flex items-center justify-center`}>
-                  <Icon className={`w-4.5 h-4.5 text-${color}-400`} />
+                <div className={cn('flex h-9 w-9 items-center justify-center rounded-lg border', STAT_ICON_STYLES[color].box)}>
+                  <Icon className={cn('h-4.5 w-4.5', STAT_ICON_STYLES[color].icon)} />
                 </div>
                 <div>
                   <p className="text-xl font-bold text-foreground">{value}</p>

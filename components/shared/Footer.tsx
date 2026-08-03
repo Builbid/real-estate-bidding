@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { BadgeCheck, Shield, Star } from 'lucide-react';
 import { BuilBidLogo } from '@/components/shared/BuilBidLogo';
 import { useTranslation } from '@/lib/context/LanguageProvider';
+import { PUBLIC_FOOTER_PLATFORM_LINKS } from '@/lib/nav/publicLinks';
 
 function LinkedInIcon({ className }: { className?: string }) {
   return (
@@ -34,11 +35,10 @@ export function Footer({ compact }: FooterProps) {
     { icon: Star, text: t('home.trust.transparentPricing'), color: 'text-amber-400' },
   ] as const;
 
-  const PLATFORM_LINKS = [
-    { label: t('footer.exploreProjects'), href: '/' },
-    { label: t('footer.activeBids'), href: '/#live-auctions' },
-    { label: t('footer.forBuilders'), href: '/signup' },
-  ] as const;
+  const PLATFORM_LINKS = PUBLIC_FOOTER_PLATFORM_LINKS.map(({ href, labelKey }) => ({
+    label: t(labelKey),
+    href,
+  }));
 
   const COMPANY_LINKS = [
     { label: t('footer.aboutUs'), href: '/about' },

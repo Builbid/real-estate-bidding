@@ -47,6 +47,10 @@ export const as: Messages = {
     controlCenter: 'Control Center',
     projectsAll: 'Projects (All)',
     firmProfile: 'Firm Profile',
+    liveProjects: 'Live Projects',
+    allProjects: 'All Projects',
+    hireServices: 'Hire Services',
+    about: 'About',
   },
   footer: {
     tagline: 'আপোনাৰ বিশ্বাসযোগ্য real estate bidding platform',
@@ -86,6 +90,22 @@ export const as: Messages = {
       pendingSelection: 'Selection বাকী',
       totalProjects: 'Total Projects',
       bidsSubmitted: 'Bids দিয়া হৈছে',
+    },
+    howItWorks: {
+      title: 'BuilBid কেনেকৈ কাম কৰে',
+      subtitle: 'তিনিটা সহজ পদক্ষেপত transparent construction procurement।',
+      post: {
+        title: 'Client project post কৰে',
+        desc: 'Location, building type আৰু scope share কৰক। Fixed window ৰ বাবে bidding open হয়।',
+      },
+      bid: {
+        title: 'Contractors competitively bid দিয়ে',
+        desc: 'Labour contractors আৰু construction firms real time ত per-sqft rate submit কৰে।',
+      },
+      select: {
+        title: 'Client best offer select কৰে',
+        desc: 'Bids compare কৰক, selection window ৰ ভিতৰত contractor confirm কৰক।',
+      },
     },
     featuredFirms: {
       labourTitle: 'Top Labour Contractors',

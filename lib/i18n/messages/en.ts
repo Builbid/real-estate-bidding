@@ -45,6 +45,10 @@ export const en = {
     controlCenter: 'Control Center',
     projectsAll: 'Projects (All)',
     firmProfile: 'Firm Profile',
+    liveProjects: 'Live Projects',
+    allProjects: 'All Projects',
+    hireServices: 'Hire Services',
+    about: 'About',
   },
   footer: {
     tagline: 'Your trusted real estate bidding platform',
@@ -84,6 +88,22 @@ export const en = {
       pendingSelection: 'Pending Selection',
       totalProjects: 'Total Projects',
       bidsSubmitted: 'Bids Submitted',
+    },
+    howItWorks: {
+      title: 'How BuilBid Works',
+      subtitle: 'Transparent construction procurement in three simple steps.',
+      post: {
+        title: 'Client posts a project',
+        desc: 'Share location, building type, and scope. Bidding opens for a fixed window.',
+      },
+      bid: {
+        title: 'Contractors bid competitively',
+        desc: 'Labour contractors and construction firms submit per-sqft rates in real time.',
+      },
+      select: {
+        title: 'Client selects the best offer',
+        desc: 'Compare bids privately, then confirm your contractor within the selection window.',
+      },
     },
     featuredFirms: {
       labourTitle: 'Top Labour Contractors',

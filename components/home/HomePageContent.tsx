@@ -1,21 +1,28 @@
 'use client';
 
+import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import {
-  Building2,
-  Activity, Gavel, Clock,
+  Activity, ArrowRight, BadgeCheck, Building2, Clock, Gavel, Shield, Star,
 } from 'lucide-react';
 import { Navbar } from '@/components/shared/Navbar';
+import { Footer } from '@/components/shared/Footer';
 import { HeroBackgroundSlideshow } from '@/components/shared/HeroBackgroundSlideshow';
+import { HowItWorksStrip } from '@/components/home/HowItWorksStrip';
 import { ProjectCard } from '@/components/shared/ProjectCard';
 import { ActiveProjectsShowcaseGrid } from '@/components/home/ActiveProjectsShowcaseGrid';
 import { FeaturedFirmsSection } from '@/components/home/FeaturedFirmsSection';
 import { OwnerPostProjectFab } from '@/components/owner/OwnerPostProjectFab';
 import { ProjectDistrictFilter, type DistrictFilterValue } from '@/components/shared/ProjectDistrictFilter';
+import { Button } from '@/components/ui/button';
 import { getUniqueDistrictsFromProjects, matchesDistrictFilter } from '@/lib/project/districtFilter';
 import { useTranslation } from '@/lib/context/LanguageProvider';
+import { getDashboardPath, normalizeRole } from '@/lib/auth/roles';
+import type { DemoFirm } from '@/lib/data/demoFirms';
 import type { Project } from '@/lib/types';
 import type { ShowcaseProject } from '@/lib/projectShowcase';
+import { STAT_ICON_STYLES, type StatIconColor } from '@/lib/dashboard/statIconStyles';
+import { cn } from '@/lib/utils';
 
 interface HomePageContentProps {
   showcaseProjects: ShowcaseProject[];
@@ -24,6 +31,8 @@ interface HomePageContentProps {
   isAuthenticated: boolean;
   role: string | null;
   ownerHasProjects?: boolean;
+  featuredLabour: DemoFirm[];
+  featuredFirms: DemoFirm[];
 }
 
 export function HomePageContent({
@@ -33,6 +42,8 @@ export function HomePageContent({
   isAuthenticated,
   role,
   ownerHasProjects = false,
+  featuredLabour,
+  featuredFirms,
 }: HomePageContentProps) {
   const { t } = useTranslation();
   const [frozenDistrictFilter, setFrozenDistrictFilter] = useState<DistrictFilterValue>('all');
@@ -47,48 +58,95 @@ export function HomePageContent({
     [frozenProjects, frozenDistrictFilter],
   );
 
-  const STATS_CONFIG = [
-    { key: 'active', label: t('home.stats.activeAuctions'), icon: Activity, iconBorder: 'border-slate-200', iconColor: 'text-blue-600', iconBg: 'bg-blue-50' },
-    { key: 'frozen', label: t('home.stats.pendingSelection'), icon: Clock, iconBorder: 'border-slate-200', iconColor: 'text-violet-600', iconBg: 'bg-violet-50' },
-    { key: 'total', label: t('home.stats.totalProjects'), icon: Building2, iconBorder: 'border-slate-200', iconColor: 'text-amber-600', iconBg: 'bg-amber-50' },
-    { key: 'bids', label: t('home.stats.bidsSubmitted'), icon: Gavel, iconBorder: 'border-slate-200', iconColor: 'text-rose-600', iconBg: 'bg-rose-50' },
+  const normalizedRole = role ? normalizeRole(role) : null;
+
+  const STATS_CONFIG: Array<{
+    key: string;
+    label: string;
+    icon: typeof Activity;
+    tone: StatIconColor;
+  }> = [
+    { key: 'active', label: t('home.stats.activeAuctions'), icon: Activity, tone: 'emerald' },
+    { key: 'frozen', label: t('home.stats.pendingSelection'), icon: Clock, tone: 'violet' },
+    { key: 'total', label: t('home.stats.totalProjects'), icon: Building2, tone: 'teal' },
+    { key: 'bids', label: t('home.stats.bidsSubmitted'), icon: Gavel, tone: 'amber' },
   ];
 
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Navbar overlay authHint={{ isAuthenticated, role }} />
 
-      <section className="relative overflow-x-hidden bg-white">
+      <section className="relative overflow-x-hidden border-b border-border/60">
         <HeroBackgroundSlideshow />
 
-        <div className="relative mx-auto w-full max-w-7xl px-4 pb-6 pt-4 sm:px-6 sm:pb-8 sm:pt-6">
-          <div className="mx-auto mb-6 max-w-xl text-center sm:mb-8">
-            <h1 className="text-2xl sm:text-3xl font-extrabold leading-[1.12] tracking-tight">
-              <span className="text-slate-900">{t('home.hero.titlePrefix')}</span>{' '}
-              <span className="text-violet-600">{t('home.hero.construction')}</span>{' '}
-              <span className="text-amber-600">{t('home.hero.bidding')}</span>{' '}
-              <span className="text-slate-900">{t('home.hero.titleSuffix')}</span>
+        <div className="relative mx-auto w-full max-w-7xl px-4 pb-8 pt-5 sm:px-6 sm:pb-10 sm:pt-8">
+          <div className="mx-auto max-w-3xl text-center">
+            <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-800 dark:text-emerald-300">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
+              {t('home.hero.platformBadge')}
+            </p>
+            <h1 className="text-2xl font-extrabold leading-[1.12] tracking-tight sm:text-4xl">
+              <span className="text-foreground">{t('home.hero.titlePrefix')}</span>{' '}
+              <span className="text-violet-600 dark:text-violet-400">{t('home.hero.construction')}</span>{' '}
+              <span className="text-amber-600 dark:text-amber-400">{t('home.hero.bidding')}</span>{' '}
+              <span className="text-foreground">{t('home.hero.titleSuffix')}</span>
             </h1>
+            <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
+              {t('home.hero.subtitle')}
+            </p>
+
+            <div className="mt-6 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
+              {isAuthenticated && normalizedRole ? (
+                <Button asChild size="lg" className="rounded-xl">
+                  <Link href={getDashboardPath(normalizedRole)}>
+                    {t('home.hero.goDashboard')}
+                    <ArrowRight className="ml-1 h-4 w-4" />
+                  </Link>
+                </Button>
+              ) : (
+                <>
+                  <Button asChild size="lg" className="rounded-xl">
+                    <Link href="/signup/client">{t('home.hero.startPosting')}</Link>
+                  </Button>
+                  <Button asChild size="lg" variant="outline" className="rounded-xl">
+                    <Link href="/signup/bidder/labour-contractor">{t('home.hero.imBuilder')}</Link>
+                  </Button>
+                </>
+              )}
+              <Button asChild size="lg" variant="ghost" className="rounded-xl text-muted-foreground">
+                <a href="#live-auctions">{t('nav.liveProjects')}</a>
+              </Button>
+            </div>
+
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-[11px] text-muted-foreground">
+              <span className="inline-flex items-center gap-1"><BadgeCheck className="h-3.5 w-3.5 text-violet-500" />{t('home.trust.verifiedBuilders')}</span>
+              <span className="inline-flex items-center gap-1"><Shield className="h-3.5 w-3.5 text-emerald-600" />{t('home.trust.privateContact')}</span>
+              <span className="inline-flex items-center gap-1"><Star className="h-3.5 w-3.5 text-amber-500" />{t('home.trust.transparentPricing')}</span>
+            </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
-            {STATS_CONFIG.map(({ key, label, icon: Icon, iconBorder, iconColor, iconBg }) => (
+          <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+            {STATS_CONFIG.map(({ key, label, icon: Icon, tone }) => (
               <div
                 key={key}
-                className="flex items-center gap-2.5 sm:gap-3 bg-transparent px-3 py-3 sm:px-4 sm:py-3.5"
+                className="rounded-2xl border border-border/70 bg-card/80 px-3 py-3 shadow-sm backdrop-blur-sm sm:px-4 sm:py-4"
               >
-                <div className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border sm:h-10 sm:w-10 ${iconBorder} ${iconBg}`}>
-                  <Icon className={`h-4 w-4 sm:h-5 sm:w-5 ${iconColor}`} />
-                </div>
-                <div>
-                  <p className="text-lg font-bold tabular-nums text-slate-900 sm:text-xl">{statValues[key].toLocaleString()}</p>
-                  <p className="text-xs leading-tight text-slate-600">{label}</p>
+                <div className="flex items-center gap-2.5 sm:gap-3">
+                  <div className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border sm:h-10 sm:w-10', STAT_ICON_STYLES[tone].box)}>
+                    <Icon className={cn('h-4 w-4 sm:h-5 sm:w-5', STAT_ICON_STYLES[tone].icon)} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-lg font-bold tabular-nums text-foreground sm:text-xl">{statValues[key].toLocaleString()}</p>
+                    <p className="truncate text-[11px] leading-tight text-muted-foreground sm:text-xs">{label}</p>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
         </div>
       </section>
+
+      <HowItWorksStrip />
 
       <section id="live-auctions" className="mx-auto max-w-7xl px-4 pb-28 pt-8 sm:px-6 sm:pt-10 sm:pb-28">
         <ActiveProjectsShowcaseGrid
@@ -137,7 +195,9 @@ export function HomePageContent({
         )}
       </section>
 
-      <FeaturedFirmsSection />
+      <FeaturedFirmsSection labourFirms={featuredLabour} constructionFirms={featuredFirms} />
+
+      <Footer />
 
       <OwnerPostProjectFab
         role={role}

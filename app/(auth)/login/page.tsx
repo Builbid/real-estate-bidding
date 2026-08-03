@@ -229,8 +229,13 @@ function LoginPageContent() {
 
         <p className="text-center mt-6 text-xs text-muted-foreground/80">
           By signing in, you agree to our{' '}
-          <span className="text-muted-foreground">Terms of Service</span> and{' '}
-          <span className="text-muted-foreground">Privacy Policy</span>
+          <Link href="/terms" className="text-muted-foreground hover:text-foreground underline-offset-2 hover:underline">
+            Terms of Service
+          </Link>{' '}
+          and{' '}
+          <Link href="/privacy" className="text-muted-foreground hover:text-foreground underline-offset-2 hover:underline">
+            Privacy Policy
+          </Link>
         </p>
       </div>
     </div>

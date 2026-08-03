@@ -1,13 +1,15 @@
 'use client';
 
 import { FeaturedPartnersCarousel } from '@/components/home/FeaturedPartnersCarousel';
-import {
-  DEMO_CONSTRUCTION_FIRMS,
-  DEMO_LABOUR_CONTRACTORS,
-} from '@/lib/data/demoFirms';
+import type { DemoFirm } from '@/lib/data/demoFirms';
 import { useTranslation } from '@/lib/context/LanguageProvider';
 
-export function FeaturedFirmsSection() {
+interface FeaturedFirmsSectionProps {
+  labourFirms: DemoFirm[];
+  constructionFirms: DemoFirm[];
+}
+
+export function FeaturedFirmsSection({ labourFirms, constructionFirms }: FeaturedFirmsSectionProps) {
   const { t } = useTranslation();
 
   return (
@@ -16,14 +18,14 @@ export function FeaturedFirmsSection() {
         <FeaturedPartnersCarousel
           title={t('home.featuredFirms.labourTitle')}
           subtitle={t('home.featuredFirms.labourSubtitle')}
-          firms={DEMO_LABOUR_CONTRACTORS}
+          firms={labourFirms}
           partnerType="labour_contractor"
         />
 
         <FeaturedPartnersCarousel
           title={t('home.featuredFirms.firmsTitle')}
           subtitle={t('home.featuredFirms.firmsSubtitle')}
-          firms={DEMO_CONSTRUCTION_FIRMS}
+          firms={constructionFirms}
           partnerType="construction_firm"
           className="mt-6 sm:mt-7"
         />

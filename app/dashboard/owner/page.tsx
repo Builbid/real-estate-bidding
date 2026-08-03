@@ -11,6 +11,8 @@ import { OwnerPostProjectFab } from '@/components/owner/OwnerPostProjectFab';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { STAT_ICON_STYLES, type StatIconColor } from '@/lib/dashboard/statIconStyles';
+import { cn } from '@/lib/utils';
 import {
   STATUS_CONFIG,
   TRACK_LABELS,
@@ -161,16 +163,16 @@ export default async function OwnerDashboard() {
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: 'Live Auctions', value: liveAuctions.length, icon: TrendingUp, color: 'emerald' },
-          { label: 'Awaiting Selection', value: selectionRequired.length, icon: Clock, color: 'indigo' },
-          { label: 'Completed', value: completed.length, icon: Building, color: 'teal' },
-          { label: 'Active on Dashboard', value: totalLive, icon: Layers, color: 'slate' },
+          { label: 'Live Auctions', value: liveAuctions.length, icon: TrendingUp, color: 'emerald' as StatIconColor },
+          { label: 'Awaiting Selection', value: selectionRequired.length, icon: Clock, color: 'indigo' as StatIconColor },
+          { label: 'Completed', value: completed.length, icon: Building, color: 'teal' as StatIconColor },
+          { label: 'Active on Dashboard', value: totalLive, icon: Layers, color: 'slate' as StatIconColor },
         ].map(({ label, value, icon: Icon, color }) => (
           <Card key={label}>
             <CardContent className="pt-5 pb-5">
               <div className="flex items-center gap-3">
-                <div className={`w-9 h-9 rounded-lg bg-${color}-500/10 border border-${color}-500/20 flex items-center justify-center flex-shrink-0`}>
-                  <Icon className={`w-4.5 h-4.5 text-${color}-400`} />
+                <div className={cn('flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border', STAT_ICON_STYLES[color].box)}>
+                  <Icon className={cn('h-4.5 w-4.5', STAT_ICON_STYLES[color].icon)} />
                 </div>
                 <div>
                   <p className="text-xl font-bold text-foreground">{value}</p>

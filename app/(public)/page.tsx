@@ -5,6 +5,7 @@ import type { ShowcaseProject } from '@/lib/projectShowcase';
 import { isProjectBiddingLive } from '@/lib/projectShowcase';
 import { getDemoShowcaseProjects, mergeShowcaseProjects } from '@/lib/data/demoProjects';
 import { normalizeRole } from '@/lib/auth/roles';
+import { getFeaturedPartners } from '@/lib/featured/getFeaturedPartners';
 
 type ProjectRow = Project & {
   owner: { id: string; full_name: string } | null;
@@ -137,10 +138,11 @@ export default async function HomePage() {
     realShowcaseProjects,
     getDemoShowcaseProjects(),
   );
-  const [frozenProjects, stats, auth] = await Promise.all([
+  const [frozenProjects, stats, auth, featured] = await Promise.all([
     getFrozenProjects(),
     getStats(showcaseProjects.filter(isProjectBiddingLive).length),
     getAuthStatus(),
+    getFeaturedPartners(),
   ]);
   const { isAuthenticated, role, ownerHasProjects } = auth;
 
@@ -159,6 +161,8 @@ export default async function HomePage() {
       isAuthenticated={isAuthenticated}
       role={role}
       ownerHasProjects={ownerHasProjects}
+      featuredLabour={featured.labour}
+      featuredFirms={featured.firms}
     />
   );
 }
