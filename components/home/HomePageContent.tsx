@@ -136,6 +136,7 @@ export function HomePageContent({
 
       <OwnerPostProjectFab
         role={role}
+        isAuthenticated={isAuthenticated}
         emphasize={role === 'owner' && !ownerHasProjects}
       />
     </div>
