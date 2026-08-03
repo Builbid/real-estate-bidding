@@ -13,7 +13,7 @@ import { computeRatingStats } from '@/lib/builderRatings';
 import { BuilderPortfolioModal } from './BuilderPortfolioModal';
 import { SelectBuilderButton } from './SelectBuilderButton';
 import { BidFloorRatesBreakdown } from '@/components/shared/BidFloorRatesBreakdown';
-import { hasMultiFloorBidRates } from '@/lib/bid/floorRateDisplay';
+import { resolveProjectFloorCount, shouldShowBidFloorBreakdown } from '@/lib/bid/floorRateDisplay';
 import { useOwnerProjectPhaseContext } from '@/lib/context/OwnerProjectPhaseContext';
 import type { Project, Bid } from '@/lib/types';
 
@@ -119,7 +119,7 @@ export function UnifiedBidRankings({
   }
 
   const isCompleted = project.status === 'completed';
-  const showFloorBreakdown = project.status !== 'active_24h';
+  const projectFloorCount = resolveProjectFloorCount(project);
 
   return (
     <div className="space-y-2">
@@ -240,7 +240,7 @@ export function UnifiedBidRankings({
                 <p className="text-[10px] text-muted-foreground">total /sqft</p>
               </div>
 
-              {showFloorBreakdown && hasMultiFloorBidRates(bid.rates) && (
+              {shouldShowBidFloorBreakdown(bid.rates, projectFloorCount) && (
                 <div className="w-full basis-full">
                   <BidFloorRatesBreakdown rates={bid.rates} />
                 </div>

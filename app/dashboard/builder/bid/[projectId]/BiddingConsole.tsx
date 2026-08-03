@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import {
-  getFloorInputCount, getFloorLabels, getRateKeys,
+  getFloorLabels, getRateKeys,
   computeTotalMetric, formatRelativeTime, TRACK_LABELS, cn
 } from '@/lib/utils';
 import {
@@ -32,7 +32,7 @@ import {
 import { submitBidAction } from '@/app/actions/bid';
 import { UserAvatar } from '@/components/shared/UserAvatar';
 import { BidFloorRatesBreakdown } from '@/components/shared/BidFloorRatesBreakdown';
-import { hasMultiFloorBidRates } from '@/lib/bid/floorRateDisplay';
+import { shouldShowBidFloorBreakdown, resolveProjectFloorCount } from '@/lib/bid/floorRateDisplay';
 import { createClient } from '@/lib/supabase/client';
 import { ConstructionMatrixSummary } from '@/components/construction/ConstructionMatrixSummary';
 import type { Project, Bid, BidRates } from '@/lib/types';
@@ -57,7 +57,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
   const supabase = createClient();
   const [builders, setBuilders] = useState<Record<string, BuilderInfo>>({});
 
-  const floorCount  = getFloorInputCount(project.track_type, project.sub_configuration);
+  const floorCount  = resolveProjectFloorCount(project);
   const floorLabels = getFloorLabels(floorCount);
   const rateKeys    = getRateKeys(floorCount);
 
@@ -74,7 +74,6 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
   const [error, setError]       = useState<string | null>(null);
 
   const isGracePeriod = project.status === 'frozen_24h';
-  const showFloorBreakdown = project.status !== 'active_24h';
   const totalMetric   = computeTotalMetric(rates);
 
   const myCurrentBid = bids.find((b) => b.builder_id === builderId);
@@ -505,7 +504,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                             <p className="text-[10px] text-muted-foreground/80">/sqft total</p>
                           </div>
 
-                          {showFloorBreakdown && hasMultiFloorBidRates(bid.rates) && (
+                          {shouldShowBidFloorBreakdown(bid.rates, floorCount) && (
                             <div className="w-full basis-full">
                               <BidFloorRatesBreakdown rates={bid.rates} />
                             </div>

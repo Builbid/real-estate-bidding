@@ -19,7 +19,6 @@ export function BidFloorRatesBreakdown({
   const entries = getBidFloorRateEntries(rates);
 
   if (entries.length === 0) return null;
-  if (entries.length === 1 && !showTotal) return null;
 
   return (
     <div className={cn('rounded-lg border border-border/60 bg-muted/15 px-2.5 py-2', className)}>

@@ -9,11 +9,11 @@ import { useProfile } from '@/lib/hooks/useProfile';
 import { BuilderRatingBadge } from '@/components/shared/BuilderRatingBadge';
 import { UserAvatar } from '@/components/shared/UserAvatar';
 import { computeRatingStats } from '@/lib/builderRatings';
-import { cn, formatRelativeTime } from '@/lib/utils';
+import { cn, formatRelativeTime, getFloorInputCount } from '@/lib/utils';
 import { useTranslation } from '@/lib/context/LanguageProvider';
 import { ConstructionMatrixSummary } from '@/components/construction/ConstructionMatrixSummary';
 import { BidFloorRatesBreakdown } from '@/components/shared/BidFloorRatesBreakdown';
-import { hasMultiFloorBidRates } from '@/lib/bid/floorRateDisplay';
+import { shouldShowBidFloorBreakdown } from '@/lib/bid/floorRateDisplay';
 import type { ProjectStatus, TrackType, SubConfiguration } from '@/lib/types';
 
 interface BuilderInfo {
@@ -56,6 +56,10 @@ export function BidLeaderboard({
 
   const isActive   = projectStatus === 'active_24h';
   const isLoggedIn = !!profile;
+  const projectFloorCount =
+    trackType && subConfiguration
+      ? getFloorInputCount(trackType, subConfiguration)
+      : 1;
   const showFloorBreakdown = !isActive;
 
   useEffect(() => {
@@ -269,7 +273,7 @@ export function BidLeaderboard({
                 <p className="text-[10px] text-muted-foreground">total rate/sqft</p>
               </div>
 
-              {showFloorBreakdown && hasMultiFloorBidRates(bid.rates) && (
+              {showFloorBreakdown && shouldShowBidFloorBreakdown(bid.rates, projectFloorCount) && (
                 <div className="w-full basis-full">
                   <BidFloorRatesBreakdown rates={bid.rates} />
                 </div>
