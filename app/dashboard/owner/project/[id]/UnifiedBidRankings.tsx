@@ -12,6 +12,8 @@ import { UserAvatar } from '@/components/shared/UserAvatar';
 import { computeRatingStats } from '@/lib/builderRatings';
 import { BuilderPortfolioModal } from './BuilderPortfolioModal';
 import { SelectBuilderButton } from './SelectBuilderButton';
+import { BidFloorRatesBreakdown } from '@/components/shared/BidFloorRatesBreakdown';
+import { hasMultiFloorBidRates } from '@/lib/bid/floorRateDisplay';
 import { useOwnerProjectPhaseContext } from '@/lib/context/OwnerProjectPhaseContext';
 import type { Project, Bid } from '@/lib/types';
 
@@ -117,6 +119,7 @@ export function UnifiedBidRankings({
   }
 
   const isCompleted = project.status === 'completed';
+  const showFloorBreakdown = project.status !== 'active_24h';
 
   return (
     <div className="space-y-2">
@@ -228,7 +231,7 @@ export function UnifiedBidRankings({
               </div>
 
               {/* Rate */}
-              <div className="text-right flex-shrink-0">
+              <div className="text-right flex-shrink-0 min-w-[5.5rem]">
                 <p className={`text-base font-bold tabular-nums ${
                   isSelected ? 'text-emerald-400' : isLowest ? 'text-emerald-400' : 'text-foreground'
                 }`}>
@@ -236,6 +239,12 @@ export function UnifiedBidRankings({
                 </p>
                 <p className="text-[10px] text-muted-foreground">total /sqft</p>
               </div>
+
+              {showFloorBreakdown && hasMultiFloorBidRates(bid.rates) && (
+                <div className="w-full basis-full">
+                  <BidFloorRatesBreakdown rates={bid.rates} />
+                </div>
+              )}
 
               {/* Actions */}
               <div className="flex items-center gap-2 flex-shrink-0">

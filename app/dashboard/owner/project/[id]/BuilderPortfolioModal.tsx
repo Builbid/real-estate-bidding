@@ -15,6 +15,7 @@ import { BuilderRatingBreakdown, BuilderReviewsFeed } from '@/components/shared/
 import { BuilderPortfolioGrid } from '@/components/shared/BuilderPortfolioGrid';
 import { createClient } from '@/lib/supabase/client';
 import { EMPTY_RATING_STATS, type BuilderRatingStats } from '@/lib/builderRatings';
+import { getBidFloorRateEntries } from '@/lib/bid/floorRateDisplay';
 import type { Bid, BuilderPortfolioItem } from '@/lib/types';
 
 interface BuilderInfo {
@@ -49,12 +50,6 @@ interface BuilderRating {
   review: string | null;
   created_at: string;
 }
-
-const FLOOR_LABELS: Record<string, string> = {
-  ground_rate: 'Ground Floor',
-  first_rate:  'First Floor',
-  second_rate: 'Second Floor',
-};
 
 export function BuilderPortfolioModal({
   builder, bid, rank, currentProjectId, isProjectCompleted, isSelectedBuilder, ownerId,
@@ -144,9 +139,7 @@ export function BuilderPortfolioModal({
     setSaving(false);
   }
 
-  const rateEntries = Object.entries(bid.rates).filter(
-    ([, val]) => val !== undefined && val !== null && (val as number) > 0
-  ) as [string, number][];
+  const rateEntries = getBidFloorRateEntries(bid.rates).map(({ key, label, value }) => [key, value, label] as const);
 
   const memberSince = new Date(builder.created_at).toLocaleDateString('en-IN', {
     year: 'numeric', month: 'long',
@@ -261,9 +254,9 @@ export function BuilderPortfolioModal({
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Bid on This Project</p>
               </div>
               <div className="space-y-1.5">
-                {rateEntries.map(([key, val]) => (
+                {rateEntries.map(([key, val, label]) => (
                   <div key={key} className="flex items-center justify-between px-3 py-2 rounded-lg bg-secondary/40 border border-border">
-                    <span className="text-xs text-muted-foreground">{FLOOR_LABELS[key] ?? key}</span>
+                    <span className="text-xs text-muted-foreground">{label}</span>
                     <span className="text-xs font-bold text-foreground tabular-nums">₹{val.toLocaleString('en-IN')}/sqft</span>
                   </div>
                 ))}

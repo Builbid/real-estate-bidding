@@ -12,6 +12,8 @@ import { computeRatingStats } from '@/lib/builderRatings';
 import { cn, formatRelativeTime } from '@/lib/utils';
 import { useTranslation } from '@/lib/context/LanguageProvider';
 import { ConstructionMatrixSummary } from '@/components/construction/ConstructionMatrixSummary';
+import { BidFloorRatesBreakdown } from '@/components/shared/BidFloorRatesBreakdown';
+import { hasMultiFloorBidRates } from '@/lib/bid/floorRateDisplay';
 import type { ProjectStatus, TrackType, SubConfiguration } from '@/lib/types';
 
 interface BuilderInfo {
@@ -54,6 +56,7 @@ export function BidLeaderboard({
 
   const isActive   = projectStatus === 'active_24h';
   const isLoggedIn = !!profile;
+  const showFloorBreakdown = !isActive;
 
   useEffect(() => {
     const missingIds = bids
@@ -196,7 +199,7 @@ export function BidLeaderboard({
               exit={{ opacity: 0, scale: 0.96 }}
               transition={{ type: 'spring', stiffness: 400, damping: 30, mass: 0.8 }}
               className={cn(
-                'relative flex items-center gap-3 px-3 py-3 rounded-lg border',
+                'relative flex flex-wrap items-center gap-3 px-3 py-3 rounded-lg border',
                 'transition-colors duration-200',
                 isLowest
                   ? 'bg-emerald-500/5 border-emerald-500/25 hover:border-emerald-500/40'
@@ -265,6 +268,12 @@ export function BidLeaderboard({
                 </p>
                 <p className="text-[10px] text-muted-foreground">total rate/sqft</p>
               </div>
+
+              {showFloorBreakdown && hasMultiFloorBidRates(bid.rates) && (
+                <div className="w-full basis-full">
+                  <BidFloorRatesBreakdown rates={bid.rates} />
+                </div>
+              )}
 
               {isLowest && (
                 <div className="absolute -top-px left-0 right-0 h-0.5 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-t-lg" />

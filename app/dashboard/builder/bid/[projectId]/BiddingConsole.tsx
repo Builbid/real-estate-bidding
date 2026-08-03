@@ -31,6 +31,8 @@ import {
 } from '@/lib/validation/bidRates';
 import { submitBidAction } from '@/app/actions/bid';
 import { UserAvatar } from '@/components/shared/UserAvatar';
+import { BidFloorRatesBreakdown } from '@/components/shared/BidFloorRatesBreakdown';
+import { hasMultiFloorBidRates } from '@/lib/bid/floorRateDisplay';
 import { createClient } from '@/lib/supabase/client';
 import { ConstructionMatrixSummary } from '@/components/construction/ConstructionMatrixSummary';
 import type { Project, Bid, BidRates } from '@/lib/types';
@@ -72,6 +74,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
   const [error, setError]       = useState<string | null>(null);
 
   const isGracePeriod = project.status === 'frozen_24h';
+  const showFloorBreakdown = project.status !== 'active_24h';
   const totalMetric   = computeTotalMetric(rates);
 
   const myCurrentBid = bids.find((b) => b.builder_id === builderId);
@@ -453,7 +456,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                           exit={{ opacity: 0, scale: 0.96 }}
                           transition={{ type: 'spring', stiffness: 500, damping: 35 }}
                           className={cn(
-                            'relative flex items-center gap-3 px-4 py-3 rounded-xl border transition-colors',
+                            'relative flex flex-wrap items-center gap-3 px-4 py-3 rounded-xl border transition-colors',
                             isLowest && !isMe && 'bg-secondary/40 border-border',
                             isLowest && isMe  && 'bg-emerald-500/8 border-emerald-500/30',
                             !isLowest && isMe  && 'bg-indigo-500/5 border-indigo-500/20 ring-1 ring-indigo-500/20',
@@ -501,6 +504,12 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                             </p>
                             <p className="text-[10px] text-muted-foreground/80">/sqft total</p>
                           </div>
+
+                          {showFloorBreakdown && hasMultiFloorBidRates(bid.rates) && (
+                            <div className="w-full basis-full">
+                              <BidFloorRatesBreakdown rates={bid.rates} />
+                            </div>
+                          )}
                         </motion.div>
                       );
                     })}
