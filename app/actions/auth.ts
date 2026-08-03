@@ -5,7 +5,8 @@ import { redirect } from 'next/navigation'
 import { getDashboardPath, normalizeRole } from '@/lib/auth/roles'
 import { validateGstNumber } from '@/lib/validation/gst'
 import { stripMobileDigits, validateMobile } from '@/lib/validation/mobile'
-import type { UserRole } from '@/lib/types'
+import { isValidConstructionClass } from '@/lib/firm/constructionClass'
+import type { UserRole, FinishingLevel } from '@/lib/types'
 
 export type SignUpRole = 'owner' | 'labour_contractor' | 'construction_firm'
 
@@ -74,6 +75,7 @@ export async function signUpAction(
   const companyName = (formData.get('company_name') as string | null)?.trim() ?? ''
   const gstNumber   = (formData.get('gst_number') as string | null)?.trim().toUpperCase() ?? ''
   const yearsRaw    = (formData.get('years_in_business') as string | null)?.trim() ?? ''
+  const constructionClassRaw = (formData.get('construction_class') as string | null)?.trim() ?? ''
 
   const role: SignUpRole =
     roleRaw === 'owner' || roleRaw === 'construction_firm' || roleRaw === 'labour_contractor'
@@ -101,6 +103,9 @@ export async function signUpAction(
     const gstError = validateGstNumber(gstNumber)
     if (gstError) {
       return { error: gstError, success: false }
+    }
+    if (!isValidConstructionClass(constructionClassRaw)) {
+      return { error: 'Please select your construction class (Class A, B, or C).', success: false }
     }
   }
 
@@ -155,6 +160,7 @@ export async function signUpAction(
     profilePayload.company_name = companyName
     profilePayload.gst_number = gstNumber
     profilePayload.years_in_business = yearsInBusiness
+    profilePayload.construction_class = constructionClassRaw as FinishingLevel
   }
 
   const { error: profileError } = await supabase.from('profiles').upsert(profilePayload)

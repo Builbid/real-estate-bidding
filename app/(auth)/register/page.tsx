@@ -15,9 +15,11 @@ import { uploadBuilderAvatar } from '@/lib/avatar/uploadBuilderAvatar';
 import { uploadFirmLogo } from '@/lib/firm/uploadFirmLogo';
 import { AvatarUpload } from '@/components/builder/AvatarUpload';
 import { LogoUpload } from '@/components/firm/LogoUpload';
+import { FirmConstructionClassSelector } from '@/components/firm/FirmConstructionClassSelector';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import type { FinishingLevel } from '@/lib/types';
 import { validateGstNumber, isValidGstNumber } from '@/lib/validation/gst';
 import { formatMobileDisplay, stripMobileDigits, validateMobile } from '@/lib/validation/mobile';
 import {
@@ -109,6 +111,7 @@ function RegisterPageContent() {
   const [companyName, setCompanyName] = useState('');
   const [gstNumber, setGstNumber] = useState('');
   const [yearsInBusiness, setYearsInBusiness] = useState('');
+  const [constructionClass, setConstructionClass] = useState<FinishingLevel | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
@@ -132,9 +135,12 @@ function RegisterPageContent() {
         errs.company_name = 'Company name is required (min 3 characters).';
       }
       if (touched.gst_number) errs.gst_number = validateGstNumber(gstNumber);
+      if (touched.construction_class && !constructionClass) {
+        errs.construction_class = 'Select Class A, B, or C construction.';
+      }
     }
     return errs;
-  }, [touched, fullName, email, password, mobile, role, companyName, gstNumber]);
+  }, [touched, fullName, email, password, mobile, role, companyName, gstNumber, constructionClass]);
 
   const isFormValid = useMemo(() => {
     if (!fullName.trim() || !email.trim() || password.length < 8) return false;
@@ -142,9 +148,10 @@ function RegisterPageContent() {
     if (role === 'construction_firm') {
       if (companyName.trim().length < 3) return false;
       if (validateGstNumber(gstNumber)) return false;
+      if (!constructionClass) return false;
     }
     return true;
-  }, [fullName, email, password, mobile, role, companyName, gstNumber]);
+  }, [fullName, email, password, mobile, role, companyName, gstNumber, constructionClass]);
 
   function touch(field: string) {
     setTouched((t) => ({ ...t, [field]: true }));
@@ -165,6 +172,7 @@ function RegisterPageContent() {
       mobile: true,
       company_name: true,
       gst_number: true,
+      construction_class: true,
     });
 
     if (!isFormValid) return;
@@ -436,6 +444,19 @@ function RegisterPageContent() {
                       onChange={(e) => setYearsInBusiness(e.target.value)}
                     />
                     <p className="text-[11px] text-muted-foreground mt-1">How many years has your firm been operating?</p>
+                  </div>
+
+                  <div>
+                    <FirmConstructionClassSelector
+                      value={constructionClass}
+                      onChange={(level) => {
+                        setConstructionClass(level);
+                        touch('construction_class');
+                      }}
+                    />
+                    {fieldErrors.construction_class && (
+                      <p className="text-xs text-red-400 mt-1">{fieldErrors.construction_class}</p>
+                    )}
                   </div>
                 </>
               )}

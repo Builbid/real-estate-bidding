@@ -6,6 +6,7 @@ import { Building2, CheckCircle2, Star, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { FirmLogo } from '@/components/firm/FirmLogo';
+import { getConstructionClassLabel } from '@/lib/firm/constructionClass';
 import { SelectFirmButton } from '@/components/firm/SelectFirmButton';
 import type { PublicFirmProfile, FirmPortfolioItem } from '@/lib/types';
 
@@ -55,6 +56,11 @@ export function FirmPublicProfileView({
                 {specialty}
               </span>
             )}
+            {firm.construction_class && (
+              <span className="text-xs px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-semibold">
+                {getConstructionClassLabel(firm.construction_class)} Construction
+              </span>
+            )}
             {firm.years_in_business != null && (
               <span className="text-xs px-2.5 py-1 rounded-full bg-violet-500/10 text-violet-400 border border-violet-500/20 font-semibold">
                 {firm.years_in_business} years in business
@@ -88,6 +94,12 @@ export function FirmPublicProfileView({
           {firm.gst_masked && (
             <p className="text-sm text-muted-foreground">
               <span className="text-foreground font-medium">GST Number:</span> {firm.gst_masked}
+            </p>
+          )}
+          {firm.construction_class && (
+            <p className="text-sm text-muted-foreground">
+              <span className="text-foreground font-medium">Construction Class:</span>{' '}
+              {getConstructionClassLabel(firm.construction_class)} Construction
             </p>
           )}
           {firm.years_in_business != null && (

@@ -43,6 +43,8 @@ export interface Profile {
   years_in_business?: number | null;
   logo_url?: string | null;
   service_type?: ServiceType | null;
+  /** Firm tier: premium=A, standard=B, basic=C */
+  construction_class?: FinishingLevel | null;
   is_verified: boolean;
   created_at: string;
   updated_at: string;
@@ -65,6 +67,7 @@ export interface PublicFirmProfile {
   logo_url?: string | null;
   years_in_business?: number | null;
   is_verified?: boolean;
+  construction_class?: FinishingLevel | null;
   gst_masked?: string | null;
   gst_verified?: boolean;
   physical_address?: string | null;
@@ -213,6 +216,7 @@ export interface RegisterFormData {
   company_name?: string;
   gst_number?: string;
   years_in_business?: number;
+  construction_class?: FinishingLevel;
 }
 
 // ─── UI state types ─────────────────────────────────────────

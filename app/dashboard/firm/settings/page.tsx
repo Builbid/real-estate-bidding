@@ -24,6 +24,7 @@ export default async function FirmSettingsPage() {
         companyName={profile?.company_name ?? ''}
         gstNumber={profile?.gst_number ?? ''}
         yearsInBusiness={profile?.years_in_business ?? null}
+        constructionClass={profile?.construction_class ?? null}
         logoUrl={profile?.logo_url ?? null}
         fullName={profile?.full_name ?? ''}
       />
