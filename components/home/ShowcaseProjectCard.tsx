@@ -40,6 +40,41 @@ function StatCell({ label, value }: { label: string; value: string }) {
   );
 }
 
+function ShowcaseCountdownPill({
+  remaining,
+}: {
+  remaining: ReturnType<typeof formatShowcaseRemaining>;
+}) {
+  return (
+    <div
+      className={cn(
+        'inline-flex max-w-full shrink-0 items-center gap-1.5 rounded-full border px-3 py-1',
+        'bg-muted/30 border-border/70',
+        remaining.isUrgent && 'border-red-400/40 bg-red-500/10',
+      )}
+      role="timer"
+      aria-live="polite"
+    >
+      <Clock
+        className={cn(
+          'h-3.5 w-3.5 shrink-0',
+          remaining.isUrgent
+            ? 'animate-pulse text-red-500'
+            : 'text-emerald-600 dark:text-emerald-400',
+        )}
+      />
+      <span
+        className={cn(
+          'truncate text-xs font-semibold tabular-nums',
+          remaining.isUrgent ? 'text-red-600 dark:text-red-300' : 'text-emerald-700 dark:text-emerald-200',
+        )}
+      >
+        {remaining.label}
+      </span>
+    </div>
+  );
+}
+
 export function ShowcaseProjectCard({
   project,
   role,
@@ -132,45 +167,24 @@ export function ShowcaseProjectCard({
       <div className="h-1 bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-600" />
 
       <div className="flex flex-1 flex-col p-4 sm:p-5">
-        <div className="mb-3 flex flex-col gap-2.5 sm:flex-row sm:items-start sm:justify-between">
-          <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-            <Badge variant="emerald" className="text-[11px]">
-              <span className="mr-1 h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
-              {t('home.showcase.liveBadge')}
-            </Badge>
-            <Badge variant={isFirm ? 'violet' : 'amber'} className="text-[11px]">
-              {getServiceBadgeLabel(serviceType)}
-            </Badge>
-            {finishingBadge && (
-              <Badge variant="default" className="text-[11px]">
-                {finishingBadge}
+        <div className="mb-3 space-y-2">
+          <div className="flex sm:hidden"><ShowcaseCountdownPill remaining={remaining} /></div>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+              <Badge variant="emerald" className="text-[11px]">
+                <span className="mr-1 h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
+                {t('home.showcase.liveBadge')}
               </Badge>
-            )}
-          </div>
-
-          <div
-            className={cn(
-              'inline-flex w-fit max-w-full items-center gap-1.5 rounded-full border px-3 py-1',
-              'bg-muted/30 border-border/70',
-              remaining.isUrgent && 'border-red-400/40 bg-red-500/10',
-            )}
-          >
-            <Clock
-              className={cn(
-                'h-3.5 w-3.5 shrink-0',
-                remaining.isUrgent
-                  ? 'animate-pulse text-red-500'
-                  : 'text-emerald-600 dark:text-emerald-400',
+              <Badge variant={isFirm ? 'violet' : 'amber'} className="text-[11px]">
+                {getServiceBadgeLabel(serviceType)}
+              </Badge>
+              {finishingBadge && (
+                <Badge variant="default" className="text-[11px]">
+                  {finishingBadge}
+                </Badge>
               )}
-            />
-            <span
-              className={cn(
-                'text-xs font-semibold tabular-nums',
-                remaining.isUrgent ? 'text-red-600 dark:text-red-300' : 'text-emerald-700 dark:text-emerald-200',
-              )}
-            >
-              {remaining.label}
-            </span>
+            </div>
+            <div className="hidden sm:flex"><ShowcaseCountdownPill remaining={remaining} /></div>
           </div>
         </div>
 
