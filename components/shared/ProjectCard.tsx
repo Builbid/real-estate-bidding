@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { MapPin, Layers, Clock, Users, ArrowRight, Building, CalendarDays } from 'lucide-react';
+import { MapPin, Clock, ArrowRight, Building, CalendarDays } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { CountdownTicker } from './CountdownTicker';
@@ -25,6 +25,8 @@ interface ProjectCardProps {
   lowestRate?: number;
   showLeaderboard?: boolean;
   isAuthenticated?: boolean;
+  /** Tighter layout for homepage listing sections */
+  variant?: 'default' | 'compact';
 }
 
 export function ProjectCard({
@@ -33,6 +35,7 @@ export function ProjectCard({
   lowestRate,
   showLeaderboard = false,
   isAuthenticated = false,
+  variant = 'default',
 }: ProjectCardProps) {
   const { t } = useTranslation();
   const statusLabel = t(`status.${project.status}` as `status.${ProjectStatus}`);
@@ -45,11 +48,14 @@ export function ProjectCard({
   const budgetDisplay = getProjectBudgetDisplay(project);
   const finishingBadge = getFinishingBadge(project.finishing_level);
   const postedAt = formatProjectPostedAt(project.created_at);
+  const compact = variant === 'compact';
 
   return (
     <Card className={cn(
-      'group relative overflow-hidden transition-all duration-300 rounded-2xl',
-      'hover:shadow-xl hover:shadow-black/10 dark:hover:shadow-black/40 hover:-translate-y-0.5',
+      'group relative flex h-full flex-col overflow-hidden transition-all duration-300 rounded-2xl',
+      compact
+        ? 'border-border/80 shadow-sm hover:shadow-md hover:-translate-y-0.5'
+        : 'hover:shadow-xl hover:shadow-black/10 dark:hover:shadow-black/40 hover:-translate-y-0.5',
       isActive && 'border-emerald-500/25 hover:border-emerald-500/45',
       isFrozen && 'border-indigo-500/25 hover:border-indigo-500/40',
     )}>
@@ -61,28 +67,30 @@ export function ProjectCard({
         !isActive && !isFrozen && 'bg-secondary'
       )} />
 
-      <CardContent className="pt-5 pb-5">
-        {/* Header row */}
-        <div className="flex items-start justify-between gap-3 mb-4">
+      <CardContent className={cn('flex flex-1 flex-col', compact ? 'px-4 py-4 sm:px-5 sm:py-5' : 'pt-5 pb-5')}>
+        <div className={cn('flex items-start justify-between gap-3', compact ? 'mb-3' : 'mb-4')}>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-              <Badge variant={isActive ? 'emerald' : isFrozen ? 'indigo' : 'default'}>
+            <div className="flex items-center gap-1.5 mb-2 flex-wrap">
+              <Badge variant={isActive ? 'emerald' : isFrozen ? 'indigo' : 'default'} className="text-[11px]">
                 {isActive && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />}
                 {statusLabel}
               </Badge>
               <Badge variant={isFirm ? 'violet' : 'amber'} className="text-[10px]">
                 {getServiceBadgeLabel(serviceType)}
               </Badge>
-              {finishingBadge && (
+              {finishingBadge && !compact && (
                 <Badge variant="default" className="text-[10px]">{finishingBadge}</Badge>
               )}
-              {!isFirm && (
-                <Badge variant="default" className="text-muted-foreground">
+              {!isFirm && !compact && (
+                <Badge variant="default" className="text-muted-foreground text-[10px]">
                   {trackLabel}
                 </Badge>
               )}
             </div>
-            <h3 className="text-base font-semibold text-foreground leading-snug line-clamp-2 group-hover:text-emerald-400 transition-colors">
+            <h3 className={cn(
+              'font-semibold text-foreground leading-snug line-clamp-2 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors',
+              compact ? 'text-base' : 'text-base',
+            )}>
               {project.title}
             </h3>
             {postedAt && (isActive || isFrozen) && (
@@ -92,54 +100,51 @@ export function ProjectCard({
               </p>
             )}
           </div>
-          <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-secondary border border-border flex items-center justify-center">
-            <Building className="w-5 h-5 text-muted-foreground" />
-          </div>
+          {!compact && (
+            <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-secondary border border-border flex items-center justify-center">
+              <Building className="w-5 h-5 text-muted-foreground" />
+            </div>
+          )}
         </div>
 
-        {/* Specs grid */}
-        <div className="grid grid-cols-2 gap-3 mb-4">
-          <div className="flex items-start gap-2">
-            <MapPin className="w-3.5 h-3.5 text-muted-foreground mt-0.5 flex-shrink-0" />
-            <div>
-              <p className="text-[10px] text-muted-foreground/80 uppercase tracking-wider">{t('project.district')}</p>
-              <p className="text-xs font-medium text-foreground/80">{project.district}</p>
-            </div>
+        <div className={cn(
+          'grid grid-cols-2 gap-2 sm:gap-2.5 mb-4',
+          compact && 'flex-1',
+        )}>
+          <div className="rounded-xl border border-border/60 bg-muted/25 px-3 py-2.5 dark:bg-muted/15">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{t('project.district')}</p>
+            <p className="text-sm font-semibold text-foreground truncate mt-0.5">{project.district}</p>
           </div>
-          <div className="flex items-start gap-2">
-            <Layers className="w-3.5 h-3.5 text-muted-foreground mt-0.5 flex-shrink-0" />
-            <div>
-              <p className="text-[10px] text-muted-foreground/80 uppercase tracking-wider">{t('project.configuration')}</p>
-              <BuildingConfigSummary project={project} compact className="text-xs font-medium text-foreground/80 leading-snug" />
-            </div>
+          <div className="rounded-xl border border-border/60 bg-muted/25 px-3 py-2.5 dark:bg-muted/15">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{t('project.totalBids')}</p>
+            <p className="text-sm font-semibold text-foreground mt-0.5">{bidCount}</p>
           </div>
           {floorArea && (
-            <div className="flex items-start gap-2">
-              <div className="w-3.5 h-3.5 rounded border border-border flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-[10px] text-muted-foreground/80 uppercase tracking-wider">
-                  {isFirm ? 'Floor Area' : t('project.plotArea')}
-                </p>
-                <p className="text-xs font-medium text-foreground/80">{floorArea}</p>
-              </div>
+            <div className="rounded-xl border border-border/60 bg-muted/25 px-3 py-2.5 dark:bg-muted/15">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                {isFirm ? 'Floor Area' : t('project.plotArea')}
+              </p>
+              <p className="text-sm font-semibold text-foreground truncate mt-0.5">{floorArea}</p>
             </div>
           )}
           {budgetDisplay && (
-            <div className="flex items-start gap-2 col-span-2">
-              <div className="w-3.5 h-3.5 rounded border border-border flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-[10px] text-muted-foreground/80 uppercase tracking-wider">Budget</p>
-                <p className="text-xs font-medium text-foreground/80">{budgetDisplay}</p>
-              </div>
+            <div className="rounded-xl border border-border/60 bg-muted/25 px-3 py-2.5 dark:bg-muted/15">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Budget</p>
+              <p className="text-sm font-semibold text-foreground truncate mt-0.5">{budgetDisplay}</p>
             </div>
           )}
-          <div className="flex items-start gap-2">
-            <Users className="w-3.5 h-3.5 text-muted-foreground mt-0.5 flex-shrink-0" />
-            <div>
-              <p className="text-[10px] text-muted-foreground/80 uppercase tracking-wider">{t('project.totalBids')}</p>
-              <p className="text-xs font-semibold text-foreground">{bidCount}</p>
+          {!compact && (
+            <div className="col-span-2 rounded-xl border border-border/60 bg-muted/25 px-3 py-2.5 dark:bg-muted/15">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{t('project.configuration')}</p>
+              <BuildingConfigSummary project={project} compact className="text-sm font-medium text-foreground/90 leading-snug mt-0.5" />
             </div>
-          </div>
+          )}
+          {compact && !isFirm && (
+            <div className="rounded-xl border border-border/60 bg-muted/25 px-3 py-2.5 dark:bg-muted/15">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{t('project.configuration')}</p>
+              <p className="text-sm font-semibold text-foreground truncate mt-0.5">{trackLabel}</p>
+            </div>
+          )}
         </div>
 
         {/* Lowest rate — only shown to authenticated users during frozen/completed */}
@@ -166,7 +171,7 @@ export function ProjectCard({
         )}
 
         {/* CTA */}
-        <Button variant="outline" size="sm" className="w-full group/btn" asChild>
+        <Button variant="outline" size="sm" className="w-full mt-auto group/btn rounded-xl" asChild>
           <Link href={`/project/${project.id}`}>
             <span>{t('project.viewProject')}</span>
             <ArrowRight className="w-3.5 h-3.5 group-hover/btn:translate-x-0.5 transition-transform" />

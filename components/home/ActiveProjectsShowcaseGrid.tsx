@@ -90,71 +90,82 @@ export function ActiveProjectsShowcaseGrid({
   const sectionLink = getShowcaseSectionLink(isAuthenticated, role);
   const hasActiveSearch = locationSearch.trim().length > 0;
 
+  const filterButtonClass = (active: boolean) =>
+    cn(
+      'px-3 py-2 rounded-full text-xs font-semibold border transition-all',
+      active
+        ? heroOverlay
+          ? 'bg-emerald-400/20 border-emerald-300/40 text-emerald-100'
+          : 'bg-emerald-500/12 border-emerald-600/30 text-emerald-800 dark:border-emerald-500/35 dark:text-emerald-300'
+        : heroOverlay
+          ? 'bg-white/5 border-white/15 text-white/70 hover:text-white hover:border-white/25'
+          : 'border-border/70 bg-muted/30 text-muted-foreground hover:border-border hover:bg-card hover:text-foreground',
+    );
+
   return (
     <div className="relative">
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <h2 className={cn('text-xl font-bold', heroOverlay ? 'text-white' : 'text-foreground')}>
-              {t('home.auctions.liveTitle')}
-            </h2>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-800 dark:text-emerald-400 border border-emerald-600/25 dark:border-emerald-500/20 font-semibold">
-              {t('home.auctions.open', { count: filteredProjects.length })}
-            </span>
-          </div>
+      <div className="mb-5 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <span className="flex h-2 w-2 shrink-0 rounded-full bg-emerald-400 animate-pulse" />
+          <h2 className={cn('text-xl font-bold tracking-tight sm:text-2xl', heroOverlay ? 'text-white' : 'text-foreground')}>
+            {t('home.auctions.liveTitle')}
+          </h2>
+          <span className="rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-semibold text-emerald-800 dark:text-emerald-400">
+            {t('home.auctions.open', { count: filteredProjects.length })}
+          </span>
         </div>
         <Link
           href={sectionLink.href}
           className={cn(
-            'text-sm transition-colors flex items-center gap-1 shrink-0',
+            'inline-flex items-center gap-1 text-sm font-medium transition-colors',
             heroOverlay ? 'text-white/70 hover:text-white' : 'text-muted-foreground hover:text-foreground',
           )}
         >
-          {t(sectionLink.labelKey)}{' '}
-          <ArrowRight className="w-3.5 h-3.5" />
+          {t(sectionLink.labelKey)}
+          <ArrowRight className="h-3.5 w-3.5" />
         </Link>
       </div>
 
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        {FILTER_OPTIONS.map(({ id, label }) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => setServiceFilter(id)}
-            className={cn(
-              'px-3 py-1.5 rounded-full text-xs font-semibold border transition-all shadow-sm',
-              serviceFilter === id
-                ? heroOverlay
-                  ? 'bg-emerald-400/20 border-emerald-300/40 text-emerald-100 shadow-emerald-500/10'
-                  : 'bg-emerald-500/15 border-emerald-600/35 text-emerald-800 dark:border-emerald-500/40 dark:text-emerald-300 shadow-emerald-500/10'
-                : heroOverlay
-                  ? 'bg-white/5 border-white/15 text-white/70 hover:text-white hover:border-white/25'
-                  : 'border-slate-300 bg-slate-50 text-slate-700 hover:border-slate-400 hover:bg-white hover:text-slate-900 dark:bg-secondary/50 dark:border-border/70 dark:text-muted-foreground dark:hover:text-foreground dark:hover:border-border',
-            )}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-
-      <div className="mb-6 max-w-md">
-        <Input
-          type="search"
-          value={locationSearch}
-          onChange={(event) => setLocationSearch(event.target.value)}
-          placeholder="Search by specific location"
-          aria-label="Search by specific location"
-          prefix={<Search className="h-4 w-4" />}
-          className={cn(
-            heroOverlay &&
-              'border-white/20 bg-white/10 text-white placeholder:text-white/60 focus:border-emerald-300/50 focus:ring-emerald-300/30',
-          )}
-        />
+      <div
+        className={cn(
+          'mb-6 rounded-2xl border p-4 sm:p-5',
+          heroOverlay
+            ? 'border-white/15 bg-white/5 backdrop-blur-sm'
+            : 'border-border/70 bg-muted/20 dark:bg-muted/10',
+        )}
+      >
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by service type">
+            {FILTER_OPTIONS.map(({ id, label }) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setServiceFilter(id)}
+                className={filterButtonClass(serviceFilter === id)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <div className="w-full lg:max-w-xs lg:shrink-0">
+            <Input
+              type="search"
+              value={locationSearch}
+              onChange={(event) => setLocationSearch(event.target.value)}
+              placeholder="Search by location or title"
+              aria-label="Search by location or title"
+              prefix={<Search className="h-4 w-4" />}
+              className={cn(
+                heroOverlay &&
+                  'border-white/20 bg-white/10 text-white placeholder:text-white/55 focus:border-emerald-300/50',
+              )}
+            />
+          </div>
+        </div>
       </div>
 
       {filteredProjects.length > 0 ? (
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 xl:grid-cols-3 xl:gap-6 auto-rows-fr">
           {filteredProjects.map((project) => (
             <ShowcaseProjectCard
               key={project.id}
@@ -165,16 +176,16 @@ export function ActiveProjectsShowcaseGrid({
           ))}
         </div>
       ) : (
-        <div className="rounded-2xl border border-dashed border-border bg-card/40 px-6 py-16 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
+        <div className="rounded-2xl border border-dashed border-border bg-card/40 px-6 py-14 text-center sm:py-16">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-emerald-500/20 bg-emerald-500/10">
             <Sparkles className="h-6 w-6 text-emerald-500" />
           </div>
-          <h3 className="text-lg font-semibold text-foreground mb-2">
+          <h3 className="mb-2 text-lg font-semibold text-foreground">
             {hasActiveSearch || serviceFilter !== 'all'
               ? 'No matching projects'
               : t('home.showcase.emptyTitle')}
           </h3>
-          <p className="text-sm text-muted-foreground max-w-md mx-auto mb-6">
+          <p className="mx-auto mb-6 max-w-md text-sm text-muted-foreground">
             {hasActiveSearch || serviceFilter !== 'all'
               ? 'Try a different location, project name, or service filter.'
               : t('home.showcase.emptyDesc')}

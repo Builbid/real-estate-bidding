@@ -90,22 +90,22 @@ export function HomePageContent({
         </div>
       </section>
 
-      <section id="live-auctions" className="bg-background max-w-7xl mx-auto px-4 sm:px-6 pt-8 pb-24 sm:pt-10 sm:pb-24">
-        <div className="mb-8 sm:mb-10">
-          <ActiveProjectsShowcaseGrid
-            projects={showcaseProjects}
-            isAuthenticated={isAuthenticated}
-            role={role}
-          />
-        </div>
+      <section id="live-auctions" className="mx-auto max-w-7xl px-4 pb-28 pt-8 sm:px-6 sm:pt-10 sm:pb-28">
+        <ActiveProjectsShowcaseGrid
+          projects={showcaseProjects}
+          isAuthenticated={isAuthenticated}
+          role={role}
+        />
 
         {frozenProjects.length > 0 && (
-          <div className="mb-8 sm:mb-10">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <div className="w-2 h-2 rounded-full bg-violet-500 dark:bg-violet-400" />
-                <h2 className="text-xl font-bold text-foreground">{t('home.auctions.selectionTitle')}</h2>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-700 dark:text-violet-400 border border-violet-500/25 font-semibold">
+          <div className="mt-12 border-t border-border/60 pt-10 sm:mt-14 sm:pt-12">
+            <div className="mb-5 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                <span className="flex h-2 w-2 shrink-0 rounded-full bg-violet-500" />
+                <h2 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+                  {t('home.auctions.selectionTitle')}
+                </h2>
+                <span className="rounded-full border border-violet-500/25 bg-violet-500/10 px-2.5 py-0.5 text-xs font-semibold text-violet-700 dark:text-violet-400">
                   {t('home.auctions.projects', { count: filteredFrozenProjects.length })}
                 </span>
               </div>
@@ -118,13 +118,18 @@ export function HomePageContent({
               )}
             </div>
             {filteredFrozenProjects.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 gap-4 auto-rows-fr sm:grid-cols-2 sm:gap-5 xl:grid-cols-3 xl:gap-6">
                 {filteredFrozenProjects.map((project) => (
-                  <ProjectCard key={project.id} project={project} isAuthenticated={isAuthenticated} />
+                  <ProjectCard
+                    key={project.id}
+                    project={project}
+                    isAuthenticated={isAuthenticated}
+                    variant="compact"
+                  />
                 ))}
               </div>
             ) : (
-              <div className="rounded-2xl border border-dashed border-border bg-card/40 px-6 py-10 text-center">
+              <div className="rounded-2xl border border-dashed border-border bg-card/40 px-6 py-12 text-center">
                 <p className="text-sm text-muted-foreground">{t('home.auctions.noDistrictProjects')}</p>
               </div>
             )}
