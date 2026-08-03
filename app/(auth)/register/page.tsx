@@ -15,11 +15,17 @@ import { uploadBuilderAvatar } from '@/lib/avatar/uploadBuilderAvatar';
 import { uploadFirmLogo } from '@/lib/firm/uploadFirmLogo';
 import { AvatarUpload } from '@/components/builder/AvatarUpload';
 import { LogoUpload } from '@/components/firm/LogoUpload';
-import { FirmConstructionClassSelector } from '@/components/firm/FirmConstructionClassSelector';
+import { FirmConstructionClassPackagesForm } from '@/components/firm/FirmConstructionClassPackagesForm';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import type { FinishingLevel } from '@/lib/types';
+import type { FinishingLevel, FirmConstructionClassPackages } from '@/lib/types';
+import {
+  emptyConstructionClassPackages,
+  hasCompleteConstructionClassPackages,
+  MIN_PACKAGE_DESCRIPTION_LENGTH,
+  getConstructionClassLabel,
+} from '@/lib/firm/constructionClass';
 import { validateGstNumber, isValidGstNumber } from '@/lib/validation/gst';
 import { formatMobileDisplay, stripMobileDigits, validateMobile } from '@/lib/validation/mobile';
 import {
@@ -111,7 +117,9 @@ function RegisterPageContent() {
   const [companyName, setCompanyName] = useState('');
   const [gstNumber, setGstNumber] = useState('');
   const [yearsInBusiness, setYearsInBusiness] = useState('');
-  const [constructionClass, setConstructionClass] = useState<FinishingLevel | null>(null);
+  const [classPackages, setClassPackages] = useState<FirmConstructionClassPackages>(
+    emptyConstructionClassPackages,
+  );
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
@@ -135,12 +143,15 @@ function RegisterPageContent() {
         errs.company_name = 'Company name is required (min 3 characters).';
       }
       if (touched.gst_number) errs.gst_number = validateGstNumber(gstNumber);
-      if (touched.construction_class && !constructionClass) {
-        errs.construction_class = 'Select Class A, B, or C construction.';
-      }
+      (['premium', 'standard', 'basic'] as FinishingLevel[]).forEach((level) => {
+        const key = `construction_class_${level}`;
+        if (touched[key] && (classPackages[level]?.trim().length ?? 0) < MIN_PACKAGE_DESCRIPTION_LENGTH) {
+          errs[key] = `Describe your ${getConstructionClassLabel(level)} package (min ${MIN_PACKAGE_DESCRIPTION_LENGTH} characters).`;
+        }
+      });
     }
     return errs;
-  }, [touched, fullName, email, password, mobile, role, companyName, gstNumber, constructionClass]);
+  }, [touched, fullName, email, password, mobile, role, companyName, gstNumber, classPackages]);
 
   const isFormValid = useMemo(() => {
     if (!fullName.trim() || !email.trim() || password.length < 8) return false;
@@ -148,10 +159,10 @@ function RegisterPageContent() {
     if (role === 'construction_firm') {
       if (companyName.trim().length < 3) return false;
       if (validateGstNumber(gstNumber)) return false;
-      if (!constructionClass) return false;
+      if (!hasCompleteConstructionClassPackages(classPackages)) return false;
     }
     return true;
-  }, [fullName, email, password, mobile, role, companyName, gstNumber, constructionClass]);
+  }, [fullName, email, password, mobile, role, companyName, gstNumber, classPackages]);
 
   function touch(field: string) {
     setTouched((t) => ({ ...t, [field]: true }));
@@ -172,7 +183,9 @@ function RegisterPageContent() {
       mobile: true,
       company_name: true,
       gst_number: true,
-      construction_class: true,
+      construction_class_premium: true,
+      construction_class_standard: true,
+      construction_class_basic: true,
     });
 
     if (!isFormValid) return;
@@ -447,16 +460,18 @@ function RegisterPageContent() {
                   </div>
 
                   <div>
-                    <FirmConstructionClassSelector
-                      value={constructionClass}
-                      onChange={(level) => {
-                        setConstructionClass(level);
-                        touch('construction_class');
+                    <FirmConstructionClassPackagesForm
+                      value={classPackages}
+                      onChange={(level, description) => {
+                        setClassPackages((prev) => ({ ...prev, [level]: description }));
+                      }}
+                      onBlur={(level) => touch(`construction_class_${level}`)}
+                      errors={{
+                        premium: fieldErrors.construction_class_premium,
+                        standard: fieldErrors.construction_class_standard,
+                        basic: fieldErrors.construction_class_basic,
                       }}
                     />
-                    {fieldErrors.construction_class && (
-                      <p className="text-xs text-red-400 mt-1">{fieldErrors.construction_class}</p>
-                    )}
                   </div>
                 </>
               )}

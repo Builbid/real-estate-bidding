@@ -7,6 +7,9 @@ import type { BuildingType, ConstructionTypesMap } from './buildingConfig';
 export type UserRole = 'owner' | 'labour_contractor' | 'construction_firm' | 'admin' | 'service_provider';
 export type ServiceType = 'labour_contractor' | 'construction_firm';
 export type FinishingLevel = 'basic' | 'standard' | 'premium';
+
+/** Per-class package descriptions defined by a construction firm at signup. */
+export type FirmConstructionClassPackages = Record<FinishingLevel, string>;
 export type TrackType = 'RCC' | 'AssamType';
 export type ProjectStatus = 'active_24h' | 'frozen_24h' | 'completed' | 'cancelled';
 
@@ -43,8 +46,8 @@ export interface Profile {
   years_in_business?: number | null;
   logo_url?: string | null;
   service_type?: ServiceType | null;
-  /** Firm tier: premium=A, standard=B, basic=C */
-  construction_class?: FinishingLevel | null;
+  /** Class A/B/C package descriptions (premium=A, standard=B, basic=C) */
+  construction_class_packages?: FirmConstructionClassPackages | null;
   is_verified: boolean;
   created_at: string;
   updated_at: string;
@@ -67,7 +70,7 @@ export interface PublicFirmProfile {
   logo_url?: string | null;
   years_in_business?: number | null;
   is_verified?: boolean;
-  construction_class?: FinishingLevel | null;
+  construction_class_packages?: FirmConstructionClassPackages | null;
   gst_masked?: string | null;
   gst_verified?: boolean;
   physical_address?: string | null;
@@ -216,7 +219,7 @@ export interface RegisterFormData {
   company_name?: string;
   gst_number?: string;
   years_in_business?: number;
-  construction_class?: FinishingLevel;
+  construction_class_packages?: FirmConstructionClassPackages;
 }
 
 // ─── UI state types ─────────────────────────────────────────
