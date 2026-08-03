@@ -8,7 +8,6 @@ import {
 import { Navbar } from '@/components/shared/Navbar';
 import { Footer } from '@/components/shared/Footer';
 import { HeroBackgroundSlideshow } from '@/components/shared/HeroBackgroundSlideshow';
-import { HowItWorksStrip } from '@/components/home/HowItWorksStrip';
 import { ProjectCard } from '@/components/shared/ProjectCard';
 import { ActiveProjectsShowcaseGrid } from '@/components/home/ActiveProjectsShowcaseGrid';
 import { FeaturedFirmsSection } from '@/components/home/FeaturedFirmsSection';
@@ -145,8 +144,6 @@ export function HomePageContent({
           </div>
         </div>
       </section>
-
-      <HowItWorksStrip />
 
       <section id="live-auctions" className="mx-auto max-w-7xl px-4 pb-28 pt-8 sm:px-6 sm:pt-10 sm:pb-28">
         <ActiveProjectsShowcaseGrid
