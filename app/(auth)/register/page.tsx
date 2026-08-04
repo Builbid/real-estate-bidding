@@ -8,8 +8,6 @@ import {
   ArrowRight, ArrowLeft, AlertCircle, CheckCircle2, Check, X,
 } from 'lucide-react';
 import { BuilBidLogo } from '@/components/shared/BuilBidLogo';
-import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
-import { AuthDivider } from '@/components/auth/AuthDivider';
 import { signUpAction, type SignUpRole } from '@/app/actions/auth';
 import { uploadBuilderAvatar } from '@/lib/avatar/uploadBuilderAvatar';
 import { uploadFirmLogo } from '@/lib/firm/uploadFirmLogo';
@@ -419,14 +417,6 @@ function RegisterPageContent() {
               <p className="text-sm font-semibold text-foreground/80 mb-2">
                 {roleLabel} — Account Details
               </p>
-
-              <GoogleSignInButton
-                label="Sign up with Google"
-                roleHint={role}
-                disabled={pending}
-              />
-
-              <AuthDivider label="or register with email" />
 
               {role === 'labour_contractor' && (
                 <AvatarUpload
