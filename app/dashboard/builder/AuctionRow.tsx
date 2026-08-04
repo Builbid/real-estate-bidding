@@ -65,9 +65,15 @@ export function AuctionRow({ project, myBid }: AuctionRowProps) {
             </>
           )}
         </div>
+
+        {/* Countdown — mobile only, shown inline under project meta */}
+        <div className="flex sm:hidden items-center gap-2 mt-2">
+          <Clock className="w-3.5 h-3.5 text-muted-foreground/80" />
+          <CountdownTicker targetDateISO={project.bidding_ends_at} compact />
+        </div>
       </div>
 
-      {/* Countdown */}
+      {/* Countdown — desktop only */}
       <div className="hidden sm:flex items-center gap-2">
         <Clock className="w-3.5 h-3.5 text-muted-foreground/80" />
         <CountdownTicker targetDateISO={project.bidding_ends_at} compact />
