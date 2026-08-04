@@ -2,14 +2,11 @@ export const dynamic = 'force-dynamic'
 
 import { getAuthUser } from '@/lib/supabase/getUser';
 import { redirect } from 'next/navigation';
-import { TrendingUp, Award, CheckCircle2, Building, Clock, ArrowRight } from 'lucide-react';
-import Link from 'next/link';
+import { TrendingUp, Award, CheckCircle2, Building } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { STAT_ICON_STYLES, type StatIconColor } from '@/lib/dashboard/statIconStyles';
-import { CountdownTicker } from '@/components/shared/CountdownTicker';
-import { STATUS_CONFIG, TRACK_LABELS, getConstructionLabel, cn } from '@/lib/utils';
+import { STATUS_CONFIG, cn } from '@/lib/utils';
 import { AuctionRow } from './AuctionRow';
 import { PortfolioManager } from './PortfolioManager';
 import { BuilderProfileSettings } from './BuilderProfileSettings';
@@ -26,11 +23,11 @@ async function getData() {
   // Transition any expired active projects to frozen_24h
   await supabase.rpc('expire_active_projects');
 
-  // Get all active + grace-period projects
+  // Get all open (still biddable) projects
   const { data: projects } = await supabase
     .from('projects')
     .select('*')
-    .in('status', ['active_24h', 'frozen_24h'])
+    .eq('status', 'active_24h')
     .order('bidding_ends_at', { ascending: true });
 
   // Get builder's own bids
@@ -59,9 +56,6 @@ export default async function BuilderDashboard() {
   const { profile, projects, myBids, bidProjectsMap, userId } = await getData();
 
   const activeProjects = projects.filter((p) => p.status === 'active_24h');
-  const graceProjects  = projects.filter(
-    (p) => p.status === 'frozen_24h' && p.selection_ends_at && new Date(p.selection_ends_at) > new Date()
-  );
   const myBidMap       = new Map(myBids.map((b) => [b.project_id, b]));
   const bidsPlaced     = myBids.filter((b) => !b.is_withdrawn);
   const wins           = myBids.filter((b) => false); // wins would come from selected_builder_id checks
@@ -127,60 +121,6 @@ export default async function BuilderDashboard() {
           </Card>
         )}
       </div>
-
-      {/* Grace Period Auctions */}
-      {graceProjects.length > 0 && (
-        <div>
-          <div className="flex items-center gap-2 mb-4">
-            <Clock className="w-3.5 h-3.5 text-amber-400" />
-            <h2 className="text-base font-semibold text-foreground">Grace Period — Submit Before Deadline</h2>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
-              {graceProjects.length}
-            </span>
-          </div>
-          <div className="space-y-3">
-            {graceProjects.map((project) => {
-              const myBid = myBidMap.get(project.id);
-              const hasBid = !!myBid;
-              const configLabel = getConstructionLabel(project.track_type, project.sub_configuration);
-              return (
-                <div key={project.id} className={`flex items-center gap-4 p-4 rounded-xl border bg-amber-500/5 transition-colors hover:border-amber-500/40 ${hasBid ? 'border-amber-500/30' : 'border-amber-500/15'}`}>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex flex-wrap items-center gap-2 mb-1">
-                      <Badge variant="indigo">
-                        <Clock className="w-3 h-3" />
-                        Grace Period
-                      </Badge>
-                      <Badge>{TRACK_LABELS[project.track_type]}</Badge>
-                      {hasBid && (
-                        <Badge variant="indigo">Your Bid: ₹{myBid.total_sum_metric.toLocaleString('en-IN')}/sqft</Badge>
-                      )}
-                    </div>
-                    <p className="text-sm font-semibold text-foreground truncate">{project.title}</p>
-                    <div className="flex items-center gap-3 mt-1">
-                      <span className="text-xs text-muted-foreground">{project.district}</span>
-                      <span className="text-muted-foreground/60">·</span>
-                      <span className="text-xs text-muted-foreground">{configLabel}</span>
-                    </div>
-                  </div>
-                  {project.selection_ends_at && (
-                    <div className="hidden sm:flex items-center gap-2">
-                      <Clock className="w-3.5 h-3.5 text-amber-600" />
-                      <CountdownTicker targetDateISO={project.selection_ends_at} compact />
-                    </div>
-                  )}
-                  <Button size="sm" variant={hasBid ? 'outline' : 'default'} asChild>
-                    <Link href={`/dashboard/builder/bid/${project.id}`}>
-                      {hasBid ? 'Update Bid' : 'Submit Bid'}
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </Link>
-                  </Button>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
       {/* Profile photo */}
       <BuilderProfileSettings

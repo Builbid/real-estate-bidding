@@ -4,14 +4,13 @@ import { getAuthUser } from '@/lib/supabase/getUser';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import {
-  TrendingUp, Award, CheckCircle2, Building2, Clock, ArrowRight,
+  TrendingUp, Award, CheckCircle2, Building2, ArrowRight,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { STAT_ICON_STYLES, type StatIconColor } from '@/lib/dashboard/statIconStyles';
 import { cn } from '@/lib/utils';
-import { CountdownTicker } from '@/components/shared/CountdownTicker';
 import { STATUS_CONFIG } from '@/lib/utils';
 import { FirmAuctionRow } from './AuctionRow';
 import { getFirmPortfolioAction } from '@/app/actions/firm';
@@ -37,7 +36,7 @@ async function getData() {
     .from('projects')
     .select('*')
     .eq('service_type', 'construction_firm')
-    .in('status', ['active_24h', 'frozen_24h'])
+    .eq('status', 'active_24h')
     .order('bidding_ends_at', { ascending: true });
 
   const { data: myBids } = await supabase
@@ -103,9 +102,6 @@ export default async function FirmDashboardPage() {
   const showBanner = !profile.logo_url || portfolio.items.length === 0;
 
   const activeProjects = projects.filter((p) => p.status === 'active_24h');
-  const graceProjects = projects.filter(
-    (p) => p.status === 'frozen_24h' && p.selection_ends_at && new Date(p.selection_ends_at) > new Date(),
-  );
   const myBidMap = new Map(myBids.map((b) => [b.project_id, b]));
   const bidsPlaced = myBids.filter((b) => !b.is_withdrawn);
 
@@ -196,20 +192,6 @@ export default async function FirmDashboardPage() {
         )}
       </div>
 
-      {graceProjects.length > 0 && (
-        <div>
-          <div className="flex items-center gap-2 mb-4">
-            <Clock className="w-3.5 h-3.5 text-amber-400" />
-            <h2 className="text-base font-semibold text-foreground">Grace Period</h2>
-          </div>
-          <div className="space-y-3">
-            {graceProjects.map((project) => (
-              <FirmAuctionRow key={project.id} project={project} myBid={myBidMap.get(project.id)} />
-            ))}
-          </div>
-        </div>
-      )}
-
       {myBids.length > 0 && (
         <div>
           <h2 className="text-base font-semibold text-muted-foreground mb-4">My Bids</h2>
@@ -217,8 +199,7 @@ export default async function FirmDashboardPage() {
             {myBids.slice(0, 15).map((bid) => {
               const project = projects.find((p) => p.id === bid.project_id) ?? bidProjectsMap.get(bid.project_id);
               const rank = rankMap.get(bid.project_id);
-              const canUpdate = project?.status === 'active_24h' ||
-                (project?.status === 'frozen_24h' && project.selection_ends_at && new Date(project.selection_ends_at) > new Date());
+              const canUpdate = project?.status === 'active_24h';
 
               return (
                 <div key={bid.id} className="flex items-center gap-4 px-4 py-3 rounded-xl border border-border bg-card/80">

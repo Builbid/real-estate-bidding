@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { NavLink } from '@/components/shared/NavLink';
 import { NAV_BACK_LINK, NAV_ICON_BUTTON } from '@/lib/navStyles';
+import { useCountdown } from '@/lib/hooks/useCountdown';
 import { CountdownTicker } from '@/components/shared/CountdownTicker';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -82,8 +83,8 @@ export function FirmBiddingConsole({
   const [successRank, setSuccessRank] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const isGracePeriod = project?.status === 'frozen_24h';
-  const isBiddingOpen = project?.status === 'active_24h' || isGracePeriod;
+  const countdown = useCountdown(project?.bidding_ends_at);
+  const isBiddingOpen = project?.status === 'active_24h' && !countdown.isExpired;
   const wasAwardedToMe = project?.status === 'completed' && project?.selected_builder_id === firmId;
 
   const parsedRates: Record<string, number | undefined> = {};
@@ -216,9 +217,7 @@ export function FirmBiddingConsole({
         </NavLink>
         <div className="flex-1">
           <div className="flex flex-wrap items-center gap-2 mb-1">
-            {isGracePeriod ? (
-              <Badge variant="indigo"><Clock className="w-3 h-3" /> Grace Period</Badge>
-            ) : isBiddingOpen ? (
+            {isBiddingOpen ? (
               <Badge variant="emerald">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                 Live Auction
@@ -234,26 +233,7 @@ export function FirmBiddingConsole({
         </div>
       </div>
 
-      {isGracePeriod ? (
-        <>
-          <div className="p-3 rounded-xl bg-amber-500/5 border border-amber-500/20 flex items-start gap-3">
-            <Clock className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
-            <p className="text-xs text-amber-400/80">
-              Bidding has closed but you can still submit or update your bid during the grace period.
-            </p>
-          </div>
-          {project?.selection_ends_at && (
-            <Card className="border-amber-500/20">
-              <CardHeader className="p-4 pb-2">
-                <CardTitle className="text-xs text-amber-400 uppercase tracking-wider">Selection Period</CardTitle>
-              </CardHeader>
-              <CardContent className="px-4 pb-4 pt-0">
-                <CountdownTicker targetDateISO={project.selection_ends_at} />
-              </CardContent>
-            </Card>
-          )}
-        </>
-      ) : project?.status === 'active_24h' && project?.bidding_ends_at ? (
+      {isBiddingOpen && project?.bidding_ends_at ? (
         <Card className="border-emerald-500/20">
           <CardHeader className="p-4 pb-2">
             <CardTitle className="text-xs text-emerald-400 uppercase tracking-wider">Auction Closes In</CardTitle>
@@ -418,9 +398,23 @@ export function FirmBiddingConsole({
                     </Button>
                   </form>
                 </>
+              ) : myCurrentBid ? (
+                <div className="space-y-3">
+                  <div className="w-full">
+                    <PackageBidPriceList packageRates={myCurrentBid.package_rates ?? []} />
+                  </div>
+                  {myRank > 0 && (
+                    <p className="text-xs text-violet-400 font-medium text-center">
+                      You ranked #{myRank} when bidding closed
+                    </p>
+                  )}
+                  <p className="text-center text-xs text-muted-foreground/80">
+                    Submitted {formatRelativeTime(myCurrentBid.updated_at ?? myCurrentBid.created_at)} — bidding is now closed and rates can no longer be changed.
+                  </p>
+                </div>
               ) : (
                 <p className="text-sm text-muted-foreground text-center py-4">
-                  Bid submission is closed for this project.
+                  Bidding closed before you submitted a bid on this project.
                 </p>
               )}
             </CardContent>

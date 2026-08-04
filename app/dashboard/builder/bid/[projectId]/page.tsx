@@ -52,16 +52,6 @@ export default async function BidPage({ params }: PageProps) {
   const { project, existingBid, userId, profile } = data;
   if (!project || !profile) notFound();
 
-  // Allow access during active bidding OR during the 24h grace period (frozen_24h)
-  const inGracePeriod =
-    project.status === 'frozen_24h' &&
-    project.selection_ends_at != null &&
-    new Date(project.selection_ends_at) > new Date();
-
-  if (project.status !== 'active_24h' && !inGracePeriod) {
-    redirect('/dashboard/builder');
-  }
-
   return (
     <BiddingConsole
       project={project}

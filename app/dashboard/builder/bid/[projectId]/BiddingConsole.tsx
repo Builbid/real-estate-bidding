@@ -9,6 +9,7 @@ import {
 import { NavLink } from '@/components/shared/NavLink';
 import { NAV_ICON_BUTTON } from '@/lib/navStyles';
 import { useRealtimeBids } from '@/lib/hooks/useRealtimeBids';
+import { useCountdown } from '@/lib/hooks/useCountdown';
 import { CountdownTicker } from '@/components/shared/CountdownTicker';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -73,7 +74,8 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
   const [success, setSuccess]   = useState(false);
   const [error, setError]       = useState<string | null>(null);
 
-  const isGracePeriod = project.status === 'frozen_24h';
+  const countdown     = useCountdown(project.bidding_ends_at);
+  const biddingClosed = project.status !== 'active_24h' || countdown.isExpired;
   const totalMetric   = computeTotalMetric(rates);
 
   const myCurrentBid = bids.find((b) => b.builder_id === builderId);
@@ -201,11 +203,8 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
         </NavLink>
         <div className="flex-1">
           <div className="flex flex-wrap items-center gap-2 mb-1">
-            {isGracePeriod ? (
-              <Badge variant="indigo">
-                <Clock className="w-3 h-3" />
-                Grace Period
-              </Badge>
+            {biddingClosed ? (
+              <Badge>Bidding Closed</Badge>
             ) : (
               <Badge variant="emerald">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -229,28 +228,17 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
       </Card>
 
       {/* Countdown — full width above the bid / leaderboard split */}
-      {isGracePeriod ? (
-        <>
-          <div className="p-3 rounded-xl bg-amber-500/5 border border-amber-500/20 flex items-start gap-3">
-            <Clock className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-semibold text-amber-300 mb-1">Grace Period Active</p>
-              <p className="text-xs text-amber-400/70">
-                Bidding has closed but you can still submit or update your bid. The owner is reviewing bids and will select a builder before the deadline below.
-              </p>
-            </div>
+      {biddingClosed ? (
+        <div className="p-3 rounded-xl bg-slate-500/5 border border-slate-500/20 flex items-start gap-3">
+          <Clock className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold text-foreground mb-1">Bidding Closed</p>
+            <p className="text-xs text-muted-foreground">
+              The bidding window has ended. No further bid updates are accepted — the owner will
+              review submitted bids and select a builder.
+            </p>
           </div>
-          {project.selection_ends_at && (
-            <Card className="border-amber-500/20">
-              <CardHeader className="p-4 pb-2">
-                <CardTitle className="text-xs text-amber-400 uppercase tracking-wider">Grace Period Closes In</CardTitle>
-              </CardHeader>
-              <CardContent className="px-4 pb-4 pt-0">
-                <CountdownTicker targetDateISO={project.selection_ends_at} />
-              </CardContent>
-            </Card>
-          )}
-        </>
+        </div>
       ) : (
         <Card className="border-emerald-500/20">
           <CardHeader className="p-4 pb-2">
@@ -269,7 +257,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
             <CardHeader className="p-4 pb-2">
               <CardTitle className="text-base flex items-center gap-2">
                 <Layers className="w-4 h-4 text-muted-foreground" />
-                {myCurrentBid ? 'Update Your Bid' : 'Submit Rate Bid'}
+                {biddingClosed ? 'Your Bid' : myCurrentBid ? 'Update Your Bid' : 'Submit Rate Bid'}
               </CardTitle>
               <div className="flex items-center gap-2.5 pt-0.5">
                 <UserAvatar
@@ -285,6 +273,42 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
               </div>
             </CardHeader>
             <CardContent className="px-4 pb-4 pt-0">
+              {biddingClosed ? (
+                myCurrentBid ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between p-2.5 rounded-xl border bg-secondary/50 border-border">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Your Final Rate Metric</p>
+                        <p className="text-lg font-bold tabular-nums text-foreground">
+                          ₹{myCurrentBid.total_sum_metric.toLocaleString('en-IN')}
+                        </p>
+                      </div>
+                      <p className="text-xs text-muted-foreground/80 text-right">{floorCount} floor{floorCount > 1 ? 's' : ''}<br />combined</p>
+                    </div>
+                    {myRank > 0 && (
+                      <div className={cn(
+                        'flex items-center gap-3 p-2.5 rounded-lg border text-sm',
+                        isLeading
+                          ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-400'
+                          : 'bg-secondary/50 border-border text-muted-foreground'
+                      )}>
+                        <TrendingDown className="w-4 h-4 flex-shrink-0" />
+                        {isLeading
+                          ? '🏆 You were leading when bidding closed!'
+                          : `You ranked #${myRank} of ${bids.length} when bidding closed`}
+                      </div>
+                    )}
+                    <p className="text-center text-xs text-muted-foreground/80">
+                      Submitted {formatRelativeTime(myCurrentBid.updated_at ?? myCurrentBid.created_at)} — bidding is now closed and rates can no longer be changed.
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    Bidding closed before you submitted a bid on this project.
+                  </p>
+                )
+              ) : (
+                <>
               {error && (
                 <div className="flex items-start gap-2 mb-3 p-2.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
                   <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
@@ -405,6 +429,8 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                   </p>
                 )}
               </form>
+                </>
+              )}
             </CardContent>
           </Card>
         </div>
