@@ -109,6 +109,15 @@ export function OwnerProjectPhaseBody({
               </CardHeader>
               <CardContent className="px-4 pb-3">
                 <p className="text-sm font-bold text-foreground">{winnerName}</p>
+                {project.selected_package ? (
+                  <p className="text-xs text-foreground mt-1 flex items-center gap-1.5">
+                    <span className="font-semibold">{project.selected_package.package.name}</span>
+                    <span className="text-muted-foreground">·</span>
+                    <span className="font-bold text-emerald-400">
+                      ₹{project.selected_package.rate.toLocaleString('en-IN')}/sqft
+                    </span>
+                  </p>
+                ) : null}
                 <p className="text-[10px] text-emerald-400 mt-0.5">✓ Contract awarded</p>
               </CardContent>
             </Card>

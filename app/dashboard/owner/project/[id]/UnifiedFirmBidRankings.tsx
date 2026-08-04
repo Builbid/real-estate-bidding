@@ -151,6 +151,7 @@ export function UnifiedFirmBidRankings({
                     projectId={project.id}
                     firmId={bid.builder_id}
                     companyName={companyName}
+                    packageRates={bid.package_rates ?? []}
                   />
                 )}
 

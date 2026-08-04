@@ -58,6 +58,16 @@ function toNumber(raw: unknown): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+function normalizeSinglePackageRate(raw: unknown): PackageBidPrice | null {
+  if (typeof raw !== 'object' || raw === null) return null;
+  const item = raw as Record<string, unknown>;
+  const rate = toNumber(item.rate);
+  const packages = normalizeConstructionPackages([item.package]);
+  const pkg = packages?.[0];
+  if (rate == null || rate <= 0 || !pkg) return null;
+  return { rate, package: pkg };
+}
+
 function normalizePackageRates(raw: unknown): PackageBidPrice[] | null {
   let value = raw;
   if (typeof value === 'string') {
@@ -70,17 +80,22 @@ function normalizePackageRates(raw: unknown): PackageBidPrice[] | null {
   if (!Array.isArray(value)) return null;
 
   const entries = value
-    .filter((item): item is Record<string, unknown> => typeof item === 'object' && item !== null)
-    .map((item) => {
-      const rate = toNumber(item.rate);
-      const packages = normalizeConstructionPackages([item.package]);
-      const pkg = packages?.[0];
-      if (rate == null || rate <= 0 || !pkg) return null;
-      return { rate, package: pkg };
-    })
+    .map((item) => normalizeSinglePackageRate(item))
     .filter((entry): entry is PackageBidPrice => entry != null);
 
   return entries.length > 0 ? entries : null;
+}
+
+function normalizeSelectedPackage(raw: unknown): PackageBidPrice | null {
+  let value = raw;
+  if (typeof value === 'string') {
+    try {
+      value = JSON.parse(value) as unknown;
+    } catch {
+      return null;
+    }
+  }
+  return normalizeSinglePackageRate(value);
 }
 
 /** Normalize raw Supabase project row for safe client rendering. */
@@ -113,6 +128,7 @@ export function sanitizeFirmProject(raw: Record<string, unknown>): Project {
     budget_range_min: toNumber(raw.budget_range_min),
     budget_range_max: toNumber(raw.budget_range_max),
     drawing_url: typeof raw.drawing_url === 'string' ? raw.drawing_url : null,
+    selected_package: normalizeSelectedPackage(raw.selected_package),
     created_at: typeof raw.created_at === 'string' ? raw.created_at : new Date().toISOString(),
     updated_at: typeof raw.updated_at === 'string' ? raw.updated_at : new Date().toISOString(),
   };

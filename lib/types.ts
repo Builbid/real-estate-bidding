@@ -170,6 +170,8 @@ export interface Project {
   budget_range_min?: number | null;
   budget_range_max?: number | null;
   drawing_url?: string | null;
+  /** Construction firm projects only — the specific package the owner chose when awarding the contract. */
+  selected_package?: PackageBidPrice | null;
   created_at: string;
   updated_at: string;
 }

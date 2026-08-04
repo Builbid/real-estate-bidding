@@ -84,6 +84,7 @@ export function FirmBiddingConsole({
 
   const isGracePeriod = project?.status === 'frozen_24h';
   const isBiddingOpen = project?.status === 'active_24h' || isGracePeriod;
+  const wasAwardedToMe = project?.status === 'completed' && project?.selected_builder_id === firmId;
 
   const parsedRates: Record<string, number | undefined> = {};
   for (const pkg of packages) {
@@ -315,6 +316,17 @@ export function FirmBiddingConsole({
                   </p>
                 )}
               </div>
+
+              {wasAwardedToMe && project?.selected_package && (
+                <div className="flex items-start gap-2 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm">
+                  <CheckCircle2 className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                  <span>
+                    You were awarded this project with your{' '}
+                    <strong>{project.selected_package.package.name}</strong> package at{' '}
+                    <strong>₹{project.selected_package.rate.toLocaleString('en-IN')}/sqft</strong>.
+                  </span>
+                </div>
+              )}
 
               {packages.length === 0 ? (
                 <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 text-sm">

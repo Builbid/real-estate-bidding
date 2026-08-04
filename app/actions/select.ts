@@ -12,6 +12,7 @@ export async function selectBuilderAction(
   projectId: string,
   builderId: string,
   builderName?: string,
+  packageId?: string,
 ): Promise<{ error: string | null }> {
   const supabase = await createClient()
 
@@ -32,15 +33,7 @@ export async function selectBuilderAction(
     (existing.sub_configuration ?? {}) as SubConfiguration,
   )
 
-  // 2. Mark the builder as selected and close the project.
-  //    A database trigger creates in-site notifications; we enrich them below.
-  const { error: updateError } = await supabase
-    .from('projects')
-    .update({ selected_builder_id: builderId, status: 'completed' })
-    .eq('id', projectId)
-    .is('selected_builder_id', null)
-
-  if (updateError) return { error: updateError.message }
+  const isFirmProject = existing.service_type === 'construction_firm'
 
   const { data: winningBid } = await supabase
     .from('bids')
@@ -50,16 +43,41 @@ export async function selectBuilderAction(
     .limit(1)
     .single()
 
-  const isFirmProject = existing.service_type === 'construction_firm'
+  const bidPackages = (winningBid?.package_rates as PackageBidPrice[] | null) ?? []
 
-  // Firm bids: show the range across the firm's package prices (never the
-  // hidden ranking average). Labour contractor bids keep the single rate.
-  const packageRange = isFirmProject
-    ? formatPackageRateRange(winningBid?.package_rates as PackageBidPrice[] | null | undefined)
-    : null
+  // Construction firm projects require the owner to pick exactly which
+  // package they're awarding — never just "the firm" with an ambiguous price.
+  let selectedPackage: PackageBidPrice | null = null
+  if (isFirmProject && bidPackages.length > 0) {
+    selectedPackage = bidPackages.find((p) => p.package.id === packageId) ?? null
+    if (!selectedPackage) {
+      return { error: 'Choose a package from this firm before confirming your selection.' }
+    }
+  }
+
+  // 2. Mark the builder as selected and close the project.
+  //    A database trigger creates in-site notifications; we enrich them below.
+  const { error: updateError } = await supabase
+    .from('projects')
+    .update({
+      selected_builder_id: builderId,
+      selected_package: selectedPackage,
+      status: 'completed',
+    })
+    .eq('id', projectId)
+    .is('selected_builder_id', null)
+
+  if (updateError) return { error: updateError.message }
+
+  // Prefer the exact chosen package price; fall back to the price range
+  // across all packages, then to the legacy single-rate bids (never the
+  // hidden ranking average).
+  const packageRange = isFirmProject ? formatPackageRateRange(bidPackages) : null
   const legacyRateValue = winningBid?.single_rate ?? winningBid?.total_sum_metric
   const bidAmt = isFirmProject
-    ? packageRange ?? ''
+    ? selectedPackage
+      ? `₹${selectedPackage.rate.toLocaleString('en-IN')}/sqft (${selectedPackage.package.name})`
+      : packageRange ?? ''
     : legacyRateValue
       ? `₹${legacyRateValue.toLocaleString('en-IN')}/sqft`
       : ''
