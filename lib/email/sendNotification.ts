@@ -1,5 +1,7 @@
 import nodemailer from 'nodemailer';
 import type { Transporter } from 'nodemailer';
+import { PACKAGE_CATEGORIES } from '@/lib/firm/constructionClass';
+import type { PackageBidPrice } from '@/lib/types';
 
 interface SelectionEmailData {
   projectTitle:       string;
@@ -8,6 +10,8 @@ interface SelectionEmailData {
   /** Pre-formatted winning bid label, e.g. "₹1,850/sqft" or "₹1,450 – ₹2,100/sqft". */
   bidAmountLabel:      string;
   isFirmProject?:     boolean;
+  /** The exact firm package the owner awarded — shown as a full breakdown. */
+  selectedPackage?:   PackageBidPrice | null;
 
   ownerName:    string;
   ownerEmail:   string;
@@ -26,6 +30,8 @@ interface UserNotificationEmailData {
   body:  string;
   actionUrl?: string;
   actionLabel?: string;
+  /** The exact firm package the owner awarded — shown as a full breakdown. */
+  selectedPackage?: PackageBidPrice | null;
 }
 
 function escapeHtml(text: string): string {
@@ -54,11 +60,37 @@ function getMailTransporter(): { transporter: Transporter; from: string } {
   return { transporter, from: `"BuilBid Platform" <${gmailUser}>` };
 }
 
+/** Renders the awarded firm package (name, rate, and full category breakdown) as an HTML section. */
+function buildPackageDetailsHtml(selectedPackage: PackageBidPrice, color = '#4338ca'): string {
+  const { rate, package: pkg } = selectedPackage;
+
+  const rows = PACKAGE_CATEGORIES
+    .map((category) => {
+      const value = pkg[category.key]?.trim();
+      if (!value) return '';
+      return `<tr>
+        <td style="padding:8px 12px;color:#94a3b8;font-size:13px;width:160px;vertical-align:top">${escapeHtml(category.label)}</td>
+        <td style="padding:8px 12px;color:#f1f5f9;font-size:13px;line-height:1.5;vertical-align:top">${escapeHtml(value)}</td>
+      </tr>`;
+    })
+    .join('');
+
+  return `<div style="margin-bottom:24px">
+    <div style="background:${color};border-radius:8px 8px 0 0;padding:10px 16px">
+      <span style="color:#fff;font-size:13px;font-weight:700;letter-spacing:.05em;text-transform:uppercase">Awarded Package — ${escapeHtml(pkg.name)} (₹${rate.toLocaleString('en-IN')}/sqft)</span>
+    </div>
+    <table style="width:100%;border-collapse:collapse;background:#1e293b;border-radius:0 0 8px 8px;overflow:hidden">
+      ${rows}
+    </table>
+  </div>`;
+}
+
 function buildUserNotificationHtml(
   title: string,
   body: string,
   actionUrl?: string,
   actionLabel?: string,
+  selectedPackage?: PackageBidPrice | null,
 ): string {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim() || 'https://builbid.in';
   const safeTitle = escapeHtml(title);
@@ -85,6 +117,8 @@ function buildUserNotificationHtml(
       <p style="color:#f1f5f9;font-size:16px;font-weight:700;margin:0 0 10px">${safeTitle}</p>
       <p style="color:#94a3b8;font-size:14px;line-height:1.6;margin:0">${safeBody}</p>
     </div>
+
+    ${selectedPackage ? buildPackageDetailsHtml(selectedPackage) : ''}
 
     <div style="text-align:center;margin-bottom:32px">
       <a href="${href}" style="display:inline-block;background:#7c3aed;color:#fff;text-decoration:none;font-size:14px;font-weight:600;padding:12px 24px;border-radius:8px">
@@ -122,6 +156,7 @@ export async function sendUserNotificationEmail(data: UserNotificationEmailData)
       data.body,
       data.actionUrl,
       data.actionLabel,
+      data.selectedPackage,
     ),
   });
 
@@ -189,6 +224,9 @@ function buildHtml(d: SelectionEmailData): string {
       row('Mobile', d.builderMobile ?? '—') +
       row('Address', d.builderAddress ?? '—')
     )}
+
+    <!-- Awarded Package -->
+    ${d.selectedPackage ? buildPackageDetailsHtml(d.selectedPackage) : ''}
 
     <!-- Footer -->
     <div style="text-align:center;margin-top:32px;padding-top:24px;border-top:1px solid #1e293b">

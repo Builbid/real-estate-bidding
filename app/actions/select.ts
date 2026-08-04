@@ -163,6 +163,7 @@ export async function selectBuilderAction(
       constructionType: constructionLabel,
       bidAmountLabel:   bidAmt || 'N/A',
       isFirmProject,
+      selectedPackage,
       ownerName:        ownerProfile?.full_name        ?? 'N/A',
       ownerEmail:       ownerProfile?.email            ?? 'N/A',
       ownerMobile:      ownerProfile?.mobile           ?? null,
@@ -178,11 +179,13 @@ export async function selectBuilderAction(
         to:    ownerProfile?.email ?? '',
         title: ownerTitle,
         body:  ownerBody,
+        selectedPackage,
       }),
       sendUserNotificationEmail({
         to:    builderFull?.email ?? '',
         title: builderTitle,
         body:  builderBody,
+        selectedPackage,
       }),
     ])
   } catch (err) {
