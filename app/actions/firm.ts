@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { validateGstNumber } from '@/lib/validation/gst';
 import { FIRM_LOGO_BUCKET, FIRM_PORTFOLIO_BUCKET, FIRM_PORTFOLIO_MAX_ITEMS, FIRM_PORTFOLIO_MAX_PHOTOS } from '@/lib/firm/constants';
+import { normalizeConstructionPackages } from '@/lib/firm/constructionClass';
 
 function isValidStoredFirmLogoUrl(url: string, userId: string): boolean {
   try {
@@ -182,9 +183,16 @@ export async function getPublicFirmProfileAction(firmId: string): Promise<{
     .eq('firm_id', firmId)
     .order('year_completed', { ascending: false });
 
+  const typedFirm = firm as import('@/lib/types').PublicFirmProfile;
+
   return {
     error: null,
-    firm: firm as import('@/lib/types').PublicFirmProfile,
+    firm: {
+      ...typedFirm,
+      construction_class_packages: normalizeConstructionPackages(
+        typedFirm.construction_class_packages,
+      ),
+    },
     portfolio: (portfolio ?? []) as import('@/lib/types').FirmPortfolioItem[],
   };
 }

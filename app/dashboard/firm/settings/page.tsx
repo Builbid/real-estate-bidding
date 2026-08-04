@@ -4,6 +4,7 @@ import { getAuthUser } from '@/lib/supabase/getUser';
 import { redirect } from 'next/navigation';
 import { FirmPortfolioManager } from '@/components/firm/FirmPortfolioManager';
 import { FirmProfileSettings } from '@/components/firm/FirmProfileSettings';
+import { normalizeConstructionPackages } from '@/lib/firm/constructionClass';
 
 export default async function FirmSettingsPage() {
   const { supabase, userId, role } = await getAuthUser();
@@ -24,7 +25,7 @@ export default async function FirmSettingsPage() {
         companyName={profile?.company_name ?? ''}
         gstNumber={profile?.gst_number ?? ''}
         yearsInBusiness={profile?.years_in_business ?? null}
-        classPackages={profile?.construction_class_packages ?? null}
+        classPackages={normalizeConstructionPackages(profile?.construction_class_packages)}
         logoUrl={profile?.logo_url ?? null}
         fullName={profile?.full_name ?? ''}
       />

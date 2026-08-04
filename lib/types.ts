@@ -8,8 +8,32 @@ export type UserRole = 'owner' | 'labour_contractor' | 'construction_firm' | 'ad
 export type ServiceType = 'labour_contractor' | 'construction_firm';
 export type FinishingLevel = 'basic' | 'standard' | 'premium';
 
-/** Per-class package descriptions defined by a construction firm at signup. */
-export type FirmConstructionClassPackages = Record<FinishingLevel, string>;
+/** Category keys used to structure a firm-defined construction package. */
+export type FirmPackageCategoryKey =
+  | 'structure'
+  | 'flooring'
+  | 'doors_windows'
+  | 'bathroom_fittings'
+  | 'kitchen'
+  | 'painting'
+  | 'electrical'
+  | 'design_and_pm'
+  | 'exclusions';
+
+/** A single construction package a firm defines and names itself (e.g. "Class A", "Elite"). */
+export interface FirmConstructionPackage {
+  id: string;
+  name: string;
+  structure: string;
+  flooring: string;
+  doors_windows: string;
+  bathroom_fittings: string;
+  kitchen: string;
+  painting: string;
+  electrical: string;
+  design_and_pm: string;
+  exclusions: string;
+}
 export type TrackType = 'RCC' | 'AssamType';
 export type ProjectStatus = 'active_24h' | 'frozen_24h' | 'completed' | 'cancelled';
 
@@ -46,8 +70,8 @@ export interface Profile {
   years_in_business?: number | null;
   logo_url?: string | null;
   service_type?: ServiceType | null;
-  /** Class A/B/C package descriptions (premium=A, standard=B, basic=C) */
-  construction_class_packages?: FirmConstructionClassPackages | null;
+  /** Firm-defined construction packages (custom names, structured category scope) */
+  construction_class_packages?: FirmConstructionPackage[] | null;
   is_verified: boolean;
   created_at: string;
   updated_at: string;
@@ -70,7 +94,7 @@ export interface PublicFirmProfile {
   logo_url?: string | null;
   years_in_business?: number | null;
   is_verified?: boolean;
-  construction_class_packages?: FirmConstructionClassPackages | null;
+  construction_class_packages?: FirmConstructionPackage[] | null;
   gst_masked?: string | null;
   gst_verified?: boolean;
   physical_address?: string | null;
@@ -219,7 +243,7 @@ export interface RegisterFormData {
   company_name?: string;
   gst_number?: string;
   years_in_business?: number;
-  construction_class_packages?: FirmConstructionClassPackages;
+  construction_class_packages?: FirmConstructionPackage[];
 }
 
 // ─── UI state types ─────────────────────────────────────────

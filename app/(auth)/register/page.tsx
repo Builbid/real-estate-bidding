@@ -19,12 +19,13 @@ import { FirmConstructionClassPackagesForm } from '@/components/firm/FirmConstru
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import type { FinishingLevel, FirmConstructionClassPackages } from '@/lib/types';
+import type { FirmConstructionPackage } from '@/lib/types';
 import {
-  emptyConstructionClassPackages,
-  hasCompleteConstructionClassPackages,
-  MIN_PACKAGE_DESCRIPTION_LENGTH,
-  getConstructionClassLabel,
+  createDefaultPackages,
+  hasCompleteConstructionPackages,
+  MIN_CATEGORY_LENGTH,
+  MIN_PACKAGE_NAME_LENGTH,
+  PACKAGE_CATEGORIES,
 } from '@/lib/firm/constructionClass';
 import { validateGstNumber, isValidGstNumber } from '@/lib/validation/gst';
 import { formatMobileDisplay, stripMobileDigits, validateMobile } from '@/lib/validation/mobile';
@@ -117,8 +118,8 @@ function RegisterPageContent() {
   const [companyName, setCompanyName] = useState('');
   const [gstNumber, setGstNumber] = useState('');
   const [yearsInBusiness, setYearsInBusiness] = useState('');
-  const [classPackages, setClassPackages] = useState<FirmConstructionClassPackages>(
-    emptyConstructionClassPackages,
+  const [classPackages, setClassPackages] = useState<FirmConstructionPackage[]>(
+    createDefaultPackages,
   );
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -143,11 +144,17 @@ function RegisterPageContent() {
         errs.company_name = 'Company name is required (min 3 characters).';
       }
       if (touched.gst_number) errs.gst_number = validateGstNumber(gstNumber);
-      (['premium', 'standard', 'basic'] as FinishingLevel[]).forEach((level) => {
-        const key = `construction_class_${level}`;
-        if (touched[key] && (classPackages[level]?.trim().length ?? 0) < MIN_PACKAGE_DESCRIPTION_LENGTH) {
-          errs[key] = `Describe your ${getConstructionClassLabel(level)} package (min ${MIN_PACKAGE_DESCRIPTION_LENGTH} characters).`;
+      classPackages.forEach((pkg) => {
+        const nameKey = `${pkg.id}.name`;
+        if (touched[nameKey] && pkg.name.trim().length < MIN_PACKAGE_NAME_LENGTH) {
+          errs[nameKey] = 'Give this package a name.';
         }
+        PACKAGE_CATEGORIES.forEach((category) => {
+          const fieldKey = `${pkg.id}.${category.key}`;
+          if (touched[fieldKey] && (pkg[category.key]?.trim().length ?? 0) < MIN_CATEGORY_LENGTH) {
+            errs[fieldKey] = `Describe ${category.label} (min ${MIN_CATEGORY_LENGTH} characters).`;
+          }
+        });
       });
     }
     return errs;
@@ -159,7 +166,7 @@ function RegisterPageContent() {
     if (role === 'construction_firm') {
       if (companyName.trim().length < 3) return false;
       if (validateGstNumber(gstNumber)) return false;
-      if (!hasCompleteConstructionClassPackages(classPackages)) return false;
+      if (!hasCompleteConstructionPackages(classPackages)) return false;
     }
     return true;
   }, [fullName, email, password, mobile, role, companyName, gstNumber, classPackages]);
@@ -176,6 +183,14 @@ function RegisterPageContent() {
     e.preventDefault();
     if (!formRef.current || !role) return;
 
+    const packageTouched: Record<string, boolean> = {};
+    classPackages.forEach((pkg) => {
+      packageTouched[`${pkg.id}.name`] = true;
+      PACKAGE_CATEGORIES.forEach((category) => {
+        packageTouched[`${pkg.id}.${category.key}`] = true;
+      });
+    });
+
     setTouched({
       full_name: true,
       email: true,
@@ -183,9 +198,7 @@ function RegisterPageContent() {
       mobile: true,
       company_name: true,
       gst_number: true,
-      construction_class_premium: true,
-      construction_class_standard: true,
-      construction_class_basic: true,
+      ...packageTouched,
     });
 
     if (!isFormValid) return;
@@ -196,6 +209,9 @@ function RegisterPageContent() {
     const formData = new FormData(formRef.current);
     formData.set('role', role);
     formData.set('mobile', stripMobileDigits(mobile));
+    if (role === 'construction_firm') {
+      formData.set('construction_packages_json', JSON.stringify(classPackages));
+    }
 
     const result = await signUpAction({ error: null, success: false }, formData);
 
@@ -462,15 +478,9 @@ function RegisterPageContent() {
                   <div>
                     <FirmConstructionClassPackagesForm
                       value={classPackages}
-                      onChange={(level, description) => {
-                        setClassPackages((prev) => ({ ...prev, [level]: description }));
-                      }}
-                      onBlur={(level) => touch(`construction_class_${level}`)}
-                      errors={{
-                        premium: fieldErrors.construction_class_premium,
-                        standard: fieldErrors.construction_class_standard,
-                        basic: fieldErrors.construction_class_basic,
-                      }}
+                      onChange={setClassPackages}
+                      onBlur={(packageId, field) => touch(`${packageId}.${field}`)}
+                      errors={fieldErrors}
                     />
                   </div>
                 </>

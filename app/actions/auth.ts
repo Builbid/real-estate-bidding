@@ -6,8 +6,8 @@ import { getDashboardPath, normalizeRole } from '@/lib/auth/roles'
 import { validateGstNumber } from '@/lib/validation/gst'
 import { stripMobileDigits, validateMobile } from '@/lib/validation/mobile'
 import {
-  parseConstructionClassPackagesFromForm,
-  validateConstructionClassPackages,
+  parseConstructionPackagesFromForm,
+  validateConstructionPackages,
 } from '@/lib/firm/constructionClass'
 import type { UserRole } from '@/lib/types'
 
@@ -78,7 +78,7 @@ export async function signUpAction(
   const companyName = (formData.get('company_name') as string | null)?.trim() ?? ''
   const gstNumber   = (formData.get('gst_number') as string | null)?.trim().toUpperCase() ?? ''
   const yearsRaw    = (formData.get('years_in_business') as string | null)?.trim() ?? ''
-  const classPackages = parseConstructionClassPackagesFromForm(formData)
+  const classPackages = parseConstructionPackagesFromForm(formData)
 
   const role: SignUpRole =
     roleRaw === 'owner' || roleRaw === 'construction_firm' || roleRaw === 'labour_contractor'
@@ -107,7 +107,7 @@ export async function signUpAction(
     if (gstError) {
       return { error: gstError, success: false }
     }
-    const packageError = validateConstructionClassPackages(classPackages)
+    const packageError = validateConstructionPackages(classPackages)
     if (packageError) {
       return { error: packageError, success: false }
     }

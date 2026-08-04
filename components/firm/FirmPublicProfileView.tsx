@@ -8,7 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { FirmLogo } from '@/components/firm/FirmLogo';
 import { FirmConstructionClassPackagesDisplay } from '@/components/firm/FirmConstructionClassPackagesDisplay';
 import { SelectFirmButton } from '@/components/firm/SelectFirmButton';
-import type { FinishingLevel, PublicFirmProfile, FirmPortfolioItem } from '@/lib/types';
+import type { PublicFirmProfile, FirmPortfolioItem } from '@/lib/types';
 
 interface FirmPublicProfileViewProps {
   firm: PublicFirmProfile;
@@ -19,7 +19,6 @@ interface FirmPublicProfileViewProps {
   rating?: number;
   reviewCount?: number;
   specialty?: string;
-  highlightClass?: FinishingLevel | null;
 }
 
 export function FirmPublicProfileView({
@@ -31,7 +30,6 @@ export function FirmPublicProfileView({
   rating,
   reviewCount,
   specialty,
-  highlightClass = null,
 }: FirmPublicProfileViewProps) {
   const [galleryPhotos, setGalleryPhotos] = useState<string[] | null>(null);
   const [galleryTitle, setGalleryTitle] = useState('');
@@ -82,13 +80,10 @@ export function FirmPublicProfileView({
         </div>
       </div>
 
-      {firm.construction_class_packages && (
+      {firm.construction_class_packages && firm.construction_class_packages.length > 0 && (
         <Card>
           <CardContent className="pt-6 pb-6">
-            <FirmConstructionClassPackagesDisplay
-              packages={firm.construction_class_packages}
-              highlightLevel={highlightClass}
-            />
+            <FirmConstructionClassPackagesDisplay packages={firm.construction_class_packages} />
           </CardContent>
         </Card>
       )}

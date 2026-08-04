@@ -4,13 +4,13 @@ import { LogoUpload } from '@/components/firm/LogoUpload';
 import { FirmConstructionClassPackagesDisplay } from '@/components/firm/FirmConstructionClassPackagesDisplay';
 import { uploadFirmLogo } from '@/lib/firm/uploadFirmLogo';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import type { FirmConstructionClassPackages } from '@/lib/types';
+import type { FirmConstructionPackage } from '@/lib/types';
 
 interface FirmProfileSettingsProps {
   companyName: string;
   gstNumber: string;
   yearsInBusiness: number | null;
-  classPackages: FirmConstructionClassPackages | null;
+  classPackages: FirmConstructionPackage[] | null;
   logoUrl: string | null;
   fullName: string;
 }
@@ -57,7 +57,7 @@ export function FirmProfileSettings({
         </CardContent>
       </Card>
 
-      {classPackages && (
+      {classPackages && classPackages.length > 0 && (
         <Card>
           <CardContent className="pt-6 pb-6">
             <FirmConstructionClassPackagesDisplay packages={classPackages} />
