@@ -22,7 +22,7 @@ import { cn } from '@/lib/utils';
 import type { FirmConstructionPackage } from '@/lib/types';
 import {
   createDefaultPackages,
-  hasCompleteConstructionPackages,
+  validateConstructionPackages,
   MIN_CATEGORY_LENGTH,
   MIN_PACKAGE_NAME_LENGTH,
   PACKAGE_CATEGORIES,
@@ -159,20 +159,19 @@ function RegisterPageContent() {
     return errs;
   }, [touched, fullName, email, password, mobile, role, companyName, gstNumber, classPackages]);
 
-  const isAccountValid = useMemo(() => {
-    if (!fullName.trim() || !email.trim() || password.length < 8) return false;
-    if (validateMobile(mobile)) return false;
+  function getAccountValidationError(): string | null {
+    if (!fullName.trim()) return 'Full name is required.';
+    if (!email.trim()) return 'Email is required.';
+    if (password.length < 8) return 'Password must be at least 8 characters.';
+    const mobileError = validateMobile(mobile);
+    if (mobileError) return mobileError;
     if (role === 'construction_firm') {
-      if (companyName.trim().length < 3) return false;
-      if (validateGstNumber(gstNumber)) return false;
+      if (companyName.trim().length < 3) return 'Company name is required (minimum 3 characters).';
+      const gstError = validateGstNumber(gstNumber);
+      if (gstError) return gstError;
     }
-    return true;
-  }, [fullName, email, password, mobile, role, companyName, gstNumber]);
-
-  const isPackagesValid = useMemo(
-    () => hasCompleteConstructionPackages(classPackages),
-    [classPackages],
-  );
+    return null;
+  }
 
   function touch(field: string) {
     setTouched((t) => ({ ...t, [field]: true }));
@@ -245,7 +244,12 @@ function RegisterPageContent() {
       gst_number: true,
     }));
 
-    if (!isAccountValid) return;
+    const accountError = getAccountValidationError();
+    if (accountError) {
+      setError(accountError);
+      return;
+    }
+    setError(null);
 
     if (role === 'construction_firm') {
       setStep(3);
@@ -267,7 +271,12 @@ function RegisterPageContent() {
     });
     setTouched((t) => ({ ...t, ...packageTouched }));
 
-    if (!isPackagesValid) return;
+    const packageError = validateConstructionPackages(classPackages);
+    if (packageError) {
+      setError(packageError);
+      return;
+    }
+    setError(null);
 
     await submitAccount();
   }
@@ -615,7 +624,7 @@ function RegisterPageContent() {
                     <ArrowLeft className="w-4 h-4" /> Back
                   </Button>
                 )}
-                <Button type="submit" size="lg" className="flex-1" disabled={pending || !isAccountValid}>
+                <Button type="submit" size="lg" className="flex-1" disabled={pending}>
                   {role === 'construction_firm' ? (
                     <span className="flex items-center gap-2">Continue <ArrowRight className="w-4 h-4" /></span>
                   ) : pending ? (
@@ -665,7 +674,7 @@ function RegisterPageContent() {
                 >
                   <ArrowLeft className="w-4 h-4" /> Back
                 </Button>
-                <Button type="submit" size="lg" className="flex-1" disabled={pending || !isPackagesValid}>
+                <Button type="submit" size="lg" className="flex-1" disabled={pending}>
                   {pending ? (
                     <span className="flex items-center gap-2">
                       <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
