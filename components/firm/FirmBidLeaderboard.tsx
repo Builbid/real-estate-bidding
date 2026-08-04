@@ -10,12 +10,8 @@ import { useProfile } from '@/lib/hooks/useProfile';
 import { FirmLogo, getFirmCityLabel } from '@/components/firm/FirmLogo';
 import { CountdownTicker } from '@/components/shared/CountdownTicker';
 import { Button } from '@/components/ui/button';
+import { PackageBidPriceList } from '@/components/firm/PackageBidPriceList';
 import { cn, formatRelativeTime } from '@/lib/utils';
-import {
-  formatBidRatePerSqft,
-  formatEstimatedTotal,
-  getBidDisplayRate,
-} from '@/lib/firm/bidDisplay';
 import type { ProjectStatus, PublicFirmProfile } from '@/lib/types';
 
 interface FirmBidLeaderboardProps {
@@ -159,8 +155,6 @@ export function FirmBidLeaderboard({
               ?? `Firm #${bid.builder_id?.slice(-6).toUpperCase() ?? '?'}`;
             const city = getFirmCityLabel(firm);
             const years = firm?.years_in_business;
-            const rate = getBidDisplayRate(bid);
-            const estTotal = formatEstimatedTotal(rate, floorAreaSqft);
             const isFlashing = flashId === bid.id;
 
             return (
@@ -214,13 +208,12 @@ export function FirmBidLeaderboard({
                   </div>
                 </div>
 
-                <div className="text-right flex-shrink-0">
-                  <p className={cn('text-base font-bold tabular-nums', isLowest ? 'text-emerald-400' : 'text-foreground')}>
-                    {formatBidRatePerSqft(bid)}
-                  </p>
-                  {estTotal && (
-                    <p className="text-[10px] text-muted-foreground">~{estTotal} total</p>
-                  )}
+                <div className="flex-shrink-0">
+                  <PackageBidPriceList
+                    packageRates={bid.package_rates ?? []}
+                    highlight={isLowest}
+                    align="end"
+                  />
                 </div>
 
                 {showViewProfile && bid.builder_id && (

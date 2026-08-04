@@ -13,7 +13,7 @@ import {
   getProjectBudgetDisplay,
   getProjectFloorAreaDisplay,
 } from '@/lib/project/display';
-import { formatBidRatePerSqft } from '@/lib/firm/bidDisplay';
+import { formatPackageRateRange } from '@/lib/firm/bidDisplay';
 import { formatProjectPostedAt } from '@/lib/utils';
 import type { Project, Bid } from '@/lib/types';
 
@@ -65,7 +65,7 @@ export function FirmAuctionRow({ project, myBid }: FirmAuctionRowProps) {
           )}
           {hasBid && (
             <Badge variant="violet">
-              Your Bid: {formatBidRatePerSqft(myBid!)}
+              Your Bid: {formatPackageRateRange(myBid!.package_rates) ?? '—'}
             </Badge>
           )}
         </div>

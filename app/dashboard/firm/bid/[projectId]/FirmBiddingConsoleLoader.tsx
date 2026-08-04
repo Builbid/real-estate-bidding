@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import { FirmBidPageSkeleton } from '@/components/firm/FirmBidPageSkeleton';
-import type { Project, Bid } from '@/lib/types';
+import type { Project, Bid, FirmConstructionPackage } from '@/lib/types';
 
 const FirmBiddingConsole = dynamic(
   () => import('./FirmBiddingConsole').then((m) => m.FirmBiddingConsole),
@@ -15,6 +15,7 @@ interface Props {
   firmId: string;
   companyName: string;
   logoUrl?: string | null;
+  packages: FirmConstructionPackage[];
 }
 
 export function FirmBiddingConsoleLoader(props: Props) {

@@ -7,7 +7,7 @@ import type { Bid } from '../types';
 
 const BID_COLUMNS_BASE =
   'id, project_id, rates, total_sum_metric, created_at, updated_at, builder_id';
-const BID_COLUMNS_EXTENDED = `${BID_COLUMNS_BASE}, single_rate, service_type`;
+const BID_COLUMNS_EXTENDED = `${BID_COLUMNS_BASE}, single_rate, service_type, package_rates`;
 
 /**
  * Realtime bids for construction firm projects — separate from useRealtimeBids

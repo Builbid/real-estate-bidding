@@ -1,6 +1,7 @@
 import type { BuildingType, ConstructionTypesMap } from '@/lib/buildingConfig';
 import { BUILDING_TYPE_OPTIONS } from '@/lib/buildingConfig';
-import type { Bid, FinishingLevel, Project, SubConfiguration, TrackType } from '@/lib/types';
+import { normalizeConstructionPackages } from '@/lib/firm/constructionClass';
+import type { Bid, FinishingLevel, PackageBidPrice, Project, SubConfiguration, TrackType } from '@/lib/types';
 
 const VALID_BUILDING_TYPES = new Set<string>(BUILDING_TYPE_OPTIONS);
 const VALID_FINISHING: FinishingLevel[] = ['basic', 'standard', 'premium'];
@@ -55,6 +56,31 @@ function toNumber(raw: unknown): number | null {
   if (raw == null || raw === '') return null;
   const n = typeof raw === 'number' ? raw : Number(raw);
   return Number.isFinite(n) ? n : null;
+}
+
+function normalizePackageRates(raw: unknown): PackageBidPrice[] | null {
+  let value = raw;
+  if (typeof value === 'string') {
+    try {
+      value = JSON.parse(value) as unknown;
+    } catch {
+      return null;
+    }
+  }
+  if (!Array.isArray(value)) return null;
+
+  const entries = value
+    .filter((item): item is Record<string, unknown> => typeof item === 'object' && item !== null)
+    .map((item) => {
+      const rate = toNumber(item.rate);
+      const packages = normalizeConstructionPackages([item.package]);
+      const pkg = packages?.[0];
+      if (rate == null || rate <= 0 || !pkg) return null;
+      return { rate, package: pkg };
+    })
+    .filter((entry): entry is PackageBidPrice => entry != null);
+
+  return entries.length > 0 ? entries : null;
 }
 
 /** Normalize raw Supabase project row for safe client rendering. */
@@ -112,6 +138,7 @@ export function sanitizeFirmBid(raw: Record<string, unknown> | null): Bid | null
     },
     total_sum_metric: totalMetric ?? singleRate ?? groundRate ?? 0,
     single_rate: singleRate,
+    package_rates: normalizePackageRates(raw.package_rates),
     service_type: raw.service_type === 'construction_firm' ? 'construction_firm' : 'labour_contractor',
     is_withdrawn: Boolean(raw.is_withdrawn),
     created_at: typeof raw.created_at === 'string' ? raw.created_at : new Date().toISOString(),

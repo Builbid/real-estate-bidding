@@ -8,7 +8,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useRealtimeFirmBids } from '@/lib/hooks/useRealtimeFirmBids';
 import { FirmLogo, getFirmCityLabel } from '@/components/firm/FirmLogo';
 import { SelectFirmButton } from '@/components/firm/SelectFirmButton';
-import { formatBidRatePerSqft, formatEstimatedTotal, getBidDisplayRate } from '@/lib/firm/bidDisplay';
+import { PackageBidPriceList } from '@/components/firm/PackageBidPriceList';
 import { formatRelativeTime } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useOwnerProjectPhaseContext } from '@/lib/context/OwnerProjectPhaseContext';
@@ -96,8 +96,6 @@ export function UnifiedFirmBidRankings({
           const isSelected = project.selected_builder_id === bid.builder_id;
           const isLowest = index === 0;
           const companyName = firm?.company_name ?? `Firm #${bid.builder_id?.slice(-6).toUpperCase()}`;
-          const rate = getBidDisplayRate(bid);
-          const estTotal = formatEstimatedTotal(rate, project.floor_area_sqft);
 
           return (
             <motion.div
@@ -133,11 +131,12 @@ export function UnifiedFirmBidRankings({
                 <p className="text-[10px] text-muted-foreground/80 mt-0.5">{formatRelativeTime(bid.created_at)}</p>
               </div>
 
-              <div className="text-right flex-shrink-0">
-                <p className={`text-base font-bold tabular-nums ${isLowest ? 'text-emerald-400' : 'text-foreground'}`}>
-                  {formatBidRatePerSqft(bid)}
-                </p>
-                {estTotal && <p className="text-[10px] text-muted-foreground">~{estTotal} total</p>}
+              <div className="w-full sm:w-auto sm:flex-shrink-0">
+                <PackageBidPriceList
+                  packageRates={bid.package_rates ?? []}
+                  highlight={isLowest}
+                  align="end"
+                />
               </div>
 
               <div className="flex items-center gap-2 flex-shrink-0">

@@ -7,7 +7,7 @@ import { AdminActionBar } from './AdminActionBar';
 import { STATUS_CONFIG, TRACK_LABELS, getConstructionLabel } from '@/lib/utils';
 import { formatBuildingTypesSummary, hasNewBuildingConfig } from '@/lib/buildingConfig';
 import { getProjectServiceType, getServiceBadgeLabel } from '@/lib/project/display';
-import { getBidDisplayRate, formatBidRatePerSqft } from '@/lib/firm/bidDisplay';
+import { getBidDisplayRate, formatPackageRateRange } from '@/lib/firm/bidDisplay';
 import { cn } from '@/lib/utils';
 import type { Project, Profile, Bid, ServiceType } from '@/lib/types';
 
@@ -136,7 +136,7 @@ export function AdminServiceTables({ projects, profiles, recentBids }: AdminServ
               </div>
               <p className="text-xs font-bold text-emerald-400">
                 {bid.service_type === 'construction_firm'
-                  ? formatBidRatePerSqft(bid)
+                  ? formatPackageRateRange(bid.package_rates) ?? '—'
                   : `₹${getBidDisplayRate(bid).toLocaleString('en-IN')}/sqft`}
               </p>
             </div>

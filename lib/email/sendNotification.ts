@@ -5,7 +5,8 @@ interface SelectionEmailData {
   projectTitle:       string;
   projectDistrict:    string;
   constructionType:   string;
-  bidAmount:          number;
+  /** Pre-formatted winning bid label, e.g. "₹1,850/sqft" or "₹1,450 – ₹2,100/sqft". */
+  bidAmountLabel:      string;
   isFirmProject?:     boolean;
 
   ownerName:    string;
@@ -169,7 +170,7 @@ function buildHtml(d: SelectionEmailData): string {
       row('Project', d.projectTitle) +
       row('District', d.projectDistrict) +
       row('Construction Type', d.constructionType) +
-      row('Winning Bid', `₹${d.bidAmount.toLocaleString('en-IN')} / sqft`) +
+      row('Winning Bid', d.bidAmountLabel || 'N/A') +
       row('Selected At', new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' }))
     )}
 

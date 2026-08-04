@@ -15,7 +15,7 @@ import { CountdownTicker } from '@/components/shared/CountdownTicker';
 import { STATUS_CONFIG } from '@/lib/utils';
 import { FirmAuctionRow } from './AuctionRow';
 import { getFirmPortfolioAction } from '@/app/actions/firm';
-import { formatBidRatePerSqft } from '@/lib/firm/bidDisplay';
+import { formatPackageRateRange } from '@/lib/firm/bidDisplay';
 import type { Project, Bid } from '@/lib/types';
 
 async function getData() {
@@ -229,7 +229,9 @@ export default async function FirmDashboardPage() {
                     <p className="text-xs text-muted-foreground">{project?.district ?? ''}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-bold text-foreground">{formatBidRatePerSqft(bid)}</p>
+                    <p className="text-sm font-bold text-foreground">
+                      {formatPackageRateRange(bid.package_rates) ?? '—'}
+                    </p>
                     {rank != null && (
                       <p className="text-[10px] text-muted-foreground">Rank #{rank}</p>
                     )}

@@ -180,6 +180,17 @@ export interface BidRates {
   second_rate?: number;
 }
 
+/**
+ * A construction firm's bid rate for one of its own packages. `package` is a
+ * full snapshot of the package definition at the time the bid was placed, so
+ * clients can always see exactly what was on offer for that price — even if
+ * the firm edits its packages later.
+ */
+export interface PackageBidPrice {
+  rate: number;
+  package: FirmConstructionPackage;
+}
+
 export interface Bid {
   id: string;
   project_id: string;
@@ -187,6 +198,8 @@ export interface Bid {
   rates: BidRates;
   total_sum_metric: number;
   single_rate?: number | null;
+  /** Construction firm bids only — one price per package the firm defined at registration. */
+  package_rates?: PackageBidPrice[] | null;
   service_type?: ServiceType | null;
   is_withdrawn: boolean;
   created_at: string;

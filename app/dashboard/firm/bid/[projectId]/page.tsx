@@ -10,6 +10,7 @@ import { FirmBidFetchError } from '@/components/firm/FirmBidFetchError';
 import { FirmBiddingConsoleLoader } from './FirmBiddingConsoleLoader';
 import { isFirmProject } from '@/lib/project/display';
 import { sanitizeFirmBid, sanitizeFirmProject } from '@/lib/firm/sanitizeProject';
+import { normalizeConstructionPackages } from '@/lib/firm/constructionClass';
 import type { Bid, Profile, Project } from '@/lib/types';
 
 interface PageProps {
@@ -168,6 +169,7 @@ export default async function FirmBidPage({ params }: PageProps) {
       firmId={userId}
       companyName={profile.company_name ?? profile.full_name ?? 'Your Firm'}
       logoUrl={profile.logo_url ?? null}
+      packages={normalizeConstructionPackages(profile.construction_class_packages) ?? []}
     />
   );
 }

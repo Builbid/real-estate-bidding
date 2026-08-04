@@ -4,7 +4,8 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient }      from '@/lib/supabase/server'
 import { sendSelectionNotification, sendUserNotificationEmail } from '@/lib/email/sendNotification'
 import { getConstructionLabel } from '@/lib/utils'
-import type { SubConfiguration, TrackType } from '@/lib/types'
+import { formatPackageRateRange } from '@/lib/firm/bidDisplay'
+import type { PackageBidPrice, SubConfiguration, TrackType } from '@/lib/types'
 import { revalidatePath } from 'next/cache'
 
 export async function selectBuilderAction(
@@ -43,18 +44,25 @@ export async function selectBuilderAction(
 
   const { data: winningBid } = await supabase
     .from('bids')
-    .select('total_sum_metric, single_rate')
+    .select('total_sum_metric, single_rate, package_rates')
     .eq('project_id', projectId)
     .eq('builder_id', builderId)
     .limit(1)
     .single()
 
-  const rateValue = winningBid?.single_rate ?? winningBid?.total_sum_metric
-  const bidAmt = rateValue
-    ? `₹${rateValue.toLocaleString('en-IN')}/sqft`
-    : ''
-
   const isFirmProject = existing.service_type === 'construction_firm'
+
+  // Firm bids: show the range across the firm's package prices (never the
+  // hidden ranking average). Labour contractor bids keep the single rate.
+  const packageRange = isFirmProject
+    ? formatPackageRateRange(winningBid?.package_rates as PackageBidPrice[] | null | undefined)
+    : null
+  const legacyRateValue = winningBid?.single_rate ?? winningBid?.total_sum_metric
+  const bidAmt = isFirmProject
+    ? packageRange ?? ''
+    : legacyRateValue
+      ? `₹${legacyRateValue.toLocaleString('en-IN')}/sqft`
+      : ''
 
   const { data: ownerProfile } = await supabase
     .from('profiles')
@@ -135,7 +143,7 @@ export async function selectBuilderAction(
       projectTitle:     existing.title,
       projectDistrict:  existing.district,
       constructionType: constructionLabel,
-      bidAmount:        rateValue ?? 0,
+      bidAmountLabel:   bidAmt || 'N/A',
       isFirmProject,
       ownerName:        ownerProfile?.full_name        ?? 'N/A',
       ownerEmail:       ownerProfile?.email            ?? 'N/A',

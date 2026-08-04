@@ -15,6 +15,8 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { BuildingConfigSummary } from '@/components/construction/BuildingConfigSummary';
 import { FirmLogo } from '@/components/firm/FirmLogo';
+import { PackageInfoButton } from '@/components/firm/PackageInfoButton';
+import { PackageBidPriceList } from '@/components/firm/PackageBidPriceList';
 import { useRealtimeFirmBids } from '@/lib/hooks/useRealtimeFirmBids';
 import { createClient } from '@/lib/supabase/client';
 import {
@@ -22,11 +24,7 @@ import {
   getProjectBudgetDisplay,
   getProjectFloorAreaDisplay,
 } from '@/lib/project/display';
-import {
-  formatBidRatePerSqft,
-  formatEstimatedTotal,
-  formatEstimatedTotalLabel,
-} from '@/lib/firm/bidDisplay';
+import { formatEstimatedTotalLabel } from '@/lib/firm/bidDisplay';
 import {
   BID_RATE_ERROR,
   getBidRateFieldError,
@@ -36,9 +34,9 @@ import {
   sanitizeBidRateInput,
   validateSingleRate,
 } from '@/lib/validation/singleRate';
-import { submitFirmBidAction } from '@/app/actions/firmBid';
+import { submitFirmBidAction, type PackageRateInput } from '@/app/actions/firmBid';
 import { cn, formatRelativeTime } from '@/lib/utils';
-import type { Project, Bid, PublicFirmProfile } from '@/lib/types';
+import type { Project, Bid, FirmConstructionPackage, PublicFirmProfile } from '@/lib/types';
 
 interface Props {
   project: Project;
@@ -46,6 +44,7 @@ interface Props {
   firmId: string;
   companyName: string;
   logoUrl?: string | null;
+  packages: FirmConstructionPackage[];
 }
 
 export function FirmBiddingConsole({
@@ -54,6 +53,7 @@ export function FirmBiddingConsole({
   firmId,
   companyName,
   logoUrl,
+  packages,
 }: Props) {
   const leaderboardRef = useRef<HTMLDivElement>(null);
   const supabaseRef = useRef(createClient());
@@ -65,11 +65,18 @@ export function FirmBiddingConsole({
   const buildingTypes = project?.building_types ?? [];
   const floorAreaSqft = project?.floor_area_sqft ?? null;
 
-  const initialRate = existingBid?.single_rate ?? existingBid?.total_sum_metric;
-  const [rateInput, setRateInput] = useState(() =>
-    initialRate && Number.isFinite(initialRate) ? String(Math.trunc(initialRate)) : '',
-  );
-  const [rateError, setRateError] = useState<string | null>(null);
+  const [rateInputs, setRateInputs] = useState<Record<string, string>>(() => {
+    const map: Record<string, string> = {};
+    const existingRates = existingBid?.package_rates ?? [];
+    for (const pkg of packages) {
+      const match = existingRates.find((r) => r.package.id === pkg.id);
+      if (match && Number.isFinite(match.rate) && match.rate > 0) {
+        map[pkg.id] = String(Math.trunc(match.rate));
+      }
+    }
+    return map;
+  });
+  const [rateErrors, setRateErrors] = useState<Record<string, string | null>>({});
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [successRank, setSuccessRank] = useState<number | null>(null);
@@ -77,8 +84,15 @@ export function FirmBiddingConsole({
 
   const isGracePeriod = project?.status === 'frozen_24h';
   const isBiddingOpen = project?.status === 'active_24h' || isGracePeriod;
-  const parsedRate = parseBidRateValue(rateInput);
-  const canSubmit = isValidBidRate(parsedRate) && !rateError && Boolean(projectId);
+
+  const parsedRates: Record<string, number | undefined> = {};
+  for (const pkg of packages) {
+    parsedRates[pkg.id] = parseBidRateValue(rateInputs[pkg.id] ?? '');
+  }
+  const canSubmit =
+    packages.length > 0 &&
+    packages.every((pkg) => isValidBidRate(parsedRates[pkg.id])) &&
+    Boolean(projectId);
 
   const myCurrentBid = bids.find((b) => b.builder_id === firmId);
   const myRank = bids.findIndex((b) => b.builder_id === firmId) + 1;
@@ -111,17 +125,15 @@ export function FirmBiddingConsole({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bids]);
 
-  useEffect(() => {
-    if (!rateInput) {
-      setRateError(null);
+  function handleRateChange(packageId: string, raw: string) {
+    const sanitized = sanitizeBidRateInput(raw);
+    setRateInputs((prev) => ({ ...prev, [packageId]: sanitized }));
+    if (!sanitized) {
+      setRateErrors((prev) => ({ ...prev, [packageId]: null }));
       return;
     }
-    const value = parseBidRateValue(rateInput);
-    setRateError(getBidRateFieldError(value));
-  }, [rateInput]);
-
-  function handleRateChange(raw: string) {
-    setRateInput(sanitizeBidRateInput(raw));
+    const value = parseBidRateValue(sanitized);
+    setRateErrors((prev) => ({ ...prev, [packageId]: getBidRateFieldError(value) }));
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -131,10 +143,20 @@ export function FirmBiddingConsole({
       return;
     }
 
-    const validation = validateSingleRate(parsedRate);
-    if (!validation.valid) {
-      setRateError(validation.message);
-      setError(validation.message);
+    const nextErrors: Record<string, string | null> = {};
+    let firstErrorMessage: string | null = null;
+
+    for (const pkg of packages) {
+      const validation = validateSingleRate(parsedRates[pkg.id]);
+      if (!validation.valid) {
+        nextErrors[pkg.id] = validation.message;
+        firstErrorMessage ??= `"${pkg.name}": ${validation.message}`;
+      }
+    }
+
+    if (firstErrorMessage) {
+      setRateErrors(nextErrors);
+      setError(firstErrorMessage);
       return;
     }
 
@@ -143,7 +165,11 @@ export function FirmBiddingConsole({
     setSuccess(false);
 
     const bidId = existingBid?.id ?? myCurrentBid?.id ?? null;
-    const result = await submitFirmBidAction(projectId, parsedRate!, bidId);
+    const packageRatesPayload: PackageRateInput[] = packages.map((pkg) => ({
+      package_id: pkg.id,
+      rate: parsedRates[pkg.id] as number,
+    }));
+    const result = await submitFirmBidAction(projectId, packageRatesPayload, bidId);
 
     if (result.error) {
       setError(parseBidDbError(result.error));
@@ -290,7 +316,18 @@ export function FirmBiddingConsole({
                 )}
               </div>
 
-              {isBiddingOpen ? (
+              {packages.length === 0 ? (
+                <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 text-sm">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                  <span>
+                    Add your construction packages in{' '}
+                    <NavLink href="/dashboard/firm/settings" className="underline font-medium">
+                      Firm Settings
+                    </NavLink>{' '}
+                    before you can bid.
+                  </span>
+                </div>
+              ) : isBiddingOpen ? (
                 <>
                   {error && (
                     <div className="flex items-start gap-2 p-2.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
@@ -314,41 +351,51 @@ export function FirmBiddingConsole({
 
                   <form onSubmit={handleSubmit} className="space-y-3">
                     <div>
-                      <p className="text-sm font-semibold text-foreground">Your Rate</p>
+                      <p className="text-sm font-semibold text-foreground">Your Rates</p>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        Enter your complete rate per sqft (materials + labour + finishing included)
+                        Enter a complete rate per sqft (materials + labour + finishing included) for
+                        each of your packages
                       </p>
                     </div>
 
-                    <Input
-                      label="Rate per sqft"
-                      type="text"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      placeholder="e.g. 1850"
-                      value={rateInput}
-                      onChange={(e) => handleRateChange(e.target.value)}
-                      prefix={<span className="text-muted-foreground text-xs">₹</span>}
-                      suffix={<span className="text-muted-foreground/80 text-xs">per sqft</span>}
-                      error={rateError ?? undefined}
-                      required
-                    />
-                    {rateError === BID_RATE_ERROR && (
-                      <p className="text-xs text-amber-400">{BID_RATE_ERROR}</p>
-                    )}
-
-                    {parsedRate && isValidBidRate(parsedRate) && floorAreaSqft ? (
-                      <p className="text-sm text-foreground">
-                        Estimated Total:{' '}
-                        <span className="font-bold text-emerald-400">
-                          {formatEstimatedTotalLabel(parsedRate, floorAreaSqft)}
-                        </span>
-                      </p>
-                    ) : (
-                      <p className="text-xs text-muted-foreground italic">
-                        Total will depend on final floor area measurement
-                      </p>
-                    )}
+                    <div className="space-y-3">
+                      {packages.map((pkg) => {
+                        const value = rateInputs[pkg.id] ?? '';
+                        const fieldError = rateErrors[pkg.id];
+                        const parsedRate = parsedRates[pkg.id];
+                        return (
+                          <div key={pkg.id}>
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              <span className="text-xs font-medium text-foreground truncate">{pkg.name}</span>
+                              <PackageInfoButton pkg={pkg} />
+                            </div>
+                            <Input
+                              type="text"
+                              inputMode="numeric"
+                              pattern="[0-9]*"
+                              placeholder="e.g. 1850"
+                              value={value}
+                              onChange={(e) => handleRateChange(pkg.id, e.target.value)}
+                              prefix={<span className="text-muted-foreground text-xs">₹</span>}
+                              suffix={<span className="text-muted-foreground/80 text-xs">per sqft</span>}
+                              error={fieldError ?? undefined}
+                              required
+                            />
+                            {fieldError === BID_RATE_ERROR && (
+                              <p className="text-xs text-amber-400">{BID_RATE_ERROR}</p>
+                            )}
+                            {parsedRate && isValidBidRate(parsedRate) && floorAreaSqft ? (
+                              <p className="text-[11px] text-muted-foreground mt-1">
+                                Estimated Total:{' '}
+                                <span className="font-semibold text-emerald-400">
+                                  {formatEstimatedTotalLabel(parsedRate, floorAreaSqft)}
+                                </span>
+                              </p>
+                            ) : null}
+                          </div>
+                        );
+                      })}
+                    </div>
 
                     <Button
                       type="submit"
@@ -392,7 +439,7 @@ export function FirmBiddingConsole({
                 <div className="flex flex-col items-center justify-center gap-3 py-10 rounded-xl bg-secondary/30 border border-border text-center">
                   <Trophy className="w-8 h-8 text-muted-foreground/60" />
                   <p className="text-sm font-semibold text-foreground">No Bids Yet</p>
-                  <p className="text-xs text-muted-foreground">Be the first firm to submit a competitive rate.</p>
+                  <p className="text-xs text-muted-foreground">Be the first firm to submit competitive rates.</p>
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -404,10 +451,6 @@ export function FirmBiddingConsole({
                       const rowName = isMe
                         ? safeCompanyName
                         : firm?.company_name ?? (bid.builder_id ? `Firm #${bid.builder_id.slice(-6).toUpperCase()}` : 'Firm');
-                      const estTotal = formatEstimatedTotal(
-                        bid.single_rate ?? bid.total_sum_metric ?? bid.rates?.ground_rate ?? 0,
-                        floorAreaSqft,
-                      );
 
                       return (
                         <motion.div
@@ -459,13 +502,12 @@ export function FirmBiddingConsole({
                             </div>
                           </div>
 
-                          <div className="text-right flex-shrink-0">
-                            <p className={cn('text-base font-bold tabular-nums', isLowest ? 'text-emerald-400' : 'text-foreground')}>
-                              {formatBidRatePerSqft(bid)}
-                            </p>
-                            {estTotal && (
-                              <p className="text-[10px] text-muted-foreground">~{estTotal} total</p>
-                            )}
+                          <div className="w-full sm:w-auto">
+                            <PackageBidPriceList
+                              packageRates={bid.package_rates ?? []}
+                              highlight={isLowest}
+                              align="end"
+                            />
                           </div>
                         </motion.div>
                       );
