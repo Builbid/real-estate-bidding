@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useRef, useState, useMemo } from 'react';
+import { Suspense, useState, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -35,7 +35,7 @@ import {
   PASSWORD_STRENGTH_LABEL,
 } from '@/lib/validation/passwordStrength';
 
-type Step = 1 | 2 | 3;
+type Step = 1 | 2 | 3 | 4;
 
 type RegisterRole = SignUpRole | null;
 
@@ -124,7 +124,6 @@ function RegisterPageContent() {
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
-  const formRef = useRef<HTMLFormElement>(null);
 
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -160,16 +159,20 @@ function RegisterPageContent() {
     return errs;
   }, [touched, fullName, email, password, mobile, role, companyName, gstNumber, classPackages]);
 
-  const isFormValid = useMemo(() => {
+  const isAccountValid = useMemo(() => {
     if (!fullName.trim() || !email.trim() || password.length < 8) return false;
     if (validateMobile(mobile)) return false;
     if (role === 'construction_firm') {
       if (companyName.trim().length < 3) return false;
       if (validateGstNumber(gstNumber)) return false;
-      if (!hasCompleteConstructionPackages(classPackages)) return false;
     }
     return true;
-  }, [fullName, email, password, mobile, role, companyName, gstNumber, classPackages]);
+  }, [fullName, email, password, mobile, role, companyName, gstNumber]);
+
+  const isPackagesValid = useMemo(
+    () => hasCompleteConstructionPackages(classPackages),
+    [classPackages],
+  );
 
   function touch(field: string) {
     setTouched((t) => ({ ...t, [field]: true }));
@@ -179,37 +182,24 @@ function RegisterPageContent() {
     setMobile(formatMobileDisplay(value));
   }
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    if (!formRef.current || !role) return;
-
-    const packageTouched: Record<string, boolean> = {};
-    classPackages.forEach((pkg) => {
-      packageTouched[`${pkg.id}.name`] = true;
-      PACKAGE_CATEGORIES.forEach((category) => {
-        packageTouched[`${pkg.id}.${category.key}`] = true;
-      });
-    });
-
-    setTouched({
-      full_name: true,
-      email: true,
-      password: true,
-      mobile: true,
-      company_name: true,
-      gst_number: true,
-      ...packageTouched,
-    });
-
-    if (!isFormValid) return;
+  async function submitAccount() {
+    if (!role) return;
 
     setPending(true);
     setError(null);
 
-    const formData = new FormData(formRef.current);
+    const formData = new FormData();
     formData.set('role', role);
+    formData.set('full_name', fullName);
+    formData.set('email', email);
+    formData.set('password', password);
     formData.set('mobile', stripMobileDigits(mobile));
+    formData.set('physical_address', address);
+    formData.set('pincode', pincode);
     if (role === 'construction_firm') {
+      formData.set('company_name', companyName);
+      formData.set('gst_number', gstNumber);
+      formData.set('years_in_business', yearsInBusiness);
       formData.set('construction_packages_json', JSON.stringify(classPackages));
     }
 
@@ -237,8 +227,49 @@ function RegisterPageContent() {
     }
 
     setEmailConfirmPending(true);
-    setStep(3);
+    setStep(4);
     setPending(false);
+  }
+
+  async function handleDetailsSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!role) return;
+
+    setTouched((t) => ({
+      ...t,
+      full_name: true,
+      email: true,
+      password: true,
+      mobile: true,
+      company_name: true,
+      gst_number: true,
+    }));
+
+    if (!isAccountValid) return;
+
+    if (role === 'construction_firm') {
+      setStep(3);
+      return;
+    }
+
+    await submitAccount();
+  }
+
+  async function handlePackagesSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+
+    const packageTouched: Record<string, boolean> = {};
+    classPackages.forEach((pkg) => {
+      packageTouched[`${pkg.id}.name`] = true;
+      PACKAGE_CATEGORIES.forEach((category) => {
+        packageTouched[`${pkg.id}.${category.key}`] = true;
+      });
+    });
+    setTouched((t) => ({ ...t, ...packageTouched }));
+
+    if (!isPackagesValid) return;
+
+    await submitAccount();
   }
 
   const roleLabel =
@@ -302,9 +333,9 @@ function RegisterPageContent() {
           </div>
         </div>
 
-        {step < 3 && !emailConfirmPending && (
+        {step < 4 && !emailConfirmPending && (
           <div className="flex items-center justify-center gap-2 mb-6">
-            {([1, 2] as const).map((s) => (
+            {(role === 'construction_firm' ? [1, 2, 3] : [1, 2]).map((s) => (
               <div key={s} className={cn('h-1.5 rounded-full transition-all duration-300', s <= step ? 'w-8 bg-emerald-500' : 'w-4 bg-muted')} />
             ))}
           </div>
@@ -374,8 +405,7 @@ function RegisterPageContent() {
           )}
 
           {step === 2 && !emailConfirmPending && role && (
-            <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
-              <input type="hidden" name="role" value={role} />
+            <form onSubmit={handleDetailsSubmit} className="space-y-4">
 
               <p className="text-sm font-semibold text-foreground/80 mb-2">
                 {roleLabel} — Account Details
@@ -473,15 +503,6 @@ function RegisterPageContent() {
                       onChange={(e) => setYearsInBusiness(e.target.value)}
                     />
                     <p className="text-[11px] text-muted-foreground mt-1">How many years has your firm been operating?</p>
-                  </div>
-
-                  <div>
-                    <FirmConstructionClassPackagesForm
-                      value={classPackages}
-                      onChange={setClassPackages}
-                      onBlur={(packageId, field) => touch(`${packageId}.${field}`)}
-                      errors={fieldErrors}
-                    />
                   </div>
                 </>
               )}
@@ -594,7 +615,57 @@ function RegisterPageContent() {
                     <ArrowLeft className="w-4 h-4" /> Back
                   </Button>
                 )}
-                <Button type="submit" size="lg" className="flex-1" disabled={pending || !isFormValid}>
+                <Button type="submit" size="lg" className="flex-1" disabled={pending || !isAccountValid}>
+                  {role === 'construction_firm' ? (
+                    <span className="flex items-center gap-2">Continue <ArrowRight className="w-4 h-4" /></span>
+                  ) : pending ? (
+                    <span className="flex items-center gap-2">
+                      <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                      Creating account…
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-2">Create Account <ArrowRight className="w-4 h-4" /></span>
+                  )}
+                </Button>
+              </div>
+            </form>
+          )}
+
+          {step === 3 && !emailConfirmPending && role === 'construction_firm' && (
+            <form onSubmit={handlePackagesSubmit} className="space-y-4">
+              <p className="text-sm font-semibold text-foreground/80 mb-1">
+                Create Your Construction Packages
+              </p>
+              <p className="text-xs text-muted-foreground mb-2 leading-relaxed">
+                Describe what&apos;s included in each package you offer so clients can compare
+                firms when posting a project.
+              </p>
+
+              {error && (
+                <div className="flex items-start gap-3 p-3.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                  <p className="text-sm">{error}</p>
+                </div>
+              )}
+
+              <FirmConstructionClassPackagesForm
+                value={classPackages}
+                onChange={setClassPackages}
+                onBlur={(packageId, field) => touch(`${packageId}.${field}`)}
+                errors={fieldErrors}
+              />
+
+              <div className="flex gap-3 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  className="flex-1"
+                  onClick={() => setStep(2)}
+                >
+                  <ArrowLeft className="w-4 h-4" /> Back
+                </Button>
+                <Button type="submit" size="lg" className="flex-1" disabled={pending || !isPackagesValid}>
                   {pending ? (
                     <span className="flex items-center gap-2">
                       <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
@@ -608,7 +679,7 @@ function RegisterPageContent() {
             </form>
           )}
 
-          {(step === 3 || emailConfirmPending) && (
+          {(step === 4 || emailConfirmPending) && (
             <div className="flex flex-col items-center gap-5 py-4 text-center">
               <div className="w-16 h-16 rounded-full bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center">
                 <CheckCircle2 className="w-8 h-8 text-emerald-400" />
