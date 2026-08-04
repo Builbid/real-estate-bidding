@@ -354,7 +354,7 @@ export function ConstructionFirmProjectWizard() {
                     htmlFor="floor-area-sqft"
                     className="text-xs font-medium text-muted-foreground uppercase tracking-wider"
                   >
-                    Expected Slab Area (Optional)
+                    Total Slab Area of All the Floors (in Sqft) Approx (Optional)
                   </label>
                   <Popover>
                     <PopoverTrigger asChild>
@@ -514,7 +514,7 @@ export function ConstructionFirmProjectWizard() {
                     editStep: 2 as Step,
                   },
                   {
-                    label: 'Expected Slab Area',
+                    label: 'Total Slab Area of All the Floors (in Sqft) Approx',
                     value: form.floor_area_sqft ? `${form.floor_area_sqft} sqft` : 'Not specified',
                     editStep: 2 as Step,
                   },
