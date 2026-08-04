@@ -2,7 +2,7 @@
 
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, ArrowLeft, CheckCircle2, AlertCircle, Info } from 'lucide-react';
+import { ArrowRight, ArrowLeft, CheckCircle2, AlertCircle, Info, Lock } from 'lucide-react';
 import { useProfile } from '@/lib/hooks/useProfile';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,30 +11,24 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { BuildingTypeSelector } from '@/components/construction/BuildingTypeSelector';
 import { ConstructionTypeSelector } from '@/components/construction/ConstructionTypeSelector';
 import { BuildingConfigSummary } from '@/components/construction/BuildingConfigSummary';
-import { FinishingLevelSelector } from '@/components/owner/FinishingLevelSelector';
-import { DrawingUploadStep, type DrawingChoice } from '@/components/owner/DrawingUploadStep';
-import { WizardProjectTextFields } from '@/components/owner/WizardProjectTextFields';
 import { CountdownTicker } from '@/components/shared/CountdownTicker';
 import {
   IndianCityAutocomplete,
   parseIndianDistrictSelection,
 } from '@/components/shared/IndianCityAutocomplete';
-import { sortBuildingTypes } from '@/lib/buildingConfig';
+import { formatBuildingTypesSummary, sortBuildingTypes } from '@/lib/buildingConfig';
 import type { BuildingType, ConstructionTypesMap } from '@/lib/buildingConfig';
-import { FINISHING_LEVEL_CONFIG } from '@/lib/firm/finishingLevel';
 import {
   formatBudgetRange,
   formatIndianInputDisplay,
   parseIndianAmount,
 } from '@/lib/formatIndianCurrency';
-import { uploadProjectDrawing } from '@/lib/project/uploadDrawing';
 import { createProjectAction } from '@/app/actions/createProject';
-import { hasContactInfo, hasProjectContactViolation } from '@/lib/validation/projectContactInfo';
+import { CONTACT_INFO_WARNING, hasContactInfo } from '@/lib/validation/projectContactInfo';
 import { formatPincodeInput, validatePincode } from '@/lib/validation/pincode';
-import type { FinishingLevel } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
-type Step = 1 | 2 | 3 | 4 | 5 | 6 | 7;
+type Step = 1 | 2 | 3 | 4 | 5;
 
 const BIDDING_MINUTES = 7;
 
@@ -42,47 +36,35 @@ const PROGRESS_LABELS = [
   'Project Info',
   'Type of Building',
   'Construction Scope',
-  'Finishing Level',
-  'Drawing',
   'Review',
 ] as const;
 
 interface FirmFormState {
-  title: string;
   description: string;
   location: string;
   pincode: string;
   floor_area_sqft: string;
-  budget_min: string;
   budget_max: string;
   building_types: BuildingType[];
   construction_types: ConstructionTypesMap;
-  finishing_level: FinishingLevel | null;
-  drawing_choice: DrawingChoice;
 }
 
 const EMPTY_FORM: FirmFormState = {
-  title: '',
   description: '',
   location: '',
   pincode: '',
   floor_area_sqft: '',
-  budget_min: '',
   budget_max: '',
   building_types: [],
   construction_types: {},
-  finishing_level: null,
-  drawing_choice: null,
 };
 
 export function ConstructionFirmProjectWizard() {
   const router = useRouter();
   const { profile } = useProfile();
-  const titleRef = useRef<HTMLInputElement>(null);
   const descriptionRef = useRef<HTMLTextAreaElement>(null);
   const [step, setStep] = useState<Step>(1);
   const [form, setForm] = useState<FirmFormState>(EMPTY_FORM);
-  const [drawingFile, setDrawingFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [step2Error, setStep2Error] = useState<string | null>(null);
@@ -108,17 +90,8 @@ export function ConstructionFirmProjectWizard() {
     }
   }
 
-  const contactViolation = hasProjectContactViolation(form.title, form.description);
-  const canStep2 = form.title.trim().length >= 5 && !contactViolation;
-  const budgetPreview = formatBudgetRange(
-    parseIndianAmount(form.budget_min),
-    parseIndianAmount(form.budget_max),
-  );
-
-  const canStep5 = form.finishing_level !== null;
-  const canStep6 =
-    form.drawing_choice === 'firm_creates' ||
-    (form.drawing_choice === 'upload' && !!drawingFile);
+  const descriptionHasContact = hasContactInfo(form.description);
+  const budgetPreview = formatBudgetRange(null, parseIndianAmount(form.budget_max));
 
   const orderedBuildingTypes = sortBuildingTypes(form.building_types);
   const allConstructionSelected =
@@ -126,8 +99,6 @@ export function ConstructionFirmProjectWizard() {
     orderedBuildingTypes.every((t) => !!form.construction_types[t]);
 
   function tryGoStep2() {
-    if (form.title.trim().length < 5) return;
-
     const errors: typeof step1Errors = {};
 
     if (!parseIndianDistrictSelection(form.location)) {
@@ -145,14 +116,9 @@ export function ConstructionFirmProjectWizard() {
       return;
     }
 
-    if (contactViolation) {
-      if (hasContactInfo(form.title)) {
-        titleRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        titleRef.current?.focus();
-      } else {
-        descriptionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        descriptionRef.current?.focus();
-      }
+    if (descriptionHasContact) {
+      descriptionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      descriptionRef.current?.focus();
       return;
     }
 
@@ -184,15 +150,15 @@ export function ConstructionFirmProjectWizard() {
   }
 
   async function handleSubmit() {
-    if (!profile || !form.finishing_level) return;
+    if (!profile) return;
     const districtSelection = parseIndianDistrictSelection(form.location);
     if (!districtSelection) return;
 
     setLoading(true);
     setError(null);
 
-    if (hasProjectContactViolation(form.title, form.description)) {
-      setError('Remove contact details from the project title or description before submitting.');
+    if (hasContactInfo(form.description)) {
+      setError('Remove contact details from the project description before submitting.');
       setLoading(false);
       return;
     }
@@ -204,9 +170,12 @@ export function ConstructionFirmProjectWizard() {
       return;
     }
 
+    const buildingSummary = formatBuildingTypesSummary(form.building_types) || 'Construction Project';
+    const autoTitle = `${buildingSummary} — ${districtSelection.district}`;
+
     const result = await createProjectAction({
       service_type: 'construction_firm',
-      title: form.title.trim(),
+      title: autoTitle,
       description: form.description.trim() || undefined,
       building_types: form.building_types,
       construction_types: form.construction_types,
@@ -214,10 +183,10 @@ export function ConstructionFirmProjectWizard() {
       state: districtSelection.state,
       pincode: form.pincode.trim() || undefined,
       floor_area_sqft: form.floor_area_sqft ? parseFloat(form.floor_area_sqft) : null,
-      finishing_level: form.finishing_level,
-      budget_range_min: parseIndianAmount(form.budget_min),
+      finishing_level: null,
+      budget_range_min: null,
       budget_range_max: parseIndianAmount(form.budget_max),
-      drawing_url: form.drawing_choice === 'firm_creates' ? null : undefined,
+      drawing_url: null,
       bidding_minutes: BIDDING_MINUTES,
     });
 
@@ -227,18 +196,9 @@ export function ConstructionFirmProjectWizard() {
       return;
     }
 
-    if (form.drawing_choice === 'upload' && drawingFile) {
-      const up = await uploadProjectDrawing(result.projectId, drawingFile);
-      if (up.error) {
-        setError(up.error);
-        setLoading(false);
-        return;
-      }
-    }
-
     setProjectId(result.projectId);
     setBiddingEndsAt(result.biddingEndsAt ?? null);
-    setStep(7);
+    setStep(5);
     setLoading(false);
   }
 
@@ -249,10 +209,6 @@ export function ConstructionFirmProjectWizard() {
     sub_configuration: {},
   };
 
-  const finishingCfg = form.finishing_level
-    ? FINISHING_LEVEL_CONFIG[form.finishing_level]
-    : null;
-
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
@@ -262,7 +218,7 @@ export function ConstructionFirmProjectWizard() {
         </p>
       </div>
 
-      {step < 7 && (
+      {step < 5 && (
         <div className="flex items-center gap-1 overflow-x-auto pb-1">
           {PROGRESS_LABELS.map((label, i) => (
             <div key={label} className="flex items-center gap-1 flex-1 min-w-0">
@@ -303,19 +259,38 @@ export function ConstructionFirmProjectWizard() {
             <div className="space-y-5">
               <h2 className="text-base font-semibold text-foreground">Project Information</h2>
 
-              <WizardProjectTextFields
-                title={form.title}
-                description={form.description}
-                onTitleChange={(v) => update('title', v)}
-                onDescriptionChange={(v) => update('description', v)}
-                titleLabel="Project Title *"
-                descriptionLabel="Additional Notes (Optional)"
-                titlePlaceholder="e.g. 3BHK Residential Home, Guwahati"
-                descriptionPlaceholder="Any special requirements, preferences, or notes for the construction firm..."
-                descriptionMaxLength={500}
-                titleRef={titleRef}
-                descriptionRef={descriptionRef}
-              />
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Project Description (Optional)
+                </label>
+                <textarea
+                  ref={descriptionRef}
+                  className={cn(
+                    'w-full min-h-[80px] rounded-lg border border-border bg-card/80 dark:bg-card/60 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/80 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all resize-none',
+                    descriptionHasContact &&
+                      'border-red-500/70 focus:border-red-500/70 focus:ring-red-500/40',
+                  )}
+                  placeholder="Describe your project — house type, requirements, preferences..."
+                  value={form.description}
+                  maxLength={500}
+                  onChange={(e) => update('description', e.target.value.slice(0, 500))}
+                />
+                {descriptionHasContact && (
+                  <p className="text-xs text-red-600 dark:text-red-400 mt-1.5 leading-snug">
+                    {CONTACT_INFO_WARNING}
+                  </p>
+                )}
+                <p className="flex items-start gap-1.5 text-[11px] text-muted-foreground mt-1.5 leading-snug">
+                  <Lock className="h-3 w-3 flex-shrink-0 mt-0.5" aria-hidden />
+                  <span>
+                    Do not share phone numbers, emails or personal contact details. BuilBid
+                    protects your privacy.
+                  </span>
+                </p>
+                <p className="text-[10px] text-muted-foreground text-right">
+                  {form.description.length}/500
+                </p>
+              </div>
 
               <IndianCityAutocomplete
                 value={form.location}
@@ -334,18 +309,58 @@ export function ConstructionFirmProjectWizard() {
               />
 
               <div>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+                  Your Maximum Budget (Optional)
+                </p>
+                <Input
+                  label="Max ₹"
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="e.g. 40,00,000"
+                  value={form.budget_max}
+                  onChange={(e) => update('budget_max', formatIndianInputDisplay(e.target.value))}
+                />
+                <p className="text-[11px] text-muted-foreground mt-1">Sharing a budget helps firms give you more accurate bids</p>
+                {budgetPreview && (
+                  <p className="text-sm font-semibold text-indigo-400 mt-2">{budgetPreview}</p>
+                )}
+              </div>
+
+              <Button size="lg" className="w-full" onClick={tryGoStep2}>
+                Continue <ArrowRight className="w-4 h-4" />
+              </Button>
+            </div>
+          )}
+
+          {step === 2 && (
+            <div className="space-y-5">
+              <div>
+                <h2 className="text-base font-semibold text-foreground">Type of Building</h2>
+                <p className="text-sm text-muted-foreground mt-1">Select the type and floors of your building</p>
+                <p className="text-[11px] text-muted-foreground/80 mt-2">
+                  e.g. G+1 home? Select Ground Floor + 1st Floor<br />
+                  e.g. Already have Ground Floor? Select only upper floors needed
+                </p>
+              </div>
+              <BuildingTypeSelector
+                value={form.building_types}
+                onChange={(v) => { update('building_types', v); setStep2Error(null); }}
+                error={step2Error}
+              />
+
+              <div>
                 <div className="flex items-center gap-1.5 mb-1.5">
                   <label
                     htmlFor="floor-area-sqft"
                     className="text-xs font-medium text-muted-foreground uppercase tracking-wider"
                   >
-                    Total Slab Area of all the Floors (Approximate)
+                    Expected Slab Area (Optional)
                   </label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <button
                         type="button"
-                        aria-label="How total slab area is used to estimate construction cost"
+                        aria-label="How slab area is used to estimate construction cost"
                         className="inline-flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
                       >
                         <Info className="h-3.5 w-3.5" />
@@ -379,55 +394,6 @@ export function ConstructionFirmProjectWizard() {
                 </p>
               </div>
 
-              <div>
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
-                  Your Budget Range (Optional)
-                </p>
-                <div className="grid grid-cols-2 gap-3">
-                  <Input
-                    label="Min ₹"
-                    type="text"
-                    inputMode="numeric"
-                    placeholder="e.g. 25,00,000"
-                    value={form.budget_min}
-                    onChange={(e) => update('budget_min', formatIndianInputDisplay(e.target.value))}
-                  />
-                  <Input
-                    label="Max ₹"
-                    type="text"
-                    inputMode="numeric"
-                    placeholder="e.g. 40,00,000"
-                    value={form.budget_max}
-                    onChange={(e) => update('budget_max', formatIndianInputDisplay(e.target.value))}
-                  />
-                </div>
-                <p className="text-[11px] text-muted-foreground mt-1">Sharing a budget helps firms give you more accurate bids</p>
-                {budgetPreview && (
-                  <p className="text-sm font-semibold text-indigo-400 mt-2">{budgetPreview}</p>
-                )}
-              </div>
-
-              <Button size="lg" className="w-full" disabled={!canStep2} onClick={tryGoStep2}>
-                Continue <ArrowRight className="w-4 h-4" />
-              </Button>
-            </div>
-          )}
-
-          {step === 2 && (
-            <div className="space-y-5">
-              <div>
-                <h2 className="text-base font-semibold text-foreground">Type of Building</h2>
-                <p className="text-sm text-muted-foreground mt-1">Select the type and floors of your building</p>
-                <p className="text-[11px] text-muted-foreground/80 mt-2">
-                  e.g. G+1 home? Select Ground Floor + 1st Floor<br />
-                  e.g. Already have Ground Floor? Select only upper floors needed
-                </p>
-              </div>
-              <BuildingTypeSelector
-                value={form.building_types}
-                onChange={(v) => { update('building_types', v); setStep2Error(null); }}
-                error={step2Error}
-              />
               <div className="flex gap-3">
                 <Button variant="outline" size="lg" className="flex-1" onClick={() => setStep(1)}>
                   <ArrowLeft className="w-4 h-4" /> Back
@@ -526,48 +492,11 @@ export function ConstructionFirmProjectWizard() {
 
           {step === 4 && (
             <div className="space-y-5">
-              <FinishingLevelSelector
-                value={form.finishing_level}
-                onChange={(v) => update('finishing_level', v)}
-              />
-              <div className="flex gap-3">
-                <Button variant="outline" size="lg" className="flex-1" onClick={() => setStep(3)}>
-                  <ArrowLeft className="w-4 h-4" /> Back
-                </Button>
-                <Button size="lg" className="flex-1" disabled={!canStep5} onClick={() => setStep(5)}>
-                  Continue <ArrowRight className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {step === 5 && (
-            <div className="space-y-5">
-              <DrawingUploadStep
-                choice={form.drawing_choice}
-                onChoiceChange={(c) => update('drawing_choice', c)}
-                file={drawingFile}
-                onFileChange={setDrawingFile}
-              />
-              <div className="flex gap-3">
-                <Button variant="outline" size="lg" className="flex-1" onClick={() => setStep(4)}>
-                  <ArrowLeft className="w-4 h-4" /> Back
-                </Button>
-                <Button size="lg" className="flex-1" disabled={!canStep6} onClick={() => setStep(6)}>
-                  Continue <ArrowRight className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {step === 6 && (
-            <div className="space-y-5">
               <h2 className="text-base font-semibold text-foreground">Review & Submit</h2>
 
               <div className="rounded-xl bg-secondary/50 border border-border divide-y divide-border">
                 {[
                   { label: 'Service Type', value: '🏗️ Construction Firm', editStep: null },
-                  { label: 'Project Title', value: form.title, editStep: 1 as Step },
                   { label: 'District', value: form.location || '—', editStep: 1 as Step },
                   {
                     label: 'Pincode',
@@ -575,12 +504,7 @@ export function ConstructionFirmProjectWizard() {
                     editStep: 1 as Step,
                   },
                   {
-                    label: 'Total Slab Area of all the Floors (Approximate)',
-                    value: form.floor_area_sqft ? `${form.floor_area_sqft} sqft` : 'Not specified',
-                    editStep: 1 as Step,
-                  },
-                  {
-                    label: 'Budget Range',
+                    label: 'Your Maximum Budget',
                     value: budgetPreview ?? 'Not specified',
                     editStep: 1 as Step,
                   },
@@ -590,23 +514,16 @@ export function ConstructionFirmProjectWizard() {
                     editStep: 2 as Step,
                   },
                   {
+                    label: 'Expected Slab Area',
+                    value: form.floor_area_sqft ? `${form.floor_area_sqft} sqft` : 'Not specified',
+                    editStep: 2 as Step,
+                  },
+                  {
                     label: 'Construction Scope',
                     value: (
                       <BuildingConfigSummary project={reviewProject} className="text-right space-y-2" />
                     ),
                     editStep: 3 as Step,
-                  },
-                  {
-                    label: 'Finishing Level',
-                    value: finishingCfg ? `${finishingCfg.title} (${finishingCfg.classBadge})` : '—',
-                    editStep: 4 as Step,
-                  },
-                  {
-                    label: 'Drawing',
-                    value: form.drawing_choice === 'upload' && drawingFile
-                      ? `Uploaded: ${drawingFile.name}`
-                      : 'Firm will create drawing',
-                    editStep: 5 as Step,
                   },
                   { label: 'Bidding Opens', value: 'Immediately upon submission', editStep: null },
                   {
@@ -629,7 +546,7 @@ export function ConstructionFirmProjectWizard() {
                 ))}
               </div>
 
-              <Button variant="outline" size="lg" className="w-full" onClick={() => setStep(5)}>
+              <Button variant="outline" size="lg" className="w-full" onClick={() => setStep(3)}>
                 <ArrowLeft className="w-4 h-4" /> Back
               </Button>
               <Button
@@ -650,7 +567,7 @@ export function ConstructionFirmProjectWizard() {
             </div>
           )}
 
-          {step === 7 && (
+          {step === 5 && (
             <div className="flex flex-col items-center gap-5 py-6 text-center">
               <div className="w-16 h-16 rounded-full bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center animate-bounce">
                 <CheckCircle2 className="w-8 h-8 text-indigo-400" />
@@ -658,7 +575,7 @@ export function ConstructionFirmProjectWizard() {
               <div>
                 <h2 className="text-xl font-bold text-foreground mb-2">Your project is live! 🎉</h2>
                 <p className="text-sm text-muted-foreground">
-                  Construction firms can now place bids on <strong className="text-foreground">&quot;{form.title}&quot;</strong>
+                  Construction firms can now place bids on your project
                 </p>
               </div>
               {biddingEndsAt && (

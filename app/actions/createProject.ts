@@ -29,7 +29,7 @@ export interface CreateFirmProjectInput extends CreateProjectBase {
   service_type: 'construction_firm'
   construction_types?: ConstructionTypesMap
   floor_area_sqft?: number | null
-  finishing_level: FinishingLevel
+  finishing_level?: FinishingLevel | null
   budget_range_min?: number | null
   budget_range_max?: number | null
   drawing_url?: string | null
@@ -91,7 +91,7 @@ export async function createProjectAction(
   if (isFirm) {
     const firm = input as CreateFirmProjectInput
     insertPayload.floor_area_sqft = firm.floor_area_sqft ?? null
-    insertPayload.finishing_level = firm.finishing_level
+    insertPayload.finishing_level = firm.finishing_level ?? null
     insertPayload.budget_range_min = firm.budget_range_min ?? null
     insertPayload.budget_range_max = firm.budget_range_max ?? null
     insertPayload.drawing_url = firm.drawing_url ?? null
