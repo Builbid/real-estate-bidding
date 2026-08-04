@@ -6,7 +6,6 @@ import {
   Activity, ArrowRight, BadgeCheck, Building2, Clock, Gavel, Shield, Star,
 } from 'lucide-react';
 import { Navbar } from '@/components/shared/Navbar';
-import { Footer } from '@/components/shared/Footer';
 import { HeroBackgroundSlideshow } from '@/components/shared/HeroBackgroundSlideshow';
 import { ProjectCard } from '@/components/shared/ProjectCard';
 import { ActiveProjectsShowcaseGrid } from '@/components/home/ActiveProjectsShowcaseGrid';
@@ -193,8 +192,6 @@ export function HomePageContent({
       </section>
 
       <FeaturedFirmsSection labourFirms={featuredLabour} constructionFirms={featuredFirms} />
-
-      <Footer />
 
       <OwnerPostProjectFab
         role={role}
