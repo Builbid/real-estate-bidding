@@ -1,5 +1,5 @@
-import { SignupClientRoleSelection } from '@/components/auth/SignupClientRoleSelection';
+import { redirect } from 'next/navigation';
 
 export default function SignupClientPage() {
-  return <SignupClientRoleSelection />;
+  redirect('/register?role=owner');
 }

@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { BuilBidLogo } from '@/components/shared/BuilBidLogo';
-import { TRADE_SERVICE_OPTIONS } from '@/lib/trades';
+import { ALL_SERVICE_CATEGORIES } from '@/lib/trades';
 import { cn } from '@/lib/utils';
 
 export function SignupProviderTradeSelection() {
@@ -11,7 +11,7 @@ export function SignupProviderTradeSelection() {
         <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-96 h-96 bg-emerald-500/4 rounded-full blur-3xl" />
       </div>
 
-      <div className="relative w-full max-w-lg">
+      <div className="relative w-full max-w-xl">
         <Link
           href="/signup"
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
@@ -26,7 +26,7 @@ export function SignupProviderTradeSelection() {
           <div className="text-center">
             <h1 className="text-2xl font-bold text-foreground tracking-tight">Create your account</h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Which trade service do you provide?
+              Which service do you provide?
             </p>
           </div>
         </div>
@@ -42,11 +42,11 @@ export function SignupProviderTradeSelection() {
           <p className="text-sm font-semibold text-foreground/80 mb-1">
             Bid your rate/sqft on live client projects
           </p>
-          <div className="grid grid-cols-2 gap-3">
-            {TRADE_SERVICE_OPTIONS.map((trade) => (
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {ALL_SERVICE_CATEGORIES.map((service) => (
               <Link
-                key={trade.value}
-                href={`/register?role=${trade.value}`}
+                key={service.value}
+                href={`/register?role=${service.value}`}
                 prefetch
                 className={cn(
                   'flex flex-col items-center text-center gap-1.5 px-3 py-4 rounded-xl border-2 transition-all duration-200',
@@ -54,18 +54,12 @@ export function SignupProviderTradeSelection() {
                   'border-border bg-secondary/30 hover:border-emerald-500/40',
                 )}
               >
-                <span className="text-2xl leading-none">{trade.emoji}</span>
-                <span className="text-sm font-bold text-foreground">{trade.label}</span>
-                <span className="text-[11px] text-muted-foreground leading-snug">{trade.description}</span>
+                <span className="text-2xl leading-none">{service.emoji}</span>
+                <span className="text-sm font-bold text-foreground">{service.label}</span>
+                <span className="text-[11px] text-muted-foreground leading-snug">{service.description}</span>
               </Link>
             ))}
           </div>
-          <p className="text-center text-[11px] text-muted-foreground/80 pt-2">
-            Looking to bid on full construction projects instead?{' '}
-            <Link href="/signup/client" className="text-emerald-600 dark:text-emerald-400 hover:underline underline-offset-2">
-              See Mistri Contractor / Construction Firm
-            </Link>
-          </p>
         </div>
       </div>
     </div>

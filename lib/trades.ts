@@ -76,12 +76,25 @@ export interface ServiceCategoryOption {
   value: ServiceType;
   label: string;
   emoji: string;
+  description: string;
 }
 
-/** Every service a client can post a project for — powers the homepage category bar
- * and mirrors the options inside the "+ Upload Project" flow. */
+/** Every service a client can post a project for / a provider can bid on — powers the
+ * homepage category bar and the provider signup grid. */
 export const ALL_SERVICE_CATEGORIES: ServiceCategoryOption[] = [
-  { value: 'labour_contractor', label: 'Mistri Contractor', emoji: '👷' },
-  { value: 'construction_firm', label: 'Construction Firm', emoji: '🏗️' },
-  ...TRADE_SERVICE_OPTIONS.map((t) => ({ value: t.value, label: t.label, emoji: t.emoji })),
+  {
+    value: 'labour_contractor',
+    label: 'Mistri Contractor',
+    emoji: '👷',
+    description: 'Labour-only ₹/sqft bidding',
+  },
+  {
+    value: 'construction_firm',
+    label: 'Construction Firm',
+    emoji: '🏗️',
+    description: 'Turnkey ₹/sqft bidding',
+  },
+  ...TRADE_SERVICE_OPTIONS.map((t) => ({
+    value: t.value, label: t.label, emoji: t.emoji, description: t.description,
+  })),
 ];
