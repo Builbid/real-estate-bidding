@@ -71,3 +71,17 @@ export function getTradeLabel(value: ServiceType | string | null | undefined): s
 export function getTradeEmoji(value: ServiceType | string | null | undefined): string {
   return getTradeOption(value)?.emoji ?? '🔧';
 }
+
+export interface ServiceCategoryOption {
+  value: ServiceType;
+  label: string;
+  emoji: string;
+}
+
+/** Every service a client can post a project for — powers the homepage category bar
+ * and mirrors the options inside the "+ Upload Project" flow. */
+export const ALL_SERVICE_CATEGORIES: ServiceCategoryOption[] = [
+  { value: 'labour_contractor', label: 'Labour Contractor', emoji: '👷' },
+  { value: 'construction_firm', label: 'Construction Firm', emoji: '🏗️' },
+  ...TRADE_SERVICE_OPTIONS.map((t) => ({ value: t.value, label: t.label, emoji: t.emoji })),
+];

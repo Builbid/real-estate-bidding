@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ServiceTypeSelector } from '@/components/owner/ServiceTypeSelector';
@@ -12,9 +13,18 @@ import type { ServiceType } from '@/lib/types';
 
 type Phase = 'service' | 'wizard';
 
-export default function NewProjectPage() {
-  const [phase, setPhase] = useState<Phase>('service');
-  const [serviceType, setServiceType] = useState<ServiceType | null>(null);
+function parseServiceParam(value: string | null): ServiceType | null {
+  if (value === 'labour_contractor' || value === 'construction_firm') return value;
+  if (isTradeServiceType(value)) return value;
+  return null;
+}
+
+function NewProjectPageContent() {
+  const searchParams = useSearchParams();
+  const preselected = parseServiceParam(searchParams.get('service'));
+
+  const [phase, setPhase] = useState<Phase>(preselected ? 'wizard' : 'service');
+  const [serviceType, setServiceType] = useState<ServiceType | null>(preselected);
 
   if (phase === 'wizard' && serviceType === 'labour_contractor') {
     return (
@@ -63,5 +73,13 @@ export default function NewProjectPage() {
         onContinue={() => { if (serviceType) setPhase('wizard'); }}
       />
     </div>
+  );
+}
+
+export default function NewProjectPage() {
+  return (
+    <Suspense fallback={null}>
+      <NewProjectPageContent />
+    </Suspense>
   );
 }

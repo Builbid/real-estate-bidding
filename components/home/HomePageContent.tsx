@@ -9,6 +9,7 @@ import { Navbar } from '@/components/shared/Navbar';
 import { HeroBackgroundSlideshow } from '@/components/shared/HeroBackgroundSlideshow';
 import { ProjectCard } from '@/components/shared/ProjectCard';
 import { ActiveProjectsShowcaseGrid } from '@/components/home/ActiveProjectsShowcaseGrid';
+import { ServiceCategoryBar } from '@/components/home/ServiceCategoryBar';
 import { FeaturedFirmsSection } from '@/components/home/FeaturedFirmsSection';
 import { OwnerPostProjectFab } from '@/components/owner/OwnerPostProjectFab';
 import { ProjectDistrictFilter, type DistrictFilterValue } from '@/components/shared/ProjectDistrictFilter';
@@ -131,6 +132,12 @@ export function HomePageContent({
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      <section className="border-b border-border/60 bg-card/40">
+        <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6">
+          <ServiceCategoryBar isAuthenticated={isAuthenticated} role={role} />
         </div>
       </section>
 

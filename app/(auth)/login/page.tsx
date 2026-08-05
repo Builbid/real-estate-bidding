@@ -35,7 +35,7 @@ function LoginForm({ roleParam }: { roleParam: RoleParam }) {
     router.prefetch('/dashboard/builder')
     router.prefetch('/dashboard/firm')
     router.prefetch('/dashboard/admin')
-    router.prefetch('/provider/dashboard')
+    router.prefetch('/dashboard/provider')
   }, [router])
 
   useEffect(() => {
