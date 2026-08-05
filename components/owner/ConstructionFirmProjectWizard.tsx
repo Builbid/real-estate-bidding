@@ -458,6 +458,7 @@ export function ConstructionFirmProjectWizard() {
               <ConstructionTypeSelector
                 buildingTypes={form.building_types}
                 value={form.construction_types}
+                serviceType="construction_firm"
                 onChange={(v) => {
                   update('construction_types', v);
                   setStep3Error(null);

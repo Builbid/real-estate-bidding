@@ -280,6 +280,7 @@ export function getSkeletonOptionValue(type: BuildingType): ConstructionTypeValu
 export function getConstructionTooltipSteps(
   buildingType: BuildingType,
   kind: 'skeleton' | 'full',
+  serviceType: 'labour_contractor' | 'construction_firm' = 'labour_contractor',
 ): { label: string; included: boolean }[] {
   const withFoundation = includesFoundation(buildingType);
   const isFull = kind === 'full';
@@ -294,15 +295,28 @@ export function getConstructionTooltipSteps(
     { label: 'Column reinforcement & casting', included: true },
     { label: 'Beam work', included: true },
     { label: 'Slab casting & curing', included: true },
-    { label: 'Brick walls (not included)', included: isFull },
-    { label: 'Plastering (not included)', included: isFull },
-    { label: 'Finishing work (not included)', included: isFull },
   );
 
-  if (isFull) {
-    steps[steps.length - 3] = { label: 'Brick wall work', included: true };
-    steps[steps.length - 2] = { label: 'Internal & external plastering', included: true };
-    steps[steps.length - 1] = { label: 'Basic flooring', included: true };
+  // Construction firms bid a turnkey ₹/sqft rate covering material + labour +
+  // finishing end-to-end, so their "Full Finishing" scope is far more complete
+  // than a labour contractor's (who only supplies labour up to basic finishing).
+  if (isFull && serviceType === 'construction_firm') {
+    steps.push(
+      { label: 'Brick wall work', included: true },
+      { label: 'Internal & external plastering', included: true },
+      { label: 'Complete flooring (tiles/granite)', included: true },
+      { label: 'Doors & windows installation', included: true },
+      { label: 'Electrical wiring & fittings', included: true },
+      { label: 'Plumbing & bathroom (CP) fittings', included: true },
+      { label: 'Kitchen platform & fittings', included: true },
+      { label: 'Interior & exterior painting', included: true },
+    );
+  } else {
+    steps.push(
+      { label: isFull ? 'Brick wall work' : 'Brick walls (not included)', included: isFull },
+      { label: isFull ? 'Internal & external plastering' : 'Plastering (not included)', included: isFull },
+      { label: isFull ? 'Basic flooring' : 'Finishing work (not included)', included: isFull },
+    );
   }
 
   return steps;

@@ -28,6 +28,8 @@ interface ConstructionTypeSelectorProps {
   value: ConstructionTypesMap;
   onChange: (value: ConstructionTypesMap) => void;
   showValidation?: boolean;
+  /** Construction firms bid a turnkey rate, so their "Full Finishing" scope tooltip is more complete. */
+  serviceType?: 'labour_contractor' | 'construction_firm';
 }
 
 export function ConstructionTypeSelector({
@@ -35,6 +37,7 @@ export function ConstructionTypeSelector({
   value,
   onChange,
   showValidation = false,
+  serviceType = 'labour_contractor',
 }: ConstructionTypeSelectorProps) {
   const ordered = sortBuildingTypes(buildingTypes);
   const blockRefs = useRef<Partial<Record<BuildingType, HTMLDivElement | null>>>({});
@@ -72,6 +75,7 @@ export function ConstructionTypeSelector({
             accent={accent}
             hasError={hasError}
             onSelect={selectType}
+            serviceType={serviceType}
           />
         );
       })}
@@ -89,6 +93,7 @@ interface FloorBlockProps {
   accent: 'green' | 'purple';
   hasError: boolean;
   onSelect: (buildingType: BuildingType, constructionType: ConstructionTypeValue) => void;
+  serviceType: 'labour_contractor' | 'construction_firm';
 }
 
 const FloorBlock = forwardRef<HTMLDivElement, FloorBlockProps>(function FloorBlock(
@@ -100,6 +105,7 @@ const FloorBlock = forwardRef<HTMLDivElement, FloorBlockProps>(function FloorBlo
     accent,
     hasError,
     onSelect,
+    serviceType,
   },
   ref,
 ) {
@@ -109,7 +115,7 @@ const FloorBlock = forwardRef<HTMLDivElement, FloorBlockProps>(function FloorBlo
   const displayName = getFloorDisplayName(buildingType);
   const hint = getFloorHint(buildingType, allBuildingTypes);
   const gradient = getFloorStripGradient(buildingType);
-  const tooltipSteps = getConstructionTooltipSteps(buildingType, infoContext);
+  const tooltipSteps = getConstructionTooltipSteps(buildingType, infoContext, serviceType);
 
   const greenSelected =
     'border-2 border-[#22c55e] bg-[#1c2f1a] shadow-[0_0_16px_rgba(34,197,94,0.12)]';
