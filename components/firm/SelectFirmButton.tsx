@@ -62,7 +62,7 @@ export function SelectFirmButton({ projectId, firmId, companyName, packageRates 
   }
 
   return (
-    <div className="w-full sm:w-80 rounded-lg border border-violet-500/30 bg-secondary/40 p-3 space-y-2.5">
+    <div className="w-full max-w-full sm:w-80 rounded-lg border border-violet-500/30 bg-secondary/40 p-3 space-y-2.5">
       <p className="text-xs font-semibold text-foreground">
         {hasPackages ? `Choose a package from ${label}` : `Select ${label}?`}
       </p>

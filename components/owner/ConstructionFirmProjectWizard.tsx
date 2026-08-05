@@ -532,10 +532,10 @@ export function ConstructionFirmProjectWizard() {
                     editStep: null,
                   },
                 ].map(({ label, value, editStep }) => (
-                  <div key={label} className="flex items-center justify-between gap-4 px-4 py-3">
-                    <span className="text-xs text-muted-foreground flex-shrink-0">{label}</span>
-                    <div className="flex items-center gap-2 text-sm font-semibold text-foreground text-right">
-                      <div>{value}</div>
+                  <div key={label} className="flex items-start justify-between gap-3 px-4 py-3">
+                    <span className="text-xs text-muted-foreground flex-1 min-w-0">{label}</span>
+                    <div className="flex items-center gap-2 text-sm font-semibold text-foreground text-right flex-shrink-0 max-w-[55%]">
+                      <div className="min-w-0">{value}</div>
                       {editStep && (
                         <button type="button" onClick={() => setStep(editStep)} className="text-[10px] text-indigo-400 hover:underline flex-shrink-0">
                           Edit
