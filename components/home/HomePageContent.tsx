@@ -102,14 +102,9 @@ export function HomePageContent({
                   </Link>
                 </Button>
               ) : (
-                <>
-                  <Button asChild size="lg" className="rounded-xl">
-                    <Link href="/signup/client">{t('home.hero.startPosting')}</Link>
-                  </Button>
-                  <Button asChild size="lg" variant="outline" className="rounded-xl">
-                    <Link href="/signup/provider">{t('home.hero.serviceProviderSignup')}</Link>
-                  </Button>
-                </>
+                <Button asChild size="lg" className="rounded-xl">
+                  <Link href="/signup">{t('common.createAccount')}</Link>
+                </Button>
               )}
               <Button asChild size="lg" variant="ghost" className="rounded-xl text-muted-foreground">
                 <a href="#live-auctions">{t('nav.liveProjects')}</a>
