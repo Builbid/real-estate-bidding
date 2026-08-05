@@ -8,7 +8,6 @@ import {
 import { BuilBidLogo } from '@/components/shared/BuilBidLogo';
 import { useTranslation } from '@/lib/context/LanguageProvider';
 import { useProfile } from '@/lib/hooks/useProfile';
-import { LanguageSwitcher } from '@/components/shared/LanguageSwitcher';
 import { SidebarUserChip } from '@/app/dashboard/SidebarUserChip';
 import { SignOutConfirmDialog } from '@/components/shared/SignOutConfirmDialog';
 import { NavLink } from '@/components/shared/NavLink';
@@ -76,15 +75,12 @@ export function DashboardSidebar({
         />
       </NavLink>
 
-      <div className="px-4 py-3 border-b border-border flex items-center justify-between gap-2">
-        <div className="flex-1 min-w-0">
-          <SidebarUserChip
-            avatarGradient={avatarGradient}
-            roleLabel={roleLabel}
-            roleColor={roleColor}
-          />
-        </div>
-        <LanguageSwitcher />
+      <div className="px-4 py-3 border-b border-border">
+        <SidebarUserChip
+          avatarGradient={avatarGradient}
+          roleLabel={roleLabel}
+          roleColor={roleColor}
+        />
       </div>
 
       <nav className="flex-1 px-3 py-4 space-y-1">

@@ -14,7 +14,6 @@ import { useNotifications, notificationText } from '@/lib/hooks/useNotifications
 import { useDashboardProfile } from '@/lib/context/ProfileProvider'
 import { formatRelativeTime, cn } from '@/lib/utils'
 import { ThemeToggle } from '@/components/shared/ThemeToggle'
-import { LanguageSwitcher } from '@/components/shared/LanguageSwitcher'
 import { ProfileDrawer } from '@/components/shared/ProfileDrawer'
 import { SignOutConfirmDialog } from '@/components/shared/SignOutConfirmDialog'
 import { NavLink } from '@/components/shared/NavLink'
@@ -121,7 +120,6 @@ export function TopBar({ profile, roleColor, avatarGradient }: TopBarProps) {
 
         <div className="flex-1" />
 
-        <LanguageSwitcher className="hidden sm:inline-flex" />
         <ThemeToggle />
 
         {/* Bell */}

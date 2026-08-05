@@ -4,7 +4,6 @@ import { createClient } from '@/lib/supabase/server';
 import { BuilBidLogo } from '@/components/shared/BuilBidLogo';
 import { Footer } from '@/components/shared/Footer';
 import { ThemeToggle } from '@/components/shared/ThemeToggle';
-import { LanguageSwitcher } from '@/components/shared/LanguageSwitcher';
 import { NAV_LOGO_LINK } from '@/lib/navStyles';
 import { cn } from '@/lib/utils';
 
@@ -38,7 +37,6 @@ export default async function ProviderLayout({ children }: { children: React.Rea
           <Link href="/provider/verify" className="font-medium text-muted-foreground hover:text-foreground">
             Verification
           </Link>
-          <LanguageSwitcher />
           <ThemeToggle />
         </nav>
       </header>

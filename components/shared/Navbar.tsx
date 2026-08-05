@@ -15,7 +15,6 @@ import { NavIconButton } from '@/components/shared/NavIconButton';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ThemeToggle } from '@/components/shared/ThemeToggle';
-import { LanguageSwitcher } from '@/components/shared/LanguageSwitcher';
 import { CreateAccountButton } from '@/components/shared/CreateAccountButton';
 import { useTranslation } from '@/lib/context/LanguageProvider';
 import { cn } from '@/lib/utils';
@@ -207,7 +206,6 @@ export function Navbar({ overlay = false, authHint }: NavbarProps) {
             </Button>
           )}
 
-          <LanguageSwitcher overlay={overlay} />
           <ThemeToggle
             className={
               overlay
