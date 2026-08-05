@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import {
-  Activity, ArrowRight, BadgeCheck, Building2, Clock, Gavel, Shield, Star,
+  Activity, ArrowRight, Building2, Clock, Gavel,
 } from 'lucide-react';
 import { Navbar } from '@/components/shared/Navbar';
 import { HeroBackgroundSlideshow } from '@/components/shared/HeroBackgroundSlideshow';
@@ -116,11 +116,6 @@ export function HomePageContent({
               </Button>
             </div>
 
-            <div className="mt-6 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-[11px] text-muted-foreground">
-              <span className="inline-flex items-center gap-1"><BadgeCheck className="h-3.5 w-3.5 text-violet-500" />{t('home.trust.verifiedBuilders')}</span>
-              <span className="inline-flex items-center gap-1"><Shield className="h-3.5 w-3.5 text-emerald-600" />{t('home.trust.privateContact')}</span>
-              <span className="inline-flex items-center gap-1"><Star className="h-3.5 w-3.5 text-amber-500" />{t('home.trust.transparentPricing')}</span>
-            </div>
           </div>
 
           <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
