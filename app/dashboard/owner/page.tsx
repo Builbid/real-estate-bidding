@@ -249,12 +249,12 @@ export default async function OwnerDashboard() {
         </Card>
       )}
 
-      {/* Cancelled — owners can remove expired / unused listings */}
-      {cancelled.length > 0 && (
+      {/* Completed — compact rows with View button, most recent first */}
+      {completed.length > 0 && (
         <div>
-          <h2 className="text-base font-semibold text-muted-foreground mb-4">Cancelled Projects</h2>
+          <h2 className="text-base font-semibold text-muted-foreground mb-4">Completed Projects</h2>
           <div className="space-y-3">
-            {cancelled.map((project) => (
+            {completed.map((project) => (
               <ArchivedProjectRow
                 key={project.id}
                 project={project}
@@ -265,12 +265,12 @@ export default async function OwnerDashboard() {
         </div>
       )}
 
-      {/* Completed — compact rows with View button, most recent first */}
-      {completed.length > 0 && (
+      {/* Cancelled — owners can remove expired / unused listings */}
+      {cancelled.length > 0 && (
         <div>
-          <h2 className="text-base font-semibold text-muted-foreground mb-4">Completed Projects</h2>
+          <h2 className="text-base font-semibold text-muted-foreground mb-4">Cancelled Projects</h2>
           <div className="space-y-3">
-            {completed.map((project) => (
+            {cancelled.map((project) => (
               <ArchivedProjectRow
                 key={project.id}
                 project={project}
