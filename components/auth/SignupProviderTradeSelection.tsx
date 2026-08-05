@@ -63,7 +63,7 @@ export function SignupProviderTradeSelection() {
           <p className="text-center text-[11px] text-muted-foreground/80 pt-2">
             Looking to bid on full construction projects instead?{' '}
             <Link href="/signup/client" className="text-emerald-600 dark:text-emerald-400 hover:underline underline-offset-2">
-              See Labour Contractor / Construction Firm
+              See Mistri Contractor / Construction Firm
             </Link>
           </p>
         </div>

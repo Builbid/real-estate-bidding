@@ -16,7 +16,7 @@ export const SIGNUP_ROLE_CARDS = [
   {
     role: 'labour_contractor' as const,
     emoji: '👷',
-    title: 'Labour Contractor',
+    title: 'Mistri Contractor',
     subtitle: 'I provide construction labour & skilled workers',
     bullets: [
       'Browse live labour contract auctions',

@@ -22,7 +22,7 @@ interface AdminServiceTablesProps {
 
 const FILTER_OPTIONS: { id: ServiceFilter; label: string }[] = [
   { id: 'all', label: 'All' },
-  { id: 'labour_contractor', label: 'Labour Contractor' },
+  { id: 'labour_contractor', label: 'Mistri Contractor' },
   { id: 'construction_firm', label: 'Construction Firm' },
   ...TRADE_SERVICE_OPTIONS.map((t) => ({ id: t.value as ServiceFilter, label: t.label })),
 ];

@@ -28,7 +28,7 @@ interface ActiveProjectsShowcaseGridProps {
 
 const FILTER_OPTIONS: { id: ServiceFilter; label: string }[] = [
   { id: 'all', label: 'All Projects' },
-  { id: 'labour_contractor', label: 'Labour Contractor' },
+  { id: 'labour_contractor', label: 'Mistri Contractor' },
   { id: 'construction_firm', label: 'Construction Firm' },
 ];
 

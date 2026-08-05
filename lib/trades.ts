@@ -81,7 +81,7 @@ export interface ServiceCategoryOption {
 /** Every service a client can post a project for — powers the homepage category bar
  * and mirrors the options inside the "+ Upload Project" flow. */
 export const ALL_SERVICE_CATEGORIES: ServiceCategoryOption[] = [
-  { value: 'labour_contractor', label: 'Labour Contractor', emoji: '👷' },
+  { value: 'labour_contractor', label: 'Mistri Contractor', emoji: '👷' },
   { value: 'construction_firm', label: 'Construction Firm', emoji: '🏗️' },
   ...TRADE_SERVICE_OPTIONS.map((t) => ({ value: t.value, label: t.label, emoji: t.emoji })),
 ];

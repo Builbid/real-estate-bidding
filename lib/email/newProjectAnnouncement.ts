@@ -80,7 +80,7 @@ export async function sendNewProjectAnnouncementEmails(
     ? 'Construction Firm'
     : isTrade
       ? getTradeLabel(input.serviceType)
-      : 'Labour Contractor';
+      : 'Mistri Contractor';
   const bidPath = isFirm
     ? `/dashboard/firm/bid/${input.projectId}`
     : `/dashboard/builder/bid/${input.projectId}`;

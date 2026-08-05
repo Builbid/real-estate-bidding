@@ -11,12 +11,12 @@ interface CrossBiddingBlockedProps {
 const COPY = {
   firm_only: {
     title: 'Construction Firm Project',
-    body: 'This project is for Construction Firms only. You are registered as a Labour Contractor.',
+    body: 'This project is for Construction Firms only. You are registered as a Mistri Contractor.',
     emoji: '🏗️',
   },
   contractor_only: {
-    title: 'Labour Contractor Project',
-    body: 'This project is for Labour Contractors only. You are registered as a Construction Firm.',
+    title: 'Mistri Contractor Project',
+    body: 'This project is for Mistri Contractors only. You are registered as a Construction Firm.',
     emoji: '👷',
   },
   wrong_trade: {

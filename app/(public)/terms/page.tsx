@@ -25,7 +25,7 @@ export default function TermsPage() {
       <StaticSection title="2. About BuilBid">
         <p>
           BuilBid is a technology platform that facilitates construction project auctions
-          between clients and bidders (labour contractors and construction firms).
+          between clients and bidders (mistri contractors and construction firms).
           BuilBid is a marketplace — we are not a construction company, contractor, employer
           of builders, or party to construction contracts formed between users.
         </p>
@@ -48,7 +48,7 @@ export default function TermsPage() {
           <li>Run auctions in good faith and honour the selection process after bidding closes.</li>
           <li>Not solicit off-platform deals intended to circumvent BuilBid fees or auction rules during an active listing.</li>
         </ul>
-        <p><strong className="text-foreground">Labour contractors & construction firms</strong> agree to:</p>
+        <p><strong className="text-foreground">Mistri contractors & construction firms</strong> agree to:</p>
         <ul className="list-disc pl-5 space-y-2 mt-2">
           <li>Submit good-faith bids they intend to honour if selected.</li>
           <li>Maintain valid profile information, including GST details where applicable for firms.</li>

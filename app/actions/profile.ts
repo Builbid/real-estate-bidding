@@ -45,7 +45,7 @@ export async function saveBuilderAvatarUrlAction(
     .single();
 
   if (profile?.role !== 'labour_contractor' && profile?.role !== 'service_provider') {
-    return { error: 'Only labour contractor or service provider accounts can upload a profile photo.' };
+    return { error: 'Only mistri contractor or service provider accounts can upload a profile photo.' };
   }
 
   const { error: updateError } = await supabase
@@ -93,7 +93,7 @@ export async function uploadBuilderAvatarAction(
     .single();
 
   if (profile?.role !== 'labour_contractor' && profile?.role !== 'service_provider') {
-    return { error: 'Only labour contractor or service provider accounts can upload a profile photo.' };
+    return { error: 'Only mistri contractor or service provider accounts can upload a profile photo.' };
   }
 
   const ext = EXT_BY_MIME[file.type] ?? 'jpg';

@@ -19,7 +19,7 @@ function mapProfileToDemoFirm(
     location: row.is_verified ? 'Verified on BuilBid' : 'Assam',
     rating: 4.5,
     reviewCount: 0,
-    specialty: partnerType === 'construction_firm' ? 'Construction Firm' : 'Labour Contractor',
+    specialty: partnerType === 'construction_firm' ? 'Construction Firm' : 'Mistri Contractor',
     logoUrl:
       row.avatar_url ??
       `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(row.full_name)}`,

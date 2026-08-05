@@ -33,7 +33,7 @@ export default function AboutPage() {
         <p>
           BuilBid is a multi-role construction bidding platform. Clients post real
           estate projects with clear specifications — plot area, construction type (RCC or
-          Assam-type), timelines, and scope. Verified labour contractors and construction
+          Assam-type), timelines, and scope. Verified mistri contractors and construction
           firms submit competitive per-sqft rate bids during a live 24-hour auction window.
         </p>
         <p>
@@ -51,7 +51,7 @@ export default function AboutPage() {
             and landowners posting residential and commercial construction projects.
           </li>
           <li>
-            <strong className="text-foreground">Labour contractors</strong> — skilled builders
+            <strong className="text-foreground">Mistri contractors</strong> — skilled builders
             bidding labour-only contracts where the client supplies materials.
           </li>
           <li>

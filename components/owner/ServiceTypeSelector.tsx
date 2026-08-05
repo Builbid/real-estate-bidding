@@ -10,7 +10,7 @@ const CONSTRUCTION_OPTIONS = [
   {
     type: 'labour_contractor' as const,
     emoji: '👷',
-    title: 'Labour Contractor',
+    title: 'Mistri Contractor',
     subtitle: 'I will supply building materials myself',
     bullets: [
       'Hire skilled construction workers',
