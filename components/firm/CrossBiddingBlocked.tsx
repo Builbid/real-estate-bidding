@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 
 interface CrossBiddingBlockedProps {
-  variant: 'firm_only' | 'contractor_only';
+  variant: 'firm_only' | 'contractor_only' | 'wrong_trade';
   backHref: string;
 }
 
@@ -18,6 +18,11 @@ const COPY = {
     title: 'Labour Contractor Project',
     body: 'This project is for Labour Contractors only. You are registered as a Construction Firm.',
     emoji: '👷',
+  },
+  wrong_trade: {
+    title: 'Different Trade Project',
+    body: 'This project is for a different trade than the one you registered under.',
+    emoji: '🔧',
   },
 };
 

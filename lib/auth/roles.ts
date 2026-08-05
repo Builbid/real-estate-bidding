@@ -32,7 +32,7 @@ export function getDashboardPath(role: string | null | undefined): string {
     case 'admin':
       return '/dashboard/admin';
     case 'service_provider':
-      return '/provider/dashboard';
+      return '/dashboard/provider';
     default:
       return '/dashboard/builder';
   }
@@ -40,5 +40,9 @@ export function getDashboardPath(role: string | null | undefined): string {
 
 export function isBidderRole(role: string | null | undefined): boolean {
   const normalized = normalizeRole(role);
-  return normalized === 'labour_contractor' || normalized === 'construction_firm';
+  return (
+    normalized === 'labour_contractor' ||
+    normalized === 'construction_firm' ||
+    normalized === 'service_provider'
+  );
 }

@@ -9,20 +9,23 @@ import { CountdownTicker } from '@/components/shared/CountdownTicker';
 import { useCountdown } from '@/lib/hooks/useCountdown';
 import { CalendarDays } from 'lucide-react';
 import { TRACK_LABELS, getConstructionLabel, formatProjectPostedAt } from '@/lib/utils';
+import { isTradeServiceType, getTradeLabel } from '@/lib/trades';
 import type { Project, Bid } from '@/lib/types';
 
 interface AuctionRowProps {
   project: Project;
   myBid?: Bid;
+  bidHrefOverride?: string;
 }
 
-export function AuctionRow({ project, myBid }: AuctionRowProps) {
+export function AuctionRow({ project, myBid, bidHrefOverride }: AuctionRowProps) {
   const countdown = useCountdown(project.bidding_ends_at);
   const router = useRouter();
 
   const hasBid = !!myBid;
   const isExpired = countdown.isExpired;
-  const bidHref = `/dashboard/builder/bid/${project.id}`;
+  const bidHref = bidHrefOverride ?? `/dashboard/builder/bid/${project.id}`;
+  const isTrade = isTradeServiceType(project.service_type);
 
   const configLabel = getConstructionLabel(project.track_type, project.sub_configuration);
   const postedAt = formatProjectPostedAt(project.created_at);
@@ -43,7 +46,8 @@ export function AuctionRow({ project, myBid }: AuctionRowProps) {
               Live
             </Badge>
           )}
-          <Badge>{TRACK_LABELS[project.track_type]}</Badge>
+          <Badge>{isTrade ? getTradeLabel(project.service_type) : TRACK_LABELS[project.track_type]}</Badge>
+          {isTrade && <Badge>{TRACK_LABELS[project.track_type]}</Badge>}
           {hasBid && (
             <Badge variant="indigo">
               Your Bid: ₹{myBid!.total_sum_metric.toLocaleString('en-IN')}/sqft

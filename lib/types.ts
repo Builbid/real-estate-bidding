@@ -5,7 +5,15 @@
 import type { BuildingType, ConstructionTypesMap } from './buildingConfig';
 
 export type UserRole = 'owner' | 'labour_contractor' | 'construction_firm' | 'admin' | 'service_provider';
-export type ServiceType = 'labour_contractor' | 'construction_firm';
+/** A trade bidder registers under the shared 'service_provider' role for one of these trades. */
+export type TradeServiceType =
+  | 'painter'
+  | 'plumber'
+  | 'electrician'
+  | 'carpenter'
+  | 'false_ceiling_work'
+  | 'earthwork';
+export type ServiceType = 'labour_contractor' | 'construction_firm' | TradeServiceType;
 export type FinishingLevel = 'basic' | 'standard' | 'premium';
 
 /** Category keys used to structure a firm-defined construction package. */

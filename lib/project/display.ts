@@ -1,6 +1,7 @@
 import type { FinishingLevel, ServiceType } from '@/lib/types';
 import { FINISHING_LEVEL_CONFIG, getFinishingClassBadge } from '@/lib/firm/finishingLevel';
 import { formatBudgetRange } from '@/lib/formatIndianCurrency';
+import { isTradeServiceType, getTradeLabel, getTradeEmoji } from '@/lib/trades';
 
 export function getProjectServiceType(project: { service_type?: ServiceType | null }): ServiceType {
   return project.service_type ?? 'labour_contractor';
@@ -10,8 +11,14 @@ export function isFirmProject(project: { service_type?: ServiceType | null }): b
   return getProjectServiceType(project) === 'construction_firm';
 }
 
+export function isTradeProject(project: { service_type?: ServiceType | null }): boolean {
+  return isTradeServiceType(getProjectServiceType(project));
+}
+
 export function getServiceBadgeLabel(serviceType: ServiceType): string {
-  return serviceType === 'construction_firm' ? 'With Material 🏗️' : 'Labour Only 👷';
+  if (serviceType === 'construction_firm') return 'With Material 🏗️';
+  if (isTradeServiceType(serviceType)) return `${getTradeLabel(serviceType)} ${getTradeEmoji(serviceType)}`;
+  return 'Labour Only 👷';
 }
 
 export function getProjectFloorAreaDisplay(project: {

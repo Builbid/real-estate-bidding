@@ -5,13 +5,13 @@ import type { BuildingType, ConstructionTypesMap } from '@/lib/buildingConfig'
 import { deriveLegacyProjectFields } from '@/lib/buildingConfig'
 import { buildFirmConstructionTypes } from '@/lib/firm/projectDefaults'
 import { validatePincode } from '@/lib/validation/pincode'
-import type { FinishingLevel, ServiceType, SubConfiguration } from '@/lib/types'
+import type { FinishingLevel, ServiceType, SubConfiguration, TrackType, TradeServiceType } from '@/lib/types'
+import { isTradeServiceType } from '@/lib/trades'
 import { sendNewProjectAnnouncementEmails } from '@/lib/email/newProjectAnnouncement'
 
 interface CreateProjectBase {
   title: string
   description?: string
-  building_types: BuildingType[]
   district: string
   state: string
   pincode?: string | null
@@ -21,12 +21,14 @@ interface CreateProjectBase {
 
 export interface CreateLabourProjectInput extends CreateProjectBase {
   service_type?: 'labour_contractor'
+  building_types: BuildingType[]
   construction_types: ConstructionTypesMap
   plot_area_sqft?: number | null
 }
 
 export interface CreateFirmProjectInput extends CreateProjectBase {
   service_type: 'construction_firm'
+  building_types: BuildingType[]
   construction_types?: ConstructionTypesMap
   floor_area_sqft?: number | null
   finishing_level?: FinishingLevel | null
@@ -35,7 +37,13 @@ export interface CreateFirmProjectInput extends CreateProjectBase {
   drawing_url?: string | null
 }
 
-export type CreateProjectInput = CreateLabourProjectInput | CreateFirmProjectInput
+/** Simplified single-rate/sqft trade project — building type only, no floor-by-floor scope. */
+export interface CreateTradeProjectInput extends CreateProjectBase {
+  service_type: TradeServiceType
+  track_type: TrackType
+}
+
+export type CreateProjectInput = CreateLabourProjectInput | CreateFirmProjectInput | CreateTradeProjectInput
 
 export interface CreateProjectResult {
   error: string | null
@@ -58,50 +66,66 @@ export async function createProjectAction(
   }
 
   const isFirm = input.service_type === 'construction_firm'
-  const serviceType: ServiceType = isFirm ? 'construction_firm' : 'labour_contractor'
-
-  const constructionTypes: ConstructionTypesMap = isFirm
-    ? (input as CreateFirmProjectInput).construction_types ??
-      buildFirmConstructionTypes(input.building_types)
-    : (input as CreateLabourProjectInput).construction_types
+  const isTrade = isTradeServiceType(input.service_type)
+  const serviceType: ServiceType = isFirm
+    ? 'construction_firm'
+    : isTrade
+      ? (input.service_type as TradeServiceType)
+      : 'labour_contractor'
 
   const biddingEndsAt = new Date(
     Date.now() + Math.max(1, Math.round(input.bidding_minutes)) * 60 * 1000
   ).toISOString()
 
-  const legacy = deriveLegacyProjectFields(input.building_types, constructionTypes)
-
   const insertPayload: Record<string, unknown> = {
     owner_id: user.id,
     title: input.title.trim(),
     description: input.description?.trim() || null,
-    track_type: legacy.track_type,
-    sub_configuration: legacy.sub_configuration,
-    building_types: input.building_types,
-    construction_types: constructionTypes,
     district: input.district,
     state: input.state,
     pincode: pincodeRaw || null,
-    total_floors: legacy.total_floors,
     status: 'active_24h',
     bidding_ends_at: biddingEndsAt,
-    service_type: isFirm ? 'construction_firm' : 'labour_contractor',
+    service_type: serviceType,
   }
 
-  if (isFirm) {
-    const firm = input as CreateFirmProjectInput
-    insertPayload.floor_area_sqft = firm.floor_area_sqft ?? null
-    insertPayload.finishing_level = firm.finishing_level ?? null
-    insertPayload.budget_range_min = firm.budget_range_min ?? null
-    insertPayload.budget_range_max = firm.budget_range_max ?? null
-    insertPayload.drawing_url = firm.drawing_url ?? null
+  if (isTrade) {
+    const trade = input as CreateTradeProjectInput
+    insertPayload.track_type = trade.track_type
+    insertPayload.sub_configuration = {}
+    insertPayload.building_types = []
+    insertPayload.construction_types = {}
+    insertPayload.total_floors = 1
   } else {
-    const labour = input as CreateLabourProjectInput
-    if (labour.plot_area_sqft != null) {
-      if (!Number.isFinite(labour.plot_area_sqft) || labour.plot_area_sqft <= 0) {
-        return { error: 'Plot area must be a positive number when provided.' }
+    const nonTrade = input as CreateLabourProjectInput | CreateFirmProjectInput
+    const constructionTypes: ConstructionTypesMap = isFirm
+      ? (input as CreateFirmProjectInput).construction_types ??
+        buildFirmConstructionTypes(nonTrade.building_types)
+      : (input as CreateLabourProjectInput).construction_types
+
+    const legacy = deriveLegacyProjectFields(nonTrade.building_types, constructionTypes)
+
+    insertPayload.track_type = legacy.track_type
+    insertPayload.sub_configuration = legacy.sub_configuration
+    insertPayload.building_types = nonTrade.building_types
+    insertPayload.construction_types = constructionTypes
+    insertPayload.total_floors = legacy.total_floors
+
+    if (isFirm) {
+      const firm = input as CreateFirmProjectInput
+      insertPayload.floor_area_sqft = firm.floor_area_sqft ?? null
+      insertPayload.finishing_level = firm.finishing_level ?? null
+      insertPayload.budget_range_min = firm.budget_range_min ?? null
+      insertPayload.budget_range_max = firm.budget_range_max ?? null
+      insertPayload.drawing_url = firm.drawing_url ?? null
+    } else {
+      const labour = input as CreateLabourProjectInput
+      if (labour.plot_area_sqft != null) {
+        if (!Number.isFinite(labour.plot_area_sqft) || labour.plot_area_sqft <= 0) {
+          return { error: 'Plot area must be a positive number when provided.' }
+        }
+        insertPayload.plot_area_sqft = labour.plot_area_sqft
       }
-      insertPayload.plot_area_sqft = labour.plot_area_sqft
     }
   }
 

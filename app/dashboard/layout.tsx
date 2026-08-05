@@ -1,18 +1,12 @@
 export const dynamic = 'force-dynamic'
 
 import { getAuthUser } from '@/lib/supabase/getUser';
-import { redirect } from 'next/navigation';
 import { TopBar } from './TopBar';
 import { Footer } from '@/components/shared/Footer';
 import { ProfileProvider } from '@/lib/context/ProfileProvider';
 import { DashboardSidebar } from '@/components/dashboard/DashboardSidebar';
 import type { Profile, UserRole } from '@/lib/types';
 import { normalizeRole } from '@/lib/auth/roles';
-import {
-  fetchServiceProviderRoleDisplay,
-  mergeServiceProviderProfile,
-  SERVICE_PROVIDER_PROFILE_SELECT,
-} from '@/lib/profile/serviceProviderProfile';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -21,36 +15,9 @@ interface DashboardLayoutProps {
 async function getUser() {
   const { supabase, userId, email, role, fullName } = await getAuthUser();
 
-  const [{ data: profile }, { data: sp }] = await Promise.all([
-    supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
-    supabase
-      .from('service_providers')
-      .select(SERVICE_PROVIDER_PROFILE_SELECT)
-      .eq('id', userId)
-      .maybeSingle(),
-  ]);
+  const { data: profile } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
 
-  if (sp) {
-    const roleDisplay = await fetchServiceProviderRoleDisplay(supabase, sp.categories ?? []);
-    const base = profile
-      ? ({ ...(profile as Profile), role: normalizeRole((profile as Profile).role) } as Profile)
-      : ({
-          id: userId,
-          email,
-          full_name: fullName || 'User',
-          role,
-          mobile: null,
-          physical_address: null,
-          pincode: null,
-          avatar_url: null,
-          is_verified: false,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        } as Profile);
-    return mergeServiceProviderProfile(base, sp, roleDisplay);
-  }
-
-  if (profile) return profile;
+  if (profile) return { ...(profile as Profile), role: normalizeRole((profile as Profile).role) };
 
   return {
     id: userId, email, full_name: fullName || 'User', role,
@@ -80,9 +47,6 @@ const ROLE_AVATAR: Record<UserRole, string> = {
 export default async function DashboardLayout({ children }: DashboardLayoutProps) {
   const profile = await getUser();
   const role = normalizeRole(profile.role);
-  if (role === 'service_provider') {
-    redirect('/provider/dashboard');
-  }
   const roleConfig = ROLE_CONFIG[role] ?? ROLE_CONFIG.labour_contractor;
   const avatarGradient = ROLE_AVATAR[role] ?? ROLE_AVATAR.labour_contractor;
 
@@ -93,6 +57,7 @@ export default async function DashboardLayout({ children }: DashboardLayoutProps
           role={role}
           roleColor={roleConfig.color}
           avatarGradient={avatarGradient}
+          serviceType={profile.service_type}
         />
 
         <div className="flex-1 flex flex-col min-w-0">
@@ -108,6 +73,7 @@ export default async function DashboardLayout({ children }: DashboardLayoutProps
               avatar_url:       profile.avatar_url ?? null,
               company_name:     profile.company_name ?? null,
               logo_url:         profile.logo_url ?? null,
+              service_type:     profile.service_type ?? null,
             }}
             roleColor={roleConfig.color}
             avatarGradient={avatarGradient}

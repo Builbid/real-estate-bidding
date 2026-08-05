@@ -9,9 +9,10 @@ import {
   parseConstructionPackagesFromForm,
   validateConstructionPackages,
 } from '@/lib/firm/constructionClass'
+import { isTradeServiceType } from '@/lib/trades'
 import type { UserRole } from '@/lib/types'
 
-export type SignUpRole = 'owner' | 'labour_contractor' | 'construction_firm'
+export type SignUpRole = 'owner' | 'labour_contractor' | 'construction_firm' | 'service_provider'
 
 export interface SignUpResult {
   error: string | null
@@ -78,10 +79,14 @@ export async function signUpAction(
   const companyName = (formData.get('company_name') as string | null)?.trim() ?? ''
   const gstNumber   = (formData.get('gst_number') as string | null)?.trim().toUpperCase() ?? ''
   const yearsRaw    = (formData.get('years_in_business') as string | null)?.trim() ?? ''
+  const tradeRaw    = (formData.get('trade') as string | null)?.trim() ?? ''
   const classPackages = parseConstructionPackagesFromForm(formData)
 
   const role: SignUpRole =
-    roleRaw === 'owner' || roleRaw === 'construction_firm' || roleRaw === 'labour_contractor'
+    roleRaw === 'owner' ||
+    roleRaw === 'construction_firm' ||
+    roleRaw === 'labour_contractor' ||
+    roleRaw === 'service_provider'
       ? roleRaw
       : roleRaw === 'builder'
         ? 'labour_contractor'
@@ -113,6 +118,10 @@ export async function signUpAction(
     }
   }
 
+  if (role === 'service_provider' && !isTradeServiceType(tradeRaw)) {
+    return { error: 'Please select which trade you provide.', success: false }
+  }
+
   let yearsInBusiness: number | null = null
   if (role === 'construction_firm' && yearsRaw) {
     const parsed = parseInt(yearsRaw, 10)
@@ -127,7 +136,9 @@ export async function signUpAction(
       ? 'construction_firm'
       : role === 'labour_contractor'
         ? 'labour_contractor'
-        : null
+        : role === 'service_provider'
+          ? tradeRaw
+          : null
 
   const supabase = await createClient()
 
@@ -137,7 +148,7 @@ export async function signUpAction(
     password,
     options: {
       emailRedirectTo: `${origin}/auth/callback`,
-      data: { full_name: fullName, role },
+      data: { full_name: fullName, role, service_type: serviceType },
     },
   })
 

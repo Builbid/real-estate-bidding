@@ -52,8 +52,8 @@ async function getData() {
     .eq('service_type', 'construction_firm');
 
   const projectIds = (myBids ?? []).map((b) => b.project_id);
-  let rankMap = new Map<string, number>();
-  let bidProjectsMap = new Map<string, Project>();
+  const rankMap = new Map<string, number>();
+  const bidProjectsMap = new Map<string, Project>();
 
   if (projectIds.length > 0) {
     const { data: bidProjects } = await supabase

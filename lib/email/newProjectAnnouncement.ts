@@ -1,6 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { sendUserNotificationEmail } from '@/lib/email/sendNotification';
 import { getConstructionLabel } from '@/lib/utils';
+import { isTradeServiceType, getTradeLabel } from '@/lib/trades';
 import type { ServiceType, SubConfiguration, TrackType } from '@/lib/types';
 
 export interface NewProjectAnnouncementInput {
@@ -28,11 +29,16 @@ async function fetchBidderRecipients(serviceType: ServiceType): Promise<BidderRe
     return [];
   }
 
-  const role = serviceType === 'construction_firm' ? 'construction_firm' : 'labour_contractor';
-  const { data, error } = await admin
-    .from('profiles')
-    .select('email, full_name')
-    .eq('role', role);
+  let query = admin.from('profiles').select('email, full_name');
+
+  if (isTradeServiceType(serviceType)) {
+    query = query.eq('role', 'service_provider').eq('service_type', serviceType);
+  } else {
+    const role = serviceType === 'construction_firm' ? 'construction_firm' : 'labour_contractor';
+    query = query.eq('role', role);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     console.error('Failed to fetch bidder emails:', error.message);
@@ -69,7 +75,12 @@ export async function sendNewProjectAnnouncementEmails(
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim() || 'https://builbid.in';
   const isFirm = input.serviceType === 'construction_firm';
-  const audienceLabel = isFirm ? 'Construction Firm' : 'Labour Contractor';
+  const isTrade = isTradeServiceType(input.serviceType);
+  const audienceLabel = isFirm
+    ? 'Construction Firm'
+    : isTrade
+      ? getTradeLabel(input.serviceType)
+      : 'Labour Contractor';
   const bidPath = isFirm
     ? `/dashboard/firm/bid/${input.projectId}`
     : `/dashboard/builder/bid/${input.projectId}`;

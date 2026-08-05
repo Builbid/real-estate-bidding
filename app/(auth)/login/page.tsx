@@ -212,16 +212,9 @@ function LoginPageContent() {
               </Link>
             </p>
             <p className="text-xs text-muted-foreground">
-              Hire Services provider?{' '}
-              <Link
-                href="/login?next=/provider/dashboard"
-                className="text-emerald-600 dark:text-emerald-400 font-medium hover:underline"
-              >
-                Sign in with email
-              </Link>
-              {' · '}
+              Trade professional (painter, electrician, etc.)?{' '}
               <Link href="/signup/provider" className="text-emerald-600 dark:text-emerald-400 font-medium hover:underline">
-                Register
+                Register to bid
               </Link>
             </p>
           </div>

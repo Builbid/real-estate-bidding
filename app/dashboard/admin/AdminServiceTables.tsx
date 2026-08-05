@@ -8,6 +8,7 @@ import { STATUS_CONFIG, TRACK_LABELS, getConstructionLabel } from '@/lib/utils';
 import { formatBuildingTypesSummary, hasNewBuildingConfig } from '@/lib/buildingConfig';
 import { getProjectServiceType, getServiceBadgeLabel } from '@/lib/project/display';
 import { getBidDisplayRate, formatPackageRateRange } from '@/lib/firm/bidDisplay';
+import { TRADE_SERVICE_OPTIONS } from '@/lib/trades';
 import { cn } from '@/lib/utils';
 import type { Project, Profile, Bid, ServiceType } from '@/lib/types';
 
@@ -23,6 +24,7 @@ const FILTER_OPTIONS: { id: ServiceFilter; label: string }[] = [
   { id: 'all', label: 'All' },
   { id: 'labour_contractor', label: 'Labour Contractor' },
   { id: 'construction_firm', label: 'Construction Firm' },
+  ...TRADE_SERVICE_OPTIONS.map((t) => ({ id: t.value as ServiceFilter, label: t.label })),
 ];
 
 export function AdminServiceTables({ projects, profiles, recentBids }: AdminServiceTablesProps) {

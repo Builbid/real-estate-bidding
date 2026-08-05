@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { ServiceTypeSelector } from '@/components/owner/ServiceTypeSelector';
 import { LabourContractorProjectWizard } from '@/components/owner/LabourContractorProjectWizard';
 import { ConstructionFirmProjectWizard } from '@/components/owner/ConstructionFirmProjectWizard';
+import { TradeServiceProjectWizard } from '@/components/owner/TradeServiceProjectWizard';
+import { isTradeServiceType } from '@/lib/trades';
 import type { ServiceType } from '@/lib/types';
 
 type Phase = 'service' | 'wizard';
@@ -32,6 +34,17 @@ export default function NewProjectPage() {
           <ArrowLeft className="w-4 h-4" /> Change service type
         </Button>
         <ConstructionFirmProjectWizard />
+      </div>
+    );
+  }
+
+  if (phase === 'wizard' && serviceType && isTradeServiceType(serviceType)) {
+    return (
+      <div className="space-y-4">
+        <Button variant="ghost" size="sm" className="max-w-2xl mx-auto flex" onClick={() => { setPhase('service'); setServiceType(null); }}>
+          <ArrowLeft className="w-4 h-4" /> Change service type
+        </Button>
+        <TradeServiceProjectWizard trade={serviceType} />
       </div>
     );
   }

@@ -3,9 +3,10 @@
 import { CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { ServiceType } from '@/lib/types';
+import { TRADE_SERVICE_OPTIONS } from '@/lib/trades';
 import { cn } from '@/lib/utils';
 
-const OPTIONS = [
+const CONSTRUCTION_OPTIONS = [
   {
     type: 'labour_contractor' as const,
     emoji: '👷',
@@ -52,7 +53,7 @@ export function ServiceTypeSelector({ value, onChange, onContinue }: ServiceType
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {OPTIONS.map((opt) => {
+        {CONSTRUCTION_OPTIONS.map((opt) => {
           const selected = value === opt.type;
           const isFirm = opt.type === 'construction_firm';
           return (
@@ -96,6 +97,41 @@ export function ServiceTypeSelector({ value, onChange, onContinue }: ServiceType
             </button>
           );
         })}
+      </div>
+
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <div className="h-px flex-1 bg-border" />
+          <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+            Or hire a trade professional
+          </span>
+          <div className="h-px flex-1 bg-border" />
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {TRADE_SERVICE_OPTIONS.map((trade) => {
+            const selected = value === trade.value;
+            return (
+              <button
+                key={trade.value}
+                type="button"
+                onClick={() => onChange(trade.value)}
+                className={cn(
+                  'relative text-left rounded-xl border-2 p-3.5 transition-all duration-200',
+                  selected
+                    ? 'border-emerald-500/70 bg-emerald-500/8 shadow-md shadow-emerald-500/15 scale-[1.02]'
+                    : 'border-border bg-secondary/30 hover:border-muted-foreground/40',
+                )}
+              >
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <span className="text-xl leading-none">{trade.emoji}</span>
+                  {selected && <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />}
+                </div>
+                <p className="text-xs font-bold text-foreground">{trade.label}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5 leading-snug">{trade.description}</p>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       <Button size="lg" className="w-full" disabled={!value} onClick={onContinue}>

@@ -36,6 +36,7 @@ import { BidFloorRatesBreakdown } from '@/components/shared/BidFloorRatesBreakdo
 import { shouldShowBidFloorBreakdown, resolveProjectFloorCount } from '@/lib/bid/floorRateDisplay';
 import { createClient } from '@/lib/supabase/client';
 import { ConstructionMatrixSummary } from '@/components/construction/ConstructionMatrixSummary';
+import { isTradeServiceType, getTradeLabel } from '@/lib/trades';
 import type { Project, Bid, BidRates } from '@/lib/types';
 
 interface Props {
@@ -44,6 +45,7 @@ interface Props {
   builderId: string;
   builderName: string;
   builderAvatarUrl?: string | null;
+  backHref?: string;
 }
 
 const FLOOR_RATE_KEYS: Array<keyof BidRates> = ['ground_rate', 'first_rate', 'second_rate'];
@@ -53,13 +55,14 @@ interface BuilderInfo {
   avatar_url?: string | null;
 }
 
-export function BiddingConsole({ project, existingBid, builderId, builderName, builderAvatarUrl }: Props) {
+export function BiddingConsole({ project, existingBid, builderId, builderName, builderAvatarUrl, backHref = '/dashboard/builder' }: Props) {
   const { bids, loading: bidsLoading } = useRealtimeBids(project.id);
   const supabase = createClient();
   const [builders, setBuilders] = useState<Record<string, BuilderInfo>>({});
+  const isTrade = isTradeServiceType(project.service_type);
 
   const floorCount  = resolveProjectFloorCount(project);
-  const floorLabels = getFloorLabels(floorCount);
+  const floorLabels = isTrade ? ['Your'] : getFloorLabels(floorCount);
   const rateKeys    = getRateKeys(floorCount);
 
   const [rateInputs, setRateInputs] = useState<Partial<Record<keyof BidRates, string>>>(() =>
@@ -195,7 +198,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
       {/* Header */}
       <div className="flex items-center gap-3">
         <NavLink
-          href="/dashboard/builder"
+          href={backHref}
           prefetch
           className={cn(NAV_ICON_BUTTON, 'p-1 text-muted-foreground hover:text-foreground')}
         >
@@ -211,21 +214,24 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                 Live Auction
               </Badge>
             )}
-            <Badge>{TRACK_LABELS[project.track_type]}</Badge>
+            <Badge>{isTrade ? getTradeLabel(project.service_type) : TRACK_LABELS[project.track_type]}</Badge>
+            {isTrade && <Badge>{TRACK_LABELS[project.track_type]}</Badge>}
           </div>
           <h1 className="text-lg font-bold text-foreground leading-snug">{project.title}</h1>
           <p className="text-xs text-muted-foreground">{project.district}</p>
         </div>
       </div>
 
-      <Card>
-        <CardContent className="pt-4 pb-4">
-          <ConstructionMatrixSummary
-            trackType={project.track_type}
-            subConfiguration={project.sub_configuration}
-          />
-        </CardContent>
-      </Card>
+      {!isTrade && (
+        <Card>
+          <CardContent className="pt-4 pb-4">
+            <ConstructionMatrixSummary
+              trackType={project.track_type}
+              subConfiguration={project.sub_configuration}
+            />
+          </CardContent>
+        </Card>
+      )}
 
       {/* Countdown — full width above the bid / leaderboard split */}
       {biddingClosed ? (
@@ -327,7 +333,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                 <div className="flex items-center gap-2 p-2.5 rounded-lg bg-blue-500/5 border border-blue-500/15 mb-2">
                   <Info className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
                   <p className="text-xs text-blue-300">
-                    Enter your rate in <strong>₹ per sqft</strong> for each floor. Rates must be whole numbers ending in <strong>0 or 5</strong>. Lower total rates rank higher.
+                    Enter your rate in <strong>₹ per sqft</strong>{isTrade ? '' : ' for each floor'}. Rates must be whole numbers ending in <strong>0 or 5</strong>. Lower {isTrade ? 'rates rank' : 'total rates rank'} higher.
                   </p>
                 </div>
 

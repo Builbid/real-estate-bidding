@@ -24,6 +24,7 @@ export interface ProfileDrawerData {
   email: string;
   role: string;
   role_display?: string | null;
+  service_type?: string | null;
   mobile?: string | null;
   physical_address?: string | null;
   pincode?: string | null;
