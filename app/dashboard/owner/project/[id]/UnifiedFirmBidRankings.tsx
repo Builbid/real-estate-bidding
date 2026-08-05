@@ -139,7 +139,7 @@ export function UnifiedFirmBidRankings({
                 />
               </div>
 
-              <div className="flex items-center gap-2 flex-shrink-0 w-full sm:w-auto">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 flex-shrink-0 w-full sm:w-auto">
                 {isReveal && bid.builder_id && (
                   <Button variant="outline" size="sm" className="text-xs h-8" asChild>
                     <Link href={`/firm/${bid.builder_id}`}>View Profile</Link>
