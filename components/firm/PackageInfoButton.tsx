@@ -22,11 +22,11 @@ export function PackageInfoButton({ pkg, className }: PackageInfoButtonProps) {
           aria-label={`What's included in ${pkg.name}`}
           onClick={(e) => e.stopPropagation()}
           className={cn(
-            'inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-accent transition-colors',
+            'inline-flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 transition-colors',
             className,
           )}
         >
-          <Info className="h-3.5 w-3.5" />
+          <Info className="h-[18px] w-[18px]" />
         </button>
       </PopoverTrigger>
       <PopoverContent
