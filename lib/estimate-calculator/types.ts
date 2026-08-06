@@ -186,7 +186,12 @@ export interface SteelByDiameter {
 export interface EstimateResults {
   concreteVolumeCum: {
     columns: number;
+    /** Floor / slab beams only. */
     beams: number;
+    /** Continuous lintel / band beam (auto). */
+    lintels: number;
+    /** Ground / plinth beam — same package as floor beams (auto). */
+    plinthBeams: number;
     footings: number;
     slab: number;
     staircase: number;
@@ -209,6 +214,10 @@ export interface EstimateResults {
     wallAreaAutoEstimated: boolean;
     footingCount: number;
     totalColumnHeightFt: number;
+    /** Total wall centreline length for lintels (ext + int) × floors. */
+    lintelLengthFt: number;
+    /** Plinth beam count (= floor beam count). */
+    plinthBeamCount: number;
     cementBagsRcc: number;
     cementBagsBrickMortar: number;
     cementBagsPlaster: number;

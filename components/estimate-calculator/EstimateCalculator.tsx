@@ -19,6 +19,7 @@ import {
   getInteriorWallAreaSqft,
   getInteriorWallLengthFtPerFloor,
   getTotalColumnHeightFt,
+  LINTEL_STANDARD,
 } from '@/lib/estimate-calculator/calculate';
 import { calculateCostBreakdown, formatInr } from '@/lib/estimate-calculator/costs';
 import { downloadEstimatePdf } from '@/lib/estimate-calculator/pdf';
@@ -456,13 +457,20 @@ export function EstimateCalculator() {
               </div>
 
               <div className="border-t border-border pt-5 space-y-4">
-                <h2 className="text-base font-semibold text-foreground">Beams</h2>
+                <h2 className="text-base font-semibold text-foreground">Beams (floor / slab)</h2>
+                <p className="text-[11px] text-muted-foreground">
+                  Plinth / ground beam is auto-added with the same size, length, count and bars.
+                  Continuous lintel band auto @ {LINTEL_STANDARD.widthMm}×{LINTEL_STANDARD.depthMm} mm,
+                  {' '}{LINTEL_STANDARD.bottomBars}×{LINTEL_STANDARD.bottomDiaMm} mm + {LINTEL_STANDARD.topBars}×{LINTEL_STANDARD.topDiaMm} mm,
+                  {' '}stirrups {LINTEL_STANDARD.stirrupDiaMm} mm — length = total wall length × floors.
+                </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <NumField
                     label="Total number of beams"
                     value={inputs.beamCount}
                     min={0}
                     onChange={(n) => update('beamCount', Math.max(0, Math.floor(n)))}
+                    hint="Same count used once more for plinth / ground beams."
                   />
                   <NumField
                     label="Average beam length"
@@ -838,7 +846,16 @@ export function EstimateCalculator() {
                     <ResultRow label="Bricks (total)" value={`approx ${results.bricks.toLocaleString('en-IN')} nos`} />
                     <div className="px-4 py-2.5 text-[11px] text-muted-foreground space-y-0.5">
                       <p>Walls {results.meta.bricksWalls.toLocaleString('en-IN')} · Foundation soling {results.meta.bricksFoundationSoling.toLocaleString('en-IN')} · Flooring {results.meta.bricksFlooring.toLocaleString('en-IN')}</p>
-                      <p>Concrete: cols {results.concreteVolumeCum.columns} · beams {results.concreteVolumeCum.beams} · footings {results.concreteVolumeCum.footings} · slab {results.concreteVolumeCum.slab} · stair {results.concreteVolumeCum.staircase} = {results.concreteVolumeCum.total} cum</p>
+                      <p>
+                        Concrete: cols {results.concreteVolumeCum.columns} · floor beams {results.concreteVolumeCum.beams} · plinth{' '}
+                        {results.concreteVolumeCum.plinthBeams} · lintels {results.concreteVolumeCum.lintels} · footings{' '}
+                        {results.concreteVolumeCum.footings} · slab {results.concreteVolumeCum.slab} · stair{' '}
+                        {results.concreteVolumeCum.staircase} = {results.concreteVolumeCum.total} cum
+                      </p>
+                      <p>
+                        Lintel length {results.meta.lintelLengthFt} ft · plinth beams {results.meta.plinthBeamCount} nos
+                        (same as floor beams)
+                      </p>
                     </div>
                   </div>
 

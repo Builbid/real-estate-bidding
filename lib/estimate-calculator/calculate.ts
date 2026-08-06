@@ -9,11 +9,26 @@ import {
   LAP_LENGTH_MULTIPLIER,
   MIX_RATIOS,
   STANDARD_BAR_SPACING_MM,
+  type BarDiameter,
   type EstimateInputs,
   type EstimateResults,
   type SteelByDiameter,
   type UnitType,
 } from './types';
+
+/**
+ * Continuous lintel / seismic band — Assam residential standard.
+ * Size 230×150 mm; 2×12 mm bottom + 2×8 mm top; 6 mm stirrups @ 125 mm.
+ */
+export const LINTEL_STANDARD = {
+  widthMm: 230,
+  depthMm: 150,
+  bottomBars: 2,
+  bottomDiaMm: 12 as BarDiameter,
+  topBars: 2,
+  topDiaMm: 8 as BarDiameter,
+  stirrupDiaMm: 6 as BarDiameter,
+} as const;
 
 const SQFT_TO_SQM = 0.092903;
 const FT_TO_M = 0.3048;
@@ -178,6 +193,22 @@ export function getInteriorWallLengthFtPerFloor(unitType: UnitType, builtUpSqft:
   return Math.max(0, builtUpSqft) * 0.045;
 }
 
+/** Exterior + interior wall centreline length per floor (ft). */
+export function getWallLengthFtPerFloor(inputs: EstimateInputs): number {
+  return (
+    getExteriorWallPerimeterFt(inputs) +
+    getInteriorWallLengthFtPerFloor(inputs.unitType, inputs.builtUpAreaPerFloorSqft)
+  );
+}
+
+/**
+ * Continuous lintel band length = total wall length × floors
+ * (one lintel level per storey along all walls).
+ */
+export function getLintelLengthFt(inputs: EstimateInputs): number {
+  return getWallLengthFtPerFloor(inputs) * Math.max(0, inputs.floors);
+}
+
 export function getInteriorWallAreaSqft(inputs: EstimateInputs): number {
   if (inputs.floors <= 0 || inputs.floorToFloorHeightFt <= 0) return 0;
   const lengthFt = getInteriorWallLengthFtPerFloor(
@@ -250,6 +281,18 @@ export function calculateEstimate(inputs: EstimateInputs): EstimateResults {
   const avgBeamLengthM = inputs.avgBeamLengthFt * FT_TO_M;
   const beamConcrete = beamW * beamD * Math.max(0, avgBeamLengthM) * beams;
 
+  // Ground / plinth beam — same size, length & count as floor/slab beams (one level).
+  const plinthBeamCount = beams;
+  const plinthBeamConcrete = beamW * beamD * Math.max(0, avgBeamLengthM) * plinthBeamCount;
+
+  // Continuous lintel band — length = total wall length (ext + int) × floors.
+  const lintelLengthFt = getLintelLengthFt(inputs);
+  const lintelLengthM = lintelLengthFt * FT_TO_M;
+  const lintelConcrete =
+    (LINTEL_STANDARD.widthMm / 1000) *
+    (LINTEL_STANDARD.depthMm / 1000) *
+    Math.max(0, lintelLengthM);
+
   const footConcrete =
     (inputs.footingLengthMm / 1000) *
     (inputs.footingWidthMm / 1000) *
@@ -264,7 +307,13 @@ export function calculateEstimate(inputs: EstimateInputs): EstimateResults {
     staircaseAreaSqft * SQFT_TO_SQM * (STAIR_THICKNESS_MM / 1000);
 
   const totalConcrete =
-    columnConcrete + beamConcrete + footConcrete + slabConcrete + staircaseConcrete;
+    columnConcrete +
+    beamConcrete +
+    plinthBeamConcrete +
+    lintelConcrete +
+    footConcrete +
+    slabConcrete +
+    staircaseConcrete;
 
   // ── RCC cement / sand / aggregate ───────────────────────────
   const ratio = MIX_RATIOS[inputs.mixGrade];
@@ -310,13 +359,15 @@ export function calculateEstimate(inputs: EstimateInputs): EstimateResults {
     { count: Math.max(0, Math.floor(inputs.beamRodsCount1)), dia: inputs.beamRodDia1Mm },
     { count: Math.max(0, Math.floor(inputs.beamRodsCount2)), dia: inputs.beamRodDia2Mm },
   ];
+  // Floor/slab beams + matching ground/plinth beams (same bars × same count).
+  const beamMembersForSteel = beams + plinthBeamCount;
   for (const set of beamSets) {
     if (set.count === 0) continue;
     const lenOne = beamBarCuttingLengthM(avgBeamLengthM, set.dia);
-    addSteel(set.dia, barWeightKg(set.dia, beams * set.count * lenOne));
+    addSteel(set.dia, barWeightKg(set.dia, beamMembersForSteel * set.count * lenOne));
   }
 
-  if (beams > 0 && avgBeamLengthM > 0) {
+  if (beamMembersForSteel > 0 && avgBeamLengthM > 0) {
     const stirrupsPerBeam = Math.ceil((avgBeamLengthM * 1000) / spacingMm);
     const stirrupLenM = stirrupCuttingLengthM(
       inputs.beamWidthMm,
@@ -326,7 +377,36 @@ export function calculateEstimate(inputs: EstimateInputs): EstimateResults {
     );
     addSteel(
       inputs.beamStirrupDiaMm,
-      barWeightKg(inputs.beamStirrupDiaMm, stirrupsPerBeam * stirrupLenM * beams),
+      barWeightKg(inputs.beamStirrupDiaMm, stirrupsPerBeam * stirrupLenM * beamMembersForSteel),
+    );
+  }
+
+  // Lintel band steel — continuous length with standard bar schedule.
+  if (lintelLengthM > 0) {
+    const lintelLdBottom = lapLengthM(LINTEL_STANDARD.bottomDiaMm);
+    const lintelLdTop = lapLengthM(LINTEL_STANDARD.topDiaMm);
+    // Development / laps: ~1 lap per ~6 m of continuous band (estimation).
+    const lapCount = Math.max(1, Math.ceil(lintelLengthM / 6));
+    const bottomClM = lintelLengthM + lapCount * lintelLdBottom;
+    const topClM = lintelLengthM + lapCount * lintelLdTop;
+    addSteel(
+      LINTEL_STANDARD.bottomDiaMm,
+      barWeightKg(LINTEL_STANDARD.bottomDiaMm, LINTEL_STANDARD.bottomBars * bottomClM),
+    );
+    addSteel(
+      LINTEL_STANDARD.topDiaMm,
+      barWeightKg(LINTEL_STANDARD.topDiaMm, LINTEL_STANDARD.topBars * topClM),
+    );
+    const lintelStirrups = Math.ceil((lintelLengthM * 1000) / spacingMm);
+    const lintelStirrupLenM = stirrupCuttingLengthM(
+      LINTEL_STANDARD.widthMm,
+      LINTEL_STANDARD.depthMm,
+      COVER_BEAM_MM,
+      LINTEL_STANDARD.stirrupDiaMm,
+    );
+    addSteel(
+      LINTEL_STANDARD.stirrupDiaMm,
+      barWeightKg(LINTEL_STANDARD.stirrupDiaMm, lintelStirrups * lintelStirrupLenM),
     );
   }
 
@@ -430,6 +510,8 @@ export function calculateEstimate(inputs: EstimateInputs): EstimateResults {
     concreteVolumeCum: {
       columns: round2(columnConcrete),
       beams: round2(beamConcrete),
+      lintels: round2(lintelConcrete),
+      plinthBeams: round2(plinthBeamConcrete),
       footings: round2(footConcrete),
       slab: round2(slabConcrete),
       staircase: round2(staircaseConcrete),
@@ -454,6 +536,8 @@ export function calculateEstimate(inputs: EstimateInputs): EstimateResults {
       wallAreaAutoEstimated,
       footingCount,
       totalColumnHeightFt: round2(getTotalColumnHeightFt(inputs)),
+      lintelLengthFt: round1(lintelLengthFt),
+      plinthBeamCount,
       cementBagsRcc,
       cementBagsBrickMortar,
       cementBagsPlaster,

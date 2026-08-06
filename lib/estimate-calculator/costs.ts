@@ -66,8 +66,11 @@ export function estimateFormworkAreaSqm(inputs: EstimateInputs, results: Estimat
   const beamW = inputs.beamWidthMm / 1000;
   const beamD = inputs.beamDepthMm / 1000;
   const beamLenM = inputs.avgBeamLengthFt * FT_TO_M;
-  // Bottom + two sides (top usually cast with slab)
-  const beamForm = beams * (beamW + 2 * beamD) * Math.max(0, beamLenM);
+  // Floor beams + matching plinth beams (bottom + two sides)
+  const beamForm = (beams + results.meta.plinthBeamCount) * (beamW + 2 * beamD) * Math.max(0, beamLenM);
+
+  const lintelLenM = results.meta.lintelLengthFt * FT_TO_M;
+  const lintelForm = (0.23 + 2 * 0.15) * Math.max(0, lintelLenM);
 
   const slabForm = results.meta.slabAreaSqft * SQFT_TO_SQM;
   const stairForm = results.meta.staircaseAreaSqft * SQFT_TO_SQM * 1.3;
@@ -76,9 +79,8 @@ export function estimateFormworkAreaSqm(inputs: EstimateInputs, results: Estimat
     (inputs.footingLengthMm / 1000) *
     (inputs.footingWidthMm / 1000);
 
-  // Multi-floor beam/slab form already scaled via beam count & slab area totals
   void floors;
-  return Math.max(0, colForm + beamForm + slabForm + stairForm + footingForm);
+  return Math.max(0, colForm + beamForm + lintelForm + slabForm + stairForm + footingForm);
 }
 
 export function calculateCostBreakdown(

@@ -199,7 +199,13 @@ export function downloadEstimatePdf(inputs: EstimateInputs, results: EstimateRes
     ['Member', 'Volume', 'Unit'],
     [
       ['Columns', String(results.concreteVolumeCum.columns), 'cum'],
-      ['Beams', String(results.concreteVolumeCum.beams), 'cum'],
+      ['Floor / slab beams', String(results.concreteVolumeCum.beams), 'cum'],
+      ['Plinth / ground beams', String(results.concreteVolumeCum.plinthBeams), 'cum'],
+      [
+        `Lintels (${results.meta.lintelLengthFt} ft wall length)`,
+        String(results.concreteVolumeCum.lintels),
+        'cum',
+      ],
       ['Footings', String(results.concreteVolumeCum.footings), 'cum'],
       ['Slab', String(results.concreteVolumeCum.slab), 'cum'],
       ['Staircase', String(results.concreteVolumeCum.staircase), 'cum'],
