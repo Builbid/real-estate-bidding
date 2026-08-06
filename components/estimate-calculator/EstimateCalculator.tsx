@@ -330,6 +330,7 @@ export function EstimateCalculator() {
                     label="Bars type A"
                     value={inputs.columnRodsCount1}
                     min={0}
+                    suffix="nos"
                     onChange={(n) => update('columnRodsCount1', Math.max(0, Math.floor(n)))}
                   />
                   <DiaSelect
@@ -342,6 +343,7 @@ export function EstimateCalculator() {
                     label="Bars type B"
                     value={inputs.columnRodsCount2}
                     min={0}
+                    suffix="nos"
                     onChange={(n) => update('columnRodsCount2', Math.max(0, Math.floor(n)))}
                     hint="e.g. 4×16 + 4×12"
                   />
@@ -398,6 +400,7 @@ export function EstimateCalculator() {
                     label="Bars type A"
                     value={inputs.beamRodsCount1}
                     min={0}
+                    suffix="nos"
                     onChange={(n) => update('beamRodsCount1', Math.max(0, Math.floor(n)))}
                   />
                   <DiaSelect
@@ -410,6 +413,7 @@ export function EstimateCalculator() {
                     label="Bars type B"
                     value={inputs.beamRodsCount2}
                     min={0}
+                    suffix="nos"
                     onChange={(n) => update('beamRodsCount2', Math.max(0, Math.floor(n)))}
                   />
                   <DiaSelect
