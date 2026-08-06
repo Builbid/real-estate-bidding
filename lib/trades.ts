@@ -91,7 +91,7 @@ export const ALL_SERVICE_CATEGORIES: ServiceCategoryOption[] = [
   {
     value: 'construction_firm',
     label: 'Construction Firm',
-    emoji: '🏗️',
+    emoji: '🏢',
     description: 'Turnkey ₹/sqft bidding',
   },
   ...TRADE_SERVICE_OPTIONS.map((t) => ({

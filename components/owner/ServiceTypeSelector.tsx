@@ -22,7 +22,7 @@ const CONSTRUCTION_OPTIONS = [
   },
   {
     type: 'construction_firm' as const,
-    emoji: '🏗️',
+    emoji: '🏢',
     title: 'Construction Firm',
     subtitle: 'Let the firm handle everything',
     bullets: [

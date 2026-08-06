@@ -12,7 +12,7 @@ const COPY = {
   firm_only: {
     title: 'Construction Firm Project',
     body: 'This project is for Construction Firms only. You are registered as a Mistri Contractor.',
-    emoji: '🏗️',
+    emoji: '🏢',
   },
   contractor_only: {
     title: 'Mistri Contractor Project',

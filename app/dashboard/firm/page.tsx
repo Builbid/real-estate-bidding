@@ -145,7 +145,7 @@ export default async function FirmDashboardPage() {
           <CardContent className="pt-6 pb-6 flex flex-col sm:flex-row sm:items-center gap-4">
             <div className="flex-1">
               <p className="text-sm font-bold text-foreground mb-1">
-                🏗️ Complete your firm profile to win more bids!
+                🏢 Complete your firm profile to win more bids!
               </p>
               <p className="text-xs text-muted-foreground">
                 Add your company logo and past projects.

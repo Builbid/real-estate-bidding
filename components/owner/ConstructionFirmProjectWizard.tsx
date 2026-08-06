@@ -497,7 +497,7 @@ export function ConstructionFirmProjectWizard() {
 
               <div className="rounded-xl bg-secondary/50 border border-border divide-y divide-border">
                 {[
-                  { label: 'Service Type', value: '🏗️ Construction Firm', editStep: null },
+                  { label: 'Service Type', value: '🏢 Construction Firm', editStep: null },
                   { label: 'District', value: form.location || '—', editStep: 1 as Step },
                   {
                     label: 'Pincode',

@@ -16,7 +16,7 @@ export function isTradeProject(project: { service_type?: ServiceType | null }): 
 }
 
 export function getServiceBadgeLabel(serviceType: ServiceType): string {
-  if (serviceType === 'construction_firm') return 'With Material 🏗️';
+  if (serviceType === 'construction_firm') return 'With Material 🏢';
   if (isTradeServiceType(serviceType)) return `${getTradeLabel(serviceType)} ${getTradeEmoji(serviceType)}`;
   return 'Labour Only 👷';
 }

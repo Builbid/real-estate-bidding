@@ -70,7 +70,7 @@ const ROLE_CARDS = [
   },
   {
     role: 'construction_firm' as const,
-    emoji: '🏗️',
+    emoji: '🏢',
     title: 'Construction Firm',
     subtitle: 'We handle everything — material, labour & finishing',
     bullets: [
