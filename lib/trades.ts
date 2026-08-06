@@ -41,9 +41,9 @@ export const TRADE_SERVICE_OPTIONS: TradeServiceOption[] = [
   },
   {
     value: 'false_ceiling_work',
-    label: 'False Ceiling Work',
-    emoji: '🏠',
-    description: 'False ceiling installation',
+    label: 'Interior Work',
+    emoji: '🛋️',
+    description: 'Interior finishing & false ceiling work',
   },
   {
     value: 'earthwork',
