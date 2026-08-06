@@ -8,6 +8,7 @@ export type WallThickness = '4.5' | '9';
 export type MixGrade = 'M15' | 'M20' | 'M25';
 export type WastagePercent = 0 | 5 | 10;
 export type BarDiameter = 6 | 8 | 10 | 12 | 16 | 20 | 25 | 32;
+export type FlooringFinish = 'tile' | 'granite';
 
 /** Fixed stirrup / slab bar spacing (mm) — not client-entered. */
 export const STANDARD_BAR_SPACING_MM = 125;
@@ -17,6 +18,40 @@ export const LAP_LENGTH_MULTIPLIER = 50;
 
 export const BUILT_UP_AREA_INFO =
   'Built-up area is the total covered floor area of the building measured from outer wall to outer wall (includes walls, rooms, passages, toilets, kitchen). It is NOT the same as carpet area (usable inside) or plot area. Used for outer walls, flooring bed, and overall building size. Slab area is entered separately — it is the RCC floor/roof slab plan area, which may differ (balconies, projections, or open courts).';
+
+/** Client-entered market rates for costed estimate. */
+export interface ItemRates {
+  mistriPerSqft: number;
+  cementPerBag: number;
+  aggregatePerCum: number;
+  sandPerCum: number;
+  brickPerPiece: number;
+  /** ₹ / quintal by bar diameter (mm). */
+  steelPerQuintalByDia: Partial<Record<BarDiameter, number>>;
+  flooringFinish: FlooringFinish;
+}
+
+/** Common diameters shown on the rates page. */
+export const STEEL_RATE_DIAMETERS: BarDiameter[] = [6, 8, 10, 12, 16, 20, 25, 32];
+
+export const DEFAULT_ITEM_RATES: ItemRates = {
+  mistriPerSqft: 280,
+  cementPerBag: 400,
+  aggregatePerCum: 2500,
+  sandPerCum: 3200,
+  brickPerPiece: 10,
+  steelPerQuintalByDia: {
+    6: 6200,
+    8: 6000,
+    10: 5800,
+    12: 5700,
+    16: 5600,
+    20: 5500,
+    25: 5450,
+    32: 5400,
+  },
+  flooringFinish: 'tile',
+};
 
 export interface EstimateInputs {
   floors: number;
@@ -64,6 +99,9 @@ export interface EstimateInputs {
 
   mixGrade: MixGrade;
   wastagePercent: WastagePercent;
+
+  /** Client-editable market rates for costed PDF / summary. */
+  rates: ItemRates;
 }
 
 export const UNIT_TYPE_DEFAULT_AREA: Record<Exclude<UnitType, 'Custom'>, number> = {
@@ -135,6 +173,8 @@ export const DEFAULT_INPUTS: EstimateInputs = {
 
   mixGrade: 'M20',
   wastagePercent: 5,
+
+  rates: { ...DEFAULT_ITEM_RATES, steelPerQuintalByDia: { ...DEFAULT_ITEM_RATES.steelPerQuintalByDia } },
 };
 
 export interface SteelByDiameter {

@@ -20,6 +20,7 @@ import {
   getInteriorWallLengthFtPerFloor,
   getTotalColumnHeightFt,
 } from '@/lib/estimate-calculator/calculate';
+import { calculateCostBreakdown, formatInr } from '@/lib/estimate-calculator/costs';
 import { downloadEstimatePdf } from '@/lib/estimate-calculator/pdf';
 import {
   BAR_DIAMETERS,
@@ -29,11 +30,13 @@ import {
   LAP_LENGTH_MULTIPLIER,
   MIX_RATIOS,
   STANDARD_BAR_SPACING_MM,
+  STEEL_RATE_DIAMETERS,
   STIRRUP_DIAMETERS,
   UNIT_TYPE_DEFAULT_AREA,
   UNIT_TYPE_DEFAULT_SLAB_AREA,
   type BarDiameter,
   type EstimateInputs,
+  type FlooringFinish,
   type FootingType,
   type MixGrade,
   type UnitType,
@@ -42,13 +45,14 @@ import {
 } from '@/lib/estimate-calculator/types';
 import { cn } from '@/lib/utils';
 
-type Step = 1 | 2 | 3 | 4;
+type Step = 1 | 2 | 3 | 4 | 5;
 
 const PROGRESS_LABELS = [
   'Structure',
   'Columns & Beams',
   'Footing, Slab & Walls',
-  'Mix & Results',
+  'Mix',
+  'Rates & Cost',
 ] as const;
 
 /**
@@ -203,7 +207,36 @@ export function EstimateCalculator() {
     setShowResults(false);
   }
 
+  function updateRate<K extends keyof EstimateInputs['rates']>(
+    key: K,
+    value: EstimateInputs['rates'][K],
+  ) {
+    setInputs((prev) => ({
+      ...prev,
+      rates: { ...prev.rates, [key]: value },
+    }));
+    setShowResults(false);
+  }
+
+  function updateSteelRate(dia: BarDiameter, value: number) {
+    setInputs((prev) => ({
+      ...prev,
+      rates: {
+        ...prev.rates,
+        steelPerQuintalByDia: {
+          ...prev.rates.steelPerQuintalByDia,
+          [dia]: value,
+        },
+      },
+    }));
+    setShowResults(false);
+  }
+
   const results = useMemo(() => calculateEstimate(inputs), [inputs]);
+  const costs = useMemo(
+    () => calculateCostBreakdown(inputs, results, inputs.rates),
+    [inputs, results],
+  );
   const totalSlab = getTotalSlabAreaSqft(inputs);
   const autoWall = getAutoWallAreaSqft(inputs);
   const exteriorWall = getExteriorWallAreaSqft(inputs);
@@ -218,7 +251,7 @@ export function EstimateCalculator() {
 
   function goResults() {
     setShowResults(true);
-    setStep(4);
+    setStep(5);
   }
 
   return (
@@ -679,10 +712,98 @@ export function EstimateCalculator() {
                     </Select>
                   </div>
                 </div>
+              </div>
+
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="flex-1"
+                  onClick={() => setStep(3)}
+                >
+                  <ArrowLeft className="w-4 h-4" /> Back
+                </Button>
+                <Button size="lg" className="flex-1" onClick={() => setStep(5)}>
+                  Continue <ArrowRight className="w-4 h-4" />
+                </Button>
+              </div>
+            </>
+          )}
+
+          {step === 5 && (
+            <>
+              <div className="space-y-4">
+                <h2 className="text-base font-semibold text-foreground">Item rates</h2>
+                <p className="text-[11px] text-muted-foreground">
+                  Enter local market rates. Defaults are standard-quality Assam / Tier-2 mid-points — edit as needed.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <NumField
+                    label="Mistri rate"
+                    value={inputs.rates.mistriPerSqft}
+                    suffix="₹/sqft"
+                    onChange={(n) => updateRate('mistriPerSqft', Math.max(0, n))}
+                    hint="Labour on total built-up area"
+                  />
+                  <NumField
+                    label="Cement rate"
+                    value={inputs.rates.cementPerBag}
+                    suffix="₹/bag"
+                    onChange={(n) => updateRate('cementPerBag', Math.max(0, n))}
+                  />
+                  <NumField
+                    label="Aggregate price"
+                    value={inputs.rates.aggregatePerCum}
+                    suffix="₹/cum"
+                    onChange={(n) => updateRate('aggregatePerCum', Math.max(0, n))}
+                  />
+                  <NumField
+                    label="Sand price"
+                    value={inputs.rates.sandPerCum}
+                    suffix="₹/cum"
+                    onChange={(n) => updateRate('sandPerCum', Math.max(0, n))}
+                  />
+                  <NumField
+                    label="Brick price"
+                    value={inputs.rates.brickPerPiece}
+                    suffix="₹/pc"
+                    onChange={(n) => updateRate('brickPerPiece', Math.max(0, n))}
+                  />
+                  <div className="flex flex-col gap-1.5 w-full">
+                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      Flooring finish
+                    </label>
+                    <Select
+                      value={inputs.rates.flooringFinish}
+                      onValueChange={(v) => updateRate('flooringFinish', v as FlooringFinish)}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="tile">Tile (vitrified)</SelectItem>
+                        <SelectItem value="granite">Granite</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <p className="text-xs font-semibold text-foreground pt-1">
+                  Steel price (₹ / quintal) — by diameter
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {STEEL_RATE_DIAMETERS.map((dia) => (
+                    <NumField
+                      key={dia}
+                      label={`${dia} mm`}
+                      value={inputs.rates.steelPerQuintalByDia[dia] ?? 5700}
+                      suffix="₹/Q"
+                      onChange={(n) => updateSteelRate(dia, Math.max(0, n))}
+                    />
+                  ))}
+                </div>
 
                 {!showResults && (
                   <Button size="lg" className="w-full" onClick={goResults}>
-                    <Calculator className="w-4 h-4" /> Calculate estimate
+                    <Calculator className="w-4 h-4" /> Calculate estimate & cost
                   </Button>
                 )}
               </div>
@@ -721,8 +842,60 @@ export function EstimateCalculator() {
                     </div>
                   </div>
 
+                  <h2 className="text-base font-semibold text-foreground pt-1">Material & labour cost</h2>
+                  <div className="rounded-xl border border-border bg-secondary/40 divide-y divide-border overflow-hidden">
+                    {costs.materialLines.map((line) => (
+                      <ResultRow
+                        key={line.key}
+                        label={`${line.label} · ${line.quantityLabel}`}
+                        value={formatInr(line.amount)}
+                      />
+                    ))}
+                    <ResultRow
+                      label={`${costs.mistriLabour.label} · ${costs.mistriLabour.quantityLabel}`}
+                      value={formatInr(costs.mistriLabour.amount)}
+                    />
+                    <ResultRow
+                      label="Materials + mistri"
+                      value={formatInr(costs.materialTotal + costs.mistriLabour.amount)}
+                    />
+                  </div>
+
+                  <h2 className="text-base font-semibold text-foreground pt-1">
+                    Finishing & allied ({inputs.unitType} · standard quality)
+                  </h2>
+                  <div className="rounded-xl border border-border bg-secondary/40 divide-y divide-border overflow-hidden">
+                    {costs.finishingLines.map((line) => (
+                      <div key={line.key} className="px-4 py-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-sm text-muted-foreground">{line.label}</span>
+                          <span className="text-sm font-bold text-foreground tabular-nums">{formatInr(line.amount)}</span>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          {line.quantityLabel} · {line.rateLabel}
+                        </p>
+                      </div>
+                    ))}
+                    <ResultRow label="Finishing subtotal" value={formatInr(costs.finishingTotal)} />
+                  </div>
+
+                  <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 space-y-1">
+                    <div className="flex justify-between text-sm font-bold">
+                      <span>Grand total (approx)</span>
+                      <span className="tabular-nums text-emerald-700 dark:text-emerald-400">
+                        {formatInr(costs.grandTotal)}
+                      </span>
+                    </div>
+                    {costs.totalBuiltUpSqft > 0 && (
+                      <p className="text-[11px] text-muted-foreground">
+                        ≈ {formatInr(Math.round(costs.grandTotal / costs.totalBuiltUpSqft))} / sqft built-up
+                        ({costs.totalBuiltUpSqft.toLocaleString('en-IN')} sqft)
+                      </p>
+                    )}
+                  </div>
+
                   <p className="text-[11px] text-muted-foreground text-center">
-                    Includes {results.wastagePercent}% site wastage · spacing {STANDARD_BAR_SPACING_MM} mm auto
+                    Includes {results.wastagePercent}% site wastage · spacing {STANDARD_BAR_SPACING_MM} mm auto · finishing = standard quality norms
                   </p>
 
                   <div className="flex flex-col sm:flex-row gap-3">
@@ -762,7 +935,7 @@ export function EstimateCalculator() {
                   className="flex-1"
                   onClick={() => {
                     setShowResults(false);
-                    setStep(3);
+                    setStep(4);
                   }}
                 >
                   <ArrowLeft className="w-4 h-4" /> Back
