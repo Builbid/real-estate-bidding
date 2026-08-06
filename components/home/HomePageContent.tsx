@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import {
-  Activity, ArrowRight, Building2, Clock, Gavel,
+  Activity, ArrowRight, Building2, Calculator, Clock, Gavel,
 } from 'lucide-react';
 import { Navbar } from '@/components/shared/Navbar';
 import { HeroBackgroundSlideshow } from '@/components/shared/HeroBackgroundSlideshow';
@@ -94,7 +94,7 @@ export function HomePageContent({
               {t('home.hero.subtitle')}
             </p>
 
-            <div className="mt-6 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
+            <div className="mt-6 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center sm:flex-wrap">
               {isAuthenticated && normalizedRole ? (
                 <Button asChild size="lg" className="rounded-xl">
                   <Link href={getDashboardPath(normalizedRole)}>
@@ -107,6 +107,12 @@ export function HomePageContent({
                   <Link href="/signup">{t('common.createAccount')}</Link>
                 </Button>
               )}
+              <Button asChild size="lg" variant="outline" className="rounded-xl">
+                <Link href="/estimate-calculator">
+                  <Calculator className="mr-1 h-4 w-4" />
+                  Estimate Calculator
+                </Link>
+              </Button>
               <Button asChild size="lg" variant="ghost" className="rounded-xl text-muted-foreground">
                 <a href="#live-auctions">{t('nav.liveProjects')}</a>
               </Button>
