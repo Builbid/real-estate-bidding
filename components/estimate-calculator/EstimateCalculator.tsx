@@ -25,7 +25,9 @@ import {
   BAR_DIAMETERS,
   DEFAULT_INPUTS,
   INTERIOR_WALL_LENGTH_FT_PER_FLOOR,
+  LAP_LENGTH_MULTIPLIER,
   MIX_RATIOS,
+  STANDARD_BAR_SPACING_MM,
   STIRRUP_DIAMETERS,
   UNIT_TYPE_DEFAULT_AREA,
   type BarDiameter,
@@ -151,6 +153,8 @@ export function EstimateCalculator() {
     inputs.builtUpAreaPerFloorSqft,
   );
   const totalColumnHeightFt = getTotalColumnHeightFt(inputs);
+  const colRodTotal = inputs.columnRodsCount1 + inputs.columnRodsCount2;
+  const beamRodTotal = inputs.beamRodsCount1 + inputs.beamRodsCount2;
 
   function goResults() {
     setShowResults(true);
@@ -174,11 +178,11 @@ export function EstimateCalculator() {
           Material Estimate Calculator
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Enter building parameters to get approximate cement, steel, sand, aggregate & brick quantities.
+          Dual bar sizes, staircase, foundation/flooring bricks, mortar & plaster cement included.
+          Stirrup spacing auto {STANDARD_BAR_SPACING_MM} mm · Lap/development {LAP_LENGTH_MULTIPLIER}×d.
         </p>
       </div>
 
-      {/* Progress */}
       <div className="flex items-center gap-1 overflow-x-auto pb-1">
         {PROGRESS_LABELS.map((label, i) => (
           <div key={label} className="flex items-center gap-1 flex-1 min-w-0">
@@ -211,7 +215,6 @@ export function EstimateCalculator() {
 
       <Card>
         <CardContent className="pt-6 pb-6 space-y-5">
-          {/* ── Step 1: Structure ── */}
           {step === 1 && (
             <>
               <h2 className="text-base font-semibold text-foreground">Structure basics</h2>
@@ -243,11 +246,6 @@ export function EstimateCalculator() {
                   min={1}
                   suffix="sqft"
                   onChange={(n) => update('builtUpAreaPerFloorSqft', Math.max(0, n))}
-                  hint={
-                    inputs.unitType === 'Custom'
-                      ? 'Enter your actual built-up area per floor.'
-                      : `Default for ${inputs.unitType} — edit if your plan differs.`
-                  }
                 />
                 <NumField
                   label="Foundation depth (below ground level)"
@@ -255,7 +253,7 @@ export function EstimateCalculator() {
                   step={0.5}
                   suffix="ft"
                   onChange={(n) => update('foundationDepthFt', Math.max(0, n))}
-                  hint="Included in total column height — deeper foundation → taller columns → more steel & concrete."
+                  hint="Used once here for total column height (steel & concrete)."
                 />
                 <NumField
                   label="Plinth height"
@@ -276,9 +274,9 @@ export function EstimateCalculator() {
               <div className="rounded-lg border border-emerald-500/25 bg-emerald-500/5 px-3 py-2.5 text-xs text-muted-foreground">
                 <span className="font-semibold text-foreground">Total column height: </span>
                 {totalColumnHeightFt.toFixed(1)} ft
-                <span className="text-muted-foreground">
+                <span>
                   {' '}(= foundation {inputs.foundationDepthFt} + plinth {inputs.plinthHeightFt} +{' '}
-                  {inputs.floorToFloorHeightFt} × {inputs.floors} floors)
+                  {inputs.floorToFloorHeightFt} × {inputs.floors} floors). Staircase auto-included.
                 </span>
               </div>
 
@@ -288,32 +286,16 @@ export function EstimateCalculator() {
             </>
           )}
 
-          {/* ── Step 2: Columns & Beams ── */}
           {step === 2 && (
             <>
+              <div className="rounded-lg border border-border/70 bg-secondary/30 px-3 py-2 text-[11px] text-muted-foreground">
+                Column height locked from Step 1: <span className="font-semibold text-foreground">{totalColumnHeightFt.toFixed(1)} ft</span>
+                . Stirrups auto @ {STANDARD_BAR_SPACING_MM} mm. Lap/development {LAP_LENGTH_MULTIPLIER}×d added to cutting lengths.
+              </div>
+
               <div className="space-y-4">
                 <h2 className="text-base font-semibold text-foreground">Columns</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <NumField
-                    label="Foundation depth (below ground level)"
-                    value={inputs.foundationDepthFt}
-                    step={0.5}
-                    suffix="ft"
-                    onChange={(n) => update('foundationDepthFt', Math.max(0, n))}
-                    hint="Adjust here to refine column steel & concrete. Same field as Step 1."
-                  />
-                  <div className="rounded-xl border border-border bg-secondary/40 px-3 py-3 flex flex-col justify-center">
-                    <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-                      Total column height (auto)
-                    </p>
-                    <p className="text-lg font-bold text-foreground tabular-nums mt-0.5">
-                      {totalColumnHeightFt.toFixed(1)}{' '}
-                      <span className="text-sm font-semibold text-muted-foreground">ft</span>
-                    </p>
-                    <p className="text-[11px] text-muted-foreground mt-1 leading-snug">
-                      Foundation + plinth + floor height × floors — used for column concrete & steel.
-                    </p>
-                  </div>
                   <NumField
                     label="Number of columns"
                     value={inputs.columnCount}
@@ -321,41 +303,53 @@ export function EstimateCalculator() {
                     onChange={(n) => update('columnCount', Math.max(0, Math.floor(n)))}
                   />
                   <NumField
-                    label="Column width"
+                    label="Column size (width)"
                     value={inputs.columnWidthMm}
                     suffix="mm"
                     onChange={(n) => update('columnWidthMm', Math.max(0, n))}
-                    hint="Default 300 × 300 mm"
                   />
                   <NumField
-                    label="Column depth"
+                    label="Column size (depth)"
                     value={inputs.columnDepthMm}
                     suffix="mm"
                     onChange={(n) => update('columnDepthMm', Math.max(0, n))}
                   />
-                  <NumField
-                    label="Rods per column"
-                    value={inputs.rodsPerColumn}
-                    min={0}
-                    onChange={(n) => update('rodsPerColumn', Math.max(0, Math.floor(n)))}
-                  />
                   <DiaSelect
-                    label="Column rod diameter"
-                    value={inputs.columnRodDiaMm}
-                    options={BAR_DIAMETERS}
-                    onChange={(d) => update('columnRodDiaMm', d)}
-                  />
-                  <DiaSelect
-                    label="Stirrup / tie diameter"
+                    label="Stirrup diameter"
                     value={inputs.columnStirrupDiaMm}
                     options={STIRRUP_DIAMETERS}
                     onChange={(d) => update('columnStirrupDiaMm', d)}
                   />
+                </div>
+
+                <p className="text-xs font-semibold text-foreground">
+                  Main bars — two diameters (total {colRodTotal} nos / column)
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <NumField
-                    label="Stirrup spacing"
-                    value={inputs.columnStirrupSpacingMm}
-                    suffix="mm"
-                    onChange={(n) => update('columnStirrupSpacingMm', Math.max(1, n))}
+                    label="Bars type A"
+                    value={inputs.columnRodsCount1}
+                    min={0}
+                    onChange={(n) => update('columnRodsCount1', Math.max(0, Math.floor(n)))}
+                  />
+                  <DiaSelect
+                    label="Dia A"
+                    value={inputs.columnRodDia1Mm}
+                    options={BAR_DIAMETERS}
+                    onChange={(d) => update('columnRodDia1Mm', d)}
+                  />
+                  <NumField
+                    label="Bars type B"
+                    value={inputs.columnRodsCount2}
+                    min={0}
+                    onChange={(n) => update('columnRodsCount2', Math.max(0, Math.floor(n)))}
+                    hint="e.g. 4×16 + 4×12"
+                  />
+                  <DiaSelect
+                    label="Dia B"
+                    value={inputs.columnRodDia2Mm}
+                    options={BAR_DIAMETERS}
+                    onChange={(d) => update('columnRodDia2Mm', d)}
                   />
                 </div>
               </div>
@@ -370,19 +364,6 @@ export function EstimateCalculator() {
                     onChange={(n) => update('beamCount', Math.max(0, Math.floor(n)))}
                   />
                   <NumField
-                    label="Beam width"
-                    value={inputs.beamWidthMm}
-                    suffix="mm"
-                    onChange={(n) => update('beamWidthMm', Math.max(0, n))}
-                    hint="Default 230 × 300 mm"
-                  />
-                  <NumField
-                    label="Beam depth"
-                    value={inputs.beamDepthMm}
-                    suffix="mm"
-                    onChange={(n) => update('beamDepthMm', Math.max(0, n))}
-                  />
-                  <NumField
                     label="Average beam length"
                     value={inputs.avgBeamLengthFt}
                     step={0.5}
@@ -390,28 +371,52 @@ export function EstimateCalculator() {
                     onChange={(n) => update('avgBeamLengthFt', Math.max(0, n))}
                   />
                   <NumField
-                    label="Rods per beam"
-                    value={inputs.rodsPerBeam}
-                    min={0}
-                    onChange={(n) => update('rodsPerBeam', Math.max(0, Math.floor(n)))}
+                    label="Beam width"
+                    value={inputs.beamWidthMm}
+                    suffix="mm"
+                    onChange={(n) => update('beamWidthMm', Math.max(0, n))}
+                  />
+                  <NumField
+                    label="Beam depth"
+                    value={inputs.beamDepthMm}
+                    suffix="mm"
+                    onChange={(n) => update('beamDepthMm', Math.max(0, n))}
                   />
                   <DiaSelect
-                    label="Beam rod diameter"
-                    value={inputs.beamRodDiaMm}
-                    options={BAR_DIAMETERS}
-                    onChange={(d) => update('beamRodDiaMm', d)}
-                  />
-                  <DiaSelect
-                    label="Beam stirrup diameter"
+                    label="Stirrup diameter"
                     value={inputs.beamStirrupDiaMm}
                     options={STIRRUP_DIAMETERS}
                     onChange={(d) => update('beamStirrupDiaMm', d)}
                   />
+                </div>
+
+                <p className="text-xs font-semibold text-foreground">
+                  Main bars — two diameters (total {beamRodTotal} nos / beam)
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <NumField
-                    label="Beam stirrup spacing"
-                    value={inputs.beamStirrupSpacingMm}
-                    suffix="mm"
-                    onChange={(n) => update('beamStirrupSpacingMm', Math.max(1, n))}
+                    label="Bars type A"
+                    value={inputs.beamRodsCount1}
+                    min={0}
+                    onChange={(n) => update('beamRodsCount1', Math.max(0, Math.floor(n)))}
+                  />
+                  <DiaSelect
+                    label="Dia A"
+                    value={inputs.beamRodDia1Mm}
+                    options={BAR_DIAMETERS}
+                    onChange={(d) => update('beamRodDia1Mm', d)}
+                  />
+                  <NumField
+                    label="Bars type B"
+                    value={inputs.beamRodsCount2}
+                    min={0}
+                    onChange={(n) => update('beamRodsCount2', Math.max(0, Math.floor(n)))}
+                  />
+                  <DiaSelect
+                    label="Dia B"
+                    value={inputs.beamRodDia2Mm}
+                    options={BAR_DIAMETERS}
+                    onChange={(d) => update('beamRodDia2Mm', d)}
                   />
                 </div>
               </div>
@@ -427,7 +432,6 @@ export function EstimateCalculator() {
             </>
           )}
 
-          {/* ── Step 3: Footing, Slab, Walls ── */}
           {step === 3 && (
             <>
               <div className="space-y-4">
@@ -453,7 +457,6 @@ export function EstimateCalculator() {
                     value={inputs.footingLengthMm}
                     suffix="mm"
                     onChange={(n) => update('footingLengthMm', Math.max(0, n))}
-                    hint="Default 1200 × 1200 × 300 mm"
                   />
                   <NumField
                     label="Footing width"
@@ -472,7 +475,7 @@ export function EstimateCalculator() {
                     value={inputs.rodsPerFootingOneWay}
                     min={0}
                     onChange={(n) => update('rodsPerFootingOneWay', Math.max(0, Math.floor(n)))}
-                    hint="Two-way mesh: this count is doubled in the calculation."
+                    hint="Two-way mesh — doubled in calc. Brick soling under footings auto-added."
                   />
                   <DiaSelect
                     label="Footing rod diameter"
@@ -484,7 +487,11 @@ export function EstimateCalculator() {
               </div>
 
               <div className="border-t border-border pt-5 space-y-4">
-                <h2 className="text-base font-semibold text-foreground">Slab</h2>
+                <h2 className="text-base font-semibold text-foreground">Slab & staircase</h2>
+                <p className="text-[11px] text-muted-foreground">
+                  Bar spacing auto {STANDARD_BAR_SPACING_MM} mm. Staircase (~120 sqft/floor @ 150 mm) auto-included in concrete & steel.
+                  Flooring brick bed auto-included under built-up area.
+                </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <NumField
                     label="Slab thickness"
@@ -497,7 +504,7 @@ export function EstimateCalculator() {
                     value={inputs.slabAreaSqftOverride ?? autoSlab}
                     suffix="sqft"
                     onChange={(n) => update('slabAreaSqftOverride', Math.max(0, n))}
-                    hint={`Auto: ${autoSlab.toFixed(0)} sqft (built-up × floors). Edit to override.`}
+                    hint={`Auto: ${autoSlab.toFixed(0)} sqft`}
                   />
                   <DiaSelect
                     label="Main bar diameter"
@@ -505,56 +512,26 @@ export function EstimateCalculator() {
                     options={BAR_DIAMETERS}
                     onChange={(d) => update('slabMainDiaMm', d)}
                   />
-                  <NumField
-                    label="Main bar spacing"
-                    value={inputs.slabMainSpacingMm}
-                    suffix="mm c/c"
-                    onChange={(n) => update('slabMainSpacingMm', Math.max(1, n))}
-                    hint="Steel weight uses 100 kg/cum thumb rule; spacing is for reference."
-                  />
                   <DiaSelect
                     label="Distribution bar diameter"
                     value={inputs.slabDistDiaMm}
                     options={BAR_DIAMETERS}
                     onChange={(d) => update('slabDistDiaMm', d)}
                   />
-                  <NumField
-                    label="Distribution bar spacing"
-                    value={inputs.slabDistSpacingMm}
-                    suffix="mm c/c"
-                    onChange={(n) => update('slabDistSpacingMm', Math.max(1, n))}
-                  />
                 </div>
               </div>
 
               <div className="border-t border-border pt-5 space-y-4">
                 <h2 className="text-base font-semibold text-foreground">Walls (bricks + plaster)</h2>
-                <div className="rounded-lg border border-border/70 bg-secondary/30 px-3 py-2.5 text-[11px] text-muted-foreground space-y-1 leading-snug">
+                <div className="rounded-lg border border-border/70 bg-secondary/30 px-3 py-2.5 text-[11px] text-muted-foreground space-y-1">
                   <p>
-                    <span className="font-semibold text-foreground">Exterior walls: </span>
-                    from built-up footprint perimeter × height × floors × 0.8 (openings), thickness below.
+                    Interior ({inputs.unitType}):{' '}
+                    {inputs.unitType === 'Custom'
+                      ? `≈ ${interiorLengthPerFloor.toFixed(0)} ft/floor`
+                      : `${INTERIOR_WALL_LENGTH_FT_PER_FLOOR[inputs.unitType]} ft/floor @ 4.5"`}
+                    {' '}· Exterior ≈ {exteriorWall.toFixed(0)} + interior ≈ {interiorWall.toFixed(0)} = {autoWall.toFixed(0)} sqft
                   </p>
-                  <p>
-                    <span className="font-semibold text-foreground">Interior room walls: </span>
-                    {inputs.unitType === 'Custom' ? (
-                      <>Custom — ≈ {interiorLengthPerFloor.toFixed(0)} ft partition length / floor (from built-up).</>
-                    ) : (
-                      <>
-                        {inputs.unitType} standard ≈{' '}
-                        {INTERIOR_WALL_LENGTH_FT_PER_FLOOR[inputs.unitType]} ft partition length / floor
-                        @ 4.5&quot; half-brick
-                        {inputs.unitType === '1BHK' && ' (living + bed + kitchen + bath)'}
-                        {inputs.unitType === '2BHK' && ' (living + 2 beds + kitchen + baths)'}
-                        {inputs.unitType === '3BHK' && ' (living + 3 beds + kitchen + baths)'}
-                        {inputs.unitType === '4BHK' && ' (living + 4 beds + kitchen + baths)'}
-                      </>
-                    )}
-                  </p>
-                  <p>
-                    Auto wall area ≈ exterior {exteriorWall.toFixed(0)} + interior {interiorWall.toFixed(0)} ={' '}
-                    <span className="font-semibold text-foreground">{autoWall.toFixed(0)} sqft</span> (one face).
-                    Cement also includes brick mortar (1:6) and both-side plaster 12 mm (1:4).
-                  </p>
+                  <p>Cement/sand also for brick mortar (1:6) and plaster (1:4 both faces).</p>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="flex flex-col gap-1.5 w-full">
@@ -567,8 +544,8 @@ export function EstimateCalculator() {
                     >
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="4.5">4.5 inch (half brick)</SelectItem>
-                        <SelectItem value="9">9 inch (full brick)</SelectItem>
+                        <SelectItem value="4.5">4.5 inch</SelectItem>
+                        <SelectItem value="9">9 inch</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -577,7 +554,6 @@ export function EstimateCalculator() {
                     value={inputs.wallAreaSqftOverride ?? autoWall}
                     suffix="sqft"
                     onChange={(n) => update('wallAreaSqftOverride', Math.max(0, n))}
-                    hint="Leave as auto for BHK interior standards. Manual entry uses exterior thickness for the whole area."
                   />
                 </div>
               </div>
@@ -593,7 +569,6 @@ export function EstimateCalculator() {
             </>
           )}
 
-          {/* ── Step 4: Mix + Results ── */}
           {step === 4 && (
             <>
               <div className="space-y-4">
@@ -601,7 +576,7 @@ export function EstimateCalculator() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="flex flex-col gap-1.5 w-full">
                     <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      Concrete Mix Ratio (applies to entire structure)
+                      Concrete Mix Ratio (entire structure)
                     </label>
                     <Select
                       value={inputs.mixGrade}
@@ -614,9 +589,6 @@ export function EstimateCalculator() {
                         ))}
                       </SelectContent>
                     </Select>
-                    <p className="text-[11px] text-muted-foreground">
-                      Same mix for footing, columns, beams, and slab (budgeting simplification).
-                    </p>
                   </div>
                   <div className="flex flex-col gap-1.5 w-full">
                     <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
@@ -633,9 +605,6 @@ export function EstimateCalculator() {
                         <SelectItem value="10">10%</SelectItem>
                       </SelectContent>
                     </Select>
-                    <p className="text-[11px] text-muted-foreground">
-                      Applied only to final cement, steel, sand, aggregate & brick outputs.
-                    </p>
                   </div>
                 </div>
 
@@ -652,27 +621,20 @@ export function EstimateCalculator() {
 
                   <div className="rounded-xl border border-border bg-secondary/40 divide-y divide-border overflow-hidden">
                     <ResultRow label="Cement" value={`${results.cementBags} bags`} />
-                    <div className="px-4 py-2.5 text-[11px] text-muted-foreground space-y-0.5">
-                      <p>
-                        Includes RCC {results.meta.cementBagsRcc} + brick mortar{' '}
-                        {results.meta.cementBagsBrickMortar} + plaster{' '}
-                        {results.meta.cementBagsPlaster} bags (before wastage)
-                      </p>
+                    <div className="px-4 py-2.5 text-[11px] text-muted-foreground">
+                      RCC {results.meta.cementBagsRcc} + brick mortar {results.meta.cementBagsBrickMortar} + plaster{' '}
+                      {results.meta.cementBagsPlaster} (before wastage)
                     </div>
                     <div className="px-4 py-3 space-y-1.5">
-                      <p className="text-xs text-muted-foreground">Steel (by diameter)</p>
-                      {results.steelByDiameter.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">No steel calculated</p>
-                      ) : (
-                        results.steelByDiameter.map((row) => (
-                          <div key={row.diameterMm} className="flex justify-between text-sm">
-                            <span className="text-foreground/80">{row.diameterMm} mm</span>
-                            <span className="font-semibold tabular-nums">{row.quintals} quintals</span>
-                          </div>
-                        ))
-                      )}
+                      <p className="text-xs text-muted-foreground">Steel by diameter (incl. {LAP_LENGTH_MULTIPLIER}d laps)</p>
+                      {results.steelByDiameter.map((row) => (
+                        <div key={row.diameterMm} className="flex justify-between text-sm">
+                          <span className="text-foreground/80">{row.diameterMm} mm</span>
+                          <span className="font-semibold tabular-nums">{row.quintals} quintals</span>
+                        </div>
+                      ))}
                       <div className="flex justify-between text-sm pt-1 border-t border-border/60">
-                        <span className="font-semibold text-foreground">Total Steel</span>
+                        <span className="font-semibold">Total Steel</span>
                         <span className="font-bold tabular-nums text-emerald-700 dark:text-emerald-400">
                           {results.totalSteelQuintals} quintals
                         </span>
@@ -680,36 +642,16 @@ export function EstimateCalculator() {
                     </div>
                     <ResultRow label="Coarse Aggregate" value={`${results.aggregateCum} cum`} />
                     <ResultRow label="Sand" value={`${results.sandCum} cum`} />
-                    <ResultRow
-                      label="Bricks"
-                      value={`approx ${results.bricks.toLocaleString('en-IN')} nos`}
-                    />
+                    <ResultRow label="Bricks (total)" value={`approx ${results.bricks.toLocaleString('en-IN')} nos`} />
+                    <div className="px-4 py-2.5 text-[11px] text-muted-foreground space-y-0.5">
+                      <p>Walls {results.meta.bricksWalls.toLocaleString('en-IN')} · Foundation soling {results.meta.bricksFoundationSoling.toLocaleString('en-IN')} · Flooring {results.meta.bricksFlooring.toLocaleString('en-IN')}</p>
+                      <p>Concrete: cols {results.concreteVolumeCum.columns} · beams {results.concreteVolumeCum.beams} · footings {results.concreteVolumeCum.footings} · slab {results.concreteVolumeCum.slab} · stair {results.concreteVolumeCum.staircase} = {results.concreteVolumeCum.total} cum</p>
+                    </div>
                   </div>
 
                   <p className="text-[11px] text-muted-foreground text-center">
-                    Includes {results.wastagePercent}% site wastage buffer
+                    Includes {results.wastagePercent}% site wastage · spacing {STANDARD_BAR_SPACING_MM} mm auto
                   </p>
-                  <p className="text-[11px] text-muted-foreground leading-relaxed">
-                    Walls: exterior {results.meta.exteriorWallAreaSqft} sqft
-                    {results.meta.wallAreaAutoEstimated && (
-                      <> + interior ({inputs.unitType}) {results.meta.interiorWallAreaSqft} sqft</>
-                    )}
-                    . Sand includes RCC + brick mortar (1:6) + plaster (1:4). Door/window openings
-                    approximated via exterior 0.8 / interior 0.9 factors when auto-estimated.
-                  </p>
-
-                  <div className="rounded-lg border border-border/60 bg-card/50 px-3 py-2 text-[11px] text-muted-foreground space-y-0.5">
-                    <p>
-                      Column height used: {results.meta.totalColumnHeightFt} ft
-                      (foundation {inputs.foundationDepthFt} + plinth {inputs.plinthHeightFt} +{' '}
-                      {inputs.floorToFloorHeightFt} × {inputs.floors} floors)
-                    </p>
-                    <p>Concrete volume (raw): {results.concreteVolumeCum.total} cum</p>
-                    <p>
-                      Columns {results.concreteVolumeCum.columns} · Beams {results.concreteVolumeCum.beams} ·
-                      Footings {results.concreteVolumeCum.footings} · Slab {results.concreteVolumeCum.slab}
-                    </p>
-                  </div>
 
                   <div className="flex flex-col sm:flex-row gap-3">
                     <Button
@@ -728,7 +670,7 @@ export function EstimateCalculator() {
                       className="flex-1"
                       onClick={() => downloadEstimatePdf(inputs, results)}
                     >
-                      <Download className="w-4 h-4" /> Download as PDF
+                      <Download className="w-4 h-4" /> Download PDF (tables)
                     </Button>
                   </div>
 

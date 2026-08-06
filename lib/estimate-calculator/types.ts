@@ -1,6 +1,5 @@
 // ============================================================
 // Construction Material Estimate Calculator — types & defaults
-// Self-contained; does not touch bidding / auction models.
 // ============================================================
 
 export type UnitType = '1BHK' | '2BHK' | '3BHK' | '4BHK' | 'Custom';
@@ -9,6 +8,18 @@ export type WallThickness = '4.5' | '9';
 export type MixGrade = 'M15' | 'M20' | 'M25';
 export type WastagePercent = 0 | 5 | 10;
 export type BarDiameter = 6 | 8 | 10 | 12 | 16 | 20 | 25 | 32;
+
+/**
+ * Fixed stirrup / distribution / main-bar spacing used internally (mm).
+ * Not collected from the client — keeps the form short and consistent.
+ */
+export const STANDARD_BAR_SPACING_MM = 125;
+
+/**
+ * Tension lap / development length multiplier (× bar diameter).
+ * Common Indian estimation practice ≈ 50d for HYSD bars in tension.
+ */
+export const LAP_LENGTH_MULTIPLIER = 50;
 
 export interface EstimateInputs {
   // Structure basics
@@ -19,46 +30,43 @@ export interface EstimateInputs {
   plinthHeightFt: number;
   floorToFloorHeightFt: number;
 
-  // Columns
+  // Columns — dual diameter sets (e.g. 4×16mm + 4×12mm)
   columnCount: number;
   columnWidthMm: number;
   columnDepthMm: number;
-  rodsPerColumn: number;
-  columnRodDiaMm: BarDiameter;
+  columnRodsCount1: number;
+  columnRodDia1Mm: BarDiameter;
+  columnRodsCount2: number;
+  columnRodDia2Mm: BarDiameter;
   columnStirrupDiaMm: BarDiameter;
-  columnStirrupSpacingMm: number;
 
-  // Beams
+  // Beams — dual diameter sets
   beamCount: number;
   beamWidthMm: number;
   beamDepthMm: number;
   avgBeamLengthFt: number;
-  rodsPerBeam: number;
-  beamRodDiaMm: BarDiameter;
+  beamRodsCount1: number;
+  beamRodDia1Mm: BarDiameter;
+  beamRodsCount2: number;
+  beamRodDia2Mm: BarDiameter;
   beamStirrupDiaMm: BarDiameter;
-  beamStirrupSpacingMm: number;
 
   // Footing
   footingType: FootingType;
   footingLengthMm: number;
   footingWidthMm: number;
   footingDepthMm: number;
-  /** Rods in ONE direction per footing (two-way mesh doubles this in calc). */
   rodsPerFootingOneWay: number;
   footingRodDiaMm: BarDiameter;
 
-  // Slab
+  // Slab (spacing fixed at STANDARD_BAR_SPACING_MM internally)
   slabThicknessMm: number;
-  /** Override; if null, auto = builtUp × floors. */
   slabAreaSqftOverride: number | null;
   slabMainDiaMm: BarDiameter;
-  slabMainSpacingMm: number;
   slabDistDiaMm: BarDiameter;
-  slabDistSpacingMm: number;
 
   // Walls
   wallThickness: WallThickness;
-  /** Override; if null, auto-estimate from footprint. */
   wallAreaSqftOverride: number | null;
 
   // Mix & wastage
@@ -66,7 +74,6 @@ export interface EstimateInputs {
   wastagePercent: WastagePercent;
 }
 
-/** Typical Indian residential built-up areas (sq ft) used when unit type ≠ Custom. */
 export const UNIT_TYPE_DEFAULT_AREA: Record<Exclude<UnitType, 'Custom'>, number> = {
   '1BHK': 550,
   '2BHK': 1000,
@@ -74,17 +81,11 @@ export const UNIT_TYPE_DEFAULT_AREA: Record<Exclude<UnitType, 'Custom'>, number>
   '4BHK': 1800,
 };
 
-/**
- * Standard interior partition running length (ft) PER FLOOR for typical Indian
- * residential layouts (room dividers between living / bedrooms / kitchen / baths).
- * Used with floor height × floors to get interior wall area. Custom uses a
- * built-up–based estimate instead.
- */
 export const INTERIOR_WALL_LENGTH_FT_PER_FLOOR: Record<Exclude<UnitType, 'Custom'>, number> = {
-  '1BHK': 30,  // living + 1 bed + kitchen + bath partitions
-  '2BHK': 50,  // living + 2 beds + kitchen + baths
-  '3BHK': 70,  // living + 3 beds + kitchen + baths
-  '4BHK': 95,  // living + 4 beds + kitchen + baths / utility
+  '1BHK': 30,
+  '2BHK': 50,
+  '3BHK': 70,
+  '4BHK': 95,
 };
 
 export const BAR_DIAMETERS: BarDiameter[] = [8, 10, 12, 16, 20, 25, 32];
@@ -107,19 +108,21 @@ export const DEFAULT_INPUTS: EstimateInputs = {
   columnCount: 12,
   columnWidthMm: 300,
   columnDepthMm: 300,
-  rodsPerColumn: 8,
-  columnRodDiaMm: 16,
+  columnRodsCount1: 4,
+  columnRodDia1Mm: 16,
+  columnRodsCount2: 4,
+  columnRodDia2Mm: 12,
   columnStirrupDiaMm: 8,
-  columnStirrupSpacingMm: 150,
 
   beamCount: 20,
   beamWidthMm: 230,
   beamDepthMm: 300,
   avgBeamLengthFt: 12,
-  rodsPerBeam: 4,
-  beamRodDiaMm: 12,
+  beamRodsCount1: 2,
+  beamRodDia1Mm: 16,
+  beamRodsCount2: 2,
+  beamRodDia2Mm: 12,
   beamStirrupDiaMm: 8,
-  beamStirrupSpacingMm: 150,
 
   footingType: 'isolated',
   footingLengthMm: 1200,
@@ -131,9 +134,7 @@ export const DEFAULT_INPUTS: EstimateInputs = {
   slabThicknessMm: 125,
   slabAreaSqftOverride: null,
   slabMainDiaMm: 10,
-  slabMainSpacingMm: 150,
   slabDistDiaMm: 8,
-  slabDistSpacingMm: 200,
 
   wallThickness: '9',
   wallAreaSqftOverride: null,
@@ -154,9 +155,9 @@ export interface EstimateResults {
     beams: number;
     footings: number;
     slab: number;
+    staircase: number;
     total: number;
   };
-  /** Total cement bags (RCC + brick mortar + plaster). */
   cementBags: number;
   sandCum: number;
   aggregateCum: number;
@@ -166,16 +167,20 @@ export interface EstimateResults {
   wastagePercent: WastagePercent;
   meta: {
     slabAreaSqft: number;
-    /** Exterior + interior wall face area (sqft), one face. */
     wallAreaSqft: number;
     exteriorWallAreaSqft: number;
     interiorWallAreaSqft: number;
     wallAreaAutoEstimated: boolean;
     footingCount: number;
     totalColumnHeightFt: number;
-    /** Cement bags breakdown before wastage rounding (informative). */
     cementBagsRcc: number;
     cementBagsBrickMortar: number;
     cementBagsPlaster: number;
+    bricksWalls: number;
+    bricksFoundationSoling: number;
+    bricksFlooring: number;
+    staircaseAreaSqft: number;
+    standardSpacingMm: number;
+    lapMultiplier: number;
   };
 }
