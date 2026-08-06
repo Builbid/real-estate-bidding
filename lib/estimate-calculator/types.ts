@@ -52,7 +52,6 @@ export interface EstimateInputs {
   footingLengthMm: number;
   footingWidthMm: number;
   footingDepthMm: number;
-  rodsPerFootingOneWay: number;
   footingRodDiaMm: BarDiameter;
 
   slabThicknessMm: number;
@@ -125,7 +124,6 @@ export const DEFAULT_INPUTS: EstimateInputs = {
   footingLengthMm: 1200,
   footingWidthMm: 1200,
   footingDepthMm: 300,
-  rodsPerFootingOneWay: 8,
   footingRodDiaMm: 12,
 
   slabThicknessMm: 125,

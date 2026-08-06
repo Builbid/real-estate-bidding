@@ -540,13 +540,6 @@ export function EstimateCalculator() {
                     suffix="mm"
                     onChange={(n) => update('footingDepthMm', Math.max(0, n))}
                   />
-                  <NumField
-                    label="Rods per footing (one way)"
-                    value={inputs.rodsPerFootingOneWay}
-                    min={0}
-                    onChange={(n) => update('rodsPerFootingOneWay', Math.max(0, Math.floor(n)))}
-                    hint="Two-way mesh — doubled in calc. Brick soling under footings auto-added."
-                  />
                   <DiaSelect
                     label="Footing rod diameter"
                     value={inputs.footingRodDiaMm}
@@ -554,6 +547,10 @@ export function EstimateCalculator() {
                     onChange={(d) => update('footingRodDiaMm', d)}
                   />
                 </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Footing jali bars auto @ {STANDARD_BAR_SPACING_MM} mm c/c — count = (dim ÷ spacing) + 1 each way.
+                  Two-way mesh. Brick soling under footings auto-added.
+                </p>
               </div>
 
               <div className="border-t border-border pt-5 space-y-4">
@@ -603,12 +600,15 @@ export function EstimateCalculator() {
                       : `${INTERIOR_WALL_LENGTH_FT_PER_FLOOR[inputs.unitType]} ft/floor @ 4.5"`}
                     {' '}· Exterior ≈ {exteriorWall.toFixed(0)} + interior ≈ {interiorWall.toFixed(0)} = {autoWall.toFixed(0)} sqft
                   </p>
+                  <p>
+                    Plinth (GL → plinth lvl) exterior always 9&quot; full brick · above-plinth exterior uses thickness below.
+                  </p>
                   <p>Cement/sand also for brick mortar (1:6) and plaster (1:4 both faces).</p>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="flex flex-col gap-1.5 w-full">
                     <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      Exterior wall thickness
+                      Exterior wall thickness (above plinth)
                     </label>
                     <Select
                       value={inputs.wallThickness}

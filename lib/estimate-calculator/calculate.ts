@@ -140,14 +140,37 @@ export function getAutoSlabAreaSqft(inputs: EstimateInputs): number {
   return getTotalSlabAreaSqft(inputs);
 }
 
-/** Exterior wall face from built-up footprint (not slab area). */
-export function getExteriorWallAreaSqft(inputs: EstimateInputs): number {
+/** Exterior wall face from built-up footprint (not slab area). Includes plinth band. */
+export function getExteriorWallPerimeterFt(inputs: EstimateInputs): number {
   const area = Math.max(0, inputs.builtUpAreaPerFloorSqft);
-  if (area <= 0 || inputs.floors <= 0 || inputs.floorToFloorHeightFt <= 0) return 0;
-  const sideFt = Math.sqrt(area);
-  const perimeterFt = 4 * sideFt;
-  // 0.8 ≈ openings (doors/windows) on outer walls
+  if (area <= 0) return 0;
+  return 4 * Math.sqrt(area);
+}
+
+/** Superstructure exterior (above plinth) — openings allowance 0.8. */
+export function getSuperstructureExteriorWallAreaSqft(inputs: EstimateInputs): number {
+  const perimeterFt = getExteriorWallPerimeterFt(inputs);
+  if (perimeterFt <= 0 || inputs.floors <= 0 || inputs.floorToFloorHeightFt <= 0) return 0;
   return perimeterFt * inputs.floorToFloorHeightFt * inputs.floors * 0.8;
+}
+
+/** Ground-to-plinth exterior band — full brick, typically no large openings. */
+export function getPlinthExteriorWallAreaSqft(inputs: EstimateInputs): number {
+  const perimeterFt = getExteriorWallPerimeterFt(inputs);
+  if (perimeterFt <= 0 || inputs.plinthHeightFt <= 0) return 0;
+  return perimeterFt * Math.max(0, inputs.plinthHeightFt);
+}
+
+export function getExteriorWallAreaSqft(inputs: EstimateInputs): number {
+  return getSuperstructureExteriorWallAreaSqft(inputs) + getPlinthExteriorWallAreaSqft(inputs);
+}
+
+/**
+ * Footing jali bars one way: (dimension / spacing) + 1 @ standard 125 mm c/c.
+ */
+export function getFootingBarsAlong(dimensionMm: number, spacingMm = STANDARD_BAR_SPACING_MM): number {
+  if (dimensionMm <= 0 || spacingMm <= 0) return 0;
+  return Math.floor(dimensionMm / spacingMm) + 1;
 }
 
 export function getInteriorWallLengthFtPerFloor(unitType: UnitType, builtUpSqft: number): number {
@@ -307,15 +330,18 @@ export function calculateEstimate(inputs: EstimateInputs): EstimateResults {
     );
   }
 
-  if (footingCount > 0 && inputs.rodsPerFootingOneWay > 0) {
-    const avgSideM =
-      ((inputs.footingLengthMm + inputs.footingWidthMm) / 2) / 1000;
+  if (footingCount > 0) {
+    // Two-way footing jali @ 125 mm: bars along each side = (perp. dim / spacing) + 1
+    const barsAlongLength = getFootingBarsAlong(inputs.footingWidthMm, spacingMm);
+    const barsAlongWidth = getFootingBarsAlong(inputs.footingLengthMm, spacingMm);
     const Ld = lapLengthM(inputs.footingRodDiaMm);
-    const lenOne = avgSideM + Ld;
-    const totalRods = footingCount * inputs.rodsPerFootingOneWay * 2;
+    const lenAlongLengthM = inputs.footingLengthMm / 1000 + Ld;
+    const lenAlongWidthM = inputs.footingWidthMm / 1000 + Ld;
+    const totalLengthM =
+      footingCount * (barsAlongLength * lenAlongLengthM + barsAlongWidth * lenAlongWidthM);
     addSteel(
       inputs.footingRodDiaMm,
-      barWeightKg(inputs.footingRodDiaMm, totalRods * lenOne),
+      barWeightKg(inputs.footingRodDiaMm, totalLengthM),
     );
   }
 
@@ -346,11 +372,16 @@ export function calculateEstimate(inputs: EstimateInputs): EstimateResults {
   const totalSteelKg = steelByDiameter.reduce((s, r) => s + r.kg, 0);
 
   // ── Bricks ──────────────────────────────────────────────────
+  // Plinth (GL → plinth) exterior always full brick 9"; above-plinth uses selected thickness.
   const exteriorThickM = WALL_THICKNESS_M[inputs.wallThickness];
+  const plinthThickM = WALL_THICKNESS_M['9'];
   let wallBrickworkCum = 0;
   if (wallAreaAutoEstimated) {
+    const superExtSqft = getSuperstructureExteriorWallAreaSqft(inputs);
+    const plinthExtSqft = getPlinthExteriorWallAreaSqft(inputs);
     wallBrickworkCum =
-      exteriorWallAreaSqft * SQFT_TO_SQM * exteriorThickM +
+      superExtSqft * SQFT_TO_SQM * exteriorThickM +
+      plinthExtSqft * SQFT_TO_SQM * plinthThickM +
       interiorWallAreaSqft * SQFT_TO_SQM * INTERIOR_WALL_THICKNESS_M;
   } else {
     wallBrickworkCum = wallAreaSqft * SQFT_TO_SQM * exteriorThickM;
