@@ -9,28 +9,26 @@ export type MixGrade = 'M15' | 'M20' | 'M25';
 export type WastagePercent = 0 | 5 | 10;
 export type BarDiameter = 6 | 8 | 10 | 12 | 16 | 20 | 25 | 32;
 
-/**
- * Fixed stirrup / distribution / main-bar spacing used internally (mm).
- * Not collected from the client — keeps the form short and consistent.
- */
+/** Fixed stirrup / slab bar spacing (mm) — not client-entered. */
 export const STANDARD_BAR_SPACING_MM = 125;
 
-/**
- * Tension lap / development length multiplier (× bar diameter).
- * Common Indian estimation practice ≈ 50d for HYSD bars in tension.
- */
+/** Tension lap / development ≈ 50d for HYSD (Fe415/Fe500) estimation practice. */
 export const LAP_LENGTH_MULTIPLIER = 50;
 
+export const BUILT_UP_AREA_INFO =
+  'Built-up area is the total covered floor area of the building measured from outer wall to outer wall (includes walls, rooms, passages, toilets, kitchen). It is NOT the same as carpet area (usable inside) or plot area. Used for outer walls, flooring bed, and overall building size. Slab area is entered separately — it is the RCC floor/roof slab plan area, which may differ (balconies, projections, or open courts).';
+
 export interface EstimateInputs {
-  // Structure basics
   floors: number;
   unitType: UnitType;
+  /** Outer-to-outer covered area per floor (sqft) — walls, flooring bed, footprint. */
   builtUpAreaPerFloorSqft: number;
+  /** RCC slab plan area per floor (sqft) — slab concrete & slab steel. */
+  slabAreaPerFloorSqft: number;
   foundationDepthFt: number;
   plinthHeightFt: number;
   floorToFloorHeightFt: number;
 
-  // Columns — dual diameter sets (e.g. 4×16mm + 4×12mm)
   columnCount: number;
   columnWidthMm: number;
   columnDepthMm: number;
@@ -40,7 +38,6 @@ export interface EstimateInputs {
   columnRodDia2Mm: BarDiameter;
   columnStirrupDiaMm: BarDiameter;
 
-  // Beams — dual diameter sets
   beamCount: number;
   beamWidthMm: number;
   beamDepthMm: number;
@@ -51,7 +48,6 @@ export interface EstimateInputs {
   beamRodDia2Mm: BarDiameter;
   beamStirrupDiaMm: BarDiameter;
 
-  // Footing
   footingType: FootingType;
   footingLengthMm: number;
   footingWidthMm: number;
@@ -59,17 +55,14 @@ export interface EstimateInputs {
   rodsPerFootingOneWay: number;
   footingRodDiaMm: BarDiameter;
 
-  // Slab (spacing fixed at STANDARD_BAR_SPACING_MM internally)
   slabThicknessMm: number;
-  slabAreaSqftOverride: number | null;
   slabMainDiaMm: BarDiameter;
   slabDistDiaMm: BarDiameter;
 
-  // Walls
   wallThickness: WallThickness;
+  /** null = auto from built-up + BHK interiors. */
   wallAreaSqftOverride: number | null;
 
-  // Mix & wastage
   mixGrade: MixGrade;
   wastagePercent: WastagePercent;
 }
@@ -80,6 +73,9 @@ export const UNIT_TYPE_DEFAULT_AREA: Record<Exclude<UnitType, 'Custom'>, number>
   '3BHK': 1400,
   '4BHK': 1800,
 };
+
+/** Default slab ≈ built-up; client can raise/lower for balconies / courts. */
+export const UNIT_TYPE_DEFAULT_SLAB_AREA = UNIT_TYPE_DEFAULT_AREA;
 
 export const INTERIOR_WALL_LENGTH_FT_PER_FLOOR: Record<Exclude<UnitType, 'Custom'>, number> = {
   '1BHK': 30,
@@ -101,6 +97,7 @@ export const DEFAULT_INPUTS: EstimateInputs = {
   floors: 2,
   unitType: '2BHK',
   builtUpAreaPerFloorSqft: UNIT_TYPE_DEFAULT_AREA['2BHK'],
+  slabAreaPerFloorSqft: UNIT_TYPE_DEFAULT_SLAB_AREA['2BHK'],
   foundationDepthFt: 4,
   plinthHeightFt: 2,
   floorToFloorHeightFt: 10,
@@ -132,7 +129,6 @@ export const DEFAULT_INPUTS: EstimateInputs = {
   footingRodDiaMm: 12,
 
   slabThicknessMm: 125,
-  slabAreaSqftOverride: null,
   slabMainDiaMm: 10,
   slabDistDiaMm: 8,
 
@@ -166,6 +162,8 @@ export interface EstimateResults {
   totalSteelQuintals: number;
   wastagePercent: WastagePercent;
   meta: {
+    builtUpAreaPerFloorSqft: number;
+    slabAreaPerFloorSqft: number;
     slabAreaSqft: number;
     wallAreaSqft: number;
     exteriorWallAreaSqft: number;

@@ -87,7 +87,7 @@ export function downloadEstimatePdf(inputs: EstimateInputs, results: EstimateRes
   doc.text(`Generated: ${new Date().toLocaleString('en-IN')}`, margin, y);
   y += 5;
   doc.text(
-    `Wastage buffer: ${results.wastagePercent}% · Stirrup/bar spacing (auto): ${results.meta.standardSpacingMm} mm · Lap/development: ${results.meta.lapMultiplier}×d`,
+    `Wastage buffer: ${results.wastagePercent}% · Stirrups (Ring) spacing (auto): ${results.meta.standardSpacingMm} mm · Lap/development: ${results.meta.lapMultiplier}×d`,
     margin,
     y,
   );
@@ -111,7 +111,7 @@ export function downloadEstimatePdf(inputs: EstimateInputs, results: EstimateRes
         'bags',
       ],
       [
-        '  — Wall plaster (1:4, 12 mm both faces)',
+        '  — Plaster walls + ceiling (1:4, 12 mm)',
         String(results.meta.cementBagsPlaster),
         'bags',
       ],
@@ -180,6 +180,8 @@ export function downloadEstimatePdf(inputs: EstimateInputs, results: EstimateRes
       ['Unit type', inputs.unitType, '—'],
       ['Floors', String(inputs.floors), 'nos'],
       ['Built-up / floor', String(inputs.builtUpAreaPerFloorSqft), 'sqft'],
+      ['Slab area / floor', String(inputs.slabAreaPerFloorSqft), 'sqft'],
+      ['Total slab area', String(results.meta.slabAreaSqft), 'sqft'],
       ['Foundation depth', String(inputs.foundationDepthFt), 'ft'],
       ['Plinth height', String(inputs.plinthHeightFt), 'ft'],
       ['Floor-to-floor height', String(inputs.floorToFloorHeightFt), 'ft'],

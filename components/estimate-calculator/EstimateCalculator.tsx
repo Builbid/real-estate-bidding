@@ -1,19 +1,19 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import {
-  ArrowLeft, ArrowRight, Download, Calculator, AlertTriangle, RefreshCw,
+  ArrowLeft, ArrowRight, Download, Calculator, AlertTriangle, RefreshCw, Info,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   calculateEstimate,
-  getAutoSlabAreaSqft,
+  getTotalSlabAreaSqft,
   getAutoWallAreaSqft,
   getExteriorWallAreaSqft,
   getInteriorWallAreaSqft,
@@ -23,6 +23,7 @@ import {
 import { downloadEstimatePdf } from '@/lib/estimate-calculator/pdf';
 import {
   BAR_DIAMETERS,
+  BUILT_UP_AREA_INFO,
   DEFAULT_INPUTS,
   INTERIOR_WALL_LENGTH_FT_PER_FLOOR,
   LAP_LENGTH_MULTIPLIER,
@@ -30,6 +31,7 @@ import {
   STANDARD_BAR_SPACING_MM,
   STIRRUP_DIAMETERS,
   UNIT_TYPE_DEFAULT_AREA,
+  UNIT_TYPE_DEFAULT_SLAB_AREA,
   type BarDiameter,
   type EstimateInputs,
   type FootingType,
@@ -49,6 +51,10 @@ const PROGRESS_LABELS = [
   'Mix & Results',
 ] as const;
 
+/**
+ * Number input that allows clearing the field while typing.
+ * Empty stays empty until blur (then falls back to min) — no forced zero mid-edit.
+ */
 function NumField({
   label,
   value,
@@ -57,6 +63,7 @@ function NumField({
   step = 1,
   suffix,
   hint,
+  labelExtra,
 }: {
   label: string;
   value: number;
@@ -65,29 +72,78 @@ function NumField({
   step?: number;
   suffix?: string;
   hint?: string;
+  labelExtra?: ReactNode;
 }) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const display = draft !== null ? draft : String(value);
+
   return (
     <div className="space-y-1">
-      <Input
-        label={label}
-        type="number"
-        inputMode="decimal"
-        min={min}
-        step={step}
-        value={Number.isFinite(value) ? value : ''}
-        suffix={suffix}
-        onChange={(e) => {
-          const raw = e.target.value;
-          if (raw === '') {
-            onChange(0);
-            return;
-          }
-          const n = Number(raw);
-          if (Number.isFinite(n)) onChange(n);
-        }}
-      />
+      <div className="flex items-center gap-1.5">
+        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+          {label}
+        </label>
+        {labelExtra}
+      </div>
+      <div className="relative flex items-center">
+        <input
+          type="text"
+          inputMode="decimal"
+          className={cn(
+            'flex h-11 w-full rounded-xl border border-input bg-background/80 px-3 py-2 text-base md:text-sm text-foreground placeholder:text-muted-foreground shadow-sm',
+            'ring-offset-background transition-all duration-150',
+            'focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-emerald-500/70',
+            'dark:bg-card/60',
+            suffix && 'pr-12',
+          )}
+          value={display}
+          onFocus={() => setDraft(String(value))}
+          onChange={(e) => {
+            const t = e.target.value;
+            if (t !== '' && !/^-?\d*\.?\d*$/.test(t)) return;
+            setDraft(t);
+            if (t === '' || t === '-' || t === '.' || t === '-.') return;
+            const n = Number(t);
+            if (Number.isFinite(n)) onChange(n);
+          }}
+          onBlur={() => {
+            if (draft === null || draft === '' || draft === '-' || draft === '.' || draft === '-.') {
+              onChange(min);
+            } else {
+              const n = Number(draft);
+              onChange(Number.isFinite(n) ? Math.max(min, n) : min);
+            }
+            setDraft(null);
+          }}
+        />
+        {suffix && (
+          <div className="absolute right-3 text-muted-foreground text-sm pointer-events-none">
+            {suffix}
+          </div>
+        )}
+      </div>
       {hint && <p className="text-[11px] text-muted-foreground leading-snug">{hint}</p>}
     </div>
+  );
+}
+
+function BuiltUpInfoButton() {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          aria-label="What is built-up area?"
+          className="inline-flex h-5 w-5 items-center justify-center rounded-full text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 transition-colors"
+        >
+          <Info className="h-3.5 w-3.5" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent side="top" align="start" className="text-xs max-w-xs leading-relaxed">
+        <p className="font-semibold text-foreground mb-1.5">Built-up area</p>
+        <p className="text-muted-foreground">{BUILT_UP_AREA_INFO}</p>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -139,12 +195,16 @@ export function EstimateCalculator() {
         unitType === 'Custom'
           ? prev.builtUpAreaPerFloorSqft
           : UNIT_TYPE_DEFAULT_AREA[unitType],
+      slabAreaPerFloorSqft:
+        unitType === 'Custom'
+          ? prev.slabAreaPerFloorSqft
+          : UNIT_TYPE_DEFAULT_SLAB_AREA[unitType],
     }));
     setShowResults(false);
   }
 
   const results = useMemo(() => calculateEstimate(inputs), [inputs]);
-  const autoSlab = getAutoSlabAreaSqft(inputs);
+  const totalSlab = getTotalSlabAreaSqft(inputs);
   const autoWall = getAutoWallAreaSqft(inputs);
   const exteriorWall = getExteriorWallAreaSqft(inputs);
   const interiorWall = getInteriorWallAreaSqft(inputs);
@@ -179,7 +239,7 @@ export function EstimateCalculator() {
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
           Dual bar sizes, staircase, foundation/flooring bricks, mortar & plaster cement included.
-          Stirrup spacing auto {STANDARD_BAR_SPACING_MM} mm · Lap/development {LAP_LENGTH_MULTIPLIER}×d.
+          Stirrups (Ring) spacing auto {STANDARD_BAR_SPACING_MM} mm · Lap/development {LAP_LENGTH_MULTIPLIER}×d.
         </p>
       </div>
 
@@ -241,11 +301,21 @@ export function EstimateCalculator() {
                   </Select>
                 </div>
                 <NumField
-                  label="Built-up / slab area per floor"
+                  label="Built-up area per floor"
                   value={inputs.builtUpAreaPerFloorSqft}
-                  min={1}
+                  min={0}
                   suffix="sqft"
                   onChange={(n) => update('builtUpAreaPerFloorSqft', Math.max(0, n))}
+                  labelExtra={<BuiltUpInfoButton />}
+                  hint="For outer walls, flooring bed & footprint. Not the same as slab area."
+                />
+                <NumField
+                  label="Slab area per floor"
+                  value={inputs.slabAreaPerFloorSqft}
+                  min={0}
+                  suffix="sqft"
+                  onChange={(n) => update('slabAreaPerFloorSqft', Math.max(0, n))}
+                  hint="RCC floor/roof slab plan area. Used for slab concrete, slab steel & ceiling plaster."
                 />
                 <NumField
                   label="Foundation depth (below ground level)"
@@ -290,7 +360,7 @@ export function EstimateCalculator() {
             <>
               <div className="rounded-lg border border-border/70 bg-secondary/30 px-3 py-2 text-[11px] text-muted-foreground">
                 Column height locked from Step 1: <span className="font-semibold text-foreground">{totalColumnHeightFt.toFixed(1)} ft</span>
-                . Stirrups auto @ {STANDARD_BAR_SPACING_MM} mm. Lap/development {LAP_LENGTH_MULTIPLIER}×d added to cutting lengths.
+                . Stirrups (Ring) auto @ {STANDARD_BAR_SPACING_MM} mm. Lap/development {LAP_LENGTH_MULTIPLIER}×d added to cutting lengths.
               </div>
 
               <div className="space-y-4">
@@ -315,7 +385,7 @@ export function EstimateCalculator() {
                     onChange={(n) => update('columnDepthMm', Math.max(0, n))}
                   />
                   <DiaSelect
-                    label="Stirrup diameter"
+                    label="Stirrups (Ring) diameter"
                     value={inputs.columnStirrupDiaMm}
                     options={STIRRUP_DIAMETERS}
                     onChange={(d) => update('columnStirrupDiaMm', d)}
@@ -385,7 +455,7 @@ export function EstimateCalculator() {
                     onChange={(n) => update('beamDepthMm', Math.max(0, n))}
                   />
                   <DiaSelect
-                    label="Stirrup diameter"
+                    label="Stirrups (Ring) diameter"
                     value={inputs.beamStirrupDiaMm}
                     options={STIRRUP_DIAMETERS}
                     onChange={(d) => update('beamStirrupDiaMm', d)}
@@ -493,22 +563,24 @@ export function EstimateCalculator() {
               <div className="border-t border-border pt-5 space-y-4">
                 <h2 className="text-base font-semibold text-foreground">Slab & staircase</h2>
                 <p className="text-[11px] text-muted-foreground">
-                  Bar spacing auto {STANDARD_BAR_SPACING_MM} mm. Staircase (~120 sqft/floor @ 150 mm) auto-included in concrete & steel.
-                  Flooring brick bed auto-included under built-up area.
+                  Slab area from Step 1: <span className="font-semibold text-foreground">{inputs.slabAreaPerFloorSqft} sqft/floor</span>
+                  {' '}→ total {totalSlab.toFixed(0)} sqft. Steel by bar formula @ {STANDARD_BAR_SPACING_MM} mm c/c (+10% crank allowance).
+                  Staircase (~120 sqft/floor @ 150 mm) auto-included. Flooring bricks use built-up area.
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <NumField
+                    label="Slab area per floor"
+                    value={inputs.slabAreaPerFloorSqft}
+                    min={0}
+                    suffix="sqft"
+                    onChange={(n) => update('slabAreaPerFloorSqft', Math.max(0, n))}
+                    hint="Separate from built-up — edit if slab plan differs (balcony, court, etc.)."
+                  />
                   <NumField
                     label="Slab thickness"
                     value={inputs.slabThicknessMm}
                     suffix="mm"
                     onChange={(n) => update('slabThicknessMm', Math.max(0, n))}
-                  />
-                  <NumField
-                    label="Slab area (override)"
-                    value={inputs.slabAreaSqftOverride ?? autoSlab}
-                    suffix="sqft"
-                    onChange={(n) => update('slabAreaSqftOverride', Math.max(0, n))}
-                    hint={`Auto: ${autoSlab.toFixed(0)} sqft`}
                   />
                   <DiaSelect
                     label="Main bar diameter"
@@ -626,7 +698,7 @@ export function EstimateCalculator() {
                   <div className="rounded-xl border border-border bg-secondary/40 divide-y divide-border overflow-hidden">
                     <ResultRow label="Cement" value={`${results.cementBags} bags`} />
                     <div className="px-4 py-2.5 text-[11px] text-muted-foreground">
-                      RCC {results.meta.cementBagsRcc} + brick mortar {results.meta.cementBagsBrickMortar} + plaster{' '}
+                      RCC {results.meta.cementBagsRcc} + brick mortar {results.meta.cementBagsBrickMortar} + plaster (walls + ceiling){' '}
                       {results.meta.cementBagsPlaster} (before wastage)
                     </div>
                     <div className="px-4 py-3 space-y-1.5">
