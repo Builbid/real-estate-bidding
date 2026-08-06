@@ -44,49 +44,40 @@ export function ServiceCategoryBar({ isAuthenticated, role }: ServiceCategoryBar
 
   return (
     <>
-      <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-br from-card via-card to-emerald-500/[0.06] p-5 sm:p-8 shadow-sm">
-        {/* Soft atmosphere */}
-        <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-emerald-500/10 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-20 -left-10 h-48 w-48 rounded-full bg-amber-500/8 blur-3xl" />
-        <div
-          className="pointer-events-none absolute inset-0 opacity-[0.35]"
-          style={{
-            backgroundImage:
-              'radial-gradient(circle at 1px 1px, hsl(var(--border) / 0.7) 1px, transparent 0)',
-            backgroundSize: '22px 22px',
-          }}
-        />
+      <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-br from-card via-card to-emerald-500/[0.06] px-3 py-3.5 sm:px-5 sm:py-4 shadow-sm">
+        <div className="pointer-events-none absolute -right-12 -top-14 h-36 w-36 rounded-full bg-emerald-500/10 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-14 -left-8 h-32 w-32 rounded-full bg-amber-500/8 blur-3xl" />
 
         <div className="relative">
-          <p className="text-center text-sm sm:text-base text-muted-foreground leading-relaxed max-w-2xl mx-auto">
-            Post your project and receive competitive ₹/sqft bids from verified professionals across Assam.
+          <p className="text-center text-xs sm:text-sm text-muted-foreground leading-snug max-w-2xl mx-auto">
+            Post your project and receive competitive ₹/sqft bids from verified professionals.
           </p>
-          <h2 className="mt-2 text-center text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+          <h2 className="mt-1 text-center text-lg sm:text-xl font-bold tracking-tight text-foreground">
             Hire Services
           </h2>
-          <div className="mx-auto mt-3 h-1 w-14 rounded-full bg-gradient-to-r from-emerald-500 to-teal-400" />
+          <div className="mx-auto mt-1.5 h-0.5 w-10 rounded-full bg-gradient-to-r from-emerald-500 to-teal-400" />
 
-          <div className="mt-7 grid grid-cols-4 gap-3 sm:grid-cols-4 md:grid-cols-8 sm:gap-4">
+          <div className="mt-3.5 grid grid-cols-4 gap-2 sm:grid-cols-4 md:grid-cols-8 sm:gap-3">
             {ALL_SERVICE_CATEGORIES.map((cat, index) => (
               <button
                 key={cat.value}
                 type="button"
                 onClick={() => handleSelect(cat.value)}
-                className="group flex flex-col items-center gap-2 text-center"
+                className="group flex flex-col items-center gap-1 text-center"
               >
                 <span
                   className={cn(
-                    'relative flex h-[4.5rem] w-full max-w-[5.25rem] aspect-square items-center justify-center rounded-2xl border bg-gradient-to-br shadow-sm transition-all duration-300',
-                    'group-hover:-translate-y-1 group-hover:shadow-lg group-active:scale-[0.97]',
+                    'relative flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-xl border bg-gradient-to-br shadow-sm transition-all duration-200',
+                    'group-hover:-translate-y-0.5 group-hover:shadow-md group-active:scale-[0.97]',
                     TILE_TONES[index % TILE_TONES.length],
                   )}
                 >
-                  <span className="absolute inset-0 rounded-2xl bg-card/40 dark:bg-card/20" />
-                  <span className="relative text-3xl sm:text-[2rem] leading-none drop-shadow-sm transition-transform duration-300 group-hover:scale-110">
+                  <span className="absolute inset-0 rounded-xl bg-card/40 dark:bg-card/20" />
+                  <span className="relative text-xl sm:text-2xl leading-none drop-shadow-sm transition-transform duration-200 group-hover:scale-110">
                     {cat.emoji}
                   </span>
                 </span>
-                <span className="text-[11px] sm:text-xs font-semibold leading-tight text-foreground/90 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors line-clamp-2 px-0.5">
+                <span className="text-[10px] sm:text-[11px] font-semibold leading-tight text-foreground/90 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors line-clamp-2 px-0.5">
                   {cat.label}
                 </span>
               </button>

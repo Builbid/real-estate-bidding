@@ -139,7 +139,7 @@ export function HomePageContent({
       </section>
 
       <section className="border-b border-border/60 bg-gradient-to-b from-background via-emerald-500/[0.03] to-background">
-        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10">
+        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 sm:py-5">
           <ServiceCategoryBar isAuthenticated={isAuthenticated} role={role} />
         </div>
       </section>
