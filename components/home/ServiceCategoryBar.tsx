@@ -48,11 +48,10 @@ export function ServiceCategoryBar({ isAuthenticated, role }: ServiceCategoryBar
         <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-emerald-500/10 blur-2xl" />
 
         <div className="relative">
-          <div className="flex flex-col items-center gap-0.5 sm:flex-row sm:justify-center sm:gap-2">
+          <div className="flex flex-col items-center gap-0.5">
             <p className="text-center text-[11px] sm:text-xs text-muted-foreground leading-tight">
               Post your project and receive competitive ₹/sqft bids from verified professionals.
             </p>
-            <span className="hidden sm:inline text-muted-foreground/40">·</span>
             <h2 className="text-center text-sm sm:text-base font-bold tracking-tight text-foreground">
               Hire Services
             </h2>

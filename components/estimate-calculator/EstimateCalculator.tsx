@@ -237,10 +237,6 @@ export function EstimateCalculator() {
           <Calculator className="h-6 w-6 text-emerald-600" />
           Material Estimate Calculator
         </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Dual bar sizes, staircase, foundation/flooring bricks, mortar & plaster cement included.
-          Stirrups (Ring) spacing auto {STANDARD_BAR_SPACING_MM} mm · Lap/development {LAP_LENGTH_MULTIPLIER}×d.
-        </p>
       </div>
 
       <div className="flex items-center gap-1 overflow-x-auto pb-1">
