@@ -28,6 +28,11 @@ export function downloadEstimatePdf(inputs: EstimateInputs, results: EstimateRes
   doc.setFont('helvetica', 'normal');
 
   line(`Cement: ${results.cementBags} bags`);
+  line(
+    `  (RCC ${results.meta.cementBagsRcc} + brick mortar ${results.meta.cementBagsBrickMortar} + plaster ${results.meta.cementBagsPlaster} before wastage)`,
+    9,
+    6,
+  );
   line('Steel (by diameter):');
   for (const row of results.steelByDiameter) {
     line(`  ${row.diameterMm}mm: ${row.quintals} quintals`, 10, 6);
@@ -53,6 +58,11 @@ export function downloadEstimatePdf(inputs: EstimateInputs, results: EstimateRes
   );
   line(
     `Mix: ${MIX_RATIOS[inputs.mixGrade].label} · Columns: ${inputs.columnCount} · Beams: ${inputs.beamCount}`,
+    9,
+    6,
+  );
+  line(
+    `Walls: exterior ${results.meta.exteriorWallAreaSqft} sqft + interior ${results.meta.interiorWallAreaSqft} sqft (${inputs.unitType})`,
     9,
     6,
   );

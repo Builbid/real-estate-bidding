@@ -15,12 +15,16 @@ import {
   calculateEstimate,
   getAutoSlabAreaSqft,
   getAutoWallAreaSqft,
+  getExteriorWallAreaSqft,
+  getInteriorWallAreaSqft,
+  getInteriorWallLengthFtPerFloor,
   getTotalColumnHeightFt,
 } from '@/lib/estimate-calculator/calculate';
 import { downloadEstimatePdf } from '@/lib/estimate-calculator/pdf';
 import {
   BAR_DIAMETERS,
   DEFAULT_INPUTS,
+  INTERIOR_WALL_LENGTH_FT_PER_FLOOR,
   MIX_RATIOS,
   STIRRUP_DIAMETERS,
   UNIT_TYPE_DEFAULT_AREA,
@@ -140,6 +144,12 @@ export function EstimateCalculator() {
   const results = useMemo(() => calculateEstimate(inputs), [inputs]);
   const autoSlab = getAutoSlabAreaSqft(inputs);
   const autoWall = getAutoWallAreaSqft(inputs);
+  const exteriorWall = getExteriorWallAreaSqft(inputs);
+  const interiorWall = getInteriorWallAreaSqft(inputs);
+  const interiorLengthPerFloor = getInteriorWallLengthFtPerFloor(
+    inputs.unitType,
+    inputs.builtUpAreaPerFloorSqft,
+  );
   const totalColumnHeightFt = getTotalColumnHeightFt(inputs);
 
   function goResults() {
@@ -518,11 +528,38 @@ export function EstimateCalculator() {
               </div>
 
               <div className="border-t border-border pt-5 space-y-4">
-                <h2 className="text-base font-semibold text-foreground">Walls (bricks)</h2>
+                <h2 className="text-base font-semibold text-foreground">Walls (bricks + plaster)</h2>
+                <div className="rounded-lg border border-border/70 bg-secondary/30 px-3 py-2.5 text-[11px] text-muted-foreground space-y-1 leading-snug">
+                  <p>
+                    <span className="font-semibold text-foreground">Exterior walls: </span>
+                    from built-up footprint perimeter × height × floors × 0.8 (openings), thickness below.
+                  </p>
+                  <p>
+                    <span className="font-semibold text-foreground">Interior room walls: </span>
+                    {inputs.unitType === 'Custom' ? (
+                      <>Custom — ≈ {interiorLengthPerFloor.toFixed(0)} ft partition length / floor (from built-up).</>
+                    ) : (
+                      <>
+                        {inputs.unitType} standard ≈{' '}
+                        {INTERIOR_WALL_LENGTH_FT_PER_FLOOR[inputs.unitType]} ft partition length / floor
+                        @ 4.5&quot; half-brick
+                        {inputs.unitType === '1BHK' && ' (living + bed + kitchen + bath)'}
+                        {inputs.unitType === '2BHK' && ' (living + 2 beds + kitchen + baths)'}
+                        {inputs.unitType === '3BHK' && ' (living + 3 beds + kitchen + baths)'}
+                        {inputs.unitType === '4BHK' && ' (living + 4 beds + kitchen + baths)'}
+                      </>
+                    )}
+                  </p>
+                  <p>
+                    Auto wall area ≈ exterior {exteriorWall.toFixed(0)} + interior {interiorWall.toFixed(0)} ={' '}
+                    <span className="font-semibold text-foreground">{autoWall.toFixed(0)} sqft</span> (one face).
+                    Cement also includes brick mortar (1:6) and both-side plaster 12 mm (1:4).
+                  </p>
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="flex flex-col gap-1.5 w-full">
                     <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      Wall thickness
+                      Exterior wall thickness
                     </label>
                     <Select
                       value={inputs.wallThickness}
@@ -536,11 +573,11 @@ export function EstimateCalculator() {
                     </Select>
                   </div>
                   <NumField
-                    label="Total wall area"
+                    label="Total wall area (override)"
                     value={inputs.wallAreaSqftOverride ?? autoWall}
                     suffix="sqft"
                     onChange={(n) => update('wallAreaSqftOverride', Math.max(0, n))}
-                    hint="Auto-estimated from square footprint × height × floors × 0.8 (openings). Enter manually for better accuracy if known."
+                    hint="Leave as auto for BHK interior standards. Manual entry uses exterior thickness for the whole area."
                   />
                 </div>
               </div>
@@ -615,6 +652,13 @@ export function EstimateCalculator() {
 
                   <div className="rounded-xl border border-border bg-secondary/40 divide-y divide-border overflow-hidden">
                     <ResultRow label="Cement" value={`${results.cementBags} bags`} />
+                    <div className="px-4 py-2.5 text-[11px] text-muted-foreground space-y-0.5">
+                      <p>
+                        Includes RCC {results.meta.cementBagsRcc} + brick mortar{' '}
+                        {results.meta.cementBagsBrickMortar} + plaster{' '}
+                        {results.meta.cementBagsPlaster} bags (before wastage)
+                      </p>
+                    </div>
                     <div className="px-4 py-3 space-y-1.5">
                       <p className="text-xs text-muted-foreground">Steel (by diameter)</p>
                       {results.steelByDiameter.length === 0 ? (
@@ -646,12 +690,12 @@ export function EstimateCalculator() {
                     Includes {results.wastagePercent}% site wastage buffer
                   </p>
                   <p className="text-[11px] text-muted-foreground leading-relaxed">
-                    Door/window openings are approximated via the 0.8 factor in wall area if
-                    auto-estimated; if you entered wall area manually, deduct openings yourself
-                    before entering for best accuracy.
+                    Walls: exterior {results.meta.exteriorWallAreaSqft} sqft
                     {results.meta.wallAreaAutoEstimated && (
-                      <> Auto wall area used: {results.meta.wallAreaSqft} sqft.</>
+                      <> + interior ({inputs.unitType}) {results.meta.interiorWallAreaSqft} sqft</>
                     )}
+                    . Sand includes RCC + brick mortar (1:6) + plaster (1:4). Door/window openings
+                    approximated via exterior 0.8 / interior 0.9 factors when auto-estimated.
                   </p>
 
                   <div className="rounded-lg border border-border/60 bg-card/50 px-3 py-2 text-[11px] text-muted-foreground space-y-0.5">

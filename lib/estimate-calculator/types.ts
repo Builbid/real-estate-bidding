@@ -74,6 +74,19 @@ export const UNIT_TYPE_DEFAULT_AREA: Record<Exclude<UnitType, 'Custom'>, number>
   '4BHK': 1800,
 };
 
+/**
+ * Standard interior partition running length (ft) PER FLOOR for typical Indian
+ * residential layouts (room dividers between living / bedrooms / kitchen / baths).
+ * Used with floor height × floors to get interior wall area. Custom uses a
+ * built-up–based estimate instead.
+ */
+export const INTERIOR_WALL_LENGTH_FT_PER_FLOOR: Record<Exclude<UnitType, 'Custom'>, number> = {
+  '1BHK': 30,  // living + 1 bed + kitchen + bath partitions
+  '2BHK': 50,  // living + 2 beds + kitchen + baths
+  '3BHK': 70,  // living + 3 beds + kitchen + baths
+  '4BHK': 95,  // living + 4 beds + kitchen + baths / utility
+};
+
 export const BAR_DIAMETERS: BarDiameter[] = [8, 10, 12, 16, 20, 25, 32];
 export const STIRRUP_DIAMETERS: BarDiameter[] = [6, 8];
 
@@ -143,6 +156,7 @@ export interface EstimateResults {
     slab: number;
     total: number;
   };
+  /** Total cement bags (RCC + brick mortar + plaster). */
   cementBags: number;
   sandCum: number;
   aggregateCum: number;
@@ -150,13 +164,18 @@ export interface EstimateResults {
   steelByDiameter: SteelByDiameter[];
   totalSteelQuintals: number;
   wastagePercent: WastagePercent;
-  /** Auto values used when overrides were null (for UI hints). */
   meta: {
     slabAreaSqft: number;
+    /** Exterior + interior wall face area (sqft), one face. */
     wallAreaSqft: number;
+    exteriorWallAreaSqft: number;
+    interiorWallAreaSqft: number;
     wallAreaAutoEstimated: boolean;
     footingCount: number;
-    /** Total column height used for steel/concrete (ft). */
     totalColumnHeightFt: number;
+    /** Cement bags breakdown before wastage rounding (informative). */
+    cementBagsRcc: number;
+    cementBagsBrickMortar: number;
+    cementBagsPlaster: number;
   };
 }

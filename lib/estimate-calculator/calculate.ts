@@ -7,10 +7,12 @@
 // ============================================================
 
 import {
+  INTERIOR_WALL_LENGTH_FT_PER_FLOOR,
   MIX_RATIOS,
   type EstimateInputs,
   type EstimateResults,
   type SteelByDiameter,
+  type UnitType,
 } from './types';
 
 /** 1 sq ft = 0.092903 sq m */
@@ -25,14 +27,38 @@ const FT_TO_M = 0.3048;
  */
 const DRY_VOLUME_FACTOR = 1.54;
 
+/**
+ * Mortar / plaster dry-volume factor (≈1.33). Lower than concrete's 1.54
+ * because mortar has less coarse aggregate voids — common Indian QTO practice.
+ */
+const MORTAR_DRY_VOLUME_FACTOR = 1.33;
+
 /** Volume of one 50 kg cement bag ≈ 0.0347 cum. */
 const CEMENT_BAG_CUM = 0.0347;
 
 /**
  * Modular brick with 10 mm mortar joint occupies ≈ 0.002 cum.
- * Using this already includes mortar — do NOT subtract mortar again.
+ * Using this already includes joint size in the brick count —
+ * separate cement for brickwork mortar is still added below for bag estimate.
  */
 const BRICK_WITH_MORTAR_CUM = 0.002;
+
+/**
+ * Wet mortar volume as a fraction of brickwork volume (≈25–30% in Indian
+ * estimation manuals). Used to size cement/sand for brick masonry (1:6).
+ */
+const BRICK_MORTAR_WET_FRACTION = 0.30;
+
+/** Brick masonry mortar mix cement:sand = 1:6 (common for residential walls). */
+const BRICK_MORTAR_CEMENT_PARTS = 1;
+const BRICK_MORTAR_SAND_PARTS = 6;
+
+/** Wall plaster thickness 12 mm — typical single-coat internal/external plaster. */
+const PLASTER_THICKNESS_M = 0.012;
+
+/** Plaster mix cement:sand = 1:4 (common wall plaster). */
+const PLASTER_CEMENT_PARTS = 1;
+const PLASTER_SAND_PARTS = 4;
 
 /**
  * Thumb-rule slab steel density ≈ 100 kg per cum of slab concrete.
@@ -41,11 +67,14 @@ const BRICK_WITH_MORTAR_CUM = 0.002;
  */
 const SLAB_STEEL_KG_PER_CUM = 100;
 
-/** Wall thickness conversions (inches → metres). */
+/** Wall thickness conversions (inches → metres). Exterior uses user choice; interiors use 4.5". */
 const WALL_THICKNESS_M: Record<'4.5' | '9', number> = {
   '4.5': 0.1143,
   '9': 0.2286,
 };
+
+/** Interior partitions are assumed half-brick (4.5") in standard BHK layouts. */
+const INTERIOR_WALL_THICKNESS_M = WALL_THICKNESS_M['4.5'];
 
 /**
  * Standard bar-weight formula used across India:
@@ -69,24 +98,57 @@ function applyWastage(value: number, wastagePercent: number): number {
   return value * (1 + wastagePercent / 100);
 }
 
+function bagsFromCementVolume(cum: number): number {
+  if (cum <= 0) return 0;
+  return Math.ceil(cum / CEMENT_BAG_CUM);
+}
+
 /** Auto slab area = built-up per floor × number of floors. */
 export function getAutoSlabAreaSqft(inputs: EstimateInputs): number {
   return Math.max(0, inputs.builtUpAreaPerFloorSqft) * Math.max(0, inputs.floors);
 }
 
 /**
- * Auto wall area (sq ft):
- *   Assume roughly square footprint from built-up area per floor.
- *   side = √(area), perimeter = 4 × side
- *   wall area = perimeter × floor-to-floor height × floors × 0.8
- * The 0.8 factor deducts typical door/window openings.
+ * Exterior wall face area (sqft) — one face:
+ *   square footprint from built-up → perimeter × floor height × floors × 0.8
+ * The 0.8 factor deducts typical door/window openings on outer walls.
  */
-export function getAutoWallAreaSqft(inputs: EstimateInputs): number {
+export function getExteriorWallAreaSqft(inputs: EstimateInputs): number {
   const area = Math.max(0, inputs.builtUpAreaPerFloorSqft);
   if (area <= 0 || inputs.floors <= 0 || inputs.floorToFloorHeightFt <= 0) return 0;
   const sideFt = Math.sqrt(area);
   const perimeterFt = 4 * sideFt;
   return perimeterFt * inputs.floorToFloorHeightFt * inputs.floors * 0.8;
+}
+
+/**
+ * Standard interior partition running length (ft) for one floor from BHK type.
+ * Custom: ≈ 0.045 × built-up (sqft) as a rough partition-length proxy.
+ */
+export function getInteriorWallLengthFtPerFloor(unitType: UnitType, builtUpSqft: number): number {
+  if (unitType !== 'Custom') {
+    return INTERIOR_WALL_LENGTH_FT_PER_FLOOR[unitType];
+  }
+  return Math.max(0, builtUpSqft) * 0.045;
+}
+
+/**
+ * Interior room-wall face area (sqft) — one face:
+ *   standard BHK partition length × floor height × floors × 0.9
+ * (0.9 = light opening deduction for doors in partitions).
+ */
+export function getInteriorWallAreaSqft(inputs: EstimateInputs): number {
+  if (inputs.floors <= 0 || inputs.floorToFloorHeightFt <= 0) return 0;
+  const lengthFt = getInteriorWallLengthFtPerFloor(
+    inputs.unitType,
+    inputs.builtUpAreaPerFloorSqft,
+  );
+  return lengthFt * inputs.floorToFloorHeightFt * inputs.floors * 0.9;
+}
+
+/** Total one-face wall area = exterior + interior (auto path). */
+export function getAutoWallAreaSqft(inputs: EstimateInputs): number {
+  return getExteriorWallAreaSqft(inputs) + getInteriorWallAreaSqft(inputs);
 }
 
 /**
@@ -115,6 +177,21 @@ export function getTotalColumnHeightFt(inputs: EstimateInputs): number {
   );
 }
 
+/** Cement volume (cum) and sand volume (cum) from wet mortar/plaster volume + mix parts. */
+function mortarCementAndSand(
+  wetVolumeCum: number,
+  cementParts: number,
+  sandParts: number,
+): { cementCum: number; sandCum: number } {
+  if (wetVolumeCum <= 0) return { cementCum: 0, sandCum: 0 };
+  const dry = wetVolumeCum * MORTAR_DRY_VOLUME_FACTOR;
+  const parts = cementParts + sandParts;
+  return {
+    cementCum: dry * (cementParts / parts),
+    sandCum: dry * (sandParts / parts),
+  };
+}
+
 export function calculateEstimate(inputs: EstimateInputs): EstimateResults {
   const floors = Math.max(0, inputs.floors);
   const columns = Math.max(0, Math.floor(inputs.columnCount));
@@ -131,8 +208,17 @@ export function calculateEstimate(inputs: EstimateInputs): EstimateResults {
 
   const wallAreaAutoEstimated =
     inputs.wallAreaSqftOverride == null || inputs.wallAreaSqftOverride <= 0;
+
+  const exteriorWallAreaSqft = wallAreaAutoEstimated
+    ? getExteriorWallAreaSqft(inputs)
+    : 0;
+  const interiorWallAreaSqft = wallAreaAutoEstimated
+    ? getInteriorWallAreaSqft(inputs)
+    : 0;
+
+  // Manual override: treat entire entered area as exterior thickness (user knows total).
   const wallAreaSqft = wallAreaAutoEstimated
-    ? getAutoWallAreaSqft(inputs)
+    ? exteriorWallAreaSqft + interiorWallAreaSqft
     : inputs.wallAreaSqftOverride!;
 
   // ── Concrete volumes (cum) ──────────────────────────────────
@@ -164,17 +250,15 @@ export function calculateEstimate(inputs: EstimateInputs): EstimateResults {
   const totalConcrete =
     columnConcrete + beamConcrete + footConcrete + slabConcrete;
 
-  // ── Cement / sand / aggregate (one mix for entire structure) ─
-  // Dry volume = wet × 1.54; parts from selected grade (M15/M20/M25).
+  // ── Cement / sand / aggregate from RCC (one mix for entire structure) ─
   const ratio = MIX_RATIOS[inputs.mixGrade];
   const partsSum = ratio.cement + ratio.sand + ratio.aggregate;
   const dryVolume = totalConcrete * DRY_VOLUME_FACTOR;
 
-  const cementVolumeCum = dryVolume * (ratio.cement / partsSum);
-  // Round UP cement bags — you cannot buy a fraction of a bag on site.
-  const cementBagsRaw = Math.ceil(cementVolumeCum / CEMENT_BAG_CUM);
-  const sandCumRaw = dryVolume * (ratio.sand / partsSum);
+  const rccCementCum = dryVolume * (ratio.cement / partsSum);
+  const rccSandCum = dryVolume * (ratio.sand / partsSum);
   const aggregateCumRaw = dryVolume * (ratio.aggregate / partsSum);
+  const cementBagsRcc = bagsFromCementVolume(rccCementCum);
 
   // ── Steel (kg), then group by diameter ───────────────────────
   const steelKg = new Map<number, number>();
@@ -260,14 +344,44 @@ export function calculateEstimate(inputs: EstimateInputs): EstimateResults {
 
   const totalSteelKg = steelByDiameter.reduce((s, r) => s + r.kg, 0);
 
-  // ── Bricks ──────────────────────────────────────────────────
-  // Brickwork volume = wall area (sqm) × thickness (m)
-  // Qty = volume / 0.002 (brick+mortar unit volume)
-  const wallAreaSqm = wallAreaSqft * SQFT_TO_SQM;
-  const wallThickM = WALL_THICKNESS_M[inputs.wallThickness];
-  const brickworkCum = wallAreaSqm * wallThickM;
+  // ── Bricks + brick mortar + plaster ─────────────────────────
+  // Exterior brickwork: user-selected thickness (default 9").
+  // Interior brickwork: standard BHK partition length @ 4.5" half-brick.
+  // Manual wall-area override: entire area uses exterior thickness.
+  const exteriorThickM = WALL_THICKNESS_M[inputs.wallThickness];
+  let brickworkCum = 0;
+  if (wallAreaAutoEstimated) {
+    brickworkCum =
+      exteriorWallAreaSqft * SQFT_TO_SQM * exteriorThickM +
+      interiorWallAreaSqft * SQFT_TO_SQM * INTERIOR_WALL_THICKNESS_M;
+  } else {
+    brickworkCum = wallAreaSqft * SQFT_TO_SQM * exteriorThickM;
+  }
+
   const bricksRaw = Math.ceil(brickworkCum / BRICK_WITH_MORTAR_CUM);
   const bricks = Math.ceil(applyWastage(bricksRaw, wastage));
+
+  // Brick masonry mortar (1:6) — cement + sand for joints (not previously counted).
+  const brickMortarWet = brickworkCum * BRICK_MORTAR_WET_FRACTION;
+  const brickMortar = mortarCementAndSand(
+    brickMortarWet,
+    BRICK_MORTAR_CEMENT_PARTS,
+    BRICK_MORTAR_SAND_PARTS,
+  );
+  const cementBagsBrickMortar = bagsFromCementVolume(brickMortar.cementCum);
+
+  // Plaster both faces of all walls: 2 × one-face area × 12 mm, mix 1:4.
+  const plasterAreaSqm = wallAreaSqft * SQFT_TO_SQM * 2;
+  const plasterWetCum = plasterAreaSqm * PLASTER_THICKNESS_M;
+  const plaster = mortarCementAndSand(
+    plasterWetCum,
+    PLASTER_CEMENT_PARTS,
+    PLASTER_SAND_PARTS,
+  );
+  const cementBagsPlaster = bagsFromCementVolume(plaster.cementCum);
+
+  const cementBagsRaw = cementBagsRcc + cementBagsBrickMortar + cementBagsPlaster;
+  const sandCumRaw = rccSandCum + brickMortar.sandCum + plaster.sandCum;
 
   return {
     concreteVolumeCum: {
@@ -287,9 +401,16 @@ export function calculateEstimate(inputs: EstimateInputs): EstimateResults {
     meta: {
       slabAreaSqft: round1(slabAreaSqft),
       wallAreaSqft: round1(wallAreaSqft),
+      exteriorWallAreaSqft: round1(
+        wallAreaAutoEstimated ? exteriorWallAreaSqft : wallAreaSqft,
+      ),
+      interiorWallAreaSqft: round1(wallAreaAutoEstimated ? interiorWallAreaSqft : 0),
       wallAreaAutoEstimated,
       footingCount,
       totalColumnHeightFt: round2(getTotalColumnHeightFt(inputs)),
+      cementBagsRcc,
+      cementBagsBrickMortar,
+      cementBagsPlaster,
     },
   };
 }
