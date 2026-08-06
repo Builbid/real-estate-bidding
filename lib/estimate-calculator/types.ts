@@ -156,5 +156,7 @@ export interface EstimateResults {
     wallAreaSqft: number;
     wallAreaAutoEstimated: boolean;
     footingCount: number;
+    /** Total column height used for steel/concrete (ft). */
+    totalColumnHeightFt: number;
   };
 }

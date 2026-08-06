@@ -15,6 +15,7 @@ import {
   calculateEstimate,
   getAutoSlabAreaSqft,
   getAutoWallAreaSqft,
+  getTotalColumnHeightFt,
 } from '@/lib/estimate-calculator/calculate';
 import { downloadEstimatePdf } from '@/lib/estimate-calculator/pdf';
 import {
@@ -139,6 +140,7 @@ export function EstimateCalculator() {
   const results = useMemo(() => calculateEstimate(inputs), [inputs]);
   const autoSlab = getAutoSlabAreaSqft(inputs);
   const autoWall = getAutoWallAreaSqft(inputs);
+  const totalColumnHeightFt = getTotalColumnHeightFt(inputs);
 
   function goResults() {
     setShowResults(true);
@@ -238,11 +240,12 @@ export function EstimateCalculator() {
                   }
                 />
                 <NumField
-                  label="Foundation depth"
+                  label="Foundation depth (below ground level)"
                   value={inputs.foundationDepthFt}
                   step={0.5}
                   suffix="ft"
                   onChange={(n) => update('foundationDepthFt', Math.max(0, n))}
+                  hint="Included in total column height — deeper foundation → taller columns → more steel & concrete."
                 />
                 <NumField
                   label="Plinth height"
@@ -259,6 +262,16 @@ export function EstimateCalculator() {
                   onChange={(n) => update('floorToFloorHeightFt', Math.max(0, n))}
                 />
               </div>
+
+              <div className="rounded-lg border border-emerald-500/25 bg-emerald-500/5 px-3 py-2.5 text-xs text-muted-foreground">
+                <span className="font-semibold text-foreground">Total column height: </span>
+                {totalColumnHeightFt.toFixed(1)} ft
+                <span className="text-muted-foreground">
+                  {' '}(= foundation {inputs.foundationDepthFt} + plinth {inputs.plinthHeightFt} +{' '}
+                  {inputs.floorToFloorHeightFt} × {inputs.floors} floors)
+                </span>
+              </div>
+
               <Button size="lg" className="w-full" onClick={() => setStep(2)}>
                 Continue <ArrowRight className="w-4 h-4" />
               </Button>
@@ -271,6 +284,26 @@ export function EstimateCalculator() {
               <div className="space-y-4">
                 <h2 className="text-base font-semibold text-foreground">Columns</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <NumField
+                    label="Foundation depth (below ground level)"
+                    value={inputs.foundationDepthFt}
+                    step={0.5}
+                    suffix="ft"
+                    onChange={(n) => update('foundationDepthFt', Math.max(0, n))}
+                    hint="Adjust here to refine column steel & concrete. Same field as Step 1."
+                  />
+                  <div className="rounded-xl border border-border bg-secondary/40 px-3 py-3 flex flex-col justify-center">
+                    <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                      Total column height (auto)
+                    </p>
+                    <p className="text-lg font-bold text-foreground tabular-nums mt-0.5">
+                      {totalColumnHeightFt.toFixed(1)}{' '}
+                      <span className="text-sm font-semibold text-muted-foreground">ft</span>
+                    </p>
+                    <p className="text-[11px] text-muted-foreground mt-1 leading-snug">
+                      Foundation + plinth + floor height × floors — used for column concrete & steel.
+                    </p>
+                  </div>
                   <NumField
                     label="Number of columns"
                     value={inputs.columnCount}
@@ -622,6 +655,11 @@ export function EstimateCalculator() {
                   </p>
 
                   <div className="rounded-lg border border-border/60 bg-card/50 px-3 py-2 text-[11px] text-muted-foreground space-y-0.5">
+                    <p>
+                      Column height used: {results.meta.totalColumnHeightFt} ft
+                      (foundation {inputs.foundationDepthFt} + plinth {inputs.plinthHeightFt} +{' '}
+                      {inputs.floorToFloorHeightFt} × {inputs.floors} floors)
+                    </p>
                     <p>Concrete volume (raw): {results.concreteVolumeCum.total} cum</p>
                     <p>
                       Columns {results.concreteVolumeCum.columns} · Beams {results.concreteVolumeCum.beams} ·

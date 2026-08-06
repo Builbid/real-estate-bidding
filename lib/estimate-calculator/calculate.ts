@@ -101,19 +101,28 @@ export function getFootingCount(inputs: EstimateInputs): number {
   return cols;
 }
 
+/**
+ * Total vertical column length used for concrete + steel (ft).
+ * = foundation depth (below GL to footing top region) + plinth + (floor-to-floor × floors).
+ * Deeper foundations increase column height (and steel/concrete) proportionally.
+ */
+export function getTotalColumnHeightFt(inputs: EstimateInputs): number {
+  const floors = Math.max(0, inputs.floors);
+  return (
+    Math.max(0, inputs.foundationDepthFt) +
+    Math.max(0, inputs.plinthHeightFt) +
+    Math.max(0, inputs.floorToFloorHeightFt) * floors
+  );
+}
+
 export function calculateEstimate(inputs: EstimateInputs): EstimateResults {
   const floors = Math.max(0, inputs.floors);
   const columns = Math.max(0, Math.floor(inputs.columnCount));
   const beams = Math.max(0, Math.floor(inputs.beamCount));
   const footingCount = getFootingCount(inputs);
 
-  const foundationM = inputs.foundationDepthFt * FT_TO_M;
-  const plinthM = inputs.plinthHeightFt * FT_TO_M;
-  const floorHeightM = inputs.floorToFloorHeightFt * FT_TO_M;
-
-  // Total column height from footing top through all storeys (m).
-  // Thumb rule: foundation depth + plinth + (floor-to-floor × floors).
-  const totalColumnHeightM = foundationM + plinthM + floorHeightM * floors;
+  // Convert the same total height to metres for volume / bar-weight formulas.
+  const totalColumnHeightM = getTotalColumnHeightFt(inputs) * FT_TO_M;
 
   const slabAreaSqft =
     inputs.slabAreaSqftOverride != null && inputs.slabAreaSqftOverride > 0
@@ -280,6 +289,7 @@ export function calculateEstimate(inputs: EstimateInputs): EstimateResults {
       wallAreaSqft: round1(wallAreaSqft),
       wallAreaAutoEstimated,
       footingCount,
+      totalColumnHeightFt: round2(getTotalColumnHeightFt(inputs)),
     },
   };
 }

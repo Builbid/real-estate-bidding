@@ -47,6 +47,11 @@ export function downloadEstimatePdf(inputs: EstimateInputs, results: EstimateRes
     6,
   );
   line(
+    `Foundation depth: ${inputs.foundationDepthFt} ft · Column height: ${results.meta.totalColumnHeightFt} ft (foundation + plinth + floors)`,
+    9,
+    6,
+  );
+  line(
     `Mix: ${MIX_RATIOS[inputs.mixGrade].label} · Columns: ${inputs.columnCount} · Beams: ${inputs.beamCount}`,
     9,
     6,
