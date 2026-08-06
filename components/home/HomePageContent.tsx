@@ -113,9 +113,6 @@ export function HomePageContent({
                   Estimate Calculator
                 </Link>
               </Button>
-              <Button asChild size="lg" variant="ghost" className="rounded-xl text-muted-foreground">
-                <a href="#live-auctions">{t('nav.liveProjects')}</a>
-              </Button>
             </div>
 
           </div>
