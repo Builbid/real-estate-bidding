@@ -174,7 +174,7 @@ export function downloadEstimatePdf(inputs: EstimateInputs, results: EstimateRes
       ['  — Brick mortar (1:6)', String(results.meta.cementBagsBrickMortar), 'bags'],
       ['  — Plaster walls + ceiling', String(results.meta.cementBagsPlaster), 'bags'],
       ['Sand (total)', String(results.sandCum), 'cum'],
-      ['Coarse aggregate', String(results.aggregateCum), 'cum'],
+      ['Coarse aggregate (Giti)', String(results.aggregateCum), 'cum'],
       ['Bricks (total)', results.bricks.toLocaleString('en-IN'), 'nos'],
       ['  — Walls', results.meta.bricksWalls.toLocaleString('en-IN'), 'nos'],
       ['  — Foundation soling', results.meta.bricksFoundationSoling.toLocaleString('en-IN'), 'nos'],

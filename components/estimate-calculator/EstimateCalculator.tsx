@@ -752,7 +752,7 @@ export function EstimateCalculator() {
                     onChange={(n) => updateRate('cementPerBag', Math.max(0, n))}
                   />
                   <NumField
-                    label="Aggregate price"
+                    label="Aggregate (Giti) price"
                     value={inputs.rates.aggregatePerCum}
                     suffix="₹/cum"
                     onChange={(n) => updateRate('aggregatePerCum', Math.max(0, n))}
@@ -833,7 +833,7 @@ export function EstimateCalculator() {
                         </span>
                       </div>
                     </div>
-                    <ResultRow label="Coarse Aggregate" value={`${results.aggregateCum} cum`} />
+                    <ResultRow label="Coarse Aggregate (Giti)" value={`${results.aggregateCum} cum`} />
                     <ResultRow label="Sand" value={`${results.sandCum} cum`} />
                     <ResultRow label="Bricks (total)" value={`approx ${results.bricks.toLocaleString('en-IN')} nos`} />
                     <div className="px-4 py-2.5 text-[11px] text-muted-foreground space-y-0.5">

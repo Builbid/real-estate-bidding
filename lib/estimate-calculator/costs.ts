@@ -113,7 +113,7 @@ export function calculateCostBreakdown(
     },
     {
       key: 'aggregate',
-      label: 'Coarse aggregate',
+      label: 'Coarse aggregate (Giti)',
       quantityLabel: `${fmtQty(results.aggregateCum)} cum`,
       rateLabel: `₹${fmtQty(rates.aggregatePerCum, 0)}/cum`,
       amount: inr(aggAmt),
