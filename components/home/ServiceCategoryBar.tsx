@@ -16,8 +16,18 @@ interface ServiceCategoryBarProps {
   role: string | null;
 }
 
-/** Flipkart-style category row — every service a client can post a project for,
- * mirroring the options inside the "+ Upload Project" button. */
+const TILE_TONES = [
+  'from-amber-500/15 via-orange-500/5 to-transparent border-amber-500/25 group-hover:border-amber-500/50 group-hover:shadow-amber-500/10',
+  'from-sky-500/15 via-blue-500/5 to-transparent border-sky-500/25 group-hover:border-sky-500/50 group-hover:shadow-sky-500/10',
+  'from-rose-500/15 via-pink-500/5 to-transparent border-rose-500/25 group-hover:border-rose-500/50 group-hover:shadow-rose-500/10',
+  'from-slate-500/15 via-zinc-500/5 to-transparent border-slate-400/30 group-hover:border-slate-400/55 group-hover:shadow-slate-500/10',
+  'from-yellow-400/20 via-amber-400/5 to-transparent border-yellow-500/30 group-hover:border-yellow-500/55 group-hover:shadow-yellow-500/10',
+  'from-teal-500/15 via-emerald-500/5 to-transparent border-teal-500/25 group-hover:border-teal-500/50 group-hover:shadow-teal-500/10',
+  'from-indigo-500/15 via-violet-500/5 to-transparent border-indigo-500/25 group-hover:border-indigo-500/50 group-hover:shadow-indigo-500/10',
+  'from-lime-500/15 via-green-500/5 to-transparent border-lime-500/30 group-hover:border-lime-500/55 group-hover:shadow-lime-500/10',
+] as const;
+
+/** Homepage service picker — every postable bidding category. */
 export function ServiceCategoryBar({ isAuthenticated, role }: ServiceCategoryBarProps) {
   const router = useRouter();
   const [authPromptHref, setAuthPromptHref] = useState<string | null>(null);
@@ -34,27 +44,55 @@ export function ServiceCategoryBar({ isAuthenticated, role }: ServiceCategoryBar
 
   return (
     <>
-      <div className="flex gap-4 overflow-x-auto scrollbar-hide sm:flex-wrap sm:justify-center sm:overflow-visible sm:gap-x-6 sm:gap-y-3">
-        {ALL_SERVICE_CATEGORIES.map((cat) => (
-          <button
-            key={cat.value}
-            type="button"
-            onClick={() => handleSelect(cat.value)}
-            className="group flex w-[74px] flex-shrink-0 flex-col items-center gap-1.5 sm:w-20"
-          >
-            <span
-              className={cn(
-                'flex h-14 w-14 items-center justify-center rounded-2xl border border-border/70 bg-card text-2xl shadow-sm transition-all sm:h-16 sm:w-16 sm:text-3xl',
-                'group-hover:-translate-y-0.5 group-hover:border-emerald-500/40 group-hover:shadow-md',
-              )}
-            >
-              {cat.emoji}
-            </span>
-            <span className="text-center text-[11px] font-medium leading-tight text-foreground/90 line-clamp-2 sm:text-xs">
-              {cat.label}
-            </span>
-          </button>
-        ))}
+      <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-br from-card via-card to-emerald-500/[0.06] p-5 sm:p-8 shadow-sm">
+        {/* Soft atmosphere */}
+        <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-emerald-500/10 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-20 -left-10 h-48 w-48 rounded-full bg-amber-500/8 blur-3xl" />
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.35]"
+          style={{
+            backgroundImage:
+              'radial-gradient(circle at 1px 1px, hsl(var(--border) / 0.7) 1px, transparent 0)',
+            backgroundSize: '22px 22px',
+          }}
+        />
+
+        <div className="relative">
+          <p className="text-center text-sm sm:text-base text-muted-foreground leading-relaxed max-w-2xl mx-auto">
+            Post your project and receive competitive ₹/sqft bids from verified professionals across Assam.
+          </p>
+          <h2 className="mt-2 text-center text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+            Hire Services
+          </h2>
+          <div className="mx-auto mt-3 h-1 w-14 rounded-full bg-gradient-to-r from-emerald-500 to-teal-400" />
+
+          <div className="mt-7 grid grid-cols-4 gap-3 sm:grid-cols-4 md:grid-cols-8 sm:gap-4">
+            {ALL_SERVICE_CATEGORIES.map((cat, index) => (
+              <button
+                key={cat.value}
+                type="button"
+                onClick={() => handleSelect(cat.value)}
+                className="group flex flex-col items-center gap-2 text-center"
+              >
+                <span
+                  className={cn(
+                    'relative flex h-[4.5rem] w-full max-w-[5.25rem] aspect-square items-center justify-center rounded-2xl border bg-gradient-to-br shadow-sm transition-all duration-300',
+                    'group-hover:-translate-y-1 group-hover:shadow-lg group-active:scale-[0.97]',
+                    TILE_TONES[index % TILE_TONES.length],
+                  )}
+                >
+                  <span className="absolute inset-0 rounded-2xl bg-card/40 dark:bg-card/20" />
+                  <span className="relative text-3xl sm:text-[2rem] leading-none drop-shadow-sm transition-transform duration-300 group-hover:scale-110">
+                    {cat.emoji}
+                  </span>
+                </span>
+                <span className="text-[11px] sm:text-xs font-semibold leading-tight text-foreground/90 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors line-clamp-2 px-0.5">
+                  {cat.label}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       <Dialog open={!!authPromptHref} onOpenChange={(open) => { if (!open) setAuthPromptHref(null); }}>
