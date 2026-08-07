@@ -107,10 +107,26 @@ export function HomePageContent({
                   <Link href="/signup">{t('common.createAccount')}</Link>
                 </Button>
               )}
-              <Button asChild size="default" variant="outline" className="rounded-xl h-10">
-                <Link href="/estimate-calculator">
-                  <Calculator className="mr-1 h-4 w-4" />
-                  Estimate Calculator
+              <Button
+                asChild
+                size="default"
+                variant="outline"
+                className={cn(
+                  'group relative h-10 overflow-hidden rounded-xl border-emerald-500/35 bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-amber-500/10',
+                  'px-3.5 font-semibold text-foreground shadow-sm backdrop-blur-sm',
+                  'transition-all duration-200 hover:border-emerald-500/55 hover:from-emerald-500/15 hover:via-teal-500/10 hover:to-amber-500/15 hover:shadow-md',
+                )}
+              >
+                <Link href="/estimate-calculator" className="inline-flex items-center gap-2">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 ring-1 ring-emerald-500/25 transition-transform duration-200 group-hover:scale-105">
+                    <Calculator className="h-3.5 w-3.5" />
+                  </span>
+                  <span className="inline-flex items-baseline gap-1.5 tracking-tight">
+                    <span className="rounded-md bg-emerald-600 px-1.5 py-0.5 text-[10px] font-bold uppercase leading-none tracking-wide text-white shadow-sm dark:bg-emerald-500">
+                      Free
+                    </span>
+                    <span className="text-sm">Estimate Calculator</span>
+                  </span>
                 </Link>
               </Button>
             </div>
