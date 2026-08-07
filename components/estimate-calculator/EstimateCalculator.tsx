@@ -257,15 +257,6 @@ export function EstimateCalculator() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-5">
-      <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 flex gap-3">
-        <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-        <p className="text-xs sm:text-sm text-amber-900 dark:text-amber-100/90 leading-relaxed">
-          This is an approximate material estimate for budgeting purposes based on standard
-          Indian civil engineering thumb rules. Please consult a structural engineer for final
-          design and quantities.
-        </p>
-      </div>
-
       <div>
         <h1 className="text-xl sm:text-2xl font-bold text-foreground flex items-center gap-2">
           <Calculator className="h-6 w-6 text-emerald-600" />
@@ -962,6 +953,15 @@ export function EstimateCalculator() {
           )}
         </CardContent>
       </Card>
+
+      <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 flex gap-3">
+        <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+        <p className="text-xs sm:text-sm text-amber-900 dark:text-amber-100/90 leading-relaxed">
+          This is an approximate material estimate for budgeting purposes based on standard
+          Indian civil engineering thumb rules. Please consult a structural engineer for final
+          design and quantities.
+        </p>
+      </div>
     </div>
   );
 }
