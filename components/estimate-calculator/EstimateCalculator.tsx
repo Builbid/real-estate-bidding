@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import {
   ArrowLeft, ArrowRight, Download, Calculator, AlertTriangle, RefreshCw, Info,
@@ -186,6 +186,20 @@ export function EstimateCalculator() {
   const [step, setStep] = useState<Step>(1);
   const [inputs, setInputs] = useState<EstimateInputs>(DEFAULT_INPUTS);
   const [showResults, setShowResults] = useState(false);
+  const topRef = useRef<HTMLDivElement>(null);
+  const skipScrollOnMount = useRef(true);
+
+  useEffect(() => {
+    if (skipScrollOnMount.current) {
+      skipScrollOnMount.current = false;
+      return;
+    }
+    // After Continue / Back / Calculate, show the new step from the top.
+    const el = topRef.current;
+    if (!el) return;
+    const top = el.getBoundingClientRect().top + window.scrollY - 72;
+    window.scrollTo({ top: Math.max(0, top), behavior: 'auto' });
+  }, [step, showResults]);
 
   function update<K extends keyof EstimateInputs>(key: K, value: EstimateInputs[K]) {
     setInputs((prev) => ({ ...prev, [key]: value }));
@@ -256,7 +270,7 @@ export function EstimateCalculator() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-5">
+    <div ref={topRef} className="max-w-2xl mx-auto space-y-5 scroll-mt-20">
       <div>
         <h1 className="text-xl sm:text-2xl font-bold text-foreground flex items-center gap-2">
           <Calculator className="h-6 w-6 text-emerald-600" />
