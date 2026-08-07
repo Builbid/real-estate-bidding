@@ -248,7 +248,7 @@ export function downloadEstimatePdf(inputs: EstimateInputs, results: EstimateRes
       ['Finishing & allied', formatInr(costs.finishingTotal), ''],
       ['GRAND TOTAL (approx)', formatInr(costs.grandTotal), ''],
       [
-        '₹ / sqft built-up',
+        'Rs. / sqft built-up',
         costs.totalBuiltUpSqft > 0
           ? formatInr(Math.round(costs.grandTotal / costs.totalBuiltUpSqft))
           : '—',

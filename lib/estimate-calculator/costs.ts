@@ -47,10 +47,43 @@ function inr(n: number): number {
   return Math.round(n);
 }
 
+/** ASCII Indian grouping (e.g. 2,58,030) — safe for jsPDF Helvetica. */
+function formatIndianNumber(n: number, decimals = 0): string {
+  if (!Number.isFinite(n)) return '0';
+  const fixed = decimals > 0 ? n.toFixed(decimals) : String(Math.round(n));
+  const [intPart, decPart] = fixed.split('.');
+  const neg = intPart.startsWith('-');
+  const digits = neg ? intPart.slice(1) : intPart;
+  let grouped: string;
+  if (digits.length <= 3) {
+    grouped = digits;
+  } else {
+    const last3 = digits.slice(-3);
+    let rest = digits.slice(0, -3);
+    const parts: string[] = [];
+    while (rest.length > 2) {
+      parts.unshift(rest.slice(-2));
+      rest = rest.slice(0, -2);
+    }
+    if (rest) parts.unshift(rest);
+    grouped = `${parts.join(',')},${last3}`;
+  }
+  const body = decPart != null ? `${grouped}.${decPart}` : grouped;
+  return neg ? `-${body}` : body;
+}
+
 function fmtQty(n: number, decimals = 2): string {
   if (!Number.isFinite(n)) return '0';
-  if (Math.abs(n - Math.round(n)) < 1e-9) return Math.round(n).toLocaleString('en-IN');
-  return n.toLocaleString('en-IN', { maximumFractionDigits: decimals, minimumFractionDigits: 0 });
+  if (Math.abs(n - Math.round(n)) < 1e-9) return formatIndianNumber(n, 0);
+  return formatIndianNumber(n, decimals);
+}
+
+function rs(amount: number): string {
+  return `Rs. ${formatIndianNumber(amount, 0)}`;
+}
+
+function rsRate(n: number, unit: string, decimals = 0): string {
+  return `Rs. ${fmtQty(n, decimals)}/${unit}`;
 }
 
 /** Approx RCC formwork contact area (sqm) from member geometry. */
@@ -103,28 +136,28 @@ export function calculateCostBreakdown(
       key: 'cement',
       label: 'Cement',
       quantityLabel: `${fmtQty(results.cementBags, 0)} bags`,
-      rateLabel: `₹${fmtQty(rates.cementPerBag, 0)}/bag`,
+      rateLabel: rsRate(rates.cementPerBag, 'bag'),
       amount: inr(cementAmt),
     },
     {
       key: 'sand',
       label: 'Sand',
       quantityLabel: `${fmtQty(results.sandCum)} cum`,
-      rateLabel: `₹${fmtQty(rates.sandPerCum, 0)}/cum`,
+      rateLabel: rsRate(rates.sandPerCum, 'cum'),
       amount: inr(sandAmt),
     },
     {
       key: 'aggregate',
       label: 'Coarse aggregate (Giti)',
       quantityLabel: `${fmtQty(results.aggregateCum)} cum`,
-      rateLabel: `₹${fmtQty(rates.aggregatePerCum, 0)}/cum`,
+      rateLabel: rsRate(rates.aggregatePerCum, 'cum'),
       amount: inr(aggAmt),
     },
     {
       key: 'bricks',
       label: 'Bricks',
       quantityLabel: `${fmtQty(results.bricks, 0)} nos`,
-      rateLabel: `₹${fmtQty(rates.brickPerPiece, 1)}/pc`,
+      rateLabel: rsRate(rates.brickPerPiece, 'pc', 1),
       amount: inr(brickAmt),
     },
   ];
@@ -138,7 +171,7 @@ export function calculateCostBreakdown(
       key: `steel-${row.diameterMm}`,
       label: `Steel ${row.diameterMm} mm`,
       quantityLabel: `${fmtQty(row.quintals)} Q`,
-      rateLabel: `₹${fmtQty(rate, 0)}/Q`,
+      rateLabel: rsRate(rate, 'Q'),
       amount: inr(amt),
     });
   }
@@ -147,12 +180,14 @@ export function calculateCostBreakdown(
     cementAmt + sandAmt + aggAmt + brickAmt + steelTotal,
   );
 
-  const mistriAmt = totalBuiltUpSqft * rates.mistriPerSqft;
+  // Mistri = total slab area (sqft) × rate / sqft
+  const totalSlabSqft = Math.max(0, results.meta.slabAreaSqft);
+  const mistriAmt = totalSlabSqft * rates.mistriPerSqft;
   const mistriLabour: CostLineItem = {
     key: 'mistri',
-    label: 'Mistri / labour (built-up)',
-    quantityLabel: `${fmtQty(totalBuiltUpSqft, 0)} sqft`,
-    rateLabel: `₹${fmtQty(rates.mistriPerSqft, 0)}/sqft`,
+    label: 'Mistri / labour (slab area)',
+    quantityLabel: `${fmtQty(totalSlabSqft, 0)} sqft slab`,
+    rateLabel: rsRate(rates.mistriPerSqft, 'sqft'),
     amount: inr(mistriAmt),
   };
 
@@ -214,28 +249,28 @@ export function calculateCostBreakdown(
       key: 'painting',
       label: 'Painting (putty + emulsion)',
       quantityLabel: `${fmtQty(paintedSurfaceSqft, 0)} sqft surface`,
-      rateLabel: `₹${R.paintingPerSqftSurface}/sqft`,
+      rateLabel: rsRate(R.paintingPerSqftSurface, 'sqft'),
       amount: inr(paintingAmt),
     },
     {
       key: 'flooring',
       label: flooringLabel,
       quantityLabel: `${fmtQty(flooringAreaSqft, 0)} sqft`,
-      rateLabel: `₹${floorRate}/sqft`,
+      rateLabel: rsRate(floorRate, 'sqft'),
       amount: inr(flooringAmt),
     },
     {
       key: 'plumbing',
       label: 'Plumbing (piping / fittings)',
       quantityLabel: `${totalBaths} bath + kitchen`,
-      rateLabel: `₹${fmtQty(R.plumbingPerBathroom, 0)}/bath`,
+      rateLabel: rsRate(R.plumbingPerBathroom, 'bath'),
       amount: inr(plumbingAmt),
     },
     {
       key: 'electrical',
       label: 'Electrical (wiring / fittings)',
       quantityLabel: `${fmtQty(totalBuiltUpSqft, 0)} sqft`,
-      rateLabel: `₹${R.electricalPerSqftBuiltUp}/sqft`,
+      rateLabel: rsRate(R.electricalPerSqftBuiltUp, 'sqft'),
       amount: inr(electricalAmt),
     },
     {
@@ -249,28 +284,28 @@ export function calculateCostBreakdown(
       key: 'modular-kitchen',
       label: 'Modular kitchen',
       quantityLabel: `${kitchenRft} rft · ${inputs.unitType}`,
-      rateLabel: `₹${fmtQty(R.modularKitchenPerRft, 0)}/rft`,
+      rateLabel: rsRate(R.modularKitchenPerRft, 'rft'),
       amount: inr(modularKitchenAmt),
     },
     {
       key: 'formwork',
       label: 'Formwork / shuttering',
       quantityLabel: `${fmtQty(formworkAreaSqm)} sqm`,
-      rateLabel: `₹${R.formworkPerSqm}/sqm`,
+      rateLabel: rsRate(R.formworkPerSqm, 'sqm'),
       amount: inr(formworkAmt),
     },
     {
       key: 'anti-termite',
       label: 'Anti-termite treatment',
       quantityLabel: `${fmtQty(footprintSqft, 0)} sqft footprint`,
-      rateLabel: `₹${R.antiTermitePerSqftFootprint}/sqft`,
+      rateLabel: rsRate(R.antiTermitePerSqftFootprint, 'sqft'),
       amount: inr(antiTermiteAmt),
     },
     {
       key: 'soil-fill',
       label: 'Soil filling (upto plinth)',
       quantityLabel: `${fmtQty(soilFillTotal)} cum`,
-      rateLabel: `₹${R.soilFillPerCum}/cum`,
+      rateLabel: rsRate(R.soilFillPerCum, 'cum'),
       amount: inr(soilFillAmt),
     },
   ];
@@ -293,6 +328,7 @@ export function calculateCostBreakdown(
   };
 }
 
+/** PDF-safe currency label (Helvetica cannot draw ₹). */
 export function formatInr(amount: number): string {
-  return `₹${amount.toLocaleString('en-IN')}`;
+  return rs(amount);
 }

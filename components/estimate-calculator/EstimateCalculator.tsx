@@ -756,7 +756,7 @@ export function EstimateCalculator() {
                     value={inputs.rates.mistriPerSqft}
                     suffix="₹/sqft"
                     onChange={(n) => updateRate('mistriPerSqft', Math.max(0, n))}
-                    hint="Labour on total built-up area"
+                    hint="Labour = total slab area (sqft) × this rate"
                   />
                   <NumField
                     label="Cement rate"
