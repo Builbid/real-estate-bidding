@@ -37,6 +37,8 @@ import {
   STIRRUP_DIAMETERS,
   UNIT_TYPE_DEFAULT_AREA,
   UNIT_TYPE_DEFAULT_SLAB_AREA,
+  MAX_RCC_FLOORS,
+  clampRccFloors,
   defaultToiletsForUnit,
   floorLabel,
   syncFloorConfigs,
@@ -275,6 +277,7 @@ function RccEstimateCalculator({ onChangeType }: { onChangeType: () => void }) {
   const [inputs, setInputs] = useState<EstimateInputs>(DEFAULT_INPUTS);
   const [showResults, setShowResults] = useState(false);
   const topRef = useRef<HTMLDivElement>(null);
+  const resultsRef = useRef<HTMLDivElement>(null);
   const skipScrollOnMount = useRef(true);
 
   useEffect(() => {
@@ -282,12 +285,21 @@ function RccEstimateCalculator({ onChangeType }: { onChangeType: () => void }) {
       skipScrollOnMount.current = false;
       return;
     }
-    // After Continue / Back / Calculate, show the new step from the top.
+    // Step navigation: show the new step from the top.
     const el = topRef.current;
     if (!el) return;
     const top = el.getBoundingClientRect().top + window.scrollY - 72;
     window.scrollTo({ top: Math.max(0, top), behavior: 'auto' });
-  }, [step, showResults]);
+  }, [step]);
+
+  useEffect(() => {
+    if (!showResults) return;
+    // After Calculate: scroll to the estimate results (wait for paint).
+    const id = window.setTimeout(() => {
+      resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
+    return () => window.clearTimeout(id);
+  }, [showResults]);
 
   function update<K extends keyof EstimateInputs>(key: K, value: EstimateInputs[K]) {
     setInputs((prev) => ({ ...prev, [key]: value }));
@@ -295,7 +307,7 @@ function RccEstimateCalculator({ onChangeType }: { onChangeType: () => void }) {
   }
 
   function handleFloors(n: number) {
-    const floors = Math.max(1, Math.floor(n));
+    const floors = clampRccFloors(n);
     setInputs((prev) => {
       const floorConfigs = syncFloorConfigs(floors, prev.floorConfigs ?? [], prev.unitType);
       return {
@@ -448,7 +460,7 @@ function RccEstimateCalculator({ onChangeType }: { onChangeType: () => void }) {
                   value={inputs.floors}
                   min={1}
                   onChange={handleFloors}
-                  hint="For each storey, set BHK and toilet count below."
+                  hint={`Maximum ${MAX_RCC_FLOORS} floors. For each storey, set BHK and toilet count below.`}
                 />
                 <NumField
                   label="Built-up area per floor"
@@ -988,7 +1000,10 @@ function RccEstimateCalculator({ onChangeType }: { onChangeType: () => void }) {
               </div>
 
               {showResults && (
-                <div className="space-y-4 border-t border-border pt-5">
+                <div
+                  ref={resultsRef}
+                  className="space-y-4 border-t border-border pt-5 scroll-mt-24"
+                >
                   <h2 className="text-base font-semibold text-foreground">Material estimate</h2>
 
                   <div className="rounded-xl border border-border bg-secondary/40 divide-y divide-border overflow-hidden">

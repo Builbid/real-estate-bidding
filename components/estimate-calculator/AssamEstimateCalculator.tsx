@@ -174,6 +174,7 @@ export function AssamEstimateCalculator({ onChangeType }: { onChangeType: () => 
   const [inputs, setInputs] = useState<AssamEstimateInputs>(DEFAULT_ASSAM_INPUTS);
   const [showResults, setShowResults] = useState(false);
   const topRef = useRef<HTMLDivElement>(null);
+  const resultsRef = useRef<HTMLDivElement>(null);
   const skipScrollOnMount = useRef(true);
 
   useEffect(() => {
@@ -185,7 +186,15 @@ export function AssamEstimateCalculator({ onChangeType }: { onChangeType: () => 
     if (!el) return;
     const top = el.getBoundingClientRect().top + window.scrollY - 72;
     window.scrollTo({ top: Math.max(0, top), behavior: 'auto' });
-  }, [step, showResults]);
+  }, [step]);
+
+  useEffect(() => {
+    if (!showResults) return;
+    const id = window.setTimeout(() => {
+      resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
+    return () => window.clearTimeout(id);
+  }, [showResults]);
 
   function update<K extends keyof AssamEstimateInputs>(key: K, value: AssamEstimateInputs[K]) {
     setInputs((prev) => ({ ...prev, [key]: value }));
@@ -709,7 +718,10 @@ export function AssamEstimateCalculator({ onChangeType }: { onChangeType: () => 
               )}
 
               {showResults && (
-                <div className="space-y-4 border-t border-border pt-5">
+                <div
+                  ref={resultsRef}
+                  className="space-y-4 border-t border-border pt-5 scroll-mt-24"
+                >
                   <h2 className="text-base font-semibold text-foreground">Material estimate</h2>
                   <div className="rounded-xl border border-border bg-secondary/40 divide-y divide-border overflow-hidden">
                     <ResultRow label="Cement" value={`${results.cementBags} bags`} />

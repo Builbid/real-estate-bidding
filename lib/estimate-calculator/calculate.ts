@@ -11,6 +11,7 @@ import {
   MIX_RATIOS,
   STANDARD_BAR_SPACING_MM,
   TOILET_WALL_LENGTH_FT,
+  clampRccFloors,
   syncFloorConfigs,
   type BarDiameter,
   type EstimateInputs,
@@ -207,7 +208,7 @@ export function getTotalToilets(inputs: EstimateInputs): number {
 
 /** One kitchen per floor (each storey treated as a dwelling unit). */
 export function getKitchenCount(inputs: EstimateInputs): number {
-  return Math.max(1, Math.floor(inputs.floors));
+  return clampRccFloors(inputs.floors);
 }
 
 /**
@@ -293,7 +294,7 @@ function beamBarCuttingLengthM(avgBeamLengthM: number, diaMm: number): number {
 }
 
 export function calculateEstimate(inputs: EstimateInputs): EstimateResults {
-  const floors = Math.max(0, inputs.floors);
+  const floors = clampRccFloors(inputs.floors);
   const columns = Math.max(0, Math.floor(inputs.columnCount));
   const beams = Math.max(0, Math.floor(inputs.beamCount));
   const footingCount = getFootingCount(inputs);

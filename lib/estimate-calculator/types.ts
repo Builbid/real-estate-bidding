@@ -83,13 +83,21 @@ export function defaultToiletsForUnit(unitType: UnitType): number {
   return 1;
 }
 
+/** Maximum storeys allowed in the RCC material estimate calculator. */
+export const MAX_RCC_FLOORS = 10;
+
+/** Clamp RCC floor count to 1…MAX_RCC_FLOORS. */
+export function clampRccFloors(floors: number): number {
+  return Math.min(MAX_RCC_FLOORS, Math.max(1, Math.floor(floors)));
+}
+
 /** Resize / pad floorConfigs when storey count changes. */
 export function syncFloorConfigs(
   floors: number,
   prev: FloorConfig[],
   fallbackUnit: UnitType = '2BHK',
 ): FloorConfig[] {
-  const n = Math.max(1, Math.floor(floors));
+  const n = clampRccFloors(floors);
   const next: FloorConfig[] = [];
   for (let i = 0; i < n; i++) {
     const existing = prev[i];

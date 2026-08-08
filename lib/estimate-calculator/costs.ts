@@ -19,7 +19,7 @@ import {
   steelRateForDia,
   windowsPerFloorForUnit,
 } from './rates';
-import type { EstimateInputs, EstimateResults, ItemRates } from './types';
+import { clampRccFloors, type EstimateInputs, type EstimateResults, type ItemRates } from './types';
 
 const SQFT_TO_SQM = 0.092903;
 const FT_TO_M = 0.3048;
@@ -125,7 +125,7 @@ export function calculateCostBreakdown(
   results: EstimateResults,
   rates: ItemRates,
 ): CostBreakdown {
-  const floors = Math.max(0, inputs.floors);
+  const floors = clampRccFloors(inputs.floors);
   const builtUpPerFloor = Math.max(0, inputs.builtUpAreaPerFloorSqft);
   const totalBuiltUpSqft = builtUpPerFloor * floors;
 
