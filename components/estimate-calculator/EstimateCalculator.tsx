@@ -203,17 +203,17 @@ export function EstimateCalculator() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <button
             type="button"
-            onClick={() => setHouseType('assam_semi_pucca')}
+            onClick={() => setHouseType('assam_type')}
             className={cn(
               'rounded-2xl border border-border bg-card p-5 text-left transition-all',
               'hover:border-emerald-500/50 hover:bg-emerald-500/5 focus:outline-none focus:ring-2 focus:ring-emerald-500/40',
             )}
           >
             <Home className="h-8 w-8 text-emerald-600 mb-3" />
-            <p className="font-semibold text-foreground">Assam Type (Semi-pucca)</p>
+            <p className="font-semibold text-foreground">Assam Type</p>
             <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
-              Brick to sill or lintel, timber posts & bands, bamboo/mesh panels, pitched CGI roof.
-              No full RCC frame.
+              Single storey RCC footing, columns, plinth & lintel with 5″ brick walls and tin roof
+              (Dyna / Tata CGI) on king-post or timber truss — no slab.
             </p>
           </button>
           <button
@@ -242,7 +242,7 @@ export function EstimateCalculator() {
     );
   }
 
-  if (houseType === 'assam_semi_pucca') {
+  if (houseType === 'assam_type') {
     return (
       <div className="max-w-2xl mx-auto space-y-5">
         <div>
@@ -255,8 +255,8 @@ export function EstimateCalculator() {
         <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 flex gap-3">
           <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
           <p className="text-xs sm:text-sm text-amber-900 dark:text-amber-100/90 leading-relaxed">
-            Semi-pucca Assam Type budgeting estimate (brick + timber + CGI). Not a structural design —
-            verify timber sizes and connections with a local engineer.
+            Assam Type budgeting estimate (RCC frame + 5″ brick + tin roof / truss, no slab). Not a
+            structural design — consult a local engineer for final sizes.
           </p>
         </div>
       </div>

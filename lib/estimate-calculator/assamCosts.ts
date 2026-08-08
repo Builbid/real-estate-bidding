@@ -1,5 +1,5 @@
 // ============================================================
-// Assam Type (semi-pucca) material + finishing cost engine
+// Assam Type (modern) material + finishing cost engine
 // ============================================================
 
 import { getAssamExteriorPerimeterFt } from './assamCalculate';
@@ -9,9 +9,10 @@ import {
   bathroomsForUnit,
   doorsPerFloorForUnit,
   kitchenRftForUnit,
+  steelRateForDia,
   windowsPerFloorForUnit,
 } from './rates';
-import type { AssamEstimateInputs, AssamEstimateResults, AssamItemRates } from './types';
+import type { AssamEstimateInputs, AssamEstimateResults, AssamItemRates, ItemRates } from './types';
 
 const SQFT_TO_SQM = 0.092903;
 const FT_TO_M = 0.3048;
@@ -54,6 +55,18 @@ function rsRate(n: number, unit: string, decimals = 0): string {
   return `Rs. ${fmtQty(n, decimals)}/${unit}`;
 }
 
+function asItemRates(rates: AssamItemRates): ItemRates {
+  return {
+    mistriPerSqft: rates.mistriPerSqft,
+    cementPerBag: rates.cementPerBag,
+    aggregatePerCum: rates.aggregatePerCum,
+    sandPerCum: rates.sandPerCum,
+    brickPerPiece: rates.brickPerPiece,
+    steelPerQuintalByDia: rates.steelPerQuintalByDia,
+    flooringFinish: rates.flooringFinish,
+  };
+}
+
 export type AssamCostBreakdown = CostBreakdown;
 
 export function calculateAssamCostBreakdown(
@@ -61,17 +74,16 @@ export function calculateAssamCostBreakdown(
   results: AssamEstimateResults,
   rates: AssamItemRates,
 ): AssamCostBreakdown {
-  const floors = Math.max(1, Math.floor(inputs.floors));
-  const builtUpPerFloor = Math.max(0, inputs.builtUpAreaPerFloorSqft);
-  const totalBuiltUpSqft = builtUpPerFloor * floors;
+  const builtUp = Math.max(0, inputs.builtUpAreaSqft);
+  const totalBuiltUpSqft = builtUp;
+  const itemRates = asItemRates(rates);
 
   const cementAmt = results.cementBags * rates.cementPerBag;
   const sandAmt = results.sandCum * rates.sandPerCum;
   const aggAmt = results.aggregateCum * rates.aggregatePerCum;
   const brickAmt = results.bricks * rates.brickPerPiece;
+  const tinAmt = results.tinRoofAreaSqft * rates.tinRoofPerSqft;
   const timberAmt = results.timberCft * rates.timberPerCft;
-  const cgiAmt = results.cgiAreaSqft * rates.cgiPerSqft;
-  const panelAmt = results.wallPanelAreaSqft * rates.wallPanelPerSqft;
 
   const materialLines: CostLineItem[] = [
     {
@@ -90,43 +102,54 @@ export function calculateAssamCostBreakdown(
     },
     {
       key: 'aggregate',
-      label: 'Coarse aggregate (PCC pedestals)',
+      label: 'Coarse aggregate (Giti)',
       quantityLabel: `${fmtQty(results.aggregateCum)} cum`,
       rateLabel: rsRate(rates.aggregatePerCum, 'cum'),
       amount: inr(aggAmt),
     },
     {
       key: 'bricks',
-      label: 'Bricks',
+      label: 'Bricks (9″ plinth + 5″ walls)',
       quantityLabel: `${fmtQty(results.bricks, 0)} nos`,
       rateLabel: rsRate(rates.brickPerPiece, 'pc', 1),
       amount: inr(brickAmt),
     },
-    {
+  ];
+
+  let steelTotal = 0;
+  for (const row of results.steelByDiameter) {
+    const rate = steelRateForDia(itemRates, row.diameterMm);
+    const amt = row.quintals * rate;
+    steelTotal += amt;
+    materialLines.push({
+      key: `steel-${row.diameterMm}`,
+      label: `Steel ${row.diameterMm} mm`,
+      quantityLabel: `${fmtQty(row.quintals)} Q`,
+      rateLabel: rsRate(rate, 'Q'),
+      amount: inr(amt),
+    });
+  }
+
+  materialLines.push({
+    key: 'tin',
+    label: 'Tin roof (Dyna / Tata CGI)',
+    quantityLabel: `${fmtQty(results.tinRoofAreaSqft, 0)} sqft`,
+    rateLabel: rsRate(rates.tinRoofPerSqft, 'sqft'),
+    amount: inr(tinAmt),
+  });
+
+  if (results.timberCft > 0) {
+    materialLines.push({
       key: 'timber',
-      label: 'Timber (posts, bands, roof)',
+      label: 'Timber truss',
       quantityLabel: `${fmtQty(results.timberCft)} cft`,
       rateLabel: rsRate(rates.timberPerCft, 'cft'),
       amount: inr(timberAmt),
-    },
-    {
-      key: 'cgi',
-      label: 'CGI roofing sheets',
-      quantityLabel: `${fmtQty(results.cgiAreaSqft, 0)} sqft`,
-      rateLabel: rsRate(rates.cgiPerSqft, 'sqft'),
-      amount: inr(cgiAmt),
-    },
-    {
-      key: 'wall-panel',
-      label: 'Bamboo / mesh wall panels',
-      quantityLabel: `${fmtQty(results.wallPanelAreaSqft, 0)} sqft`,
-      rateLabel: rsRate(rates.wallPanelPerSqft, 'sqft'),
-      amount: inr(panelAmt),
-    },
-  ];
+    });
+  }
 
   const materialTotal = inr(
-    cementAmt + sandAmt + aggAmt + brickAmt + timberAmt + cgiAmt + panelAmt,
+    cementAmt + sandAmt + aggAmt + brickAmt + steelTotal + tinAmt + timberAmt,
   );
 
   const mistriAmt = totalBuiltUpSqft * rates.mistriPerSqft;
@@ -151,35 +174,40 @@ export function calculateAssamCostBreakdown(
       ? 'Granite flooring (std.)'
       : 'Tile flooring (vitrified)';
 
-  const bathsPerFloor = bathroomsForUnit(inputs.unitType, builtUpPerFloor);
-  const totalBaths = bathsPerFloor * floors;
-  const plumbingAmt =
-    totalBaths * R.plumbingPerBathroom + floors * R.plumbingKitchenLump;
-
+  const baths = bathroomsForUnit(inputs.unitType, builtUp);
+  const plumbingAmt = baths * R.plumbingPerBathroom + R.plumbingKitchenLump;
   const electricalAmt = totalBuiltUpSqft * R.electricalPerSqftBuiltUp;
 
-  const doorsPerFloor = doorsPerFloorForUnit(inputs.unitType, builtUpPerFloor);
-  const windowsPerFloor = windowsPerFloorForUnit(inputs.unitType, builtUpPerFloor);
-  const totalInternalDoors = doorsPerFloor * floors;
-  const totalWindows = windowsPerFloor * floors;
+  const doors = doorsPerFloorForUnit(inputs.unitType, builtUp);
+  const windows = windowsPerFloorForUnit(inputs.unitType, builtUp);
   const doorsWindowsAmt =
-    R.mainDoorLump +
-    totalInternalDoors * R.internalDoorEach +
-    totalWindows * R.windowEach;
+    R.mainDoorLump + doors * R.internalDoorEach + windows * R.windowEach;
 
-  const kitchenRft = kitchenRftForUnit(inputs.unitType, builtUpPerFloor);
+  const kitchenRft = kitchenRftForUnit(inputs.unitType, builtUp);
   const modularKitchenAmt = kitchenRft * R.modularKitchenPerRft;
 
-  const footprintSqft = builtUpPerFloor;
-  const antiTermiteAmt = footprintSqft * R.antiTermitePerSqftFootprint;
+  const antiTermiteAmt = builtUp * R.antiTermitePerSqftFootprint;
 
-  const perimeterFt = getAssamExteriorPerimeterFt(builtUpPerFloor);
+  const perimeterFt = getAssamExteriorPerimeterFt(builtUp);
   const soilFillCum =
-    footprintSqft * SQFT_TO_SQM * Math.max(0, inputs.plinthHeightFt) * FT_TO_M;
+    builtUp * SQFT_TO_SQM * Math.max(0, inputs.plinthHeightFt) * FT_TO_M;
   const soilFillTotal =
     soilFillCum * 1.15 +
     perimeterFt * FT_TO_M * 0.45 * 0.6 * Math.max(0, inputs.plinthHeightFt) * FT_TO_M;
   const soilFillAmt = soilFillTotal * R.soilFillPerCum;
+
+  // Light formwork for columns + plinth + lintel + RCC truss (no slab)
+  const formworkAreaSqm =
+    results.meta.totalColumnHeightFt * FT_TO_M *
+      Math.max(0, inputs.columnCount) *
+      2 *
+      ((inputs.columnWidthMm + inputs.columnDepthMm) / 1000) +
+    results.meta.plinthBeamCount *
+      ((inputs.plinthBeamWidthMm / 1000) + 2 * (inputs.plinthBeamDepthMm / 1000)) *
+      (inputs.avgPlinthBeamLengthFt * FT_TO_M) +
+    (0.23 + 2 * 0.15) * (results.meta.lintelLengthFt * FT_TO_M) +
+    (inputs.trussType === 'rcc_king_post' ? results.concreteVolumeCum.trusses * 12 : 0);
+  const formworkAmt = formworkAreaSqm * R.formworkPerSqm;
 
   const finishingLines: CostLineItem[] = [
     {
@@ -199,7 +227,7 @@ export function calculateAssamCostBreakdown(
     {
       key: 'plumbing',
       label: 'Plumbing (piping / fittings)',
-      quantityLabel: `${totalBaths} bath + kitchen`,
+      quantityLabel: `${baths} bath + kitchen`,
       rateLabel: rsRate(R.plumbingPerBathroom, 'bath'),
       amount: inr(plumbingAmt),
     },
@@ -213,7 +241,7 @@ export function calculateAssamCostBreakdown(
     {
       key: 'doors-windows',
       label: 'Doors & windows',
-      quantityLabel: `${totalInternalDoors + 1} doors · ${totalWindows} win`,
+      quantityLabel: `${doors + 1} doors · ${windows} win`,
       rateLabel: 'std. units',
       amount: inr(doorsWindowsAmt),
     },
@@ -225,9 +253,16 @@ export function calculateAssamCostBreakdown(
       amount: inr(modularKitchenAmt),
     },
     {
+      key: 'formwork',
+      label: 'Formwork / shuttering',
+      quantityLabel: `${fmtQty(formworkAreaSqm)} sqm`,
+      rateLabel: rsRate(R.formworkPerSqm, 'sqm'),
+      amount: inr(formworkAmt),
+    },
+    {
       key: 'anti-termite',
       label: 'Anti-termite treatment',
-      quantityLabel: `${fmtQty(footprintSqft, 0)} sqft footprint`,
+      quantityLabel: `${fmtQty(builtUp, 0)} sqft footprint`,
       rateLabel: rsRate(R.antiTermitePerSqftFootprint, 'sqft'),
       amount: inr(antiTermiteAmt),
     },
@@ -253,7 +288,7 @@ export function calculateAssamCostBreakdown(
     totalBuiltUpSqft,
     paintedSurfaceSqft,
     flooringAreaSqft,
-    formworkAreaSqm: 0,
+    formworkAreaSqm,
     soilFillCum: soilFillTotal,
   };
 }

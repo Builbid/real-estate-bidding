@@ -13,27 +13,35 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   calculateAssamEstimate,
-  getAssamBrickWallHeightFt,
-  getAssamTimberPostHeightFt,
+  getAssamTotalColumnHeightFt,
 } from '@/lib/estimate-calculator/assamCalculate';
 import { calculateAssamCostBreakdown, formatInr } from '@/lib/estimate-calculator/assamCosts';
 import { downloadAssamEstimatePdf } from '@/lib/estimate-calculator/assamPdf';
+import { LINTEL_STANDARD } from '@/lib/estimate-calculator/calculate';
 import {
-  ASSAM_BRICK_HEIGHT_FT,
+  BAR_DIAMETERS,
   BUILT_UP_AREA_INFO,
   DEFAULT_ASSAM_INPUTS,
+  LAP_LENGTH_MULTIPLIER,
+  MIX_RATIOS,
+  STANDARD_BAR_SPACING_MM,
+  STEEL_RATE_DIAMETERS,
+  STIRRUP_DIAMETERS,
   UNIT_TYPE_DEFAULT_AREA,
-  type AssamBrickWallUpTo,
   type AssamEstimateInputs,
+  type AssamTrussType,
+  type BarDiameter,
   type FlooringFinish,
+  type FootingType,
+  type MixGrade,
   type UnitType,
   type WastagePercent,
 } from '@/lib/estimate-calculator/types';
 import { cn } from '@/lib/utils';
 
-type AssamStep = 1 | 2 | 3;
+type AssamStep = 1 | 2 | 3 | 4;
 
-const PROGRESS_LABELS = ['Plan', 'Structure', 'Rates & Cost'] as const;
+const PROGRESS_LABELS = ['Plan & roof', 'Columns & footing', 'Plinth beams', 'Rates & Cost'] as const;
 
 function NumField({
   label,
@@ -122,6 +130,36 @@ function BuiltUpInfoButton() {
   );
 }
 
+function DiaSelect({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: BarDiameter;
+  options: BarDiameter[];
+  onChange: (d: BarDiameter) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-1.5 w-full">
+      <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+        {label}
+      </label>
+      <Select value={String(value)} onValueChange={(v) => onChange(Number(v) as BarDiameter)}>
+        <SelectTrigger>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map((d) => (
+            <SelectItem key={d} value={String(d)}>{d} mm</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
 function ResultRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between gap-3 px-4 py-3">
@@ -158,10 +196,8 @@ export function AssamEstimateCalculator({ onChangeType }: { onChangeType: () => 
     setInputs((prev) => ({
       ...prev,
       unitType,
-      builtUpAreaPerFloorSqft:
-        unitType === 'Custom'
-          ? prev.builtUpAreaPerFloorSqft
-          : UNIT_TYPE_DEFAULT_AREA[unitType],
+      builtUpAreaSqft:
+        unitType === 'Custom' ? prev.builtUpAreaSqft : UNIT_TYPE_DEFAULT_AREA[unitType],
     }));
     setShowResults(false);
   }
@@ -177,17 +213,32 @@ export function AssamEstimateCalculator({ onChangeType }: { onChangeType: () => 
     setShowResults(false);
   }
 
+  function updateSteelRate(dia: BarDiameter, value: number) {
+    setInputs((prev) => ({
+      ...prev,
+      rates: {
+        ...prev.rates,
+        steelPerQuintalByDia: {
+          ...prev.rates.steelPerQuintalByDia,
+          [dia]: value,
+        },
+      },
+    }));
+    setShowResults(false);
+  }
+
   const results = useMemo(() => calculateAssamEstimate(inputs), [inputs]);
   const costs = useMemo(
     () => calculateAssamCostBreakdown(inputs, results, inputs.rates),
     [inputs, results],
   );
-  const brickH = getAssamBrickWallHeightFt(inputs);
-  const timberH = getAssamTimberPostHeightFt(inputs);
+  const totalColumnHeightFt = getAssamTotalColumnHeightFt(inputs);
+  const colRodTotal = inputs.columnRodsCount1 + inputs.columnRodsCount2;
+  const pbRodTotal = inputs.plinthBeamRodsCount1 + inputs.plinthBeamRodsCount2;
 
   function goResults() {
     setShowResults(true);
-    setStep(3);
+    setStep(4);
   }
 
   return (
@@ -195,10 +246,10 @@ export function AssamEstimateCalculator({ onChangeType }: { onChangeType: () => 
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-medium text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
-            Assam Type · Semi-pucca
+            Assam Type · Single storey
           </p>
           <h2 className="text-base font-semibold text-foreground mt-0.5">
-            Brick + timber frame + CGI roof
+            RCC frame + 5″ brick + tin roof (no slab)
           </h2>
         </div>
         <Button type="button" variant="ghost" size="sm" className="text-xs shrink-0" onClick={onChangeType}>
@@ -240,15 +291,12 @@ export function AssamEstimateCalculator({ onChangeType }: { onChangeType: () => 
         <CardContent className="pt-6 pb-6 space-y-5">
           {step === 1 && (
             <>
-              <h2 className="text-base font-semibold text-foreground">Plan & brick height</h2>
+              <h2 className="text-base font-semibold text-foreground">Plan & roof</h2>
+              <p className="text-[11px] text-muted-foreground -mt-2">
+                Single-floor Assam Type only. Structure like RCC ground floor — footing, columns, plinth beam,
+                lintel, 9″ plinth + 5″ brick walls — but tin roof on trusses instead of slab / floor beams.
+              </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <NumField
-                  label="Number of floors"
-                  value={inputs.floors}
-                  min={1}
-                  onChange={(n) => update('floors', Math.max(1, Math.floor(n)))}
-                  hint="Assam Type is usually single storey; multi-storey multiplies walls."
-                />
                 <div className="flex flex-col gap-1.5 w-full">
                   <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Unit type / rooms
@@ -265,58 +313,89 @@ export function AssamEstimateCalculator({ onChangeType }: { onChangeType: () => 
                   </Select>
                 </div>
                 <NumField
-                  label="Built-up area per floor"
-                  value={inputs.builtUpAreaPerFloorSqft}
+                  label="Built-up area"
+                  value={inputs.builtUpAreaSqft}
                   min={0}
                   suffix="sqft"
-                  onChange={(n) => update('builtUpAreaPerFloorSqft', Math.max(0, n))}
+                  onChange={(n) => update('builtUpAreaSqft', Math.max(0, n))}
                   labelExtra={<BuiltUpInfoButton />}
                 />
-                <div className="flex flex-col gap-1.5 w-full">
-                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Brick wall up to
-                  </label>
-                  <Select
-                    value={inputs.brickWallUpTo}
-                    onValueChange={(v) => update('brickWallUpTo', v as AssamBrickWallUpTo)}
-                  >
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="sill">
-                        Sill (~{ASSAM_BRICK_HEIGHT_FT.sill} ft) — timber + panels above
-                      </SelectItem>
-                      <SelectItem value="lintel">
-                        Lintel (~{ASSAM_BRICK_HEIGHT_FT.lintel} ft) — more brick, less panel
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-[11px] text-muted-foreground leading-snug">
-                    Semi-pucca: masonry to sill (common) or lintel; timber frame continues to eaves.
-                  </p>
-                </div>
                 <NumField
                   label="Foundation depth (below GL)"
                   value={inputs.foundationDepthFt}
                   step={0.5}
                   suffix="ft"
                   onChange={(n) => update('foundationDepthFt', Math.max(0, n))}
-                  hint="Typically ~2 ft (600 mm) for Assam Type plinth walls."
                 />
                 <NumField
-                  label="Plinth height"
+                  label="Plinth height (9″ brick)"
                   value={inputs.plinthHeightFt}
                   step={0.5}
                   suffix="ft"
                   onChange={(n) => update('plinthHeightFt', Math.max(0, n))}
                 />
                 <NumField
-                  label="Eaves / wall height (floor to eaves)"
-                  value={inputs.eavesHeightFt}
+                  label="Wall height above plinth (5″ brick)"
+                  value={inputs.wallHeightFt}
                   step={0.5}
                   suffix="ft"
-                  onChange={(n) => update('eavesHeightFt', Math.max(brickH + 1, n))}
-                  hint={`Brick ${brickH} ft + timber panel ${timberH.toFixed(1)} ft = ${inputs.eavesHeightFt} ft.`}
+                  onChange={(n) => update('wallHeightFt', Math.max(0, n))}
+                  hint="Floor to eaves — brick walls to roof."
                 />
+                <div className="flex flex-col gap-1.5 w-full">
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Roof truss type
+                  </label>
+                  <Select
+                    value={inputs.trussType}
+                    onValueChange={(v) => update('trussType', v as AssamTrussType)}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="rcc_king_post">RCC King Post truss</SelectItem>
+                      <SelectItem value="timber">Timber truss</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <NumField
+                  label="Truss spacing"
+                  value={inputs.trussSpacingFt}
+                  min={6}
+                  step={0.5}
+                  suffix="ft"
+                  onChange={(n) => update('trussSpacingFt', Math.max(6, n))}
+                />
+                <NumField
+                  label="Tin roof pitch factor"
+                  value={inputs.tinPitchFactor}
+                  min={1}
+                  step={0.05}
+                  onChange={(n) => update('tinPitchFactor', Math.max(1, n))}
+                  hint="Sloping tin area ÷ plan (Dyna / coloured Tata CGI)."
+                />
+                <NumField
+                  label="Tin sheet wastage"
+                  value={inputs.tinWastagePercent}
+                  min={0}
+                  suffix="%"
+                  onChange={(n) => update('tinWastagePercent', Math.max(0, n))}
+                />
+                <div className="flex flex-col gap-1.5 w-full">
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Concrete mix
+                  </label>
+                  <Select
+                    value={inputs.mixGrade}
+                    onValueChange={(v) => update('mixGrade', v as MixGrade)}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {(Object.keys(MIX_RATIOS) as MixGrade[]).map((g) => (
+                        <SelectItem key={g} value={g}>{MIX_RATIOS[g].label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="flex flex-col gap-1.5 w-full">
                   <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Site wastage
@@ -336,8 +415,8 @@ export function AssamEstimateCalculator({ onChangeType }: { onChangeType: () => 
               </div>
 
               <div className="rounded-lg border border-emerald-500/25 bg-emerald-500/5 px-3 py-2.5 text-xs text-muted-foreground">
-                No full RCC frame or roof slab. Quantities use brick plinth/sill (or lintel), timber posts & bands,
-                bamboo/mesh panels, and pitched CGI roofing.
+                Preview: ~{results.meta.trussCount} trusses · tin ~{results.tinRoofAreaSqft} sqft · lintel auto{' '}
+                {LINTEL_STANDARD.widthMm}×{LINTEL_STANDARD.depthMm} mm
               </div>
 
               <Button size="lg" className="w-full" onClick={() => setStep(2)}>
@@ -348,84 +427,110 @@ export function AssamEstimateCalculator({ onChangeType }: { onChangeType: () => 
 
           {step === 2 && (
             <>
-              <h2 className="text-base font-semibold text-foreground">Timber & CGI defaults</h2>
+              <h2 className="text-base font-semibold text-foreground">RCC columns & footing</h2>
               <p className="text-[11px] text-muted-foreground -mt-2">
-                Research defaults (WHE Assam-type): posts @ 1.1 m, rafters @ 650 mm, purlins @ 300 mm, CGI pitch 1.20.
-                Override only if your carpenter/engineer specifies otherwise.
+                Column height locked from plan:{' '}
+                <span className="font-semibold text-foreground">{totalColumnHeightFt.toFixed(1)} ft</span>
+                {' '}(foundation + plinth + wall).
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <NumField
-                  label="Timber post spacing"
-                  value={inputs.postSpacingM}
-                  step={0.1}
-                  min={0.5}
-                  suffix="m"
-                  onChange={(n) => update('postSpacingM', Math.max(0.5, n))}
+                  label="Number of columns"
+                  value={inputs.columnCount}
+                  min={0}
+                  onChange={(n) => update('columnCount', Math.max(0, Math.floor(n)))}
                 />
                 <NumField
-                  label="Post section (square)"
-                  value={inputs.postWidthMm}
-                  min={50}
+                  label="Column width"
+                  value={inputs.columnWidthMm}
+                  min={150}
                   suffix="mm"
-                  onChange={(n) => {
-                    const v = Math.max(50, Math.floor(n));
-                    setInputs((prev) => ({ ...prev, postWidthMm: v, postDepthMm: v }));
-                    setShowResults(false);
-                  }}
-                  hint="Applies to width × depth (square)."
+                  onChange={(n) => update('columnWidthMm', Math.max(150, Math.floor(n)))}
                 />
                 <NumField
-                  label="Band width"
-                  value={inputs.bandWidthMm}
-                  min={50}
+                  label="Column depth"
+                  value={inputs.columnDepthMm}
+                  min={150}
                   suffix="mm"
-                  onChange={(n) => update('bandWidthMm', Math.max(50, Math.floor(n)))}
+                  onChange={(n) => update('columnDepthMm', Math.max(150, Math.floor(n)))}
                 />
                 <NumField
-                  label="Band depth"
-                  value={inputs.bandDepthMm}
-                  min={40}
-                  suffix="mm"
-                  onChange={(n) => update('bandDepthMm', Math.max(40, Math.floor(n)))}
+                  label="Main bars — count"
+                  value={inputs.columnRodsCount1}
+                  min={0}
+                  onChange={(n) => update('columnRodsCount1', Math.max(0, Math.floor(n)))}
+                />
+                <DiaSelect
+                  label="Main bars — dia"
+                  value={inputs.columnRodDia1Mm}
+                  options={BAR_DIAMETERS}
+                  onChange={(d) => update('columnRodDia1Mm', d)}
                 />
                 <NumField
-                  label="Rafter spacing"
-                  value={inputs.rafterSpacingMm}
+                  label="Secondary bars — count"
+                  value={inputs.columnRodsCount2}
+                  min={0}
+                  onChange={(n) => update('columnRodsCount2', Math.max(0, Math.floor(n)))}
+                />
+                <DiaSelect
+                  label="Secondary bars — dia"
+                  value={inputs.columnRodDia2Mm}
+                  options={BAR_DIAMETERS}
+                  onChange={(d) => update('columnRodDia2Mm', d)}
+                />
+                <DiaSelect
+                  label="Stirrup dia"
+                  value={inputs.columnStirrupDiaMm}
+                  options={STIRRUP_DIAMETERS}
+                  onChange={(d) => update('columnStirrupDiaMm', d)}
+                />
+                <div className="flex flex-col gap-1.5 w-full">
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Footing type
+                  </label>
+                  <Select
+                    value={inputs.footingType}
+                    onValueChange={(v) => update('footingType', v as FootingType)}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="isolated">Isolated</SelectItem>
+                      <SelectItem value="combined">Combined</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <NumField
+                  label="Footing length"
+                  value={inputs.footingLengthMm}
                   min={300}
                   suffix="mm"
-                  onChange={(n) => update('rafterSpacingMm', Math.max(300, Math.floor(n)))}
+                  onChange={(n) => update('footingLengthMm', Math.max(300, Math.floor(n)))}
                 />
                 <NumField
-                  label="Purlin spacing"
-                  value={inputs.purlinSpacingMm}
-                  min={200}
+                  label="Footing width"
+                  value={inputs.footingWidthMm}
+                  min={300}
                   suffix="mm"
-                  onChange={(n) => update('purlinSpacingMm', Math.max(200, Math.floor(n)))}
+                  onChange={(n) => update('footingWidthMm', Math.max(300, Math.floor(n)))}
                 />
                 <NumField
-                  label="CGI pitch factor"
-                  value={inputs.cgiPitchFactor}
-                  step={0.05}
-                  min={1}
-                  onChange={(n) => update('cgiPitchFactor', Math.max(1, n))}
-                  hint="Sloping CGI area ÷ plan area (1.15–1.25 typical)."
+                  label="Footing depth"
+                  value={inputs.footingDepthMm}
+                  min={150}
+                  suffix="mm"
+                  onChange={(n) => update('footingDepthMm', Math.max(150, Math.floor(n)))}
                 />
-                <NumField
-                  label="CGI sheet wastage"
-                  value={inputs.cgiWastagePercent}
-                  min={0}
-                  suffix="%"
-                  onChange={(n) => update('cgiWastagePercent', Math.max(0, n))}
+                <DiaSelect
+                  label="Footing jali dia"
+                  value={inputs.footingRodDiaMm}
+                  options={BAR_DIAMETERS}
+                  onChange={(d) => update('footingRodDiaMm', d)}
                 />
               </div>
-
-              <div className="rounded-xl border border-border bg-secondary/40 px-4 py-3 text-xs text-muted-foreground space-y-1">
-                <p>
-                  Preview: ~{results.meta.timberPostCount} timber posts · {results.meta.timberPostHeightFt} ft high ·{' '}
-                  {results.meta.bandCount} band levels · CGI ~{results.cgiAreaSqft} sqft
-                </p>
-              </div>
-
+              <p className="text-[11px] text-muted-foreground">
+                {colRodTotal} bars/col · stirrups @ {STANDARD_BAR_SPACING_MM} mm · footings{' '}
+                {results.meta.footingCount}
+              </p>
               <div className="flex gap-3">
                 <Button variant="outline" size="lg" className="flex-1" onClick={() => setStep(1)}>
                   <ArrowLeft className="w-4 h-4" /> Back
@@ -439,17 +544,93 @@ export function AssamEstimateCalculator({ onChangeType }: { onChangeType: () => 
 
           {step === 3 && (
             <>
-              <h2 className="text-base font-semibold text-foreground">Rates & cost</h2>
+              <h2 className="text-base font-semibold text-foreground">Plinth beams</h2>
               <p className="text-[11px] text-muted-foreground -mt-2">
-                Assam / Tier-2 mid-points — edit to match local timber, CGI, and mistri rates.
+                Ground / plinth beams only — no floor or roof beams. Lintel band is calculated automatically.
               </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <NumField
+                  label="Plinth beam count"
+                  value={inputs.plinthBeamCount}
+                  min={0}
+                  onChange={(n) => update('plinthBeamCount', Math.max(0, Math.floor(n)))}
+                />
+                <NumField
+                  label="Avg beam length"
+                  value={inputs.avgPlinthBeamLengthFt}
+                  step={0.5}
+                  suffix="ft"
+                  onChange={(n) => update('avgPlinthBeamLengthFt', Math.max(0, n))}
+                />
+                <NumField
+                  label="Beam width"
+                  value={inputs.plinthBeamWidthMm}
+                  min={150}
+                  suffix="mm"
+                  onChange={(n) => update('plinthBeamWidthMm', Math.max(150, Math.floor(n)))}
+                />
+                <NumField
+                  label="Beam depth"
+                  value={inputs.plinthBeamDepthMm}
+                  min={150}
+                  suffix="mm"
+                  onChange={(n) => update('plinthBeamDepthMm', Math.max(150, Math.floor(n)))}
+                />
+                <NumField
+                  label="Bottom / set-1 bars"
+                  value={inputs.plinthBeamRodsCount1}
+                  min={0}
+                  onChange={(n) => update('plinthBeamRodsCount1', Math.max(0, Math.floor(n)))}
+                />
+                <DiaSelect
+                  label="Set-1 dia"
+                  value={inputs.plinthBeamRodDia1Mm}
+                  options={BAR_DIAMETERS}
+                  onChange={(d) => update('plinthBeamRodDia1Mm', d)}
+                />
+                <NumField
+                  label="Top / set-2 bars"
+                  value={inputs.plinthBeamRodsCount2}
+                  min={0}
+                  onChange={(n) => update('plinthBeamRodsCount2', Math.max(0, Math.floor(n)))}
+                />
+                <DiaSelect
+                  label="Set-2 dia"
+                  value={inputs.plinthBeamRodDia2Mm}
+                  options={BAR_DIAMETERS}
+                  onChange={(d) => update('plinthBeamRodDia2Mm', d)}
+                />
+                <DiaSelect
+                  label="Stirrup dia"
+                  value={inputs.plinthBeamStirrupDiaMm}
+                  options={STIRRUP_DIAMETERS}
+                  onChange={(d) => update('plinthBeamStirrupDiaMm', d)}
+                />
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                {pbRodTotal} bars/beam · lintel length {results.meta.lintelLengthFt} ft (auto)
+              </p>
+              <div className="flex gap-3">
+                <Button variant="outline" size="lg" className="flex-1" onClick={() => setStep(2)}>
+                  <ArrowLeft className="w-4 h-4" /> Back
+                </Button>
+                <Button size="lg" className="flex-1" onClick={() => setStep(4)}>
+                  Continue <ArrowRight className="w-4 h-4" />
+                </Button>
+              </div>
+            </>
+          )}
+
+          {step === 4 && (
+            <>
+              <h2 className="text-base font-semibold text-foreground">Rates & cost</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <NumField
                   label="Mistri rate"
                   value={inputs.rates.mistriPerSqft}
                   suffix="₹/sqft"
                   onChange={(n) => updateRate('mistriPerSqft', Math.max(0, n))}
-                  hint="Labour = total built-up (sqft) × this rate"
+                  hint="Labour = built-up sqft × this rate"
                 />
                 <NumField
                   label="Cement rate"
@@ -464,35 +645,31 @@ export function AssamEstimateCalculator({ onChangeType }: { onChangeType: () => 
                   onChange={(n) => updateRate('sandPerCum', Math.max(0, n))}
                 />
                 <NumField
+                  label="Aggregate (Giti)"
+                  value={inputs.rates.aggregatePerCum}
+                  suffix="₹/cum"
+                  onChange={(n) => updateRate('aggregatePerCum', Math.max(0, n))}
+                />
+                <NumField
                   label="Brick price"
                   value={inputs.rates.brickPerPiece}
                   suffix="₹/pc"
                   onChange={(n) => updateRate('brickPerPiece', Math.max(0, n))}
                 />
                 <NumField
-                  label="Aggregate (PCC)"
-                  value={inputs.rates.aggregatePerCum}
-                  suffix="₹/cum"
-                  onChange={(n) => updateRate('aggregatePerCum', Math.max(0, n))}
-                />
-                <NumField
-                  label="Timber (Sal/Nahar class)"
-                  value={inputs.rates.timberPerCft}
-                  suffix="₹/cft"
-                  onChange={(n) => updateRate('timberPerCft', Math.max(0, n))}
-                />
-                <NumField
-                  label="CGI roofing"
-                  value={inputs.rates.cgiPerSqft}
+                  label="Tin roof (Dyna / Tata CGI)"
+                  value={inputs.rates.tinRoofPerSqft}
                   suffix="₹/sqft"
-                  onChange={(n) => updateRate('cgiPerSqft', Math.max(0, n))}
+                  onChange={(n) => updateRate('tinRoofPerSqft', Math.max(0, n))}
                 />
-                <NumField
-                  label="Bamboo / mesh panel"
-                  value={inputs.rates.wallPanelPerSqft}
-                  suffix="₹/sqft"
-                  onChange={(n) => updateRate('wallPanelPerSqft', Math.max(0, n))}
-                />
+                {inputs.trussType === 'timber' && (
+                  <NumField
+                    label="Timber (truss)"
+                    value={inputs.rates.timberPerCft}
+                    suffix="₹/cft"
+                    onChange={(n) => updateRate('timberPerCft', Math.max(0, n))}
+                  />
+                )}
                 <div className="flex flex-col gap-1.5 w-full">
                   <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Flooring finish
@@ -510,6 +687,21 @@ export function AssamEstimateCalculator({ onChangeType }: { onChangeType: () => 
                 </div>
               </div>
 
+              <p className="text-xs font-semibold text-foreground pt-1">
+                Steel price (₹ / quintal) — by diameter
+              </p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {STEEL_RATE_DIAMETERS.map((dia) => (
+                  <NumField
+                    key={dia}
+                    label={`${dia} mm`}
+                    value={inputs.rates.steelPerQuintalByDia[dia] ?? 5700}
+                    suffix="₹/Q"
+                    onChange={(n) => updateSteelRate(dia, Math.max(0, n))}
+                  />
+                ))}
+              </div>
+
               {!showResults && (
                 <Button size="lg" className="w-full" onClick={goResults}>
                   <Calculator className="w-4 h-4" /> Calculate Assam Type estimate
@@ -522,31 +714,54 @@ export function AssamEstimateCalculator({ onChangeType }: { onChangeType: () => 
                   <div className="rounded-xl border border-border bg-secondary/40 divide-y divide-border overflow-hidden">
                     <ResultRow label="Cement" value={`${results.cementBags} bags`} />
                     <div className="px-4 py-2.5 text-[11px] text-muted-foreground">
-                      Brick mortar {results.meta.cementBagsBrickMortar} + plaster{' '}
-                      {results.meta.cementBagsPlaster} + PCC pedestals {results.meta.cementBagsPcc}{' '}
-                      (before wastage)
+                      RCC {results.meta.cementBagsRcc} + brick mortar {results.meta.cementBagsBrickMortar} + plaster{' '}
+                      {results.meta.cementBagsPlaster} (before wastage)
                     </div>
+                    <div className="px-4 py-3 space-y-1.5">
+                      <p className="text-xs text-muted-foreground">
+                        Steel by diameter (incl. {LAP_LENGTH_MULTIPLIER}d laps)
+                      </p>
+                      {results.steelByDiameter.map((row) => (
+                        <div key={row.diameterMm} className="flex justify-between text-sm">
+                          <span className="text-foreground/80">{row.diameterMm} mm</span>
+                          <span className="font-semibold tabular-nums">{row.quintals} quintals</span>
+                        </div>
+                      ))}
+                      <div className="flex justify-between text-sm pt-1 border-t border-border/60">
+                        <span className="font-semibold">Total Steel</span>
+                        <span className="font-bold tabular-nums text-emerald-700 dark:text-emerald-400">
+                          {results.totalSteelQuintals} quintals
+                        </span>
+                      </div>
+                    </div>
+                    <ResultRow label="Coarse Aggregate (Giti)" value={`${results.aggregateCum} cum`} />
                     <ResultRow label="Sand" value={`${results.sandCum} cum`} />
-                    <ResultRow label="Aggregate (PCC)" value={`${results.aggregateCum} cum`} />
                     <ResultRow
                       label="Bricks (total)"
                       value={`approx ${results.bricks.toLocaleString('en-IN')} nos`}
                     />
-                    <div className="px-4 py-2.5 text-[11px] text-muted-foreground">
-                      Foundation {results.meta.bricksFoundation.toLocaleString('en-IN')} · Walls{' '}
-                      {results.meta.bricksWalls.toLocaleString('en-IN')} · Flooring{' '}
-                      {results.meta.bricksFlooring.toLocaleString('en-IN')}
+                    <div className="px-4 py-2.5 text-[11px] text-muted-foreground space-y-0.5">
+                      <p>
+                        Walls {results.meta.bricksWalls.toLocaleString('en-IN')} · Foundation soling{' '}
+                        {results.meta.bricksFoundationSoling.toLocaleString('en-IN')} · Flooring{' '}
+                        {results.meta.bricksFlooring.toLocaleString('en-IN')}
+                      </p>
+                      <p>
+                        Concrete: cols {results.concreteVolumeCum.columns} · plinth{' '}
+                        {results.concreteVolumeCum.plinthBeams} · lintels {results.concreteVolumeCum.lintels} ·
+                        footings {results.concreteVolumeCum.footings}
+                        {inputs.trussType === 'rcc_king_post'
+                          ? ` · RCC trusses ${results.concreteVolumeCum.trusses}`
+                          : ''}{' '}
+                        = {results.concreteVolumeCum.total} cum
+                      </p>
+                      <p>
+                        Tin roof {results.tinRoofAreaSqft} sqft · {results.meta.trussCount}{' '}
+                        {inputs.trussType === 'rcc_king_post' ? 'RCC king-post' : 'timber'} trusses
+                        {results.timberCft > 0 ? ` · timber ${results.timberCft} cft` : ''}
+                      </p>
+                      <p>No slab · no floor beams</p>
                     </div>
-                    <ResultRow label="Timber (total)" value={`${results.timberCft} cft`} />
-                    <div className="px-4 py-2.5 text-[11px] text-muted-foreground">
-                      Posts {results.meta.timberPostsCft} · Bands {results.meta.timberBandsCft} · Roof{' '}
-                      {results.meta.timberRoofCft} cft · {results.meta.timberPostCount} posts
-                    </div>
-                    <ResultRow label="CGI roofing" value={`${results.cgiAreaSqft} sqft`} />
-                    <ResultRow
-                      label="Bamboo / mesh panels"
-                      value={`${results.wallPanelAreaSqft} sqft`}
-                    />
                   </div>
 
                   <h2 className="text-base font-semibold text-foreground pt-1">Material & labour cost</h2>
@@ -640,7 +855,7 @@ export function AssamEstimateCalculator({ onChangeType }: { onChangeType: () => 
                   className="flex-1"
                   onClick={() => {
                     setShowResults(false);
-                    setStep(2);
+                    setStep(3);
                   }}
                 >
                   <ArrowLeft className="w-4 h-4" /> Back

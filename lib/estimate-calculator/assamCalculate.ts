@@ -1,14 +1,24 @@
 // ============================================================
-// Assam Type (semi-pucca) quantity engine
-// Brick to sill/lintel + timber frame + CGI roof — budgeting QTO.
-// Anchored to WHE Assam-type / Ikra practice (not full RCC).
+// Assam Type (modern) quantity engine
+// Single-storey RCC frame + 5″ brick + tin roof / truss.
+// Like RCC ground floor WITHOUT slab & floor beams.
 // ============================================================
 
 import {
-  ASSAM_BRICK_HEIGHT_FT,
+  getFootingBarsAlong,
+  LINTEL_STANDARD,
+} from './calculate';
+import {
+  ASSAM_PLINTH_THICKNESS_M,
+  ASSAM_WALL_THICKNESS_M,
   INTERIOR_WALL_LENGTH_FT_PER_FLOOR,
+  LAP_LENGTH_MULTIPLIER,
+  MIX_RATIOS,
+  STANDARD_BAR_SPACING_MM,
   type AssamEstimateInputs,
   type AssamEstimateResults,
+  type BarDiameter,
+  type SteelByDiameter,
   type UnitType,
 } from './types';
 
@@ -16,40 +26,39 @@ const SQFT_TO_SQM = 0.092903;
 const FT_TO_M = 0.3048;
 const CUM_TO_CFT = 35.3147;
 
+const DRY_VOLUME_FACTOR = 1.54;
 const MORTAR_DRY_VOLUME_FACTOR = 1.33;
 const CEMENT_BAG_CUM = 0.0347;
 const BRICK_WITH_MORTAR_CUM = 0.002;
 const BRICK_MORTAR_WET_FRACTION = 0.3;
 const BRICK_MORTAR_CEMENT_PARTS = 1;
 const BRICK_MORTAR_SAND_PARTS = 6;
-
 const PLASTER_THICKNESS_M = 0.012;
 const PLASTER_CEMENT_PARTS = 1;
 const PLASTER_SAND_PARTS = 4;
-
-/** Exterior brick / plinth — 9″. */
-const EXT_BRICK_THICKNESS_M = 0.2286;
-/** Interior brick — 4.5″. */
-const INT_BRICK_THICKNESS_M = 0.1143;
-/** Foundation wall below GL — 250 mm (WHE recent practice). */
-const FOUNDATION_THICKNESS_M = 0.25;
-/** Flooring brick soling ≈ 75 mm. */
 const BRICK_SOLING_THICKNESS_M = 0.075;
 
-/** PCC pedestal under timber post — 300×300×450 mm, mix 1:3:6. */
-const PEDESTAL_L_M = 0.3;
-const PEDESTAL_W_M = 0.3;
-const PEDESTAL_H_M = 0.45;
-const PCC_CEMENT_PARTS = 1;
-const PCC_SAND_PARTS = 3;
-const PCC_AGG_PARTS = 6;
-const CONCRETE_DRY_FACTOR = 1.54;
+const COVER_COLUMN_MM = 40;
+const COVER_BEAM_MM = 25;
 
-/** Rafter section 100×150 mm; purlin 50×75 mm. */
-const RAFTER_SECTION_M2 = 0.1 * 0.15;
-const PURLIN_SECTION_M2 = 0.05 * 0.075;
+/** RCC king-post / timber member sections (estimation). */
+const TRUSS_TIE_W_M = 0.2;
+const TRUSS_TIE_D_M = 0.2;
+const TRUSS_RAFTER_W_M = 0.15;
+const TRUSS_RAFTER_D_M = 0.15;
+const TRUSS_KING_W_M = 0.15;
+const TRUSS_KING_D_M = 0.15;
+/** Extra steel density for RCC truss members (kg/cum). */
+const TRUSS_STEEL_KG_PER_CUM = 100;
 
-const OPENINGS_FACTOR_PANEL = 0.85;
+function barWeightKg(diameterMm: number, lengthM: number): number {
+  if (lengthM <= 0 || diameterMm <= 0) return 0;
+  return ((diameterMm * diameterMm) / 162) * lengthM;
+}
+
+function lapLengthM(diameterMm: number): number {
+  return (LAP_LENGTH_MULTIPLIER * diameterMm) / 1000;
+}
 
 function round1(n: number): number {
   return Math.round(n * 10) / 10;
@@ -82,6 +91,18 @@ function mortarCementAndSand(
   };
 }
 
+function stirrupCuttingLengthM(
+  widthMm: number,
+  depthMm: number,
+  coverMm: number,
+  stirrupDiaMm: number,
+): number {
+  const clearW = Math.max(0, widthMm - 2 * coverMm);
+  const clearD = Math.max(0, depthMm - 2 * coverMm);
+  const hookMm = Math.max(75, 10 * stirrupDiaMm);
+  return (2 * (clearW + clearD) + 2 * hookMm) / 1000;
+}
+
 export function getAssamExteriorPerimeterFt(builtUpSqft: number): number {
   const area = Math.max(0, builtUpSqft);
   if (area <= 0) return 0;
@@ -93,183 +114,359 @@ export function getAssamInteriorWallLengthFt(unitType: UnitType, builtUpSqft: nu
   return Math.max(0, builtUpSqft) * 0.045;
 }
 
-export function getAssamBrickWallHeightFt(inputs: AssamEstimateInputs): number {
-  return ASSAM_BRICK_HEIGHT_FT[inputs.brickWallUpTo];
+export function getAssamTotalColumnHeightFt(inputs: AssamEstimateInputs): number {
+  return (
+    Math.max(0, inputs.foundationDepthFt) +
+    Math.max(0, inputs.plinthHeightFt) +
+    Math.max(0, inputs.wallHeightFt)
+  );
 }
 
-/** Timber clear height above brick (to eaves). */
-export function getAssamTimberPostHeightFt(inputs: AssamEstimateInputs): number {
-  const brickH = getAssamBrickWallHeightFt(inputs);
-  return Math.max(0, inputs.eavesHeightFt - brickH);
+export function getAssamFootingCount(inputs: AssamEstimateInputs): number {
+  const cols = Math.max(0, Math.floor(inputs.columnCount));
+  if (cols === 0) return 0;
+  if (inputs.footingType === 'combined') return Math.ceil(cols / 2);
+  return cols;
+}
+
+/** Square-plan side length (ft) from built-up. */
+export function getAssamPlanSideFt(builtUpSqft: number): number {
+  return Math.sqrt(Math.max(0, builtUpSqft));
+}
+
+export function getAssamTrussCount(inputs: AssamEstimateInputs): number {
+  const side = getAssamPlanSideFt(inputs.builtUpAreaSqft);
+  const spacing = Math.max(6, inputs.trussSpacingFt);
+  if (side <= 0) return 0;
+  return Math.floor(side / spacing) + 1;
+}
+
+function columnBarCuttingLengthM(totalColumnHeightM: number, diaMm: number): number {
+  const Ld = lapLengthM(diaMm);
+  // Single storey: height + footing development + one storey lap
+  return Math.max(0, totalColumnHeightM) + 2 * Ld;
+}
+
+function beamBarCuttingLengthM(avgBeamLengthM: number, diaMm: number): number {
+  const Ld = lapLengthM(diaMm);
+  const midLap = avgBeamLengthM > 10 ? Ld : 0;
+  return Math.max(0, avgBeamLengthM) + 2 * Ld + midLap;
 }
 
 /**
- * Band count along walls:
- * - Brick to sill → sill + lintel + eaves (3)
- * - Brick to lintel → lintel + eaves (2) — sill already in masonry
+ * One king-post truss geometry (gable):
+ * - tie = full span
+ * - 2 rafters ≈ half-span × sqrt(pitch)
+ * - king post ≈ rise ≈ half-span × (sqrt(pitch)-ish from pitch factor)
  */
-export function getAssamBandCount(inputs: AssamEstimateInputs): number {
-  return inputs.brickWallUpTo === 'lintel' ? 2 : 3;
+function trussMemberLengthsM(spanFt: number, pitchFactor: number): {
+  tieM: number;
+  rafterM: number;
+  kingM: number;
+} {
+  const spanM = spanFt * FT_TO_M;
+  const half = spanM / 2;
+  const slope = half * Math.sqrt(Math.max(1, pitchFactor));
+  const rise = Math.sqrt(Math.max(0, slope * slope - half * half));
+  return {
+    tieM: spanM,
+    rafterM: slope,
+    kingM: rise,
+  };
+}
+
+function rccTrussConcreteCum(spanFt: number, pitchFactor: number, trussCount: number): number {
+  const { tieM, rafterM, kingM } = trussMemberLengthsM(spanFt, pitchFactor);
+  const one =
+    tieM * TRUSS_TIE_W_M * TRUSS_TIE_D_M +
+    2 * rafterM * TRUSS_RAFTER_W_M * TRUSS_RAFTER_D_M +
+    kingM * TRUSS_KING_W_M * TRUSS_KING_D_M;
+  return one * Math.max(0, trussCount);
+}
+
+function timberTrussCft(spanFt: number, pitchFactor: number, trussCount: number): number {
+  // Slightly larger timber sections than RCC estimation sections
+  const { tieM, rafterM, kingM } = trussMemberLengthsM(spanFt, pitchFactor);
+  const oneCum =
+    tieM * 0.1 * 0.15 +
+    2 * rafterM * 0.1 * 0.125 +
+    kingM * 0.1 * 0.1 +
+    // purlins allowance along span (approx)
+    spanFt * FT_TO_M * 0.05 * 0.075 * 6;
+  return oneCum * Math.max(0, trussCount) * CUM_TO_CFT;
 }
 
 export function calculateAssamEstimate(inputs: AssamEstimateInputs): AssamEstimateResults {
-  const floors = Math.max(1, Math.floor(inputs.floors));
-  const builtUp = Math.max(0, inputs.builtUpAreaPerFloorSqft);
-  const totalBuiltUpSqft = builtUp * floors;
+  const builtUp = Math.max(0, inputs.builtUpAreaSqft);
+  const columns = Math.max(0, Math.floor(inputs.columnCount));
+  const plinthBeams = Math.max(0, Math.floor(inputs.plinthBeamCount));
+  const footingCount = getAssamFootingCount(inputs);
+  const spacingMm = STANDARD_BAR_SPACING_MM;
   const wastage = inputs.wastagePercent;
+
+  const totalColumnHeightFt = getAssamTotalColumnHeightFt(inputs);
+  const totalColumnHeightM = totalColumnHeightFt * FT_TO_M;
 
   const perimeterFt = getAssamExteriorPerimeterFt(builtUp);
   const interiorFt = getAssamInteriorWallLengthFt(inputs.unitType, builtUp);
   const wallLengthFt = perimeterFt + interiorFt;
-  const wallLengthM = wallLengthFt * FT_TO_M;
 
-  const brickWallHeightFt = getAssamBrickWallHeightFt(inputs);
-  const timberPostHeightFt = getAssamTimberPostHeightFt(inputs);
-  const plinthFt = Math.max(0, inputs.plinthHeightFt);
-  const foundationFt = Math.max(0, inputs.foundationDepthFt);
+  // Walls: 9″ plinth exterior; 5″ above plinth exterior + interior to wall height
+  const plinthExtAreaSqft = perimeterFt * Math.max(0, inputs.plinthHeightFt);
+  const superExtAreaSqft = perimeterFt * Math.max(0, inputs.wallHeightFt) * 0.8;
+  const interiorAreaSqft = interiorFt * Math.max(0, inputs.wallHeightFt) * 0.9;
+  const exteriorWallAreaSqft = plinthExtAreaSqft + superExtAreaSqft;
+  const wallAreaSqft = exteriorWallAreaSqft + interiorAreaSqft;
 
-  // ── Brickwork ──────────────────────────────────────────────
-  // Foundation below GL — exterior only, 250 mm
-  const foundationVol =
-    perimeterFt * FT_TO_M * (foundationFt * FT_TO_M) * FOUNDATION_THICKNESS_M;
+  // ── Concrete ────────────────────────────────────────────────
+  const colW = inputs.columnWidthMm / 1000;
+  const colD = inputs.columnDepthMm / 1000;
+  const columnConcrete = colW * colD * Math.max(0, totalColumnHeightM) * columns;
 
-  // Exterior above GL: plinth + brick to sill/lintel — 9″
-  const extBrickHeightFt = plinthFt + brickWallHeightFt;
-  const extBrickVol =
-    perimeterFt * FT_TO_M * (extBrickHeightFt * FT_TO_M) * EXT_BRICK_THICKNESS_M * floors;
+  const pbW = inputs.plinthBeamWidthMm / 1000;
+  const pbD = inputs.plinthBeamDepthMm / 1000;
+  const avgPbLenM = inputs.avgPlinthBeamLengthFt * FT_TO_M;
+  const plinthBeamConcrete = pbW * pbD * Math.max(0, avgPbLenM) * plinthBeams;
 
-  // Interior brick to sill/lintel — 4.5″ (no deep foundation)
-  const intBrickVol =
-    interiorFt * FT_TO_M * (brickWallHeightFt * FT_TO_M) * INT_BRICK_THICKNESS_M * floors;
+  const lintelLengthFt = wallLengthFt; // single storey
+  const lintelLengthM = lintelLengthFt * FT_TO_M;
+  const lintelConcrete =
+    (LINTEL_STANDARD.widthMm / 1000) *
+    (LINTEL_STANDARD.depthMm / 1000) *
+    Math.max(0, lintelLengthM);
 
-  const wallBrickVol = foundationVol + extBrickVol + intBrickVol;
-  const bricksWallsRaw = wallBrickVol / BRICK_WITH_MORTAR_CUM;
+  const footConcrete =
+    (inputs.footingLengthMm / 1000) *
+    (inputs.footingWidthMm / 1000) *
+    (inputs.footingDepthMm / 1000) *
+    footingCount;
 
-  // Flooring brick soling — ground floor footprint
-  const flooringVol = builtUp * SQFT_TO_SQM * BRICK_SOLING_THICKNESS_M;
-  const bricksFlooringRaw = flooringVol / BRICK_WITH_MORTAR_CUM;
+  const trussSpanFt = getAssamPlanSideFt(builtUp);
+  const trussCount = getAssamTrussCount(inputs);
+  const pitch = Math.max(1, inputs.tinPitchFactor);
+  const trussConcrete =
+    inputs.trussType === 'rcc_king_post'
+      ? rccTrussConcreteCum(trussSpanFt, pitch, trussCount)
+      : 0;
 
-  const bricksFoundation = Math.ceil(applyWastage(foundationVol / BRICK_WITH_MORTAR_CUM, wastage));
-  const bricksWalls = Math.ceil(
-    applyWastage(bricksWallsRaw - foundationVol / BRICK_WITH_MORTAR_CUM, wastage),
+  const totalConcrete =
+    columnConcrete + plinthBeamConcrete + lintelConcrete + footConcrete + trussConcrete;
+
+  const ratio = MIX_RATIOS[inputs.mixGrade];
+  const partsSum = ratio.cement + ratio.sand + ratio.aggregate;
+  const dryVolume = totalConcrete * DRY_VOLUME_FACTOR;
+  const rccCementCum = dryVolume * (ratio.cement / partsSum);
+  const rccSandCum = dryVolume * (ratio.sand / partsSum);
+  const aggregateCumRaw = dryVolume * (ratio.aggregate / partsSum);
+  const cementBagsRcc = bagsFromCementVolume(rccCementCum);
+
+  // ── Steel ───────────────────────────────────────────────────
+  const steelKg = new Map<number, number>();
+  function addSteel(diaMm: number, kg: number) {
+    if (kg <= 0 || diaMm <= 0) return;
+    steelKg.set(diaMm, (steelKg.get(diaMm) ?? 0) + kg);
+  }
+
+  const colSets = [
+    { count: Math.max(0, Math.floor(inputs.columnRodsCount1)), dia: inputs.columnRodDia1Mm },
+    { count: Math.max(0, Math.floor(inputs.columnRodsCount2)), dia: inputs.columnRodDia2Mm },
+  ];
+  for (const set of colSets) {
+    if (set.count === 0) continue;
+    const lenOne = columnBarCuttingLengthM(totalColumnHeightM, set.dia);
+    addSteel(set.dia, barWeightKg(set.dia, columns * set.count * lenOne));
+  }
+
+  if (columns > 0 && totalColumnHeightM > 0) {
+    const stirrupsPerCol = Math.ceil((totalColumnHeightM * 1000) / spacingMm);
+    const stirrupLenM = stirrupCuttingLengthM(
+      inputs.columnWidthMm,
+      inputs.columnDepthMm,
+      COVER_COLUMN_MM,
+      inputs.columnStirrupDiaMm,
+    );
+    addSteel(
+      inputs.columnStirrupDiaMm,
+      barWeightKg(inputs.columnStirrupDiaMm, stirrupsPerCol * stirrupLenM * columns),
+    );
+  }
+
+  const pbSets = [
+    { count: Math.max(0, Math.floor(inputs.plinthBeamRodsCount1)), dia: inputs.plinthBeamRodDia1Mm },
+    { count: Math.max(0, Math.floor(inputs.plinthBeamRodsCount2)), dia: inputs.plinthBeamRodDia2Mm },
+  ];
+  for (const set of pbSets) {
+    if (set.count === 0) continue;
+    const lenOne = beamBarCuttingLengthM(avgPbLenM, set.dia);
+    addSteel(set.dia, barWeightKg(set.dia, plinthBeams * set.count * lenOne));
+  }
+
+  if (plinthBeams > 0 && avgPbLenM > 0) {
+    const stirrupsPerBeam = Math.ceil((avgPbLenM * 1000) / spacingMm);
+    const stirrupLenM = stirrupCuttingLengthM(
+      inputs.plinthBeamWidthMm,
+      inputs.plinthBeamDepthMm,
+      COVER_BEAM_MM,
+      inputs.plinthBeamStirrupDiaMm,
+    );
+    addSteel(
+      inputs.plinthBeamStirrupDiaMm,
+      barWeightKg(inputs.plinthBeamStirrupDiaMm, stirrupsPerBeam * stirrupLenM * plinthBeams),
+    );
+  }
+
+  if (lintelLengthM > 0) {
+    const lintelLdBottom = lapLengthM(LINTEL_STANDARD.bottomDiaMm);
+    const lintelLdTop = lapLengthM(LINTEL_STANDARD.topDiaMm);
+    const lapCount = Math.max(1, Math.ceil(lintelLengthM / 6));
+    const bottomClM = lintelLengthM + lapCount * lintelLdBottom;
+    const topClM = lintelLengthM + lapCount * lintelLdTop;
+    addSteel(
+      LINTEL_STANDARD.bottomDiaMm,
+      barWeightKg(LINTEL_STANDARD.bottomDiaMm, LINTEL_STANDARD.bottomBars * bottomClM),
+    );
+    addSteel(
+      LINTEL_STANDARD.topDiaMm,
+      barWeightKg(LINTEL_STANDARD.topDiaMm, LINTEL_STANDARD.topBars * topClM),
+    );
+    const lintelStirrups = Math.ceil((lintelLengthM * 1000) / spacingMm);
+    const lintelStirrupLenM = stirrupCuttingLengthM(
+      LINTEL_STANDARD.widthMm,
+      LINTEL_STANDARD.depthMm,
+      COVER_BEAM_MM,
+      LINTEL_STANDARD.stirrupDiaMm,
+    );
+    addSteel(
+      LINTEL_STANDARD.stirrupDiaMm,
+      barWeightKg(LINTEL_STANDARD.stirrupDiaMm, lintelStirrups * lintelStirrupLenM),
+    );
+  }
+
+  if (footingCount > 0) {
+    const barsAlongLength = getFootingBarsAlong(inputs.footingWidthMm, spacingMm);
+    const barsAlongWidth = getFootingBarsAlong(inputs.footingLengthMm, spacingMm);
+    const Ld = lapLengthM(inputs.footingRodDiaMm);
+    const lenAlongLengthM = inputs.footingLengthMm / 1000 + Ld;
+    const lenAlongWidthM = inputs.footingWidthMm / 1000 + Ld;
+    const totalLengthM =
+      footingCount * (barsAlongLength * lenAlongLengthM + barsAlongWidth * lenAlongWidthM);
+    addSteel(inputs.footingRodDiaMm, barWeightKg(inputs.footingRodDiaMm, totalLengthM));
+  }
+
+  if (inputs.trussType === 'rcc_king_post' && trussConcrete > 0) {
+    // Distribute truss steel mainly as 12 mm + 8 mm
+    const trussSteelKg = trussConcrete * TRUSS_STEEL_KG_PER_CUM;
+    addSteel(12 as BarDiameter, trussSteelKg * 0.7);
+    addSteel(8 as BarDiameter, trussSteelKg * 0.3);
+  }
+
+  const steelByDiameter: SteelByDiameter[] = Array.from(steelKg.entries())
+    .map(([diameterMm, kg]) => {
+      const withWaste = applyWastage(kg, wastage);
+      return {
+        diameterMm,
+        kg: round2(withWaste),
+        quintals: round2(withWaste / 100),
+      };
+    })
+    .filter((row) => row.quintals > 0)
+    .sort((a, b) => a.diameterMm - b.diameterMm);
+
+  const totalSteelKg = steelByDiameter.reduce((s, r) => s + r.kg, 0);
+
+  // ── Bricks ──────────────────────────────────────────────────
+  const wallBrickworkCum =
+    plinthExtAreaSqft * SQFT_TO_SQM * ASSAM_PLINTH_THICKNESS_M +
+    superExtAreaSqft * SQFT_TO_SQM * ASSAM_WALL_THICKNESS_M +
+    interiorAreaSqft * SQFT_TO_SQM * ASSAM_WALL_THICKNESS_M;
+  const bricksWallsRaw = Math.ceil(wallBrickworkCum / BRICK_WITH_MORTAR_CUM);
+
+  const footingPlanSqm =
+    footingCount *
+    (inputs.footingLengthMm / 1000) *
+    (inputs.footingWidthMm / 1000);
+  const foundationSolingCum = footingPlanSqm * BRICK_SOLING_THICKNESS_M;
+  const bricksFoundationRaw = Math.ceil(foundationSolingCum / BRICK_WITH_MORTAR_CUM);
+
+  const flooringSolingCum = builtUp * SQFT_TO_SQM * BRICK_SOLING_THICKNESS_M;
+  const bricksFlooringRaw = Math.ceil(flooringSolingCum / BRICK_WITH_MORTAR_CUM);
+
+  const totalBrickworkCum = wallBrickworkCum + foundationSolingCum + flooringSolingCum;
+  const bricks = Math.ceil(
+    applyWastage(bricksWallsRaw + bricksFoundationRaw + bricksFlooringRaw, wastage),
   );
-  const bricksFlooring = Math.ceil(applyWastage(bricksFlooringRaw, wastage));
-  const bricks = bricksFoundation + bricksWalls + bricksFlooring;
 
-  // Brick mortar 1:6
-  const mortarWet = (wallBrickVol + flooringVol) * BRICK_MORTAR_WET_FRACTION;
   const brickMortar = mortarCementAndSand(
-    mortarWet,
+    totalBrickworkCum * BRICK_MORTAR_WET_FRACTION,
     BRICK_MORTAR_CEMENT_PARTS,
     BRICK_MORTAR_SAND_PARTS,
   );
-
-  // ── Timber posts ───────────────────────────────────────────
-  const spacingM = Math.max(0.5, inputs.postSpacingM);
-  const postCount = wallLengthM > 0 ? Math.max(4, Math.ceil(wallLengthM / spacingM)) : 0;
-  const postSectionM2 = (inputs.postWidthMm / 1000) * (inputs.postDepthMm / 1000);
-  const postHeightM = timberPostHeightFt * FT_TO_M;
-  const postsCum = postCount * postSectionM2 * Math.max(0, postHeightM);
-
-  // ── Timber bands ───────────────────────────────────────────
-  const bandCount = getAssamBandCount(inputs);
-  const bandLengthFt = wallLengthFt * floors * bandCount;
-  const bandSectionM2 = (inputs.bandWidthMm / 1000) * (inputs.bandDepthMm / 1000);
-  const bandsCum = bandLengthFt * FT_TO_M * bandSectionM2;
-
-  // ── CGI roof (once on top storey) ───────────────────────────
-  const roofPlanSqft = builtUp;
-  const pitch = Math.max(1, inputs.cgiPitchFactor);
-  const cgiWaste = Math.max(0, inputs.cgiWastagePercent);
-  const cgiAreaSqft = round1(roofPlanSqft * pitch * (1 + cgiWaste / 100));
-
-  const sideM = builtUp > 0 ? Math.sqrt(builtUp) * FT_TO_M : 0;
-  const rafterSpM = Math.max(0.3, inputs.rafterSpacingMm / 1000);
-  const purlinSpM = Math.max(0.2, inputs.purlinSpacingMm / 1000);
-  const nRafterLines = sideM > 0 ? Math.floor(sideM / rafterSpM) + 1 : 0;
-  // Half-span slope length ≈ (side/2) × sqrt(pitch) as simple gable approx
-  const halfSlopeM = (sideM / 2) * Math.sqrt(pitch);
-  const totalRafterM = nRafterLines * 2 * halfSlopeM;
-  const rafterCum = totalRafterM * RAFTER_SECTION_M2;
-
-  const purlinRowsPerSlope = halfSlopeM > 0 ? Math.floor(halfSlopeM / purlinSpM) + 1 : 0;
-  const totalPurlinM = purlinRowsPerSlope * 2 * sideM;
-  const purlinCum = totalPurlinM * PURLIN_SECTION_M2;
-  const roofTimberCum = rafterCum + purlinCum;
-
-  const timberCumRaw = postsCum + bandsCum + roofTimberCum;
-  const timberCft = round1(applyWastage(timberCumRaw * CUM_TO_CFT, wastage));
-  const timberPostsCft = round1(applyWastage(postsCum * CUM_TO_CFT, wastage));
-  const timberBandsCft = round1(applyWastage(bandsCum * CUM_TO_CFT, wastage));
-  const timberRoofCft = round1(applyWastage(roofTimberCum * CUM_TO_CFT, wastage));
-
-  // ── Wall panels above brick ────────────────────────────────
-  const panelHeightFt = timberPostHeightFt;
-  const panelAreaRaw =
-    wallLengthFt * Math.max(0, panelHeightFt) * floors * OPENINGS_FACTOR_PANEL;
-  const wallPanelAreaSqft = round1(applyWastage(panelAreaRaw, wastage));
-
-  // Plaster both faces on brick + panels (openings already in panel factor; brick 0.85)
-  const brickFaceAreaSqft =
-    (perimeterFt * extBrickHeightFt + interiorFt * brickWallHeightFt) * floors * 0.85;
-  const plasterAreaSqft = round1((brickFaceAreaSqft + panelAreaRaw) * 2);
-  const plasterWet = plasterAreaSqft * SQFT_TO_SQM * PLASTER_THICKNESS_M;
-  const plaster = mortarCementAndSand(plasterWet, PLASTER_CEMENT_PARTS, PLASTER_SAND_PARTS);
-
-  // ── PCC pedestals under posts ──────────────────────────────
-  const pccPedestalCum = postCount * PEDESTAL_L_M * PEDESTAL_W_M * PEDESTAL_H_M;
-  const pccDry = pccPedestalCum * CONCRETE_DRY_FACTOR;
-  const pccParts = PCC_CEMENT_PARTS + PCC_SAND_PARTS + PCC_AGG_PARTS;
-  const pccCementCum = pccDry * (PCC_CEMENT_PARTS / pccParts);
-  const pccSandCum = pccDry * (PCC_SAND_PARTS / pccParts);
-  const pccAggCum = pccDry * (PCC_AGG_PARTS / pccParts);
-
   const cementBagsBrickMortar = bagsFromCementVolume(brickMortar.cementCum);
-  const cementBagsPlaster = bagsFromCementVolume(plaster.cementCum);
-  const cementBagsPcc = bagsFromCementVolume(pccCementCum);
-  const cementBags = Math.ceil(
-    applyWastage(cementBagsBrickMortar + cementBagsPlaster + cementBagsPcc, wastage),
-  );
 
-  const sandCum = round2(
-    applyWastage(brickMortar.sandCum + plaster.sandCum + pccSandCum, wastage),
+  // Plaster both faces of walls (no ceiling slab)
+  const plasterAreaSqft = round1(wallAreaSqft * 2);
+  const plaster = mortarCementAndSand(
+    plasterAreaSqft * SQFT_TO_SQM * PLASTER_THICKNESS_M,
+    PLASTER_CEMENT_PARTS,
+    PLASTER_SAND_PARTS,
   );
-  const aggregateCum = round2(applyWastage(pccAggCum, wastage));
+  const cementBagsPlaster = bagsFromCementVolume(plaster.cementCum);
+
+  const cementBagsRaw = cementBagsRcc + cementBagsBrickMortar + cementBagsPlaster;
+  const sandCumRaw = rccSandCum + brickMortar.sandCum + plaster.sandCum;
+
+  // ── Tin roof ────────────────────────────────────────────────
+  const tinWaste = Math.max(0, inputs.tinWastagePercent);
+  const tinRoofAreaSqft = round1(builtUp * pitch * (1 + tinWaste / 100));
+
+  const timberCft =
+    inputs.trussType === 'timber'
+      ? round1(applyWastage(timberTrussCft(trussSpanFt, pitch, trussCount), wastage))
+      : 0;
 
   return {
+    concreteVolumeCum: {
+      columns: round2(columnConcrete),
+      plinthBeams: round2(plinthBeamConcrete),
+      lintels: round2(lintelConcrete),
+      footings: round2(footConcrete),
+      trusses: round2(trussConcrete),
+      total: round2(totalConcrete),
+    },
+    cementBags: Math.ceil(applyWastage(cementBagsRaw, wastage)),
+    sandCum: round2(applyWastage(sandCumRaw, wastage)),
+    aggregateCum: round2(applyWastage(aggregateCumRaw, wastage)),
     bricks,
-    cementBags,
-    sandCum,
-    aggregateCum,
+    steelByDiameter,
+    totalSteelQuintals: round2(totalSteelKg / 100),
     timberCft,
-    cgiAreaSqft,
-    wallPanelAreaSqft,
+    tinRoofAreaSqft,
     plasterAreaSqft,
     wastagePercent: wastage,
     meta: {
-      builtUpAreaPerFloorSqft: builtUp,
-      totalBuiltUpSqft,
+      builtUpAreaSqft: round1(builtUp),
       exteriorPerimeterFt: round1(perimeterFt),
       interiorWallLengthFt: round1(interiorFt),
-      brickWallHeightFt,
-      brickWallUpTo: inputs.brickWallUpTo,
-      eavesHeightFt: inputs.eavesHeightFt,
-      timberPostHeightFt: round1(timberPostHeightFt),
-      timberPostCount: postCount,
-      bandCount,
-      bandLengthFt: round1(bandLengthFt),
-      roofPlanSqft: roofPlanSqft,
-      cgiPitchFactor: pitch,
-      bricksFoundation,
-      bricksWalls,
-      bricksFlooring,
+      wallAreaSqft: round1(wallAreaSqft),
+      exteriorWallAreaSqft: round1(exteriorWallAreaSqft),
+      interiorWallAreaSqft: round1(interiorAreaSqft),
+      footingCount,
+      totalColumnHeightFt: round2(totalColumnHeightFt),
+      lintelLengthFt: round1(lintelLengthFt),
+      plinthBeamCount: plinthBeams,
+      trussType: inputs.trussType,
+      trussCount,
+      trussSpanFt: round1(trussSpanFt),
+      roofPlanSqft: round1(builtUp),
+      tinPitchFactor: pitch,
+      cementBagsRcc,
       cementBagsBrickMortar,
       cementBagsPlaster,
-      cementBagsPcc,
-      timberPostsCft,
-      timberBandsCft,
-      timberRoofCft,
-      pccPedestalCum: round2(pccPedestalCum),
+      bricksWalls: Math.ceil(applyWastage(bricksWallsRaw, wastage)),
+      bricksFoundationSoling: Math.ceil(applyWastage(bricksFoundationRaw, wastage)),
+      bricksFlooring: Math.ceil(applyWastage(bricksFlooringRaw, wastage)),
+      standardSpacingMm: spacingMm,
+      lapMultiplier: LAP_LENGTH_MULTIPLIER,
     },
   };
 }

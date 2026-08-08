@@ -1,7 +1,7 @@
 import { jsPDF } from 'jspdf';
 import { calculateAssamCostBreakdown, formatInr } from './assamCosts';
 import type { CostLineItem } from './costs';
-import type { AssamEstimateInputs, AssamEstimateResults } from './types';
+import { MIX_RATIOS, type AssamEstimateInputs, type AssamEstimateResults } from './types';
 
 type Row3 = [string, string, string];
 type Row4 = [string, string, string, string];
@@ -138,7 +138,6 @@ function costRows(lines: CostLineItem[], totalLabel: string, total: number): Row
   return rows;
 }
 
-/** Client-side PDF — Assam Type semi-pucca quantities + costs. */
 export function downloadAssamEstimatePdf(
   inputs: AssamEstimateInputs,
   results: AssamEstimateResults,
@@ -148,21 +147,27 @@ export function downloadAssamEstimatePdf(
   const margin = 14;
   let y = 18;
   const m = results.meta;
+  const trussLabel =
+    inputs.trussType === 'rcc_king_post' ? 'RCC King Post truss' : 'Timber truss';
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(16);
   doc.setTextColor(20);
-  doc.text('BuilBid — Assam Type (Semi-pucca) Estimate', margin, y);
+  doc.text('BuilBid — Assam Type House Estimate', margin, y);
   y += 7;
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.setTextColor(90);
-  doc.text('Brick to sill/lintel + timber frame + CGI roof (not a structural design)', margin, y);
+  doc.text(
+    'Single storey: RCC footing/columns/plinth/lintel + 5" brick + tin roof (no slab / floor beams)',
+    margin,
+    y,
+  );
   y += 5;
   doc.text(`Generated: ${new Date().toLocaleString('en-IN')}`, margin, y);
   y += 5;
   doc.text(
-    `Wastage ${results.wastagePercent}% · Brick to ${m.brickWallUpTo} · ${inputs.unitType} · ${inputs.floors} floor(s)`,
+    `Wastage ${results.wastagePercent}% · ${trussLabel} · ${inputs.unitType} · ${MIX_RATIOS[inputs.mixGrade].label}`,
     margin,
     y,
   );
@@ -175,63 +180,71 @@ export function downloadAssamEstimatePdf(
     ['Item', 'Quantity', 'Unit'],
     [
       ['Cement (total)', String(results.cementBags), 'bags'],
+      ['  — RCC concrete', String(m.cementBagsRcc), 'bags'],
       ['  — Brick mortar (1:6)', String(m.cementBagsBrickMortar), 'bags'],
-      ['  — Plaster (walls)', String(m.cementBagsPlaster), 'bags'],
-      ['  — PCC pedestals (1:3:6)', String(m.cementBagsPcc), 'bags'],
+      ['  — Wall plaster', String(m.cementBagsPlaster), 'bags'],
       ['Sand (total)', String(results.sandCum), 'cum'],
-      ['Coarse aggregate (PCC)', String(results.aggregateCum), 'cum'],
+      ['Coarse aggregate (Giti)', String(results.aggregateCum), 'cum'],
       ['Bricks (total)', results.bricks.toLocaleString('en-IN'), 'nos'],
-      ['  — Foundation', m.bricksFoundation.toLocaleString('en-IN'), 'nos'],
-      ['  — Walls / plinth', m.bricksWalls.toLocaleString('en-IN'), 'nos'],
+      ['  — Walls (9" plinth + 5")', m.bricksWalls.toLocaleString('en-IN'), 'nos'],
+      ['  — Foundation soling', m.bricksFoundationSoling.toLocaleString('en-IN'), 'nos'],
       ['  — Flooring bed', m.bricksFlooring.toLocaleString('en-IN'), 'nos'],
-      ['Timber (total)', String(results.timberCft), 'cft'],
-      ['  — Posts', String(m.timberPostsCft), 'cft'],
-      ['  — Bands', String(m.timberBandsCft), 'cft'],
-      ['  — Roof rafters/purlins', String(m.timberRoofCft), 'cft'],
-      ['CGI roofing (sloping)', String(results.cgiAreaSqft), 'sqft'],
-      ['Bamboo / mesh panels', String(results.wallPanelAreaSqft), 'sqft'],
+      ['Total steel', String(results.totalSteelQuintals), 'quintals'],
+      ['Tin roof (Dyna / Tata CGI)', String(results.tinRoofAreaSqft), 'sqft'],
+      ...(results.timberCft > 0
+        ? [['Timber truss', String(results.timberCft), 'cft'] as Row3]
+        : []),
     ],
     margin,
   );
+
+  const steelRows: Row3[] = results.steelByDiameter.map((r) => [
+    `${r.diameterMm} mm bars`,
+    String(r.quintals),
+    'quintals',
+  ]);
+  if (steelRows.length === 0) steelRows.push(['—', '0', 'quintals']);
+  y = renderTable3(doc, y, '2. Steel by Diameter', ['Diameter', 'Quantity', 'Unit'], steelRows, margin);
 
   y = renderTable3(
     doc,
     y,
-    '2. Structure Summary',
-    ['Parameter', 'Value', 'Unit'],
+    '3. Concrete Volume (no slab / floor beams)',
+    ['Member', 'Volume', 'Unit'],
     [
-      ['Exterior perimeter', String(m.exteriorPerimeterFt), 'ft'],
-      ['Interior wall length', String(m.interiorWallLengthFt), 'ft'],
-      ['Brick height (floor up)', String(m.brickWallHeightFt), 'ft'],
-      ['Timber post height', String(m.timberPostHeightFt), 'ft'],
-      ['Timber posts', String(m.timberPostCount), 'nos'],
-      [`Timber bands (${m.bandCount} levels)`, String(m.bandLengthFt), 'ft'],
-      ['Roof plan area', String(m.roofPlanSqft), 'sqft'],
-      ['CGI pitch factor', String(m.cgiPitchFactor), '—'],
-      ['PCC pedestals', String(m.pccPedestalCum), 'cum'],
-      ['Plaster surface (both faces)', String(results.plasterAreaSqft), 'sqft'],
+      ['Columns', String(results.concreteVolumeCum.columns), 'cum'],
+      ['Plinth / ground beams', String(results.concreteVolumeCum.plinthBeams), 'cum'],
+      [`Lintels (${m.lintelLengthFt} ft)`, String(results.concreteVolumeCum.lintels), 'cum'],
+      ['Footings', String(results.concreteVolumeCum.footings), 'cum'],
+      [
+        inputs.trussType === 'rcc_king_post'
+          ? `RCC king-post trusses (${m.trussCount} nos)`
+          : 'Trusses (timber — see timber qty)',
+        String(results.concreteVolumeCum.trusses),
+        'cum',
+      ],
+      ['Total concrete', String(results.concreteVolumeCum.total), 'cum'],
     ],
     margin,
   );
 
-  const materialCostRows = costRows(
-    [...costs.materialLines, costs.mistriLabour],
-    'Materials + mistri subtotal',
-    costs.materialTotal + costs.mistriLabour.amount,
-  );
   y = renderTable4(
     doc,
     y,
-    '3. Material & Labour Cost (your rates)',
+    '4. Material & Labour Cost (your rates)',
     ['Item', 'Qty', 'Rate', 'Amount'],
-    materialCostRows,
+    costRows(
+      [...costs.materialLines, costs.mistriLabour],
+      'Materials + mistri subtotal',
+      costs.materialTotal + costs.mistriLabour.amount,
+    ),
     margin,
   );
 
   y = renderTable4(
     doc,
     y,
-    `4. Finishing & Allied Works (standard quality · ${inputs.unitType})`,
+    `5. Finishing & Allied Works (standard quality · ${inputs.unitType})`,
     ['Item', 'Basis', 'Rate', 'Amount'],
     costRows(costs.finishingLines, 'Finishing subtotal', costs.finishingTotal),
     margin,
@@ -240,7 +253,7 @@ export function downloadAssamEstimatePdf(
   y = renderTable3(
     doc,
     y,
-    '5. Cost Summary',
+    '6. Cost Summary',
     ['Head', 'Amount', ''],
     [
       ['Materials', formatInr(costs.materialTotal), ''],
@@ -261,21 +274,21 @@ export function downloadAssamEstimatePdf(
   y = renderTable3(
     doc,
     y,
-    '6. Key Project Inputs',
+    '7. Key Project Inputs',
     ['Parameter', 'Value', 'Unit'],
     [
-      ['Construction', 'Assam Type (semi-pucca)', '—'],
+      ['Construction', 'Assam Type (single storey)', '—'],
       ['Unit type', inputs.unitType, '—'],
-      ['Floors', String(inputs.floors), 'nos'],
-      ['Built-up / floor', String(inputs.builtUpAreaPerFloorSqft), 'sqft'],
-      ['Total built-up', String(costs.totalBuiltUpSqft), 'sqft'],
+      ['Built-up area', String(inputs.builtUpAreaSqft), 'sqft'],
       ['Foundation depth', String(inputs.foundationDepthFt), 'ft'],
-      ['Plinth height', String(inputs.plinthHeightFt), 'ft'],
-      ['Eaves height', String(inputs.eavesHeightFt), 'ft'],
-      ['Brick wall up to', inputs.brickWallUpTo, '—'],
-      ['Post spacing', String(inputs.postSpacingM), 'm'],
-      ['Rafter spacing', String(inputs.rafterSpacingMm), 'mm'],
-      ['Purlin spacing', String(inputs.purlinSpacingMm), 'mm'],
+      ['Plinth height (9" brick)', String(inputs.plinthHeightFt), 'ft'],
+      ['Wall height (5" brick)', String(inputs.wallHeightFt), 'ft'],
+      ['Columns', String(inputs.columnCount), 'nos'],
+      ['Plinth beams', String(inputs.plinthBeamCount), 'nos'],
+      ['Truss type', trussLabel, '—'],
+      ['Truss count / span', `${m.trussCount} / ${m.trussSpanFt}`, 'nos / ft'],
+      ['Tin pitch factor', String(inputs.tinPitchFactor), '—'],
+      ['Concrete mix', MIX_RATIOS[inputs.mixGrade].label, '—'],
       ['Flooring finish', inputs.rates.flooringFinish, '—'],
     ],
     margin,
@@ -286,7 +299,7 @@ export function downloadAssamEstimatePdf(
   doc.setTextColor(100);
   doc.setFont('helvetica', 'normal');
   doc.text(
-    'Disclaimer: Approximate budgeting estimate for semi-pucca Assam Type (brick plinth/sill or lintel, timber frame, CGI roof) using research-backed thumb rules + client rates. Not a substitute for structural design. Actual tender rates vary by locality, timber grade, and site conditions. Consult a licensed engineer / contractor for final design and quotations.',
+    'Disclaimer: Approximate budgeting estimate for modern Assam Type (RCC columns/footing/plinth/lintel, 5" brick walls, tin roof on king-post or timber truss — no RCC slab or floor beams). Not a structural design. Consult a licensed engineer for final design and quotations.',
     margin,
     y,
     { maxWidth: doc.internal.pageSize.getWidth() - margin * 2 },

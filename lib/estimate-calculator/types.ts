@@ -11,16 +11,14 @@ export type BarDiameter = 6 | 8 | 10 | 12 | 16 | 20 | 25 | 32;
 export type FlooringFinish = 'tile' | 'granite';
 
 /** Top-level calculator path. */
-export type HouseConstructionType = 'rcc' | 'assam_semi_pucca';
+export type HouseConstructionType = 'rcc' | 'assam_type';
 
-/** Brick masonry height for semi-pucca Assam type. */
-export type AssamBrickWallUpTo = 'sill' | 'lintel';
+/** Assam Type roof truss. */
+export type AssamTrussType = 'rcc_king_post' | 'timber';
 
-/** Sill ≈ 0.9 m; lintel ≈ 2.1 m above floor. */
-export const ASSAM_BRICK_HEIGHT_FT: Record<AssamBrickWallUpTo, number> = {
-  sill: 3,
-  lintel: 7,
-};
+/** Above-plinth Assam walls — 5″ (≈ 125 mm). Plinth band remains 9″. */
+export const ASSAM_WALL_THICKNESS_M = 0.125;
+export const ASSAM_PLINTH_THICKNESS_M = 0.2286;
 
 /** Fixed stirrup / slab bar spacing (mm) — not client-entered. */
 export const STANDARD_BAR_SPACING_MM = 125;
@@ -195,120 +193,183 @@ export interface SteelByDiameter {
   quintals: number;
 }
 
-// ── Assam Type (semi-pucca) ──────────────────────────────────
+// ── Assam Type (modern: RCC frame + 5″ brick + tin roof / truss) ──
 
 export interface AssamItemRates {
   mistriPerSqft: number;
   cementPerBag: number;
   sandPerCum: number;
   brickPerPiece: number;
-  /** PCC pedestals / light concrete. */
   aggregatePerCum: number;
-  /** Sal / Nahar class timber — ₹ / cubic foot. */
+  /** ₹ / quintal by bar diameter (mm). */
+  steelPerQuintalByDia: Partial<Record<BarDiameter, number>>;
+  /** Quality tin — Dyna / coloured Tata CGI — ₹ / sqft laid. */
+  tinRoofPerSqft: number;
+  /** Timber truss — ₹ / cft (used when truss = timber). */
   timberPerCft: number;
-  /** Laid CGI incl. fasteners allowance — ₹ / sqft. */
-  cgiPerSqft: number;
-  /** Bamboo / mesh wall panel — ₹ / sqft face. */
-  wallPanelPerSqft: number;
   flooringFinish: FlooringFinish;
 }
 
 export const DEFAULT_ASSAM_ITEM_RATES: AssamItemRates = {
-  mistriPerSqft: 200,
+  mistriPerSqft: 220,
   cementPerBag: 400,
   sandPerCum: 3200,
   brickPerPiece: 10,
   aggregatePerCum: 2500,
+  steelPerQuintalByDia: {
+    6: 6200,
+    8: 6000,
+    10: 5800,
+    12: 5700,
+    16: 5600,
+    20: 5500,
+    25: 5450,
+    32: 5400,
+  },
+  tinRoofPerSqft: 95,
   timberPerCft: 1000,
-  cgiPerSqft: 65,
-  wallPanelPerSqft: 50,
   flooringFinish: 'tile',
 };
 
+/**
+ * Modern Assam Type — single storey only.
+ * Like RCC ground floor but no slab / floor beams; tin roof + trusses instead.
+ */
 export interface AssamEstimateInputs {
-  floors: number;
   unitType: UnitType;
-  builtUpAreaPerFloorSqft: number;
-  /** Below GL — typically ~2 ft (600 mm). */
+  builtUpAreaSqft: number;
   foundationDepthFt: number;
   plinthHeightFt: number;
-  /** Floor level to eaves (wall height). */
-  eavesHeightFt: number;
-  brickWallUpTo: AssamBrickWallUpTo;
+  /** Floor to eaves / wall top (single storey). */
+  wallHeightFt: number;
   wastagePercent: WastagePercent;
+  mixGrade: MixGrade;
+  trussType: AssamTrussType;
 
-  /** Intermediate timber post spacing (m). Default 1.1. */
-  postSpacingM: number;
-  postWidthMm: number;
-  postDepthMm: number;
-  bandWidthMm: number;
-  bandDepthMm: number;
-  rafterSpacingMm: number;
-  purlinSpacingMm: number;
-  /** Sloping area / plan area. Default 1.20. */
-  cgiPitchFactor: number;
-  cgiWastagePercent: number;
+  columnCount: number;
+  columnWidthMm: number;
+  columnDepthMm: number;
+  columnRodsCount1: number;
+  columnRodDia1Mm: BarDiameter;
+  columnRodsCount2: number;
+  columnRodDia2Mm: BarDiameter;
+  columnStirrupDiaMm: BarDiameter;
+
+  /** Plinth / ground beams only (no floor beams). */
+  plinthBeamCount: number;
+  plinthBeamWidthMm: number;
+  plinthBeamDepthMm: number;
+  avgPlinthBeamLengthFt: number;
+  plinthBeamRodsCount1: number;
+  plinthBeamRodDia1Mm: BarDiameter;
+  plinthBeamRodsCount2: number;
+  plinthBeamRodDia2Mm: BarDiameter;
+  plinthBeamStirrupDiaMm: BarDiameter;
+
+  footingType: FootingType;
+  footingLengthMm: number;
+  footingWidthMm: number;
+  footingDepthMm: number;
+  footingRodDiaMm: BarDiameter;
+
+  /** Truss spacing along building length. */
+  trussSpacingFt: number;
+  /** Sloping tin area / plan area. */
+  tinPitchFactor: number;
+  tinWastagePercent: number;
 
   rates: AssamItemRates;
 }
 
 export const DEFAULT_ASSAM_INPUTS: AssamEstimateInputs = {
-  floors: 1,
   unitType: '2BHK',
-  builtUpAreaPerFloorSqft: UNIT_TYPE_DEFAULT_AREA['2BHK'],
-  foundationDepthFt: 2,
+  builtUpAreaSqft: UNIT_TYPE_DEFAULT_AREA['2BHK'],
+  foundationDepthFt: 4,
   plinthHeightFt: 2,
-  eavesHeightFt: 10,
-  brickWallUpTo: 'sill',
+  wallHeightFt: 10,
   wastagePercent: 5,
+  mixGrade: 'M20',
+  trussType: 'rcc_king_post',
 
-  postSpacingM: 1.1,
-  postWidthMm: 100,
-  postDepthMm: 100,
-  bandWidthMm: 100,
-  bandDepthMm: 75,
-  rafterSpacingMm: 650,
-  purlinSpacingMm: 300,
-  cgiPitchFactor: 1.2,
-  cgiWastagePercent: 10,
+  columnCount: 12,
+  columnWidthMm: 300,
+  columnDepthMm: 300,
+  columnRodsCount1: 4,
+  columnRodDia1Mm: 16,
+  columnRodsCount2: 4,
+  columnRodDia2Mm: 12,
+  columnStirrupDiaMm: 8,
 
-  rates: { ...DEFAULT_ASSAM_ITEM_RATES },
+  plinthBeamCount: 16,
+  plinthBeamWidthMm: 230,
+  plinthBeamDepthMm: 300,
+  avgPlinthBeamLengthFt: 12,
+  plinthBeamRodsCount1: 2,
+  plinthBeamRodDia1Mm: 16,
+  plinthBeamRodsCount2: 2,
+  plinthBeamRodDia2Mm: 12,
+  plinthBeamStirrupDiaMm: 8,
+
+  footingType: 'isolated',
+  footingLengthMm: 1200,
+  footingWidthMm: 1200,
+  footingDepthMm: 300,
+  footingRodDiaMm: 12,
+
+  trussSpacingFt: 10,
+  tinPitchFactor: 1.2,
+  tinWastagePercent: 10,
+
+  rates: {
+    ...DEFAULT_ASSAM_ITEM_RATES,
+    steelPerQuintalByDia: { ...DEFAULT_ASSAM_ITEM_RATES.steelPerQuintalByDia },
+  },
 };
 
 export interface AssamEstimateResults {
-  bricks: number;
+  concreteVolumeCum: {
+    columns: number;
+    plinthBeams: number;
+    lintels: number;
+    footings: number;
+    /** RCC king-post trusses only; 0 for timber. */
+    trusses: number;
+    total: number;
+  };
   cementBags: number;
   sandCum: number;
   aggregateCum: number;
+  bricks: number;
+  steelByDiameter: SteelByDiameter[];
+  totalSteelQuintals: number;
   timberCft: number;
-  cgiAreaSqft: number;
-  wallPanelAreaSqft: number;
+  tinRoofAreaSqft: number;
   plasterAreaSqft: number;
   wastagePercent: WastagePercent;
   meta: {
-    builtUpAreaPerFloorSqft: number;
-    totalBuiltUpSqft: number;
+    builtUpAreaSqft: number;
     exteriorPerimeterFt: number;
     interiorWallLengthFt: number;
-    brickWallHeightFt: number;
-    brickWallUpTo: AssamBrickWallUpTo;
-    eavesHeightFt: number;
-    timberPostHeightFt: number;
-    timberPostCount: number;
-    bandCount: number;
-    bandLengthFt: number;
+    wallAreaSqft: number;
+    exteriorWallAreaSqft: number;
+    interiorWallAreaSqft: number;
+    footingCount: number;
+    totalColumnHeightFt: number;
+    lintelLengthFt: number;
+    plinthBeamCount: number;
+    trussType: AssamTrussType;
+    trussCount: number;
+    trussSpanFt: number;
     roofPlanSqft: number;
-    cgiPitchFactor: number;
-    bricksFoundation: number;
-    bricksWalls: number;
-    bricksFlooring: number;
+    tinPitchFactor: number;
+    cementBagsRcc: number;
     cementBagsBrickMortar: number;
     cementBagsPlaster: number;
-    cementBagsPcc: number;
-    timberPostsCft: number;
-    timberBandsCft: number;
-    timberRoofCft: number;
-    pccPedestalCum: number;
+    bricksWalls: number;
+    bricksFoundationSoling: number;
+    bricksFlooring: number;
+    standardSpacingMm: number;
+    lapMultiplier: number;
   };
 }
 
