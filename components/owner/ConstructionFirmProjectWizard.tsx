@@ -509,82 +509,147 @@ export function ConstructionFirmProjectWizard() {
 
           {step === 4 && (
             <div className="space-y-5">
-              <h2 className="text-base font-semibold text-foreground">Review & Submit</h2>
-
-              <div className="rounded-xl bg-secondary/50 border border-border divide-y divide-border">
-                {[
-                  { label: 'Service Type', value: '🏢 Construction Firm', editStep: null },
-                  { label: 'District', value: form.location || '—', editStep: 1 as Step },
-                  {
-                    label: 'Pincode',
-                    value: form.pincode.trim() || 'Not specified',
-                    editStep: 1 as Step,
-                  },
-                  {
-                    label: 'Your Maximum Budget',
-                    value: budgetPreview ?? 'Not specified',
-                    editStep: 1 as Step,
-                  },
-                  {
-                    label: 'Building Type',
-                    value: <BuildingConfigSummary project={reviewProject} compact className="text-right" />,
-                    editStep: 2 as Step,
-                  },
-                  {
-                    label: 'Total Slab Area of All the Floors (in Sqft) Approx',
-                    value: form.floor_area_sqft ? `${form.floor_area_sqft} sqft` : 'Not specified',
-                    editStep: 2 as Step,
-                  },
-                  {
-                    label: 'Construction Scope',
-                    value: (
-                      <BuildingConfigSummary project={reviewProject} className="text-right space-y-2" />
-                    ),
-                    editStep: 3 as Step,
-                  },
-                  { label: 'Bidding Opens', value: 'Immediately upon submission', editStep: null },
-                  {
-                    label: 'Bidding Duration',
-                    value:
-                      form.bidding_minutes === '7'
-                        ? '7 minutes from launch'
-                        : '24 hours from launch',
-                    editStep: 1 as Step,
-                  },
-                  { label: 'Selection Window', value: '5 minutes after bids close', editStep: null },
-                ].map(({ label, value, editStep }) => (
-                  <div key={label} className="flex items-start justify-between gap-3 px-4 py-3">
-                    <span className="text-xs text-muted-foreground flex-1 min-w-0">{label}</span>
-                    <div className="flex items-center gap-2 text-sm font-semibold text-foreground text-right flex-shrink-0 max-w-[55%]">
-                      <div className="min-w-0">{value}</div>
-                      {editStep && (
-                        <button type="button" onClick={() => setStep(editStep)} className="text-[10px] text-indigo-400 hover:underline flex-shrink-0">
-                          Edit
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
+              <div>
+                <h2 className="text-lg font-bold tracking-tight text-foreground">Review & Submit</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Confirm details before your project goes live for bidding
+                </p>
               </div>
 
-              <Button variant="outline" size="lg" className="w-full" onClick={() => setStep(3)}>
-                <ArrowLeft className="w-4 h-4" /> Back
-              </Button>
-              <Button
-                size="lg"
-                disabled={loading}
-                onClick={handleSubmit}
-                className="w-full rounded-2xl font-bold h-12 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 shadow-lg shadow-indigo-500/25"
-              >
-                {loading ? (
-                  <span className="flex items-center gap-2">
-                    <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-                    Posting your project…
+              {/* Service banner */}
+              <div className="relative overflow-hidden rounded-2xl border border-violet-500/25 bg-gradient-to-br from-violet-500/15 via-indigo-500/10 to-transparent px-4 py-3.5">
+                <div className="pointer-events-none absolute -right-6 -top-6 h-20 w-20 rounded-full bg-violet-500/20 blur-2xl" />
+                <div className="relative flex items-center gap-3">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-xl border border-violet-500/30 bg-violet-500/15 text-2xl">
+                    🏢
                   </span>
-                ) : (
-                  'Post Project & Start Bidding 🚀'
-                )}
-              </Button>
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-violet-600 dark:text-violet-300">
+                      Service
+                    </p>
+                    <p className="text-base font-bold text-foreground">Construction Firm</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Project overview */}
+              <section className="overflow-hidden rounded-2xl border border-border/70 bg-card/60 shadow-sm">
+                <div className="flex items-center justify-between border-b border-border/60 px-4 py-2.5">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Project overview
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => setStep(1)}
+                    className="text-[11px] font-semibold text-emerald-600 hover:underline dark:text-emerald-400"
+                  >
+                    Edit
+                  </button>
+                </div>
+                <dl className="divide-y divide-border/50">
+                  {[
+                    { label: 'District', value: form.location || '—' },
+                    { label: 'Pincode', value: form.pincode.trim() || 'Not specified' },
+                    { label: 'Max budget', value: budgetPreview ?? 'Not specified' },
+                    {
+                      label: 'Total slab area',
+                      value: form.floor_area_sqft ? `${form.floor_area_sqft} sqft` : 'Not specified',
+                    },
+                    {
+                      label: 'Bidding duration',
+                      value:
+                        form.bidding_minutes === '7'
+                          ? '7 minutes (Quick)'
+                          : '24 hours (Standard)',
+                    },
+                  ].map((row) => (
+                    <div key={row.label} className="flex items-center justify-between gap-3 px-4 py-3">
+                      <dt className="text-xs text-muted-foreground">{row.label}</dt>
+                      <dd className="text-sm font-semibold text-foreground text-right">{row.value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </section>
+
+              {/* Floors / construction scope */}
+              <section className="overflow-hidden rounded-2xl border border-border/70 bg-card/60 shadow-sm">
+                <div className="flex items-center justify-between border-b border-border/60 px-4 py-2.5">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Construction plan
+                  </h3>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setStep(2)}
+                      className="text-[11px] font-semibold text-emerald-600 hover:underline dark:text-emerald-400"
+                    >
+                      Floors
+                    </button>
+                    <span className="text-muted-foreground/40">·</span>
+                    <button
+                      type="button"
+                      onClick={() => setStep(3)}
+                      className="text-[11px] font-semibold text-emerald-600 hover:underline dark:text-emerald-400"
+                    >
+                      Scope
+                    </button>
+                  </div>
+                </div>
+                <div className="p-3.5">
+                  <BuildingConfigSummary project={reviewProject} />
+                </div>
+              </section>
+
+              {/* Auction timing */}
+              <section className="rounded-2xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/[0.08] to-teal-500/[0.04] px-4 py-3.5">
+                <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                  Auction timing
+                </h3>
+                <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+                  {[
+                    { label: 'Opens', value: 'On submit' },
+                    {
+                      label: 'Closes',
+                      value: form.bidding_minutes === '7' ? '7 min' : '24 hrs',
+                    },
+                    { label: 'Select firm', value: '5 min window' },
+                  ].map((item) => (
+                    <div
+                      key={item.label}
+                      className="rounded-xl border border-border/50 bg-background/50 px-3 py-2.5 text-center"
+                    >
+                      <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                        {item.label}
+                      </p>
+                      <p className="mt-0.5 text-sm font-bold text-foreground">{item.value}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              <div className="flex flex-col gap-3 pt-1">
+                <Button variant="outline" size="lg" className="w-full rounded-xl" onClick={() => setStep(3)}>
+                  <ArrowLeft className="w-4 h-4" /> Back
+                </Button>
+                <Button
+                  size="lg"
+                  disabled={loading}
+                  onClick={handleSubmit}
+                  className="h-12 w-full rounded-2xl border-0 bg-gradient-to-r from-emerald-600 to-teal-500 text-base font-bold shadow-lg shadow-emerald-500/25 hover:from-emerald-500 hover:to-teal-400"
+                >
+                  {loading ? (
+                    <span className="flex items-center gap-2">
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                      Posting your project…
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-2">
+                      Post Project & Start Bidding
+                      <ArrowRight className="h-4 w-4" />
+                    </span>
+                  )}
+                </Button>
+              </div>
             </div>
           )}
 
