@@ -49,9 +49,13 @@ export const STANDARD_FINISH_RATES = {
   graniteFlooringPerSqft: 280,
   /** Carpet ≈ 75% of built-up for flooring (walls deducted). */
   flooringAreaFactor: 0.75,
-  /** Plumbing piping + standard fittings — ₹ / bathroom. */
+  /** Plumbing piping + sanitary fittings — ₹ / toilet (user-entered count). */
+  plumbingPerToilet: 55_000,
+  /** @deprecated alias — use plumbingPerToilet */
   plumbingPerBathroom: 55_000,
-  /** Extra kitchen wet-point package. */
+  /** Toilet waterproofing + wet-area wall/floor tile package — ₹ / toilet. */
+  toiletWetWorksPerToilet: 18_000,
+  /** Kitchen wet-point package — ₹ / kitchen. */
   plumbingKitchenLump: 18_000,
   /** Concealed wiring + switches + DB (excl. fixtures) — ₹ / sqft built-up. */
   electricalPerSqftBuiltUp: 115,

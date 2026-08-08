@@ -1,6 +1,7 @@
 import { jsPDF } from 'jspdf';
 import { calculateCostBreakdown, formatInr, type CostBreakdown, type CostLineItem } from './costs';
-import { MIX_RATIOS, type EstimateInputs, type EstimateResults } from './types';
+import { getFloorConfigs } from './calculate';
+import { MIX_RATIOS, floorLabel, type EstimateInputs, type EstimateResults } from './types';
 
 type Row3 = [string, string, string];
 type Row4 = [string, string, string, string];
@@ -156,11 +157,17 @@ export function downloadEstimatePdf(inputs: EstimateInputs, results: EstimateRes
   y += 5;
   doc.text(`Generated: ${new Date().toLocaleString('en-IN')}`, margin, y);
   y += 5;
+  const floorConfigs = getFloorConfigs(inputs);
+  const floorSummary = floorConfigs
+    .map((f, i) => `${floorLabel(i, inputs.floors)} ${f.unitType}/${f.toilets}T`)
+    .join(' · ');
   doc.text(
-    `Wastage ${results.wastagePercent}% · Spacing ${results.meta.standardSpacingMm} mm · Lap ${results.meta.lapMultiplier}×d · ${inputs.unitType} · ${inputs.floors} floor(s)`,
+    `Wastage ${results.wastagePercent}% · Spacing ${results.meta.standardSpacingMm} mm · Lap ${results.meta.lapMultiplier}×d · ${inputs.floors} floor(s)`,
     margin,
     y,
   );
+  y += 4;
+  doc.text(floorSummary.slice(0, 110), margin, y);
   y += 8;
 
   y = renderTable3(
@@ -231,7 +238,7 @@ export function downloadEstimatePdf(inputs: EstimateInputs, results: EstimateRes
   y = renderTable4(
     doc,
     y,
-    `5. Finishing & Allied Works (standard quality · ${inputs.unitType})`,
+    `5. Finishing & Allied (${results.meta.totalToilets} toilets · ${results.meta.kitchenCount} kitchens)`,
     ['Item', 'Basis', 'Rate', 'Amount'],
     costRows(costs.finishingLines, 'Finishing subtotal', costs.finishingTotal),
     margin,
@@ -264,8 +271,16 @@ export function downloadEstimatePdf(inputs: EstimateInputs, results: EstimateRes
     '7. Key Project Inputs',
     ['Parameter', 'Value', 'Unit'],
     [
-      ['Unit type', inputs.unitType, '—'],
       ['Floors', String(inputs.floors), 'nos'],
+      ...floorConfigs.map(
+        (f, i): Row3 => [
+          floorLabel(i, inputs.floors),
+          `${f.unitType} · ${f.toilets} toilet(s)`,
+          '—',
+        ],
+      ),
+      ['Total toilets', String(results.meta.totalToilets), 'nos'],
+      ['Kitchens', String(results.meta.kitchenCount), 'nos'],
       ['Built-up / floor', String(inputs.builtUpAreaPerFloorSqft), 'sqft'],
       ['Total built-up', String(costs.totalBuiltUpSqft), 'sqft'],
       ['Slab area / floor', String(inputs.slabAreaPerFloorSqft), 'sqft'],
@@ -274,6 +289,11 @@ export function downloadEstimatePdf(inputs: EstimateInputs, results: EstimateRes
       ['Floor-to-floor height', String(inputs.floorToFloorHeightFt), 'ft'],
       ['Concrete mix', MIX_RATIOS[inputs.mixGrade].label, '—'],
       ['Flooring finish', inputs.rates.flooringFinish, '—'],
+      [
+        'Interior wall length (all floors)',
+        String(results.meta.interiorWallLengthFt),
+        'ft',
+      ],
       [
         'Wall area (ext + int)',
         `${results.meta.exteriorWallAreaSqft} + ${results.meta.interiorWallAreaSqft}`,

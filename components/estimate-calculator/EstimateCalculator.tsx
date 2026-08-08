@@ -14,12 +14,14 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { AssamEstimateCalculator } from '@/components/estimate-calculator/AssamEstimateCalculator';
 import {
   calculateEstimate,
+  getFloorConfigs,
   getTotalSlabAreaSqft,
   getAutoWallAreaSqft,
   getExteriorWallAreaSqft,
   getInteriorWallAreaSqft,
-  getInteriorWallLengthFtPerFloor,
   getTotalColumnHeightFt,
+  getTotalInteriorWallLengthFt,
+  getTotalToilets,
   LINTEL_STANDARD,
 } from '@/lib/estimate-calculator/calculate';
 import { calculateCostBreakdown, formatInr } from '@/lib/estimate-calculator/costs';
@@ -28,7 +30,6 @@ import {
   BAR_DIAMETERS,
   BUILT_UP_AREA_INFO,
   DEFAULT_INPUTS,
-  INTERIOR_WALL_LENGTH_FT_PER_FLOOR,
   LAP_LENGTH_MULTIPLIER,
   MIX_RATIOS,
   STANDARD_BAR_SPACING_MM,
@@ -36,6 +37,9 @@ import {
   STIRRUP_DIAMETERS,
   UNIT_TYPE_DEFAULT_AREA,
   UNIT_TYPE_DEFAULT_SLAB_AREA,
+  defaultToiletsForUnit,
+  floorLabel,
+  syncFloorConfigs,
   type BarDiameter,
   type EstimateInputs,
   type FlooringFinish,
@@ -290,19 +294,53 @@ function RccEstimateCalculator({ onChangeType }: { onChangeType: () => void }) {
     setShowResults(false);
   }
 
-  function handleUnitType(unitType: UnitType) {
-    setInputs((prev) => ({
-      ...prev,
-      unitType,
-      builtUpAreaPerFloorSqft:
-        unitType === 'Custom'
-          ? prev.builtUpAreaPerFloorSqft
-          : UNIT_TYPE_DEFAULT_AREA[unitType],
-      slabAreaPerFloorSqft:
-        unitType === 'Custom'
-          ? prev.slabAreaPerFloorSqft
-          : UNIT_TYPE_DEFAULT_SLAB_AREA[unitType],
-    }));
+  function handleFloors(n: number) {
+    const floors = Math.max(1, Math.floor(n));
+    setInputs((prev) => {
+      const floorConfigs = syncFloorConfigs(floors, prev.floorConfigs ?? [], prev.unitType);
+      return {
+        ...prev,
+        floors,
+        floorConfigs,
+        unitType: floorConfigs[0]?.unitType ?? prev.unitType,
+      };
+    });
+    setShowResults(false);
+  }
+
+  function updateFloorUnitType(floorIndex: number, unitType: UnitType) {
+    setInputs((prev) => {
+      const floorConfigs = syncFloorConfigs(prev.floors, prev.floorConfigs ?? [], prev.unitType).map(
+        (cfg, i) =>
+          i === floorIndex
+            ? { unitType, toilets: defaultToiletsForUnit(unitType) }
+            : cfg,
+      );
+      // Built-up / slab defaults from largest BHK on the building (or Custom keeps current)
+      const areas = floorConfigs.map((c) =>
+        c.unitType === 'Custom' ? prev.builtUpAreaPerFloorSqft : UNIT_TYPE_DEFAULT_AREA[c.unitType],
+      );
+      const maxArea = Math.max(...areas, 0);
+      const allCustom = floorConfigs.every((c) => c.unitType === 'Custom');
+      return {
+        ...prev,
+        floorConfigs,
+        unitType: floorConfigs[0]?.unitType ?? prev.unitType,
+        builtUpAreaPerFloorSqft: allCustom ? prev.builtUpAreaPerFloorSqft : maxArea,
+        slabAreaPerFloorSqft: allCustom ? prev.slabAreaPerFloorSqft : maxArea,
+      };
+    });
+    setShowResults(false);
+  }
+
+  function updateFloorToilets(floorIndex: number, toilets: number) {
+    setInputs((prev) => {
+      const floorConfigs = syncFloorConfigs(prev.floors, prev.floorConfigs ?? [], prev.unitType).map(
+        (cfg, i) =>
+          i === floorIndex ? { ...cfg, toilets: Math.max(0, Math.floor(toilets)) } : cfg,
+      );
+      return { ...prev, floorConfigs };
+    });
     setShowResults(false);
   }
 
@@ -340,10 +378,9 @@ function RccEstimateCalculator({ onChangeType }: { onChangeType: () => void }) {
   const autoWall = getAutoWallAreaSqft(inputs);
   const exteriorWall = getExteriorWallAreaSqft(inputs);
   const interiorWall = getInteriorWallAreaSqft(inputs);
-  const interiorLengthPerFloor = getInteriorWallLengthFtPerFloor(
-    inputs.unitType,
-    inputs.builtUpAreaPerFloorSqft,
-  );
+  const floorConfigs = getFloorConfigs(inputs);
+  const totalToilets = getTotalToilets(inputs);
+  const interiorWallLengthFt = getTotalInteriorWallLengthFt(inputs);
   const totalColumnHeightFt = getTotalColumnHeightFt(inputs);
   const colRodTotal = inputs.columnRodsCount1 + inputs.columnRodsCount2;
   const beamRodTotal = inputs.beamRodsCount1 + inputs.beamRodsCount2;
@@ -410,23 +447,9 @@ function RccEstimateCalculator({ onChangeType }: { onChangeType: () => void }) {
                   label="Number of floors"
                   value={inputs.floors}
                   min={1}
-                  onChange={(n) => update('floors', Math.max(1, Math.floor(n)))}
+                  onChange={handleFloors}
+                  hint="For each storey, set BHK and toilet count below."
                 />
-                <div className="flex flex-col gap-1.5 w-full">
-                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Unit type / rooms
-                  </label>
-                  <Select value={inputs.unitType} onValueChange={(v) => handleUnitType(v as UnitType)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1BHK">1BHK</SelectItem>
-                      <SelectItem value="2BHK">2BHK</SelectItem>
-                      <SelectItem value="3BHK">3BHK</SelectItem>
-                      <SelectItem value="4BHK">4BHK</SelectItem>
-                      <SelectItem value="Custom">Custom</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
                 <NumField
                   label="Built-up area per floor"
                   value={inputs.builtUpAreaPerFloorSqft}
@@ -434,7 +457,7 @@ function RccEstimateCalculator({ onChangeType }: { onChangeType: () => void }) {
                   suffix="sqft"
                   onChange={(n) => update('builtUpAreaPerFloorSqft', Math.max(0, n))}
                   labelExtra={<BuiltUpInfoButton />}
-                  hint="For outer walls, flooring bed & footprint. Not the same as slab area."
+                  hint="For outer walls, flooring bed & footprint. Defaults to largest floor BHK area."
                 />
                 <NumField
                   label="Slab area per floor"
@@ -466,6 +489,58 @@ function RccEstimateCalculator({ onChangeType }: { onChangeType: () => void }) {
                   suffix="ft"
                   onChange={(n) => update('floorToFloorHeightFt', Math.max(0, n))}
                 />
+              </div>
+
+              <div className="space-y-3">
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground">Per-floor BHK & toilets</h3>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    Enter toilets separately — a 3BHK may have 1 or 2 toilets; we do not assume all baths are attached.
+                    Interior walls and plumbing use these counts.
+                  </p>
+                </div>
+                {floorConfigs.map((cfg, i) => (
+                  <div
+                    key={i}
+                    className="rounded-xl border border-border bg-secondary/30 p-3 grid grid-cols-1 sm:grid-cols-2 gap-3"
+                  >
+                    <p className="sm:col-span-2 text-xs font-semibold text-foreground">
+                      {floorLabel(i, inputs.floors)}
+                    </p>
+                    <div className="flex flex-col gap-1.5 w-full">
+                      <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                        BHK / rooms
+                      </label>
+                      <Select
+                        value={cfg.unitType}
+                        onValueChange={(v) => updateFloorUnitType(i, v as UnitType)}
+                      >
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1BHK">1BHK</SelectItem>
+                          <SelectItem value="2BHK">2BHK</SelectItem>
+                          <SelectItem value="3BHK">3BHK</SelectItem>
+                          <SelectItem value="4BHK">4BHK</SelectItem>
+                          <SelectItem value="Custom">Custom</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <NumField
+                      label="Toilets / baths on this floor"
+                      value={cfg.toilets}
+                      min={0}
+                      onChange={(n) => updateFloorToilets(i, n)}
+                      hint="Plumbing & toilet wet works counted from this number."
+                    />
+                  </div>
+                ))}
+                <p className="text-[11px] text-muted-foreground">
+                  Total toilets: <span className="font-semibold text-foreground">{totalToilets}</span>
+                  {' · '}
+                  Interior wall length:{' '}
+                  <span className="font-semibold text-foreground">{interiorWallLengthFt.toFixed(0)} ft</span>
+                  {' '}(rooms + toilet boxes)
+                </p>
               </div>
 
               <div className="rounded-lg border border-emerald-500/25 bg-emerald-500/5 px-3 py-2.5 text-xs text-muted-foreground">
@@ -732,11 +807,10 @@ function RccEstimateCalculator({ onChangeType }: { onChangeType: () => void }) {
                 <h2 className="text-base font-semibold text-foreground">Walls (bricks + plaster)</h2>
                 <div className="rounded-lg border border-border/70 bg-secondary/30 px-3 py-2.5 text-[11px] text-muted-foreground space-y-1">
                   <p>
-                    Interior ({inputs.unitType}):{' '}
-                    {inputs.unitType === 'Custom'
-                      ? `≈ ${interiorLengthPerFloor.toFixed(0)} ft/floor`
-                      : `${INTERIOR_WALL_LENGTH_FT_PER_FLOOR[inputs.unitType]} ft/floor @ 4.5"`}
-                    {' '}· Exterior ≈ {exteriorWall.toFixed(0)} + interior ≈ {interiorWall.toFixed(0)} = {autoWall.toFixed(0)} sqft
+                    Interior walls from per-floor BHK + toilet boxes:{' '}
+                    <span className="font-semibold text-foreground">{interiorWallLengthFt.toFixed(0)} ft</span> total
+                    {' '}@ 4.5″ · Exterior ≈ {exteriorWall.toFixed(0)} + interior ≈ {interiorWall.toFixed(0)} ={' '}
+                    {autoWall.toFixed(0)} sqft
                   </p>
                   <p>
                     Plinth (GL → plinth lvl) exterior always 9&quot; full brick · above-plinth exterior uses thickness below.
@@ -976,7 +1050,7 @@ function RccEstimateCalculator({ onChangeType }: { onChangeType: () => void }) {
                   </div>
 
                   <h2 className="text-base font-semibold text-foreground pt-1">
-                    Finishing & allied ({inputs.unitType} · standard quality)
+                    Finishing & allied ({totalToilets} toilets · standard quality)
                   </h2>
                   <div className="rounded-xl border border-border bg-secondary/40 divide-y divide-border overflow-hidden">
                     {costs.finishingLines.map((line) => (

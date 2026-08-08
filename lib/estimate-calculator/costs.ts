@@ -8,8 +8,12 @@ import {
   getSuperstructureExteriorWallAreaSqft,
 } from './calculate';
 import {
+  getFloorConfigs,
+  getKitchenCount,
+  getTotalToilets,
+} from './calculate';
+import {
   STANDARD_FINISH_RATES,
-  bathroomsForUnit,
   doorsPerFloorForUnit,
   kitchenRftForUnit,
   steelRateForDia,
@@ -210,25 +214,29 @@ export function calculateCostBreakdown(
       ? 'Granite flooring (std.)'
       : 'Tile flooring (vitrified)';
 
-  const bathsPerFloor = bathroomsForUnit(inputs.unitType, builtUpPerFloor);
-  const totalBaths = bathsPerFloor * Math.max(1, floors);
-  const plumbingAmt =
-    totalBaths * R.plumbingPerBathroom + Math.max(1, floors) * R.plumbingKitchenLump;
+  const floorConfigs = getFloorConfigs(inputs);
+  const totalToilets = getTotalToilets(inputs);
+  const kitchenCount = getKitchenCount(inputs);
+  const toiletPlumbingAmt = totalToilets * R.plumbingPerToilet;
+  const toiletWetWorksAmt = totalToilets * R.toiletWetWorksPerToilet;
+  const kitchenPlumbingAmt = kitchenCount * R.plumbingKitchenLump;
 
   const electricalAmt = totalBuiltUpSqft * R.electricalPerSqftBuiltUp;
 
-  const doorsPerFloor = doorsPerFloorForUnit(inputs.unitType, builtUpPerFloor);
-  const windowsPerFloor = windowsPerFloorForUnit(inputs.unitType, builtUpPerFloor);
-  const totalInternalDoors = doorsPerFloor * Math.max(1, floors);
-  const totalWindows = windowsPerFloor * Math.max(1, floors);
+  // Doors/windows/kitchen cabinets summed per floor from that floor's BHK
+  let totalInternalDoors = 0;
+  let totalWindows = 0;
+  let modularKitchenAmt = 0;
+  for (const cfg of floorConfigs) {
+    totalInternalDoors += doorsPerFloorForUnit(cfg.unitType, builtUpPerFloor);
+    totalWindows += windowsPerFloorForUnit(cfg.unitType, builtUpPerFloor);
+    modularKitchenAmt +=
+      kitchenRftForUnit(cfg.unitType, builtUpPerFloor) * R.modularKitchenPerRft;
+  }
   const doorsWindowsAmt =
     R.mainDoorLump +
     totalInternalDoors * R.internalDoorEach +
     totalWindows * R.windowEach;
-
-  // One kitchen per dwelling (multi-storey house); if very large multi-floor rental, still 1 kitchen default
-  const kitchenRft = kitchenRftForUnit(inputs.unitType, builtUpPerFloor);
-  const modularKitchenAmt = kitchenRft * R.modularKitchenPerRft;
 
   const formworkAreaSqm = estimateFormworkAreaSqm(inputs, results);
   const formworkAmt = formworkAreaSqm * R.formworkPerSqm;
@@ -260,11 +268,25 @@ export function calculateCostBreakdown(
       amount: inr(flooringAmt),
     },
     {
-      key: 'plumbing',
-      label: 'Plumbing (piping / fittings)',
-      quantityLabel: `${totalBaths} bath + kitchen`,
-      rateLabel: rsRate(R.plumbingPerBathroom, 'bath'),
-      amount: inr(plumbingAmt),
+      key: 'toilet-plumbing',
+      label: 'Toilet plumbing & sanitary',
+      quantityLabel: `${totalToilets} toilet(s)`,
+      rateLabel: rsRate(R.plumbingPerToilet, 'toilet'),
+      amount: inr(toiletPlumbingAmt),
+    },
+    {
+      key: 'toilet-wet',
+      label: 'Toilet waterproofing & wet tiles',
+      quantityLabel: `${totalToilets} toilet(s)`,
+      rateLabel: rsRate(R.toiletWetWorksPerToilet, 'toilet'),
+      amount: inr(toiletWetWorksAmt),
+    },
+    {
+      key: 'kitchen-plumbing',
+      label: 'Kitchen plumbing',
+      quantityLabel: `${kitchenCount} kitchen(s)`,
+      rateLabel: rsRate(R.plumbingKitchenLump, 'kitchen'),
+      amount: inr(kitchenPlumbingAmt),
     },
     {
       key: 'electrical',
@@ -283,7 +305,7 @@ export function calculateCostBreakdown(
     {
       key: 'modular-kitchen',
       label: 'Modular kitchen',
-      quantityLabel: `${kitchenRft} rft · ${inputs.unitType}`,
+      quantityLabel: `${kitchenCount} kitchen(s) · per-floor BHK`,
       rateLabel: rsRate(R.modularKitchenPerRft, 'rft'),
       amount: inr(modularKitchenAmt),
     },

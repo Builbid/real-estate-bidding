@@ -5,13 +5,17 @@
 // ============================================================
 
 import {
+  INTERIOR_ROOM_WALL_LENGTH_FT,
   INTERIOR_WALL_LENGTH_FT_PER_FLOOR,
   LAP_LENGTH_MULTIPLIER,
   MIX_RATIOS,
   STANDARD_BAR_SPACING_MM,
+  TOILET_WALL_LENGTH_FT,
+  syncFloorConfigs,
   type BarDiameter,
   type EstimateInputs,
   type EstimateResults,
+  type FloorConfig,
   type SteelByDiameter,
   type UnitType,
 } from './types';
@@ -188,34 +192,71 @@ export function getFootingBarsAlong(dimensionMm: number, spacingMm = STANDARD_BA
   return Math.floor(dimensionMm / spacingMm) + 1;
 }
 
+/** Ensure floorConfigs length matches floors (safe for older state). */
+export function getFloorConfigs(inputs: EstimateInputs): FloorConfig[] {
+  return syncFloorConfigs(
+    inputs.floors,
+    inputs.floorConfigs ?? [],
+    inputs.unitType ?? '2BHK',
+  );
+}
+
+export function getTotalToilets(inputs: EstimateInputs): number {
+  return getFloorConfigs(inputs).reduce((s, f) => s + Math.max(0, Math.floor(f.toilets)), 0);
+}
+
+/** One kitchen per floor (each storey treated as a dwelling unit). */
+export function getKitchenCount(inputs: EstimateInputs): number {
+  return Math.max(1, Math.floor(inputs.floors));
+}
+
+/**
+ * Interior wall centreline for one floor:
+ * room partitions (by BHK) + toilet enclosures (by toilet count — not assumed from BHK).
+ */
+export function getInteriorWallLengthFtForFloorConfig(
+  config: FloorConfig,
+  builtUpSqft: number,
+): number {
+  const toilets = Math.max(0, Math.floor(config.toilets));
+  const toiletWalls = toilets * TOILET_WALL_LENGTH_FT;
+  if (config.unitType !== 'Custom') {
+    return INTERIOR_ROOM_WALL_LENGTH_FT[config.unitType] + toiletWalls;
+  }
+  // Custom: scale room partitions with built-up, plus toilet boxes
+  return Math.max(0, builtUpSqft) * 0.035 + toiletWalls;
+}
+
+/** @deprecated Prefer getInteriorWallLengthFtForFloorConfig / getTotalInteriorWallLengthFt */
 export function getInteriorWallLengthFtPerFloor(unitType: UnitType, builtUpSqft: number): number {
   if (unitType !== 'Custom') return INTERIOR_WALL_LENGTH_FT_PER_FLOOR[unitType];
   return Math.max(0, builtUpSqft) * 0.045;
 }
 
-/** Exterior + interior wall centreline length per floor (ft). */
-export function getWallLengthFtPerFloor(inputs: EstimateInputs): number {
-  return (
-    getExteriorWallPerimeterFt(inputs) +
-    getInteriorWallLengthFtPerFloor(inputs.unitType, inputs.builtUpAreaPerFloorSqft)
+/** Sum of interior wall centreline over all floors (ft). */
+export function getTotalInteriorWallLengthFt(inputs: EstimateInputs): number {
+  const configs = getFloorConfigs(inputs);
+  const builtUp = Math.max(0, inputs.builtUpAreaPerFloorSqft);
+  return configs.reduce(
+    (sum, cfg) => sum + getInteriorWallLengthFtForFloorConfig(cfg, builtUp),
+    0,
   );
 }
 
 /**
- * Continuous lintel band length = total wall length × floors
- * (one lintel level per storey along all walls).
+ * Continuous lintel band length = exterior perimeter × floors + interior walls (all floors).
  */
 export function getLintelLengthFt(inputs: EstimateInputs): number {
-  return getWallLengthFtPerFloor(inputs) * Math.max(0, inputs.floors);
+  const floors = Math.max(0, inputs.floors);
+  const exterior = getExteriorWallPerimeterFt(inputs) * floors;
+  return exterior + getTotalInteriorWallLengthFt(inputs);
 }
 
 export function getInteriorWallAreaSqft(inputs: EstimateInputs): number {
   if (inputs.floors <= 0 || inputs.floorToFloorHeightFt <= 0) return 0;
-  const lengthFt = getInteriorWallLengthFtPerFloor(
-    inputs.unitType,
-    inputs.builtUpAreaPerFloorSqft,
-  );
-  return lengthFt * inputs.floorToFloorHeightFt * inputs.floors * 0.9;
+  const lengthFt = getTotalInteriorWallLengthFt(inputs);
+  // Slightly lower openings on toilet walls already baked into length; 0.88 overall
+  return lengthFt * inputs.floorToFloorHeightFt * 0.88;
 }
 
 export function getAutoWallAreaSqft(inputs: EstimateInputs): number {
@@ -547,6 +588,9 @@ export function calculateEstimate(inputs: EstimateInputs): EstimateResults {
       staircaseAreaSqft: round1(staircaseAreaSqft),
       standardSpacingMm: spacingMm,
       lapMultiplier: LAP_LENGTH_MULTIPLIER,
+      totalToilets: getTotalToilets(inputs),
+      kitchenCount: getKitchenCount(inputs),
+      interiorWallLengthFt: round1(getTotalInteriorWallLengthFt(inputs)),
     },
   };
 }

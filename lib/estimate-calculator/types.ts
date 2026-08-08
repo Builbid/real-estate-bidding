@@ -63,8 +63,66 @@ export const DEFAULT_ITEM_RATES: ItemRates = {
   flooringFinish: 'tile',
 };
 
+/** Per-storey layout — BHK and toilet count entered separately (toilets not assumed from BHK). */
+export interface FloorConfig {
+  unitType: UnitType;
+  /** Toilet / bath units on this floor (user-entered). */
+  toilets: number;
+}
+
+/** Suggested toilet count when BHK changes — user can lower/raise freely. */
+export const DEFAULT_TOILETS_FOR_UNIT: Record<Exclude<UnitType, 'Custom'>, number> = {
+  '1BHK': 1,
+  '2BHK': 1,
+  '3BHK': 2,
+  '4BHK': 2,
+};
+
+export function defaultToiletsForUnit(unitType: UnitType): number {
+  if (unitType !== 'Custom') return DEFAULT_TOILETS_FOR_UNIT[unitType];
+  return 1;
+}
+
+/** Resize / pad floorConfigs when storey count changes. */
+export function syncFloorConfigs(
+  floors: number,
+  prev: FloorConfig[],
+  fallbackUnit: UnitType = '2BHK',
+): FloorConfig[] {
+  const n = Math.max(1, Math.floor(floors));
+  const next: FloorConfig[] = [];
+  for (let i = 0; i < n; i++) {
+    const existing = prev[i];
+    if (existing) {
+      next.push({
+        unitType: existing.unitType,
+        toilets: Math.max(0, Math.floor(existing.toilets)),
+      });
+    } else {
+      const unit = prev[prev.length - 1]?.unitType ?? fallbackUnit;
+      next.push({ unitType: unit, toilets: defaultToiletsForUnit(unit) });
+    }
+  }
+  return next;
+}
+
+export function floorLabel(index: number, totalFloors: number): string {
+  if (totalFloors <= 1) return 'Ground floor';
+  if (index === 0) return 'Ground floor';
+  if (index === 1) return '1st floor';
+  if (index === 2) return '2nd floor';
+  if (index === 3) return '3rd floor';
+  return `${index + 1}th floor`;
+}
+
 export interface EstimateInputs {
   floors: number;
+  /**
+   * Per-floor BHK + toilet count (length must match `floors`).
+   * Plumbing & interior walls use these — toilets are never inferred from BHK alone.
+   */
+  floorConfigs: FloorConfig[];
+  /** @deprecated Prefer floorConfigs — kept as ground-floor mirror for labels. */
   unitType: UnitType;
   /** Outer-to-outer covered area per floor (sqft) — walls, flooring bed, footprint. */
   builtUpAreaPerFloorSqft: number;
@@ -124,12 +182,27 @@ export const UNIT_TYPE_DEFAULT_AREA: Record<Exclude<UnitType, 'Custom'>, number>
 /** Default slab ≈ built-up; client can raise/lower for balconies / courts. */
 export const UNIT_TYPE_DEFAULT_SLAB_AREA = UNIT_TYPE_DEFAULT_AREA;
 
+/**
+ * Room-partition centreline length (ft) per floor by BHK — excludes toilet boxes.
+ * Toilet walls are added separately from the floor's toilet count.
+ */
+export const INTERIOR_ROOM_WALL_LENGTH_FT: Record<Exclude<UnitType, 'Custom'>, number> = {
+  '1BHK': 22,
+  '2BHK': 38,
+  '3BHK': 52,
+  '4BHK': 68,
+};
+
+/** @deprecated Use INTERIOR_ROOM_WALL_LENGTH_FT + toilet walls. */
 export const INTERIOR_WALL_LENGTH_FT_PER_FLOOR: Record<Exclude<UnitType, 'Custom'>, number> = {
   '1BHK': 30,
   '2BHK': 50,
   '3BHK': 70,
   '4BHK': 95,
 };
+
+/** Approx centreline of one toilet/bath enclosure (ft). */
+export const TOILET_WALL_LENGTH_FT = 14;
 
 export const BAR_DIAMETERS: BarDiameter[] = [8, 10, 12, 16, 20, 25, 32];
 export const STIRRUP_DIAMETERS: BarDiameter[] = [6, 8];
@@ -142,6 +215,10 @@ export const MIX_RATIOS: Record<MixGrade, { cement: number; sand: number; aggreg
 
 export const DEFAULT_INPUTS: EstimateInputs = {
   floors: 2,
+  floorConfigs: [
+    { unitType: '2BHK', toilets: DEFAULT_TOILETS_FOR_UNIT['2BHK'] },
+    { unitType: '2BHK', toilets: DEFAULT_TOILETS_FOR_UNIT['2BHK'] },
+  ],
   unitType: '2BHK',
   builtUpAreaPerFloorSqft: UNIT_TYPE_DEFAULT_AREA['2BHK'],
   slabAreaPerFloorSqft: UNIT_TYPE_DEFAULT_SLAB_AREA['2BHK'],
@@ -417,5 +494,11 @@ export interface EstimateResults {
     staircaseAreaSqft: number;
     standardSpacingMm: number;
     lapMultiplier: number;
+    /** Sum of user-entered toilets across floors. */
+    totalToilets: number;
+    /** One kitchen assumed per floor dwelling. */
+    kitchenCount: number;
+    /** Interior wall centreline total (all floors), ft. */
+    interiorWallLengthFt: number;
   };
 }
