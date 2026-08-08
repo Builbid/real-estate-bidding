@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import {
-  ArrowLeft, ArrowRight, Download, Calculator, AlertTriangle, RefreshCw, Info,
+  ArrowLeft, ArrowRight, Download, Calculator, AlertTriangle, RefreshCw, Info, Home, Building2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -11,6 +11,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { AssamEstimateCalculator } from '@/components/estimate-calculator/AssamEstimateCalculator';
 import {
   calculateEstimate,
   getTotalSlabAreaSqft,
@@ -39,6 +40,7 @@ import {
   type EstimateInputs,
   type FlooringFinish,
   type FootingType,
+  type HouseConstructionType,
   type MixGrade,
   type UnitType,
   type WallThickness,
@@ -183,6 +185,88 @@ function DiaSelect({
 }
 
 export function EstimateCalculator() {
+  const [houseType, setHouseType] = useState<HouseConstructionType | null>(null);
+
+  if (!houseType) {
+    return (
+      <div className="max-w-2xl mx-auto space-y-5">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground flex items-center gap-2">
+            <Calculator className="h-6 w-6 text-emerald-600" />
+            Material Estimate Calculator
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Choose your construction type for a more accurate bill of quantities.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <button
+            type="button"
+            onClick={() => setHouseType('assam_semi_pucca')}
+            className={cn(
+              'rounded-2xl border border-border bg-card p-5 text-left transition-all',
+              'hover:border-emerald-500/50 hover:bg-emerald-500/5 focus:outline-none focus:ring-2 focus:ring-emerald-500/40',
+            )}
+          >
+            <Home className="h-8 w-8 text-emerald-600 mb-3" />
+            <p className="font-semibold text-foreground">Assam Type (Semi-pucca)</p>
+            <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+              Brick to sill or lintel, timber posts & bands, bamboo/mesh panels, pitched CGI roof.
+              No full RCC frame.
+            </p>
+          </button>
+          <button
+            type="button"
+            onClick={() => setHouseType('rcc')}
+            className={cn(
+              'rounded-2xl border border-border bg-card p-5 text-left transition-all',
+              'hover:border-emerald-500/50 hover:bg-emerald-500/5 focus:outline-none focus:ring-2 focus:ring-emerald-500/40',
+            )}
+          >
+            <Building2 className="h-8 w-8 text-emerald-600 mb-3" />
+            <p className="font-semibold text-foreground">RCC</p>
+            <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+              Columns, beams, footings, slab steel & concrete — full framed RCC estimate.
+            </p>
+          </button>
+        </div>
+
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 flex gap-3">
+          <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+          <p className="text-xs sm:text-sm text-amber-900 dark:text-amber-100/90 leading-relaxed">
+            Approximate budgeting only. Consult a structural engineer for final design and quantities.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (houseType === 'assam_semi_pucca') {
+    return (
+      <div className="max-w-2xl mx-auto space-y-5">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground flex items-center gap-2">
+            <Calculator className="h-6 w-6 text-emerald-600" />
+            Material Estimate Calculator
+          </h1>
+        </div>
+        <AssamEstimateCalculator onChangeType={() => setHouseType(null)} />
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 flex gap-3">
+          <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+          <p className="text-xs sm:text-sm text-amber-900 dark:text-amber-100/90 leading-relaxed">
+            Semi-pucca Assam Type budgeting estimate (brick + timber + CGI). Not a structural design —
+            verify timber sizes and connections with a local engineer.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return <RccEstimateCalculator onChangeType={() => setHouseType(null)} />;
+}
+
+function RccEstimateCalculator({ onChangeType }: { onChangeType: () => void }) {
   const [step, setStep] = useState<Step>(1);
   const [inputs, setInputs] = useState<EstimateInputs>(DEFAULT_INPUTS);
   const [showResults, setShowResults] = useState(false);
@@ -271,11 +355,19 @@ export function EstimateCalculator() {
 
   return (
     <div ref={topRef} className="max-w-2xl mx-auto space-y-5 scroll-mt-20">
-      <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-foreground flex items-center gap-2">
-          <Calculator className="h-6 w-6 text-emerald-600" />
-          Material Estimate Calculator
-        </h1>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-medium text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
+            RCC framed
+          </p>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground flex items-center gap-2">
+            <Calculator className="h-6 w-6 text-emerald-600" />
+            Material Estimate Calculator
+          </h1>
+        </div>
+        <Button type="button" variant="ghost" size="sm" className="text-xs shrink-0" onClick={onChangeType}>
+          Change type
+        </Button>
       </div>
 
       <div className="flex items-center gap-1 overflow-x-auto pb-1">

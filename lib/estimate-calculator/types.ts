@@ -10,6 +10,18 @@ export type WastagePercent = 0 | 5 | 10;
 export type BarDiameter = 6 | 8 | 10 | 12 | 16 | 20 | 25 | 32;
 export type FlooringFinish = 'tile' | 'granite';
 
+/** Top-level calculator path. */
+export type HouseConstructionType = 'rcc' | 'assam_semi_pucca';
+
+/** Brick masonry height for semi-pucca Assam type. */
+export type AssamBrickWallUpTo = 'sill' | 'lintel';
+
+/** Sill ≈ 0.9 m; lintel ≈ 2.1 m above floor. */
+export const ASSAM_BRICK_HEIGHT_FT: Record<AssamBrickWallUpTo, number> = {
+  sill: 3,
+  lintel: 7,
+};
+
 /** Fixed stirrup / slab bar spacing (mm) — not client-entered. */
 export const STANDARD_BAR_SPACING_MM = 125;
 
@@ -181,6 +193,123 @@ export interface SteelByDiameter {
   diameterMm: number;
   kg: number;
   quintals: number;
+}
+
+// ── Assam Type (semi-pucca) ──────────────────────────────────
+
+export interface AssamItemRates {
+  mistriPerSqft: number;
+  cementPerBag: number;
+  sandPerCum: number;
+  brickPerPiece: number;
+  /** PCC pedestals / light concrete. */
+  aggregatePerCum: number;
+  /** Sal / Nahar class timber — ₹ / cubic foot. */
+  timberPerCft: number;
+  /** Laid CGI incl. fasteners allowance — ₹ / sqft. */
+  cgiPerSqft: number;
+  /** Bamboo / mesh wall panel — ₹ / sqft face. */
+  wallPanelPerSqft: number;
+  flooringFinish: FlooringFinish;
+}
+
+export const DEFAULT_ASSAM_ITEM_RATES: AssamItemRates = {
+  mistriPerSqft: 200,
+  cementPerBag: 400,
+  sandPerCum: 3200,
+  brickPerPiece: 10,
+  aggregatePerCum: 2500,
+  timberPerCft: 1000,
+  cgiPerSqft: 65,
+  wallPanelPerSqft: 50,
+  flooringFinish: 'tile',
+};
+
+export interface AssamEstimateInputs {
+  floors: number;
+  unitType: UnitType;
+  builtUpAreaPerFloorSqft: number;
+  /** Below GL — typically ~2 ft (600 mm). */
+  foundationDepthFt: number;
+  plinthHeightFt: number;
+  /** Floor level to eaves (wall height). */
+  eavesHeightFt: number;
+  brickWallUpTo: AssamBrickWallUpTo;
+  wastagePercent: WastagePercent;
+
+  /** Intermediate timber post spacing (m). Default 1.1. */
+  postSpacingM: number;
+  postWidthMm: number;
+  postDepthMm: number;
+  bandWidthMm: number;
+  bandDepthMm: number;
+  rafterSpacingMm: number;
+  purlinSpacingMm: number;
+  /** Sloping area / plan area. Default 1.20. */
+  cgiPitchFactor: number;
+  cgiWastagePercent: number;
+
+  rates: AssamItemRates;
+}
+
+export const DEFAULT_ASSAM_INPUTS: AssamEstimateInputs = {
+  floors: 1,
+  unitType: '2BHK',
+  builtUpAreaPerFloorSqft: UNIT_TYPE_DEFAULT_AREA['2BHK'],
+  foundationDepthFt: 2,
+  plinthHeightFt: 2,
+  eavesHeightFt: 10,
+  brickWallUpTo: 'sill',
+  wastagePercent: 5,
+
+  postSpacingM: 1.1,
+  postWidthMm: 100,
+  postDepthMm: 100,
+  bandWidthMm: 100,
+  bandDepthMm: 75,
+  rafterSpacingMm: 650,
+  purlinSpacingMm: 300,
+  cgiPitchFactor: 1.2,
+  cgiWastagePercent: 10,
+
+  rates: { ...DEFAULT_ASSAM_ITEM_RATES },
+};
+
+export interface AssamEstimateResults {
+  bricks: number;
+  cementBags: number;
+  sandCum: number;
+  aggregateCum: number;
+  timberCft: number;
+  cgiAreaSqft: number;
+  wallPanelAreaSqft: number;
+  plasterAreaSqft: number;
+  wastagePercent: WastagePercent;
+  meta: {
+    builtUpAreaPerFloorSqft: number;
+    totalBuiltUpSqft: number;
+    exteriorPerimeterFt: number;
+    interiorWallLengthFt: number;
+    brickWallHeightFt: number;
+    brickWallUpTo: AssamBrickWallUpTo;
+    eavesHeightFt: number;
+    timberPostHeightFt: number;
+    timberPostCount: number;
+    bandCount: number;
+    bandLengthFt: number;
+    roofPlanSqft: number;
+    cgiPitchFactor: number;
+    bricksFoundation: number;
+    bricksWalls: number;
+    bricksFlooring: number;
+    cementBagsBrickMortar: number;
+    cementBagsPlaster: number;
+    cementBagsPcc: number;
+    timberPostsCft: number;
+    timberBandsCft: number;
+    timberRoofCft: number;
+    pccPedestalCum: number;
+  };
 }
 
 export interface EstimateResults {
