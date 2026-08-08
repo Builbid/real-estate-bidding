@@ -9,8 +9,12 @@ import {
 } from 'lucide-react';
 import { BuilBidLogo } from '@/components/shared/BuilBidLogo';
 import { signUpAction } from '@/app/actions/auth';
-import { TRADE_SERVICE_OPTIONS, isTradeServiceType, getTradeLabel } from '@/lib/trades';
-import type { TradeServiceType } from '@/lib/types';
+import {
+  TRADE_SERVICE_OPTIONS,
+  isProviderSpecialtyType,
+  getProviderSpecialtyLabel,
+} from '@/lib/trades';
+import type { ProviderSpecialtyType } from '@/lib/types';
 import { uploadBuilderAvatar } from '@/lib/avatar/uploadBuilderAvatar';
 import { uploadFirmLogo } from '@/lib/firm/uploadFirmLogo';
 import { AvatarUpload } from '@/components/builder/AvatarUpload';
@@ -37,8 +41,8 @@ import {
 
 type Step = 1 | 2 | 3 | 4;
 
-/** UI-level role — trades are tracked as their own value and mapped to role=service_provider on submit. */
-type UiRole = 'owner' | 'labour_contractor' | 'construction_firm' | TradeServiceType;
+/** UI-level role — specialties map to role=service_provider on submit. */
+type UiRole = 'owner' | 'labour_contractor' | 'construction_firm' | ProviderSpecialtyType;
 type RegisterRole = UiRole | null;
 
 const ROLE_CARDS = [
@@ -81,6 +85,19 @@ const ROLE_CARDS = [
     noteBadge: 'You supply material + firm',
     accent: 'violet',
   },
+  {
+    role: 'drawing_design' as const,
+    emoji: '✏️',
+    title: 'Drawing and Design',
+    subtitle: 'I prepare house plans & technical drawings',
+    bullets: [
+      'Browse live drawing & design auctions',
+      'Bid your best rate for selected drawings',
+      'Win design work — contact stays private until then',
+    ],
+    noteBadge: 'Design professional',
+    accent: 'sky',
+  },
   ...TRADE_SERVICE_OPTIONS.map((trade) => ({
     role: trade.value as UiRole,
     emoji: trade.emoji,
@@ -96,7 +113,7 @@ const ROLE_CARDS = [
   })),
 ];
 
-type RoleParam = 'owner' | 'bidder' | 'labour_contractor' | 'construction_firm' | TradeServiceType | null;
+type RoleParam = 'owner' | 'bidder' | 'labour_contractor' | 'construction_firm' | ProviderSpecialtyType | null;
 
 function parseRoleParam(value: string | null): RoleParam {
   if (
@@ -104,7 +121,7 @@ function parseRoleParam(value: string | null): RoleParam {
     value === 'bidder' ||
     value === 'labour_contractor' ||
     value === 'construction_firm' ||
-    isTradeServiceType(value)
+    isProviderSpecialtyType(value)
   ) {
     return value;
   }
@@ -116,7 +133,7 @@ function isDirectRegisterRole(param: RoleParam): param is UiRole {
     param === 'owner' ||
     param === 'labour_contractor' ||
     param === 'construction_firm' ||
-    isTradeServiceType(param)
+    isProviderSpecialtyType(param)
   );
 }
 
@@ -208,10 +225,10 @@ function RegisterPageContent() {
     setPending(true);
     setError(null);
 
-    const isTrade = isTradeServiceType(role);
+    const isSpecialty = isProviderSpecialtyType(role);
 
     const formData = new FormData();
-    formData.set('role', isTrade ? 'service_provider' : role);
+    formData.set('role', isSpecialty ? 'service_provider' : role);
     formData.set('full_name', fullName);
     formData.set('email', email);
     formData.set('password', password);
@@ -224,7 +241,7 @@ function RegisterPageContent() {
       formData.set('years_in_business', yearsInBusiness);
       formData.set('construction_packages_json', JSON.stringify(classPackages));
     }
-    if (isTrade) {
+    if (isSpecialty) {
       formData.set('trade', role);
     }
 
@@ -237,7 +254,7 @@ function RegisterPageContent() {
     }
 
     if (result.autoSignedIn) {
-      if ((role === 'labour_contractor' || isTrade) && avatarFile) {
+      if ((role === 'labour_contractor' || isSpecialty) && avatarFile) {
         await uploadBuilderAvatar(avatarFile);
       }
       if (role === 'construction_firm' && logoFile) {
@@ -314,15 +331,15 @@ function RegisterPageContent() {
         ? 'Mistri Contractor'
         : role === 'construction_firm'
           ? 'Construction Firm'
-          : isTradeServiceType(role)
-            ? getTradeLabel(role)
+          : isProviderSpecialtyType(role)
+            ? getProviderSpecialtyLabel(role)
             : '';
 
   const visibleCards = useMemo(() => {
     if (roleParam === 'owner') return ROLE_CARDS.filter((c) => c.role === 'owner');
     if (roleParam === 'labour_contractor') return ROLE_CARDS.filter((c) => c.role === 'labour_contractor');
     if (roleParam === 'construction_firm') return ROLE_CARDS.filter((c) => c.role === 'construction_firm');
-    if (isTradeServiceType(roleParam)) return ROLE_CARDS.filter((c) => c.role === roleParam);
+    if (isProviderSpecialtyType(roleParam)) return ROLE_CARDS.filter((c) => c.role === roleParam);
     if (roleParam === 'bidder') return ROLE_CARDS.filter((c) => c.role !== 'owner');
     return ROLE_CARDS;
   }, [roleParam]);
@@ -334,8 +351,8 @@ function RegisterPageContent() {
         ? 'Create your mistri contractor account to browse and bid on projects'
         : roleParam === 'construction_firm'
           ? 'Create your construction firm account to bid on turnkey projects'
-      : isTradeServiceType(roleParam)
-        ? `Create your ${getTradeLabel(roleParam)} account to bid on ${getTradeLabel(roleParam).toLowerCase()} projects`
+      : isProviderSpecialtyType(roleParam)
+        ? `Create your ${getProviderSpecialtyLabel(roleParam)} account to bid on ${getProviderSpecialtyLabel(roleParam).toLowerCase()} projects`
       : roleParam === 'bidder'
         ? 'Create your account to start bidding on construction projects'
         : 'Join BuilBid — the professional construction bidding platform';
@@ -344,7 +361,7 @@ function RegisterPageContent() {
     roleParam === 'labour_contractor' ||
     roleParam === 'construction_firm' ||
     roleParam === 'bidder' ||
-    isTradeServiceType(roleParam)
+    isProviderSpecialtyType(roleParam)
       ? '/login?role=bidder'
       : roleParam
         ? `/login?role=${roleParam}`
@@ -407,6 +424,7 @@ function RegisterPageContent() {
                         selected && card.accent === 'teal' && 'border-teal-500/60 bg-teal-500/5 shadow-md shadow-teal-500/10',
                         selected && card.accent === 'emerald' && 'border-emerald-500/60 bg-emerald-500/5 shadow-md shadow-emerald-500/10',
                         selected && card.accent === 'violet' && 'border-violet-500/70 bg-violet-500/8 shadow-lg shadow-violet-500/15 ring-1 ring-violet-500/20',
+                        selected && card.accent === 'sky' && 'border-sky-500/70 bg-sky-500/8 shadow-lg shadow-sky-500/15 ring-1 ring-sky-500/20',
                         !selected && 'border-border bg-secondary/30 hover:border-muted-foreground/30 hover:bg-secondary/50',
                         isFirm && !selected && 'border-violet-500/20 bg-violet-500/[0.03]',
                       )}
@@ -454,7 +472,7 @@ function RegisterPageContent() {
                 {roleLabel} — Account Details
               </p>
 
-              {(role === 'labour_contractor' || isTradeServiceType(role)) && (
+              {(role === 'labour_contractor' || isProviderSpecialtyType(role)) && (
                 <AvatarUpload
                   fullName={fullName.trim() || 'Contractor'}
                   deferred

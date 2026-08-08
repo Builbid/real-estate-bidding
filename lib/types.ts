@@ -13,7 +13,20 @@ export type TradeServiceType =
   | 'carpenter'
   | 'false_ceiling_work'
   | 'earthwork';
-export type ServiceType = 'labour_contractor' | 'construction_firm' | TradeServiceType;
+
+/** Drawing & Design deliverables a client can multi-select when posting. */
+export type DrawingDesignType =
+  | '2d_house_plan'
+  | '3d_house_plan'
+  | 'structural_drawing'
+  | 'electrical_layout'
+  | 'plumbing_layout'
+  | '3d_front_elevation';
+
+/** Specialty providers (trades + drawing designers) share role `service_provider`. */
+export type ProviderSpecialtyType = TradeServiceType | 'drawing_design';
+
+export type ServiceType = 'labour_contractor' | 'construction_firm' | ProviderSpecialtyType;
 export type FinishingLevel = 'basic' | 'standard' | 'premium';
 
 /** Category keys used to structure a firm-defined construction package. */
@@ -178,6 +191,8 @@ export interface Project {
   budget_range_min?: number | null;
   budget_range_max?: number | null;
   drawing_url?: string | null;
+  /** Drawing & Design projects — selected deliverable types. */
+  drawing_types?: DrawingDesignType[] | null;
   /** Construction firm projects only — the specific package the owner chose when awarding the contract. */
   selected_package?: PackageBidPrice | null;
   created_at: string;

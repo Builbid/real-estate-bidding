@@ -1,7 +1,8 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { sendUserNotificationEmail } from '@/lib/email/sendNotification';
 import { getConstructionLabel } from '@/lib/utils';
-import { isTradeServiceType, getTradeLabel } from '@/lib/trades';
+import { isDrawingDesignServiceType } from '@/lib/drawingDesign';
+import { isTradeServiceType, getProviderSpecialtyLabel } from '@/lib/trades';
 import type { ServiceType, SubConfiguration, TrackType } from '@/lib/types';
 
 export interface NewProjectAnnouncementInput {
@@ -31,7 +32,7 @@ async function fetchBidderRecipients(serviceType: ServiceType): Promise<BidderRe
 
   let query = admin.from('profiles').select('email, full_name');
 
-  if (isTradeServiceType(serviceType)) {
+  if (isTradeServiceType(serviceType) || isDrawingDesignServiceType(serviceType)) {
     query = query.eq('role', 'service_provider').eq('service_type', serviceType);
   } else {
     const role = serviceType === 'construction_firm' ? 'construction_firm' : 'labour_contractor';
@@ -75,11 +76,12 @@ export async function sendNewProjectAnnouncementEmails(
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim() || 'https://builbid.in';
   const isFirm = input.serviceType === 'construction_firm';
-  const isTrade = isTradeServiceType(input.serviceType);
+  const isSpecialty =
+    isTradeServiceType(input.serviceType) || isDrawingDesignServiceType(input.serviceType);
   const audienceLabel = isFirm
     ? 'Construction Firm'
-    : isTrade
-      ? getTradeLabel(input.serviceType)
+    : isSpecialty
+      ? getProviderSpecialtyLabel(input.serviceType)
       : 'Mistri Contractor';
   const bidPath = isFirm
     ? `/dashboard/firm/bid/${input.projectId}`

@@ -9,7 +9,7 @@ import {
   parseConstructionPackagesFromForm,
   validateConstructionPackages,
 } from '@/lib/firm/constructionClass'
-import { isTradeServiceType } from '@/lib/trades'
+import { isProviderSpecialtyType } from '@/lib/trades'
 import type { UserRole } from '@/lib/types'
 
 export type SignUpRole = 'owner' | 'labour_contractor' | 'construction_firm' | 'service_provider'
@@ -118,8 +118,8 @@ export async function signUpAction(
     }
   }
 
-  if (role === 'service_provider' && !isTradeServiceType(tradeRaw)) {
-    return { error: 'Please select which trade you provide.', success: false }
+  if (role === 'service_provider' && !isProviderSpecialtyType(tradeRaw)) {
+    return { error: 'Please select which service you provide.', success: false }
   }
 
   let yearsInBusiness: number | null = null

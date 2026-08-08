@@ -8,6 +8,8 @@ import { ServiceTypeSelector } from '@/components/owner/ServiceTypeSelector';
 import { LabourContractorProjectWizard } from '@/components/owner/LabourContractorProjectWizard';
 import { ConstructionFirmProjectWizard } from '@/components/owner/ConstructionFirmProjectWizard';
 import { TradeServiceProjectWizard } from '@/components/owner/TradeServiceProjectWizard';
+import { DrawingDesignProjectWizard } from '@/components/owner/DrawingDesignProjectWizard';
+import { isDrawingDesignServiceType } from '@/lib/drawingDesign';
 import { isTradeServiceType } from '@/lib/trades';
 import type { ServiceType } from '@/lib/types';
 
@@ -15,6 +17,7 @@ type Phase = 'service' | 'wizard';
 
 function parseServiceParam(value: string | null): ServiceType | null {
   if (value === 'labour_contractor' || value === 'construction_firm') return value;
+  if (isDrawingDesignServiceType(value)) return value;
   if (isTradeServiceType(value)) return value;
   return null;
 }
@@ -44,6 +47,17 @@ function NewProjectPageContent() {
           <ArrowLeft className="w-4 h-4" /> Change service type
         </Button>
         <ConstructionFirmProjectWizard />
+      </div>
+    );
+  }
+
+  if (phase === 'wizard' && serviceType === 'drawing_design') {
+    return (
+      <div className="space-y-4">
+        <Button variant="ghost" size="sm" className="max-w-2xl mx-auto flex" onClick={() => { setPhase('service'); setServiceType(null); }}>
+          <ArrowLeft className="w-4 h-4" /> Change service type
+        </Button>
+        <DrawingDesignProjectWizard />
       </div>
     );
   }

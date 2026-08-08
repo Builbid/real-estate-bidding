@@ -5,7 +5,15 @@ import type { BuildingType, ConstructionTypesMap } from '@/lib/buildingConfig'
 import { deriveLegacyProjectFields } from '@/lib/buildingConfig'
 import { buildFirmConstructionTypes } from '@/lib/firm/projectDefaults'
 import { validatePincode } from '@/lib/validation/pincode'
-import type { FinishingLevel, ServiceType, SubConfiguration, TrackType, TradeServiceType } from '@/lib/types'
+import type {
+  DrawingDesignType,
+  FinishingLevel,
+  ServiceType,
+  SubConfiguration,
+  TrackType,
+  TradeServiceType,
+} from '@/lib/types'
+import { isDrawingDesignServiceType } from '@/lib/drawingDesign'
 import { isTradeServiceType } from '@/lib/trades'
 import { sendNewProjectAnnouncementEmails } from '@/lib/email/newProjectAnnouncement'
 
@@ -43,7 +51,17 @@ export interface CreateTradeProjectInput extends CreateProjectBase {
   track_type: TrackType
 }
 
-export type CreateProjectInput = CreateLabourProjectInput | CreateFirmProjectInput | CreateTradeProjectInput
+/** Drawing & Design — client multi-selects deliverable drawing types. */
+export interface CreateDrawingDesignProjectInput extends CreateProjectBase {
+  service_type: 'drawing_design'
+  drawing_types: DrawingDesignType[]
+}
+
+export type CreateProjectInput =
+  | CreateLabourProjectInput
+  | CreateFirmProjectInput
+  | CreateTradeProjectInput
+  | CreateDrawingDesignProjectInput
 
 export interface CreateProjectResult {
   error: string | null
@@ -67,11 +85,14 @@ export async function createProjectAction(
 
   const isFirm = input.service_type === 'construction_firm'
   const isTrade = isTradeServiceType(input.service_type)
+  const isDrawing = isDrawingDesignServiceType(input.service_type)
   const serviceType: ServiceType = isFirm
     ? 'construction_firm'
-    : isTrade
-      ? (input.service_type as TradeServiceType)
-      : 'labour_contractor'
+    : isDrawing
+      ? 'drawing_design'
+      : isTrade
+        ? (input.service_type as TradeServiceType)
+        : 'labour_contractor'
 
   const biddingEndsAt = new Date(
     Date.now() + Math.max(1, Math.round(input.bidding_minutes)) * 60 * 1000
@@ -89,7 +110,21 @@ export async function createProjectAction(
     service_type: serviceType,
   }
 
-  if (isTrade) {
+  if (isDrawing) {
+    const drawing = input as CreateDrawingDesignProjectInput
+    const types = Array.isArray(drawing.drawing_types)
+      ? drawing.drawing_types.filter((t, i, arr) => arr.indexOf(t) === i)
+      : []
+    if (types.length === 0) {
+      return { error: 'Select at least one drawing / design type.' }
+    }
+    insertPayload.track_type = 'RCC'
+    insertPayload.sub_configuration = {}
+    insertPayload.building_types = []
+    insertPayload.construction_types = {}
+    insertPayload.total_floors = 1
+    insertPayload.drawing_types = types
+  } else if (isTrade) {
     const trade = input as CreateTradeProjectInput
     insertPayload.track_type = trade.track_type
     insertPayload.sub_configuration = {}

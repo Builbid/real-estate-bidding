@@ -106,6 +106,41 @@ export function ServiceTypeSelector({ value, onChange, onContinue }: ServiceType
         <div className="flex items-center gap-2 mb-3">
           <div className="h-px flex-1 bg-border" />
           <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+            Or get drawings & design
+          </span>
+          <div className="h-px flex-1 bg-border" />
+        </div>
+        <button
+          type="button"
+          onClick={() => onChange('drawing_design')}
+          className={cn(
+            'relative w-full rounded-2xl border-2 p-4 text-left transition-all duration-200',
+            value === 'drawing_design'
+              ? 'border-sky-500/70 bg-sky-500/10 shadow-lg shadow-sky-500/15 scale-[1.01]'
+              : 'border-border bg-secondary/30 hover:border-muted-foreground/40',
+          )}
+        >
+          <div className="flex items-start gap-3">
+            <span className="text-3xl leading-none">✏️</span>
+            <div className="min-w-0 flex-1">
+              <div className="mb-0.5 flex items-center justify-between gap-2">
+                <h3 className="text-base font-bold text-foreground">Drawing and Design</h3>
+                {value === 'drawing_design' && (
+                  <CheckCircle2 className="h-5 w-5 flex-shrink-0 text-emerald-400" />
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                2D/3D house plans, structural, electrical, plumbing layouts & front elevation
+              </p>
+            </div>
+          </div>
+        </button>
+      </div>
+
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <div className="h-px flex-1 bg-border" />
+          <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
             Or hire a trade professional
           </span>
           <div className="h-px flex-1 bg-border" />

@@ -16,6 +16,7 @@ import {
   getServiceHeadingClass,
   isFirmProject,
 } from '@/lib/project/display';
+import { DRAWING_TYPE_OPTIONS, isDrawingDesignServiceType } from '@/lib/drawingDesign';
 import {
   formatShowcaseRemaining,
   getShowcaseCardAction,
@@ -208,6 +209,25 @@ export function ShowcaseProjectCard({
             {project.state ? `, ${project.state}` : ''}
           </span>
         </p>
+
+        {isDrawingDesignServiceType(serviceType) &&
+          project.drawing_types &&
+          project.drawing_types.length > 0 && (
+            <div className="mb-4 flex flex-wrap gap-1.5">
+              {project.drawing_types.map((dt) => {
+                const opt = DRAWING_TYPE_OPTIONS.find((o) => o.value === dt);
+                return (
+                  <span
+                    key={dt}
+                    className="inline-flex items-center gap-1 rounded-full border border-sky-500/25 bg-sky-500/10 px-2 py-0.5 text-[10px] font-semibold text-sky-800 dark:text-sky-200"
+                  >
+                    <span aria-hidden>{opt?.emoji}</span>
+                    {opt?.label ?? dt}
+                  </span>
+                );
+              })}
+            </div>
+          )}
 
         {project.building_types && project.building_types.length > 0 && (
           <div className="mb-4 min-w-0">

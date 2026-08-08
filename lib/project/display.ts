@@ -1,6 +1,7 @@
 import type { FinishingLevel, ServiceType } from '@/lib/types';
 import { FINISHING_LEVEL_CONFIG, getFinishingClassBadge } from '@/lib/firm/finishingLevel';
 import { formatBudgetRange } from '@/lib/formatIndianCurrency';
+import { isDrawingDesignServiceType } from '@/lib/drawingDesign';
 import {
   ALL_SERVICE_CATEGORIES,
   isTradeServiceType,
@@ -40,6 +41,9 @@ export function getServiceBadgeLabel(serviceType: ServiceType): string {
 export function getServiceHeadingClass(serviceType: ServiceType): string {
   if (serviceType === 'construction_firm') {
     return 'text-violet-700 dark:text-violet-300';
+  }
+  if (isDrawingDesignServiceType(serviceType)) {
+    return 'text-sky-700 dark:text-sky-300';
   }
   if (isTradeServiceType(serviceType)) {
     return 'text-teal-700 dark:text-teal-300';

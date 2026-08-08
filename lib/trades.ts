@@ -5,7 +5,8 @@
 // and provider dashboards.
 // ============================================================
 
-import type { ServiceType, TradeServiceType } from './types';
+import type { ProviderSpecialtyType, ServiceType, TradeServiceType } from './types';
+import { isDrawingDesignServiceType } from './drawingDesign';
 
 export interface TradeServiceOption {
   value: TradeServiceType;
@@ -60,6 +61,13 @@ export function isTradeServiceType(value: string | null | undefined): value is T
   return (TRADE_SERVICE_VALUES as string[]).includes(value);
 }
 
+/** Trades + Drawing & Design — all use role `service_provider`. */
+export function isProviderSpecialtyType(
+  value: string | null | undefined,
+): value is ProviderSpecialtyType {
+  return isTradeServiceType(value) || isDrawingDesignServiceType(value);
+}
+
 export function getTradeOption(value: string | null | undefined): TradeServiceOption | undefined {
   return TRADE_SERVICE_OPTIONS.find((o) => o.value === value);
 }
@@ -70,6 +78,11 @@ export function getTradeLabel(value: ServiceType | string | null | undefined): s
 
 export function getTradeEmoji(value: ServiceType | string | null | undefined): string {
   return getTradeOption(value)?.emoji ?? '🔧';
+}
+
+export function getProviderSpecialtyLabel(value: string | null | undefined): string {
+  if (isDrawingDesignServiceType(value)) return 'Drawing and Design';
+  return getTradeLabel(value);
 }
 
 export interface ServiceCategoryOption {
@@ -93,6 +106,12 @@ export const ALL_SERVICE_CATEGORIES: ServiceCategoryOption[] = [
     label: 'Construction Firm',
     emoji: '🏢',
     description: 'Turnkey ₹/sqft bidding',
+  },
+  {
+    value: 'drawing_design',
+    label: 'Drawing and Design',
+    emoji: '✏️',
+    description: '2D/3D plans, structural, electrical & plumbing drawings',
   },
   ...TRADE_SERVICE_OPTIONS.map((t) => ({
     value: t.value, label: t.label, emoji: t.emoji, description: t.description,
