@@ -9,7 +9,7 @@ import { STAT_ICON_STYLES, type StatIconColor } from '@/lib/dashboard/statIconSt
 import { STATUS_CONFIG, cn } from '@/lib/utils';
 import { AuctionRow } from '../builder/AuctionRow';
 import { BuilderProfileSettings } from '../builder/BuilderProfileSettings';
-import { getTradeLabel, getTradeEmoji } from '@/lib/trades';
+import { getProviderSpecialtyEmoji, getProviderSpecialtyLabel } from '@/lib/trades';
 import type { Project, Bid } from '@/lib/types';
 
 async function getData() {
@@ -53,8 +53,8 @@ async function getData() {
 export default async function ProviderDashboard() {
   const { profile, projects, myBids, bidProjectsMap } = await getData();
 
-  const tradeLabel = getTradeLabel(profile.service_type);
-  const tradeEmoji = getTradeEmoji(profile.service_type);
+  const tradeLabel = getProviderSpecialtyLabel(profile.service_type);
+  const tradeEmoji = getProviderSpecialtyEmoji(profile.service_type);
   const activeProjects = projects.filter((p) => p.status === 'active_24h');
   const myBidMap       = new Map(myBids.map((b) => [b.project_id, b]));
   const bidsPlaced     = myBids.filter((b) => !b.is_withdrawn);

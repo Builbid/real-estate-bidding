@@ -1,5 +1,5 @@
 import { normalizeRole } from '@/lib/auth/roles';
-import { isTradeServiceType, getTradeLabel } from '@/lib/trades';
+import { getProviderSpecialtyLabel, isProviderSpecialtyType } from '@/lib/trades';
 
 type RoleMessageKey =
   | 'roles.owner'
@@ -8,7 +8,7 @@ type RoleMessageKey =
   | 'roles.admin'
   | 'roles.service_provider';
 
-/** Badge text under the user name (trade name for trade service providers). */
+/** Badge text under the user name (specialty name for service providers). */
 export function getProfileRoleLabel(
   profile: { role: string; role_display?: string | null; service_type?: string | null },
   t: (key: RoleMessageKey) => string,
@@ -16,8 +16,8 @@ export function getProfileRoleLabel(
   const custom = profile.role_display?.trim();
   if (custom) return custom;
   const normalized = normalizeRole(profile.role);
-  if (normalized === 'service_provider' && isTradeServiceType(profile.service_type)) {
-    return getTradeLabel(profile.service_type);
+  if (normalized === 'service_provider' && isProviderSpecialtyType(profile.service_type)) {
+    return getProviderSpecialtyLabel(profile.service_type);
   }
   return t(`roles.${normalized}` as RoleMessageKey);
 }

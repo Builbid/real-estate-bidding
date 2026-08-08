@@ -20,7 +20,7 @@ import { NavLink } from '@/components/shared/NavLink'
 import { NavIconButton } from '@/components/shared/NavIconButton'
 import { useTranslation } from '@/lib/context/LanguageProvider'
 import { normalizeRole } from '@/lib/auth/roles'
-import { isTradeServiceType, getTradeLabel } from '@/lib/trades'
+import { getProfileRoleLabel } from '@/lib/auth/profileRoleLabel'
 import { clientSignOut } from '@/lib/auth/clientSignOut'
 import { BuilBidLogo } from '@/components/shared/BuilBidLogo'
 import { NAV_LOGO_LINK, NAV_MENU_ITEM } from '@/lib/navStyles'
@@ -97,10 +97,7 @@ export function TopBar({ profile, roleColor, avatarGradient }: TopBarProps) {
   const firmDisplayName = displayProfile.company_name ?? displayProfile.full_name
   const navItems   = NAV_ITEMS[normalizedRole] ?? NAV_ITEMS.labour_contractor
   const badgeColor = ROLE_BADGES[normalizedRole] ?? roleColor
-  const roleLabel =
-    normalizedRole === 'service_provider' && isTradeServiceType(displayProfile.service_type)
-      ? getTradeLabel(displayProfile.service_type)
-      : t(`roles.${normalizedRole}` as 'roles.owner')
+  const roleLabel = getProfileRoleLabel(displayProfile, (key) => t(key))
 
   return (
     <>

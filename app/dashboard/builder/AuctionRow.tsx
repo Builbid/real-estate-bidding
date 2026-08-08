@@ -8,8 +8,13 @@ import { Button } from '@/components/ui/button';
 import { CountdownTicker } from '@/components/shared/CountdownTicker';
 import { useCountdown } from '@/lib/hooks/useCountdown';
 import { CalendarDays } from 'lucide-react';
-import { TRACK_LABELS, getConstructionLabel, formatProjectPostedAt } from '@/lib/utils';
-import { isTradeServiceType, getTradeLabel } from '@/lib/trades';
+import { TRACK_LABELS, formatProjectPostedAt } from '@/lib/utils';
+import { isTradeServiceType } from '@/lib/trades';
+import {
+  getProjectConfigOrDrawingMeta,
+  getProjectServiceBadgeLabel,
+} from '@/lib/project/display';
+import { isDrawingDesignServiceType } from '@/lib/drawingDesign';
 import type { Project, Bid } from '@/lib/types';
 
 interface AuctionRowProps {
@@ -26,8 +31,9 @@ export function AuctionRow({ project, myBid, bidHrefOverride }: AuctionRowProps)
   const isExpired = countdown.isExpired;
   const bidHref = bidHrefOverride ?? `/dashboard/builder/bid/${project.id}`;
   const isTrade = isTradeServiceType(project.service_type);
-
-  const configLabel = getConstructionLabel(project.track_type, project.sub_configuration);
+  const isDrawing = isDrawingDesignServiceType(project.service_type);
+  const serviceBadge = getProjectServiceBadgeLabel(project);
+  const configLabel = getProjectConfigOrDrawingMeta(project);
   const postedAt = formatProjectPostedAt(project.created_at);
 
   return (
@@ -46,8 +52,10 @@ export function AuctionRow({ project, myBid, bidHrefOverride }: AuctionRowProps)
               Live
             </Badge>
           )}
-          <Badge>{isTrade ? getTradeLabel(project.service_type) : TRACK_LABELS[project.track_type]}</Badge>
-          {isTrade && <Badge>{TRACK_LABELS[project.track_type]}</Badge>}
+          <Badge>{serviceBadge}</Badge>
+          {isTrade && !isDrawing && (
+            <Badge>{TRACK_LABELS[project.track_type]}</Badge>
+          )}
           {hasBid && (
             <Badge variant="indigo">
               Your Bid: ₹{myBid!.total_sum_metric.toLocaleString('en-IN')}/sqft

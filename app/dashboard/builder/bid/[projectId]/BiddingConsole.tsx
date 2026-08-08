@@ -36,7 +36,12 @@ import { BidFloorRatesBreakdown } from '@/components/shared/BidFloorRatesBreakdo
 import { shouldShowBidFloorBreakdown, resolveProjectFloorCount } from '@/lib/bid/floorRateDisplay';
 import { createClient } from '@/lib/supabase/client';
 import { ConstructionMatrixSummary } from '@/components/construction/ConstructionMatrixSummary';
-import { isTradeServiceType, getTradeLabel } from '@/lib/trades';
+import { isTradeServiceType } from '@/lib/trades';
+import { isDrawingDesignServiceType } from '@/lib/drawingDesign';
+import {
+  getProjectConfigOrDrawingMeta,
+  getProjectServiceBadgeLabel,
+} from '@/lib/project/display';
 import type { Project, Bid, BidRates } from '@/lib/types';
 
 interface Props {
@@ -60,9 +65,12 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
   const supabase = createClient();
   const [builders, setBuilders] = useState<Record<string, BuilderInfo>>({});
   const isTrade = isTradeServiceType(project.service_type);
+  const isDrawing = isDrawingDesignServiceType(project.service_type);
+  const serviceBadge = getProjectServiceBadgeLabel(project);
+  const configMeta = getProjectConfigOrDrawingMeta(project);
 
   const floorCount  = resolveProjectFloorCount(project);
-  const floorLabels = isTrade ? ['Your'] : getFloorLabels(floorCount);
+  const floorLabels = isTrade || isDrawing ? ['Your'] : getFloorLabels(floorCount);
   const rateKeys    = getRateKeys(floorCount);
 
   const [rateInputs, setRateInputs] = useState<Partial<Record<keyof BidRates, string>>>(() =>
@@ -214,15 +222,20 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                 Live Auction
               </Badge>
             )}
-            <Badge>{isTrade ? getTradeLabel(project.service_type) : TRACK_LABELS[project.track_type]}</Badge>
-            {isTrade && <Badge>{TRACK_LABELS[project.track_type]}</Badge>}
+            <Badge>{serviceBadge}</Badge>
+            {isTrade && !isDrawing && (
+              <Badge>{TRACK_LABELS[project.track_type]}</Badge>
+            )}
           </div>
           <h1 className="text-lg font-bold text-foreground leading-snug">{project.title}</h1>
-          <p className="text-xs text-muted-foreground">{project.district}</p>
+          <p className="text-xs text-muted-foreground">
+            {project.district}
+            {configMeta ? ` · ${configMeta}` : ''}
+          </p>
         </div>
       </div>
 
-      {!isTrade && (
+      {!isTrade && !isDrawing && (
         <Card>
           <CardContent className="pt-4 pb-4">
             <ConstructionMatrixSummary

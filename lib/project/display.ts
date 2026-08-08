@@ -1,12 +1,17 @@
-import type { FinishingLevel, ServiceType } from '@/lib/types';
+import type { FinishingLevel, Project, ServiceType } from '@/lib/types';
 import { FINISHING_LEVEL_CONFIG, getFinishingClassBadge } from '@/lib/firm/finishingLevel';
 import { formatBudgetRange } from '@/lib/formatIndianCurrency';
-import { isDrawingDesignServiceType } from '@/lib/drawingDesign';
+import {
+  formatDrawingTypesSummary,
+  isDrawingDesignServiceType,
+} from '@/lib/drawingDesign';
 import {
   ALL_SERVICE_CATEGORIES,
+  getProviderSpecialtyLabel,
   isTradeServiceType,
   type ServiceCategoryOption,
 } from '@/lib/trades';
+import { getConstructionLabel } from '@/lib/utils';
 
 export function getProjectServiceType(project: { service_type?: ServiceType | null }): ServiceType {
   return project.service_type ?? 'labour_contractor';
@@ -35,6 +40,36 @@ export function getServiceCategoryLabel(serviceType: ServiceType): string {
 export function getServiceBadgeLabel(serviceType: ServiceType): string {
   const { label, emoji } = getServiceCategoryOption(serviceType);
   return `${label} ${emoji}`;
+}
+
+/** Primary service badge on dashboard auction cards (never track_type alone). */
+export function getProjectServiceBadgeLabel(project: {
+  service_type?: ServiceType | null;
+}): string {
+  const serviceType = getProjectServiceType(project);
+  if (isDrawingDesignServiceType(serviceType) || isTradeServiceType(serviceType)) {
+    return getProviderSpecialtyLabel(serviceType);
+  }
+  return getServiceCategoryLabel(serviceType);
+}
+
+/**
+ * Meta line under project title on dashboard cards.
+ * Drawing & Design → selected deliverables; otherwise construction config.
+ */
+export function getProjectConfigOrDrawingMeta(project: {
+  service_type?: ServiceType | null;
+  drawing_types?: string[] | null;
+  track_type?: Project['track_type'];
+  sub_configuration?: Project['sub_configuration'];
+}): string {
+  if (isDrawingDesignServiceType(project.service_type)) {
+    return formatDrawingTypesSummary(project.drawing_types);
+  }
+  if (project.track_type && project.sub_configuration) {
+    return getConstructionLabel(project.track_type, project.sub_configuration);
+  }
+  return getServiceCategoryLabel(getProjectServiceType(project));
 }
 
 /** Tailwind text color classes for prominent service headings on auction cards. */

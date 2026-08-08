@@ -15,12 +15,14 @@ import { STAT_ICON_STYLES, type StatIconColor } from '@/lib/dashboard/statIconSt
 import { cn } from '@/lib/utils';
 import {
   STATUS_CONFIG,
-  TRACK_LABELS,
-  getConstructionLabel,
   getProjectPhase,
   isInteractiveProjectPhase,
   type ProjectPhase,
 } from '@/lib/utils';
+import {
+  getProjectConfigOrDrawingMeta,
+  getProjectServiceBadgeLabel,
+} from '@/lib/project/display';
 import type { Project, Bid } from '@/lib/types';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
@@ -295,14 +297,15 @@ function ArchivedProjectRow({
   project: Project;
   bidCount: number;
 }) {
-  const configLabel = getConstructionLabel(project.track_type, project.sub_configuration);
+  const serviceBadge = getProjectServiceBadgeLabel(project);
+  const configLabel = getProjectConfigOrDrawingMeta(project);
 
   return (
     <div className="flex items-center gap-4 p-4 rounded-xl border border-border bg-card/80 dark:bg-card/60 transition-colors hover:border-border">
       <div className="flex-1 min-w-0">
         <div className="flex flex-wrap items-center gap-2 mb-1">
           <Badge variant="default">{STATUS_CONFIG[project.status].label}</Badge>
-          <Badge>{TRACK_LABELS[project.track_type]}</Badge>
+          <Badge>{serviceBadge}</Badge>
         </div>
         <p className="text-sm font-semibold text-foreground truncate">{project.title}</p>
         <div className="flex items-center gap-3 mt-1">

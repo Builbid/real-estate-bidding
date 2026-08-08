@@ -117,3 +117,9 @@ export const ALL_SERVICE_CATEGORIES: ServiceCategoryOption[] = [
     value: t.value, label: t.label, emoji: t.emoji, description: t.description,
   })),
 ];
+
+export function getProviderSpecialtyEmoji(value: string | null | undefined): string {
+  const cat = ALL_SERVICE_CATEGORIES.find((c) => c.value === value);
+  if (cat) return cat.emoji;
+  return getTradeEmoji(value);
+}

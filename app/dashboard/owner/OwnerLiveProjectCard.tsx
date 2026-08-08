@@ -8,13 +8,12 @@ import { DeleteProjectButton } from './DeleteProjectButton';
 import { UnifiedBidRankings } from './project/[id]/UnifiedBidRankings';
 import { UnifiedFirmBidRankings } from './project/[id]/UnifiedFirmBidRankings';
 import { OwnerProjectPhaseProvider, useOwnerProjectPhaseContext } from '@/lib/context/OwnerProjectPhaseContext';
+import { formatProjectPostedAt, cn } from '@/lib/utils';
 import {
-  TRACK_LABELS,
-  getConstructionLabel,
-  formatProjectPostedAt,
-} from '@/lib/utils';
-import { cn } from '@/lib/utils';
-import { isFirmProject } from '@/lib/project/display';
+  getProjectConfigOrDrawingMeta,
+  getProjectServiceBadgeLabel,
+  isFirmProject,
+} from '@/lib/project/display';
 import type { Project, Bid, PublicFirmProfile } from '@/lib/types';
 
 interface BuilderInfo {
@@ -45,7 +44,8 @@ function OwnerLiveProjectCardBody({
 }: OwnerLiveProjectCardProps) {
   const { project, phase, canSelect } = useOwnerProjectPhaseContext();
   const isFirm = isFirmProject(project);
-  const configLabel = getConstructionLabel(project.track_type, project.sub_configuration);
+  const serviceBadge = getProjectServiceBadgeLabel(project);
+  const configLabel = getProjectConfigOrDrawingMeta(project);
   const postedAt = formatProjectPostedAt(project.created_at);
 
   return (
@@ -70,7 +70,7 @@ function OwnerLiveProjectCardBody({
                 {isFirm ? 'Select Firm' : 'Select Builder'}
               </Badge>
             )}
-            <Badge>{TRACK_LABELS[project.track_type]}</Badge>
+            <Badge>{serviceBadge}</Badge>
           </div>
           <p className="text-sm font-semibold text-foreground">{project.title}</p>
           <div className="flex flex-wrap items-center gap-3 mt-1">

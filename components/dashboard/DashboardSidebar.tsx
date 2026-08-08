@@ -14,7 +14,7 @@ import { NavLink } from '@/components/shared/NavLink';
 import { NavIconButton } from '@/components/shared/NavIconButton';
 import type { UserRole } from '@/lib/types';
 import { normalizeRole } from '@/lib/auth/roles';
-import { isTradeServiceType, getTradeLabel } from '@/lib/trades';
+import { getProfileRoleLabel } from '@/lib/auth/profileRoleLabel';
 import { clientSignOut } from '@/lib/auth/clientSignOut';
 import { NAV_LOGO_LINK, NAV_MENU_ITEM } from '@/lib/navStyles';
 import { cn } from '@/lib/utils';
@@ -59,10 +59,10 @@ export function DashboardSidebar({
   const [signOutOpen, setSignOutOpen] = useState(false);
   const normalizedRole = normalizeRole(role);
   const navItems = NAV_CONFIG[normalizedRole];
-  const roleLabel =
-    normalizedRole === 'service_provider' && isTradeServiceType(serviceType)
-      ? getTradeLabel(serviceType)
-      : t(`roles.${normalizedRole}` as 'roles.owner');
+  const roleLabel = getProfileRoleLabel(
+    { role, service_type: serviceType },
+    (key) => t(key),
+  );
 
   return (
     <aside className="hidden lg:flex flex-col w-60 border-r border-border bg-card/50">
