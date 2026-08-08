@@ -8,6 +8,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
 import { BuildingTypeSelector } from '@/components/construction/BuildingTypeSelector';
 import { ConstructionTypeSelector } from '@/components/construction/ConstructionTypeSelector';
 import { BuildingConfigSummary } from '@/components/construction/BuildingConfigSummary';
@@ -45,6 +48,7 @@ interface FirmFormState {
   pincode: string;
   floor_area_sqft: string;
   budget_max: string;
+  bidding_minutes: string;
   building_types: BuildingType[];
   construction_types: ConstructionTypesMap;
 }
@@ -55,6 +59,7 @@ const EMPTY_FORM: FirmFormState = {
   pincode: '',
   floor_area_sqft: '',
   budget_max: '',
+  bidding_minutes: String(BIDDING_MINUTES),
   building_types: [],
   construction_types: {},
 };
@@ -187,7 +192,7 @@ export function ConstructionFirmProjectWizard() {
       budget_range_min: null,
       budget_range_max: parseIndianAmount(form.budget_max),
       drawing_url: null,
-      bidding_minutes: BIDDING_MINUTES,
+      bidding_minutes: parseInt(form.bidding_minutes, 10) || BIDDING_MINUTES,
     });
 
     if (result.error || !result.projectId) {
@@ -324,6 +329,24 @@ export function ConstructionFirmProjectWizard() {
                 {budgetPreview && (
                   <p className="text-sm font-semibold text-indigo-400 mt-2">{budgetPreview}</p>
                 )}
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Bidding Duration
+                </label>
+                <Select value={form.bidding_minutes} onValueChange={(v) => update('bidding_minutes', v)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="7">7 Minutes (Quick)</SelectItem>
+                    <SelectItem value="1440">24 Hours (Standard)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] text-muted-foreground">
+                  Choose how long construction firms can bid. After bidding closes you have 5 minutes to select a firm.
+                </p>
               </div>
 
               <Button size="lg" className="w-full" onClick={tryGoStep2}>
@@ -521,10 +544,14 @@ export function ConstructionFirmProjectWizard() {
                   },
                   { label: 'Bidding Opens', value: 'Immediately upon submission', editStep: null },
                   {
-                    label: 'Bidding Closes',
-                    value: `${BIDDING_MINUTES} minutes from launch`,
-                    editStep: null,
+                    label: 'Bidding Duration',
+                    value:
+                      form.bidding_minutes === '7'
+                        ? '7 minutes from launch'
+                        : '24 hours from launch',
+                    editStep: 1 as Step,
                   },
+                  { label: 'Selection Window', value: '5 minutes after bids close', editStep: null },
                 ].map(({ label, value, editStep }) => (
                   <div key={label} className="flex items-start justify-between gap-3 px-4 py-3">
                     <span className="text-xs text-muted-foreground flex-1 min-w-0">{label}</span>
