@@ -3,7 +3,7 @@
 import { CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { ServiceType } from '@/lib/types';
-import { TRADE_SERVICE_OPTIONS } from '@/lib/trades';
+import { ALL_SERVICE_CATEGORIES, TRADE_SERVICE_OPTIONS } from '@/lib/trades';
 import { cn } from '@/lib/utils';
 
 const CONSTRUCTION_OPTIONS = [
@@ -43,8 +43,11 @@ interface ServiceTypeSelectorProps {
 }
 
 export function ServiceTypeSelector({ value, onChange, onContinue }: ServiceTypeSelectorProps) {
+  const selectedLabel =
+    ALL_SERVICE_CATEGORIES.find((c) => c.value === value)?.label ?? 'selected service';
+
   return (
-    <div className="space-y-6">
+    <div className={cn('space-y-6', value && 'pb-24')}>
       <div>
         <h2 className="text-xl font-bold text-foreground">What are you looking for?</h2>
         <p className="text-sm text-muted-foreground mt-1">
@@ -134,9 +137,18 @@ export function ServiceTypeSelector({ value, onChange, onContinue }: ServiceType
         </div>
       </div>
 
-      <Button size="lg" className="w-full" disabled={!value} onClick={onContinue}>
-        Continue →
-      </Button>
+      {value && (
+        <div className="fixed inset-x-0 bottom-0 z-50 border-t border-border/70 bg-background/95 px-4 py-3 shadow-[0_-8px_30px_rgba(0,0,0,0.14)] backdrop-blur-md pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          <div className="mx-auto max-w-2xl space-y-1.5">
+            <p className="text-center text-[11px] text-muted-foreground">
+              Selected: <span className="font-semibold text-foreground">{selectedLabel}</span>
+            </p>
+            <Button size="lg" className="w-full" onClick={onContinue}>
+              Continue →
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
