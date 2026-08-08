@@ -13,9 +13,16 @@ interface BuildingTypeSelectorProps {
   value: BuildingType[];
   onChange: (value: BuildingType[]) => void;
   error?: string | null;
+  /** Defaults to construction copy; use "drawing" for Drawing & Design projects. */
+  purpose?: 'construction' | 'drawing';
 }
 
-export function BuildingTypeSelector({ value, onChange, error }: BuildingTypeSelectorProps) {
+export function BuildingTypeSelector({
+  value,
+  onChange,
+  error,
+  purpose = 'construction',
+}: BuildingTypeSelectorProps) {
   const hasAssam = value.includes(ASSAM_BUILDING_TYPE);
   const hasRcc = value.some((t) => RCC_BUILDING_TYPES.includes(t));
 
@@ -35,14 +42,29 @@ export function BuildingTypeSelector({ value, onChange, error }: BuildingTypeSel
   return (
     <div className="space-y-4">
       <div className="space-y-1">
-        <p className="text-sm text-muted-foreground">
-          Select the floor(s) you want to construct. You can select multiple floors.
-        </p>
-        <p className="text-xs text-muted-foreground/80">
-          e.g. Building G+1? Select Ground Floor + 1st Floor
-          <br />
-          e.g. Already built Ground Floor? Select only 1st Floor
-        </p>
+        {purpose === 'drawing' ? (
+          <>
+            <p className="text-sm text-muted-foreground">
+              Select Assam Type <span className="font-semibold">or</span> RCC floor(s) for these drawings.
+            </p>
+            <p className="text-xs text-muted-foreground/80">
+              Assam Type and RCC cannot be mixed.
+              <br />
+              For RCC you can select multiple floors (e.g. Ground + 1st Floor).
+            </p>
+          </>
+        ) : (
+          <>
+            <p className="text-sm text-muted-foreground">
+              Select the floor(s) you want to construct. You can select multiple floors.
+            </p>
+            <p className="text-xs text-muted-foreground/80">
+              e.g. Building G+1? Select Ground Floor + 1st Floor
+              <br />
+              e.g. Already built Ground Floor? Select only 1st Floor
+            </p>
+          </>
+        )}
       </div>
 
       {hasAssam && (

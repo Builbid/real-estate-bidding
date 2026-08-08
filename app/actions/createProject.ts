@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import type { BuildingType, ConstructionTypesMap } from '@/lib/buildingConfig'
-import { deriveLegacyProjectFields } from '@/lib/buildingConfig'
+import { deriveLegacyProjectFields, ASSAM_BUILDING_TYPE, RCC_BUILDING_TYPES } from '@/lib/buildingConfig'
 import { buildFirmConstructionTypes } from '@/lib/firm/projectDefaults'
 import { validatePincode } from '@/lib/validation/pincode'
 import type {
@@ -51,9 +51,10 @@ export interface CreateTradeProjectInput extends CreateProjectBase {
   track_type: TrackType
 }
 
-/** Drawing & Design — client multi-selects deliverable drawing types. */
+/** Drawing & Design — house type (Assam XOR RCC floors) + multi-select drawings. */
 export interface CreateDrawingDesignProjectInput extends CreateProjectBase {
   service_type: 'drawing_design'
+  building_types: BuildingType[]
   drawing_types: DrawingDesignType[]
 }
 
@@ -112,18 +113,34 @@ export async function createProjectAction(
 
   if (isDrawing) {
     const drawing = input as CreateDrawingDesignProjectInput
+    const buildingTypes = Array.isArray(drawing.building_types) ? drawing.building_types : []
+    if (buildingTypes.length === 0) {
+      return { error: 'Select Assam Type or one or more RCC floors.' }
+    }
+    const hasAssam = buildingTypes.includes(ASSAM_BUILDING_TYPE)
+    const hasRcc = buildingTypes.some((t) => RCC_BUILDING_TYPES.includes(t))
+    if (hasAssam && hasRcc) {
+      return { error: 'Assam Type and RCC floors cannot be combined.' }
+    }
+    if (hasAssam && buildingTypes.length > 1) {
+      return { error: 'Assam Type cannot be combined with other house types.' }
+    }
+
     const types = Array.isArray(drawing.drawing_types)
       ? drawing.drawing_types.filter((t, i, arr) => arr.indexOf(t) === i)
       : []
     if (types.length === 0) {
       return { error: 'Select at least one drawing / design type.' }
     }
-    insertPayload.track_type = 'RCC'
-    insertPayload.sub_configuration = {}
-    insertPayload.building_types = []
+
+    const legacy = deriveLegacyProjectFields(buildingTypes, {})
+    insertPayload.track_type = legacy.track_type
+    insertPayload.sub_configuration = legacy.sub_configuration
+    insertPayload.building_types = buildingTypes
     insertPayload.construction_types = {}
-    insertPayload.total_floors = 1
+    insertPayload.total_floors = legacy.total_floors
     insertPayload.drawing_types = types
+    insertPayload.description = null
   } else if (isTrade) {
     const trade = input as CreateTradeProjectInput
     insertPayload.track_type = trade.track_type

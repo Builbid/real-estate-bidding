@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,17 +9,17 @@ import { Card, CardContent } from '@/components/ui/card';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { WizardProjectTextFields } from '@/components/owner/WizardProjectTextFields';
+import { BuildingTypeSelector } from '@/components/construction/BuildingTypeSelector';
 import {
   IndianCityAutocomplete,
   parseIndianDistrictSelection,
 } from '@/components/shared/IndianCityAutocomplete';
-import { hasContactInfo, hasProjectContactViolation } from '@/lib/validation/projectContactInfo';
 import { formatPincodeInput, validatePincode } from '@/lib/validation/pincode';
 import {
   DRAWING_TYPE_OPTIONS,
   formatDrawingTypesSummary,
 } from '@/lib/drawingDesign';
+import { formatBuildingTypesSummary, sortBuildingTypes, type BuildingType } from '@/lib/buildingConfig';
 import { cn } from '@/lib/utils';
 import { createProjectAction } from '@/app/actions/createProject';
 import type { DrawingDesignType } from '@/lib/types';
@@ -27,50 +27,43 @@ import type { DrawingDesignType } from '@/lib/types';
 type Step = 1 | 2 | 3;
 
 const BIDDING_MINUTES = 7;
-const PROGRESS_LABELS = ['Project Info', 'Drawing Types', 'Review & Launch'] as const;
+const PROGRESS_LABELS = ['House Type', 'Drawing Types', 'Review & Launch'] as const;
 
 interface FormState {
-  title: string;
-  description: string;
   location: string;
   pincode: string;
   bidding_minutes: string;
+  building_types: BuildingType[];
   drawing_types: DrawingDesignType[];
 }
 
 const EMPTY_FORM: FormState = {
-  title: '',
-  description: '',
   location: '',
   pincode: '',
   bidding_minutes: String(BIDDING_MINUTES),
+  building_types: [],
   drawing_types: [],
 };
 
 export function DrawingDesignProjectWizard() {
   const router = useRouter();
-  const titleRef = useRef<HTMLInputElement>(null);
-  const descriptionRef = useRef<HTMLTextAreaElement>(null);
   const [step, setStep] = useState<Step>(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [step1Error, setStep1Error] = useState<string | null>(null);
   const [step2Error, setStep2Error] = useState<string | null>(null);
   const [step1ValidationAttempted, setStep1ValidationAttempted] = useState(false);
   const [step1Errors, setStep1Errors] = useState<{
-    title?: string;
     location?: string;
     pincode?: string;
   }>({});
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
 
-  const contactViolation = hasProjectContactViolation(form.title, form.description);
-
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((f) => ({ ...f, [key]: value }));
-    if (step1ValidationAttempted && (key === 'title' || key === 'location' || key === 'pincode')) {
+    if (step1ValidationAttempted && (key === 'location' || key === 'pincode')) {
       setStep1Errors((errors) => {
         const next = { ...errors };
-        if (key === 'title') delete next.title;
         if (key === 'location') delete next.location;
         if (key === 'pincode') delete next.pincode;
         return next;
@@ -93,7 +86,6 @@ export function DrawingDesignProjectWizard() {
 
   function tryGoStep2() {
     const errors: typeof step1Errors = {};
-    if (!form.title.trim()) errors.title = 'Project title is required.';
     if (!parseIndianDistrictSelection(form.location)) {
       errors.location = 'Please select a district from the suggestions list.';
     }
@@ -103,20 +95,18 @@ export function DrawingDesignProjectWizard() {
     if (Object.keys(errors).length > 0) {
       setStep1ValidationAttempted(true);
       setStep1Errors(errors);
+      setStep1Error(null);
       return;
     }
-    if (contactViolation) {
-      if (hasContactInfo(form.title)) {
-        titleRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        titleRef.current?.focus();
-      } else {
-        descriptionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        descriptionRef.current?.focus();
-      }
+    if (form.building_types.length === 0) {
+      setStep1ValidationAttempted(true);
+      setStep1Errors({});
+      setStep1Error('Select Assam Type or one or more RCC floors.');
       return;
     }
     setStep1ValidationAttempted(false);
     setStep1Errors({});
+    setStep1Error(null);
     setStep(2);
   }
 
@@ -130,7 +120,7 @@ export function DrawingDesignProjectWizard() {
   }
 
   async function handleSubmit() {
-    if (form.drawing_types.length === 0) return;
+    if (form.building_types.length === 0 || form.drawing_types.length === 0) return;
     setLoading(true);
     setError(null);
 
@@ -140,20 +130,18 @@ export function DrawingDesignProjectWizard() {
       setLoading(false);
       return;
     }
-    if (hasProjectContactViolation(form.title, form.description)) {
-      setError('Remove contact details from the project title or description before submitting.');
-      setLoading(false);
-      return;
-    }
+
+    const houseSummary = formatBuildingTypesSummary(form.building_types) || 'House';
+    const autoTitle = `${houseSummary} — Drawing & Design — ${districtSelection.district}`;
 
     const result = await createProjectAction({
       service_type: 'drawing_design',
-      title: form.title.trim(),
-      description: form.description.trim() || undefined,
+      title: autoTitle,
       district: districtSelection.district,
       state: districtSelection.state,
       pincode: form.pincode.trim() || undefined,
       bidding_minutes: parseInt(form.bidding_minutes, 10) || BIDDING_MINUTES,
+      building_types: form.building_types,
       drawing_types: form.drawing_types,
     });
 
@@ -165,6 +153,8 @@ export function DrawingDesignProjectWizard() {
     router.push('/dashboard/owner');
   }
 
+  const orderedTypes = sortBuildingTypes(form.building_types);
+
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
@@ -172,7 +162,7 @@ export function DrawingDesignProjectWizard() {
           <span>✏️</span> Post Drawing and Design Project
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Choose the drawings you need — designers will bid on your project.
+          Select your house type and the drawings you need — designers will bid on your project.
         </p>
       </div>
 
@@ -217,17 +207,8 @@ export function DrawingDesignProjectWizard() {
 
           {step === 1 && (
             <>
-              <h2 className="text-base font-semibold text-foreground">Project Information</h2>
-              <WizardProjectTextFields
-                title={form.title}
-                description={form.description}
-                titleRef={titleRef}
-                descriptionRef={descriptionRef}
-                titlePlaceholder="e.g. 2BHK house drawings, Guwahati"
-                titleRequiredError={step1ValidationAttempted ? step1Errors.title : undefined}
-                onTitleChange={(v) => update('title', v)}
-                onDescriptionChange={(v) => update('description', v)}
-              />
+              <h2 className="text-base font-semibold text-foreground">Location & type of house</h2>
+
               <IndianCityAutocomplete
                 value={form.location}
                 onChange={(v) => update('location', v)}
@@ -254,7 +235,21 @@ export function DrawingDesignProjectWizard() {
                   </SelectContent>
                 </Select>
               </div>
-              <Button size="lg" className="w-full" disabled={contactViolation} onClick={tryGoStep2}>
+
+              <div className="space-y-3 border-t border-border pt-5">
+                <h3 className="text-sm font-semibold text-foreground">Type of House</h3>
+                <BuildingTypeSelector
+                  purpose="drawing"
+                  value={form.building_types}
+                  onChange={(v) => {
+                    update('building_types', v);
+                    setStep1Error(null);
+                  }}
+                  error={step1Error}
+                />
+              </div>
+
+              <Button size="lg" className="w-full" onClick={tryGoStep2}>
                 Continue <ArrowRight className="h-4 w-4" />
               </Button>
             </>
@@ -327,9 +322,12 @@ export function DrawingDesignProjectWizard() {
               <div className="overflow-hidden rounded-2xl border border-border/70 bg-card/60 divide-y divide-border/50">
                 {[
                   { label: 'Service', value: '✏️ Drawing and Design' },
-                  { label: 'Title', value: form.title },
                   { label: 'District', value: form.location },
                   { label: 'Pincode', value: form.pincode.trim() || 'Not specified' },
+                  {
+                    label: 'Type of house',
+                    value: formatBuildingTypesSummary(orderedTypes),
+                  },
                   {
                     label: 'Drawings needed',
                     value: formatDrawingTypesSummary(form.drawing_types),
@@ -349,23 +347,40 @@ export function DrawingDesignProjectWizard() {
                 ))}
               </div>
 
-              <div className="rounded-xl border border-sky-500/20 bg-sky-500/5 p-3.5">
-                <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-sky-700 dark:text-sky-300">
-                  Selected drawings
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {form.drawing_types.map((t) => {
-                    const opt = DRAWING_TYPE_OPTIONS.find((o) => o.value === t);
-                    return (
+              <div className="rounded-xl border border-sky-500/20 bg-sky-500/5 p-3.5 space-y-3">
+                <div>
+                  <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-sky-700 dark:text-sky-300">
+                    House type
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {orderedTypes.map((t) => (
                       <span
                         key={t}
-                        className="inline-flex items-center gap-1 rounded-full border border-sky-500/25 bg-sky-500/10 px-2.5 py-1 text-xs font-semibold text-foreground"
+                        className="inline-flex items-center rounded-full border border-border/60 bg-background/60 px-2.5 py-1 text-xs font-semibold"
                       >
-                        <span aria-hidden>{opt?.emoji}</span>
-                        {opt?.label ?? t}
+                        {t}
                       </span>
-                    );
-                  })}
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-sky-700 dark:text-sky-300">
+                    Selected drawings
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {form.drawing_types.map((t) => {
+                      const opt = DRAWING_TYPE_OPTIONS.find((o) => o.value === t);
+                      return (
+                        <span
+                          key={t}
+                          className="inline-flex items-center gap-1 rounded-full border border-sky-500/25 bg-sky-500/10 px-2.5 py-1 text-xs font-semibold text-foreground"
+                        >
+                          <span aria-hidden>{opt?.emoji}</span>
+                          {opt?.label ?? t}
+                        </span>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
 
