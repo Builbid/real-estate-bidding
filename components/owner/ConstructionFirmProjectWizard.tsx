@@ -334,14 +334,7 @@ export function ConstructionFirmProjectWizard() {
 
           {step === 2 && (
             <div className="space-y-5">
-              <div>
-                <h2 className="text-base font-semibold text-foreground">Type of Building</h2>
-                <p className="text-sm text-muted-foreground mt-1">Select the type and floors of your building</p>
-                <p className="text-[11px] text-muted-foreground/80 mt-2">
-                  e.g. G+1 home? Select Ground Floor + 1st Floor<br />
-                  e.g. Already have Ground Floor? Select only upper floors needed
-                </p>
-              </div>
+              <h2 className="text-base font-semibold text-foreground">Type of Building</h2>
               <BuildingTypeSelector
                 value={form.building_types}
                 onChange={(v) => { update('building_types', v); setStep2Error(null); }}
