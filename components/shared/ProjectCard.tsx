@@ -13,7 +13,8 @@ import {
   getProjectBudgetDisplay,
   getProjectFloorAreaDisplay,
   getProjectServiceType,
-  getServiceBadgeLabel,
+  getServiceCategoryOption,
+  getServiceHeadingClass,
   isFirmProject,
 } from '@/lib/project/display';
 import { useTranslation } from '@/lib/context/LanguageProvider';
@@ -44,6 +45,7 @@ export function ProjectCard({
   const isFrozen = project.status === 'frozen_24h';
   const isFirm = isFirmProject(project);
   const serviceType = getProjectServiceType(project);
+  const serviceCategory = getServiceCategoryOption(serviceType);
   const floorArea = getProjectFloorAreaDisplay(project);
   const budgetDisplay = getProjectBudgetDisplay(project);
   const finishingBadge = getFinishingBadge(project.finishing_level);
@@ -75,9 +77,6 @@ export function ProjectCard({
                 {isActive && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />}
                 {statusLabel}
               </Badge>
-              <Badge variant={isFirm ? 'violet' : 'amber'} className="text-[10px]">
-                {getServiceBadgeLabel(serviceType)}
-              </Badge>
               {finishingBadge && !compact && (
                 <Badge variant="default" className="text-[10px]">{finishingBadge}</Badge>
               )}
@@ -87,6 +86,16 @@ export function ProjectCard({
                 </Badge>
               )}
             </div>
+            <p
+              className={cn(
+                'mb-1.5 font-extrabold tracking-tight leading-tight',
+                compact ? 'text-lg sm:text-xl' : 'text-xl sm:text-2xl',
+                getServiceHeadingClass(serviceType),
+              )}
+            >
+              <span className="mr-1.5" aria-hidden>{serviceCategory.emoji}</span>
+              {serviceCategory.label}
+            </p>
             <h3 className={cn(
               'font-semibold text-foreground leading-snug line-clamp-2 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors',
               compact ? 'text-base' : 'text-base',

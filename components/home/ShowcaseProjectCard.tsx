@@ -12,6 +12,8 @@ import {
   getProjectFloorAreaDisplay,
   getProjectServiceType,
   getServiceBadgeLabel,
+  getServiceCategoryOption,
+  getServiceHeadingClass,
   isFirmProject,
 } from '@/lib/project/display';
 import {
@@ -116,6 +118,7 @@ export function ShowcaseProjectCard({
 
   const isFirm = isFirmProject(project);
   const serviceType = getProjectServiceType(project);
+  const serviceCategory = getServiceCategoryOption(serviceType);
   const floorAreaDisplay = getProjectFloorAreaDisplay(project);
   const budgetDisplay = getProjectBudgetDisplay(project);
   const finishingBadge = getFinishingBadge(project.finishing_level);
@@ -175,9 +178,6 @@ export function ShowcaseProjectCard({
                 <span className="mr-1 h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
                 {t('home.showcase.liveBadge')}
               </Badge>
-              <Badge variant={isFirm ? 'violet' : 'amber'} className="text-[11px]">
-                {getServiceBadgeLabel(serviceType)}
-              </Badge>
               {finishingBadge && (
                 <Badge variant="default" className="text-[11px]">
                   {finishingBadge}
@@ -186,6 +186,15 @@ export function ShowcaseProjectCard({
             </div>
             <div className="hidden sm:flex"><ShowcaseCountdownPill remaining={remaining} /></div>
           </div>
+          <p
+            className={cn(
+              'text-xl font-extrabold tracking-tight leading-tight sm:text-2xl',
+              getServiceHeadingClass(serviceType),
+            )}
+          >
+            <span className="mr-1.5" aria-hidden>{serviceCategory.emoji}</span>
+            {serviceCategory.label}
+          </p>
         </div>
 
         <h3 className="mb-2 line-clamp-2 text-base font-bold leading-snug text-foreground transition-colors group-hover:text-emerald-600 dark:group-hover:text-emerald-400 sm:text-lg">
