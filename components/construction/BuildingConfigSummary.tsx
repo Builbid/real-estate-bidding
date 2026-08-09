@@ -99,7 +99,7 @@ export function BuildingConfigSummary({
               <span className="text-lg leading-none" aria-hidden>
                 {icon}
               </span>
-              <span className="text-sm font-bold tracking-tight text-foreground">
+              <span className="text-sm font-bold tracking-tight">
                 {buildingType}
               </span>
             </div>

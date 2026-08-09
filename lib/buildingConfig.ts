@@ -326,48 +326,49 @@ export function getSectionHeaderStyle(type: BuildingType): {
   icon: string;
   className: string;
 } {
+  // Soft tinted headers — readable text on light and dark themes
   switch (type) {
     case 'Assam Type':
       return {
         icon: '🏛️',
         className:
-          'bg-amber-900 dark:bg-amber-800 border-l-amber-600 dark:border-l-amber-400 text-amber-50 ring-1 ring-black/5 dark:ring-white/10',
+          'bg-amber-50 dark:bg-amber-950/45 border-l-amber-400 dark:border-l-amber-500 text-amber-950 dark:text-amber-50 ring-1 ring-amber-200/60 dark:ring-amber-800/40',
       };
     case 'RCC Ground Floor':
       return {
         icon: '🏠',
         className:
-          'bg-stone-800 dark:bg-stone-700 border-l-stone-500 dark:border-l-stone-400 text-stone-50 ring-1 ring-black/5 dark:ring-white/10',
+          'bg-stone-100 dark:bg-stone-800/55 border-l-stone-400 dark:border-l-stone-400 text-stone-900 dark:text-stone-50 ring-1 ring-stone-200/70 dark:ring-stone-700/50',
       };
     case 'RCC 1st Floor':
       return {
         icon: '🏢',
         className:
-          'bg-slate-800 dark:bg-slate-700 border-l-blue-600 dark:border-l-blue-400 text-slate-50 ring-1 ring-black/5 dark:ring-white/10',
+          'bg-sky-50 dark:bg-sky-950/45 border-l-sky-400 dark:border-l-sky-400 text-sky-950 dark:text-sky-50 ring-1 ring-sky-200/70 dark:ring-sky-800/40',
       };
     case 'RCC 2nd Floor':
       return {
         icon: '🏗️',
         className:
-          'bg-teal-950 dark:bg-teal-900 border-l-teal-600 dark:border-l-teal-400 text-teal-50 ring-1 ring-black/5 dark:ring-white/10',
+          'bg-teal-50 dark:bg-teal-950/45 border-l-teal-400 dark:border-l-teal-400 text-teal-950 dark:text-teal-50 ring-1 ring-teal-200/70 dark:ring-teal-800/40',
       };
     case 'RCC 3rd Floor':
       return {
         icon: '🏗️',
         className:
-          'bg-indigo-900 dark:bg-indigo-800 border-l-indigo-500 dark:border-l-indigo-400 text-indigo-50 ring-1 ring-black/5 dark:ring-white/10',
+          'bg-indigo-50 dark:bg-indigo-950/45 border-l-indigo-400 dark:border-l-indigo-400 text-indigo-950 dark:text-indigo-50 ring-1 ring-indigo-200/70 dark:ring-indigo-800/40',
       };
     case 'RCC 4th Floor':
       return {
         icon: '🏗️',
         className:
-          'bg-violet-900 dark:bg-violet-800 border-l-violet-500 dark:border-l-violet-400 text-violet-50 ring-1 ring-black/5 dark:ring-white/10',
+          'bg-rose-50 dark:bg-rose-950/45 border-l-rose-400 dark:border-l-rose-400 text-rose-950 dark:text-rose-50 ring-1 ring-rose-200/70 dark:ring-rose-800/40',
       };
     default:
       return {
         icon: '🏗️',
         className:
-          'bg-secondary border-l-border text-foreground ring-1 ring-black/5 dark:ring-white/10',
+          'bg-secondary border-l-border text-foreground ring-1 ring-border/60',
       };
   }
 }
