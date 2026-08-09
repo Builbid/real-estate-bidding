@@ -66,12 +66,14 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
   const [builders, setBuilders] = useState<Record<string, BuilderInfo>>({});
   const isTrade = isTradeServiceType(project.service_type);
   const isDrawing = isDrawingDesignServiceType(project.service_type);
+  const isSingleRateBid = isTrade || isDrawing;
   const serviceBadge = getProjectServiceBadgeLabel(project);
   const configMeta = getProjectConfigOrDrawingMeta(project);
 
-  const floorCount  = resolveProjectFloorCount(project);
-  const floorLabels = isTrade || isDrawing ? ['Your'] : getFloorLabels(floorCount);
-  const rateKeys    = getRateKeys(floorCount);
+  // Trade / Drawing & Design bid a single ₹/sqft rate (not per floor).
+  const floorCount = isSingleRateBid ? 1 : resolveProjectFloorCount(project);
+  const floorLabels = isSingleRateBid ? ['Your'] : getFloorLabels(floorCount);
+  const rateKeys = getRateKeys(floorCount);
 
   const [rateInputs, setRateInputs] = useState<Partial<Record<keyof BidRates, string>>>(() =>
     existingBid ? ratesToInputStrings(existingBid.rates) : {},
@@ -302,7 +304,13 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                           ₹{myCurrentBid.total_sum_metric.toLocaleString('en-IN')}
                         </p>
                       </div>
-                      <p className="text-xs text-muted-foreground/80 text-right">{floorCount} floor{floorCount > 1 ? 's' : ''}<br />combined</p>
+                      <p className="text-xs text-muted-foreground/80 text-right">
+                        {isSingleRateBid ? (
+                          <>Single rate<br />bid</>
+                        ) : (
+                          <>{floorCount} floor{floorCount > 1 ? 's' : ''}<br />combined</>
+                        )}
+                      </p>
                     </div>
                     {myRank > 0 && (
                       <div className={cn(
@@ -346,7 +354,10 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                 <div className="flex items-center gap-2 p-2.5 rounded-lg bg-blue-500/5 border border-blue-500/15 mb-2">
                   <Info className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
                   <p className="text-xs text-blue-300">
-                    Enter your rate in <strong>₹ per sqft</strong>{isTrade ? '' : ' for each floor'}. Rates must be whole numbers ending in <strong>0 or 5</strong>. Lower {isTrade ? 'rates rank' : 'total rates rank'} higher.
+                    Enter your rate in <strong>₹ per sqft</strong>
+                    {isSingleRateBid ? '' : ' for each floor'}. Rates must be whole numbers ending in{' '}
+                    <strong>0 or 5</strong>. Lower{' '}
+                    {isSingleRateBid ? 'rates rank' : 'total rates rank'} higher.
                   </p>
                 </div>
 
@@ -411,7 +422,13 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                       ₹{totalMetric.toLocaleString('en-IN')}
                     </p>
                   </div>
-                  <p className="text-xs text-muted-foreground/80 text-right">{floorCount} floor{floorCount > 1 ? 's' : ''}<br />combined</p>
+                  <p className="text-xs text-muted-foreground/80 text-right">
+                    {isSingleRateBid ? (
+                      <>Single rate<br />bid</>
+                    ) : (
+                      <>{floorCount} floor{floorCount > 1 ? 's' : ''}<br />combined</>
+                    )}
+                  </p>
                 </div>
 
                 {/* Rank preview */}

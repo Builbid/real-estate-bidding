@@ -3,6 +3,8 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { getFloorInputCount } from '@/lib/utils';
+import { isDrawingDesignServiceType } from '@/lib/drawingDesign';
+import { isTradeServiceType } from '@/lib/trades';
 import type { BidRates, SubConfiguration, TrackType } from '@/lib/types';
 import {
   buildBidRatesPayload,
@@ -57,10 +59,14 @@ export async function submitBidAction(
     return { error: 'You are not authorized to bid on this project type.', success: false };
   }
 
-  const floorCount = getFloorInputCount(
-    project.track_type as TrackType,
-    (project.sub_configuration ?? {}) as SubConfiguration,
-  );
+  // Trades + Drawing & Design use one package ₹/sqft rate (ground_rate only).
+  const floorCount =
+    isTradeServiceType(project.service_type) || isDrawingDesignServiceType(project.service_type)
+      ? 1
+      : getFloorInputCount(
+          project.track_type as TrackType,
+          (project.sub_configuration ?? {}) as SubConfiguration,
+        );
 
   const validation = validateBidRatesForFloorCount(rates, floorCount);
   if (!validation.valid) {
