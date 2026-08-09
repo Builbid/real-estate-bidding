@@ -7,34 +7,33 @@ import { ALL_SERVICE_CATEGORIES, TRADE_SERVICE_OPTIONS } from '@/lib/trades';
 import { isConstructionFirmEnabled } from '@/lib/features';
 import { cn } from '@/lib/utils';
 
-const CONSTRUCTION_OPTIONS = [
-  {
-    type: 'labour_contractor' as const,
-    emoji: '👷',
-    title: 'Mistri Contractor',
-    bullets: [
-      'Hire skilled construction workers',
-      'You purchase & manage all materials',
-      'Lower cost — more control',
-    ],
-    badge: 'Without Material',
-    accent: 'amber',
-  },
-  {
-    type: 'construction_firm' as const,
-    emoji: '🏢',
-    title: 'Construction Firm',
-    subtitle: 'Let the firm handle everything',
-    bullets: [
-      'Complete turnkey construction',
-      'Firm supplies material + labour',
-      'Stress-free — just pay and get your home',
-    ],
-    badge: 'With Material',
-    premiumTag: 'Premium Service',
-    accent: 'indigo',
-  },
-] as const;
+const MISTRI_OPTION = {
+  type: 'labour_contractor' as const,
+  emoji: '👷',
+  title: 'Mistri Contractor',
+  bullets: [
+    'Hire skilled construction workers',
+    'You purchase & manage all materials',
+    'Lower cost — more control',
+  ],
+  badge: 'Without Material',
+  accent: 'amber' as const,
+};
+
+const FIRM_OPTION = {
+  type: 'construction_firm' as const,
+  emoji: '🏢',
+  title: 'Construction Firm',
+  subtitle: 'Let the firm handle everything',
+  bullets: [
+    'Complete turnkey construction',
+    'Firm supplies material + labour',
+    'Stress-free — just pay and get your home',
+  ],
+  badge: 'With Material',
+  premiumTag: 'Premium Service',
+  accent: 'indigo' as const,
+};
 
 interface ServiceTypeSelectorProps {
   value: ServiceType | null;
@@ -45,9 +44,10 @@ interface ServiceTypeSelectorProps {
 export function ServiceTypeSelector({ value, onChange, onContinue }: ServiceTypeSelectorProps) {
   const selectedLabel =
     ALL_SERVICE_CATEGORIES.find((c) => c.value === value)?.label ?? 'selected service';
-  const constructionOptions = CONSTRUCTION_OPTIONS.filter(
-    (opt) => opt.type !== 'construction_firm' || isConstructionFirmEnabled(),
-  );
+  // Firm card omitted entirely while CONSTRUCTION_FIRM_ENABLED is false
+  const constructionOptions = isConstructionFirmEnabled()
+    ? [MISTRI_OPTION, FIRM_OPTION]
+    : [MISTRI_OPTION];
 
   return (
     <div className={cn('space-y-6', value && 'pb-24')}>
