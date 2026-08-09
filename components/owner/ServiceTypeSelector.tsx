@@ -73,7 +73,7 @@ export function ServiceTypeSelector({ value, onChange, onContinue }: ServiceType
               )}
             >
               {opt.premiumTag && (
-                <span className="absolute top-3 right-3 text-[9px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30">
+                <span className="absolute top-3 right-3 text-[9px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-violet-100 text-violet-800 border border-violet-300 dark:bg-violet-500/25 dark:text-violet-100 dark:border-violet-400/50">
                   {opt.premiumTag}
                 </span>
               )}
@@ -93,8 +93,10 @@ export function ServiceTypeSelector({ value, onChange, onContinue }: ServiceType
                 ))}
               </ul>
               <span className={cn(
-                'inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full',
-                isFirm ? 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/25' : 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/25',
+                'inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full border',
+                isFirm
+                  ? 'bg-indigo-100 text-indigo-800 border-indigo-300 dark:bg-indigo-500/25 dark:text-indigo-100 dark:border-indigo-400/50'
+                  : 'bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-500/20 dark:text-amber-100 dark:border-amber-400/45',
               )}>
                 {opt.badge}
               </span>
