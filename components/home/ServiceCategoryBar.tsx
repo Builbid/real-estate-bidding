@@ -7,7 +7,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { ALL_SERVICE_CATEGORIES } from '@/lib/trades';
+import { getVisibleServiceCategories } from '@/lib/trades';
 import { cn } from '@/lib/utils';
 import type { ServiceType } from '@/lib/types';
 
@@ -32,6 +32,7 @@ export function ServiceCategoryBar({ isAuthenticated, role }: ServiceCategoryBar
   const router = useRouter();
   const [authPromptHref, setAuthPromptHref] = useState<string | null>(null);
   const isOwner = role === 'owner';
+  const categories = getVisibleServiceCategories();
 
   function handleSelect(service: ServiceType) {
     const target = `/dashboard/owner/new-project?service=${service}`;
@@ -57,8 +58,8 @@ export function ServiceCategoryBar({ isAuthenticated, role }: ServiceCategoryBar
             </h2>
           </div>
 
-          <div className="mt-2 grid grid-cols-4 gap-1.5 sm:grid-cols-8 sm:gap-2">
-            {ALL_SERVICE_CATEGORIES.map((cat, index) => (
+          <div className="mt-2 grid grid-cols-4 gap-1.5 sm:grid-cols-7 sm:gap-2">
+            {categories.map((cat, index) => (
               <button
                 key={cat.value}
                 type="button"

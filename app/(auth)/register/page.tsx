@@ -14,6 +14,7 @@ import {
   isProviderSpecialtyType,
   getProviderSpecialtyLabel,
 } from '@/lib/trades';
+import { isConstructionFirmEnabled } from '@/lib/features';
 import type { ProviderSpecialtyType } from '@/lib/types';
 import { uploadBuilderAvatar } from '@/lib/avatar/uploadBuilderAvatar';
 import { uploadFirmLogo } from '@/lib/firm/uploadFirmLogo';
@@ -120,11 +121,13 @@ function parseRoleParam(value: string | null): RoleParam {
     value === 'owner' ||
     value === 'bidder' ||
     value === 'labour_contractor' ||
-    value === 'construction_firm' ||
+    (value === 'construction_firm' && isConstructionFirmEnabled()) ||
     isProviderSpecialtyType(value)
   ) {
     return value;
   }
+  // Firm signup deep-link while service is hidden → show other bidder roles
+  if (value === 'construction_firm') return 'bidder';
   return null;
 }
 
@@ -132,7 +135,7 @@ function isDirectRegisterRole(param: RoleParam): param is UiRole {
   return (
     param === 'owner' ||
     param === 'labour_contractor' ||
-    param === 'construction_firm' ||
+    (param === 'construction_firm' && isConstructionFirmEnabled()) ||
     isProviderSpecialtyType(param)
   );
 }
@@ -336,12 +339,22 @@ function RegisterPageContent() {
             : '';
 
   const visibleCards = useMemo(() => {
-    if (roleParam === 'owner') return ROLE_CARDS.filter((c) => c.role === 'owner');
-    if (roleParam === 'labour_contractor') return ROLE_CARDS.filter((c) => c.role === 'labour_contractor');
-    if (roleParam === 'construction_firm') return ROLE_CARDS.filter((c) => c.role === 'construction_firm');
-    if (isProviderSpecialtyType(roleParam)) return ROLE_CARDS.filter((c) => c.role === roleParam);
-    if (roleParam === 'bidder') return ROLE_CARDS.filter((c) => c.role !== 'owner');
-    return ROLE_CARDS;
+    const firmOpen = isConstructionFirmEnabled();
+    const withoutFirm = (cards: typeof ROLE_CARDS) =>
+      firmOpen ? cards : cards.filter((c) => c.role !== 'construction_firm');
+
+    if (roleParam === 'owner') return withoutFirm(ROLE_CARDS.filter((c) => c.role === 'owner'));
+    if (roleParam === 'labour_contractor') {
+      return withoutFirm(ROLE_CARDS.filter((c) => c.role === 'labour_contractor'));
+    }
+    if (roleParam === 'construction_firm') {
+      return firmOpen
+        ? ROLE_CARDS.filter((c) => c.role === 'construction_firm')
+        : withoutFirm(ROLE_CARDS.filter((c) => c.role !== 'owner'));
+    }
+    if (isProviderSpecialtyType(roleParam)) return withoutFirm(ROLE_CARDS.filter((c) => c.role === roleParam));
+    if (roleParam === 'bidder') return withoutFirm(ROLE_CARDS.filter((c) => c.role !== 'owner'));
+    return withoutFirm(ROLE_CARDS);
   }, [roleParam]);
 
   const pageSubtitle =

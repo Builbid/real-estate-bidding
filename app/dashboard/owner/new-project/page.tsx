@@ -10,13 +10,15 @@ import { ConstructionFirmProjectWizard } from '@/components/owner/ConstructionFi
 import { TradeServiceProjectWizard } from '@/components/owner/TradeServiceProjectWizard';
 import { DrawingDesignProjectWizard } from '@/components/owner/DrawingDesignProjectWizard';
 import { isDrawingDesignServiceType } from '@/lib/drawingDesign';
+import { isConstructionFirmEnabled } from '@/lib/features';
 import { isTradeServiceType } from '@/lib/trades';
 import type { ServiceType } from '@/lib/types';
 
 type Phase = 'service' | 'wizard';
 
 function parseServiceParam(value: string | null): ServiceType | null {
-  if (value === 'labour_contractor' || value === 'construction_firm') return value;
+  if (value === 'labour_contractor') return value;
+  if (value === 'construction_firm' && isConstructionFirmEnabled()) return value;
   if (isDrawingDesignServiceType(value)) return value;
   if (isTradeServiceType(value)) return value;
   return null;

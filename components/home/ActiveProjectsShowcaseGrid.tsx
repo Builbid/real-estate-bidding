@@ -16,6 +16,7 @@ import {
   getProjectServiceType,
   getServiceCategoryOption,
 } from '@/lib/project/display';
+import { isConstructionFirmEnabled } from '@/lib/features';
 import type { ServiceType } from '@/lib/types';
 import { useTranslation } from '@/lib/context/LanguageProvider';
 import { cn } from '@/lib/utils';
@@ -32,7 +33,9 @@ interface ActiveProjectsShowcaseGridProps {
 const FILTER_OPTIONS: { id: ServiceFilter; label: string }[] = [
   { id: 'all', label: 'All Projects' },
   { id: 'labour_contractor', label: 'Mistri Contractor' },
-  { id: 'construction_firm', label: 'Construction Firm' },
+  ...(isConstructionFirmEnabled()
+    ? [{ id: 'construction_firm' as const, label: 'Construction Firm' }]
+    : []),
 ];
 
 /** Extra tokens so short searches like "mistri" / "firm" match the right category. */
@@ -100,9 +103,16 @@ export function ActiveProjectsShowcaseGrid({
   const liveProjects = useMemo(
     () =>
       sortShowcaseProjectsByLatest(
-        initialProjects.filter(
-          (project) => isProjectBiddingLive(project) && !expiredIds.has(project.id),
-        ),
+        initialProjects.filter((project) => {
+          if (!isProjectBiddingLive(project) || expiredIds.has(project.id)) return false;
+          if (
+            !isConstructionFirmEnabled() &&
+            getProjectServiceType(project) === 'construction_firm'
+          ) {
+            return false;
+          }
+          return true;
+        }),
       ),
     [initialProjects, expiredIds],
   );

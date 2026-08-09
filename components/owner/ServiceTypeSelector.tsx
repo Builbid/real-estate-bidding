@@ -4,6 +4,7 @@ import { CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { ServiceType } from '@/lib/types';
 import { ALL_SERVICE_CATEGORIES, TRADE_SERVICE_OPTIONS } from '@/lib/trades';
+import { isConstructionFirmEnabled } from '@/lib/features';
 import { cn } from '@/lib/utils';
 
 const CONSTRUCTION_OPTIONS = [
@@ -33,7 +34,7 @@ const CONSTRUCTION_OPTIONS = [
     premiumTag: 'Premium Service',
     accent: 'indigo',
   },
-];
+] as const;
 
 interface ServiceTypeSelectorProps {
   value: ServiceType | null;
@@ -44,6 +45,9 @@ interface ServiceTypeSelectorProps {
 export function ServiceTypeSelector({ value, onChange, onContinue }: ServiceTypeSelectorProps) {
   const selectedLabel =
     ALL_SERVICE_CATEGORIES.find((c) => c.value === value)?.label ?? 'selected service';
+  const constructionOptions = CONSTRUCTION_OPTIONS.filter(
+    (opt) => opt.type !== 'construction_firm' || isConstructionFirmEnabled(),
+  );
 
   return (
     <div className={cn('space-y-6', value && 'pb-24')}>
@@ -54,8 +58,13 @@ export function ServiceTypeSelector({ value, onChange, onContinue }: ServiceType
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {CONSTRUCTION_OPTIONS.map((opt) => {
+      <div
+        className={cn(
+          'grid gap-4',
+          constructionOptions.length > 1 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1',
+        )}
+      >
+        {constructionOptions.map((opt) => {
           const selected = value === opt.type;
           const isFirm = opt.type === 'construction_firm';
           return (

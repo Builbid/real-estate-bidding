@@ -9,6 +9,7 @@ import {
   parseConstructionPackagesFromForm,
   validateConstructionPackages,
 } from '@/lib/firm/constructionClass'
+import { isConstructionFirmEnabled } from '@/lib/features'
 import { isProviderSpecialtyType } from '@/lib/trades'
 import type { UserRole } from '@/lib/types'
 
@@ -102,6 +103,13 @@ export async function signUpAction(
   const mobileError = validateMobile(mobile)
   if (mobileError) {
     return { error: mobileError, success: false }
+  }
+
+  if (role === 'construction_firm' && !isConstructionFirmEnabled()) {
+    return {
+      error: 'Construction Firm registration is not open yet. Please choose another account type.',
+      success: false,
+    }
   }
 
   if (role === 'construction_firm') {

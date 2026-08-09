@@ -14,6 +14,7 @@ import type {
   TradeServiceType,
 } from '@/lib/types'
 import { isDrawingDesignServiceType } from '@/lib/drawingDesign'
+import { isConstructionFirmEnabled } from '@/lib/features'
 import { isTradeServiceType } from '@/lib/trades'
 import { sendNewProjectAnnouncementEmails } from '@/lib/email/newProjectAnnouncement'
 
@@ -85,6 +86,9 @@ export async function createProjectAction(
   }
 
   const isFirm = input.service_type === 'construction_firm'
+  if (isFirm && !isConstructionFirmEnabled()) {
+    return { error: 'Construction Firm projects are not available yet. Please choose another service.' }
+  }
   const isTrade = isTradeServiceType(input.service_type)
   const isDrawing = isDrawingDesignServiceType(input.service_type)
   const serviceType: ServiceType = isFirm

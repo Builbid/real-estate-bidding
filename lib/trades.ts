@@ -7,6 +7,7 @@
 
 import type { ProviderSpecialtyType, ServiceType, TradeServiceType } from './types';
 import { isDrawingDesignServiceType } from './drawingDesign';
+import { isConstructionFirmEnabled } from './features';
 
 export interface TradeServiceOption {
   value: TradeServiceType;
@@ -117,6 +118,12 @@ export const ALL_SERVICE_CATEGORIES: ServiceCategoryOption[] = [
     value: t.value, label: t.label, emoji: t.emoji, description: t.description,
   })),
 ];
+
+/** Categories shown on homepage / post-project pickers (respects feature flags). */
+export function getVisibleServiceCategories(): ServiceCategoryOption[] {
+  if (isConstructionFirmEnabled()) return ALL_SERVICE_CATEGORIES;
+  return ALL_SERVICE_CATEGORIES.filter((c) => c.value !== 'construction_firm');
+}
 
 export function getProviderSpecialtyEmoji(value: string | null | undefined): string {
   const cat = ALL_SERVICE_CATEGORIES.find((c) => c.value === value);
