@@ -12,7 +12,10 @@ import {
   sortShowcaseProjectsByLatest,
   type ShowcaseProject,
 } from '@/lib/projectShowcase';
-import { getProjectServiceType } from '@/lib/project/display';
+import {
+  getProjectServiceType,
+  getServiceCategoryOption,
+} from '@/lib/project/display';
 import type { ServiceType } from '@/lib/types';
 import { useTranslation } from '@/lib/context/LanguageProvider';
 import { cn } from '@/lib/utils';
@@ -32,7 +35,31 @@ const FILTER_OPTIONS: { id: ServiceFilter; label: string }[] = [
   { id: 'construction_firm', label: 'Construction Firm' },
 ];
 
-function matchesLocationSearch(project: ShowcaseProject, query: string): boolean {
+/** Extra tokens so short searches like "mistri" / "firm" match the right category. */
+const CATEGORY_SEARCH_ALIASES: Partial<Record<ServiceType, string[]>> = {
+  labour_contractor: ['mistri', 'mistri contractor', 'labour', 'labor', 'labour contractor'],
+  construction_firm: ['firm', 'construction firm', 'turnkey'],
+  drawing_design: ['drawing', 'design', 'drawings', 'drawing and design'],
+  painter: ['painter', 'paint', 'painting'],
+  plumber: ['plumber', 'plumbing'],
+  electrician: ['electrician', 'electric', 'electrical'],
+  carpenter: ['carpenter', 'carpentry', 'woodwork'],
+  false_ceiling_work: ['interior', 'interior work', 'false ceiling'],
+  earthwork: ['earthwork', 'excavation'],
+};
+
+function matchesCategorySearch(serviceType: ServiceType, q: string): boolean {
+  const category = getServiceCategoryOption(serviceType);
+  const tokens = [
+    category.label,
+    category.value.replace(/_/g, ' '),
+    ...(CATEGORY_SEARCH_ALIASES[serviceType] ?? []),
+  ].map((t) => t.toLowerCase());
+
+  return tokens.some((token) => token.includes(q) || q.includes(token));
+}
+
+function matchesProjectSearch(project: ShowcaseProject, query: string): boolean {
   const q = query.trim().toLowerCase();
   if (!q) return true;
 
@@ -45,7 +72,9 @@ function matchesLocationSearch(project: ShowcaseProject, query: string): boolean
     (value): value is string => Boolean(value && value.trim()),
   );
 
-  return fields.some((field) => field.toLowerCase().includes(q));
+  if (fields.some((field) => field.toLowerCase().includes(q))) return true;
+
+  return matchesCategorySearch(getProjectServiceType(project), q);
 }
 
 export function ActiveProjectsShowcaseGrid({
@@ -82,7 +111,7 @@ export function ActiveProjectsShowcaseGrid({
     const filtered = liveProjects.filter((project) => {
       const matchesService =
         serviceFilter === 'all' || getProjectServiceType(project) === serviceFilter;
-      return matchesService && matchesLocationSearch(project, locationSearch);
+      return matchesService && matchesProjectSearch(project, locationSearch);
     });
     return sortShowcaseProjectsByLatest(filtered);
   }, [liveProjects, serviceFilter, locationSearch]);
@@ -152,8 +181,8 @@ export function ActiveProjectsShowcaseGrid({
               type="search"
               value={locationSearch}
               onChange={(event) => setLocationSearch(event.target.value)}
-              placeholder="Search by location or title"
-              aria-label="Search by location or title"
+              placeholder="Search by category, location, or title"
+              aria-label="Search by category, location, or title"
               prefix={<Search className="h-4 w-4" />}
               className={cn(
                 heroOverlay &&
@@ -187,7 +216,7 @@ export function ActiveProjectsShowcaseGrid({
           </h3>
           <p className="mx-auto mb-6 max-w-md text-sm text-muted-foreground">
             {hasActiveSearch || serviceFilter !== 'all'
-              ? 'Try a different location, project name, or service filter.'
+              ? 'Try a different category (e.g. Mistri, Firm, Painter), location, or project name.'
               : t('home.showcase.emptyDesc')}
           </p>
           {!isAuthenticated && !hasActiveSearch && serviceFilter === 'all' && (
