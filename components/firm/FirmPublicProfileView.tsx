@@ -2,12 +2,13 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { Building2, CheckCircle2, Star, X } from 'lucide-react';
+import { Building2, CheckCircle2, ExternalLink, FileText, ImageIcon, Star, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { FirmLogo } from '@/components/firm/FirmLogo';
 import { FirmConstructionClassPackagesDisplay } from '@/components/firm/FirmConstructionClassPackagesDisplay';
 import { SelectFirmButton } from '@/components/firm/SelectFirmButton';
+import { isFirmBrochurePdfUrl } from '@/lib/firm/constants';
 import type { PublicFirmProfile, FirmPortfolioItem } from '@/lib/types';
 
 interface FirmPublicProfileViewProps {
@@ -33,8 +34,11 @@ export function FirmPublicProfileView({
 }: FirmPublicProfileViewProps) {
   const [galleryPhotos, setGalleryPhotos] = useState<string[] | null>(null);
   const [galleryTitle, setGalleryTitle] = useState('');
+  const [brochureOpen, setBrochureOpen] = useState(false);
 
   const city = firm.physical_address?.split(',')[0]?.trim() ?? 'Assam';
+  const brochureUrl = firm.brochure_url ?? null;
+  const brochureIsPdf = isFirmBrochurePdfUrl(brochureUrl);
 
   return (
     <div className="space-y-8 max-w-4xl mx-auto">
@@ -72,11 +76,33 @@ export function FirmPublicProfileView({
               </span>
             )}
           </div>
-          {showSelect && projectId && (
-            <div className="mt-4">
+          <div className="mt-4 flex flex-wrap gap-2">
+            {brochureUrl && (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  if (brochureIsPdf) {
+                    window.open(brochureUrl, '_blank', 'noopener,noreferrer');
+                  } else {
+                    setBrochureOpen(true);
+                  }
+                }}
+              >
+                {brochureIsPdf ? (
+                  <FileText className="w-3.5 h-3.5" />
+                ) : (
+                  <ImageIcon className="w-3.5 h-3.5" />
+                )}
+                View Brochure
+                {brochureIsPdf && <ExternalLink className="w-3 h-3 opacity-70" />}
+              </Button>
+            )}
+            {showSelect && projectId && (
               <SelectFirmButton projectId={projectId} firmId={firm.id} companyName={firm.company_name} />
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
 
@@ -84,6 +110,46 @@ export function FirmPublicProfileView({
         <Card>
           <CardContent className="pt-6 pb-6">
             <FirmConstructionClassPackagesDisplay packages={firm.construction_class_packages} />
+          </CardContent>
+        </Card>
+      )}
+
+      {brochureUrl && (
+        <Card>
+          <CardContent className="pt-6 pb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
+              <div className="flex items-start gap-3">
+                <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-violet-500/10 border border-violet-500/20">
+                  {brochureIsPdf ? (
+                    <FileText className="h-5 w-5 text-violet-400" />
+                  ) : (
+                    <ImageIcon className="h-5 w-5 text-violet-400" />
+                  )}
+                </div>
+                <div>
+                  <h2 className="text-sm font-bold text-foreground uppercase tracking-wider">
+                    Company Brochure
+                  </h2>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Packages, scope, and company details from the firm.
+                  </p>
+                </div>
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => {
+                  if (brochureIsPdf) {
+                    window.open(brochureUrl, '_blank', 'noopener,noreferrer');
+                  } else {
+                    setBrochureOpen(true);
+                  }
+                }}
+              >
+                View Brochure
+                {brochureIsPdf && <ExternalLink className="w-3.5 h-3.5" />}
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
@@ -174,6 +240,39 @@ export function FirmPublicProfileView({
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+      )}
+
+      {brochureOpen && brochureUrl && !brochureIsPdf && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="relative max-w-3xl w-full max-h-[90vh] overflow-y-auto bg-card rounded-xl border border-border p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-bold text-foreground">Company Brochure</h3>
+              <button
+                type="button"
+                onClick={() => setBrochureOpen(false)}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="relative w-full min-h-[50vh] rounded-lg overflow-hidden bg-secondary">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={brochureUrl}
+                alt={`${firm.company_name} brochure`}
+                className="w-full h-auto object-contain"
+              />
+            </div>
+            <a
+              href={brochureUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 inline-flex items-center gap-1.5 text-xs text-violet-400 hover:underline"
+            >
+              Open full size <ExternalLink className="w-3 h-3" />
+            </a>
           </div>
         </div>
       )}

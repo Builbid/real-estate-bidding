@@ -27,6 +27,7 @@ export default async function FirmSettingsPage() {
         yearsInBusiness={profile?.years_in_business ?? null}
         classPackages={normalizeConstructionPackages(profile?.construction_class_packages)}
         logoUrl={profile?.logo_url ?? null}
+        brochureUrl={profile?.brochure_url ?? null}
         fullName={profile?.full_name ?? ''}
       />
 

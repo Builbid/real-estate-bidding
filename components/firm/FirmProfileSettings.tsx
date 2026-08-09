@@ -1,6 +1,7 @@
 'use client';
 
 import { LogoUpload } from '@/components/firm/LogoUpload';
+import { BrochureUpload } from '@/components/firm/BrochureUpload';
 import { FirmConstructionClassPackagesDisplay } from '@/components/firm/FirmConstructionClassPackagesDisplay';
 import { uploadFirmLogo } from '@/lib/firm/uploadFirmLogo';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,6 +13,7 @@ interface FirmProfileSettingsProps {
   yearsInBusiness: number | null;
   classPackages: FirmConstructionPackage[] | null;
   logoUrl: string | null;
+  brochureUrl: string | null;
   fullName: string;
 }
 
@@ -21,6 +23,7 @@ export function FirmProfileSettings({
   yearsInBusiness,
   classPackages,
   logoUrl,
+  brochureUrl,
   fullName,
 }: FirmProfileSettingsProps) {
   async function handleLogoUpload(file: File | null) {
@@ -39,6 +42,8 @@ export function FirmProfileSettings({
             logoUrl={logoUrl}
             onFileSelected={(file) => { if (file) void handleLogoUpload(file); }}
           />
+
+          <BrochureUpload brochureUrl={brochureUrl} />
 
           <dl className="space-y-3 text-sm">
             <div className="flex justify-between gap-4 py-2 border-b border-border">

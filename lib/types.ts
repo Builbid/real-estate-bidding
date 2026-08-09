@@ -90,6 +90,8 @@ export interface Profile {
   gst_number?: string | null;
   years_in_business?: number | null;
   logo_url?: string | null;
+  /** Firm brochure PDF/image URL in firm-brochures bucket */
+  brochure_url?: string | null;
   service_type?: ServiceType | null;
   /** Firm-defined construction packages (custom names, structured category scope) */
   construction_class_packages?: FirmConstructionPackage[] | null;
@@ -113,6 +115,7 @@ export interface PublicFirmProfile {
   id: string;
   company_name: string;
   logo_url?: string | null;
+  brochure_url?: string | null;
   years_in_business?: number | null;
   is_verified?: boolean;
   construction_class_packages?: FirmConstructionPackage[] | null;

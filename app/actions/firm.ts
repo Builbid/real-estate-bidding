@@ -3,7 +3,13 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { validateGstNumber } from '@/lib/validation/gst';
-import { FIRM_LOGO_BUCKET, FIRM_PORTFOLIO_BUCKET, FIRM_PORTFOLIO_MAX_ITEMS, FIRM_PORTFOLIO_MAX_PHOTOS } from '@/lib/firm/constants';
+import {
+  FIRM_BROCHURE_BUCKET,
+  FIRM_LOGO_BUCKET,
+  FIRM_PORTFOLIO_BUCKET,
+  FIRM_PORTFOLIO_MAX_ITEMS,
+  FIRM_PORTFOLIO_MAX_PHOTOS,
+} from '@/lib/firm/constants';
 import { normalizeConstructionPackages } from '@/lib/firm/constructionClass';
 
 function isValidStoredFirmLogoUrl(url: string, userId: string): boolean {
@@ -12,6 +18,17 @@ function isValidStoredFirmLogoUrl(url: string, userId: string): boolean {
     const parsed = new URL(base);
     const expected = `/storage/v1/object/public/${FIRM_LOGO_BUCKET}/${userId}/logo`;
     return parsed.pathname.startsWith(`${expected}.`) || parsed.pathname === `${expected}.jpg`;
+  } catch {
+    return false;
+  }
+}
+
+function isValidStoredFirmBrochureUrl(url: string, userId: string): boolean {
+  try {
+    const base = url.split('?')[0];
+    const parsed = new URL(base);
+    const expected = `/storage/v1/object/public/${FIRM_BROCHURE_BUCKET}/${userId}/brochure.`;
+    return parsed.pathname.startsWith(expected);
   } catch {
     return false;
   }
@@ -49,6 +66,70 @@ export async function saveFirmLogoUrlAction(
   revalidatePath('/dashboard/firm/settings');
 
   return { error: null, logoUrl };
+}
+
+export async function saveFirmBrochureUrlAction(
+  brochureUrl: string,
+): Promise<{ error: string | null; brochureUrl?: string }> {
+  const supabase = await createClient();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) return { error: 'You must be signed in.' };
+
+  if (!isValidStoredFirmBrochureUrl(brochureUrl, user.id)) {
+    return { error: 'Invalid brochure URL.' };
+  }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  if (profile?.role !== 'construction_firm') {
+    return { error: 'Only construction firm accounts can upload a brochure.' };
+  }
+
+  const { error: updateError } = await supabase
+    .from('profiles')
+    .update({ brochure_url: brochureUrl })
+    .eq('id', user.id);
+
+  if (updateError) return { error: updateError.message || 'Could not save brochure.' };
+
+  revalidatePath('/dashboard/firm');
+  revalidatePath('/dashboard/firm/settings');
+  revalidatePath(`/firm/${user.id}`);
+
+  return { error: null, brochureUrl };
+}
+
+export async function clearFirmBrochureUrlAction(): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) return { error: 'You must be signed in.' };
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  if (profile?.role !== 'construction_firm') {
+    return { error: 'Only construction firm accounts can update a brochure.' };
+  }
+
+  const { error: updateError } = await supabase
+    .from('profiles')
+    .update({ brochure_url: null })
+    .eq('id', user.id);
+
+  if (updateError) return { error: updateError.message || 'Could not remove brochure.' };
+
+  revalidatePath('/dashboard/firm');
+  revalidatePath('/dashboard/firm/settings');
+  revalidatePath(`/firm/${user.id}`);
+
+  return { error: null };
 }
 
 export async function getFirmPortfolioAction(): Promise<{
