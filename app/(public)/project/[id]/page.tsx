@@ -19,11 +19,24 @@ import {
   getServiceCategoryLabel,
   isFirmProject,
 } from '@/lib/project/display';
-import type { Project } from '@/lib/types';
+import { getDashboardPath, normalizeRole } from '@/lib/auth/roles';
+import { getProviderSpecialtyLabel } from '@/lib/trades';
+import type { Project, ServiceType, UserRole } from '@/lib/types';
 
 interface PageProps {
   params: Promise<{ id: string }>;
 }
+
+type Viewer =
+  | { kind: 'guest' }
+  | { kind: 'owner'; userId: string }
+  | {
+      kind: 'bidder';
+      userId: string;
+      role: UserRole;
+      serviceType: ServiceType | null;
+      canBid: boolean;
+    };
 
 async function getProject(id: string): Promise<Project | null> {
   const supabase = await createClient();
@@ -37,11 +50,155 @@ async function getBidCount(projectId: string): Promise<number> {
   return count ?? 0;
 }
 
+async function getViewer(project: Project): Promise<Viewer> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { kind: 'guest' };
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role, service_type')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  const role = normalizeRole(profile?.role ?? (user.user_metadata?.role as string | undefined));
+  const serviceType = (profile?.service_type as ServiceType | null) ?? null;
+  const projectService = getProjectServiceType(project);
+
+  if (role === 'owner') {
+    return { kind: 'owner', userId: user.id };
+  }
+
+  if (role === 'labour_contractor') {
+    return {
+      kind: 'bidder',
+      userId: user.id,
+      role,
+      serviceType: 'labour_contractor',
+      canBid: projectService === 'labour_contractor',
+    };
+  }
+
+  if (role === 'construction_firm') {
+    return {
+      kind: 'bidder',
+      userId: user.id,
+      role,
+      serviceType: 'construction_firm',
+      canBid: projectService === 'construction_firm',
+    };
+  }
+
+  if (role === 'service_provider') {
+    return {
+      kind: 'bidder',
+      userId: user.id,
+      role,
+      serviceType,
+      canBid: !!serviceType && serviceType === projectService,
+    };
+  }
+
+  return { kind: 'guest' };
+}
+
+function ActiveBidCta({
+  viewer,
+  projectId,
+  bidder,
+  serviceLabel,
+}: {
+  viewer: Viewer;
+  projectId: string;
+  bidder: ReturnType<typeof getServiceBidderLabels>;
+  serviceLabel: string;
+}) {
+  if (viewer.kind === 'owner') {
+    return (
+      <div className="p-5 rounded-xl bg-emerald-500/5 border border-emerald-500/20 text-center">
+        <p className="text-sm font-semibold text-foreground mb-2">This is a live auction</p>
+        <p className="text-xs text-muted-foreground mb-4">
+          Open your dashboard to track bids on your projects.
+        </p>
+        <Button size="sm" asChild>
+          <Link href="/dashboard/owner">Go to Dashboard</Link>
+        </Button>
+      </div>
+    );
+  }
+
+  if (viewer.kind === 'bidder' && viewer.canBid) {
+    const bidHref =
+      viewer.role === 'construction_firm'
+        ? `/dashboard/firm/bid/${projectId}`
+        : `/dashboard/builder/bid/${projectId}`;
+    return (
+      <div className="p-5 rounded-xl bg-emerald-500/5 border border-emerald-500/20 text-center">
+        <p className="text-sm font-semibold text-foreground mb-2">
+          You can bid on this {serviceLabel} project
+        </p>
+        <p className="text-xs text-muted-foreground mb-4">
+          Submit or update your competitive rate as a registered {bidder.singular}.
+        </p>
+        <Button size="sm" asChild>
+          <Link href={bidHref}>Place Bid</Link>
+        </Button>
+      </div>
+    );
+  }
+
+  if (viewer.kind === 'bidder' && !viewer.canBid) {
+    const yourLabel =
+      viewer.role === 'service_provider' && viewer.serviceType
+        ? getProviderSpecialtyLabel(viewer.serviceType)
+        : viewer.role === 'labour_contractor'
+          ? 'Mistri Contractor'
+          : viewer.role === 'construction_firm'
+            ? 'Construction Firm'
+            : 'bidder';
+    return (
+      <div className="p-5 rounded-xl bg-amber-500/5 border border-amber-500/20 text-center">
+        <p className="text-sm font-semibold text-foreground mb-2">
+          This project is for {bidder.plural}
+        </p>
+        <p className="text-xs text-muted-foreground mb-4">
+          You are signed in as {yourLabel}. Open your dashboard to find matching auctions.
+        </p>
+        <Button size="sm" variant="outline" asChild>
+          <Link href={getDashboardPath(viewer.role)}>Go to Dashboard</Link>
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-5 rounded-xl bg-emerald-500/5 border border-emerald-500/20 text-center">
+      <p className="text-sm font-semibold text-foreground mb-2">
+        Are you a registered {bidder.singular}?
+      </p>
+      <p className="text-xs text-muted-foreground mb-4">
+        Sign in to submit your competitive rate bid for this {serviceLabel.toLowerCase()} project.
+      </p>
+      <div className="flex flex-wrap items-center justify-center gap-3">
+        <Button size="sm" asChild>
+          <Link href="/login?role=bidder">Sign In to Bid</Link>
+        </Button>
+        <Button size="sm" variant="outline" asChild>
+          <Link href={bidder.registerHref}>Register as {bidder.singular}</Link>
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export default async function ProjectDetailPage({ params }: PageProps) {
   const { id } = await params;
-  const [project, bidCount] = await Promise.all([getProject(id), getBidCount(id)]);
-
+  const project = await getProject(id);
   if (!project) notFound();
+
+  const [bidCount, viewer] = await Promise.all([getBidCount(id), getViewer(project)]);
 
   const status    = STATUS_CONFIG[project.status];
   const isActive  = project.status === 'active_24h';
@@ -161,22 +318,12 @@ export default async function ProjectDetailPage({ params }: PageProps) {
             )}
 
             {isActive && (
-              <div className="p-5 rounded-xl bg-emerald-500/5 border border-emerald-500/20 text-center">
-                <p className="text-sm font-semibold text-foreground mb-2">
-                  Are you a registered {bidder.singular}?
-                </p>
-                <p className="text-xs text-muted-foreground mb-4">
-                  Sign in to submit your competitive rate bid for this {serviceLabel.toLowerCase()} project.
-                </p>
-                <div className="flex flex-wrap items-center justify-center gap-3">
-                  <Button size="sm" asChild>
-                    <Link href="/login?role=bidder">Sign In to Bid</Link>
-                  </Button>
-                  <Button size="sm" variant="outline" asChild>
-                    <Link href={bidder.registerHref}>Register as {bidder.singular}</Link>
-                  </Button>
-                </div>
-              </div>
+              <ActiveBidCta
+                viewer={viewer}
+                projectId={project.id}
+                bidder={bidder}
+                serviceLabel={serviceLabel}
+              />
             )}
           </div>
 
