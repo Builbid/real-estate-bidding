@@ -20,12 +20,15 @@ interface BuildingConfigSummaryProps {
     'building_types' | 'construction_types' | 'track_type' | 'sub_configuration'
   >;
   compact?: boolean;
+  /** Firm turnkey projects only need building type — hide Skeleton/Full Finishing. */
+  hideConstructionTypes?: boolean;
   className?: string;
 }
 
 export function BuildingConfigSummary({
   project,
   compact = false,
+  hideConstructionTypes = false,
   className,
 }: BuildingConfigSummaryProps) {
   const buildingTypes = Array.isArray(project.building_types)
@@ -64,14 +67,16 @@ export function BuildingConfigSummary({
             </Badge>
           ))}
         </div>
-        <p className="text-xs text-muted-foreground leading-snug">
-          {types
-            .map((t) => {
-              const ct = constructionTypes[t];
-              return ct ? `${t.replace('RCC ', '')}: ${ct}` : t;
-            })
-            .join(' · ')}
-        </p>
+        {!hideConstructionTypes && (
+          <p className="text-xs text-muted-foreground leading-snug">
+            {types
+              .map((t) => {
+                const ct = constructionTypes[t];
+                return ct ? `${t.replace('RCC ', '')}: ${ct}` : t;
+              })
+              .join(' · ')}
+          </p>
+        )}
       </div>
     );
   }
@@ -83,7 +88,7 @@ export function BuildingConfigSummary({
       </p>
       {types.map((buildingType) => {
         const ct = constructionTypes[buildingType];
-        if (!ct) return null;
+        if (!hideConstructionTypes && !ct) return null;
         const { icon, className: styleClassName } = getSectionHeaderStyle(buildingType);
         return (
           <div
@@ -103,13 +108,15 @@ export function BuildingConfigSummary({
                 {buildingType}
               </span>
             </div>
-            <div className="flex items-center gap-1.5 border-t border-border/50 px-3.5 py-2.5">
-              <span className="text-sm text-foreground/90">{ct}</span>
-              <ConstructionTypeInfoButton
-                buildingType={buildingType}
-                constructionType={ct}
-              />
-            </div>
+            {!hideConstructionTypes && ct && (
+              <div className="flex items-center gap-1.5 border-t border-border/50 px-3.5 py-2.5">
+                <span className="text-sm text-foreground/90">{ct}</span>
+                <ConstructionTypeInfoButton
+                  buildingType={buildingType}
+                  constructionType={ct}
+                />
+              </div>
+            )}
           </div>
         );
       })}

@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { STATUS_CONFIG, TRACK_LABELS } from '@/lib/utils';
 import { BuildingConfigSummary } from '@/components/construction/BuildingConfigSummary';
+import { isFirmProject } from '@/lib/project/display';
 import type { Project } from '@/lib/types';
 
 interface PageProps {
@@ -90,9 +91,25 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                   <SpecItem icon={Layers} label="Track" value={TRACK_LABELS[project.track_type]} />
                   <div className="col-span-2 sm:col-span-3">
                     <p className="text-[10px] text-muted-foreground/80 uppercase tracking-wider mb-2">Building Types</p>
-                    <BuildingConfigSummary project={project} compact className="mb-4" />
-                    <p className="text-[10px] text-muted-foreground/80 uppercase tracking-wider mb-2">Construction Scope</p>
-                    <BuildingConfigSummary project={project} className="space-y-3" />
+                    <BuildingConfigSummary
+                      project={project}
+                      compact
+                      hideConstructionTypes={isFirmProject(project)}
+                      className="mb-4"
+                    />
+                    {!isFirmProject(project) && (
+                      <>
+                        <p className="text-[10px] text-muted-foreground/80 uppercase tracking-wider mb-2">Construction Scope</p>
+                        <BuildingConfigSummary project={project} className="space-y-3" />
+                      </>
+                    )}
+                    {isFirmProject(project) && (
+                      <BuildingConfigSummary
+                        project={project}
+                        hideConstructionTypes
+                        className="space-y-3"
+                      />
+                    )}
                   </div>
                   {project.plot_area_sqft && (
                     <SpecItem icon={Layers} label="Plot Area" value={`${project.plot_area_sqft.toLocaleString()} sqft`} />

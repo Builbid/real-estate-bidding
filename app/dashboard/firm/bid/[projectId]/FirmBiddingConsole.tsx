@@ -264,7 +264,7 @@ export function FirmBiddingConsole({
               <div className="rounded-lg border border-border bg-secondary/20 p-3 space-y-2 text-sm">
                 <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Project Summary</p>
                 {buildingTypes.length > 0 && (
-                  <BuildingConfigSummary project={project} compact />
+                  <BuildingConfigSummary project={project} compact hideConstructionTypes />
                 )}
                 {finishingBadge && (
                   <div className="flex items-center gap-2">

@@ -12,15 +12,14 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { BuildingTypeSelector } from '@/components/construction/BuildingTypeSelector';
-import { ConstructionTypeSelector } from '@/components/construction/ConstructionTypeSelector';
 import { BuildingConfigSummary } from '@/components/construction/BuildingConfigSummary';
 import { CountdownTicker } from '@/components/shared/CountdownTicker';
 import {
   IndianCityAutocomplete,
   parseIndianDistrictSelection,
 } from '@/components/shared/IndianCityAutocomplete';
-import { formatBuildingTypesSummary, sortBuildingTypes } from '@/lib/buildingConfig';
-import type { BuildingType, ConstructionTypesMap } from '@/lib/buildingConfig';
+import { formatBuildingTypesSummary } from '@/lib/buildingConfig';
+import type { BuildingType } from '@/lib/buildingConfig';
 import {
   formatBudgetRange,
   formatIndianInputDisplay,
@@ -31,14 +30,13 @@ import { CONTACT_INFO_WARNING, hasContactInfo } from '@/lib/validation/projectCo
 import { formatPincodeInput, validatePincode } from '@/lib/validation/pincode';
 import { cn } from '@/lib/utils';
 
-type Step = 1 | 2 | 3 | 4 | 5;
+type Step = 1 | 2 | 3 | 4;
 
 const BIDDING_MINUTES = 7;
 
 const PROGRESS_LABELS = [
   'Project Info',
   'Type of Building',
-  'Construction Scope',
   'Review',
 ] as const;
 
@@ -50,7 +48,6 @@ interface FirmFormState {
   budget_max: string;
   bidding_minutes: string;
   building_types: BuildingType[];
-  construction_types: ConstructionTypesMap;
 }
 
 const EMPTY_FORM: FirmFormState = {
@@ -61,7 +58,6 @@ const EMPTY_FORM: FirmFormState = {
   budget_max: '',
   bidding_minutes: String(BIDDING_MINUTES),
   building_types: [],
-  construction_types: {},
 };
 
 export function ConstructionFirmProjectWizard() {
@@ -73,8 +69,6 @@ export function ConstructionFirmProjectWizard() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [step2Error, setStep2Error] = useState<string | null>(null);
-  const [step3Error, setStep3Error] = useState<string | null>(null);
-  const [step3ValidationAttempted, setStep3ValidationAttempted] = useState(false);
   const [step1ValidationAttempted, setStep1ValidationAttempted] = useState(false);
   const [step1Errors, setStep1Errors] = useState<{
     location?: string;
@@ -97,11 +91,6 @@ export function ConstructionFirmProjectWizard() {
 
   const descriptionHasContact = hasContactInfo(form.description);
   const budgetPreview = formatBudgetRange(null, parseIndianAmount(form.budget_max));
-
-  const orderedBuildingTypes = sortBuildingTypes(form.building_types);
-  const allConstructionSelected =
-    orderedBuildingTypes.length > 0 &&
-    orderedBuildingTypes.every((t) => !!form.construction_types[t]);
 
   function tryGoStep2() {
     const errors: typeof step1Errors = {};
@@ -141,19 +130,6 @@ export function ConstructionFirmProjectWizard() {
     setStep(3);
   }
 
-  function tryGoStep4() {
-    const ordered = sortBuildingTypes(form.building_types);
-    const missing = ordered.filter((t) => !form.construction_types[t]);
-    if (missing.length > 0) {
-      setStep3ValidationAttempted(true);
-      setStep3Error('Please select a construction type for each floor.');
-      return;
-    }
-    setStep3Error(null);
-    setStep3ValidationAttempted(false);
-    setStep(4);
-  }
-
   async function handleSubmit() {
     if (!profile) return;
     const districtSelection = parseIndianDistrictSelection(form.location);
@@ -183,7 +159,6 @@ export function ConstructionFirmProjectWizard() {
       title: autoTitle,
       description: form.description.trim() || undefined,
       building_types: form.building_types,
-      construction_types: form.construction_types,
       district: districtSelection.district,
       state: districtSelection.state,
       pincode: form.pincode.trim() || undefined,
@@ -203,13 +178,13 @@ export function ConstructionFirmProjectWizard() {
 
     setProjectId(result.projectId);
     setBiddingEndsAt(result.biddingEndsAt ?? null);
-    setStep(5);
+    setStep(4);
     setLoading(false);
   }
 
   const reviewProject = {
     building_types: form.building_types,
-    construction_types: form.construction_types,
+    construction_types: {},
     track_type: 'RCC' as const,
     sub_configuration: {},
   };
@@ -223,7 +198,7 @@ export function ConstructionFirmProjectWizard() {
         </p>
       </div>
 
-      {step < 5 && (
+      {step < 4 && (
         <div className="flex items-center gap-1 overflow-x-auto pb-1">
           {PROGRESS_LABELS.map((label, i) => (
             <div key={label} className="flex items-center gap-1 flex-1 min-w-0">
@@ -423,92 +398,6 @@ export function ConstructionFirmProjectWizard() {
 
           {step === 3 && (
             <div className="space-y-5">
-              <div className="space-y-3">
-                <div>
-                  <h2 className="text-xl font-bold text-foreground">Construction Scope</h2>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    For each floor, pick how far the builder should go.
-                  </p>
-                </div>
-
-                <div className="h-2 rounded-full bg-secondary overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-gradient-to-r from-emerald-500 via-emerald-400 to-violet-500 transition-all"
-                    style={{ width: '72%' }}
-                  />
-                </div>
-
-                <div className="flex items-center justify-center gap-3 pt-1">
-                  {[1, 2, 3, 4].map((n) => (
-                    <div key={n} className="flex items-center gap-3">
-                      <div
-                        className={cn(
-                          'flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold',
-                          n < 3 && 'bg-emerald-500 text-white',
-                          n === 3 && 'bg-violet-500/20 border-2 border-violet-500 text-violet-400',
-                          n > 3 && 'bg-secondary text-muted-foreground/80',
-                        )}
-                      >
-                        {n < 3 ? '✓' : n}
-                      </div>
-                      {n < 4 && (
-                        <div
-                          className={cn(
-                            'h-px w-6 sm:w-10',
-                            n < 3 ? 'bg-emerald-500/50' : 'bg-secondary',
-                          )}
-                        />
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {step3Error && (
-                <div className="flex items-start gap-3 p-3.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400">
-                  <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                  <p className="text-sm">{step3Error}</p>
-                </div>
-              )}
-
-              <ConstructionTypeSelector
-                buildingTypes={form.building_types}
-                value={form.construction_types}
-                serviceType="construction_firm"
-                onChange={(v) => {
-                  update('construction_types', v);
-                  setStep3Error(null);
-                  if (sortBuildingTypes(form.building_types).every((t) => v[t])) {
-                    setStep3ValidationAttempted(false);
-                  }
-                }}
-                showValidation={step3ValidationAttempted}
-              />
-
-              <Button variant="outline" size="lg" className="w-full" onClick={() => {
-                setStep3ValidationAttempted(false);
-                setStep3Error(null);
-                setStep(2);
-              }}>
-                <ArrowLeft className="w-4 h-4" /> Back
-              </Button>
-              <Button
-                size="lg"
-                disabled={!allConstructionSelected}
-                onClick={tryGoStep4}
-                className={cn(
-                  'w-full rounded-2xl font-bold h-12 text-base',
-                  allConstructionSelected &&
-                    'bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 shadow-lg shadow-emerald-500/25 border-0',
-                )}
-              >
-                Continue <ArrowRight className="w-4 h-4" />
-              </Button>
-            </div>
-          )}
-
-          {step === 4 && (
-            <div className="space-y-5">
               <div>
                 <h2 className="text-lg font-bold tracking-tight text-foreground">Review & Submit</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
@@ -571,32 +460,22 @@ export function ConstructionFirmProjectWizard() {
                 </dl>
               </section>
 
-              {/* Floors / construction scope */}
+              {/* Building types only — firm projects have no Skeleton/Full Finishing choice */}
               <section className="overflow-hidden rounded-2xl border border-border/70 bg-card/60 shadow-sm">
                 <div className="flex items-center justify-between border-b border-border/60 px-4 py-2.5">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Construction plan
+                    Type of building
                   </h3>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setStep(2)}
-                      className="text-[11px] font-semibold text-emerald-600 hover:underline dark:text-emerald-400"
-                    >
-                      Floors
-                    </button>
-                    <span className="text-muted-foreground/40">·</span>
-                    <button
-                      type="button"
-                      onClick={() => setStep(3)}
-                      className="text-[11px] font-semibold text-emerald-600 hover:underline dark:text-emerald-400"
-                    >
-                      Scope
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setStep(2)}
+                    className="text-[11px] font-semibold text-emerald-600 hover:underline dark:text-emerald-400"
+                  >
+                    Edit
+                  </button>
                 </div>
                 <div className="p-3.5">
-                  <BuildingConfigSummary project={reviewProject} />
+                  <BuildingConfigSummary project={reviewProject} hideConstructionTypes />
                 </div>
               </section>
 
@@ -628,7 +507,7 @@ export function ConstructionFirmProjectWizard() {
               </section>
 
               <div className="flex flex-col gap-3 pt-1">
-                <Button variant="outline" size="lg" className="w-full rounded-xl" onClick={() => setStep(3)}>
+                <Button variant="outline" size="lg" className="w-full rounded-xl" onClick={() => setStep(2)}>
                   <ArrowLeft className="w-4 h-4" /> Back
                 </Button>
                 <Button
@@ -653,7 +532,7 @@ export function ConstructionFirmProjectWizard() {
             </div>
           )}
 
-          {step === 5 && (
+          {step === 4 && (
             <div className="flex flex-col items-center gap-5 py-6 text-center">
               <div className="w-16 h-16 rounded-full bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center animate-bounce">
                 <CheckCircle2 className="w-8 h-8 text-indigo-400" />

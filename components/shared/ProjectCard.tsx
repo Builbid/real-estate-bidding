@@ -145,7 +145,12 @@ export function ProjectCard({
           {!compact && (
             <div className="col-span-2 rounded-xl border border-border/60 bg-muted/25 px-3 py-2.5 dark:bg-muted/15">
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{t('project.configuration')}</p>
-              <BuildingConfigSummary project={project} compact className="text-sm font-medium text-foreground/90 leading-snug mt-0.5" />
+              <BuildingConfigSummary
+                project={project}
+                compact
+                hideConstructionTypes={isFirm}
+                className="text-sm font-medium text-foreground/90 leading-snug mt-0.5"
+              />
             </div>
           )}
           {compact && !isFirm && (

@@ -72,7 +72,7 @@ export function FirmAuctionRow({ project, myBid }: FirmAuctionRowProps) {
         <p className="text-sm font-semibold text-foreground truncate">{project.title}</p>
         {project.building_types && project.building_types.length > 0 && (
           <div className="mt-1">
-            <BuildingConfigSummary project={project} compact />
+            <BuildingConfigSummary project={project} compact hideConstructionTypes />
           </div>
         )}
         <div className="flex flex-wrap items-center gap-2 mt-1.5 text-xs text-muted-foreground">

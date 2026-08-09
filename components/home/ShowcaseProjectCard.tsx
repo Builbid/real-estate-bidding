@@ -231,7 +231,12 @@ export function ShowcaseProjectCard({
 
         {project.building_types && project.building_types.length > 0 && (
           <div className="mb-4 min-w-0">
-            <BuildingConfigSummary project={project} compact className="text-xs text-muted-foreground" />
+            <BuildingConfigSummary
+              project={project}
+              compact
+              hideConstructionTypes={isFirm}
+              className="text-xs text-muted-foreground"
+            />
           </div>
         )}
 
