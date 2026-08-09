@@ -59,16 +59,16 @@ export function BuildingConfigSummary({
 
   if (compact) {
     return (
-      <div className={cn('space-y-1.5', className)}>
-        <div className="flex flex-wrap gap-1 justify-end">
+      <div className={cn('space-y-1', className)}>
+        <div className="flex flex-wrap gap-1">
           {types.map((type) => (
-            <Badge key={type} variant="default" className="text-[10px] font-medium">
+            <Badge key={type} variant="default" className="text-[10px] font-medium px-1.5 py-0">
               {type.replace('RCC ', '')}
             </Badge>
           ))}
         </div>
         {!hideConstructionTypes && (
-          <p className="text-xs text-muted-foreground leading-snug">
+          <p className="text-[11px] text-muted-foreground leading-snug line-clamp-1">
             {types
               .map((t) => {
                 const ct = constructionTypes[t];

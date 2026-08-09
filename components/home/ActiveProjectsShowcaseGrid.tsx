@@ -194,7 +194,7 @@ export function ActiveProjectsShowcaseGrid({
       </div>
 
       {filteredProjects.length > 0 ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 xl:grid-cols-3 xl:gap-6 auto-rows-fr">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-3 xl:grid-cols-3 xl:gap-4">
           {filteredProjects.map((project) => (
             <ShowcaseProjectCard
               key={project.id}

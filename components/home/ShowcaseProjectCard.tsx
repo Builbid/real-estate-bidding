@@ -34,11 +34,13 @@ interface ShowcaseProjectCardProps {
 
 function StatCell({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-border/60 bg-muted/25 px-3 py-2.5 dark:bg-muted/15">
-      <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground truncate">
+    <div className="rounded-lg border border-border/60 bg-muted/25 px-2 py-1.5 dark:bg-muted/15">
+      <p className="text-[9px] font-medium uppercase tracking-wider text-muted-foreground truncate">
         {label}
       </p>
-      <p className="mt-0.5 text-sm font-semibold text-foreground tabular-nums truncate">{value}</p>
+      <p className="text-xs font-semibold text-foreground tabular-nums truncate leading-tight">
+        {value}
+      </p>
     </div>
   );
 }
@@ -51,7 +53,7 @@ function ShowcaseCountdownPill({
   return (
     <div
       className={cn(
-        'inline-flex max-w-full shrink-0 items-center gap-1.5 rounded-full border px-3 py-1',
+        'inline-flex max-w-full shrink-0 items-center gap-1 rounded-full border px-2 py-0.5',
         'bg-muted/30 border-border/70',
         remaining.isUrgent && 'border-red-400/40 bg-red-500/10',
       )}
@@ -60,7 +62,7 @@ function ShowcaseCountdownPill({
     >
       <Clock
         className={cn(
-          'h-3.5 w-3.5 shrink-0',
+          'h-3 w-3 shrink-0',
           remaining.isUrgent
             ? 'animate-pulse text-red-500'
             : 'text-emerald-600 dark:text-emerald-400',
@@ -68,7 +70,7 @@ function ShowcaseCountdownPill({
       />
       <span
         className={cn(
-          'truncate text-xs font-semibold tabular-nums',
+          'truncate text-[11px] font-semibold tabular-nums',
           remaining.isUrgent ? 'text-red-600 dark:text-red-300' : 'text-emerald-700 dark:text-emerald-200',
         )}
       >
@@ -162,64 +164,62 @@ export function ShowcaseProjectCard({
   return (
     <article
       className={cn(
-        'group flex h-full min-w-0 flex-col overflow-hidden rounded-2xl',
+        'group flex min-w-0 flex-col overflow-hidden rounded-xl',
         'border border-border/80 bg-card shadow-sm shadow-black/[0.03]',
-        'transition-all duration-300 hover:-translate-y-0.5 hover:border-emerald-500/30 hover:shadow-lg hover:shadow-emerald-500/[0.06]',
+        'transition-all duration-200 hover:border-emerald-500/30 hover:shadow-md hover:shadow-emerald-500/[0.05]',
         'dark:bg-card/80 dark:shadow-black/20 dark:ring-1 dark:ring-white/[0.05]',
       )}
     >
-      <div className="h-1 bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-600" />
+      <div className="h-0.5 bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-600" />
 
-      <div className="flex flex-1 flex-col p-4 sm:p-5">
-        <div className="mb-3 space-y-2">
-          <div className="flex sm:hidden"><ShowcaseCountdownPill remaining={remaining} /></div>
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-              <Badge variant="emerald" className="text-[11px]">
-                <span className="mr-1 h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
-                {t('home.showcase.liveBadge')}
+      <div className="flex flex-col gap-2 p-3">
+        <div className="flex flex-wrap items-center justify-between gap-1.5">
+          <div className="flex min-w-0 flex-wrap items-center gap-1">
+            <Badge variant="emerald" className="text-[10px] px-1.5 py-0">
+              <span className="mr-1 h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
+              {t('home.showcase.liveBadge')}
+            </Badge>
+            {finishingBadge && (
+              <Badge variant="default" className="text-[10px] px-1.5 py-0">
+                {finishingBadge}
               </Badge>
-              {finishingBadge && (
-                <Badge variant="default" className="text-[11px]">
-                  {finishingBadge}
-                </Badge>
-              )}
-            </div>
-            <div className="hidden sm:flex"><ShowcaseCountdownPill remaining={remaining} /></div>
+            )}
           </div>
+          <ShowcaseCountdownPill remaining={remaining} />
+        </div>
+
+        <div className="min-w-0">
           <p
             className={cn(
-              'text-xl font-extrabold tracking-tight leading-tight sm:text-2xl',
+              'text-sm font-bold tracking-tight leading-tight',
               getServiceHeadingClass(serviceType),
             )}
           >
-            <span className="mr-1.5" aria-hidden>{serviceCategory.emoji}</span>
+            <span className="mr-1" aria-hidden>{serviceCategory.emoji}</span>
             {serviceCategory.label}
           </p>
+          <h3 className="mt-0.5 line-clamp-2 text-sm font-semibold leading-snug text-foreground transition-colors group-hover:text-emerald-600 dark:group-hover:text-emerald-400">
+            {project.title}
+          </h3>
+          <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+            <MapPin className="h-3 w-3 shrink-0 text-emerald-600/80 dark:text-emerald-400/80" />
+            <span className="truncate">
+              {project.district}
+              {project.state ? `, ${project.state}` : ''}
+            </span>
+          </p>
         </div>
-
-        <h3 className="mb-2 line-clamp-2 text-base font-bold leading-snug text-foreground transition-colors group-hover:text-emerald-600 dark:group-hover:text-emerald-400 sm:text-lg">
-          {project.title}
-        </h3>
-
-        <p className="mb-3 flex items-center gap-1.5 text-sm text-muted-foreground">
-          <MapPin className="h-3.5 w-3.5 shrink-0 text-emerald-600/80 dark:text-emerald-400/80" />
-          <span className="truncate">
-            {project.district}
-            {project.state ? `, ${project.state}` : ''}
-          </span>
-        </p>
 
         {isDrawingDesignServiceType(serviceType) &&
           project.drawing_types &&
           project.drawing_types.length > 0 && (
-            <div className="mb-4 flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-1">
               {project.drawing_types.map((dt) => {
                 const opt = DRAWING_TYPE_OPTIONS.find((o) => o.value === dt);
                 return (
                   <span
                     key={dt}
-                    className="inline-flex items-center gap-1 rounded-full border border-sky-500/25 bg-sky-500/10 px-2 py-0.5 text-[10px] font-semibold text-sky-800 dark:text-sky-200"
+                    className="inline-flex items-center gap-0.5 rounded-full border border-sky-500/25 bg-sky-500/10 px-1.5 py-0 text-[10px] font-semibold text-sky-800 dark:text-sky-200"
                   >
                     <span aria-hidden>{opt?.emoji}</span>
                     {opt?.label ?? dt}
@@ -230,42 +230,43 @@ export function ShowcaseProjectCard({
           )}
 
         {project.building_types && project.building_types.length > 0 && (
-          <div className="mb-4 min-w-0">
+          <div className="min-w-0">
             <BuildingConfigSummary
               project={project}
               compact
               hideConstructionTypes={isFirm}
-              className="text-xs text-muted-foreground"
+              className="text-[11px] text-muted-foreground [&_p]:line-clamp-1"
             />
           </div>
         )}
 
-        <dl className="mb-4 grid flex-1 grid-cols-2 gap-2 sm:gap-2.5">
+        <dl className="grid grid-cols-2 gap-1.5">
           {displayStats.map((stat) => (
             <StatCell key={stat.label} label={stat.label} value={stat.value} />
           ))}
         </dl>
 
-        {postedDisplay && (
-          <p className="mb-4 flex items-center gap-1.5 text-xs text-muted-foreground">
-            <CalendarDays className="h-3.5 w-3.5 shrink-0" />
-            <span className="truncate">
-              {t('project.postedOn')} {postedDisplay}
-            </span>
-          </p>
-        )}
-
-        <Button
-          variant="outline"
-          size="sm"
-          className="mt-auto w-full rounded-xl border-emerald-500/25 bg-emerald-500/[0.04] hover:bg-emerald-500/10"
-          asChild
-        >
-          <Link href={href}>
-            <span>{action === 'bidNow' ? t('home.auctions.bidNow') : t('common.viewDetails')}</span>
-            <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
-          </Link>
-        </Button>
+        <div className="flex items-center justify-between gap-2 pt-0.5">
+          {postedDisplay ? (
+            <p className="flex min-w-0 items-center gap-1 text-[11px] text-muted-foreground">
+              <CalendarDays className="h-3 w-3 shrink-0" />
+              <span className="truncate">{postedDisplay}</span>
+            </p>
+          ) : (
+            <span />
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 shrink-0 rounded-lg px-2.5 text-xs border-emerald-500/25 bg-emerald-500/[0.04] hover:bg-emerald-500/10"
+            asChild
+          >
+            <Link href={href}>
+              <span>{action === 'bidNow' ? t('home.auctions.bidNow') : t('common.viewDetails')}</span>
+              <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
+            </Link>
+          </Button>
+        </div>
       </div>
     </article>
   );
