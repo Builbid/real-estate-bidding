@@ -14,7 +14,8 @@ import { useTranslation } from '@/lib/context/LanguageProvider';
 import { ConstructionMatrixSummary } from '@/components/construction/ConstructionMatrixSummary';
 import { BidFloorRatesBreakdown } from '@/components/shared/BidFloorRatesBreakdown';
 import { shouldShowBidFloorBreakdown } from '@/lib/bid/floorRateDisplay';
-import type { ProjectStatus, TrackType, SubConfiguration } from '@/lib/types';
+import { getServiceBidderLabels } from '@/lib/project/display';
+import type { ProjectStatus, ServiceType, TrackType, SubConfiguration } from '@/lib/types';
 
 interface BuilderInfo {
   full_name: string;
@@ -27,6 +28,7 @@ interface BidLeaderboardProps {
   projectStatus: ProjectStatus;
   trackType?: TrackType;
   subConfiguration?: SubConfiguration;
+  serviceType?: ServiceType | null;
   initialBuilders?: Record<string, BuilderInfo>;
 }
 
@@ -36,8 +38,12 @@ const RANK_STYLES: Record<number, string> = {
   3: 'text-orange-400 bg-orange-500/10 border-orange-500/30',
 };
 
-function builderLabel(builderId: string, builder?: BuilderInfo): string {
-  return builder?.full_name ?? `Builder #${builderId.slice(-6).toUpperCase()}`;
+function bidderFallbackLabel(
+  builderId: string,
+  bidderSingular: string,
+  builder?: BuilderInfo,
+): string {
+  return builder?.full_name ?? `${bidderSingular} #${builderId.slice(-6).toUpperCase()}`;
 }
 
 export function BidLeaderboard({
@@ -45,6 +51,7 @@ export function BidLeaderboard({
   projectStatus,
   trackType,
   subConfiguration,
+  serviceType = 'labour_contractor',
   initialBuilders,
 }: BidLeaderboardProps) {
   const { t } = useTranslation();
@@ -53,6 +60,7 @@ export function BidLeaderboard({
   const { profile } = useProfile();
   const [builders, setBuilders] = useState<Record<string, BuilderInfo>>(initialBuilders ?? {});
   const [ratings, setRatings] = useState<Record<string, { average: number; total: number }>>({});
+  const bidder = getServiceBidderLabels(serviceType ?? 'labour_contractor');
 
   const isActive   = projectStatus === 'active_24h';
   const isLoggedIn = !!profile;
@@ -133,7 +141,9 @@ export function BidLeaderboard({
         </div>
         <div>
           <p className="text-sm font-semibold text-foreground mb-1">Leaderboard Restricted</p>
-          <p className="text-xs text-muted-foreground">Sign in as a registered Builder to participate and view live rankings.</p>
+          <p className="text-xs text-muted-foreground">
+            Sign in as a registered {bidder.singular} to participate and view live rankings.
+          </p>
         </div>
       </div>
     );
@@ -145,7 +155,9 @@ export function BidLeaderboard({
         <Trophy className="w-8 h-8 text-muted-foreground/60" />
         <div>
           <p className="text-sm font-semibold text-foreground mb-1">No Bids Yet</p>
-          <p className="text-xs text-muted-foreground">Be the first builder to submit a competitive rate.</p>
+          <p className="text-xs text-muted-foreground">
+            Be the first {bidder.singular} to submit a competitive rate.
+          </p>
         </div>
       </div>
     );
@@ -188,8 +200,8 @@ export function BidLeaderboard({
           const displayName = isMe
             ? (profile?.full_name ?? builderInfo?.full_name ?? 'You')
             : bid.builder_id
-              ? builderLabel(bid.builder_id, builderInfo)
-              : 'Builder';
+              ? bidderFallbackLabel(bid.builder_id, bidder.singular, builderInfo)
+              : bidder.singular;
           const avatarUrl   = isMe
             ? (profile?.avatar_url ?? builderInfo?.avatar_url)
             : builderInfo?.avatar_url;
@@ -250,7 +262,7 @@ export function BidLeaderboard({
                     )}
                   </div>
                 ) : (
-                  <p className="text-xs text-muted-foreground">Builder</p>
+                  <p className="text-xs text-muted-foreground">{bidder.singular}</p>
                 )}
                 <div className="flex items-center gap-2 mt-0.5">
                   <Clock className="w-2.5 h-2.5 text-muted-foreground/80" />

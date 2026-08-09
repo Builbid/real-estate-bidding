@@ -13,7 +13,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { STATUS_CONFIG, TRACK_LABELS } from '@/lib/utils';
 import { BuildingConfigSummary } from '@/components/construction/BuildingConfigSummary';
-import { isFirmProject } from '@/lib/project/display';
+import {
+  getProjectServiceType,
+  getServiceBidderLabels,
+  getServiceCategoryLabel,
+  isFirmProject,
+} from '@/lib/project/display';
 import type { Project } from '@/lib/types';
 
 interface PageProps {
@@ -41,6 +46,9 @@ export default async function ProjectDetailPage({ params }: PageProps) {
   const status    = STATUS_CONFIG[project.status];
   const isActive  = project.status === 'active_24h';
   const isFrozen  = project.status === 'frozen_24h';
+  const serviceType = getProjectServiceType(project);
+  const bidder = getServiceBidderLabels(serviceType);
+  const serviceLabel = getServiceCategoryLabel(serviceType);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -66,7 +74,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                         {isActive && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />}
                         {status.label}
                       </Badge>
-                      <Badge>{TRACK_LABELS[project.track_type]}</Badge>
+                      <Badge>{serviceLabel}</Badge>
                     </div>
                     <h1 className="text-xl font-bold text-foreground leading-snug mb-1">{project.title}</h1>
                     {project.description && (
@@ -130,7 +138,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                 <div>
                   <p className="text-sm font-semibold text-amber-300 mb-1">Active Bidding Phase</p>
                   <p className="text-xs text-amber-400/70">
-                    Bidding is open. Builder names and profile photos appear on the live leaderboard.
+                    Bidding is open. {bidder.singular} names and profile photos appear on the live leaderboard.
                     Contact details (phone, email, address) are never shown publicly.
                   </p>
                 </div>
@@ -143,10 +151,10 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                 <div>
                   <p className="text-sm font-semibold text-indigo-300 mb-1">Bidding Closed — Selection Phase</p>
                   <p className="text-xs text-indigo-400/70 mb-3">
-                    The 24-hour bidding window has ended. If you are the client, sign in to view full builder profiles and select your builder.
+                    The bidding window has ended. If you are the client, sign in to view full {bidder.singular.toLowerCase()} profiles and select your {bidder.singular.toLowerCase()}.
                   </p>
                   <Button size="sm" variant="indigo" asChild>
-                    <Link href="/login">Sign In to Select Builder</Link>
+                    <Link href="/login">Sign In to Select {bidder.singular}</Link>
                   </Button>
                 </div>
               </div>
@@ -154,14 +162,18 @@ export default async function ProjectDetailPage({ params }: PageProps) {
 
             {isActive && (
               <div className="p-5 rounded-xl bg-emerald-500/5 border border-emerald-500/20 text-center">
-                <p className="text-sm font-semibold text-foreground mb-2">Are you a registered builder?</p>
-                <p className="text-xs text-muted-foreground mb-4">Sign in to submit your competitive rate bid for this project.</p>
-                <div className="flex items-center justify-center gap-3">
+                <p className="text-sm font-semibold text-foreground mb-2">
+                  Are you a registered {bidder.singular}?
+                </p>
+                <p className="text-xs text-muted-foreground mb-4">
+                  Sign in to submit your competitive rate bid for this {serviceLabel.toLowerCase()} project.
+                </p>
+                <div className="flex flex-wrap items-center justify-center gap-3">
                   <Button size="sm" asChild>
-                    <Link href="/login">Sign In to Bid</Link>
+                    <Link href="/login?role=bidder">Sign In to Bid</Link>
                   </Button>
                   <Button size="sm" variant="outline" asChild>
-                    <Link href="/register">Register as Builder</Link>
+                    <Link href={bidder.registerHref}>Register as {bidder.singular}</Link>
                   </Button>
                 </div>
               </div>
@@ -196,7 +208,9 @@ export default async function ProjectDetailPage({ params }: PageProps) {
               <CardContent className="pt-5 pb-5">
                 <div className="text-center">
                   <p className="text-3xl font-bold text-foreground mb-1">{bidCount}</p>
-                  <p className="text-xs text-muted-foreground">Builders have bid on this project</p>
+                  <p className="text-xs text-muted-foreground">
+                    {bidder.plural} have bid on this project
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -211,6 +225,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                   projectStatus={project.status}
                   trackType={project.track_type}
                   subConfiguration={project.sub_configuration}
+                  serviceType={serviceType}
                 />
               </CardContent>
             </Card>

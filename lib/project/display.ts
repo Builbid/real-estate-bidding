@@ -37,6 +37,41 @@ export function getServiceCategoryLabel(serviceType: ServiceType): string {
   return getServiceCategoryOption(serviceType).label;
 }
 
+/** Bidder-facing nouns + register link for public project CTAs (Mistri / Firm / trades). */
+export function getServiceBidderLabels(serviceType: ServiceType): {
+  singular: string;
+  plural: string;
+  registerHref: string;
+} {
+  if (serviceType === 'labour_contractor') {
+    return {
+      singular: 'Mistri Contractor',
+      plural: 'Mistri Contractors',
+      registerHref: '/register?role=labour_contractor',
+    };
+  }
+  if (serviceType === 'construction_firm') {
+    return {
+      singular: 'Construction Firm',
+      plural: 'Construction Firms',
+      registerHref: '/register?role=construction_firm',
+    };
+  }
+  if (isDrawingDesignServiceType(serviceType)) {
+    return {
+      singular: 'Drawing and Design provider',
+      plural: 'Drawing and Design providers',
+      registerHref: '/register?role=drawing_design',
+    };
+  }
+  const label = getProviderSpecialtyLabel(serviceType);
+  return {
+    singular: label,
+    plural: `${label}s`,
+    registerHref: `/register?role=${serviceType}`,
+  };
+}
+
 export function getServiceBadgeLabel(serviceType: ServiceType): string {
   const { label, emoji } = getServiceCategoryOption(serviceType);
   return `${label} ${emoji}`;
