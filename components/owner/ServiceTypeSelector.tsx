@@ -7,8 +7,19 @@ import { ALL_SERVICE_CATEGORIES, TRADE_SERVICE_OPTIONS } from '@/lib/trades';
 import { isConstructionFirmEnabled } from '@/lib/features';
 import { cn } from '@/lib/utils';
 
-const MISTRI_OPTION = {
-  type: 'labour_contractor' as const,
+type ConstructionOption = {
+  type: 'labour_contractor' | 'construction_firm';
+  emoji: string;
+  title: string;
+  subtitle?: string;
+  bullets: string[];
+  badge: string;
+  premiumTag?: string;
+  accent: 'amber' | 'indigo';
+};
+
+const MISTRI_OPTION: ConstructionOption = {
+  type: 'labour_contractor',
   emoji: '👷',
   title: 'Mistri Contractor',
   bullets: [
@@ -17,11 +28,11 @@ const MISTRI_OPTION = {
     'Lower cost — more control',
   ],
   badge: 'Without Material',
-  accent: 'amber' as const,
+  accent: 'amber',
 };
 
-const FIRM_OPTION = {
-  type: 'construction_firm' as const,
+const FIRM_OPTION: ConstructionOption = {
+  type: 'construction_firm',
   emoji: '🏢',
   title: 'Construction Firm',
   subtitle: 'Let the firm handle everything',
@@ -32,7 +43,7 @@ const FIRM_OPTION = {
   ],
   badge: 'With Material',
   premiumTag: 'Premium Service',
-  accent: 'indigo' as const,
+  accent: 'indigo',
 };
 
 interface ServiceTypeSelectorProps {
@@ -91,7 +102,7 @@ export function ServiceTypeSelector({ value, onChange, onContinue }: ServiceType
                 <h3 className="text-base font-bold text-foreground">{opt.title}</h3>
                 {selected && <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0" />}
               </div>
-              {'subtitle' in opt && opt.subtitle && (
+              {opt.subtitle && (
                 <p className="text-xs text-muted-foreground mb-3">{opt.subtitle}</p>
               )}
               <ul className="space-y-1 mb-3">
