@@ -9,6 +9,7 @@ import { STAT_ICON_STYLES, type StatIconColor } from '@/lib/dashboard/statIconSt
 import { STATUS_CONFIG, cn } from '@/lib/utils';
 import { AuctionRow } from '../builder/AuctionRow';
 import { BuilderProfileSettings } from '../builder/BuilderProfileSettings';
+import { ProviderPortfolioManager } from '@/components/provider/ProviderPortfolioManager';
 import { getProviderSpecialtyEmoji, getProviderSpecialtyLabel } from '@/lib/trades';
 import type { Project, Bid } from '@/lib/types';
 
@@ -123,10 +124,14 @@ export default async function ProviderDashboard() {
         )}
       </div>
 
-      {/* Profile photo */}
+      {/* Profile photo + portfolio for clients reviewing bids */}
       <BuilderProfileSettings
         fullName={profile.full_name}
         avatarUrl={profile.avatar_url}
+      />
+      <ProviderPortfolioManager
+        builderId={profile.id}
+        specialtyLabel={tradeLabel.toLowerCase()}
       />
 
       {/* My bid history */}

@@ -36,7 +36,7 @@ const RANK_MEDAL = ['🥇', '🥈', '🥉'];
 export function UnifiedBidRankings({
   initialBids, initialBuilders, userId,
 }: Props) {
-  const { project, isReveal, isFrozen } = useOwnerProjectPhaseContext();
+  const { project, isFrozen } = useOwnerProjectPhaseContext();
   const supabase = createClient();
   const { bids: realtimeBids, loading } = useRealtimeBids(project.id);
 
@@ -248,8 +248,8 @@ export function UnifiedBidRankings({
 
               {/* Actions */}
               <div className="flex items-center gap-2 flex-shrink-0">
-                {/* View portfolio button — always visible post-close */}
-                {isReveal && builder && bid.builder_id && (
+                {/* View profile/portfolio — available while bidding so owners can review before selecting */}
+                {builder && bid.builder_id && (
                   <BuilderPortfolioModal
                     builder={{ ...builder, id: bid.builder_id }}
                     bid={bid}

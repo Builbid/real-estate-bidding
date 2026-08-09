@@ -11,7 +11,6 @@ const CONSTRUCTION_OPTIONS = [
     type: 'labour_contractor' as const,
     emoji: '👷',
     title: 'Mistri Contractor',
-    subtitle: 'I will supply building materials myself',
     bullets: [
       'Hire skilled construction workers',
       'You purchase & manage all materials',
@@ -83,7 +82,9 @@ export function ServiceTypeSelector({ value, onChange, onContinue }: ServiceType
                 <h3 className="text-base font-bold text-foreground">{opt.title}</h3>
                 {selected && <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0" />}
               </div>
-              <p className="text-xs text-muted-foreground mb-3">{opt.subtitle}</p>
+              {'subtitle' in opt && opt.subtitle && (
+                <p className="text-xs text-muted-foreground mb-3">{opt.subtitle}</p>
+              )}
               <ul className="space-y-1 mb-3">
                 {opt.bullets.map((b) => (
                   <li key={b} className="text-[11px] text-muted-foreground flex gap-1.5">
