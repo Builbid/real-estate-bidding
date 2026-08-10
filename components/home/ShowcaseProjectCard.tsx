@@ -9,7 +9,9 @@ import {
   DraftingCompass,
   HardHat,
   MapPin,
+  Palette,
   Wrench,
+  Zap,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -82,13 +84,24 @@ function getCardTheme(serviceType: ServiceType): CardTheme {
     };
   }
   if (isTradeProject({ service_type: serviceType })) {
-    return {
+    const tradeTheme = {
       strip: 'from-teal-600 via-emerald-500 to-teal-700',
       wash: 'from-teal-500/[0.12] via-transparent to-transparent',
       orb: 'bg-teal-400/25',
       iconShell: 'bg-teal-500/15 border-teal-400/35 text-teal-700 dark:text-teal-200',
       accentBar: 'bg-teal-500',
       hoverBorder: 'hover:border-teal-500/35',
+    } as const;
+
+    if (serviceType === 'painter') {
+      return { ...tradeTheme, Icon: Palette };
+    }
+    if (serviceType === 'electrician') {
+      return { ...tradeTheme, Icon: Zap };
+    }
+
+    return {
+      ...tradeTheme,
       Icon: Wrench,
     };
   }

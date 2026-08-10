@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { MapPin, Clock, ArrowRight, Building, CalendarDays } from 'lucide-react';
+import { MapPin, Clock, ArrowRight, Building, CalendarDays, Palette, Zap } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { CountdownTicker } from './CountdownTicker';
@@ -120,7 +120,13 @@ export function ProjectCard({
           </div>
           {!compact && (
             <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-secondary border border-border flex items-center justify-center">
-              <Building className="w-5 h-5 text-muted-foreground" />
+              {serviceType === 'painter' ? (
+                <Palette className="w-5 h-5 text-muted-foreground" />
+              ) : serviceType === 'electrician' ? (
+                <Zap className="w-5 h-5 text-muted-foreground" />
+              ) : (
+                <Building className="w-5 h-5 text-muted-foreground" />
+              )}
             </div>
           )}
         </div>
