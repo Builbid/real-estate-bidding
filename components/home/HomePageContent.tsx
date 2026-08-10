@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import {
-  Activity, BadgeCheck, Building2, Clock, Gavel, Shield, Star,
+  Activity, BadgeCheck, Building2, Clock, Gavel, Star,
 } from 'lucide-react';
 import { Navbar } from '@/components/shared/Navbar';
 import { HeroBackgroundSlideshow } from '@/components/shared/HeroBackgroundSlideshow';
@@ -65,7 +65,6 @@ export function HomePageContent({
 
   const TRUST_BADGES = [
     { icon: BadgeCheck, text: t('home.trust.verifiedBuilders'), color: 'text-violet-400' },
-    { icon: Shield, text: t('home.trust.privateContact'), color: 'text-blue-400' },
     { icon: Star, text: t('home.trust.transparentPricing'), color: 'text-amber-400' },
   ] as const;
 
