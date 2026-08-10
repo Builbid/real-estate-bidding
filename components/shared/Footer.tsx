@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { BadgeCheck, Shield, Star } from 'lucide-react';
 import { BuilBidLogo } from '@/components/shared/BuilBidLogo';
 import { useTranslation } from '@/lib/context/LanguageProvider';
 import { PUBLIC_FOOTER_PLATFORM_LINKS } from '@/lib/nav/publicLinks';
@@ -28,12 +27,6 @@ interface FooterProps {
 
 export function Footer({ compact }: FooterProps) {
   const { t } = useTranslation();
-
-  const TRUST_BADGES = [
-    { icon: BadgeCheck, text: t('home.trust.verifiedBuilders'), color: 'text-violet-400' },
-    { icon: Shield, text: t('home.trust.privateContact'), color: 'text-blue-400' },
-    { icon: Star, text: t('home.trust.transparentPricing'), color: 'text-amber-400' },
-  ] as const;
 
   const PLATFORM_LINKS = PUBLIC_FOOTER_PLATFORM_LINKS.map(({ href, labelKey }) => ({
     label: t(labelKey),
@@ -71,14 +64,6 @@ export function Footer({ compact }: FooterProps) {
             <p className="text-sm text-muted-foreground leading-relaxed max-w-xs">
               {t('footer.tagline')}
             </p>
-            <div className="mt-4 flex flex-wrap gap-x-3 gap-y-1.5">
-              {TRUST_BADGES.map(({ icon: Icon, text, color }) => (
-                <div key={text} className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                  <Icon className={`w-3 h-3 ${color}`} />
-                  <span>{text}</span>
-                </div>
-              ))}
-            </div>
           </div>
 
           <div>

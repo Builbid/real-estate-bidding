@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import {
-  Activity, ArrowRight, Building2, Calculator, Clock, Gavel,
+  Activity, ArrowRight, BadgeCheck, Building2, Calculator, Clock, Gavel, Shield, Star,
 } from 'lucide-react';
 import { Navbar } from '@/components/shared/Navbar';
 import { HeroBackgroundSlideshow } from '@/components/shared/HeroBackgroundSlideshow';
@@ -71,6 +71,12 @@ export function HomePageContent({
     { key: 'bids', label: t('home.stats.bidsSubmitted'), icon: Gavel, tone: 'amber' },
   ];
 
+  const TRUST_BADGES = [
+    { icon: BadgeCheck, text: t('home.trust.verifiedBuilders'), color: 'text-violet-400' },
+    { icon: Shield, text: t('home.trust.privateContact'), color: 'text-blue-400' },
+    { icon: Star, text: t('home.trust.transparentPricing'), color: 'text-amber-400' },
+  ] as const;
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Navbar overlay authHint={{ isAuthenticated, role }} />
@@ -86,9 +92,14 @@ export function HomePageContent({
               <span className="text-amber-600 dark:text-amber-400">{t('home.hero.bidding')}</span>{' '}
               <span className="text-foreground">{t('home.hero.titleSuffix')}</span>
             </h1>
-            <p className="mx-auto mt-2 max-w-2xl text-xs leading-snug text-muted-foreground sm:text-sm line-clamp-2">
-              {t('home.hero.subtitle')}
-            </p>
+            <div className="mt-2.5 flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5">
+              {TRUST_BADGES.map(({ icon: Icon, text, color }) => (
+                <div key={text} className="flex items-center gap-1.5 text-xs text-muted-foreground sm:text-[13px]">
+                  <Icon className={`h-3.5 w-3.5 shrink-0 ${color}`} />
+                  <span>{text}</span>
+                </div>
+              ))}
+            </div>
 
             <div className="mt-3 flex flex-col items-stretch justify-center gap-2 sm:flex-row sm:items-center sm:flex-wrap">
               {isAuthenticated && normalizedRole ? (
