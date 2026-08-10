@@ -27,25 +27,32 @@ const TILE_TONES = [
   'from-lime-500/15 via-green-500/5 to-transparent border-lime-500/30 group-hover:border-lime-500/55',
 ] as const;
 
-/** Line-art water tap — sized to sit with the emoji service icons. */
-function WaterTapIcon({ className }: { className?: string }) {
+/** Custom water tap with flowing drops — sized to sit with the emoji service icons. */
+function WaterTapIcon() {
   return (
     <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="28"
+      height="28"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.75"
+      strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className={className}
+      className="h-7 w-7 text-sky-600 dark:text-sky-400"
       aria-hidden
     >
-      <path d="M6 4h7a3 3 0 0 1 3 3v2" />
-      <path d="M9 4v3" />
-      <path d="M16 9h2.5a2.5 2.5 0 0 1 0 5H16" />
-      <path d="M16 11.5H9.5A3.5 3.5 0 0 0 6 15v1" />
-      <path d="M8 19.5c0 .8-.7 1.5-1.5 1.5S5 20.3 5 19.5 5.9 17 6.5 17s1.5 1.7 1.5 2.5Z" />
-      <path d="M6.5 17v-1" />
+      {/* Tap Handle */}
+      <path d="M10 2h4" />
+      <path d="M12 2v3" />
+      {/* Main Pipe/Faucet Body */}
+      <path d="M4 8h10a3 3 0 0 1 3 3v3H7a3 3 0 0 1-3-3V8z" />
+      {/* Spout Outlet */}
+      <path d="M14 14v2a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1v-2" />
+      {/* Water Drops */}
+      <circle cx="11.5" cy="19.5" r="0.8" fill="currentColor" />
+      <circle cx="11.5" cy="22" r="0.5" fill="currentColor" />
     </svg>
   );
 }
@@ -94,7 +101,7 @@ export function ServiceCategoryBar({ isAuthenticated, role }: ServiceCategoryBar
                   <span className="absolute inset-0 rounded-lg bg-card/40 dark:bg-card/20" />
                   <span className="relative flex items-center justify-center leading-none drop-shadow-sm transition-transform duration-200 group-hover:scale-110">
                     {cat.value === 'plumber' ? (
-                      <WaterTapIcon className="h-[1.125rem] w-[1.125rem] text-sky-700 dark:text-sky-300 sm:h-5 sm:w-5" />
+                      <WaterTapIcon />
                     ) : (
                       <span className="text-lg sm:text-xl">{cat.emoji}</span>
                     )}
