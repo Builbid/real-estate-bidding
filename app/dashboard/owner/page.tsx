@@ -7,7 +7,6 @@ import Link from 'next/link';
 import { Plus, Building, TrendingUp, Users, Clock, ArrowRight, Layers } from 'lucide-react';
 import { DeleteProjectButton } from './DeleteProjectButton';
 import { OwnerLiveProjectCard } from './OwnerLiveProjectCard';
-import { OwnerPostProjectFab } from '@/components/owner/OwnerPostProjectFab';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -282,10 +281,6 @@ export default async function OwnerDashboard() {
           </div>
         </div>
       )}
-      <OwnerPostProjectFab
-        role="owner"
-        emphasize={totalLive === 0 && completed.length === 0}
-      />
     </div>
   );
 }

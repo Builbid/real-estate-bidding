@@ -89,7 +89,7 @@ async function getAuthStatus() {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { isAuthenticated: false, role: null, ownerHasProjects: false };
+    if (!user) return { isAuthenticated: false, role: null };
     const { data: sp } = await supabase
       .from('service_providers')
       .select('id')
@@ -117,17 +117,9 @@ async function getAuthStatus() {
         }
       }
     }
-    let ownerHasProjects = false;
-    if (role === 'owner') {
-      const { count } = await supabase
-        .from('projects')
-        .select('*', { count: 'exact', head: true })
-        .eq('owner_id', user.id);
-      ownerHasProjects = (count ?? 0) > 0;
-    }
-    return { isAuthenticated: true, role, ownerHasProjects };
+    return { isAuthenticated: true, role };
   } catch {
-    return { isAuthenticated: false, role: null, ownerHasProjects: false };
+    return { isAuthenticated: false, role: null };
   }
 }
 
@@ -140,7 +132,7 @@ export default async function HomePage() {
     getAuthStatus(),
     getFeaturedPartners(),
   ]);
-  const { isAuthenticated, role, ownerHasProjects } = auth;
+  const { isAuthenticated, role } = auth;
 
   const statValues: Record<string, number> = {
     active: stats.activeShowcaseCount,
@@ -156,7 +148,6 @@ export default async function HomePage() {
       statValues={statValues}
       isAuthenticated={isAuthenticated}
       role={role}
-      ownerHasProjects={ownerHasProjects}
       featuredLabour={featured.labour}
       featuredFirms={featured.firms}
     />

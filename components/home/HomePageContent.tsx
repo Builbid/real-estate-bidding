@@ -1,9 +1,8 @@
 'use client';
 
-import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import {
-  Activity, ArrowRight, BadgeCheck, Building2, Calculator, Clock, Gavel, Shield, Star,
+  Activity, BadgeCheck, Building2, Clock, Gavel, Shield, Star,
 } from 'lucide-react';
 import { Navbar } from '@/components/shared/Navbar';
 import { HeroBackgroundSlideshow } from '@/components/shared/HeroBackgroundSlideshow';
@@ -11,12 +10,9 @@ import { ProjectCard } from '@/components/shared/ProjectCard';
 import { ActiveProjectsShowcaseGrid } from '@/components/home/ActiveProjectsShowcaseGrid';
 import { ServiceCategoryBar } from '@/components/home/ServiceCategoryBar';
 import { FeaturedFirmsSection } from '@/components/home/FeaturedFirmsSection';
-import { OwnerPostProjectFab } from '@/components/owner/OwnerPostProjectFab';
 import { ProjectDistrictFilter, type DistrictFilterValue } from '@/components/shared/ProjectDistrictFilter';
-import { Button } from '@/components/ui/button';
 import { getUniqueDistrictsFromProjects, matchesDistrictFilter } from '@/lib/project/districtFilter';
 import { useTranslation } from '@/lib/context/LanguageProvider';
-import { getDashboardPath, normalizeRole } from '@/lib/auth/roles';
 import type { DemoFirm } from '@/lib/data/demoFirms';
 import type { Project } from '@/lib/types';
 import type { ShowcaseProject } from '@/lib/projectShowcase';
@@ -29,7 +25,6 @@ interface HomePageContentProps {
   statValues: Record<string, number>;
   isAuthenticated: boolean;
   role: string | null;
-  ownerHasProjects?: boolean;
   featuredLabour: DemoFirm[];
   featuredFirms: DemoFirm[];
 }
@@ -40,7 +35,6 @@ export function HomePageContent({
   statValues,
   isAuthenticated,
   role,
-  ownerHasProjects = false,
   featuredLabour,
   featuredFirms,
 }: HomePageContentProps) {
@@ -56,8 +50,6 @@ export function HomePageContent({
     () => frozenProjects.filter((project) => matchesDistrictFilter(project.district, frozenDistrictFilter)),
     [frozenProjects, frozenDistrictFilter],
   );
-
-  const normalizedRole = role ? normalizeRole(role) : null;
 
   const STATS_CONFIG: Array<{
     key: string;
@@ -100,43 +92,6 @@ export function HomePageContent({
                 </div>
               ))}
             </div>
-
-            <div className="mt-3 flex flex-col items-stretch justify-center gap-2 sm:flex-row sm:items-center sm:flex-wrap">
-              {isAuthenticated && normalizedRole ? (
-                <Button asChild size="default" className="rounded-xl h-10">
-                  <Link href={getDashboardPath(normalizedRole)}>
-                    {t('home.hero.goDashboard')}
-                    <ArrowRight className="ml-1 h-4 w-4" />
-                  </Link>
-                </Button>
-              ) : (
-                <Button asChild size="default" className="rounded-xl h-10">
-                  <Link href="/signup">{t('common.createAccount')}</Link>
-                </Button>
-              )}
-              <Button
-                asChild
-                size="default"
-                variant="outline"
-                className={cn(
-                  'group relative h-10 overflow-hidden rounded-xl border-emerald-500/35 bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-amber-500/10',
-                  'px-3.5 font-semibold text-foreground shadow-sm backdrop-blur-sm',
-                  'transition-all duration-200 hover:border-emerald-500/55 hover:from-emerald-500/15 hover:via-teal-500/10 hover:to-amber-500/15 hover:shadow-md',
-                )}
-              >
-                <Link href="/estimate-calculator" className="inline-flex items-center gap-2">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 ring-1 ring-emerald-500/25 transition-transform duration-200 group-hover:scale-105">
-                    <Calculator className="h-3.5 w-3.5" />
-                  </span>
-                  <span className="inline-flex items-baseline gap-1.5 tracking-tight">
-                    <span className="rounded-md bg-emerald-600 px-1.5 py-0.5 text-[10px] font-bold uppercase leading-none tracking-wide text-white shadow-sm dark:bg-emerald-500">
-                      Free
-                    </span>
-                    <span className="text-sm">Estimate Calculator</span>
-                  </span>
-                </Link>
-              </Button>
-            </div>
           </div>
 
           <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
@@ -166,7 +121,7 @@ export function HomePageContent({
         </div>
       </section>
 
-      <section id="live-auctions" className="mx-auto max-w-7xl px-4 pb-28 pt-8 sm:px-6 sm:pt-10 sm:pb-28">
+      <section id="live-auctions" className="mx-auto max-w-7xl px-4 pb-16 pt-8 sm:px-6 sm:pt-10 sm:pb-20">
         <ActiveProjectsShowcaseGrid
           projects={showcaseProjects}
           isAuthenticated={isAuthenticated}
@@ -214,12 +169,6 @@ export function HomePageContent({
       </section>
 
       <FeaturedFirmsSection labourFirms={featuredLabour} constructionFirms={featuredFirms} />
-
-      <OwnerPostProjectFab
-        role={role}
-        isAuthenticated={isAuthenticated}
-        emphasize={role === 'owner' && !ownerHasProjects}
-      />
     </div>
   );
 }

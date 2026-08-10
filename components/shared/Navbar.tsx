@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { LayoutDashboard, LogOut, Menu, User, X } from 'lucide-react';
+import { Calculator, LayoutDashboard, LogOut, Menu, User, X } from 'lucide-react';
 import { BuilBidLogo } from '@/components/shared/BuilBidLogo';
 import { useProfile } from '@/lib/hooks/useProfile';
 import { UserAvatar } from '@/components/shared/UserAvatar';
@@ -149,7 +149,21 @@ export function Navbar({ overlay = false, authHint }: NavbarProps) {
         </nav>
 
         {/* Right side */}
-        <div className="flex items-center gap-3 sm:gap-4">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <NavLink
+            href="/estimate-calculator"
+            prefetch
+            className={cn(
+              'hidden items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-colors md:inline-flex',
+              overlay
+                ? 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+                : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+            )}
+          >
+            <Calculator className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+            Estimate Calculator
+          </NavLink>
+
           {isLoggedIn ? (
             <div className="hidden md:flex items-center gap-3">
               <NavIconButton
@@ -292,6 +306,15 @@ export function Navbar({ overlay = false, authHint }: NavbarProps) {
                 {t(labelKey)}
               </NavLink>
             ))}
+            <NavLink
+              href="/estimate-calculator"
+              prefetch
+              onClick={() => setMenuOpen(false)}
+              className={cn(NAV_MENU_ITEM, 'flex min-h-11 items-center gap-2.5 px-3 py-3 text-sm text-foreground hover:bg-accent')}
+            >
+              <Calculator className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+              Estimate Calculator
+            </NavLink>
 
             <div className="my-3 border-t border-border" />
 
