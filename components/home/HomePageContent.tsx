@@ -78,12 +78,8 @@ export function HomePageContent({
       <section className="relative overflow-x-hidden border-b border-border/60">
         <HeroBackgroundSlideshow />
 
-        <div className="relative mx-auto w-full max-w-7xl px-4 pb-3 pt-3 sm:px-6 sm:pb-4 sm:pt-4">
+        <div className="relative mx-auto w-full max-w-7xl px-4 pb-3 pt-2 sm:px-6 sm:pb-4 sm:pt-3">
           <div className="mx-auto max-w-3xl text-center">
-            <p className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-800 dark:text-emerald-300">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
-              {t('home.hero.platformBadge')}
-            </p>
             <h1 className="text-xl font-extrabold leading-[1.15] tracking-tight sm:text-3xl">
               <span className="text-foreground">{t('home.hero.titlePrefix')}</span>{' '}
               <span className="text-violet-600 dark:text-violet-400">{t('home.hero.construction')}</span>{' '}
