@@ -18,6 +18,7 @@ import { hasContactInfo, hasProjectContactViolation } from '@/lib/validation/pro
 import { formatPincodeInput, validatePincode } from '@/lib/validation/pincode';
 import { getTradeLabel, getTradeEmoji } from '@/lib/trades';
 import {
+  PAINTER_MATERIALS_OPTIONS,
   PAINTER_PRIMER_OPTIONS,
   PAINTER_START_TIME_OPTIONS,
   formatPainterMaterials,
@@ -419,10 +420,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                       Materials
                     </label>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {[
-                        { value: true, label: 'YES (Client provided)' },
-                        { value: false, label: 'NO (Contractor provided)' },
-                      ].map((opt) => {
+                      {PAINTER_MATERIALS_OPTIONS.map((opt) => {
                         const selected = form.materialsIncludeClient === opt.value;
                         return (
                           <button

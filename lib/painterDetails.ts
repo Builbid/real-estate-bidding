@@ -2,14 +2,17 @@
 // Painter-only work requirements — stored as projects.painter_details
 // ============================================================
 
-export type PainterStartTimeType = 'immediately' | '1week' | '1month' | 'specific';
+export type PainterStartTimeType = '1week' | '2week' | '1month' | 'specific';
+
+/** Legacy start-time values that may exist on older painter_details rows. */
+type LegacyPainterStartTimeType = 'immediately';
 
 export type PainterPrimerRequirement = 'None' | '1 Coat' | '2 Coats' | '3 Coats';
 
 export interface PainterDetails {
   projectArea: number;
   primerRequirement: PainterPrimerRequirement;
-  /** true = materials provided by client; false = contractor brings materials */
+  /** true = without material (client provides); false = with material (contractor provides) */
   materialsIncludeClient: boolean;
   projectStartTimeType: PainterStartTimeType;
   /** ISO date YYYY-MM-DD when projectStartTimeType === 'specific' */
@@ -23,24 +26,47 @@ export const PAINTER_PRIMER_OPTIONS: PainterPrimerRequirement[] = [
   '3 Coats',
 ];
 
+export const PAINTER_MATERIALS_OPTIONS: {
+  value: boolean;
+  label: string;
+}[] = [
+  { value: true, label: 'Without Material' },
+  { value: false, label: 'With Material' },
+];
+
 export const PAINTER_START_TIME_OPTIONS: {
   value: PainterStartTimeType;
   label: string;
 }[] = [
-  { value: 'immediately', label: 'Immediately' },
   { value: '1week', label: 'Within one week' },
+  { value: '2week', label: 'Within two week' },
   { value: '1month', label: 'Within 1 month' },
   { value: 'specific', label: 'Specific Date' },
 ];
 
 const START_TIME_TYPES = new Set<PainterStartTimeType>([
-  'immediately',
   '1week',
+  '2week',
   '1month',
   'specific',
 ]);
 
+const LEGACY_START_TIME_MAP: Record<LegacyPainterStartTimeType, PainterStartTimeType> = {
+  immediately: '1week',
+};
+
 const PRIMER_SET = new Set<string>(PAINTER_PRIMER_OPTIONS);
+
+function normalizeStartTimeType(value: unknown): PainterStartTimeType | null {
+  if (typeof value !== 'string') return null;
+  if (START_TIME_TYPES.has(value as PainterStartTimeType)) {
+    return value as PainterStartTimeType;
+  }
+  if (value in LEGACY_START_TIME_MAP) {
+    return LEGACY_START_TIME_MAP[value as LegacyPainterStartTimeType];
+  }
+  return null;
+}
 
 export function isPainterDetails(value: unknown): value is PainterDetails {
   if (!value || typeof value !== 'object') return false;
@@ -52,15 +78,16 @@ export function isPainterDetails(value: unknown): value is PainterDetails {
     typeof v.primerRequirement === 'string' &&
     PRIMER_SET.has(v.primerRequirement) &&
     typeof v.materialsIncludeClient === 'boolean' &&
-    typeof v.projectStartTimeType === 'string' &&
-    START_TIME_TYPES.has(v.projectStartTimeType as PainterStartTimeType)
+    normalizeStartTimeType(v.projectStartTimeType) != null
   );
 }
 
 export function parsePainterDetails(value: unknown): PainterDetails | null {
   if (!isPainterDetails(value)) return null;
+  const projectStartTimeType = normalizeStartTimeType(value.projectStartTimeType);
+  if (!projectStartTimeType) return null;
   const specific =
-    value.projectStartTimeType === 'specific' &&
+    projectStartTimeType === 'specific' &&
     typeof value.projectStartTimeSpecificDate === 'string' &&
     /^\d{4}-\d{2}-\d{2}$/.test(value.projectStartTimeSpecificDate)
       ? value.projectStartTimeSpecificDate
@@ -69,7 +96,7 @@ export function parsePainterDetails(value: unknown): PainterDetails | null {
     projectArea: value.projectArea,
     primerRequirement: value.primerRequirement,
     materialsIncludeClient: value.materialsIncludeClient,
-    projectStartTimeType: value.projectStartTimeType,
+    projectStartTimeType,
     projectStartTimeSpecificDate: specific,
   };
 }
@@ -83,17 +110,15 @@ export function formatPainterPrimer(primer: PainterPrimerRequirement): string {
 }
 
 export function formatPainterMaterials(materialsIncludeClient: boolean): string {
-  return materialsIncludeClient
-    ? 'YES (Client provided)'
-    : 'NO (Contractor provided)';
+  return materialsIncludeClient ? 'Without Material' : 'With Material';
 }
 
 export function formatPainterStartTime(details: PainterDetails): string {
   switch (details.projectStartTimeType) {
-    case 'immediately':
-      return 'Immediately';
     case '1week':
       return 'Within one week';
+    case '2week':
+      return 'Within two week';
     case '1month':
       return 'Within 1 month';
     case 'specific':
@@ -134,7 +159,7 @@ export function validatePainterDetailsInput(input: {
     return { error: 'Select a primer requirement.' };
   }
   if (input.materialsIncludeClient == null) {
-    return { error: 'Select whether materials are provided by the client.' };
+    return { error: 'Select materials option (With Material or Without Material).' };
   }
   if (!input.projectStartTimeType || !START_TIME_TYPES.has(input.projectStartTimeType)) {
     return { error: 'Select when the project should start.' };
