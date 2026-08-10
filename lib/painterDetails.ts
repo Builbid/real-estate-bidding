@@ -12,8 +12,11 @@ export type PainterPrimerRequirement = 'None' | '1 Coat' | '2 Coats' | '3 Coats'
 export interface PainterDetails {
   projectArea: number;
   primerRequirement: PainterPrimerRequirement;
-  /** true = without material (client provides); false = with material (contractor provides) */
-  materialsIncludeClient: boolean;
+  /**
+   * Optional / legacy. true = without material (client provides);
+   * false = with material (contractor provides); null = not collected.
+   */
+  materialsIncludeClient?: boolean | null;
   projectStartTimeType: PainterStartTimeType;
   /** ISO date YYYY-MM-DD when projectStartTimeType === 'specific' */
   projectStartTimeSpecificDate?: string | null;
@@ -24,14 +27,6 @@ export const PAINTER_PRIMER_OPTIONS: PainterPrimerRequirement[] = [
   '1 Coat',
   '2 Coats',
   '3 Coats',
-];
-
-export const PAINTER_MATERIALS_OPTIONS: {
-  value: boolean;
-  label: string;
-}[] = [
-  { value: true, label: 'Without Material' },
-  { value: false, label: 'With Material' },
 ];
 
 export const PAINTER_START_TIME_OPTIONS: {
@@ -71,13 +66,17 @@ function normalizeStartTimeType(value: unknown): PainterStartTimeType | null {
 export function isPainterDetails(value: unknown): value is PainterDetails {
   if (!value || typeof value !== 'object') return false;
   const v = value as Record<string, unknown>;
+  const materialsOk =
+    v.materialsIncludeClient === undefined ||
+    v.materialsIncludeClient === null ||
+    typeof v.materialsIncludeClient === 'boolean';
   return (
     typeof v.projectArea === 'number' &&
     Number.isFinite(v.projectArea) &&
     v.projectArea > 0 &&
     typeof v.primerRequirement === 'string' &&
     PRIMER_SET.has(v.primerRequirement) &&
-    typeof v.materialsIncludeClient === 'boolean' &&
+    materialsOk &&
     normalizeStartTimeType(v.projectStartTimeType) != null
   );
 }
@@ -95,7 +94,10 @@ export function parsePainterDetails(value: unknown): PainterDetails | null {
   return {
     projectArea: value.projectArea,
     primerRequirement: value.primerRequirement,
-    materialsIncludeClient: value.materialsIncludeClient,
+    materialsIncludeClient:
+      typeof value.materialsIncludeClient === 'boolean'
+        ? value.materialsIncludeClient
+        : null,
     projectStartTimeType,
     projectStartTimeSpecificDate: specific,
   };
@@ -132,18 +134,27 @@ export function getPainterWorkRequirementBlocks(details: PainterDetails): {
   label: string;
   value: string;
 }[] {
-  return [
+  const blocks = [
     { label: 'Project Area', value: formatPainterProjectArea(details.projectArea) },
     { label: 'Primer Requirement', value: formatPainterPrimer(details.primerRequirement) },
-    { label: 'Materials', value: formatPainterMaterials(details.materialsIncludeClient) },
-    { label: 'Project Starting Time', value: formatPainterStartTime(details) },
   ];
+  // Legacy rows only — materials is no longer collected on the form.
+  if (typeof details.materialsIncludeClient === 'boolean') {
+    blocks.push({
+      label: 'Materials',
+      value: formatPainterMaterials(details.materialsIncludeClient),
+    });
+  }
+  blocks.push({
+    label: 'Project Starting Time',
+    value: formatPainterStartTime(details),
+  });
+  return blocks;
 }
 
 export function validatePainterDetailsInput(input: {
   projectArea: string | number;
   primerRequirement: string;
-  materialsIncludeClient: boolean | null;
   projectStartTimeType: PainterStartTimeType | null;
   projectStartTimeSpecificDate: string;
 }): { error: string } | { details: PainterDetails } {
@@ -158,9 +169,6 @@ export function validatePainterDetailsInput(input: {
   if (!PRIMER_SET.has(input.primerRequirement)) {
     return { error: 'Select a primer requirement.' };
   }
-  if (input.materialsIncludeClient == null) {
-    return { error: 'Select materials option (With Material or Without Material).' };
-  }
   if (!input.projectStartTimeType || !START_TIME_TYPES.has(input.projectStartTimeType)) {
     return { error: 'Select when the project should start.' };
   }
@@ -173,7 +181,7 @@ export function validatePainterDetailsInput(input: {
       details: {
         projectArea: area,
         primerRequirement: input.primerRequirement as PainterPrimerRequirement,
-        materialsIncludeClient: input.materialsIncludeClient,
+        materialsIncludeClient: null,
         projectStartTimeType: 'specific',
         projectStartTimeSpecificDate: date,
       },
@@ -184,7 +192,7 @@ export function validatePainterDetailsInput(input: {
     details: {
       projectArea: area,
       primerRequirement: input.primerRequirement as PainterPrimerRequirement,
-      materialsIncludeClient: input.materialsIncludeClient,
+      materialsIncludeClient: null,
       projectStartTimeType: input.projectStartTimeType,
       projectStartTimeSpecificDate: null,
     },

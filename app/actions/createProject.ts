@@ -172,7 +172,7 @@ export async function createProjectAction(
       insertPayload.painter_details = {
         projectArea: trade.painter_details.projectArea,
         primerRequirement: trade.painter_details.primerRequirement,
-        materialsIncludeClient: trade.painter_details.materialsIncludeClient,
+        materialsIncludeClient: trade.painter_details.materialsIncludeClient ?? null,
         projectStartTimeType: trade.painter_details.projectStartTimeType,
         projectStartTimeSpecificDate:
           trade.painter_details.projectStartTimeType === 'specific'

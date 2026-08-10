@@ -18,10 +18,8 @@ import { hasContactInfo, hasProjectContactViolation } from '@/lib/validation/pro
 import { formatPincodeInput, validatePincode } from '@/lib/validation/pincode';
 import { getTradeLabel, getTradeEmoji } from '@/lib/trades';
 import {
-  PAINTER_MATERIALS_OPTIONS,
   PAINTER_PRIMER_OPTIONS,
   PAINTER_START_TIME_OPTIONS,
-  formatPainterMaterials,
   formatPainterPrimer,
   formatPainterProjectArea,
   formatPainterStartTime,
@@ -54,7 +52,6 @@ interface FormState {
   /** Painter-only */
   projectArea: string;
   primerRequirement: PainterPrimerRequirement | '';
-  materialsIncludeClient: boolean | null;
   projectStartTimeType: PainterStartTimeType | null;
   projectStartTimeSpecificDate: string;
 }
@@ -68,7 +65,6 @@ const EMPTY_FORM: FormState = {
   track_type: null,
   projectArea: '',
   primerRequirement: '',
-  materialsIncludeClient: null,
   projectStartTimeType: null,
   projectStartTimeSpecificDate: '',
 };
@@ -158,7 +154,6 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
       const validated = validatePainterDetailsInput({
         projectArea: form.projectArea,
         primerRequirement: form.primerRequirement,
-        materialsIncludeClient: form.materialsIncludeClient,
         projectStartTimeType: form.projectStartTimeType,
         projectStartTimeSpecificDate: form.projectStartTimeSpecificDate,
       });
@@ -194,7 +189,6 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
       const validated = validatePainterDetailsInput({
         projectArea: form.projectArea,
         primerRequirement: form.primerRequirement,
-        materialsIncludeClient: form.materialsIncludeClient,
         projectStartTimeType: form.projectStartTimeType,
         projectStartTimeSpecificDate: form.projectStartTimeSpecificDate,
       });
@@ -417,35 +411,6 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
 
                   <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      Materials
-                    </label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {PAINTER_MATERIALS_OPTIONS.map((opt) => {
-                        const selected = form.materialsIncludeClient === opt.value;
-                        return (
-                          <button
-                            key={String(opt.value)}
-                            type="button"
-                            onClick={() => {
-                              update('materialsIncludeClient', opt.value);
-                              setStep2Error(null);
-                            }}
-                            className={cn(
-                              'rounded-lg border px-3 py-2.5 text-left text-xs font-semibold transition-colors',
-                              selected
-                                ? 'border-emerald-500/70 bg-emerald-500/10 text-foreground'
-                                : 'border-border bg-card text-muted-foreground hover:border-muted-foreground/40',
-                            )}
-                          >
-                            {opt.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       Project Starting Time
                     </label>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -515,7 +480,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                     label: 'Building Type',
                     value: BUILDING_TYPE_OPTIONS.find((o) => o.value === form.track_type)?.label,
                   },
-                  ...(isPainter && form.projectArea && form.primerRequirement && form.materialsIncludeClient != null && form.projectStartTimeType
+                  ...(isPainter && form.projectArea && form.primerRequirement && form.projectStartTimeType
                     ? [
                         {
                           label: 'Project Area',
@@ -526,15 +491,11 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                           value: formatPainterPrimer(form.primerRequirement),
                         },
                         {
-                          label: 'Materials',
-                          value: formatPainterMaterials(form.materialsIncludeClient),
-                        },
-                        {
                           label: 'Project Starting Time',
                           value: formatPainterStartTime({
                             projectArea: parseFloat(form.projectArea) || 0,
                             primerRequirement: form.primerRequirement,
-                            materialsIncludeClient: form.materialsIncludeClient,
+                            materialsIncludeClient: null,
                             projectStartTimeType: form.projectStartTimeType,
                             projectStartTimeSpecificDate: form.projectStartTimeSpecificDate || null,
                           }),
