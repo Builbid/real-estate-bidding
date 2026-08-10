@@ -228,11 +228,11 @@ export function Navbar({ overlay = false, authHint }: NavbarProps) {
             }
           />
 
-          {/* Mobile menu toggle — keep top bar minimal so the button stays tappable */}
+          {/* Mobile menu toggle — phones only; desktop uses inline header actions */}
           <button
             type="button"
             className={cn(
-              'inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg transition-colors lg:hidden',
+              'inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg transition-colors md:hidden',
               overlay
                 ? 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
                 : 'text-muted-foreground hover:bg-accent hover:text-foreground',
@@ -249,7 +249,7 @@ export function Navbar({ overlay = false, authHint }: NavbarProps) {
     </header>
 
     {mounted && menuOpen && createPortal(
-      <div className="fixed inset-0 z-[180] flex lg:hidden">
+      <div className="fixed inset-0 z-[180] flex md:hidden">
         <button
           type="button"
           className="absolute inset-0 bg-black/60 backdrop-blur-sm"
