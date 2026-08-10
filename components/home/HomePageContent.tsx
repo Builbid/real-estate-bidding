@@ -76,7 +76,7 @@ export function HomePageContent({
       <section className="relative overflow-x-hidden border-b border-border/60">
         <HeroBackgroundSlideshow />
 
-        <div className="relative mx-auto w-full max-w-7xl px-4 pb-3 pt-2 sm:px-6 sm:pb-4 sm:pt-3">
+        <div className="relative mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 pb-6 pt-3 sm:gap-8 sm:px-6 sm:pb-8 sm:pt-5">
           <div className="mx-auto max-w-3xl text-center">
             <h1 className="text-xl font-extrabold leading-[1.15] tracking-tight sm:text-3xl">
               <span className="text-foreground">{t('home.hero.titlePrefix')}</span>{' '}
@@ -84,9 +84,9 @@ export function HomePageContent({
               <span className="text-amber-600 dark:text-amber-400">{t('home.hero.bidding')}</span>{' '}
               <span className="text-foreground">{t('home.hero.titleSuffix')}</span>
             </h1>
-            <div className="mt-2.5 flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5">
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5">
               {TRUST_BADGES.map(({ icon: Icon, text, color }) => (
-                <div key={text} className="flex items-center gap-1.5 text-xs text-muted-foreground sm:text-[13px]">
+                <div key={text} className="flex items-center gap-1.5 text-xs font-medium text-slate-700 dark:text-slate-200 sm:text-[13px]">
                   <Icon className={`h-3.5 w-3.5 shrink-0 ${color}`} />
                   <span>{text}</span>
                 </div>
@@ -94,11 +94,13 @@ export function HomePageContent({
             </div>
           </div>
 
-          <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
+          <ServiceCategoryBar isAuthenticated={isAuthenticated} role={role} />
+
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3.5">
             {STATS_CONFIG.map(({ key, label, icon: Icon, tone }) => (
               <div
                 key={key}
-                className="rounded-xl border border-border/70 bg-card/80 px-2.5 py-2 shadow-sm backdrop-blur-sm sm:px-3 sm:py-2.5"
+                className="rounded-xl border border-border/70 bg-card/80 px-2.5 py-2.5 shadow-sm backdrop-blur-sm sm:px-3 sm:py-3"
               >
                 <div className="flex items-center gap-2 sm:gap-2.5">
                   <div className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border', STAT_ICON_STYLES[tone].box)}>
@@ -108,15 +110,13 @@ export function HomePageContent({
                     <p className="text-base font-bold tabular-nums text-foreground sm:text-lg leading-none">
                       {statValues[key].toLocaleString()}
                     </p>
-                    <p className="truncate text-[10px] leading-tight text-muted-foreground sm:text-[11px] mt-0.5">{label}</p>
+                    <p className="mt-0.5 truncate text-[10px] font-medium leading-tight text-slate-700 dark:text-slate-300 sm:text-[11px]">
+                      {label}
+                    </p>
                   </div>
                 </div>
               </div>
             ))}
-          </div>
-
-          <div className="mt-3">
-            <ServiceCategoryBar isAuthenticated={isAuthenticated} role={role} />
           </div>
         </div>
       </section>
