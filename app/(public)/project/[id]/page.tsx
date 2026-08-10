@@ -265,7 +265,12 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                     <SpecItem icon={MapPin} label="State" value={project.state} />
                     <SpecItem icon={Layers} label="Building Type" value={TRACK_LABELS[project.track_type]} />
                     {painterBlocks.map((block) => (
-                      <SpecItem key={block.label} icon={Layers} label={block.label} value={block.value} />
+                      <div
+                        key={block.label}
+                        className={block.label === 'Additional Requirements' ? 'col-span-2 sm:col-span-3' : undefined}
+                      >
+                        <SpecItem icon={Layers} label={block.label} value={block.value} />
+                      </div>
                     ))}
                     <SpecItem
                       icon={Calendar}

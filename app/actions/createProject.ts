@@ -178,6 +178,11 @@ export async function createProjectAction(
           trade.painter_details.projectStartTimeType === 'specific'
             ? trade.painter_details.projectStartTimeSpecificDate
             : null,
+        paintingScope: trade.painter_details.paintingScope ?? null,
+        paintFinish: trade.painter_details.paintFinish ?? null,
+        surfaceCondition: trade.painter_details.surfaceCondition ?? null,
+        paintTopcoats: trade.painter_details.paintTopcoats ?? null,
+        additionalRequirements: trade.painter_details.additionalRequirements?.trim() || null,
       }
     }
   } else {

@@ -18,14 +18,20 @@ import { hasContactInfo, hasProjectContactViolation } from '@/lib/validation/pro
 import { formatPincodeInput, validatePincode } from '@/lib/validation/pincode';
 import { getTradeLabel, getTradeEmoji } from '@/lib/trades';
 import {
+  PAINTER_FINISH_OPTIONS,
   PAINTER_PRIMER_OPTIONS,
+  PAINTER_SCOPE_OPTIONS,
   PAINTER_START_TIME_OPTIONS,
-  formatPainterPrimer,
-  formatPainterProjectArea,
-  formatPainterStartTime,
+  PAINTER_SURFACE_OPTIONS,
+  PAINTER_TOPCOAT_OPTIONS,
+  getPainterWorkRequirementBlocks,
   validatePainterDetailsInput,
+  type PainterPaintFinish,
+  type PainterPaintTopcoats,
+  type PainterPaintingScope,
   type PainterPrimerRequirement,
   type PainterStartTimeType,
+  type PainterSurfaceCondition,
 } from '@/lib/painterDetails';
 import { cn } from '@/lib/utils';
 import { createProjectAction } from '@/app/actions/createProject';
@@ -51,9 +57,14 @@ interface FormState {
   track_type: TrackType | null;
   /** Painter-only */
   projectArea: string;
+  paintingScope: PainterPaintingScope | null;
+  paintFinish: PainterPaintFinish | null;
+  surfaceCondition: PainterSurfaceCondition | null;
   primerRequirement: PainterPrimerRequirement | '';
+  paintTopcoats: PainterPaintTopcoats | null;
   projectStartTimeType: PainterStartTimeType | null;
   projectStartTimeSpecificDate: string;
+  additionalRequirements: string;
 }
 
 const EMPTY_FORM: FormState = {
@@ -64,9 +75,14 @@ const EMPTY_FORM: FormState = {
   bidding_minutes: String(BIDDING_MINUTES),
   track_type: null,
   projectArea: '',
+  paintingScope: null,
+  paintFinish: null,
+  surfaceCondition: null,
   primerRequirement: '',
+  paintTopcoats: null,
   projectStartTimeType: null,
   projectStartTimeSpecificDate: '',
+  additionalRequirements: '',
 };
 
 interface TradeServiceProjectWizardProps {
@@ -156,6 +172,11 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
         primerRequirement: form.primerRequirement,
         projectStartTimeType: form.projectStartTimeType,
         projectStartTimeSpecificDate: form.projectStartTimeSpecificDate,
+        paintingScope: form.paintingScope,
+        paintFinish: form.paintFinish,
+        surfaceCondition: form.surfaceCondition,
+        paintTopcoats: form.paintTopcoats,
+        additionalRequirements: form.additionalRequirements,
       });
       if ('error' in validated) {
         setStep2Error(validated.error);
@@ -191,6 +212,11 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
         primerRequirement: form.primerRequirement,
         projectStartTimeType: form.projectStartTimeType,
         projectStartTimeSpecificDate: form.projectStartTimeSpecificDate,
+        paintingScope: form.paintingScope,
+        paintFinish: form.paintFinish,
+        surfaceCondition: form.surfaceCondition,
+        paintTopcoats: form.paintTopcoats,
+        additionalRequirements: form.additionalRequirements,
       });
       if ('error' in validated) {
         setError(validated.error);
@@ -389,6 +415,93 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
 
                   <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      Painting Scope
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      {PAINTER_SCOPE_OPTIONS.map((opt) => {
+                        const selected = form.paintingScope === opt.value;
+                        return (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => {
+                              update('paintingScope', opt.value);
+                              setStep2Error(null);
+                            }}
+                            className={cn(
+                              'rounded-lg border px-3 py-2.5 text-left text-xs font-semibold transition-colors',
+                              selected
+                                ? 'border-emerald-500/70 bg-emerald-500/10 text-foreground'
+                                : 'border-border bg-card text-muted-foreground hover:border-muted-foreground/40',
+                            )}
+                          >
+                            {opt.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      Paint Finish / Quality
+                    </label>
+                    <div className="grid grid-cols-1 gap-2">
+                      {PAINTER_FINISH_OPTIONS.map((opt) => {
+                        const selected = form.paintFinish === opt.value;
+                        return (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => {
+                              update('paintFinish', opt.value);
+                              setStep2Error(null);
+                            }}
+                            className={cn(
+                              'rounded-lg border px-3 py-2.5 text-left text-xs font-semibold transition-colors',
+                              selected
+                                ? 'border-emerald-500/70 bg-emerald-500/10 text-foreground'
+                                : 'border-border bg-card text-muted-foreground hover:border-muted-foreground/40',
+                            )}
+                          >
+                            {opt.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      Surface Condition
+                    </label>
+                    <div className="grid grid-cols-1 gap-2">
+                      {PAINTER_SURFACE_OPTIONS.map((opt) => {
+                        const selected = form.surfaceCondition === opt.value;
+                        return (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => {
+                              update('surfaceCondition', opt.value);
+                              setStep2Error(null);
+                            }}
+                            className={cn(
+                              'rounded-lg border px-3 py-2.5 text-left text-xs font-semibold transition-colors',
+                              selected
+                                ? 'border-emerald-500/70 bg-emerald-500/10 text-foreground'
+                                : 'border-border bg-card text-muted-foreground hover:border-muted-foreground/40',
+                            )}
+                          >
+                            {opt.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       Primer Requirement
                     </label>
                     <Select
@@ -407,6 +520,35 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                         ))}
                       </SelectContent>
                     </Select>
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      Paint Topcoats
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {PAINTER_TOPCOAT_OPTIONS.map((opt) => {
+                        const selected = form.paintTopcoats === opt;
+                        return (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() => {
+                              update('paintTopcoats', opt);
+                              setStep2Error(null);
+                            }}
+                            className={cn(
+                              'rounded-lg border px-3 py-2.5 text-center text-xs font-semibold transition-colors',
+                              selected
+                                ? 'border-emerald-500/70 bg-emerald-500/10 text-foreground'
+                                : 'border-border bg-card text-muted-foreground hover:border-muted-foreground/40',
+                            )}
+                          >
+                            {opt}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
 
                   <div className="flex flex-col gap-1.5">
@@ -452,6 +594,22 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                       />
                     )}
                   </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      Additional Requirements <span className="normal-case tracking-normal">(optional)</span>
+                    </label>
+                    <textarea
+                      rows={3}
+                      placeholder="Specify any custom instructions, special paint brands, scaffolding needs, or details not covered above..."
+                      value={form.additionalRequirements}
+                      onChange={(e) => {
+                        update('additionalRequirements', e.target.value);
+                        setStep2Error(null);
+                      }}
+                      className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
+                    />
+                  </div>
                 </div>
               )}
 
@@ -480,27 +638,19 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                     label: 'Building Type',
                     value: BUILDING_TYPE_OPTIONS.find((o) => o.value === form.track_type)?.label,
                   },
-                  ...(isPainter && form.projectArea && form.primerRequirement && form.projectStartTimeType
-                    ? [
-                        {
-                          label: 'Project Area',
-                          value: formatPainterProjectArea(parseFloat(form.projectArea)),
-                        },
-                        {
-                          label: 'Primer Requirement',
-                          value: formatPainterPrimer(form.primerRequirement),
-                        },
-                        {
-                          label: 'Project Starting Time',
-                          value: formatPainterStartTime({
-                            projectArea: parseFloat(form.projectArea) || 0,
-                            primerRequirement: form.primerRequirement,
-                            materialsIncludeClient: null,
-                            projectStartTimeType: form.projectStartTimeType,
-                            projectStartTimeSpecificDate: form.projectStartTimeSpecificDate || null,
-                          }),
-                        },
-                      ]
+                  ...(isPainter && form.projectArea && form.paintingScope && form.paintFinish && form.surfaceCondition && form.primerRequirement && form.paintTopcoats && form.projectStartTimeType
+                    ? getPainterWorkRequirementBlocks({
+                        projectArea: parseFloat(form.projectArea) || 0,
+                        primerRequirement: form.primerRequirement,
+                        materialsIncludeClient: null,
+                        projectStartTimeType: form.projectStartTimeType,
+                        projectStartTimeSpecificDate: form.projectStartTimeSpecificDate || null,
+                        paintingScope: form.paintingScope,
+                        paintFinish: form.paintFinish,
+                        surfaceCondition: form.surfaceCondition,
+                        paintTopcoats: form.paintTopcoats,
+                        additionalRequirements: form.additionalRequirements.trim() || null,
+                      })
                     : []),
                   {
                     label: 'Bidding Window',

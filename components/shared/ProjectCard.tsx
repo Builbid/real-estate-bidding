@@ -138,10 +138,16 @@ export function ProjectCard({
               {painterBlocks.map((block) => (
                 <div
                   key={block.label}
-                  className="rounded-xl border border-border/60 bg-muted/25 px-3 py-2.5 dark:bg-muted/15"
+                  className={cn(
+                    'rounded-xl border border-border/60 bg-muted/25 px-3 py-2.5 dark:bg-muted/15',
+                    block.label === 'Additional Requirements' && 'col-span-2',
+                  )}
                 >
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{block.label}</p>
-                  <p className="mt-0.5 text-sm font-semibold leading-snug text-foreground line-clamp-2">
+                  <p className={cn(
+                    'mt-0.5 text-sm font-semibold leading-snug text-foreground',
+                    block.label === 'Additional Requirements' ? 'line-clamp-3 font-medium' : 'line-clamp-2',
+                  )}>
                     {block.value}
                   </p>
                 </div>

@@ -136,14 +136,21 @@ function StatCell({
   value,
   accentClass,
   allowWrap = false,
+  className,
 }: {
   label: string;
   value: string;
   accentClass: string;
   allowWrap?: boolean;
+  className?: string;
 }) {
   return (
-    <div className="relative overflow-hidden rounded-lg border border-border/60 bg-muted/20 px-2 py-1.5 dark:bg-muted/10">
+    <div
+      className={cn(
+        'relative overflow-hidden rounded-lg border border-border/60 bg-muted/20 px-2 py-1.5 dark:bg-muted/10',
+        className,
+      )}
+    >
       <span className={cn('absolute inset-y-1.5 left-0 w-0.5 rounded-full', accentClass)} />
       <p className="pl-1.5 text-[9px] font-medium uppercase tracking-wider text-muted-foreground truncate">
         {label}
@@ -152,6 +159,7 @@ function StatCell({
         className={cn(
           'pl-1.5 text-xs font-semibold text-foreground leading-tight',
           allowWrap ? 'line-clamp-2' : 'truncate tabular-nums',
+          label === 'Additional Requirements' && 'line-clamp-3 font-medium',
         )}
       >
         {value}
@@ -444,6 +452,7 @@ export function ShowcaseProjectCard({
                   value={stat.value}
                   accentClass={theme.accentBar}
                   allowWrap
+                  className={stat.label === 'Additional Requirements' ? 'col-span-2' : undefined}
                 />
               ))}
             </dl>
