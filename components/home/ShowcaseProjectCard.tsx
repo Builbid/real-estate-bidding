@@ -28,6 +28,10 @@ import {
 } from '@/lib/project/display';
 import { DRAWING_TYPE_OPTIONS, isDrawingDesignServiceType } from '@/lib/drawingDesign';
 import {
+  getPainterWorkRequirementBlocks,
+  parsePainterDetails,
+} from '@/lib/painterDetails';
+import {
   formatShowcaseRemaining,
   getShowcaseCardAction,
   type ShowcaseProject,
@@ -131,10 +135,12 @@ function StatCell({
   label,
   value,
   accentClass,
+  allowWrap = false,
 }: {
   label: string;
   value: string;
   accentClass: string;
+  allowWrap?: boolean;
 }) {
   return (
     <div className="relative overflow-hidden rounded-lg border border-border/60 bg-muted/20 px-2 py-1.5 dark:bg-muted/10">
@@ -142,7 +148,12 @@ function StatCell({
       <p className="pl-1.5 text-[9px] font-medium uppercase tracking-wider text-muted-foreground truncate">
         {label}
       </p>
-      <p className="pl-1.5 text-xs font-semibold text-foreground tabular-nums truncate leading-tight">
+      <p
+        className={cn(
+          'pl-1.5 text-xs font-semibold text-foreground leading-tight',
+          allowWrap ? 'line-clamp-2' : 'truncate tabular-nums',
+        )}
+      >
         {value}
       </p>
     </div>
@@ -233,40 +244,46 @@ export function ShowcaseProjectCard({
   const budgetDisplay = getProjectBudgetDisplay(project);
   const finishingBadge = getFinishingBadge(project.finishing_level);
   const postedDisplay = formatProjectPostedDisplay(project.created_at);
+  const painterDetails =
+    serviceType === 'painter' ? parsePainterDetails(project.painter_details) : null;
 
-  const statCells: { label: string; value: string }[] = [
-    {
-      label: t('home.showcase.activeBids'),
-      value: String(project.bid_count),
-    },
-    {
-      label: t('home.showcase.leadingRate'),
-      value: project.lowest_rate != null ? formatRate(project.lowest_rate) : '—',
-    },
-  ];
+  const statCells: { label: string; value: string }[] = painterDetails
+    ? getPainterWorkRequirementBlocks(painterDetails)
+    : [
+        {
+          label: t('home.showcase.activeBids'),
+          value: String(project.bid_count),
+        },
+        {
+          label: t('home.showcase.leadingRate'),
+          value: project.lowest_rate != null ? formatRate(project.lowest_rate) : '—',
+        },
+      ];
 
-  if (floorAreaDisplay) {
-    statCells.push({
-      label: isFirm ? 'Floor Area' : t('home.showcase.specPlotSize'),
-      value: floorAreaDisplay,
-    });
-  } else if (!isFirm) {
-    statCells.push({
-      label: t('home.showcase.specCategory'),
-      value: TRACK_LABELS[project.track_type],
-    });
+  if (!painterDetails) {
+    if (floorAreaDisplay) {
+      statCells.push({
+        label: isFirm ? 'Floor Area' : t('home.showcase.specPlotSize'),
+        value: floorAreaDisplay,
+      });
+    } else if (!isFirm) {
+      statCells.push({
+        label: t('home.showcase.specCategory'),
+        value: TRACK_LABELS[project.track_type],
+      });
+    }
+
+    if (budgetDisplay) {
+      statCells.push({ label: 'Budget', value: budgetDisplay });
+    } else if (isFirm && floorAreaDisplay) {
+      statCells.push({
+        label: t('home.showcase.specCategory'),
+        value: getServiceBadgeLabel(serviceType),
+      });
+    }
   }
 
-  if (budgetDisplay) {
-    statCells.push({ label: 'Budget', value: budgetDisplay });
-  } else if (isFirm && floorAreaDisplay) {
-    statCells.push({
-      label: t('home.showcase.specCategory'),
-      value: getServiceBadgeLabel(serviceType),
-    });
-  }
-
-  const displayStats = statCells.slice(0, 4);
+  const displayStats = painterDetails ? statCells : statCells.slice(0, 4);
 
   let metaBlock: ReactNode = null;
   if (
@@ -288,6 +305,17 @@ export function ShowcaseProjectCard({
             </span>
           );
         })}
+      </div>
+    );
+  } else if (painterDetails && project.description?.trim()) {
+    metaBlock = (
+      <div className="min-w-0 rounded-lg border border-border/50 bg-muted/15 px-2 py-1.5">
+        <p className="text-[9px] font-medium uppercase tracking-wider text-muted-foreground">
+          Specific Details
+        </p>
+        <p className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-foreground/90">
+          {project.description.trim()}
+        </p>
       </div>
     );
   } else if (project.building_types && project.building_types.length > 0) {
@@ -406,18 +434,36 @@ export function ShowcaseProjectCard({
           </div>
         </div>
 
-        {metaBlock}
-
-        <dl className="grid grid-cols-2 gap-1.5">
-          {displayStats.map((stat) => (
-            <StatCell
-              key={stat.label}
-              label={stat.label}
-              value={stat.value}
-              accentClass={theme.accentBar}
-            />
-          ))}
-        </dl>
+        {painterDetails ? (
+          <>
+            <dl className="grid grid-cols-2 gap-1.5">
+              {displayStats.map((stat) => (
+                <StatCell
+                  key={stat.label}
+                  label={stat.label}
+                  value={stat.value}
+                  accentClass={theme.accentBar}
+                  allowWrap
+                />
+              ))}
+            </dl>
+            {metaBlock}
+          </>
+        ) : (
+          <>
+            {metaBlock}
+            <dl className="grid grid-cols-2 gap-1.5">
+              {displayStats.map((stat) => (
+                <StatCell
+                  key={stat.label}
+                  label={stat.label}
+                  value={stat.value}
+                  accentClass={theme.accentBar}
+                />
+              ))}
+            </dl>
+          </>
+        )}
 
         <div className="flex items-center justify-between gap-2 pt-0.5">
           {postedDisplay ? (

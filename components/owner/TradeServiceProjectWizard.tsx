@@ -17,6 +17,17 @@ import {
 import { hasContactInfo, hasProjectContactViolation } from '@/lib/validation/projectContactInfo';
 import { formatPincodeInput, validatePincode } from '@/lib/validation/pincode';
 import { getTradeLabel, getTradeEmoji } from '@/lib/trades';
+import {
+  PAINTER_PRIMER_OPTIONS,
+  PAINTER_START_TIME_OPTIONS,
+  formatPainterMaterials,
+  formatPainterPrimer,
+  formatPainterProjectArea,
+  formatPainterStartTime,
+  validatePainterDetailsInput,
+  type PainterPrimerRequirement,
+  type PainterStartTimeType,
+} from '@/lib/painterDetails';
 import { cn } from '@/lib/utils';
 import { createProjectAction } from '@/app/actions/createProject';
 import type { TrackType, TradeServiceType } from '@/lib/types';
@@ -39,6 +50,12 @@ interface FormState {
   pincode: string;
   bidding_minutes: string;
   track_type: TrackType | null;
+  /** Painter-only */
+  projectArea: string;
+  primerRequirement: PainterPrimerRequirement | '';
+  materialsIncludeClient: boolean | null;
+  projectStartTimeType: PainterStartTimeType | null;
+  projectStartTimeSpecificDate: string;
 }
 
 const EMPTY_FORM: FormState = {
@@ -48,6 +65,11 @@ const EMPTY_FORM: FormState = {
   pincode: '',
   bidding_minutes: String(BIDDING_MINUTES),
   track_type: null,
+  projectArea: '',
+  primerRequirement: '',
+  materialsIncludeClient: null,
+  projectStartTimeType: null,
+  projectStartTimeSpecificDate: '',
 };
 
 interface TradeServiceProjectWizardProps {
@@ -72,6 +94,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
 
   const tradeLabel = getTradeLabel(trade);
   const tradeEmoji = getTradeEmoji(trade);
+  const isPainter = trade === 'painter';
   const contactViolation = hasProjectContactViolation(form.title, form.description);
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
@@ -130,6 +153,19 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
       setStep2Error('Please select a building type to continue.');
       return;
     }
+    if (isPainter) {
+      const validated = validatePainterDetailsInput({
+        projectArea: form.projectArea,
+        primerRequirement: form.primerRequirement,
+        materialsIncludeClient: form.materialsIncludeClient,
+        projectStartTimeType: form.projectStartTimeType,
+        projectStartTimeSpecificDate: form.projectStartTimeSpecificDate,
+      });
+      if ('error' in validated) {
+        setStep2Error(validated.error);
+        return;
+      }
+    }
     setStep2Error(null);
     setStep(3);
   }
@@ -152,6 +188,23 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
       return;
     }
 
+    let painterDetails;
+    if (isPainter) {
+      const validated = validatePainterDetailsInput({
+        projectArea: form.projectArea,
+        primerRequirement: form.primerRequirement,
+        materialsIncludeClient: form.materialsIncludeClient,
+        projectStartTimeType: form.projectStartTimeType,
+        projectStartTimeSpecificDate: form.projectStartTimeSpecificDate,
+      });
+      if ('error' in validated) {
+        setError(validated.error);
+        setLoading(false);
+        return;
+      }
+      painterDetails = validated.details;
+    }
+
     const result = await createProjectAction({
       title: form.title.trim(),
       description: form.description.trim() || undefined,
@@ -161,6 +214,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
       pincode: form.pincode.trim() || undefined,
       bidding_minutes: parseInt(form.bidding_minutes, 10),
       service_type: trade,
+      ...(painterDetails ? { painter_details: painterDetails } : {}),
     });
 
     if (result.error) {
@@ -278,9 +332,13 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
 
           {step === 2 && (
             <div className="space-y-5">
-              <h2 className="text-base font-semibold text-foreground">Type of Building</h2>
+              <h2 className="text-base font-semibold text-foreground">
+                {isPainter ? 'Building Type & Work Requirements' : 'Type of Building'}
+              </h2>
               <p className="text-xs text-muted-foreground -mt-3">
-                Choose the building type so {tradeLabel.toLowerCase()}s know what they&apos;re bidding on.
+                {isPainter
+                  ? 'Tell painters the building type, area, primer, materials, and when work should start.'
+                  : `Choose the building type so ${tradeLabel.toLowerCase()}s know what they are bidding on.`}
               </p>
 
               {step2Error && (
@@ -318,6 +376,122 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                 })}
               </div>
 
+              {isPainter && (
+                <div className="space-y-4 rounded-xl border border-border/70 bg-secondary/20 p-4">
+                  <Input
+                    label="Project Area (sq.ft.)"
+                    type="number"
+                    inputMode="decimal"
+                    min={1}
+                    step="1"
+                    placeholder="e.g. 1200"
+                    value={form.projectArea}
+                    onChange={(e) => {
+                      update('projectArea', e.target.value);
+                      setStep2Error(null);
+                    }}
+                  />
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      Primer Requirement
+                    </label>
+                    <Select
+                      value={form.primerRequirement || undefined}
+                      onValueChange={(v) => {
+                        update('primerRequirement', v as PainterPrimerRequirement);
+                        setStep2Error(null);
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select primer coats" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PAINTER_PRIMER_OPTIONS.map((opt) => (
+                          <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      Materials
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {[
+                        { value: true, label: 'YES (Client provided)' },
+                        { value: false, label: 'NO (Contractor provided)' },
+                      ].map((opt) => {
+                        const selected = form.materialsIncludeClient === opt.value;
+                        return (
+                          <button
+                            key={String(opt.value)}
+                            type="button"
+                            onClick={() => {
+                              update('materialsIncludeClient', opt.value);
+                              setStep2Error(null);
+                            }}
+                            className={cn(
+                              'rounded-lg border px-3 py-2.5 text-left text-xs font-semibold transition-colors',
+                              selected
+                                ? 'border-emerald-500/70 bg-emerald-500/10 text-foreground'
+                                : 'border-border bg-card text-muted-foreground hover:border-muted-foreground/40',
+                            )}
+                          >
+                            {opt.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      Project Starting Time
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {PAINTER_START_TIME_OPTIONS.map((opt) => {
+                        const selected = form.projectStartTimeType === opt.value;
+                        return (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => {
+                              update('projectStartTimeType', opt.value);
+                              if (opt.value !== 'specific') {
+                                update('projectStartTimeSpecificDate', '');
+                              }
+                              setStep2Error(null);
+                            }}
+                            className={cn(
+                              'rounded-lg border px-3 py-2.5 text-left text-xs font-semibold transition-colors',
+                              selected
+                                ? 'border-emerald-500/70 bg-emerald-500/10 text-foreground'
+                                : 'border-border bg-card text-muted-foreground hover:border-muted-foreground/40',
+                            )}
+                          >
+                            {opt.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {form.projectStartTimeType === 'specific' && (
+                      <Input
+                        label="Specific Start Date"
+                        type="date"
+                        value={form.projectStartTimeSpecificDate}
+                        onChange={(e) => {
+                          update('projectStartTimeSpecificDate', e.target.value);
+                          setStep2Error(null);
+                        }}
+                        className="mt-2"
+                      />
+                    )}
+                  </div>
+                </div>
+              )}
+
               <div className="flex gap-3">
                 <Button variant="outline" size="lg" className="flex-1" onClick={() => setStep(1)}>
                   <ArrowLeft className="w-4 h-4" /> Back
@@ -343,6 +517,32 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                     label: 'Building Type',
                     value: BUILDING_TYPE_OPTIONS.find((o) => o.value === form.track_type)?.label,
                   },
+                  ...(isPainter && form.projectArea && form.primerRequirement && form.materialsIncludeClient != null && form.projectStartTimeType
+                    ? [
+                        {
+                          label: 'Project Area',
+                          value: formatPainterProjectArea(parseFloat(form.projectArea)),
+                        },
+                        {
+                          label: 'Primer Requirement',
+                          value: formatPainterPrimer(form.primerRequirement),
+                        },
+                        {
+                          label: 'Materials',
+                          value: formatPainterMaterials(form.materialsIncludeClient),
+                        },
+                        {
+                          label: 'Project Starting Time',
+                          value: formatPainterStartTime({
+                            projectArea: parseFloat(form.projectArea) || 0,
+                            primerRequirement: form.primerRequirement,
+                            materialsIncludeClient: form.materialsIncludeClient,
+                            projectStartTimeType: form.projectStartTimeType,
+                            projectStartTimeSpecificDate: form.projectStartTimeSpecificDate || null,
+                          }),
+                        },
+                      ]
+                    : []),
                   {
                     label: 'Bidding Window',
                     value:

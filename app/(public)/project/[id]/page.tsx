@@ -21,6 +21,10 @@ import {
 } from '@/lib/project/display';
 import { getDashboardPath, normalizeRole } from '@/lib/auth/roles';
 import { getProviderSpecialtyLabel } from '@/lib/trades';
+import {
+  getPainterWorkRequirementBlocks,
+  parsePainterDetails,
+} from '@/lib/painterDetails';
 import type { Project, ServiceType, UserRole } from '@/lib/types';
 
 interface PageProps {
@@ -206,6 +210,11 @@ export default async function ProjectDetailPage({ params }: PageProps) {
   const serviceType = getProjectServiceType(project);
   const bidder = getServiceBidderLabels(serviceType);
   const serviceLabel = getServiceCategoryLabel(serviceType);
+  const painterDetails =
+    serviceType === 'painter' ? parsePainterDetails(project.painter_details) : null;
+  const painterBlocks = painterDetails
+    ? getPainterWorkRequirementBlocks(painterDetails)
+    : null;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -246,46 +255,76 @@ export default async function ProjectDetailPage({ params }: PageProps) {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Info className="w-4 h-4 text-muted-foreground" />
-                  Engineering Specifications
+                  {painterBlocks ? 'Painter Work Requirements' : 'Engineering Specifications'}
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-5">
-                  <SpecItem icon={MapPin} label="District" value={project.district} />
-                  <SpecItem icon={MapPin} label="State" value={project.state} />
-                  <SpecItem icon={Layers} label="Track" value={TRACK_LABELS[project.track_type]} />
-                  <div className="col-span-2 sm:col-span-3">
-                    <p className="text-[10px] text-muted-foreground/80 uppercase tracking-wider mb-2">Building Types</p>
-                    <BuildingConfigSummary
-                      project={project}
-                      compact
-                      hideConstructionTypes={isFirmProject(project)}
-                      className="mb-4"
+                {painterBlocks ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-5">
+                    <SpecItem icon={MapPin} label="District" value={project.district} />
+                    <SpecItem icon={MapPin} label="State" value={project.state} />
+                    <SpecItem icon={Layers} label="Building Type" value={TRACK_LABELS[project.track_type]} />
+                    {painterBlocks.map((block) => (
+                      <SpecItem key={block.label} icon={Layers} label={block.label} value={block.value} />
+                    ))}
+                    <SpecItem
+                      icon={Calendar}
+                      label="Posted On"
+                      value={new Date(project.created_at).toLocaleDateString('en-IN', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric',
+                      })}
                     />
-                    {!isFirmProject(project) && (
-                      <>
-                        <p className="text-[10px] text-muted-foreground/80 uppercase tracking-wider mb-2">Construction Scope</p>
-                        <BuildingConfigSummary project={project} className="space-y-3" />
-                      </>
-                    )}
-                    {isFirmProject(project) && (
-                      <BuildingConfigSummary
-                        project={project}
-                        hideConstructionTypes
-                        className="space-y-3"
-                      />
+                    {project.description?.trim() && (
+                      <div className="col-span-2 sm:col-span-3">
+                        <p className="text-[10px] text-muted-foreground/80 uppercase tracking-wider mb-1">
+                          Specific Details
+                        </p>
+                        <p className="text-sm font-medium text-foreground/90 leading-relaxed">
+                          {project.description.trim()}
+                        </p>
+                      </div>
                     )}
                   </div>
-                  {project.plot_area_sqft && (
-                    <SpecItem icon={Layers} label="Plot Area" value={`${project.plot_area_sqft.toLocaleString()} sqft`} />
-                  )}
-                  <SpecItem icon={Layers} label="Total Floors" value={
-                    project.total_floors === 1 ? 'Ground Only'
-                    : project.total_floors === 2 ? 'G+1'
-                    : 'G+2'
-                  } />
-                  <SpecItem icon={Calendar} label="Posted On" value={new Date(project.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })} />
-                </div>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-5">
+                    <SpecItem icon={MapPin} label="District" value={project.district} />
+                    <SpecItem icon={MapPin} label="State" value={project.state} />
+                    <SpecItem icon={Layers} label="Track" value={TRACK_LABELS[project.track_type]} />
+                    <div className="col-span-2 sm:col-span-3">
+                      <p className="text-[10px] text-muted-foreground/80 uppercase tracking-wider mb-2">Building Types</p>
+                      <BuildingConfigSummary
+                        project={project}
+                        compact
+                        hideConstructionTypes={isFirmProject(project)}
+                        className="mb-4"
+                      />
+                      {!isFirmProject(project) && (
+                        <>
+                          <p className="text-[10px] text-muted-foreground/80 uppercase tracking-wider mb-2">Construction Scope</p>
+                          <BuildingConfigSummary project={project} className="space-y-3" />
+                        </>
+                      )}
+                      {isFirmProject(project) && (
+                        <BuildingConfigSummary
+                          project={project}
+                          hideConstructionTypes
+                          className="space-y-3"
+                        />
+                      )}
+                    </div>
+                    {project.plot_area_sqft && (
+                      <SpecItem icon={Layers} label="Plot Area" value={`${project.plot_area_sqft.toLocaleString()} sqft`} />
+                    )}
+                    <SpecItem icon={Layers} label="Total Floors" value={
+                      project.total_floors === 1 ? 'Ground Only'
+                      : project.total_floors === 2 ? 'G+1'
+                      : 'G+2'
+                    } />
+                    <SpecItem icon={Calendar} label="Posted On" value={new Date(project.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })} />
+                  </div>
+                )}
               </CardContent>
             </Card>
 

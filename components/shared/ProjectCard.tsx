@@ -17,6 +17,10 @@ import {
   getServiceHeadingClass,
   isFirmProject,
 } from '@/lib/project/display';
+import {
+  getPainterWorkRequirementBlocks,
+  parsePainterDetails,
+} from '@/lib/painterDetails';
 import { useTranslation } from '@/lib/context/LanguageProvider';
 import type { Project, ProjectStatus } from '@/lib/types';
 
@@ -51,6 +55,11 @@ export function ProjectCard({
   const finishingBadge = getFinishingBadge(project.finishing_level);
   const postedAt = formatProjectPostedAt(project.created_at);
   const compact = variant === 'compact';
+  const painterDetails =
+    serviceType === 'painter' ? parsePainterDetails(project.painter_details) : null;
+  const painterBlocks = painterDetails
+    ? getPainterWorkRequirementBlocks(painterDetails)
+    : null;
 
   return (
     <Card className={cn(
@@ -120,44 +129,74 @@ export function ProjectCard({
           'grid grid-cols-2 gap-2 sm:gap-2.5 mb-4',
           compact && 'flex-1',
         )}>
-          <div className="rounded-xl border border-border/60 bg-muted/25 px-3 py-2.5 dark:bg-muted/15">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{t('project.district')}</p>
-            <p className="text-sm font-semibold text-foreground truncate mt-0.5">{project.district}</p>
-          </div>
-          <div className="rounded-xl border border-border/60 bg-muted/25 px-3 py-2.5 dark:bg-muted/15">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{t('project.totalBids')}</p>
-            <p className="text-sm font-semibold text-foreground mt-0.5">{bidCount}</p>
-          </div>
-          {floorArea && (
-            <div className="rounded-xl border border-border/60 bg-muted/25 px-3 py-2.5 dark:bg-muted/15">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                {isFirm ? 'Floor Area' : t('project.plotArea')}
-              </p>
-              <p className="text-sm font-semibold text-foreground truncate mt-0.5">{floorArea}</p>
-            </div>
-          )}
-          {budgetDisplay && (
-            <div className="rounded-xl border border-border/60 bg-muted/25 px-3 py-2.5 dark:bg-muted/15">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Budget</p>
-              <p className="text-sm font-semibold text-foreground truncate mt-0.5">{budgetDisplay}</p>
-            </div>
-          )}
-          {!compact && (
-            <div className="col-span-2 rounded-xl border border-border/60 bg-muted/25 px-3 py-2.5 dark:bg-muted/15">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{t('project.configuration')}</p>
-              <BuildingConfigSummary
-                project={project}
-                compact
-                hideConstructionTypes={isFirm}
-                className="text-sm font-medium text-foreground/90 leading-snug mt-0.5"
-              />
-            </div>
-          )}
-          {compact && !isFirm && (
-            <div className="rounded-xl border border-border/60 bg-muted/25 px-3 py-2.5 dark:bg-muted/15">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{t('project.configuration')}</p>
-              <p className="text-sm font-semibold text-foreground truncate mt-0.5">{trackLabel}</p>
-            </div>
+          {painterBlocks ? (
+            <>
+              <div className="rounded-xl border border-border/60 bg-muted/25 px-3 py-2.5 dark:bg-muted/15">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{t('project.district')}</p>
+                <p className="text-sm font-semibold text-foreground truncate mt-0.5">{project.district}</p>
+              </div>
+              {painterBlocks.map((block) => (
+                <div
+                  key={block.label}
+                  className="rounded-xl border border-border/60 bg-muted/25 px-3 py-2.5 dark:bg-muted/15"
+                >
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{block.label}</p>
+                  <p className="mt-0.5 text-sm font-semibold leading-snug text-foreground line-clamp-2">
+                    {block.value}
+                  </p>
+                </div>
+              ))}
+              {project.description?.trim() && (
+                <div className="col-span-2 rounded-xl border border-border/60 bg-muted/25 px-3 py-2.5 dark:bg-muted/15">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Specific Details</p>
+                  <p className="mt-0.5 text-sm font-medium leading-snug text-foreground/90 line-clamp-3">
+                    {project.description.trim()}
+                  </p>
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <div className="rounded-xl border border-border/60 bg-muted/25 px-3 py-2.5 dark:bg-muted/15">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{t('project.district')}</p>
+                <p className="text-sm font-semibold text-foreground truncate mt-0.5">{project.district}</p>
+              </div>
+              <div className="rounded-xl border border-border/60 bg-muted/25 px-3 py-2.5 dark:bg-muted/15">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{t('project.totalBids')}</p>
+                <p className="text-sm font-semibold text-foreground mt-0.5">{bidCount}</p>
+              </div>
+              {floorArea && (
+                <div className="rounded-xl border border-border/60 bg-muted/25 px-3 py-2.5 dark:bg-muted/15">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                    {isFirm ? 'Floor Area' : t('project.plotArea')}
+                  </p>
+                  <p className="text-sm font-semibold text-foreground truncate mt-0.5">{floorArea}</p>
+                </div>
+              )}
+              {budgetDisplay && (
+                <div className="rounded-xl border border-border/60 bg-muted/25 px-3 py-2.5 dark:bg-muted/15">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Budget</p>
+                  <p className="text-sm font-semibold text-foreground truncate mt-0.5">{budgetDisplay}</p>
+                </div>
+              )}
+              {!compact && (
+                <div className="col-span-2 rounded-xl border border-border/60 bg-muted/25 px-3 py-2.5 dark:bg-muted/15">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{t('project.configuration')}</p>
+                  <BuildingConfigSummary
+                    project={project}
+                    compact
+                    hideConstructionTypes={isFirm}
+                    className="text-sm font-medium text-foreground/90 leading-snug mt-0.5"
+                  />
+                </div>
+              )}
+              {compact && !isFirm && (
+                <div className="rounded-xl border border-border/60 bg-muted/25 px-3 py-2.5 dark:bg-muted/15">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{t('project.configuration')}</p>
+                  <p className="text-sm font-semibold text-foreground truncate mt-0.5">{trackLabel}</p>
+                </div>
+              )}
+            </>
           )}
         </div>
 

@@ -3,6 +3,7 @@
 // ============================================================
 
 import type { BuildingType, ConstructionTypesMap } from './buildingConfig';
+import type { PainterDetails } from './painterDetails';
 
 export type UserRole = 'owner' | 'labour_contractor' | 'construction_firm' | 'admin' | 'service_provider';
 /** A trade bidder registers under the shared 'service_provider' role for one of these trades. */
@@ -196,6 +197,8 @@ export interface Project {
   drawing_url?: string | null;
   /** Drawing & Design projects — selected deliverable types. */
   drawing_types?: DrawingDesignType[] | null;
+  /** Painter projects only — area, primer, materials, flexible start time. */
+  painter_details?: PainterDetails | null;
   /** Construction firm projects only — the specific package the owner chose when awarding the contract. */
   selected_package?: PackageBidPrice | null;
   created_at: string;

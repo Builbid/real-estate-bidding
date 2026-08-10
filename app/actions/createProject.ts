@@ -16,6 +16,10 @@ import type {
 import { isDrawingDesignServiceType } from '@/lib/drawingDesign'
 import { isConstructionFirmEnabled } from '@/lib/features'
 import { isTradeServiceType } from '@/lib/trades'
+import {
+  isPainterDetails,
+  type PainterDetails,
+} from '@/lib/painterDetails'
 import { sendNewProjectAnnouncementEmails } from '@/lib/email/newProjectAnnouncement'
 
 interface CreateProjectBase {
@@ -50,6 +54,8 @@ export interface CreateFirmProjectInput extends CreateProjectBase {
 export interface CreateTradeProjectInput extends CreateProjectBase {
   service_type: TradeServiceType
   track_type: TrackType
+  /** Required when service_type === 'painter'. Ignored for other trades. */
+  painter_details?: PainterDetails
 }
 
 /** Drawing & Design — house type (Assam XOR RCC floors) + multi-select drawings. */
@@ -152,6 +158,28 @@ export async function createProjectAction(
     insertPayload.building_types = []
     insertPayload.construction_types = {}
     insertPayload.total_floors = 1
+
+    if (trade.service_type === 'painter') {
+      if (!isPainterDetails(trade.painter_details)) {
+        return { error: 'Painter work requirements are incomplete.' }
+      }
+      if (
+        trade.painter_details.projectStartTimeType === 'specific' &&
+        !trade.painter_details.projectStartTimeSpecificDate
+      ) {
+        return { error: 'Select a specific project start date.' }
+      }
+      insertPayload.painter_details = {
+        projectArea: trade.painter_details.projectArea,
+        primerRequirement: trade.painter_details.primerRequirement,
+        materialsIncludeClient: trade.painter_details.materialsIncludeClient,
+        projectStartTimeType: trade.painter_details.projectStartTimeType,
+        projectStartTimeSpecificDate:
+          trade.painter_details.projectStartTimeType === 'specific'
+            ? trade.painter_details.projectStartTimeSpecificDate
+            : null,
+      }
+    }
   } else {
     const nonTrade = input as CreateLabourProjectInput | CreateFirmProjectInput
     const constructionTypes: ConstructionTypesMap = isFirm
