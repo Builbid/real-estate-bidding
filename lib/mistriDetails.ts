@@ -87,7 +87,7 @@ export const MISTRI_FLOOR_LEVEL_OPTIONS: {
   { value: 'ground', label: 'Ground Floor' },
   { value: '1st', label: '1st Floor' },
   { value: '2nd', label: '2nd Floor' },
-  { value: 'custom', label: 'Custom Floor Count' },
+  { value: 'custom', label: '3+ Floors (Specify Exact)' },
 ];
 
 export const MISTRI_CONTRACT_TYPE_OPTIONS: {
@@ -323,7 +323,7 @@ export function formatMistriFloorLevel(details: MistriDetails): string {
     if (n != null && n > 0) {
       return n === 1 ? '1 Floor' : `${n} Floors`;
     }
-    return 'Custom Floor Count';
+    return '3+ Floors (Specify Exact)';
   }
   return optionLabel(MISTRI_FLOOR_LEVEL_OPTIONS, details.floorLevel);
 }

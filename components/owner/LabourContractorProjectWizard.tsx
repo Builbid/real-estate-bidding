@@ -440,12 +440,12 @@ export function LabourContractorProjectWizard() {
                 </div>
                 {form.floorLevel === 'custom' && (
                   <Input
-                    label="Enter Total Number of Floors"
+                    label="Enter exact number of floors"
                     type="number"
                     inputMode="numeric"
                     min={3}
                     max={50}
-                    placeholder="e.g. 4, 5, 6"
+                    placeholder="Enter exact number of floors"
                     value={form.customFloorCount}
                     onChange={(e) => {
                       update('customFloorCount', e.target.value.replace(/[^\d]/g, ''));
