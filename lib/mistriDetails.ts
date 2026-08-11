@@ -12,18 +12,22 @@ import {
 export type MistriCivilWorkType =
   | 'brickwork_aac'
   | 'plastering'
-  | 'rcc_column_beam_slab'
-  | 'foundation_pcc'
+  | 'foundation_concrete_structure'
   | 'tile_marble_flooring'
   | 'boundary_wall_fencing'
   | 'complete_full_structure';
+
+/** Legacy civil work values that may exist on older mistri_details rows. */
+type LegacyMistriCivilWorkType = 'rcc_column_beam_slab' | 'foundation_pcc';
 
 export type MistriFloorLevel = 'ground' | '1st' | '2nd' | '3rd_above';
 
 export type MistriContractType =
   | 'labor_only'
-  | 'labor_centering'
-  | 'full_material_labor';
+  | 'labor_centering';
+
+/** Legacy contract type no longer collected on the form. */
+type LegacyMistriContractType = 'full_material_labor';
 
 export type MistriStartTimeType = '1week' | '2week' | '1month' | 'specific';
 
@@ -46,8 +50,10 @@ export const MISTRI_CIVIL_WORK_OPTIONS: {
 }[] = [
   { value: 'brickwork_aac', label: 'Brickwork / AAC Block Masonry' },
   { value: 'plastering', label: 'Plastering Work (Internal / External)' },
-  { value: 'rcc_column_beam_slab', label: 'RCC Column, Beam & Slab Casting' },
-  { value: 'foundation_pcc', label: 'Foundation / PCC Work' },
+  {
+    value: 'foundation_concrete_structure',
+    label: 'Foundation & Concrete Structure (PCC / RCC Column, Beam & Slab)',
+  },
   { value: 'tile_marble_flooring', label: 'Tile / Marble / Flooring Laying' },
   { value: 'boundary_wall_fencing', label: 'Boundary Wall / Fencing Work' },
   { value: 'complete_full_structure', label: 'Complete Full Structure (Civil Frame)' },
@@ -69,8 +75,16 @@ export const MISTRI_CONTRACT_TYPE_OPTIONS: {
 }[] = [
   { value: 'labor_only', label: 'Labor Rate Only' },
   { value: 'labor_centering', label: 'Labor + Centering/Shuttering' },
-  { value: 'full_material_labor', label: 'Full Material + Labor' },
 ];
+
+const LEGACY_CIVIL_WORK_MAP: Record<LegacyMistriCivilWorkType, MistriCivilWorkType> = {
+  rcc_column_beam_slab: 'foundation_concrete_structure',
+  foundation_pcc: 'foundation_concrete_structure',
+};
+
+const LEGACY_CONTRACT_MAP: Record<LegacyMistriContractType, MistriContractType> = {
+  full_material_labor: 'labor_centering',
+};
 
 export const MISTRI_START_TIME_OPTIONS: {
   value: MistriStartTimeType;
@@ -99,6 +113,34 @@ function optionLabel<T extends string>(
   return options.find((o) => o.value === value)?.label ?? value;
 }
 
+function normalizeCivilWorkType(value: unknown): MistriCivilWorkType | null {
+  if (typeof value !== 'string') return null;
+  if (CIVIL_WORK_SET.has(value)) return value as MistriCivilWorkType;
+  if (value in LEGACY_CIVIL_WORK_MAP) {
+    return LEGACY_CIVIL_WORK_MAP[value as LegacyMistriCivilWorkType];
+  }
+  return null;
+}
+
+function normalizeContractType(value: unknown): MistriContractType | null {
+  if (typeof value !== 'string') return null;
+  if (CONTRACT_SET.has(value)) return value as MistriContractType;
+  if (value in LEGACY_CONTRACT_MAP) {
+    return LEGACY_CONTRACT_MAP[value as LegacyMistriContractType];
+  }
+  return null;
+}
+
+function normalizeCivilWorkTypes(raw: unknown): MistriCivilWorkType[] {
+  if (!Array.isArray(raw)) return [];
+  const normalized: MistriCivilWorkType[] = [];
+  for (const item of raw) {
+    const next = normalizeCivilWorkType(item);
+    if (next && !normalized.includes(next)) normalized.push(next);
+  }
+  return normalized;
+}
+
 /** Parse approximate area from free-text or number (e.g. "Approx. 1200 Sq. Ft."). */
 export function parseApproximateAreaSqft(input: string | number): number | null {
   if (typeof input === 'number') {
@@ -113,24 +155,21 @@ export function parseApproximateAreaSqft(input: string | number): number | null 
 export function isMistriDetails(value: unknown): value is MistriDetails {
   if (!value || typeof value !== 'object') return false;
   const v = value as Record<string, unknown>;
-  const typesOk =
-    Array.isArray(v.civilWorkTypes) &&
-    v.civilWorkTypes.length > 0 &&
-    v.civilWorkTypes.every((t) => typeof t === 'string' && CIVIL_WORK_SET.has(t));
+  const civilWorkTypes = normalizeCivilWorkTypes(v.civilWorkTypes);
+  const contractType = normalizeContractType(v.contractType);
   const additionalOk =
     v.additionalRequirements === undefined ||
     v.additionalRequirements === null ||
     typeof v.additionalRequirements === 'string';
 
   return (
-    typesOk &&
+    civilWorkTypes.length > 0 &&
     typeof v.approximateAreaSqft === 'number' &&
     Number.isFinite(v.approximateAreaSqft) &&
     v.approximateAreaSqft > 0 &&
     typeof v.floorLevel === 'string' &&
     FLOOR_SET.has(v.floorLevel) &&
-    typeof v.contractType === 'string' &&
-    CONTRACT_SET.has(v.contractType) &&
+    contractType != null &&
     typeof v.projectStartTimeType === 'string' &&
     START_TIME_TYPES.has(v.projectStartTimeType as MistriStartTimeType) &&
     additionalOk
@@ -138,7 +177,13 @@ export function isMistriDetails(value: unknown): value is MistriDetails {
 }
 
 export function parseMistriDetails(value: unknown): MistriDetails | null {
+  if (!value || typeof value !== 'object') return null;
   if (!isMistriDetails(value)) return null;
+
+  const v = value as Record<string, unknown>;
+  const civilWorkTypes = normalizeCivilWorkTypes(v.civilWorkTypes);
+  const contractType = normalizeContractType(v.contractType);
+  if (civilWorkTypes.length === 0 || !contractType) return null;
 
   const specific =
     value.projectStartTimeType === 'specific' &&
@@ -152,17 +197,11 @@ export function parseMistriDetails(value: unknown): MistriDetails | null {
       ? value.additionalRequirements.trim()
       : null;
 
-  const civilWorkTypes = value.civilWorkTypes.filter(
-    (t, i, arr) => CIVIL_WORK_SET.has(t) && arr.indexOf(t) === i,
-  ) as MistriCivilWorkType[];
-
-  if (civilWorkTypes.length === 0) return null;
-
   return {
     civilWorkTypes,
     approximateAreaSqft: value.approximateAreaSqft,
     floorLevel: value.floorLevel,
-    contractType: value.contractType,
+    contractType,
     projectStartTimeType: value.projectStartTimeType,
     projectStartTimeSpecificDate: specific,
     additionalRequirements,
@@ -250,9 +289,7 @@ export function constructionTypesFromMistriDetails(
   details: MistriDetails,
 ): ConstructionTypesMap {
   const buildingTypes = buildingTypesFromMistriFloor(details.floorLevel);
-  const isFull =
-    details.civilWorkTypes.includes('complete_full_structure') ||
-    details.contractType === 'full_material_labor';
+  const isFull = details.civilWorkTypes.includes('complete_full_structure');
 
   const map: ConstructionTypesMap = {};
   for (const bt of buildingTypes) {

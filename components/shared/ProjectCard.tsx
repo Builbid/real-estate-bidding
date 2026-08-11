@@ -161,10 +161,12 @@ export function ProjectCard({
                 >
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{block.label}</p>
                   <p className={cn(
-                    'mt-0.5 text-sm font-semibold leading-snug text-foreground',
+                    'mt-0.5 text-sm font-semibold leading-snug text-foreground break-words',
                     (block.label === 'Additional Requirements' || block.label === 'Additional Notes')
                       ? 'line-clamp-3 font-medium'
-                      : 'line-clamp-2',
+                      : block.label === 'Civil Work Type'
+                        ? 'line-clamp-3'
+                        : 'line-clamp-2',
                   )}>
                     {block.value}
                   </p>

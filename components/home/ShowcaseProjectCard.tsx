@@ -174,9 +174,11 @@ function StatCell({
       </p>
       <p
         className={cn(
-          'pl-1.5 text-xs font-semibold text-foreground leading-tight',
+          'pl-1.5 text-xs font-semibold text-foreground leading-tight break-words',
           allowWrap ? 'line-clamp-2' : 'truncate tabular-nums',
-          label === 'Additional Requirements' && 'line-clamp-3 font-medium',
+          (label === 'Additional Requirements' || label === 'Additional Notes') &&
+            'line-clamp-3 font-medium',
+          label === 'Civil Work Type' && 'line-clamp-3',
         )}
       >
         {value}
