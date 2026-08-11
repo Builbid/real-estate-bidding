@@ -1,10 +1,10 @@
 'use client';
 
-import { ASSAM_DISTRICTS, ASSAM_OTHER } from '@/lib/assamDistricts';
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select';
+  AssamDistrictAutocomplete,
+} from '@/components/shared/AssamDistrictAutocomplete';
 import { Input } from '@/components/ui/input';
+import { ASSAM_OTHER } from '@/lib/assamDistricts';
 
 interface AssamDistrictSelectProps {
   value: string;
@@ -13,32 +13,25 @@ interface AssamDistrictSelectProps {
   onOtherChange: (value: string) => void;
 }
 
+/**
+ * Legacy wrapper kept for callers that still use Other-specify flow.
+ * New wizards should use AssamDistrictAutocomplete directly.
+ */
 export function AssamDistrictSelect({
   value,
   otherValue,
   onChange,
   onOtherChange,
 }: AssamDistrictSelectProps) {
-  const showOther = value === ASSAM_OTHER;
+  const showOther = value === ASSAM_OTHER || value.startsWith('Other:');
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-col gap-1.5">
-        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-          City / District *
-        </label>
-        <Select value={value || undefined} onValueChange={onChange}>
-          <SelectTrigger>
-            <SelectValue placeholder="Search city in Assam..." />
-          </SelectTrigger>
-          <SelectContent>
-            {ASSAM_DISTRICTS.map((d) => (
-              <SelectItem key={d} value={d}>{d}</SelectItem>
-            ))}
-            <SelectItem value={ASSAM_OTHER}>{ASSAM_OTHER}</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      <AssamDistrictAutocomplete
+        value={showOther ? '' : value}
+        onChange={onChange}
+        placeholder="Select district"
+      />
       {showOther && (
         <Input
           label="Specify district"

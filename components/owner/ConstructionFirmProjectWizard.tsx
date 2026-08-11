@@ -15,9 +15,9 @@ import { BuildingTypeSelector } from '@/components/construction/BuildingTypeSele
 import { BuildingConfigSummary } from '@/components/construction/BuildingConfigSummary';
 import { CountdownTicker } from '@/components/shared/CountdownTicker';
 import {
-  IndianCityAutocomplete,
-  parseIndianDistrictSelection,
-} from '@/components/shared/IndianCityAutocomplete';
+  AssamDistrictAutocomplete,
+  parseAssamDistrictSelection,
+} from '@/components/shared/AssamDistrictAutocomplete';
 import type { BuildingType } from '@/lib/buildingConfig';
 import { generateProjectTitle } from '@/lib/generateProjectTitle';
 import {
@@ -87,7 +87,7 @@ export function ConstructionFirmProjectWizard() {
 
   const budgetPreview = formatBudgetRange(null, parseIndianAmount(form.budget_max));
 
-  const districtSelection = parseIndianDistrictSelection(form.location);
+  const districtSelection = parseAssamDistrictSelection(form.location);
   const previewTitle = generateProjectTitle({
     serviceType: 'construction_firm',
     district: districtSelection?.district ?? form.location,
@@ -97,8 +97,8 @@ export function ConstructionFirmProjectWizard() {
   function tryGoStep2() {
     const errors: typeof step1Errors = {};
 
-    if (!parseIndianDistrictSelection(form.location)) {
-      errors.location = 'Please select a district from the suggestions list.';
+    if (!parseAssamDistrictSelection(form.location)) {
+      errors.location = 'Please select a district from the list.';
     }
 
     const pincodeError = validatePincode(form.pincode);
@@ -128,7 +128,7 @@ export function ConstructionFirmProjectWizard() {
 
   async function handleSubmit() {
     if (!profile) return;
-    const districtSelection = parseIndianDistrictSelection(form.location);
+    const districtSelection = parseAssamDistrictSelection(form.location);
     if (!districtSelection) return;
 
     setLoading(true);
@@ -231,7 +231,7 @@ export function ConstructionFirmProjectWizard() {
             <div className="space-y-5">
               <h2 className="text-base font-semibold text-foreground">Project Information</h2>
 
-              <IndianCityAutocomplete
+              <AssamDistrictAutocomplete
                 value={form.location}
                 onChange={(v) => update('location', v)}
                 error={step1ValidationAttempted ? step1Errors.location : undefined}

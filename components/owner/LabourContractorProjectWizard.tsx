@@ -11,9 +11,9 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select';
 import {
-  IndianCityAutocomplete,
-  parseIndianDistrictSelection,
-} from '@/components/shared/IndianCityAutocomplete';
+  AssamDistrictAutocomplete,
+  parseAssamDistrictSelection,
+} from '@/components/shared/AssamDistrictAutocomplete';
 import { generateProjectTitle } from '@/lib/generateProjectTitle';
 import { hasContactInfo } from '@/lib/validation/projectContactInfo';
 import { formatPincodeInput, validatePincode } from '@/lib/validation/pincode';
@@ -89,7 +89,7 @@ export function LabourContractorProjectWizard() {
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [submittedTitle, setSubmittedTitle] = useState('');
 
-  const districtSelection = parseIndianDistrictSelection(form.location);
+  const districtSelection = parseAssamDistrictSelection(form.location);
   const previewTitle = generateProjectTitle({
     serviceType: 'labour_contractor',
     district: districtSelection?.district ?? form.location,
@@ -143,8 +143,8 @@ export function LabourContractorProjectWizard() {
   function tryGoStep2() {
     const errors: typeof step1Errors = {};
 
-    if (!parseIndianDistrictSelection(form.location)) {
-      errors.location = 'Please select a district from the suggestions list.';
+    if (!parseAssamDistrictSelection(form.location)) {
+      errors.location = 'Please select a district from the list.';
     }
 
     const pincodeError = validatePincode(form.pincode);
@@ -178,9 +178,9 @@ export function LabourContractorProjectWizard() {
     setLoading(true);
     setError(null);
 
-    const districtSelection = parseIndianDistrictSelection(form.location);
+    const districtSelection = parseAssamDistrictSelection(form.location);
     if (!districtSelection) {
-      setError('Please select a district from the suggestions list.');
+      setError('Please select a district from the list.');
       setLoading(false);
       return;
     }
@@ -287,7 +287,7 @@ export function LabourContractorProjectWizard() {
             <div className="space-y-5">
               <h2 className="text-base font-semibold text-foreground">Project Information</h2>
 
-              <IndianCityAutocomplete
+              <AssamDistrictAutocomplete
                 value={form.location}
                 onChange={(v) => update('location', v)}
                 error={step1ValidationAttempted ? step1Errors.location : undefined}
