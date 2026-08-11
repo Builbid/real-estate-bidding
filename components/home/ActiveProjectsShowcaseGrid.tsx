@@ -153,13 +153,13 @@ export function ActiveProjectsShowcaseGrid({
 
       <div
         className={cn(
-          'mb-6 rounded-2xl border p-4 sm:p-5',
+          'rounded-2xl border p-4 sm:p-5',
           heroOverlay
             ? 'border-white/15 bg-white/5 backdrop-blur-sm'
             : 'border-border/70 bg-muted/20 dark:bg-muted/10',
         )}
       >
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by service type">
             {FILTER_OPTIONS.map(({ id, label }) => (
               <button
@@ -187,53 +187,53 @@ export function ActiveProjectsShowcaseGrid({
             />
           </div>
         </div>
-      </div>
 
-      {filteredProjects.length > 0 ? (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-3 xl:grid-cols-3 xl:gap-4">
-          {filteredProjects.map((project) => (
-            <ShowcaseProjectCard
-              key={project.id}
-              project={project}
-              role={role}
-              onExpire={handleExpire}
-            />
-          ))}
-        </div>
-      ) : (
-        <div className="rounded-2xl border border-dashed border-border bg-card/40 px-6 py-14 text-center sm:py-16">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-emerald-500/20 bg-emerald-500/10">
-            <Sparkles className="h-6 w-6 text-emerald-500" />
+        {filteredProjects.length > 0 ? (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-3 xl:grid-cols-3 xl:gap-4">
+            {filteredProjects.map((project) => (
+              <ShowcaseProjectCard
+                key={project.id}
+                project={project}
+                role={role}
+                onExpire={handleExpire}
+              />
+            ))}
           </div>
-          <h3 className="mb-2 text-lg font-semibold text-foreground">
-            {hasActiveSearch || serviceFilter !== 'all'
-              ? 'No matching projects'
-              : t('home.showcase.emptyTitle')}
-          </h3>
-          <p className="mx-auto mb-6 max-w-md text-sm text-muted-foreground">
-            {hasActiveSearch || serviceFilter !== 'all'
-              ? 'Try a different category (e.g. Mistri, Firm, Painter), location, or project name.'
-              : t('home.showcase.emptyDesc')}
-          </p>
-          {!isAuthenticated && !hasActiveSearch && serviceFilter === 'all' && (
-            <Button asChild>
-              <Link href="/register?role=owner">{t('home.hero.startPosting')}</Link>
-            </Button>
-          )}
-        </div>
-      )}
+        ) : (
+          <div className="rounded-2xl border border-dashed border-border bg-card/40 px-6 py-14 text-center sm:py-16">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-emerald-500/20 bg-emerald-500/10">
+              <Sparkles className="h-6 w-6 text-emerald-500" />
+            </div>
+            <h3 className="mb-2 text-lg font-semibold text-foreground">
+              {hasActiveSearch || serviceFilter !== 'all'
+                ? 'No matching projects'
+                : t('home.showcase.emptyTitle')}
+            </h3>
+            <p className="mx-auto mb-6 max-w-md text-sm text-muted-foreground">
+              {hasActiveSearch || serviceFilter !== 'all'
+                ? 'Try a different category (e.g. Mistri, Firm, Painter), location, or project name.'
+                : t('home.showcase.emptyDesc')}
+            </p>
+            {!isAuthenticated && !hasActiveSearch && serviceFilter === 'all' && (
+              <Button asChild>
+                <Link href="/register?role=owner">{t('home.hero.startPosting')}</Link>
+              </Button>
+            )}
+          </div>
+        )}
 
-      <div className="mt-8 mb-4 flex w-full justify-center">
-        <Link
-          href="/projects"
-          className={cn(
-            'inline-flex items-center gap-1.5 px-6 py-2.5 rounded-lg border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 transition-all font-medium',
-            heroOverlay && 'border-emerald-300/40 text-emerald-100 hover:bg-emerald-400/15',
-          )}
-        >
-          {t('home.auctions.viewAllProjects')}
-          <ArrowRight className="h-4 w-4" aria-hidden />
-        </Link>
+        <div className="flex w-full items-center justify-center pt-6 pb-2">
+          <Link
+            href="/projects"
+            className={cn(
+              'inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/30 px-6 py-2 text-sm font-medium text-emerald-400 transition-all hover:bg-emerald-500/10',
+              heroOverlay && 'border-emerald-300/40 text-emerald-100 hover:bg-emerald-400/15',
+            )}
+          >
+            {t('home.auctions.viewAllProjects')}
+            <ArrowRight className="h-4 w-4" aria-hidden />
+          </Link>
+        </div>
       </div>
     </div>
   );
