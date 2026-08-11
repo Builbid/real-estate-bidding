@@ -25,6 +25,10 @@ import {
   getPainterWorkRequirementBlocks,
   parsePainterDetails,
 } from '@/lib/painterDetails';
+import {
+  getMistriWorkRequirementBlocks,
+  parseMistriDetails,
+} from '@/lib/mistriDetails';
 import type { Project, ServiceType, UserRole } from '@/lib/types';
 
 interface PageProps {
@@ -215,6 +219,17 @@ export default async function ProjectDetailPage({ params }: PageProps) {
   const painterBlocks = painterDetails
     ? getPainterWorkRequirementBlocks(painterDetails)
     : null;
+  const mistriDetails =
+    serviceType === 'labour_contractor' ? parseMistriDetails(project.mistri_details) : null;
+  const mistriBlocks = mistriDetails
+    ? getMistriWorkRequirementBlocks(mistriDetails)
+    : null;
+  const requirementBlocks = painterBlocks ?? mistriBlocks;
+  const requirementsTitle = painterBlocks
+    ? 'Painter Work Requirements'
+    : mistriBlocks
+      ? 'Mistri Work Requirements'
+      : 'Engineering Specifications';
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -255,19 +270,25 @@ export default async function ProjectDetailPage({ params }: PageProps) {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Info className="w-4 h-4 text-muted-foreground" />
-                  {painterBlocks ? 'Painter Work Requirements' : 'Engineering Specifications'}
+                  {requirementsTitle}
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {painterBlocks ? (
+                {requirementBlocks ? (
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-5">
                     <SpecItem icon={MapPin} label="District" value={project.district} />
                     <SpecItem icon={MapPin} label="State" value={project.state} />
                     <SpecItem icon={Layers} label="Building Type" value={TRACK_LABELS[project.track_type]} />
-                    {painterBlocks.map((block) => (
+                    {requirementBlocks.map((block) => (
                       <div
                         key={block.label}
-                        className={block.label === 'Additional Requirements' ? 'col-span-2 sm:col-span-3' : undefined}
+                        className={
+                          block.label === 'Additional Requirements' ||
+                          block.label === 'Additional Notes' ||
+                          block.label === 'Civil Work Type'
+                            ? 'col-span-2 sm:col-span-3'
+                            : undefined
+                        }
                       >
                         <SpecItem icon={Layers} label={block.label} value={block.value} />
                       </div>

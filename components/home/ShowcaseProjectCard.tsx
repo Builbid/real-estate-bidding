@@ -34,6 +34,10 @@ import {
   parsePainterDetails,
 } from '@/lib/painterDetails';
 import {
+  getMistriWorkRequirementBlocks,
+  parseMistriDetails,
+} from '@/lib/mistriDetails';
+import {
   formatShowcaseRemaining,
   getShowcaseCardAction,
   type ShowcaseProject,
@@ -267,9 +271,16 @@ export function ShowcaseProjectCard({
   const postedDisplay = formatProjectPostedDisplay(project.created_at);
   const painterDetails =
     serviceType === 'painter' ? parsePainterDetails(project.painter_details) : null;
-
-  const statCells: { label: string; value: string }[] = painterDetails
+  const mistriDetails =
+    serviceType === 'labour_contractor' ? parseMistriDetails(project.mistri_details) : null;
+  const requirementBlocks = painterDetails
     ? getPainterWorkRequirementBlocks(painterDetails)
+    : mistriDetails
+      ? getMistriWorkRequirementBlocks(mistriDetails)
+      : null;
+
+  const statCells: { label: string; value: string }[] = requirementBlocks
+    ? requirementBlocks
     : [
         {
           label: t('home.showcase.activeBids'),
@@ -281,7 +292,7 @@ export function ShowcaseProjectCard({
         },
       ];
 
-  if (!painterDetails) {
+  if (!requirementBlocks) {
     if (floorAreaDisplay) {
       statCells.push({
         label: isFirm ? 'Floor Area' : t('home.showcase.specPlotSize'),
@@ -304,7 +315,7 @@ export function ShowcaseProjectCard({
     }
   }
 
-  const displayStats = painterDetails ? statCells : statCells.slice(0, 4);
+  const displayStats = requirementBlocks ? statCells : statCells.slice(0, 4);
 
   let metaBlock: ReactNode = null;
   if (
@@ -328,7 +339,7 @@ export function ShowcaseProjectCard({
         })}
       </div>
     );
-  } else if (painterDetails && project.description?.trim()) {
+  } else if (requirementBlocks && project.description?.trim()) {
     metaBlock = (
       <div className="min-w-0 rounded-lg border border-border/50 bg-muted/15 px-2 py-1.5">
         <p className="text-[9px] font-medium uppercase tracking-wider text-muted-foreground">
@@ -339,7 +350,7 @@ export function ShowcaseProjectCard({
         </p>
       </div>
     );
-  } else if (project.building_types && project.building_types.length > 0) {
+  } else if (!mistriDetails && project.building_types && project.building_types.length > 0) {
     metaBlock = (
       <div className="min-w-0">
         <BuildingConfigSummary
@@ -455,7 +466,7 @@ export function ShowcaseProjectCard({
           </div>
         </div>
 
-        {painterDetails ? (
+        {requirementBlocks ? (
           <>
             <dl className="grid grid-cols-2 gap-1.5">
               {displayStats.map((stat) => (
@@ -465,7 +476,13 @@ export function ShowcaseProjectCard({
                   value={stat.value}
                   accentClass={theme.accentBar}
                   allowWrap
-                  className={stat.label === 'Additional Requirements' ? 'col-span-2' : undefined}
+                  className={
+                    stat.label === 'Additional Requirements' ||
+                    stat.label === 'Additional Notes' ||
+                    stat.label === 'Civil Work Type'
+                      ? 'col-span-2'
+                      : undefined
+                  }
                 />
               ))}
             </dl>

@@ -20,6 +20,12 @@ import {
   isPainterDetails,
   type PainterDetails,
 } from '@/lib/painterDetails'
+import {
+  buildingTypesFromMistriFloor,
+  constructionTypesFromMistriDetails,
+  isMistriDetails,
+  type MistriDetails,
+} from '@/lib/mistriDetails'
 import { sendNewProjectAnnouncementEmails } from '@/lib/email/newProjectAnnouncement'
 
 interface CreateProjectBase {
@@ -34,8 +40,11 @@ interface CreateProjectBase {
 
 export interface CreateLabourProjectInput extends CreateProjectBase {
   service_type?: 'labour_contractor'
-  building_types: BuildingType[]
-  construction_types: ConstructionTypesMap
+  /** Legacy floor/scope — derived from mistri_details when omitted. */
+  building_types?: BuildingType[]
+  construction_types?: ConstructionTypesMap
+  /** Preferred: comprehensive civil work requirements for Mistri projects. */
+  mistri_details?: MistriDetails
   plot_area_sqft?: number | null
 }
 
@@ -186,22 +195,21 @@ export async function createProjectAction(
       }
     }
   } else {
-    const nonTrade = input as CreateLabourProjectInput | CreateFirmProjectInput
-    const constructionTypes: ConstructionTypesMap = isFirm
-      ? (input as CreateFirmProjectInput).construction_types ??
-        buildFirmConstructionTypes(nonTrade.building_types)
-      : (input as CreateLabourProjectInput).construction_types
-
-    const legacy = deriveLegacyProjectFields(nonTrade.building_types, constructionTypes)
-
-    insertPayload.track_type = legacy.track_type
-    insertPayload.sub_configuration = legacy.sub_configuration
-    insertPayload.building_types = nonTrade.building_types
-    insertPayload.construction_types = constructionTypes
-    insertPayload.total_floors = legacy.total_floors
-
     if (isFirm) {
       const firm = input as CreateFirmProjectInput
+      const buildingTypes = Array.isArray(firm.building_types) ? firm.building_types : []
+      if (buildingTypes.length === 0) {
+        return { error: 'Select at least one building type.' }
+      }
+      const constructionTypes: ConstructionTypesMap =
+        firm.construction_types ?? buildFirmConstructionTypes(buildingTypes)
+      const legacy = deriveLegacyProjectFields(buildingTypes, constructionTypes)
+
+      insertPayload.track_type = legacy.track_type
+      insertPayload.sub_configuration = legacy.sub_configuration
+      insertPayload.building_types = buildingTypes
+      insertPayload.construction_types = constructionTypes
+      insertPayload.total_floors = legacy.total_floors
       insertPayload.floor_area_sqft = firm.floor_area_sqft ?? null
       insertPayload.finishing_level = firm.finishing_level ?? null
       insertPayload.budget_range_min = firm.budget_range_min ?? null
@@ -209,7 +217,53 @@ export async function createProjectAction(
       insertPayload.drawing_url = firm.drawing_url ?? null
     } else {
       const labour = input as CreateLabourProjectInput
-      if (labour.plot_area_sqft != null) {
+      let buildingTypes = Array.isArray(labour.building_types) ? labour.building_types : []
+      let constructionTypes: ConstructionTypesMap = labour.construction_types ?? {}
+
+      if (labour.mistri_details) {
+        if (!isMistriDetails(labour.mistri_details)) {
+          return { error: 'Mistri work requirements are incomplete.' }
+        }
+        if (
+          labour.mistri_details.projectStartTimeType === 'specific' &&
+          !labour.mistri_details.projectStartTimeSpecificDate
+        ) {
+          return { error: 'Select a specific project start date.' }
+        }
+
+        buildingTypes = buildingTypesFromMistriFloor(labour.mistri_details.floorLevel)
+        constructionTypes = constructionTypesFromMistriDetails(labour.mistri_details)
+        insertPayload.mistri_details = {
+          civilWorkTypes: labour.mistri_details.civilWorkTypes,
+          approximateAreaSqft: labour.mistri_details.approximateAreaSqft,
+          floorLevel: labour.mistri_details.floorLevel,
+          contractType: labour.mistri_details.contractType,
+          projectStartTimeType: labour.mistri_details.projectStartTimeType,
+          projectStartTimeSpecificDate:
+            labour.mistri_details.projectStartTimeType === 'specific'
+              ? labour.mistri_details.projectStartTimeSpecificDate
+              : null,
+          additionalRequirements:
+            labour.mistri_details.additionalRequirements?.trim() || null,
+        }
+        insertPayload.plot_area_sqft = labour.mistri_details.approximateAreaSqft
+      }
+
+      if (buildingTypes.length === 0) {
+        return { error: 'Select at least one type of civil work and floor level.' }
+      }
+      if (Object.keys(constructionTypes).length === 0) {
+        return { error: 'Mistri work requirements are incomplete.' }
+      }
+
+      const legacy = deriveLegacyProjectFields(buildingTypes, constructionTypes)
+      insertPayload.track_type = legacy.track_type
+      insertPayload.sub_configuration = legacy.sub_configuration
+      insertPayload.building_types = buildingTypes
+      insertPayload.construction_types = constructionTypes
+      insertPayload.total_floors = legacy.total_floors
+
+      if (labour.plot_area_sqft != null && insertPayload.plot_area_sqft == null) {
         if (!Number.isFinite(labour.plot_area_sqft) || labour.plot_area_sqft <= 0) {
           return { error: 'Plot area must be a positive number when provided.' }
         }

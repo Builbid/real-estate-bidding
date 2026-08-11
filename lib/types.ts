@@ -3,6 +3,7 @@
 // ============================================================
 
 import type { BuildingType, ConstructionTypesMap } from './buildingConfig';
+import type { MistriDetails } from './mistriDetails';
 import type { PainterDetails } from './painterDetails';
 
 export type UserRole = 'owner' | 'labour_contractor' | 'construction_firm' | 'admin' | 'service_provider';
@@ -199,6 +200,8 @@ export interface Project {
   drawing_types?: DrawingDesignType[] | null;
   /** Painter projects only — area, primer, materials, flexible start time. */
   painter_details?: PainterDetails | null;
+  /** Mistri (labour_contractor) projects — civil work types, approx area, floor, contract, start time. */
+  mistri_details?: MistriDetails | null;
   /** Construction firm projects only — the specific package the owner chose when awarding the contract. */
   selected_package?: PackageBidPrice | null;
   created_at: string;
