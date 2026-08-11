@@ -21,9 +21,12 @@ import {
   MISTRI_CIVIL_WORK_OPTIONS,
   MISTRI_CONTRACT_TYPE_OPTIONS,
   MISTRI_FLOOR_LEVEL_OPTIONS,
+  MISTRI_FULL_STRUCTURE_NOTE,
   MISTRI_PLASTER_SIDE_OPTIONS,
   MISTRI_START_TIME_OPTIONS,
+  MISTRI_STRUCTURAL_CIVIL_WORK,
   getMistriWorkRequirementBlocks,
+  toggleMistriCivilWorkType,
   validateMistriDetailsInput,
   type MistriCivilWorkType,
   type MistriContractType,
@@ -94,6 +97,7 @@ export function LabourContractorProjectWizard() {
     serviceType: 'labour_contractor',
     district: districtSelection?.district ?? form.location,
     civilWorkTypes: form.civilWorkTypes,
+    plasterSide: form.plasterSide,
   });
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
@@ -110,17 +114,11 @@ export function LabourContractorProjectWizard() {
 
   function toggleCivilWork(value: MistriCivilWorkType) {
     setForm((f) => {
-      const has = f.civilWorkTypes.includes(value);
-      const nextTypes = has
-        ? f.civilWorkTypes.filter((t) => t !== value)
-        : [...f.civilWorkTypes, value];
+      const nextTypes = toggleMistriCivilWorkType(f.civilWorkTypes, value);
       return {
         ...f,
         civilWorkTypes: nextTypes,
-        plasterSide:
-          value === 'plastering' && has
-            ? null
-            : f.plasterSide,
+        plasterSide: nextTypes.includes('plastering') ? f.plasterSide : null,
       };
     });
     setStep2Error(null);
@@ -202,6 +200,7 @@ export function LabourContractorProjectWizard() {
       serviceType: 'labour_contractor',
       district: districtSelection.district,
       civilWorkTypes: form.civilWorkTypes,
+      plasterSide: form.plasterSide,
     });
 
     const result = await createProjectAction({
@@ -344,27 +343,42 @@ export function LabourContractorProjectWizard() {
               )}
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Type of Civil Work <span className="normal-case tracking-normal">(select all that apply)</span>
-                </label>
                 <div className="grid grid-cols-1 gap-2">
                   {MISTRI_CIVIL_WORK_OPTIONS.map((opt) => {
                     const selected = form.civilWorkTypes.includes(opt.value);
+                    const fullStructureSelected = form.civilWorkTypes.includes(
+                      'complete_full_structure',
+                    );
+                    const disabledByFullStructure =
+                      fullStructureSelected &&
+                      (MISTRI_STRUCTURAL_CIVIL_WORK as readonly string[]).includes(opt.value);
                     return (
                       <div key={opt.value} className="space-y-2">
                         <button
                           type="button"
-                          onClick={() => toggleCivilWork(opt.value)}
+                          disabled={disabledByFullStructure}
+                          aria-disabled={disabledByFullStructure}
+                          onClick={() => {
+                            if (disabledByFullStructure) return;
+                            toggleCivilWork(opt.value);
+                          }}
                           className={cn(
                             'flex w-full items-center justify-between gap-3 rounded-lg border px-3 py-2.5 text-left text-xs font-semibold transition-colors',
                             selected
                               ? 'border-emerald-500/70 bg-emerald-500/10 text-foreground'
                               : 'border-border bg-card text-muted-foreground hover:border-muted-foreground/40',
+                            disabledByFullStructure &&
+                              'cursor-not-allowed opacity-45 hover:border-border',
                           )}
                         >
                           <span>{opt.label}</span>
                           {selected && <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />}
                         </button>
+                        {opt.value === 'complete_full_structure' && (
+                          <p className="px-1 text-[11px] leading-relaxed text-muted-foreground">
+                            {MISTRI_FULL_STRUCTURE_NOTE}
+                          </p>
+                        )}
                         {opt.value === 'plastering' && selected && (
                           <div className="ml-2 grid grid-cols-1 sm:grid-cols-2 gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-2">
                             {MISTRI_PLASTER_SIDE_OPTIONS.map((side) => {

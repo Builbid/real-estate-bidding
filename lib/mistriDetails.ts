@@ -72,6 +72,70 @@ export const MISTRI_CIVIL_WORK_OPTIONS: {
   },
 ];
 
+/**
+ * Structural options covered by Complete Full Structure.
+ * Flooring remains independently selectable alongside full structure.
+ */
+export const MISTRI_STRUCTURAL_CIVIL_WORK: readonly MistriCivilWorkType[] = [
+  'brickwork_aac',
+  'plastering',
+  'foundation_concrete_structure',
+  'boundary_wall_fencing',
+] as const;
+
+export const MISTRI_FULL_STRUCTURE_NOTE =
+  '* Note: Complete Full Structure includes ground-level concrete and structural work, but excludes fine finishing work such as fine plastering, tile, or marble laying.';
+
+/** Enforce full-structure exclusivity (keeps flooring). */
+export function normalizeMistriCivilWorkSelection(
+  types: readonly MistriCivilWorkType[],
+): MistriCivilWorkType[] {
+  const unique: MistriCivilWorkType[] = [];
+  for (const t of types) {
+    if (!unique.includes(t)) unique.push(t);
+  }
+  if (!unique.includes('complete_full_structure')) return unique;
+  return unique.filter(
+    (t) => t === 'complete_full_structure' || t === 'tile_marble_flooring',
+  );
+}
+
+/**
+ * Toggle civil work with Full Structure rules:
+ * - Selecting full structure clears structural options (flooring kept).
+ * - Selecting a structural option while full structure is active clears full structure.
+ */
+export function toggleMistriCivilWorkType(
+  current: readonly MistriCivilWorkType[],
+  value: MistriCivilWorkType,
+): MistriCivilWorkType[] {
+  const has = current.includes(value);
+  const isStructural = (MISTRI_STRUCTURAL_CIVIL_WORK as readonly string[]).includes(value);
+
+  if (value === 'complete_full_structure') {
+    if (has) {
+      return current.filter((t) => t !== 'complete_full_structure');
+    }
+    const kept = current.filter(
+      (t) =>
+        t !== 'complete_full_structure' &&
+        !(MISTRI_STRUCTURAL_CIVIL_WORK as readonly string[]).includes(t),
+    );
+    return normalizeMistriCivilWorkSelection([...kept, 'complete_full_structure']);
+  }
+
+  if (isStructural) {
+    if (has) {
+      return current.filter((t) => t !== value);
+    }
+    return [...current.filter((t) => t !== 'complete_full_structure'), value];
+  }
+
+  // Flooring (and any other non-structural) — independent of full structure
+  if (has) return current.filter((t) => t !== value);
+  return [...current, value];
+}
+
 export const MISTRI_PLASTER_SIDE_OPTIONS: {
   value: MistriPlasterSide;
   label: string;
@@ -194,7 +258,7 @@ function normalizeCivilWorkTypes(raw: unknown): MistriCivilWorkType[] {
     const next = normalizeCivilWorkType(item);
     if (next && !normalized.includes(next)) normalized.push(next);
   }
-  return normalized;
+  return normalizeMistriCivilWorkSelection(normalized);
 }
 
 /** Parse approximate area from free-text or number (e.g. "Approx. 1200 Sq. Ft."). */
@@ -310,16 +374,58 @@ export function formatMistriArea(area: number): string {
 }
 
 export function formatMistriCivilWorkTypes(details: MistriDetails): string {
-  return details.civilWorkTypes
-    .map((t) => {
-      if (t === 'plastering') {
-        if (details.plasterSide === 'single') return 'Plastering Work (Single Side)';
-        if (details.plasterSide === 'both') return 'Plastering Work (Both Side)';
-        return 'Plastering Work';
-      }
-      return optionLabel(MISTRI_CIVIL_WORK_OPTIONS, t);
-    })
-    .join(', ');
+  return summarizeMistriCivilWorkScope(details.civilWorkTypes, details.plasterSide);
+}
+
+/**
+ * Combine selected civil work types into a cohesive scope phrase for titles/summaries.
+ * Brickwork + Plastering → "Brickwork with Both Side Plaster" (etc.).
+ */
+export function summarizeMistriCivilWorkScope(
+  civilWorkTypes: readonly MistriCivilWorkType[],
+  plasterSide?: MistriPlasterSide | null,
+): string {
+  const types = normalizeMistriCivilWorkSelection(civilWorkTypes);
+  if (types.length === 0) return '';
+
+  if (types.includes('complete_full_structure')) {
+    const fullLabel = 'Complete Full Structure (Foundation to Plastering)';
+    if (types.includes('tile_marble_flooring')) {
+      return `${fullLabel} with Flooring Work (Tiles / Marble / Granites Laying)`;
+    }
+    return fullLabel;
+  }
+
+  const hasBrick = types.includes('brickwork_aac');
+  const hasPlaster = types.includes('plastering');
+  const parts: string[] = [];
+
+  if (hasBrick && hasPlaster) {
+    if (plasterSide === 'single') {
+      parts.push('Brickwork with Single Side Plaster');
+    } else if (plasterSide === 'both') {
+      parts.push('Brickwork with Both Side Plaster');
+    } else {
+      parts.push('Brickwork with Plastering');
+    }
+  } else {
+    if (hasBrick) parts.push(optionLabel(MISTRI_CIVIL_WORK_OPTIONS, 'brickwork_aac'));
+    if (hasPlaster) {
+      if (plasterSide === 'single') parts.push('Plastering Work (Single Side)');
+      else if (plasterSide === 'both') parts.push('Plastering Work (Both Side)');
+      else parts.push('Plastering Work');
+    }
+  }
+
+  for (const t of types) {
+    if (t === 'brickwork_aac' || t === 'plastering') continue;
+    parts.push(optionLabel(MISTRI_CIVIL_WORK_OPTIONS, t));
+  }
+
+  if (parts.length === 0) return '';
+  if (parts.length === 1) return parts[0];
+  if (parts.length === 2) return `${parts[0]} with ${parts[1]}`;
+  return `${parts.slice(0, -1).join(', ')} & ${parts[parts.length - 1]}`;
 }
 
 export function formatMistriFloorLevel(details: MistriDetails): string {
@@ -443,8 +549,10 @@ export function validateMistriDetailsInput(input: {
   projectStartTimeSpecificDate: string;
   additionalRequirements: string;
 }): { error: string } | { details: MistriDetails } {
-  const civilWorkTypes = input.civilWorkTypes.filter(
-    (t, i, arr) => CIVIL_WORK_SET.has(t) && arr.indexOf(t) === i,
+  const civilWorkTypes = normalizeMistriCivilWorkSelection(
+    input.civilWorkTypes.filter(
+      (t, i, arr) => CIVIL_WORK_SET.has(t) && arr.indexOf(t) === i,
+    ),
   );
   if (civilWorkTypes.length === 0) {
     return { error: 'Select at least one type of civil work.' };
