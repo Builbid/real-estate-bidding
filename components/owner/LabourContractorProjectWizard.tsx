@@ -26,6 +26,7 @@ import {
   MISTRI_START_TIME_OPTIONS,
   MISTRI_STRUCTURAL_CIVIL_WORK,
   getMistriWorkRequirementBlocks,
+  mistriFloorLevelRequired,
   toggleMistriCivilWorkType,
   validateMistriDetailsInput,
   type MistriCivilWorkType,
@@ -121,6 +122,7 @@ export function LabourContractorProjectWizard() {
         plasterSide: nextTypes.includes('plastering') ? f.plasterSide : null,
       };
     });
+    // Clears floor (and any other) step-2 validation error when structural options change.
     setStep2Error(null);
   }
 
@@ -223,16 +225,12 @@ export function LabourContractorProjectWizard() {
     setLoading(false);
   }
 
-  const reviewBlocks =
-    form.civilWorkTypes.length > 0 &&
-    form.floorLevel &&
-    form.contractType &&
-    form.projectStartTimeType
-      ? (() => {
-          const validated = validateMistriDetailsInput(mistriValidationInput());
-          return 'details' in validated ? getMistriWorkRequirementBlocks(validated.details) : [];
-        })()
-      : [];
+  const reviewBlocks = (() => {
+    const validated = validateMistriDetailsInput(mistriValidationInput());
+    return 'details' in validated ? getMistriWorkRequirementBlocks(validated.details) : [];
+  })();
+
+  const floorLevelRequired = mistriFloorLevelRequired(form.civilWorkTypes);
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -425,6 +423,9 @@ export function LabourContractorProjectWizard() {
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Floor / Height Level
+                  {!floorLevelRequired && (
+                    <span className="normal-case tracking-normal"> (Optional)</span>
+                  )}
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {MISTRI_FLOOR_LEVEL_OPTIONS.map((opt) => {

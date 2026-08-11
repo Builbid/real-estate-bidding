@@ -41,7 +41,11 @@ export interface MistriDetails {
   plasterSide?: MistriPlasterSide | null;
   /** Approximate project area in sq.ft. (rough estimate is fine). */
   approximateAreaSqft: number;
-  floorLevel: MistriFloorLevel;
+  /**
+   * Required when civil work includes full structure or foundation/concrete structure.
+   * Optional for independent work (brickwork, plastering, flooring, boundary wall).
+   */
+  floorLevel: MistriFloorLevel | null;
   /** Required when floorLevel === 'custom' — exact total floors (e.g. 4, 5, 6). */
   customFloorCount?: number | null;
   contractType: MistriContractType;
@@ -82,6 +86,21 @@ export const MISTRI_STRUCTURAL_CIVIL_WORK: readonly MistriCivilWorkType[] = [
   'foundation_concrete_structure',
   'boundary_wall_fencing',
 ] as const;
+
+/** Civil work types that require a floor / height level selection. */
+export const MISTRI_FLOOR_REQUIRED_CIVIL_WORK: readonly MistriCivilWorkType[] = [
+  'complete_full_structure',
+  'foundation_concrete_structure',
+] as const;
+
+/** True when floor / height level must be selected for the given civil work types. */
+export function mistriFloorLevelRequired(
+  types: readonly MistriCivilWorkType[],
+): boolean {
+  return types.some((t) =>
+    (MISTRI_FLOOR_REQUIRED_CIVIL_WORK as readonly string[]).includes(t),
+  );
+}
 
 export const MISTRI_FULL_STRUCTURE_NOTE =
   '* Note: Complete Full Structure includes ground-level concrete and structural work, but excludes fine finishing work such as fine plastering, tile, or marble laying.';
@@ -278,6 +297,7 @@ export function isMistriDetails(value: unknown): value is MistriDetails {
   const civilWorkTypes = normalizeCivilWorkTypes(v.civilWorkTypes);
   const contractType = normalizeContractType(v.contractType);
   const floorLevel = normalizeFloorLevel(v.floorLevel);
+  const floorRequired = mistriFloorLevelRequired(civilWorkTypes);
   const additionalOk =
     v.additionalRequirements === undefined ||
     v.additionalRequirements === null ||
@@ -288,11 +308,21 @@ export function isMistriDetails(value: unknown): value is MistriDetails {
     typeof v.approximateAreaSqft !== 'number' ||
     !Number.isFinite(v.approximateAreaSqft) ||
     v.approximateAreaSqft <= 0 ||
-    !floorLevel ||
+    (floorRequired && !floorLevel) ||
     contractType == null ||
     typeof v.projectStartTimeType !== 'string' ||
     !START_TIME_TYPES.has(v.projectStartTimeType as MistriStartTimeType) ||
     !additionalOk
+  ) {
+    return false;
+  }
+
+  // Optional floor: if a value is present it must normalize; unknown strings fail.
+  if (
+    v.floorLevel != null &&
+    v.floorLevel !== '' &&
+    !floorLevel &&
+    v.floorLevel !== '3rd_above'
   ) {
     return false;
   }
@@ -323,17 +353,17 @@ export function parseMistriDetails(value: unknown): MistriDetails | null {
   const civilWorkTypes = normalizeCivilWorkTypes(raw.civilWorkTypes);
   const contractType = normalizeContractType(raw.contractType);
   const floorLevel = normalizeFloorLevel(raw.floorLevel);
-  if (civilWorkTypes.length === 0 || !contractType || !floorLevel) return null;
+  const floorRequired = mistriFloorLevelRequired(civilWorkTypes);
+  if (civilWorkTypes.length === 0 || !contractType) return null;
+  if (floorRequired && !floorLevel) return null;
 
   const plasterSide = civilWorkTypes.includes('plastering')
     ? normalizePlasterSide(raw.plasterSide)
     : null;
 
-  const customFloorCount = normalizeCustomFloorCount(
-    floorLevel,
-    raw.customFloorCount,
-    raw.floorLevel,
-  );
+  const customFloorCount = floorLevel
+    ? normalizeCustomFloorCount(floorLevel, raw.customFloorCount, raw.floorLevel)
+    : null;
 
   if (floorLevel === 'custom' && customFloorCount == null && raw.floorLevel !== '3rd_above') {
     return null;
@@ -429,6 +459,7 @@ export function summarizeMistriCivilWorkScope(
 }
 
 export function formatMistriFloorLevel(details: MistriDetails): string {
+  if (!details.floorLevel) return 'Not specified';
   if (details.floorLevel === 'custom') {
     const n = details.customFloorCount;
     if (n != null && n > 0) {
@@ -467,10 +498,16 @@ export function getMistriWorkRequirementBlocks(details: MistriDetails): {
       label: 'Approx. Area',
       value: formatMistriArea(details.approximateAreaSqft),
     },
-    {
+  ];
+
+  if (details.floorLevel) {
+    blocks.push({
       label: 'Floor Level',
       value: formatMistriFloorLevel(details),
-    },
+    });
+  }
+
+  blocks.push(
     {
       label: 'Contract Type',
       value: optionLabel(MISTRI_CONTRACT_TYPE_OPTIONS, details.contractType),
@@ -479,7 +516,7 @@ export function getMistriWorkRequirementBlocks(details: MistriDetails): {
       label: 'Start Time',
       value: formatMistriStartTime(details),
     },
-  ];
+  );
 
   if (details.additionalRequirements) {
     blocks.push({
@@ -494,9 +531,10 @@ export function getMistriWorkRequirementBlocks(details: MistriDetails): {
 /**
  * Map floor level → legacy building_types for DB / bidding compatibility.
  * Custom counts expand ground→upper RCC floors (capped at available RCC types).
+ * When floor is omitted (non-structural independent work), defaults to ground.
  */
 export function buildingTypesFromMistriFloor(
-  floor: MistriFloorLevel,
+  floor: MistriFloorLevel | null | undefined,
   customFloorCount?: number | null,
 ): BuildingType[] {
   switch (floor) {
@@ -571,12 +609,20 @@ export function validateMistriDetailsInput(input: {
     return { error: 'Enter an approximate project area in sq.ft. (rough estimate is fine).' };
   }
 
-  if (!input.floorLevel || !FLOOR_SET.has(input.floorLevel)) {
-    return { error: 'Select a floor / height level.' };
+  const floorRequired = mistriFloorLevelRequired(civilWorkTypes);
+  let floorLevel: MistriFloorLevel | null = null;
+  let customFloorCount: number | null = null;
+
+  if (floorRequired) {
+    if (!input.floorLevel || !FLOOR_SET.has(input.floorLevel)) {
+      return { error: 'Select a floor / height level.' };
+    }
+    floorLevel = input.floorLevel;
+  } else if (input.floorLevel && FLOOR_SET.has(input.floorLevel)) {
+    floorLevel = input.floorLevel;
   }
 
-  let customFloorCount: number | null = null;
-  if (input.floorLevel === 'custom') {
+  if (floorLevel === 'custom') {
     const raw =
       typeof input.customFloorCount === 'number'
         ? input.customFloorCount
@@ -603,7 +649,7 @@ export function validateMistriDetailsInput(input: {
     civilWorkTypes,
     plasterSide,
     approximateAreaSqft: area,
-    floorLevel: input.floorLevel,
+    floorLevel,
     customFloorCount,
     contractType: input.contractType,
     additionalRequirements: additional,
