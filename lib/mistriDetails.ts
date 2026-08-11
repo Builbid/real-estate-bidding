@@ -254,47 +254,52 @@ export function parseMistriDetails(value: unknown): MistriDetails | null {
   if (!value || typeof value !== 'object') return null;
   if (!isMistriDetails(value)) return null;
 
-  const v = value as Record<string, unknown>;
-  const civilWorkTypes = normalizeCivilWorkTypes(v.civilWorkTypes);
-  const contractType = normalizeContractType(v.contractType);
-  const floorLevel = normalizeFloorLevel(v.floorLevel);
+  // Re-read via unknown so legacy keys (e.g. floorLevel: '3rd_above') can be normalized.
+  const raw = value as unknown as Record<string, unknown>;
+  const civilWorkTypes = normalizeCivilWorkTypes(raw.civilWorkTypes);
+  const contractType = normalizeContractType(raw.contractType);
+  const floorLevel = normalizeFloorLevel(raw.floorLevel);
   if (civilWorkTypes.length === 0 || !contractType || !floorLevel) return null;
 
   const plasterSide = civilWorkTypes.includes('plastering')
-    ? normalizePlasterSide(v.plasterSide)
+    ? normalizePlasterSide(raw.plasterSide)
     : null;
 
   const customFloorCount = normalizeCustomFloorCount(
     floorLevel,
-    v.customFloorCount,
-    (value as { floorLevel?: unknown }).floorLevel,
+    raw.customFloorCount,
+    raw.floorLevel,
   );
 
-  if (floorLevel === 'custom' && customFloorCount == null) {
-    // Should not happen for new rows; legacy 3rd_above handled above.
-    if ((value as { floorLevel?: unknown }).floorLevel !== '3rd_above') return null;
+  if (floorLevel === 'custom' && customFloorCount == null && raw.floorLevel !== '3rd_above') {
+    return null;
   }
 
+  const projectStartTimeType = raw.projectStartTimeType as MistriStartTimeType;
   const specific =
-    value.projectStartTimeType === 'specific' &&
-    typeof value.projectStartTimeSpecificDate === 'string' &&
-    /^\d{4}-\d{2}-\d{2}$/.test(value.projectStartTimeSpecificDate)
-      ? value.projectStartTimeSpecificDate
+    projectStartTimeType === 'specific' &&
+    typeof raw.projectStartTimeSpecificDate === 'string' &&
+    /^\d{4}-\d{2}-\d{2}$/.test(raw.projectStartTimeSpecificDate)
+      ? raw.projectStartTimeSpecificDate
       : null;
 
   const additionalRequirements =
-    typeof value.additionalRequirements === 'string' && value.additionalRequirements.trim()
-      ? value.additionalRequirements.trim()
+    typeof raw.additionalRequirements === 'string' && raw.additionalRequirements.trim()
+      ? raw.additionalRequirements.trim()
       : null;
+
+  const approximateAreaSqft =
+    typeof raw.approximateAreaSqft === 'number' ? raw.approximateAreaSqft : NaN;
+  if (!Number.isFinite(approximateAreaSqft) || approximateAreaSqft <= 0) return null;
 
   return {
     civilWorkTypes,
     plasterSide,
-    approximateAreaSqft: value.approximateAreaSqft,
+    approximateAreaSqft,
     floorLevel,
     customFloorCount: floorLevel === 'custom' ? (customFloorCount ?? 3) : null,
     contractType,
-    projectStartTimeType: value.projectStartTimeType,
+    projectStartTimeType,
     projectStartTimeSpecificDate: specific,
     additionalRequirements,
   };
