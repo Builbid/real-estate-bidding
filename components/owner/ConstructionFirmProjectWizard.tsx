@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, ArrowLeft, CheckCircle2, AlertCircle, Info } from 'lucide-react';
 import { useProfile } from '@/lib/hooks/useProfile';
@@ -64,6 +64,10 @@ export function ConstructionFirmProjectWizard() {
   const [form, setForm] = useState<FirmFormState>(EMPTY_FORM);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [step]);
   const [step2Error, setStep2Error] = useState<string | null>(null);
   const [step1ValidationAttempted, setStep1ValidationAttempted] = useState(false);
   const [step1Errors, setStep1Errors] = useState<{
