@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useProfile } from '@/lib/hooks/useProfile';
@@ -10,12 +10,12 @@ import { Card, CardContent } from '@/components/ui/card';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select';
-import { WizardProjectTextFields } from '@/components/owner/WizardProjectTextFields';
 import {
   IndianCityAutocomplete,
   parseIndianDistrictSelection,
 } from '@/components/shared/IndianCityAutocomplete';
-import { hasContactInfo, hasProjectContactViolation } from '@/lib/validation/projectContactInfo';
+import { generateProjectTitle } from '@/lib/generateProjectTitle';
+import { hasContactInfo } from '@/lib/validation/projectContactInfo';
 import { formatPincodeInput, validatePincode } from '@/lib/validation/pincode';
 import {
   MISTRI_CIVIL_WORK_OPTIONS,
@@ -43,8 +43,6 @@ const PROGRESS_LABELS = [
 ] as const;
 
 interface FormState {
-  title: string;
-  description: string;
   location: string;
   pincode: string;
   bidding_minutes: string;
@@ -58,8 +56,6 @@ interface FormState {
 }
 
 const EMPTY_FORM: FormState = {
-  title: '',
-  description: '',
   location: '',
   pincode: '',
   bidding_minutes: String(BIDDING_MINUTES),
@@ -75,28 +71,30 @@ const EMPTY_FORM: FormState = {
 export function LabourContractorProjectWizard() {
   const router = useRouter();
   const { profile } = useProfile();
-  const titleRef = useRef<HTMLInputElement>(null);
-  const descriptionRef = useRef<HTMLTextAreaElement>(null);
   const [step, setStep] = useState<Step>(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [step2Error, setStep2Error] = useState<string | null>(null);
   const [step1ValidationAttempted, setStep1ValidationAttempted] = useState(false);
   const [step1Errors, setStep1Errors] = useState<{
-    title?: string;
     location?: string;
     pincode?: string;
   }>({});
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [submittedTitle, setSubmittedTitle] = useState('');
 
-  const contactViolation = hasProjectContactViolation(form.title, form.description);
+  const districtSelection = parseIndianDistrictSelection(form.location);
+  const previewTitle = generateProjectTitle({
+    serviceType: 'labour_contractor',
+    district: districtSelection?.district ?? form.location,
+    civilWorkTypes: form.civilWorkTypes,
+  });
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((f) => ({ ...f, [key]: value }));
-    if (step1ValidationAttempted && (key === 'title' || key === 'location' || key === 'pincode')) {
+    if (step1ValidationAttempted && (key === 'location' || key === 'pincode')) {
       setStep1Errors((errors) => {
         const next = { ...errors };
-        if (key === 'title') delete next.title;
         if (key === 'location') delete next.location;
         if (key === 'pincode') delete next.pincode;
         return next;
@@ -120,10 +118,6 @@ export function LabourContractorProjectWizard() {
   function tryGoStep2() {
     const errors: typeof step1Errors = {};
 
-    if (!form.title.trim()) {
-      errors.title = 'Project title is required.';
-    }
-
     if (!parseIndianDistrictSelection(form.location)) {
       errors.location = 'Please select a district from the suggestions list.';
     }
@@ -136,17 +130,6 @@ export function LabourContractorProjectWizard() {
     if (Object.keys(errors).length > 0) {
       setStep1ValidationAttempted(true);
       setStep1Errors(errors);
-      return;
-    }
-
-    if (contactViolation) {
-      if (hasContactInfo(form.title)) {
-        titleRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        titleRef.current?.focus();
-      } else {
-        descriptionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        descriptionRef.current?.focus();
-      }
       return;
     }
 
@@ -185,8 +168,8 @@ export function LabourContractorProjectWizard() {
       return;
     }
 
-    if (hasProjectContactViolation(form.title, form.description)) {
-      setError('Remove contact details from the project title or description before submitting.');
+    if (hasContactInfo(form.additionalRequirements)) {
+      setError('Remove contact details from additional requirements before submitting.');
       setLoading(false);
       return;
     }
@@ -206,9 +189,14 @@ export function LabourContractorProjectWizard() {
       return;
     }
 
+    const autoTitle = generateProjectTitle({
+      serviceType: 'labour_contractor',
+      district: districtSelection.district,
+      civilWorkTypes: form.civilWorkTypes,
+    });
+
     const result = await createProjectAction({
-      title: form.title.trim(),
-      description: form.description.trim() || undefined,
+      title: autoTitle,
       mistri_details: validated.details,
       district: districtSelection.district,
       state: districtSelection.state,
@@ -222,6 +210,7 @@ export function LabourContractorProjectWizard() {
       return;
     }
 
+    setSubmittedTitle(autoTitle);
     setStep(4);
     setLoading(false);
   }
@@ -297,16 +286,6 @@ export function LabourContractorProjectWizard() {
             <div className="space-y-5">
               <h2 className="text-base font-semibold text-foreground">Project Information</h2>
 
-              <WizardProjectTextFields
-                title={form.title}
-                description={form.description}
-                onTitleChange={(v) => update('title', v)}
-                onDescriptionChange={(v) => update('description', v)}
-                titleRequiredError={step1ValidationAttempted ? step1Errors.title : undefined}
-                titleRef={titleRef}
-                descriptionRef={descriptionRef}
-              />
-
               <IndianCityAutocomplete
                 value={form.location}
                 onChange={(v) => update('location', v)}
@@ -341,7 +320,7 @@ export function LabourContractorProjectWizard() {
                 </p>
               </div>
 
-              <Button size="lg" className="w-full" disabled={contactViolation} onClick={tryGoStep2}>
+              <Button size="lg" className="w-full" onClick={tryGoStep2}>
                 Continue <ArrowRight className="w-4 h-4" />
               </Button>
             </div>
@@ -537,7 +516,7 @@ export function LabourContractorProjectWizard() {
 
               <div className="rounded-xl bg-secondary/50 border border-border divide-y divide-border">
                 {[
-                  { label: 'Project Title', value: form.title },
+                  { label: 'Project Title', value: previewTitle },
                   { label: 'District', value: form.location },
                   {
                     label: 'Pincode',
@@ -588,7 +567,7 @@ export function LabourContractorProjectWizard() {
               <div>
                 <h2 className="text-xl font-bold text-foreground mb-2">Auction Launched! 🎉</h2>
                 <p className="text-sm text-muted-foreground">
-                  Your project <strong className="text-foreground">&quot;{form.title}&quot;</strong> is now live.
+                  Your project <strong className="text-foreground">&quot;{submittedTitle}&quot;</strong> is now live.
                 </p>
               </div>
               <div className="flex gap-3 w-full">
@@ -598,6 +577,7 @@ export function LabourContractorProjectWizard() {
                   onClick={() => {
                     setStep(1);
                     setForm(EMPTY_FORM);
+                    setSubmittedTitle('');
                     setStep1ValidationAttempted(false);
                     setStep1Errors({});
                     setStep2Error(null);

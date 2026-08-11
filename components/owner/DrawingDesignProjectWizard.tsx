@@ -20,6 +20,7 @@ import {
   formatDrawingTypesSummary,
 } from '@/lib/drawingDesign';
 import { formatBuildingTypesSummary, sortBuildingTypes, type BuildingType } from '@/lib/buildingConfig';
+import { generateProjectTitle } from '@/lib/generateProjectTitle';
 import { cn } from '@/lib/utils';
 import { createProjectAction } from '@/app/actions/createProject';
 import type { DrawingDesignType } from '@/lib/types';
@@ -131,8 +132,11 @@ export function DrawingDesignProjectWizard() {
       return;
     }
 
-    const houseSummary = formatBuildingTypesSummary(form.building_types) || 'House';
-    const autoTitle = `${houseSummary} — Drawing & Design — ${districtSelection.district}`;
+    const autoTitle = generateProjectTitle({
+      serviceType: 'drawing_design',
+      district: districtSelection.district,
+      buildingTypes: form.building_types,
+    });
 
     const result = await createProjectAction({
       service_type: 'drawing_design',
@@ -154,6 +158,13 @@ export function DrawingDesignProjectWizard() {
   }
 
   const orderedTypes = sortBuildingTypes(form.building_types);
+
+  const districtSelection = parseIndianDistrictSelection(form.location);
+  const previewTitle = generateProjectTitle({
+    serviceType: 'drawing_design',
+    district: districtSelection?.district ?? form.location,
+    buildingTypes: form.building_types,
+  });
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -322,6 +333,7 @@ export function DrawingDesignProjectWizard() {
               <div className="overflow-hidden rounded-2xl border border-border/70 bg-card/60 divide-y divide-border/50">
                 {[
                   { label: 'Service', value: '✏️ Drawing and Design' },
+                  { label: 'Project title', value: previewTitle },
                   { label: 'District', value: form.location },
                   { label: 'Pincode', value: form.pincode.trim() || 'Not specified' },
                   {

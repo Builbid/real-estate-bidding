@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,12 +9,12 @@ import { Card, CardContent } from '@/components/ui/card';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select';
-import { WizardProjectTextFields } from '@/components/owner/WizardProjectTextFields';
 import {
   IndianCityAutocomplete,
   parseIndianDistrictSelection,
 } from '@/components/shared/IndianCityAutocomplete';
-import { hasContactInfo, hasProjectContactViolation } from '@/lib/validation/projectContactInfo';
+import { generateProjectTitle } from '@/lib/generateProjectTitle';
+import { hasContactInfo } from '@/lib/validation/projectContactInfo';
 import { formatPincodeInput, validatePincode } from '@/lib/validation/pincode';
 import { getTradeLabel, getTradeEmoji } from '@/lib/trades';
 import {
@@ -49,8 +49,6 @@ const BUILDING_TYPE_OPTIONS: { value: TrackType; label: string; description: str
 ];
 
 interface FormState {
-  title: string;
-  description: string;
   location: string;
   pincode: string;
   bidding_minutes: string;
@@ -68,8 +66,6 @@ interface FormState {
 }
 
 const EMPTY_FORM: FormState = {
-  title: '',
-  description: '',
   location: '',
   pincode: '',
   bidding_minutes: String(BIDDING_MINUTES),
@@ -91,15 +87,12 @@ interface TradeServiceProjectWizardProps {
 
 export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardProps) {
   const router = useRouter();
-  const titleRef = useRef<HTMLInputElement>(null);
-  const descriptionRef = useRef<HTMLTextAreaElement>(null);
   const [step, setStep] = useState<Step>(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [step2Error, setStep2Error] = useState<string | null>(null);
   const [step1ValidationAttempted, setStep1ValidationAttempted] = useState(false);
   const [step1Errors, setStep1Errors] = useState<{
-    title?: string;
     location?: string;
     pincode?: string;
   }>({});
@@ -108,14 +101,27 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
   const tradeLabel = getTradeLabel(trade);
   const tradeEmoji = getTradeEmoji(trade);
   const isPainter = trade === 'painter';
-  const contactViolation = hasProjectContactViolation(form.title, form.description);
+
+  const districtSelection = parseIndianDistrictSelection(form.location);
+  const previewTitle = generateProjectTitle(
+    isPainter
+      ? {
+          serviceType: trade,
+          district: districtSelection?.district ?? form.location,
+          paintingScope: form.paintingScope,
+        }
+      : {
+          serviceType: trade,
+          district: districtSelection?.district ?? form.location,
+          trackType: form.track_type,
+        },
+  );
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((f) => ({ ...f, [key]: value }));
-    if (step1ValidationAttempted && (key === 'title' || key === 'location' || key === 'pincode')) {
+    if (step1ValidationAttempted && (key === 'location' || key === 'pincode')) {
       setStep1Errors((errors) => {
         const next = { ...errors };
-        if (key === 'title') delete next.title;
         if (key === 'location') delete next.location;
         if (key === 'pincode') delete next.pincode;
         return next;
@@ -125,10 +131,6 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
 
   function tryGoStep2() {
     const errors: typeof step1Errors = {};
-
-    if (!form.title.trim()) {
-      errors.title = 'Project title is required.';
-    }
 
     if (!parseIndianDistrictSelection(form.location)) {
       errors.location = 'Please select a district from the suggestions list.';
@@ -142,17 +144,6 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
     if (Object.keys(errors).length > 0) {
       setStep1ValidationAttempted(true);
       setStep1Errors(errors);
-      return;
-    }
-
-    if (contactViolation) {
-      if (hasContactInfo(form.title)) {
-        titleRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        titleRef.current?.focus();
-      } else {
-        descriptionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        descriptionRef.current?.focus();
-      }
       return;
     }
 
@@ -199,8 +190,8 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
       return;
     }
 
-    if (hasProjectContactViolation(form.title, form.description)) {
-      setError('Remove contact details from the project title or description before submitting.');
+    if (isPainter && hasContactInfo(form.additionalRequirements)) {
+      setError('Remove contact details from additional requirements before submitting.');
       setLoading(false);
       return;
     }
@@ -226,9 +217,22 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
       painterDetails = validated.details;
     }
 
+    const autoTitle = generateProjectTitle(
+      isPainter
+        ? {
+            serviceType: trade,
+            district: districtSelection.district,
+            paintingScope: form.paintingScope,
+          }
+        : {
+            serviceType: trade,
+            district: districtSelection.district,
+            trackType: form.track_type,
+          },
+    );
+
     const result = await createProjectAction({
-      title: form.title.trim(),
-      description: form.description.trim() || undefined,
+      title: autoTitle,
       track_type: form.track_type,
       district: districtSelection.district,
       state: districtSelection.state,
@@ -299,18 +303,6 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
             <div className="space-y-5">
               <h2 className="text-base font-semibold text-foreground">Project Information</h2>
 
-              <WizardProjectTextFields
-                title={form.title}
-                description={form.description}
-                onTitleChange={(v) => update('title', v)}
-                onDescriptionChange={(v) => update('description', v)}
-                titleLabel="Project Title"
-                titlePlaceholder={`e.g. ${tradeLabel} work for 2BHK house, Guwahati`}
-                titleRequiredError={step1ValidationAttempted ? step1Errors.title : undefined}
-                titleRef={titleRef}
-                descriptionRef={descriptionRef}
-              />
-
               <IndianCityAutocomplete
                 value={form.location}
                 onChange={(v) => update('location', v)}
@@ -345,7 +337,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                 </p>
               </div>
 
-              <Button size="lg" className="w-full" disabled={contactViolation} onClick={tryGoStep2}>
+              <Button size="lg" className="w-full" onClick={tryGoStep2}>
                 Continue <ArrowRight className="w-4 h-4" />
               </Button>
             </div>
@@ -631,7 +623,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
               <div className="rounded-xl bg-secondary/50 border border-border divide-y divide-border">
                 {[
                   { label: 'Service', value: `${tradeEmoji} ${tradeLabel}` },
-                  { label: 'Project Title', value: form.title },
+                  { label: 'Project Title', value: previewTitle },
                   { label: 'District', value: form.location },
                   { label: 'Pincode', value: form.pincode.trim() || 'Not specified' },
                   {

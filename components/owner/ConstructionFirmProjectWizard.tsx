@@ -1,8 +1,8 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, ArrowLeft, CheckCircle2, AlertCircle, Info, Lock } from 'lucide-react';
+import { ArrowRight, ArrowLeft, CheckCircle2, AlertCircle, Info } from 'lucide-react';
 import { useProfile } from '@/lib/hooks/useProfile';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,15 +18,14 @@ import {
   IndianCityAutocomplete,
   parseIndianDistrictSelection,
 } from '@/components/shared/IndianCityAutocomplete';
-import { formatBuildingTypesSummary } from '@/lib/buildingConfig';
 import type { BuildingType } from '@/lib/buildingConfig';
+import { generateProjectTitle } from '@/lib/generateProjectTitle';
 import {
   formatBudgetRange,
   formatIndianInputDisplay,
   parseIndianAmount,
 } from '@/lib/formatIndianCurrency';
 import { createProjectAction } from '@/app/actions/createProject';
-import { CONTACT_INFO_WARNING, hasContactInfo } from '@/lib/validation/projectContactInfo';
 import { formatPincodeInput, validatePincode } from '@/lib/validation/pincode';
 import { cn } from '@/lib/utils';
 
@@ -41,7 +40,6 @@ const PROGRESS_LABELS = [
 ] as const;
 
 interface FirmFormState {
-  description: string;
   location: string;
   pincode: string;
   floor_area_sqft: string;
@@ -51,7 +49,6 @@ interface FirmFormState {
 }
 
 const EMPTY_FORM: FirmFormState = {
-  description: '',
   location: '',
   pincode: '',
   floor_area_sqft: '',
@@ -63,7 +60,6 @@ const EMPTY_FORM: FirmFormState = {
 export function ConstructionFirmProjectWizard() {
   const router = useRouter();
   const { profile } = useProfile();
-  const descriptionRef = useRef<HTMLTextAreaElement>(null);
   const [step, setStep] = useState<Step>(1);
   const [form, setForm] = useState<FirmFormState>(EMPTY_FORM);
   const [loading, setLoading] = useState(false);
@@ -89,8 +85,14 @@ export function ConstructionFirmProjectWizard() {
     }
   }
 
-  const descriptionHasContact = hasContactInfo(form.description);
   const budgetPreview = formatBudgetRange(null, parseIndianAmount(form.budget_max));
+
+  const districtSelection = parseIndianDistrictSelection(form.location);
+  const previewTitle = generateProjectTitle({
+    serviceType: 'construction_firm',
+    district: districtSelection?.district ?? form.location,
+    buildingTypes: form.building_types,
+  });
 
   function tryGoStep2() {
     const errors: typeof step1Errors = {};
@@ -107,12 +109,6 @@ export function ConstructionFirmProjectWizard() {
     if (Object.keys(errors).length > 0) {
       setStep1ValidationAttempted(true);
       setStep1Errors(errors);
-      return;
-    }
-
-    if (descriptionHasContact) {
-      descriptionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      descriptionRef.current?.focus();
       return;
     }
 
@@ -138,12 +134,6 @@ export function ConstructionFirmProjectWizard() {
     setLoading(true);
     setError(null);
 
-    if (hasContactInfo(form.description)) {
-      setError('Remove contact details from the project description before submitting.');
-      setLoading(false);
-      return;
-    }
-
     const pincodeError = validatePincode(form.pincode);
     if (pincodeError) {
       setError(pincodeError);
@@ -151,13 +141,15 @@ export function ConstructionFirmProjectWizard() {
       return;
     }
 
-    const buildingSummary = formatBuildingTypesSummary(form.building_types) || 'Construction Project';
-    const autoTitle = `${buildingSummary} — ${districtSelection.district}`;
+    const autoTitle = generateProjectTitle({
+      serviceType: 'construction_firm',
+      district: districtSelection.district,
+      buildingTypes: form.building_types,
+    });
 
     const result = await createProjectAction({
       service_type: 'construction_firm',
       title: autoTitle,
-      description: form.description.trim() || undefined,
       building_types: form.building_types,
       district: districtSelection.district,
       state: districtSelection.state,
@@ -238,39 +230,6 @@ export function ConstructionFirmProjectWizard() {
           {step === 1 && (
             <div className="space-y-5">
               <h2 className="text-base font-semibold text-foreground">Project Information</h2>
-
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Project Description (Optional)
-                </label>
-                <textarea
-                  ref={descriptionRef}
-                  className={cn(
-                    'w-full min-h-[80px] rounded-lg border border-border bg-card/80 dark:bg-card/60 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/80 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all resize-none',
-                    descriptionHasContact &&
-                      'border-red-500/70 focus:border-red-500/70 focus:ring-red-500/40',
-                  )}
-                  placeholder="Describe your project — house type, requirements, preferences..."
-                  value={form.description}
-                  maxLength={500}
-                  onChange={(e) => update('description', e.target.value.slice(0, 500))}
-                />
-                {descriptionHasContact && (
-                  <p className="text-xs text-red-600 dark:text-red-400 mt-1.5 leading-snug">
-                    {CONTACT_INFO_WARNING}
-                  </p>
-                )}
-                <p className="flex items-start gap-1.5 text-[11px] text-muted-foreground mt-1.5 leading-snug">
-                  <Lock className="h-3 w-3 flex-shrink-0 mt-0.5" aria-hidden />
-                  <span>
-                    Do not share phone numbers, emails or personal contact details. BuilBid
-                    protects your privacy.
-                  </span>
-                </p>
-                <p className="text-[10px] text-muted-foreground text-right">
-                  {form.description.length}/500
-                </p>
-              </div>
 
               <IndianCityAutocomplete
                 value={form.location}
@@ -437,6 +396,7 @@ export function ConstructionFirmProjectWizard() {
                 </div>
                 <dl className="divide-y divide-border/50">
                   {[
+                    { label: 'Project title', value: previewTitle },
                     { label: 'District', value: form.location || '—' },
                     { label: 'Pincode', value: form.pincode.trim() || 'Not specified' },
                     { label: 'Max budget', value: budgetPreview ?? 'Not specified' },
