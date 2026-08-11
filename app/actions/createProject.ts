@@ -231,12 +231,17 @@ export async function createProjectAction(
           return { error: 'Select a specific project start date.' }
         }
 
-        buildingTypes = buildingTypesFromMistriFloor(labour.mistri_details.floorLevel)
+        buildingTypes = buildingTypesFromMistriFloor(
+          labour.mistri_details.floorLevel,
+          labour.mistri_details.customFloorCount,
+        )
         constructionTypes = constructionTypesFromMistriDetails(labour.mistri_details)
         insertPayload.mistri_details = {
           civilWorkTypes: labour.mistri_details.civilWorkTypes,
+          plasterSide: labour.mistri_details.plasterSide ?? null,
           approximateAreaSqft: labour.mistri_details.approximateAreaSqft,
           floorLevel: labour.mistri_details.floorLevel,
+          customFloorCount: labour.mistri_details.customFloorCount ?? null,
           contractType: labour.mistri_details.contractType,
           projectStartTimeType: labour.mistri_details.projectStartTimeType,
           projectStartTimeSpecificDate:

@@ -21,12 +21,14 @@ import {
   MISTRI_CIVIL_WORK_OPTIONS,
   MISTRI_CONTRACT_TYPE_OPTIONS,
   MISTRI_FLOOR_LEVEL_OPTIONS,
+  MISTRI_PLASTER_SIDE_OPTIONS,
   MISTRI_START_TIME_OPTIONS,
   getMistriWorkRequirementBlocks,
   validateMistriDetailsInput,
   type MistriCivilWorkType,
   type MistriContractType,
   type MistriFloorLevel,
+  type MistriPlasterSide,
   type MistriStartTimeType,
 } from '@/lib/mistriDetails';
 import { cn } from '@/lib/utils';
@@ -47,8 +49,10 @@ interface FormState {
   pincode: string;
   bidding_minutes: string;
   civilWorkTypes: MistriCivilWorkType[];
+  plasterSide: MistriPlasterSide | null;
   approximateArea: string;
   floorLevel: MistriFloorLevel | null;
+  customFloorCount: string;
   contractType: MistriContractType | null;
   projectStartTimeType: MistriStartTimeType | null;
   projectStartTimeSpecificDate: string;
@@ -60,8 +64,10 @@ const EMPTY_FORM: FormState = {
   pincode: '',
   bidding_minutes: String(BIDDING_MINUTES),
   civilWorkTypes: [],
+  plasterSide: null,
   approximateArea: '',
   floorLevel: null,
+  customFloorCount: '',
   contractType: null,
   projectStartTimeType: null,
   projectStartTimeSpecificDate: '',
@@ -105,14 +111,33 @@ export function LabourContractorProjectWizard() {
   function toggleCivilWork(value: MistriCivilWorkType) {
     setForm((f) => {
       const has = f.civilWorkTypes.includes(value);
+      const nextTypes = has
+        ? f.civilWorkTypes.filter((t) => t !== value)
+        : [...f.civilWorkTypes, value];
       return {
         ...f,
-        civilWorkTypes: has
-          ? f.civilWorkTypes.filter((t) => t !== value)
-          : [...f.civilWorkTypes, value],
+        civilWorkTypes: nextTypes,
+        plasterSide:
+          value === 'plastering' && has
+            ? null
+            : f.plasterSide,
       };
     });
     setStep2Error(null);
+  }
+
+  function mistriValidationInput() {
+    return {
+      civilWorkTypes: form.civilWorkTypes,
+      plasterSide: form.plasterSide,
+      approximateArea: form.approximateArea,
+      floorLevel: form.floorLevel,
+      customFloorCount: form.customFloorCount,
+      contractType: form.contractType,
+      projectStartTimeType: form.projectStartTimeType,
+      projectStartTimeSpecificDate: form.projectStartTimeSpecificDate,
+      additionalRequirements: form.additionalRequirements,
+    };
   }
 
   function tryGoStep2() {
@@ -139,15 +164,7 @@ export function LabourContractorProjectWizard() {
   }
 
   function tryGoStep3() {
-    const validated = validateMistriDetailsInput({
-      civilWorkTypes: form.civilWorkTypes,
-      approximateArea: form.approximateArea,
-      floorLevel: form.floorLevel,
-      contractType: form.contractType,
-      projectStartTimeType: form.projectStartTimeType,
-      projectStartTimeSpecificDate: form.projectStartTimeSpecificDate,
-      additionalRequirements: form.additionalRequirements,
-    });
+    const validated = validateMistriDetailsInput(mistriValidationInput());
     if ('error' in validated) {
       setStep2Error(validated.error);
       return;
@@ -174,15 +191,7 @@ export function LabourContractorProjectWizard() {
       return;
     }
 
-    const validated = validateMistriDetailsInput({
-      civilWorkTypes: form.civilWorkTypes,
-      approximateArea: form.approximateArea,
-      floorLevel: form.floorLevel,
-      contractType: form.contractType,
-      projectStartTimeType: form.projectStartTimeType,
-      projectStartTimeSpecificDate: form.projectStartTimeSpecificDate,
-      additionalRequirements: form.additionalRequirements,
-    });
+    const validated = validateMistriDetailsInput(mistriValidationInput());
     if ('error' in validated) {
       setError(validated.error);
       setLoading(false);
@@ -221,15 +230,7 @@ export function LabourContractorProjectWizard() {
     form.contractType &&
     form.projectStartTimeType
       ? (() => {
-          const validated = validateMistriDetailsInput({
-            civilWorkTypes: form.civilWorkTypes,
-            approximateArea: form.approximateArea,
-            floorLevel: form.floorLevel,
-            contractType: form.contractType,
-            projectStartTimeType: form.projectStartTimeType,
-            projectStartTimeSpecificDate: form.projectStartTimeSpecificDate,
-            additionalRequirements: form.additionalRequirements,
-          });
+          const validated = validateMistriDetailsInput(mistriValidationInput());
           return 'details' in validated ? getMistriWorkRequirementBlocks(validated.details) : [];
         })()
       : [];
@@ -350,20 +351,46 @@ export function LabourContractorProjectWizard() {
                   {MISTRI_CIVIL_WORK_OPTIONS.map((opt) => {
                     const selected = form.civilWorkTypes.includes(opt.value);
                     return (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        onClick={() => toggleCivilWork(opt.value)}
-                        className={cn(
-                          'flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5 text-left text-xs font-semibold transition-colors',
-                          selected
-                            ? 'border-emerald-500/70 bg-emerald-500/10 text-foreground'
-                            : 'border-border bg-card text-muted-foreground hover:border-muted-foreground/40',
+                      <div key={opt.value} className="space-y-2">
+                        <button
+                          type="button"
+                          onClick={() => toggleCivilWork(opt.value)}
+                          className={cn(
+                            'flex w-full items-center justify-between gap-3 rounded-lg border px-3 py-2.5 text-left text-xs font-semibold transition-colors',
+                            selected
+                              ? 'border-emerald-500/70 bg-emerald-500/10 text-foreground'
+                              : 'border-border bg-card text-muted-foreground hover:border-muted-foreground/40',
+                          )}
+                        >
+                          <span>{opt.label}</span>
+                          {selected && <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />}
+                        </button>
+                        {opt.value === 'plastering' && selected && (
+                          <div className="ml-2 grid grid-cols-1 sm:grid-cols-2 gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-2">
+                            {MISTRI_PLASTER_SIDE_OPTIONS.map((side) => {
+                              const sideSelected = form.plasterSide === side.value;
+                              return (
+                                <button
+                                  key={side.value}
+                                  type="button"
+                                  onClick={() => {
+                                    update('plasterSide', side.value);
+                                    setStep2Error(null);
+                                  }}
+                                  className={cn(
+                                    'rounded-md border px-3 py-2 text-left text-xs font-semibold transition-colors',
+                                    sideSelected
+                                      ? 'border-emerald-500/70 bg-emerald-500/15 text-foreground'
+                                      : 'border-border bg-card text-muted-foreground hover:border-muted-foreground/40',
+                                  )}
+                                >
+                                  {side.label}
+                                </button>
+                              );
+                            })}
+                          </div>
                         )}
-                      >
-                        <span>{opt.label}</span>
-                        {selected && <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />}
-                      </button>
+                      </div>
                     );
                   })}
                 </div>
@@ -394,6 +421,9 @@ export function LabourContractorProjectWizard() {
                         type="button"
                         onClick={() => {
                           update('floorLevel', opt.value);
+                          if (opt.value !== 'custom') {
+                            update('customFloorCount', '');
+                          }
                           setStep2Error(null);
                         }}
                         className={cn(
@@ -408,6 +438,22 @@ export function LabourContractorProjectWizard() {
                     );
                   })}
                 </div>
+                {form.floorLevel === 'custom' && (
+                  <Input
+                    label="Enter Total Number of Floors"
+                    type="number"
+                    inputMode="numeric"
+                    min={3}
+                    max={50}
+                    placeholder="e.g. 4, 5, 6"
+                    value={form.customFloorCount}
+                    onChange={(e) => {
+                      update('customFloorCount', e.target.value.replace(/[^\d]/g, ''));
+                      setStep2Error(null);
+                    }}
+                    className="mt-1"
+                  />
+                )}
               </div>
 
               <div className="flex flex-col gap-1.5">

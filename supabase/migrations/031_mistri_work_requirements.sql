@@ -3,4 +3,4 @@ alter table public.projects
   add column if not exists mistri_details jsonb null;
 
 comment on column public.projects.mistri_details is
-  'Mistri (labour_contractor) projects: { civilWorkTypes, approximateAreaSqft, floorLevel, contractType, projectStartTimeType, projectStartTimeSpecificDate, additionalRequirements }';
+  'Mistri (labour_contractor) projects: { civilWorkTypes, plasterSide?, approximateAreaSqft, floorLevel, customFloorCount?, contractType, projectStartTimeType, projectStartTimeSpecificDate, additionalRequirements }';
