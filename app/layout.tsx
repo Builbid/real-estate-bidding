@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import { AppProviders } from '@/components/providers/AppProviders';
+import { FloatingPostProjectButton } from '@/components/FloatingPostProjectButton';
 import './globals.css';
 
 const geistSans = Geist({
@@ -48,7 +49,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${geistSans.variable} ${geistMono.variable} antialiased`}
     >
       <body className="min-h-screen overflow-x-clip bg-background text-foreground">
-        <AppProviders>{children}</AppProviders>
+        <AppProviders>
+          {children}
+          <FloatingPostProjectButton />
+        </AppProviders>
       </body>
     </html>
   );
