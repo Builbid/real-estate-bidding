@@ -35,12 +35,13 @@ export function FloatingPostProjectButton() {
       className={cn(
         'fixed bottom-6 right-6 z-50',
         'inline-flex items-center gap-2 rounded-full',
-        'bg-gradient-to-b from-emerald-500 to-emerald-600 text-white',
-        'px-5 py-3 text-sm font-semibold',
-        'shadow-lg shadow-emerald-500/35',
-        'hover:from-emerald-400 hover:to-emerald-500 hover:shadow-xl hover:shadow-emerald-500/40',
+        'bg-emerald-600/80 text-white font-medium backdrop-blur-md',
+        'border border-white/20',
+        'px-5 py-3 text-sm',
+        'shadow-lg shadow-emerald-900/25',
+        'hover:bg-emerald-600/95 hover:shadow-lg hover:shadow-emerald-900/30',
         'transition-all duration-200 active:scale-[0.98]',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/80 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
       )}
     >
       <Plus className="h-4 w-4 shrink-0" aria-hidden />
