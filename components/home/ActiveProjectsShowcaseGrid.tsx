@@ -125,6 +125,8 @@ export function ActiveProjectsShowcaseGrid({
     return sortShowcaseProjectsByLatest(filtered);
   }, [liveProjects, serviceFilter, locationSearch]);
 
+  /** Homepage preview: exactly 6 cards (3 rows × 2 columns). */
+  const displayProjects = filteredProjects.slice(0, 6);
   const hasActiveSearch = locationSearch.trim().length > 0;
 
   const filterButtonClass = (active: boolean) =>
@@ -188,9 +190,9 @@ export function ActiveProjectsShowcaseGrid({
           </div>
         </div>
 
-        {filteredProjects.length > 0 ? (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-3 xl:grid-cols-3 xl:gap-4">
-            {filteredProjects.map((project) => (
+        {displayProjects.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {displayProjects.map((project) => (
               <ShowcaseProjectCard
                 key={project.id}
                 project={project}
