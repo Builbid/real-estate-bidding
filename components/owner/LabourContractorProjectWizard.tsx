@@ -772,7 +772,7 @@ export function LabourContractorProjectWizard() {
                 </label>
                 <textarea
                   rows={3}
-                  placeholder="Specify custom details (e.g., concrete grade M20/M25, site access constraints, dismantling work required, scaffolding details)..."
+                  placeholder=""
                   value={form.additionalRequirements}
                   onChange={(e) => {
                     update('additionalRequirements', e.target.value);
