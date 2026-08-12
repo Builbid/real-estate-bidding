@@ -23,8 +23,23 @@ type LegacyMistriCivilWorkType = 'rcc_column_beam_slab' | 'foundation_pcc';
 
 export type MistriPlasterSide = 'single' | 'both';
 
-/** Preset / custom selector for structural floor planning. */
-export type MistriStructuralFloorOption = 'G+1' | 'G+2' | 'G+3' | 'custom';
+/** Preset / custom selector for current construction floors. */
+export type MistriCurrentFloorOption = 'G+0' | 'G+1' | 'G+2' | 'custom';
+
+/** Dropdown selector for future foundation expansion capacity. */
+export type MistriFutureFloorOption =
+  | 'same'
+  | 'G+1'
+  | 'G+2'
+  | 'G+3'
+  | 'G+4'
+  | 'G+5'
+  | 'custom';
+
+/**
+ * @deprecated Prefer MistriCurrentFloorOption / MistriFutureFloorOption.
+ */
+export type MistriStructuralFloorOption = MistriCurrentFloorOption | 'G+3';
 
 /**
  * @deprecated Legacy single floor selector — still parsed from older mistri_details rows.
@@ -179,11 +194,39 @@ export const MISTRI_PLASTER_SIDE_OPTIONS: {
   { value: 'both', label: 'Both Side Plaster' },
 ];
 
-/** Structural floor planning presets (Current Construction Scope & Foundation Engineering Capacity). */
+/** Current construction floor buttons (Box 1). */
+export const MISTRI_CURRENT_FLOOR_OPTIONS: {
+  value: MistriCurrentFloorOption;
+  label: string;
+}[] = [
+  { value: 'G+0', label: 'Ground Floor Only (G Only / Single Story)' },
+  { value: 'G+1', label: 'G+1 (Ground + 1 Floor)' },
+  { value: 'G+2', label: 'G+2 (Ground + 2 Floors)' },
+  { value: 'custom', label: 'Custom (Manual Entry)' },
+];
+
+/** Future foundation expansion dropdown options (Box 2). */
+export const MISTRI_FUTURE_FLOOR_OPTIONS: {
+  value: MistriFutureFloorOption;
+  label: string;
+}[] = [
+  { value: 'same', label: 'Same as current project' },
+  { value: 'G+1', label: 'G+1 (Ground + 1 Floor)' },
+  { value: 'G+2', label: 'G+2 (Ground + 2 Floors)' },
+  { value: 'G+3', label: 'G+3 (Ground + 3 Floors)' },
+  { value: 'G+4', label: 'G+4 (Ground + 4 Floors)' },
+  { value: 'G+5', label: 'G+5 (Ground + 5 Floors)' },
+  { value: 'custom', label: 'Custom Number (Enter Manually)' },
+];
+
+/**
+ * @deprecated Prefer MISTRI_CURRENT_FLOOR_OPTIONS / MISTRI_FUTURE_FLOOR_OPTIONS.
+ */
 export const MISTRI_STRUCTURAL_FLOOR_OPTIONS: {
   value: MistriStructuralFloorOption;
   label: string;
 }[] = [
+  { value: 'G+0', label: 'Ground Floor Only (G Only / Single Story)' },
   { value: 'G+1', label: 'G+1 (Ground + 1 Floor)' },
   { value: 'G+2', label: 'G+2 (Ground + 2 Floors)' },
   { value: 'G+3', label: 'G+3 (Ground + 3 Floors)' },
@@ -235,8 +278,11 @@ export const FOUNDATION_CAPACITY_INVALID_MESSAGE =
   'Future foundation plan must be equal to or greater than current build floors.';
 
 const CIVIL_WORK_SET = new Set<string>(MISTRI_CIVIL_WORK_OPTIONS.map((o) => o.value));
-const STRUCTURAL_FLOOR_OPTION_SET = new Set<string>(
-  MISTRI_STRUCTURAL_FLOOR_OPTIONS.map((o) => o.value),
+const CURRENT_FLOOR_OPTION_SET = new Set<string>(
+  MISTRI_CURRENT_FLOOR_OPTIONS.map((o) => o.value),
+);
+const FUTURE_FLOOR_OPTION_SET = new Set<string>(
+  MISTRI_FUTURE_FLOOR_OPTIONS.map((o) => o.value),
 );
 const LEGACY_FLOOR_SET = new Set<string>(MISTRI_FLOOR_LEVEL_OPTIONS.map((o) => o.value));
 const CONTRACT_SET = new Set<string>(MISTRI_CONTRACT_TYPE_OPTIONS.map((o) => o.value));
@@ -293,12 +339,25 @@ function normalizePlasterSide(value: unknown): MistriPlasterSide | null {
 
 /**
  * Normalize a floor-plan string to clean "G+N" form.
- * Accepts "G+4", "g+5", or a plain upper-floor count like "5".
+ * Accepts "G+4", "g+5", plain upper-floor counts ("5"), or ground-only labels.
  */
 export function normalizeFloorPlanValue(raw: unknown): string | null {
   if (typeof raw !== 'string' && typeof raw !== 'number') return null;
   const trimmed = String(raw).trim().toUpperCase();
   if (!trimmed) return null;
+
+  if (
+    trimmed === 'G' ||
+    trimmed === 'G ONLY' ||
+    trimmed === 'G+0' ||
+    trimmed === 'GROUND' ||
+    trimmed === 'GROUND FLOOR' ||
+    trimmed === 'GROUND FLOOR ONLY' ||
+    trimmed === 'SINGLE STORY' ||
+    trimmed === 'SINGLE STOREY'
+  ) {
+    return 'G+0';
+  }
 
   const gPlus = trimmed.match(/^G\+(\d+)$/);
   if (gPlus) {
@@ -307,15 +366,17 @@ export function normalizeFloorPlanValue(raw: unknown): string | null {
     return null;
   }
 
-  if (/^\d+$/.test(trimmed)) {
-    const n = parseInt(trimmed, 10);
+  // Plain count, optionally with trailing "+" (e.g. "8+").
+  const digits = trimmed.match(/^(\d+)\+?$/);
+  if (digits) {
+    const n = parseInt(digits[1], 10);
     if (n >= MIN_UPPER_FLOORS && n <= MAX_UPPER_FLOORS) return `G+${n}`;
   }
 
   return null;
 }
 
-/** Upper-floor count from a clean "G+N" value (e.g. G+2 → 2). */
+/** Upper-floor count from a clean "G+N" value (e.g. G+2 → 2, G+0 → 0). */
 export function floorPlanUpperCount(value: string | null | undefined): number | null {
   if (!value) return null;
   const normalized = normalizeFloorPlanValue(value);
@@ -324,12 +385,12 @@ export function floorPlanUpperCount(value: string | null | undefined): number | 
   return match ? parseInt(match[1], 10) : null;
 }
 
-/** Resolve preset or custom form selection into a clean stored floor-plan value. */
-export function resolveStructuralFloorPlan(
-  option: MistriStructuralFloorOption | null,
+/** Resolve current-construction selection into a clean stored floor-plan value. */
+export function resolveCurrentFloorPlan(
+  option: MistriCurrentFloorOption | null,
   customValue: string | number,
 ): { value: string } | { error: string } {
-  if (!option || !STRUCTURAL_FLOOR_OPTION_SET.has(option)) {
+  if (!option || !CURRENT_FLOOR_OPTION_SET.has(option)) {
     return { error: 'Select a floor plan option.' };
   }
   if (option === 'custom') {
@@ -342,14 +403,62 @@ export function resolveStructuralFloorPlan(
   return { value: option };
 }
 
+/**
+ * Resolve future-expansion dropdown selection.
+ * `same` copies the already-resolved current floor plan.
+ */
+export function resolveFutureFloorPlan(
+  option: MistriFutureFloorOption | null,
+  customValue: string | number,
+  currentFloorPlan: string,
+): { value: string } | { error: string } {
+  if (!option || !FUTURE_FLOOR_OPTION_SET.has(option)) {
+    return { error: 'Select a floor plan option.' };
+  }
+  if (option === 'same') {
+    return { value: currentFloorPlan };
+  }
+  if (option === 'custom') {
+    const normalized = normalizeFloorPlanValue(customValue);
+    if (!normalized) {
+      return { error: CUSTOM_FLOOR_PLAN_INVALID_MESSAGE };
+    }
+    return { value: normalized };
+  }
+  return { value: option };
+}
+
+/**
+ * @deprecated Prefer resolveCurrentFloorPlan / resolveFutureFloorPlan.
+ */
+export function resolveStructuralFloorPlan(
+  option: MistriStructuralFloorOption | null,
+  customValue: string | number,
+): { value: string } | { error: string } {
+  if (!option) return { error: 'Select a floor plan option.' };
+  if (option === 'G+3') return { value: 'G+3' };
+  return resolveCurrentFloorPlan(option as MistriCurrentFloorOption, customValue);
+}
+
+/** True when a future dropdown preset is allowed given the current build floors. */
+export function isFutureFloorOptionAllowed(
+  option: MistriFutureFloorOption,
+  currentUpper: number | null,
+): boolean {
+  if (option === 'same' || option === 'custom') return true;
+  if (currentUpper == null) return true;
+  const optionUpper = floorPlanUpperCount(option);
+  return optionUpper != null && optionUpper >= currentUpper;
+}
+
 /** Infer which selector option matches a stored floor-plan value. */
 export function structuralFloorOptionFromValue(
   value: string | null | undefined,
-): MistriStructuralFloorOption | null {
+): MistriCurrentFloorOption | null {
   if (!value) return null;
   const normalized = normalizeFloorPlanValue(value);
   if (!normalized) return null;
-  if (normalized === 'G+1' || normalized === 'G+2' || normalized === 'G+3') {
+  if (normalized === 'G+0' || normalized === 'G+1' || normalized === 'G+2') {
     return normalized;
   }
   return 'custom';
@@ -767,9 +876,9 @@ export function validateMistriDetailsInput(input: {
   civilWorkTypes: MistriCivilWorkType[];
   plasterSide: MistriPlasterSide | null;
   approximateArea: string | number;
-  currentFloorOption: MistriStructuralFloorOption | null;
+  currentFloorOption: MistriCurrentFloorOption | null;
   currentFloorCustom: string | number;
-  futureFloorOption: MistriStructuralFloorOption | null;
+  futureFloorOption: MistriFutureFloorOption | null;
   futureFloorCustom: string | number;
   contractType: MistriContractType | null;
   projectStartTimeType: MistriStartTimeType | null;
@@ -803,7 +912,7 @@ export function validateMistriDetailsInput(input: {
   let futureFloorPlan: string | null = null;
 
   if (floorRequired) {
-    const currentResolved = resolveStructuralFloorPlan(
+    const currentResolved = resolveCurrentFloorPlan(
       input.currentFloorOption,
       input.currentFloorCustom,
     );
@@ -817,9 +926,10 @@ export function validateMistriDetailsInput(input: {
       return { error: 'Select how many floors you plan to build in this current project.' };
     }
 
-    const futureResolved = resolveStructuralFloorPlan(
+    const futureResolved = resolveFutureFloorPlan(
       input.futureFloorOption,
       input.futureFloorCustom,
+      currentResolved.value,
     );
     if ('error' in futureResolved) {
       if (
