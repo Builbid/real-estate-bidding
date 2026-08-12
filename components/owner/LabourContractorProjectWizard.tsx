@@ -27,7 +27,6 @@ import {
   MISTRI_FUTURE_FLOOR_OPTIONS,
   MISTRI_PLASTER_SIDE_OPTIONS,
   MISTRI_START_TIME_OPTIONS,
-  MISTRI_STRUCTURAL_CIVIL_WORK,
   MISTRI_WORK_AREA_FLOOR_OPTIONS,
   floorPlanUpperCount,
   getMistriWorkRequirementBlocks,
@@ -500,7 +499,7 @@ export function LabourContractorProjectWizard() {
               <div>
                 <h2 className="text-base font-semibold text-foreground">Civil Work Requirements</h2>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Select all work types that apply so bids match the real scope on site.
+                  Select the work type that best matches the scope so bids stay accurate.
                 </p>
               </div>
 
@@ -515,29 +514,16 @@ export function LabourContractorProjectWizard() {
                 <div className="grid grid-cols-1 gap-2">
                   {MISTRI_CIVIL_WORK_OPTIONS.map((opt) => {
                     const selected = form.civilWorkTypes.includes(opt.value);
-                    const fullStructureSelected = form.civilWorkTypes.includes(
-                      'complete_full_structure',
-                    );
-                    const disabledByFullStructure =
-                      fullStructureSelected &&
-                      (MISTRI_STRUCTURAL_CIVIL_WORK as readonly string[]).includes(opt.value);
                     return (
                       <div key={opt.value} className="space-y-2">
                         <button
                           type="button"
-                          disabled={disabledByFullStructure}
-                          aria-disabled={disabledByFullStructure}
-                          onClick={() => {
-                            if (disabledByFullStructure) return;
-                            toggleCivilWork(opt.value);
-                          }}
+                          onClick={() => toggleCivilWork(opt.value)}
                           className={cn(
                             'flex w-full items-center justify-between gap-3 rounded-lg border px-3 py-2.5 text-left text-xs font-semibold transition-colors',
                             selected
                               ? 'border-emerald-500/70 bg-emerald-500/10 text-foreground'
                               : 'border-border bg-card text-muted-foreground hover:border-muted-foreground/40',
-                            disabledByFullStructure &&
-                              'cursor-not-allowed opacity-45 hover:border-border',
                           )}
                         >
                           <span>{opt.label}</span>

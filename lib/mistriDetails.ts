@@ -65,7 +65,7 @@ export type MistriWorkAreaFloor =
   | 'custom';
 
 export interface MistriDetails {
-  /** Multi-select — at least one civil work type. */
+  /** Selected civil work type(s). New posts are single-select; legacy rows may include multiple. */
   civilWorkTypes: MistriCivilWorkType[];
   /** Required when civilWorkTypes includes plastering. */
   plasterSide?: MistriPlasterSide | null;
@@ -105,26 +105,26 @@ export const MISTRI_CIVIL_WORK_OPTIONS: {
   value: MistriCivilWorkType;
   label: string;
 }[] = [
-  { value: 'brickwork_aac', label: 'Brickwork / AAC Block Masonry' },
-  { value: 'plastering', label: 'Plastering Work' },
+  {
+    value: 'complete_full_structure',
+    label: 'Complete Full Structure (Foundation to Plastering)',
+  },
   {
     value: 'foundation_concrete_structure',
     label: 'Foundation & Concrete Structure (PCC / RCC Column, Beam & Slab)',
   },
+  { value: 'brickwork_aac', label: 'Brickwork / AAC Block Masonry' },
+  { value: 'plastering', label: 'Plastering Work' },
   {
     value: 'tile_marble_flooring',
     label: 'Flooring Work (Tiles / Marble / Granites Laying)',
   },
   { value: 'boundary_wall_fencing', label: 'Boundary Wall / Fencing Work' },
-  {
-    value: 'complete_full_structure',
-    label: 'Complete Full Structure (Foundation to Plastering)',
-  },
 ];
 
 /**
- * Structural options covered by Complete Full Structure.
- * Flooring remains independently selectable alongside full structure.
+ * Structural options historically grouped with Complete Full Structure.
+ * Kept for legacy project rows that may still contain multi-select combinations.
  */
 export const MISTRI_STRUCTURAL_CIVIL_WORK: readonly MistriCivilWorkType[] = [
   'brickwork_aac',
@@ -166,7 +166,7 @@ export function mistriWorkAreaRequired(
 export const MISTRI_FULL_STRUCTURE_NOTE =
   '* Note: Complete Full Structure includes ground-level concrete and structural work, but excludes fine finishing work such as fine plastering, tile, or marble laying.';
 
-/** Enforce full-structure exclusivity (keeps flooring). */
+/** Deduplicate civil work types (legacy rows may still contain multiple). */
 export function normalizeMistriCivilWorkSelection(
   types: readonly MistriCivilWorkType[],
 ): MistriCivilWorkType[] {
@@ -174,46 +174,20 @@ export function normalizeMistriCivilWorkSelection(
   for (const t of types) {
     if (!unique.includes(t)) unique.push(t);
   }
-  if (!unique.includes('complete_full_structure')) return unique;
-  return unique.filter(
-    (t) => t === 'complete_full_structure' || t === 'tile_marble_flooring',
-  );
+  return unique;
 }
 
 /**
- * Toggle civil work with Full Structure rules:
- * - Selecting full structure clears structural options (flooring kept).
- * - Selecting a structural option while full structure is active clears full structure.
+ * Toggle civil work as single-select:
+ * - Clicking an unselected option selects only that option.
+ * - Clicking the active option clears the selection.
  */
 export function toggleMistriCivilWorkType(
   current: readonly MistriCivilWorkType[],
   value: MistriCivilWorkType,
 ): MistriCivilWorkType[] {
-  const has = current.includes(value);
-  const isStructural = (MISTRI_STRUCTURAL_CIVIL_WORK as readonly string[]).includes(value);
-
-  if (value === 'complete_full_structure') {
-    if (has) {
-      return current.filter((t) => t !== 'complete_full_structure');
-    }
-    const kept = current.filter(
-      (t) =>
-        t !== 'complete_full_structure' &&
-        !(MISTRI_STRUCTURAL_CIVIL_WORK as readonly string[]).includes(t),
-    );
-    return normalizeMistriCivilWorkSelection([...kept, 'complete_full_structure']);
-  }
-
-  if (isStructural) {
-    if (has) {
-      return current.filter((t) => t !== value);
-    }
-    return [...current.filter((t) => t !== 'complete_full_structure'), value];
-  }
-
-  // Flooring (and any other non-structural) — independent of full structure
-  if (has) return current.filter((t) => t !== value);
-  return [...current, value];
+  if (current.includes(value)) return [];
+  return [value];
 }
 
 export const MISTRI_PLASTER_SIDE_OPTIONS: {
@@ -1009,9 +983,9 @@ export function validateMistriDetailsInput(input: {
     input.civilWorkTypes.filter(
       (t, i, arr) => CIVIL_WORK_SET.has(t) && arr.indexOf(t) === i,
     ),
-  );
+  ).slice(0, 1);
   if (civilWorkTypes.length === 0) {
-    return { error: 'Select at least one type of civil work.' };
+    return { error: 'Select a type of civil work.' };
   }
 
   let plasterSide: MistriPlasterSide | null = null;
