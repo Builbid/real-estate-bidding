@@ -179,7 +179,7 @@ export const MISTRI_PLASTER_SIDE_OPTIONS: {
   { value: 'both', label: 'Both Side Plaster' },
 ];
 
-/** Structural floor planning presets (Current Construction & Future Planned Capacity). */
+/** Structural floor planning presets (Current Construction Scope & Foundation Engineering Capacity). */
 export const MISTRI_STRUCTURAL_FLOOR_OPTIONS: {
   value: MistriStructuralFloorOption;
   label: string;
@@ -230,6 +230,9 @@ export const MISTRI_START_TIME_OPTIONS: {
 
 export const CUSTOM_FLOOR_PLAN_INVALID_MESSAGE =
   'Please enter an accurate floor plan value.';
+
+export const FOUNDATION_CAPACITY_INVALID_MESSAGE =
+  'Foundation load capacity must be equal to or greater than the current construction floors.';
 
 const CIVIL_WORK_SET = new Set<string>(MISTRI_CIVIL_WORK_OPTIONS.map((o) => o.value));
 const STRUCTURAL_FLOOR_OPTION_SET = new Set<string>(
@@ -674,11 +677,11 @@ export function getMistriWorkRequirementBlocks(details: MistriDetails): {
 
   if (details.currentFloorPlan || details.futureFloorPlan) {
     blocks.push({
-      label: 'Current Construction',
+      label: 'Current Construction Scope (This Bid)',
       value: formatMistriFloorPlan(details.currentFloorPlan),
     });
     blocks.push({
-      label: 'Future Planned Capacity',
+      label: 'Foundation Engineering Load Capacity',
       value: formatMistriFloorPlan(details.futureFloorPlan),
     });
   } else if (details.floorLevel) {
@@ -811,7 +814,7 @@ export function validateMistriDetailsInput(input: {
       ) {
         return { error: CUSTOM_FLOOR_PLAN_INVALID_MESSAGE };
       }
-      return { error: 'Select Current Construction floor plan.' };
+      return { error: 'Select Current Construction Scope.' };
     }
 
     const futureResolved = resolveStructuralFloorPlan(
@@ -825,7 +828,7 @@ export function validateMistriDetailsInput(input: {
       ) {
         return { error: CUSTOM_FLOOR_PLAN_INVALID_MESSAGE };
       }
-      return { error: 'Select Future Planned Capacity floor plan.' };
+      return { error: 'Select Foundation Engineering Load Capacity.' };
     }
 
     currentFloorPlan = currentResolved.value;
@@ -838,8 +841,7 @@ export function validateMistriDetailsInput(input: {
     }
     if (futureN < currentN) {
       return {
-        error:
-          'Future Planned Capacity must be equal to or greater than Current Construction.',
+        error: FOUNDATION_CAPACITY_INVALID_MESSAGE,
       };
     }
   } else {
@@ -856,7 +858,7 @@ export function validateMistriDetailsInput(input: {
       if ('error' in currentResolved || 'error' in futureResolved) {
         return {
           error:
-            'Complete both Current Construction and Future Planned Capacity, or clear them.',
+            'Complete both Current Construction Scope and Foundation Engineering Load Capacity, or clear them.',
         };
       }
       currentFloorPlan = currentResolved.value;
@@ -865,8 +867,7 @@ export function validateMistriDetailsInput(input: {
       const futureN = floorPlanUpperCount(futureFloorPlan);
       if (currentN == null || futureN == null || futureN < currentN) {
         return {
-          error:
-            'Future Planned Capacity must be equal to or greater than Current Construction.',
+          error: FOUNDATION_CAPACITY_INVALID_MESSAGE,
         };
       }
     }

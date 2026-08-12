@@ -19,6 +19,7 @@ import { hasContactInfo } from '@/lib/validation/projectContactInfo';
 import { formatPincodeInput, validatePincode } from '@/lib/validation/pincode';
 import {
   CUSTOM_FLOOR_PLAN_INVALID_MESSAGE,
+  FOUNDATION_CAPACITY_INVALID_MESSAGE,
   MISTRI_CIVIL_WORK_OPTIONS,
   MISTRI_CONTRACT_TYPE_OPTIONS,
   MISTRI_FULL_STRUCTURE_NOTE,
@@ -26,9 +27,11 @@ import {
   MISTRI_START_TIME_OPTIONS,
   MISTRI_STRUCTURAL_CIVIL_WORK,
   MISTRI_STRUCTURAL_FLOOR_OPTIONS,
+  floorPlanUpperCount,
   getMistriWorkRequirementBlocks,
   mistriFloorLevelRequired,
   normalizeFloorPlanValue,
+  resolveStructuralFloorPlan,
   toggleMistriCivilWorkType,
   validateMistriDetailsInput,
   type MistriCivilWorkType,
@@ -261,6 +264,23 @@ export function LabourContractorProjectWizard() {
     ? customFloorInlineError(form.futureFloorOption, form.futureFloorCustom)
     : null;
 
+  const foundationCapacityError = (() => {
+    if (!form.currentFloorOption || !form.futureFloorOption) return null;
+    const currentResolved = resolveStructuralFloorPlan(
+      form.currentFloorOption,
+      form.currentFloorCustom,
+    );
+    const futureResolved = resolveStructuralFloorPlan(
+      form.futureFloorOption,
+      form.futureFloorCustom,
+    );
+    if ('error' in currentResolved || 'error' in futureResolved) return null;
+    const currentN = floorPlanUpperCount(currentResolved.value);
+    const futureN = floorPlanUpperCount(futureResolved.value);
+    if (currentN == null || futureN == null || futureN >= currentN) return null;
+    return FOUNDATION_CAPACITY_INVALID_MESSAGE;
+  })();
+
   function selectFloorOption(
     field: 'current' | 'future',
     option: MistriStructuralFloorOption,
@@ -466,22 +486,19 @@ export function LabourContractorProjectWizard() {
               <div className="flex flex-col gap-3">
                 <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Structural Floor Planning
-                  {!floorLevelRequired && (
+                  {floorLevelRequired ? (
+                    <span className="normal-case tracking-normal"> (Required)</span>
+                  ) : (
                     <span className="normal-case tracking-normal"> (Optional)</span>
                   )}
                 </label>
-                {floorLevelRequired && (
-                  <p className="text-xs text-muted-foreground -mt-1">
-                    Required for Foundation &amp; Concrete Structure / Complete Full Structure.
-                    Future capacity must be equal to or greater than current construction.
-                  </p>
-                )}
 
                 {(
                   [
                     {
                       key: 'current' as const,
-                      title: 'Current Construction',
+                      title: 'Current Construction Scope (This Bid)',
+                      help: 'Specify how many floors will actually be constructed under this contract (e.g., Ground + 1 Floor).',
                       option: form.currentFloorOption,
                       custom: form.currentFloorCustom,
                       customError: currentCustomError,
@@ -489,7 +506,8 @@ export function LabourContractorProjectWizard() {
                     },
                     {
                       key: 'future' as const,
-                      title: 'Future Planned Capacity',
+                      title: 'Foundation Engineering Load Capacity (For Future Expansion)',
+                      help: 'Specify the maximum total floor load the foundation, footings, and columns must be engineered to support now (e.g., building G+1 now, but engineering a G+5 foundation for future vertical additions).',
                       option: form.futureFloorOption,
                       custom: form.futureFloorCustom,
                       customError: futureCustomError,
@@ -501,7 +519,12 @@ export function LabourContractorProjectWizard() {
                     key={section.key}
                     className="rounded-lg border border-border/80 bg-muted/20 p-3 space-y-2"
                   >
-                    <p className="text-xs font-semibold text-foreground">{section.title}</p>
+                    <div className="space-y-1">
+                      <p className="text-xs font-semibold text-foreground">{section.title}</p>
+                      <p className="text-[11px] text-muted-foreground leading-relaxed">
+                        {section.help}
+                      </p>
+                    </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {MISTRI_STRUCTURAL_FLOOR_OPTIONS.map((opt) => {
                         const selected = section.option === opt.value;
@@ -546,6 +569,19 @@ export function LabourContractorProjectWizard() {
                     )}
                   </div>
                 ))}
+
+                {foundationCapacityError && (
+                  <p className="text-xs text-destructive flex items-start gap-1.5">
+                    <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                    {foundationCapacityError}
+                  </p>
+                )}
+
+                <p className="text-[11px] text-muted-foreground leading-relaxed border-l-2 border-amber-500/50 pl-2.5">
+                  * Note: Higher foundation load capacity requires deeper footings, thicker columns,
+                  and additional steel reinforcement in this current phase, which affects structural
+                  material and labor estimates.
+                </p>
               </div>
 
               <div className="flex flex-col gap-1.5">

@@ -273,7 +273,9 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                   key={block.label}
                   className={cn(
                     'rounded-lg border border-border/70 bg-muted/20 px-3 py-2.5',
-                    (block.label === 'Current Construction' ||
+                    (block.label === 'Current Construction Scope (This Bid)' ||
+                      block.label === 'Foundation Engineering Load Capacity' ||
+                      block.label === 'Current Construction' ||
                       block.label === 'Future Planned Capacity' ||
                       block.label === 'Civil Work Type') &&
                       'sm:col-span-2 border-emerald-500/25 bg-emerald-500/5',
