@@ -56,6 +56,14 @@ type LegacyMistriContractType = 'full_material_labor';
 
 export type MistriStartTimeType = '1week' | '2week' | '1month' | 'specific';
 
+/** Multi-select floors for brickwork / plastering work area. */
+export type MistriWorkAreaFloor =
+  | 'ground'
+  | '1st'
+  | '2nd'
+  | 'whole_house'
+  | 'custom';
+
 export interface MistriDetails {
   /** Multi-select — at least one civil work type. */
   civilWorkTypes: MistriCivilWorkType[];
@@ -73,6 +81,13 @@ export interface MistriDetails {
    * Must be ≥ currentFloorPlan when both are set.
    */
   futureFloorPlan: string | null;
+  /**
+   * Floors where brickwork / plastering work applies (multi-select).
+   * Required on new posts when those work types are selected.
+   */
+  workAreaFloors?: MistriWorkAreaFloor[] | null;
+  /** Free-text floors when workAreaFloors includes 'custom'. */
+  workAreaCustomFloors?: string | null;
   /**
    * @deprecated Legacy single floor field. Kept for older rows; new posts use current/future.
    */
@@ -124,12 +139,27 @@ export const MISTRI_FLOOR_REQUIRED_CIVIL_WORK: readonly MistriCivilWorkType[] = 
   'foundation_concrete_structure',
 ] as const;
 
+/** Civil work types that require work-area (floor) selection. */
+export const MISTRI_WORK_AREA_REQUIRED_CIVIL_WORK: readonly MistriCivilWorkType[] = [
+  'brickwork_aac',
+  'plastering',
+] as const;
+
 /** True when floor plans must be selected for the given civil work types. */
 export function mistriFloorLevelRequired(
   types: readonly MistriCivilWorkType[],
 ): boolean {
   return types.some((t) =>
     (MISTRI_FLOOR_REQUIRED_CIVIL_WORK as readonly string[]).includes(t),
+  );
+}
+
+/** True when brickwork/plastering work-area floors must be selected. */
+export function mistriWorkAreaRequired(
+  types: readonly MistriCivilWorkType[],
+): boolean {
+  return types.some((t) =>
+    (MISTRI_WORK_AREA_REQUIRED_CIVIL_WORK as readonly string[]).includes(t),
   );
 }
 
@@ -244,6 +274,18 @@ export const MISTRI_FLOOR_LEVEL_OPTIONS: {
   { value: 'custom', label: '3+ Floors (Specify Exact)' },
 ];
 
+/** Multi-select work-area floors for brickwork / plastering. */
+export const MISTRI_WORK_AREA_FLOOR_OPTIONS: {
+  value: MistriWorkAreaFloor;
+  label: string;
+}[] = [
+  { value: 'ground', label: 'Ground Floor' },
+  { value: '1st', label: '1st Floor' },
+  { value: '2nd', label: '2nd Floor' },
+  { value: 'whole_house', label: 'Whole House / Entire Frame' },
+  { value: 'custom', label: 'Custom Floor(s)' },
+];
+
 export const MISTRI_CONTRACT_TYPE_OPTIONS: {
   value: MistriContractType;
   label: string;
@@ -285,6 +327,9 @@ const FUTURE_FLOOR_OPTION_SET = new Set<string>(
   MISTRI_FUTURE_FLOOR_OPTIONS.map((o) => o.value),
 );
 const LEGACY_FLOOR_SET = new Set<string>(MISTRI_FLOOR_LEVEL_OPTIONS.map((o) => o.value));
+const WORK_AREA_FLOOR_SET = new Set<string>(
+  MISTRI_WORK_AREA_FLOOR_OPTIONS.map((o) => o.value),
+);
 const CONTRACT_SET = new Set<string>(MISTRI_CONTRACT_TYPE_OPTIONS.map((o) => o.value));
 const PLASTER_SIDE_SET = new Set<string>(MISTRI_PLASTER_SIDE_OPTIONS.map((o) => o.value));
 const START_TIME_TYPES = new Set<MistriStartTimeType>([
@@ -335,6 +380,38 @@ function normalizePlasterSide(value: unknown): MistriPlasterSide | null {
   if (typeof value !== 'string') return null;
   if (PLASTER_SIDE_SET.has(value)) return value as MistriPlasterSide;
   return null;
+}
+
+function normalizeWorkAreaFloor(value: unknown): MistriWorkAreaFloor | null {
+  if (typeof value !== 'string') return null;
+  if (WORK_AREA_FLOOR_SET.has(value)) return value as MistriWorkAreaFloor;
+  return null;
+}
+
+/** Normalize multi-select work-area floors; returns null when empty / invalid. */
+export function normalizeWorkAreaFloors(raw: unknown): MistriWorkAreaFloor[] | null {
+  if (!Array.isArray(raw)) return null;
+  const normalized: MistriWorkAreaFloor[] = [];
+  for (const item of raw) {
+    const next = normalizeWorkAreaFloor(item);
+    if (next && !normalized.includes(next)) normalized.push(next);
+  }
+  return normalized.length > 0 ? normalized : null;
+}
+
+export function formatMistriWorkAreaFloors(
+  floors: readonly MistriWorkAreaFloor[] | null | undefined,
+  custom?: string | null,
+): string {
+  if (!floors || floors.length === 0) return '—';
+  const parts = floors.map((f) => {
+    if (f === 'custom') {
+      const text = custom?.trim();
+      return text ? `Custom (${text})` : 'Custom Floor(s)';
+    }
+    return optionLabel(MISTRI_WORK_AREA_FLOOR_OPTIONS, f);
+  });
+  return parts.join(', ');
 }
 
 /**
@@ -604,6 +681,24 @@ export function isMistriDetails(value: unknown): value is MistriDetails {
     if (v.plasterSide != null && !side) return false;
   }
 
+  // Optional work-area floors (newer field): if present, must be valid.
+  if (v.workAreaFloors != null) {
+    const workArea = normalizeWorkAreaFloors(v.workAreaFloors);
+    if (!workArea) return false;
+    if (workArea.includes('custom')) {
+      const customOk =
+        v.workAreaCustomFloors === undefined ||
+        v.workAreaCustomFloors === null ||
+        typeof v.workAreaCustomFloors === 'string';
+      if (!customOk) return false;
+    }
+  } else if (
+    v.workAreaCustomFloors != null &&
+    typeof v.workAreaCustomFloors !== 'string'
+  ) {
+    return false;
+  }
+
   if (currentFloorPlan && futureFloorPlan) {
     const currentN = floorPlanUpperCount(currentFloorPlan);
     const futureN = floorPlanUpperCount(futureFloorPlan);
@@ -648,6 +743,17 @@ export function parseMistriDetails(value: unknown): MistriDetails | null {
       ? raw.additionalRequirements.trim()
       : null;
 
+  const workAreaRequired = mistriWorkAreaRequired(civilWorkTypes);
+  const workAreaFloors = workAreaRequired
+    ? normalizeWorkAreaFloors(raw.workAreaFloors)
+    : null;
+  const workAreaCustomFloors =
+    workAreaFloors?.includes('custom') &&
+    typeof raw.workAreaCustomFloors === 'string' &&
+    raw.workAreaCustomFloors.trim()
+      ? raw.workAreaCustomFloors.trim()
+      : null;
+
   const approximateAreaSqft =
     typeof raw.approximateAreaSqft === 'number' ? raw.approximateAreaSqft : NaN;
   if (!Number.isFinite(approximateAreaSqft) || approximateAreaSqft <= 0) return null;
@@ -658,6 +764,8 @@ export function parseMistriDetails(value: unknown): MistriDetails | null {
     approximateAreaSqft,
     currentFloorPlan,
     futureFloorPlan,
+    workAreaFloors,
+    workAreaCustomFloors,
     floorLevel: floorLevel ?? null,
     customFloorCount:
       floorLevel === 'custom' ? (customFloorCount ?? 3) : null,
@@ -800,6 +908,16 @@ export function getMistriWorkRequirementBlocks(details: MistriDetails): {
     });
   }
 
+  if (details.workAreaFloors && details.workAreaFloors.length > 0) {
+    blocks.push({
+      label: 'Work Area (Floors)',
+      value: formatMistriWorkAreaFloors(
+        details.workAreaFloors,
+        details.workAreaCustomFloors,
+      ),
+    });
+  }
+
   blocks.push(
     {
       label: 'Contract Type',
@@ -880,6 +998,8 @@ export function validateMistriDetailsInput(input: {
   currentFloorCustom: string | number;
   futureFloorOption: MistriFutureFloorOption | null;
   futureFloorCustom: string | number;
+  workAreaFloors: MistriWorkAreaFloor[];
+  workAreaCustomFloors: string;
   contractType: MistriContractType | null;
   projectStartTimeType: MistriStartTimeType | null;
   projectStartTimeSpecificDate: string;
@@ -960,6 +1080,25 @@ export function validateMistriDetailsInput(input: {
     futureFloorPlan = null;
   }
 
+  const workAreaRequired = mistriWorkAreaRequired(civilWorkTypes);
+  let workAreaFloors: MistriWorkAreaFloor[] | null = null;
+  let workAreaCustomFloors: string | null = null;
+
+  if (workAreaRequired) {
+    const normalized = normalizeWorkAreaFloors(input.workAreaFloors);
+    if (!normalized) {
+      return { error: 'Select at least one work area floor.' };
+    }
+    if (normalized.includes('custom')) {
+      const custom = String(input.workAreaCustomFloors ?? '').trim();
+      if (!custom) {
+        return { error: 'Enter custom floor details for the work area.' };
+      }
+      workAreaCustomFloors = custom;
+    }
+    workAreaFloors = normalized;
+  }
+
   if (!input.contractType || !CONTRACT_SET.has(input.contractType)) {
     return { error: 'Select a contract type.' };
   }
@@ -976,6 +1115,8 @@ export function validateMistriDetailsInput(input: {
     approximateAreaSqft: area,
     currentFloorPlan,
     futureFloorPlan,
+    workAreaFloors,
+    workAreaCustomFloors,
     floorLevel: null,
     customFloorCount: null,
     contractType: input.contractType,

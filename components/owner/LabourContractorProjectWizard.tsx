@@ -28,10 +28,12 @@ import {
   MISTRI_PLASTER_SIDE_OPTIONS,
   MISTRI_START_TIME_OPTIONS,
   MISTRI_STRUCTURAL_CIVIL_WORK,
+  MISTRI_WORK_AREA_FLOOR_OPTIONS,
   floorPlanUpperCount,
   getMistriWorkRequirementBlocks,
   isFutureFloorOptionAllowed,
   mistriFloorLevelRequired,
+  mistriWorkAreaRequired,
   normalizeFloorPlanValue,
   resolveCurrentFloorPlan,
   resolveFutureFloorPlan,
@@ -43,6 +45,7 @@ import {
   type MistriFutureFloorOption,
   type MistriPlasterSide,
   type MistriStartTimeType,
+  type MistriWorkAreaFloor,
 } from '@/lib/mistriDetails';
 import { cn } from '@/lib/utils';
 import { createProjectAction } from '@/app/actions/createProject';
@@ -68,6 +71,8 @@ interface FormState {
   currentFloorCustom: string;
   futureFloorOption: MistriFutureFloorOption | null;
   futureFloorCustom: string;
+  workAreaFloors: MistriWorkAreaFloor[];
+  workAreaCustomFloors: string;
   contractType: MistriContractType | null;
   projectStartTimeType: MistriStartTimeType | null;
   projectStartTimeSpecificDate: string;
@@ -85,6 +90,8 @@ const EMPTY_FORM: FormState = {
   currentFloorCustom: '',
   futureFloorOption: null,
   futureFloorCustom: '',
+  workAreaFloors: [],
+  workAreaCustomFloors: '',
   contractType: null,
   projectStartTimeType: null,
   projectStartTimeSpecificDate: '',
@@ -134,6 +141,7 @@ export function LabourContractorProjectWizard() {
     setForm((f) => {
       const nextTypes = toggleMistriCivilWorkType(f.civilWorkTypes, value);
       const floorStillRequired = mistriFloorLevelRequired(nextTypes);
+      const workAreaStillRequired = mistriWorkAreaRequired(nextTypes);
       return {
         ...f,
         civilWorkTypes: nextTypes,
@@ -145,6 +153,12 @@ export function LabourContractorProjectWizard() {
               currentFloorCustom: '',
               futureFloorOption: null,
               futureFloorCustom: '',
+            }),
+        ...(workAreaStillRequired
+          ? {}
+          : {
+              workAreaFloors: [],
+              workAreaCustomFloors: '',
             }),
       };
     });
@@ -161,6 +175,8 @@ export function LabourContractorProjectWizard() {
       currentFloorCustom: form.currentFloorCustom,
       futureFloorOption: form.futureFloorOption,
       futureFloorCustom: form.futureFloorCustom,
+      workAreaFloors: form.workAreaFloors,
+      workAreaCustomFloors: form.workAreaCustomFloors,
       contractType: form.contractType,
       projectStartTimeType: form.projectStartTimeType,
       projectStartTimeSpecificDate: form.projectStartTimeSpecificDate,
@@ -270,6 +286,7 @@ export function LabourContractorProjectWizard() {
   })();
 
   const floorLevelRequired = mistriFloorLevelRequired(form.civilWorkTypes);
+  const workAreaRequired = mistriWorkAreaRequired(form.civilWorkTypes);
   const currentCustomError = floorLevelRequired
     ? customFloorInlineError(form.currentFloorOption, form.currentFloorCustom)
     : null;
@@ -331,6 +348,22 @@ export function LabourContractorProjectWizard() {
     if (!isFutureFloorOptionAllowed(option, currentUpper)) return;
     update('futureFloorOption', option);
     if (option !== 'custom') update('futureFloorCustom', '');
+    setStep2Error(null);
+  }
+
+  function toggleWorkAreaFloor(value: MistriWorkAreaFloor) {
+    if (!workAreaRequired) return;
+    setForm((f) => {
+      const selected = f.workAreaFloors.includes(value);
+      const next = selected
+        ? f.workAreaFloors.filter((v) => v !== value)
+        : [...f.workAreaFloors, value];
+      return {
+        ...f,
+        workAreaFloors: next,
+        workAreaCustomFloors: next.includes('custom') ? f.workAreaCustomFloors : '',
+      };
+    });
     setStep2Error(null);
   }
 
@@ -522,23 +555,59 @@ export function LabourContractorProjectWizard() {
                 }}
               />
 
-              <div
-                className={cn(
-                  'flex flex-col gap-3 transition-opacity',
-                  !floorLevelRequired && 'opacity-50 pointer-events-none select-none',
-                )}
-                aria-disabled={!floorLevelRequired}
-              >
+              {workAreaRequired && (
+                <div className="flex flex-col gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      Work Area (Floor Selection)
+                    </label>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                      Select every floor where brickwork or plastering work is required. You can
+                      choose more than one.
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {MISTRI_WORK_AREA_FLOOR_OPTIONS.map((opt) => {
+                      const selected = form.workAreaFloors.includes(opt.value);
+                      return (
+                        <button
+                          key={`work-area-${opt.value}`}
+                          type="button"
+                          onClick={() => toggleWorkAreaFloor(opt.value)}
+                          className={cn(
+                            'rounded-lg border px-3 py-2.5 text-left text-xs font-semibold transition-colors',
+                            selected
+                              ? 'border-emerald-500/70 bg-emerald-500/10 text-foreground'
+                              : 'border-border bg-card text-muted-foreground hover:border-muted-foreground/40',
+                          )}
+                        >
+                          {opt.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {form.workAreaFloors.includes('custom') && (
+                    <Input
+                      label="Custom Floor(s)"
+                      type="text"
+                      inputMode="text"
+                      placeholder="e.g. 3rd Floor, 4th Floor, Terrace"
+                      value={form.workAreaCustomFloors}
+                      onChange={(e) => {
+                        update('workAreaCustomFloors', e.target.value);
+                        setStep2Error(null);
+                      }}
+                    />
+                  )}
+                </div>
+              )}
+
+              {floorLevelRequired && (
+              <div className="flex flex-col gap-3">
                 <div className="space-y-1">
                   <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Structural Floor Planning
                   </label>
-                  {!floorLevelRequired && (
-                    <p className="text-[11px] text-muted-foreground leading-relaxed">
-                      Applies only when Foundation &amp; Concrete Structure or Complete Full
-                      Structure is selected.
-                    </p>
-                  )}
                 </div>
 
                 <div className="rounded-lg border border-border/80 bg-muted/20 p-3 space-y-2">
@@ -557,14 +626,12 @@ export function LabourContractorProjectWizard() {
                         <button
                           key={`current-${opt.value}`}
                           type="button"
-                          disabled={!floorLevelRequired}
                           onClick={() => selectCurrentFloorOption(opt.value)}
                           className={cn(
                             'rounded-lg border px-3 py-2.5 text-left text-xs font-semibold transition-colors',
                             selected
                               ? 'border-emerald-500/70 bg-emerald-500/10 text-foreground'
                               : 'border-border bg-card text-muted-foreground hover:border-muted-foreground/40',
-                            !floorLevelRequired && 'cursor-not-allowed hover:border-border',
                           )}
                         >
                           {opt.label}
@@ -572,7 +639,7 @@ export function LabourContractorProjectWizard() {
                       );
                     })}
                   </div>
-                  {form.currentFloorOption === 'custom' && floorLevelRequired && (
+                  {form.currentFloorOption === 'custom' && (
                     <div className="space-y-1">
                       <Input
                         label="Enter floor plan (e.g. G+3, G+4)"
@@ -631,7 +698,6 @@ export function LabourContractorProjectWizard() {
                     onValueChange={(v) =>
                       selectFutureFloorOption(v as MistriFutureFloorOption)
                     }
-                    disabled={!floorLevelRequired}
                   >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select future foundation capacity" />
@@ -652,7 +718,7 @@ export function LabourContractorProjectWizard() {
                       })}
                     </SelectContent>
                   </Select>
-                  {form.futureFloorOption === 'custom' && floorLevelRequired && (
+                  {form.futureFloorOption === 'custom' && (
                     <div className="space-y-1">
                       <Input
                         label="Enter total upper floors (e.g. 6, 7, 8)"
@@ -679,7 +745,7 @@ export function LabourContractorProjectWizard() {
                   )}
                 </div>
 
-                {floorLevelRequired && foundationCapacityError && (
+                {foundationCapacityError && (
                   <p className="text-xs text-destructive flex items-start gap-1.5">
                     <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
                     {foundationCapacityError}
@@ -692,6 +758,7 @@ export function LabourContractorProjectWizard() {
                   material costs.
                 </p>
               </div>
+              )}
 
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
