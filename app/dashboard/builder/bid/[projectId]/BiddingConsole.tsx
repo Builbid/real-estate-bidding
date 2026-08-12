@@ -42,6 +42,10 @@ import {
   getProjectConfigOrDrawingMeta,
   getProjectServiceBadgeLabel,
 } from '@/lib/project/display';
+import {
+  getMistriWorkRequirementBlocks,
+  parseMistriDetails,
+} from '@/lib/mistriDetails';
 import type { Project, Bid, BidRates } from '@/lib/types';
 
 interface Props {
@@ -69,6 +73,13 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
   const isSingleRateBid = isTrade || isDrawing;
   const serviceBadge = getProjectServiceBadgeLabel(project);
   const configMeta = getProjectConfigOrDrawingMeta(project);
+  const mistriDetails =
+    project.service_type === 'labour_contractor'
+      ? parseMistriDetails(project.mistri_details)
+      : null;
+  const mistriBlocks = mistriDetails
+    ? getMistriWorkRequirementBlocks(mistriDetails)
+    : null;
 
   // Trade / Drawing & Design bid a single ₹/sqft rate (not per floor).
   const floorCount = isSingleRateBid ? 1 : resolveProjectFloorCount(project);
@@ -244,6 +255,39 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
               trackType={project.track_type}
               subConfiguration={project.sub_configuration}
             />
+          </CardContent>
+        </Card>
+      )}
+
+      {mistriBlocks && mistriBlocks.length > 0 && (
+        <Card className="border-emerald-500/20">
+          <CardHeader className="p-4 pb-2">
+            <CardTitle className="text-xs text-emerald-400 uppercase tracking-wider">
+              Mistri Work Requirements
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 pb-4 pt-0">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {mistriBlocks.map((block) => (
+                <div
+                  key={block.label}
+                  className={cn(
+                    'rounded-lg border border-border/70 bg-muted/20 px-3 py-2.5',
+                    (block.label === 'Current Construction' ||
+                      block.label === 'Future Planned Capacity' ||
+                      block.label === 'Civil Work Type') &&
+                      'sm:col-span-2 border-emerald-500/25 bg-emerald-500/5',
+                  )}
+                >
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    {block.label}
+                  </p>
+                  <p className="text-sm font-semibold text-foreground mt-0.5 leading-snug">
+                    {block.value}
+                  </p>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
       )}

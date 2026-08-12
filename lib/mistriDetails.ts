@@ -23,6 +23,13 @@ type LegacyMistriCivilWorkType = 'rcc_column_beam_slab' | 'foundation_pcc';
 
 export type MistriPlasterSide = 'single' | 'both';
 
+/** Preset / custom selector for structural floor planning. */
+export type MistriStructuralFloorOption = 'G+1' | 'G+2' | 'G+3' | 'custom';
+
+/**
+ * @deprecated Legacy single floor selector — still parsed from older mistri_details rows.
+ * Prefer currentFloorPlan / futureFloorPlan.
+ */
 export type MistriFloorLevel = 'ground' | '1st' | '2nd' | 'custom';
 
 export type MistriContractType =
@@ -42,11 +49,20 @@ export interface MistriDetails {
   /** Approximate project area in sq.ft. (rough estimate is fine). */
   approximateAreaSqft: number;
   /**
+   * Current construction floor plan — clean value e.g. "G+1", "G+2", "G+5".
    * Required when civil work includes full structure or foundation/concrete structure.
-   * Optional for independent work (brickwork, plastering, flooring, boundary wall).
    */
-  floorLevel: MistriFloorLevel | null;
-  /** Required when floorLevel === 'custom' — exact total floors (e.g. 4, 5, 6). */
+  currentFloorPlan: string | null;
+  /**
+   * Future planned foundation capacity — clean value e.g. "G+1", "G+2", "G+5".
+   * Must be ≥ currentFloorPlan when both are set.
+   */
+  futureFloorPlan: string | null;
+  /**
+   * @deprecated Legacy single floor field. Kept for older rows; new posts use current/future.
+   */
+  floorLevel?: MistriFloorLevel | null;
+  /** @deprecated Legacy custom floor count for floorLevel === 'custom'. */
   customFloorCount?: number | null;
   contractType: MistriContractType;
   projectStartTimeType: MistriStartTimeType;
@@ -87,13 +103,13 @@ export const MISTRI_STRUCTURAL_CIVIL_WORK: readonly MistriCivilWorkType[] = [
   'boundary_wall_fencing',
 ] as const;
 
-/** Civil work types that require a floor / height level selection. */
+/** Civil work types that require structural floor planning (current + future). */
 export const MISTRI_FLOOR_REQUIRED_CIVIL_WORK: readonly MistriCivilWorkType[] = [
   'complete_full_structure',
   'foundation_concrete_structure',
 ] as const;
 
-/** True when floor / height level must be selected for the given civil work types. */
+/** True when floor plans must be selected for the given civil work types. */
 export function mistriFloorLevelRequired(
   types: readonly MistriCivilWorkType[],
 ): boolean {
@@ -163,6 +179,18 @@ export const MISTRI_PLASTER_SIDE_OPTIONS: {
   { value: 'both', label: 'Both Side Plaster' },
 ];
 
+/** Structural floor planning presets (Current Construction & Future Planned Capacity). */
+export const MISTRI_STRUCTURAL_FLOOR_OPTIONS: {
+  value: MistriStructuralFloorOption;
+  label: string;
+}[] = [
+  { value: 'G+1', label: 'G+1 (Ground + 1 Floor)' },
+  { value: 'G+2', label: 'G+2 (Ground + 2 Floors)' },
+  { value: 'G+3', label: 'G+3 (Ground + 3 Floors)' },
+  { value: 'custom', label: 'Custom (Manual Entry)' },
+];
+
+/** @deprecated Use MISTRI_STRUCTURAL_FLOOR_OPTIONS. */
 export const MISTRI_FLOOR_LEVEL_OPTIONS: {
   value: MistriFloorLevel;
   label: string;
@@ -200,8 +228,14 @@ export const MISTRI_START_TIME_OPTIONS: {
   { value: 'specific', label: 'Specific Date' },
 ];
 
+export const CUSTOM_FLOOR_PLAN_INVALID_MESSAGE =
+  'Please enter an accurate floor plan value.';
+
 const CIVIL_WORK_SET = new Set<string>(MISTRI_CIVIL_WORK_OPTIONS.map((o) => o.value));
-const FLOOR_SET = new Set<string>(MISTRI_FLOOR_LEVEL_OPTIONS.map((o) => o.value));
+const STRUCTURAL_FLOOR_OPTION_SET = new Set<string>(
+  MISTRI_STRUCTURAL_FLOOR_OPTIONS.map((o) => o.value),
+);
+const LEGACY_FLOOR_SET = new Set<string>(MISTRI_FLOOR_LEVEL_OPTIONS.map((o) => o.value));
 const CONTRACT_SET = new Set<string>(MISTRI_CONTRACT_TYPE_OPTIONS.map((o) => o.value));
 const PLASTER_SIDE_SET = new Set<string>(MISTRI_PLASTER_SIDE_OPTIONS.map((o) => o.value));
 const START_TIME_TYPES = new Set<MistriStartTimeType>([
@@ -211,8 +245,10 @@ const START_TIME_TYPES = new Set<MistriStartTimeType>([
   'specific',
 ]);
 
-const MIN_CUSTOM_FLOORS = 3;
-const MAX_CUSTOM_FLOORS = 50;
+const MIN_UPPER_FLOORS = 0;
+const MAX_UPPER_FLOORS = 50;
+const MIN_LEGACY_CUSTOM_FLOORS = 3;
+const MAX_LEGACY_CUSTOM_FLOORS = 50;
 
 function optionLabel<T extends string>(
   options: { value: T; label: string }[],
@@ -239,9 +275,9 @@ function normalizeContractType(value: unknown): MistriContractType | null {
   return null;
 }
 
-function normalizeFloorLevel(value: unknown): MistriFloorLevel | null {
+function normalizeLegacyFloorLevel(value: unknown): MistriFloorLevel | null {
   if (typeof value !== 'string') return null;
-  if (FLOOR_SET.has(value)) return value as MistriFloorLevel;
+  if (LEGACY_FLOOR_SET.has(value)) return value as MistriFloorLevel;
   if (value === '3rd_above') return 'custom';
   return null;
 }
@@ -252,20 +288,109 @@ function normalizePlasterSide(value: unknown): MistriPlasterSide | null {
   return null;
 }
 
-function normalizeCustomFloorCount(
+/**
+ * Normalize a floor-plan string to clean "G+N" form.
+ * Accepts "G+4", "g+5", or a plain upper-floor count like "5".
+ */
+export function normalizeFloorPlanValue(raw: unknown): string | null {
+  if (typeof raw !== 'string' && typeof raw !== 'number') return null;
+  const trimmed = String(raw).trim().toUpperCase();
+  if (!trimmed) return null;
+
+  const gPlus = trimmed.match(/^G\+(\d+)$/);
+  if (gPlus) {
+    const n = parseInt(gPlus[1], 10);
+    if (n >= MIN_UPPER_FLOORS && n <= MAX_UPPER_FLOORS) return `G+${n}`;
+    return null;
+  }
+
+  if (/^\d+$/.test(trimmed)) {
+    const n = parseInt(trimmed, 10);
+    if (n >= MIN_UPPER_FLOORS && n <= MAX_UPPER_FLOORS) return `G+${n}`;
+  }
+
+  return null;
+}
+
+/** Upper-floor count from a clean "G+N" value (e.g. G+2 → 2). */
+export function floorPlanUpperCount(value: string | null | undefined): number | null {
+  if (!value) return null;
+  const normalized = normalizeFloorPlanValue(value);
+  if (!normalized) return null;
+  const match = normalized.match(/^G\+(\d+)$/);
+  return match ? parseInt(match[1], 10) : null;
+}
+
+/** Resolve preset or custom form selection into a clean stored floor-plan value. */
+export function resolveStructuralFloorPlan(
+  option: MistriStructuralFloorOption | null,
+  customValue: string | number,
+): { value: string } | { error: string } {
+  if (!option || !STRUCTURAL_FLOOR_OPTION_SET.has(option)) {
+    return { error: 'Select a floor plan option.' };
+  }
+  if (option === 'custom') {
+    const normalized = normalizeFloorPlanValue(customValue);
+    if (!normalized) {
+      return { error: CUSTOM_FLOOR_PLAN_INVALID_MESSAGE };
+    }
+    return { value: normalized };
+  }
+  return { value: option };
+}
+
+/** Infer which selector option matches a stored floor-plan value. */
+export function structuralFloorOptionFromValue(
+  value: string | null | undefined,
+): MistriStructuralFloorOption | null {
+  if (!value) return null;
+  const normalized = normalizeFloorPlanValue(value);
+  if (!normalized) return null;
+  if (normalized === 'G+1' || normalized === 'G+2' || normalized === 'G+3') {
+    return normalized;
+  }
+  return 'custom';
+}
+
+function legacyFloorToPlan(
+  floorLevel: MistriFloorLevel,
+  customFloorCount: number | null,
+): string {
+  switch (floorLevel) {
+    case 'ground':
+      return 'G+0';
+    case '1st':
+      return 'G+1';
+    case '2nd':
+      return 'G+2';
+    case 'custom': {
+      const total = customFloorCount ?? 3;
+      // Legacy custom stored total floors; G+(total-1) upper floors.
+      const upper = Math.max(0, Math.min(total - 1, MAX_UPPER_FLOORS));
+      return `G+${upper}`;
+    }
+    default:
+      return 'G+1';
+  }
+}
+
+function normalizeLegacyCustomFloorCount(
   floorLevel: MistriFloorLevel,
   raw: unknown,
   legacyFloor?: unknown,
 ): number | null {
   if (floorLevel !== 'custom') return null;
-  if (typeof raw === 'number' && Number.isInteger(raw) && raw >= MIN_CUSTOM_FLOORS) {
-    return Math.min(raw, MAX_CUSTOM_FLOORS);
+  if (
+    typeof raw === 'number' &&
+    Number.isInteger(raw) &&
+    raw >= MIN_LEGACY_CUSTOM_FLOORS
+  ) {
+    return Math.min(raw, MAX_LEGACY_CUSTOM_FLOORS);
   }
   if (typeof raw === 'string' && /^\d+$/.test(raw.trim())) {
     const n = parseInt(raw.trim(), 10);
-    if (n >= MIN_CUSTOM_FLOORS) return Math.min(n, MAX_CUSTOM_FLOORS);
+    if (n >= MIN_LEGACY_CUSTOM_FLOORS) return Math.min(n, MAX_LEGACY_CUSTOM_FLOORS);
   }
-  // Legacy rows used 3rd_above without an explicit count.
   if (legacyFloor === '3rd_above') return 3;
   return null;
 }
@@ -291,12 +416,39 @@ export function parseApproximateAreaSqft(input: string | number): number | null 
   return Number.isFinite(area) && area > 0 ? area : null;
 }
 
+function extractFloorPlans(raw: Record<string, unknown>): {
+  currentFloorPlan: string | null;
+  futureFloorPlan: string | null;
+  floorLevel: MistriFloorLevel | null;
+  customFloorCount: number | null;
+} {
+  let currentFloorPlan = normalizeFloorPlanValue(raw.currentFloorPlan);
+  let futureFloorPlan = normalizeFloorPlanValue(raw.futureFloorPlan);
+
+  const floorLevel = normalizeLegacyFloorLevel(raw.floorLevel);
+  const customFloorCount = floorLevel
+    ? normalizeLegacyCustomFloorCount(floorLevel, raw.customFloorCount, raw.floorLevel)
+    : null;
+
+  // Migrate legacy single floorLevel → dual plans when new fields absent.
+  if ((!currentFloorPlan || !futureFloorPlan) && floorLevel) {
+    const migrated = legacyFloorToPlan(
+      floorLevel,
+      customFloorCount ?? (floorLevel === 'custom' ? 3 : null),
+    );
+    if (!currentFloorPlan) currentFloorPlan = migrated;
+    if (!futureFloorPlan) futureFloorPlan = migrated;
+  }
+
+  return { currentFloorPlan, futureFloorPlan, floorLevel, customFloorCount };
+}
+
 export function isMistriDetails(value: unknown): value is MistriDetails {
   if (!value || typeof value !== 'object') return false;
   const v = value as Record<string, unknown>;
   const civilWorkTypes = normalizeCivilWorkTypes(v.civilWorkTypes);
   const contractType = normalizeContractType(v.contractType);
-  const floorLevel = normalizeFloorLevel(v.floorLevel);
+  const { currentFloorPlan, futureFloorPlan, floorLevel } = extractFloorPlans(v);
   const floorRequired = mistriFloorLevelRequired(civilWorkTypes);
   const additionalOk =
     v.additionalRequirements === undefined ||
@@ -308,7 +460,7 @@ export function isMistriDetails(value: unknown): value is MistriDetails {
     typeof v.approximateAreaSqft !== 'number' ||
     !Number.isFinite(v.approximateAreaSqft) ||
     v.approximateAreaSqft <= 0 ||
-    (floorRequired && !floorLevel) ||
+    (floorRequired && (!currentFloorPlan || !futureFloorPlan)) ||
     contractType == null ||
     typeof v.projectStartTimeType !== 'string' ||
     !START_TIME_TYPES.has(v.projectStartTimeType as MistriStartTimeType) ||
@@ -317,7 +469,15 @@ export function isMistriDetails(value: unknown): value is MistriDetails {
     return false;
   }
 
-  // Optional floor: if a value is present it must normalize; unknown strings fail.
+  // Optional floor plans: if present they must normalize.
+  if (v.currentFloorPlan != null && v.currentFloorPlan !== '' && !currentFloorPlan) {
+    return false;
+  }
+  if (v.futureFloorPlan != null && v.futureFloorPlan !== '' && !futureFloorPlan) {
+    return false;
+  }
+
+  // Legacy floor: unknown strings fail (except 3rd_above).
   if (
     v.floorLevel != null &&
     v.floorLevel !== '' &&
@@ -329,16 +489,18 @@ export function isMistriDetails(value: unknown): value is MistriDetails {
 
   if (civilWorkTypes.includes('plastering')) {
     const side = normalizePlasterSide(v.plasterSide);
-    // Legacy rows may omit plasterSide — allow parse to fill null for display.
     if (v.plasterSide != null && !side) return false;
   }
 
-  if (floorLevel === 'custom') {
-    const count = normalizeCustomFloorCount(floorLevel, v.customFloorCount, v.floorLevel);
-    // Accept legacy 3rd_above without count during is-check via normalizeFloorLevel path:
-    // when raw floorLevel is still '3rd_above', normalizeFloorLevel returns custom but
-    // customFloorCount may be missing — still treat as valid for parse.
-    if (v.floorLevel === 'custom' && count == null) return false;
+  if (currentFloorPlan && futureFloorPlan) {
+    const currentN = floorPlanUpperCount(currentFloorPlan);
+    const futureN = floorPlanUpperCount(futureFloorPlan);
+    if (currentN == null || futureN == null || futureN < currentN) return false;
+  }
+
+  if (floorLevel === 'custom' && v.floorLevel === 'custom') {
+    const count = normalizeLegacyCustomFloorCount(floorLevel, v.customFloorCount, v.floorLevel);
+    if (count == null && !currentFloorPlan) return false;
   }
 
   return true;
@@ -348,26 +510,18 @@ export function parseMistriDetails(value: unknown): MistriDetails | null {
   if (!value || typeof value !== 'object') return null;
   if (!isMistriDetails(value)) return null;
 
-  // Re-read via unknown so legacy keys (e.g. floorLevel: '3rd_above') can be normalized.
   const raw = value as unknown as Record<string, unknown>;
   const civilWorkTypes = normalizeCivilWorkTypes(raw.civilWorkTypes);
   const contractType = normalizeContractType(raw.contractType);
-  const floorLevel = normalizeFloorLevel(raw.floorLevel);
+  const { currentFloorPlan, futureFloorPlan, floorLevel, customFloorCount } =
+    extractFloorPlans(raw);
   const floorRequired = mistriFloorLevelRequired(civilWorkTypes);
   if (civilWorkTypes.length === 0 || !contractType) return null;
-  if (floorRequired && !floorLevel) return null;
+  if (floorRequired && (!currentFloorPlan || !futureFloorPlan)) return null;
 
   const plasterSide = civilWorkTypes.includes('plastering')
     ? normalizePlasterSide(raw.plasterSide)
     : null;
-
-  const customFloorCount = floorLevel
-    ? normalizeCustomFloorCount(floorLevel, raw.customFloorCount, raw.floorLevel)
-    : null;
-
-  if (floorLevel === 'custom' && customFloorCount == null && raw.floorLevel !== '3rd_above') {
-    return null;
-  }
 
   const projectStartTimeType = raw.projectStartTimeType as MistriStartTimeType;
   const specific =
@@ -390,8 +544,11 @@ export function parseMistriDetails(value: unknown): MistriDetails | null {
     civilWorkTypes,
     plasterSide,
     approximateAreaSqft,
-    floorLevel,
-    customFloorCount: floorLevel === 'custom' ? (customFloorCount ?? 3) : null,
+    currentFloorPlan,
+    futureFloorPlan,
+    floorLevel: floorLevel ?? null,
+    customFloorCount:
+      floorLevel === 'custom' ? (customFloorCount ?? 3) : null,
     contractType,
     projectStartTimeType,
     projectStartTimeSpecificDate: specific,
@@ -458,7 +615,22 @@ export function summarizeMistriCivilWorkScope(
   return `${parts.slice(0, -1).join(', ')} & ${parts[parts.length - 1]}`;
 }
 
+export function formatMistriFloorPlan(value: string | null | undefined): string {
+  if (!value) return 'Not specified';
+  const normalized = normalizeFloorPlanValue(value);
+  if (!normalized) return value;
+  if (normalized === 'G+0') return 'Ground Floor';
+  const upper = floorPlanUpperCount(normalized);
+  if (upper == null) return normalized;
+  if (upper === 1) return 'G+1 (Ground + 1 Floor)';
+  return `${normalized} (Ground + ${upper} Floors)`;
+}
+
+/** @deprecated Prefer formatMistriFloorPlan / dual current+future blocks. */
 export function formatMistriFloorLevel(details: MistriDetails): string {
+  if (details.currentFloorPlan) {
+    return formatMistriFloorPlan(details.currentFloorPlan);
+  }
   if (!details.floorLevel) return 'Not specified';
   if (details.floorLevel === 'custom') {
     const n = details.customFloorCount;
@@ -500,7 +672,16 @@ export function getMistriWorkRequirementBlocks(details: MistriDetails): {
     },
   ];
 
-  if (details.floorLevel) {
+  if (details.currentFloorPlan || details.futureFloorPlan) {
+    blocks.push({
+      label: 'Current Construction',
+      value: formatMistriFloorPlan(details.currentFloorPlan),
+    });
+    blocks.push({
+      label: 'Future Planned Capacity',
+      value: formatMistriFloorPlan(details.futureFloorPlan),
+    });
+  } else if (details.floorLevel) {
     blocks.push({
       label: 'Floor Level',
       value: formatMistriFloorLevel(details),
@@ -529,38 +710,41 @@ export function getMistriWorkRequirementBlocks(details: MistriDetails): {
 }
 
 /**
- * Map floor level → legacy building_types for DB / bidding compatibility.
- * Custom counts expand ground→upper RCC floors (capped at available RCC types).
- * When floor is omitted (non-structural independent work), defaults to ground.
+ * Map a clean "G+N" floor plan → legacy building_types for DB / bidding compatibility.
+ * Uses future planned capacity when available (foundation sized for max height).
+ */
+export function buildingTypesFromFloorPlan(
+  floorPlan: string | null | undefined,
+): BuildingType[] {
+  const upper = floorPlanUpperCount(floorPlan);
+  if (upper == null || upper <= 0) {
+    return ['RCC Ground Floor'];
+  }
+  // G+N → ground + N upper floors (capped at available RCC types).
+  const count = Math.min(upper + 1, RCC_BUILDING_TYPES.length);
+  return RCC_BUILDING_TYPES.slice(0, count);
+}
+
+/**
+ * @deprecated Prefer buildingTypesFromFloorPlan with futureFloorPlan.
+ * Map legacy floor level → building_types.
  */
 export function buildingTypesFromMistriFloor(
   floor: MistriFloorLevel | null | undefined,
   customFloorCount?: number | null,
 ): BuildingType[] {
-  switch (floor) {
-    case 'ground':
-      return ['RCC Ground Floor'];
-    case '1st':
-      return ['RCC 1st Floor'];
-    case '2nd':
-      return ['RCC 2nd Floor'];
-    case 'custom': {
-      const n = Math.max(MIN_CUSTOM_FLOORS, Math.min(customFloorCount ?? 3, RCC_BUILDING_TYPES.length));
-      return RCC_BUILDING_TYPES.slice(0, n);
-    }
-    default:
-      return ['RCC Ground Floor'];
-  }
+  if (!floor) return ['RCC Ground Floor'];
+  return buildingTypesFromFloorPlan(legacyFloorToPlan(floor, customFloorCount ?? null));
 }
 
-/** Derive construction_types from civil work selection + floor. */
+/** Derive construction_types from civil work selection + floor plan. */
 export function constructionTypesFromMistriDetails(
   details: MistriDetails,
 ): ConstructionTypesMap {
-  const buildingTypes = buildingTypesFromMistriFloor(
-    details.floorLevel,
-    details.customFloorCount,
-  );
+  const plan = details.futureFloorPlan ?? details.currentFloorPlan;
+  const buildingTypes = plan
+    ? buildingTypesFromFloorPlan(plan)
+    : buildingTypesFromMistriFloor(details.floorLevel ?? null, details.customFloorCount);
   const isFull = details.civilWorkTypes.includes('complete_full_structure');
 
   const map: ConstructionTypesMap = {};
@@ -580,8 +764,10 @@ export function validateMistriDetailsInput(input: {
   civilWorkTypes: MistriCivilWorkType[];
   plasterSide: MistriPlasterSide | null;
   approximateArea: string | number;
-  floorLevel: MistriFloorLevel | null;
-  customFloorCount: string | number;
+  currentFloorOption: MistriStructuralFloorOption | null;
+  currentFloorCustom: string | number;
+  futureFloorOption: MistriStructuralFloorOption | null;
+  futureFloorCustom: string | number;
   contractType: MistriContractType | null;
   projectStartTimeType: MistriStartTimeType | null;
   projectStartTimeSpecificDate: string;
@@ -610,29 +796,80 @@ export function validateMistriDetailsInput(input: {
   }
 
   const floorRequired = mistriFloorLevelRequired(civilWorkTypes);
-  let floorLevel: MistriFloorLevel | null = null;
-  let customFloorCount: number | null = null;
+  let currentFloorPlan: string | null = null;
+  let futureFloorPlan: string | null = null;
 
   if (floorRequired) {
-    if (!input.floorLevel || !FLOOR_SET.has(input.floorLevel)) {
-      return { error: 'Select a floor / height level.' };
+    const currentResolved = resolveStructuralFloorPlan(
+      input.currentFloorOption,
+      input.currentFloorCustom,
+    );
+    if ('error' in currentResolved) {
+      if (
+        input.currentFloorOption === 'custom' &&
+        currentResolved.error === CUSTOM_FLOOR_PLAN_INVALID_MESSAGE
+      ) {
+        return { error: CUSTOM_FLOOR_PLAN_INVALID_MESSAGE };
+      }
+      return { error: 'Select Current Construction floor plan.' };
     }
-    floorLevel = input.floorLevel;
-  } else if (input.floorLevel && FLOOR_SET.has(input.floorLevel)) {
-    floorLevel = input.floorLevel;
-  }
 
-  if (floorLevel === 'custom') {
-    const raw =
-      typeof input.customFloorCount === 'number'
-        ? input.customFloorCount
-        : parseInt(String(input.customFloorCount).trim(), 10);
-    if (!Number.isInteger(raw) || raw < MIN_CUSTOM_FLOORS || raw > MAX_CUSTOM_FLOORS) {
+    const futureResolved = resolveStructuralFloorPlan(
+      input.futureFloorOption,
+      input.futureFloorCustom,
+    );
+    if ('error' in futureResolved) {
+      if (
+        input.futureFloorOption === 'custom' &&
+        futureResolved.error === CUSTOM_FLOOR_PLAN_INVALID_MESSAGE
+      ) {
+        return { error: CUSTOM_FLOOR_PLAN_INVALID_MESSAGE };
+      }
+      return { error: 'Select Future Planned Capacity floor plan.' };
+    }
+
+    currentFloorPlan = currentResolved.value;
+    futureFloorPlan = futureResolved.value;
+
+    const currentN = floorPlanUpperCount(currentFloorPlan);
+    const futureN = floorPlanUpperCount(futureFloorPlan);
+    if (currentN == null || futureN == null) {
+      return { error: CUSTOM_FLOOR_PLAN_INVALID_MESSAGE };
+    }
+    if (futureN < currentN) {
       return {
-        error: `Enter total number of floors (${MIN_CUSTOM_FLOORS}–${MAX_CUSTOM_FLOORS}).`,
+        error:
+          'Future Planned Capacity must be equal to or greater than Current Construction.',
       };
     }
-    customFloorCount = raw;
+  } else {
+    // Optional: accept if both sides are fully provided.
+    if (input.currentFloorOption || input.futureFloorOption) {
+      const currentResolved = resolveStructuralFloorPlan(
+        input.currentFloorOption,
+        input.currentFloorCustom,
+      );
+      const futureResolved = resolveStructuralFloorPlan(
+        input.futureFloorOption,
+        input.futureFloorCustom,
+      );
+      if ('error' in currentResolved || 'error' in futureResolved) {
+        return {
+          error:
+            'Complete both Current Construction and Future Planned Capacity, or clear them.',
+        };
+      }
+      currentFloorPlan = currentResolved.value;
+      futureFloorPlan = futureResolved.value;
+      const currentN = floorPlanUpperCount(currentFloorPlan);
+      const futureN = floorPlanUpperCount(futureFloorPlan);
+      if (currentN == null || futureN == null || futureN < currentN) {
+        return {
+          error:
+            'Future Planned Capacity must be equal to or greater than Current Construction.',
+        };
+      }
+    }
   }
 
   if (!input.contractType || !CONTRACT_SET.has(input.contractType)) {
@@ -649,8 +886,10 @@ export function validateMistriDetailsInput(input: {
     civilWorkTypes,
     plasterSide,
     approximateAreaSqft: area,
-    floorLevel,
-    customFloorCount,
+    currentFloorPlan,
+    futureFloorPlan,
+    floorLevel: null,
+    customFloorCount: null,
     contractType: input.contractType,
     additionalRequirements: additional,
   };

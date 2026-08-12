@@ -21,7 +21,7 @@ import {
   type PainterDetails,
 } from '@/lib/painterDetails'
 import {
-  buildingTypesFromMistriFloor,
+  buildingTypesFromFloorPlan,
   constructionTypesFromMistriDetails,
   isMistriDetails,
   type MistriDetails,
@@ -231,16 +231,17 @@ export async function createProjectAction(
           return { error: 'Select a specific project start date.' }
         }
 
-        buildingTypes = buildingTypesFromMistriFloor(
-          labour.mistri_details.floorLevel,
-          labour.mistri_details.customFloorCount,
+        buildingTypes = buildingTypesFromFloorPlan(
+          labour.mistri_details.futureFloorPlan ?? labour.mistri_details.currentFloorPlan,
         )
         constructionTypes = constructionTypesFromMistriDetails(labour.mistri_details)
         insertPayload.mistri_details = {
           civilWorkTypes: labour.mistri_details.civilWorkTypes,
           plasterSide: labour.mistri_details.plasterSide ?? null,
           approximateAreaSqft: labour.mistri_details.approximateAreaSqft,
-          floorLevel: labour.mistri_details.floorLevel,
+          currentFloorPlan: labour.mistri_details.currentFloorPlan,
+          futureFloorPlan: labour.mistri_details.futureFloorPlan,
+          floorLevel: labour.mistri_details.floorLevel ?? null,
           customFloorCount: labour.mistri_details.customFloorCount ?? null,
           contractType: labour.mistri_details.contractType,
           projectStartTimeType: labour.mistri_details.projectStartTimeType,

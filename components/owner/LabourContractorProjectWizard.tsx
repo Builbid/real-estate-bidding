@@ -18,22 +18,24 @@ import { generateProjectTitle } from '@/lib/generateProjectTitle';
 import { hasContactInfo } from '@/lib/validation/projectContactInfo';
 import { formatPincodeInput, validatePincode } from '@/lib/validation/pincode';
 import {
+  CUSTOM_FLOOR_PLAN_INVALID_MESSAGE,
   MISTRI_CIVIL_WORK_OPTIONS,
   MISTRI_CONTRACT_TYPE_OPTIONS,
-  MISTRI_FLOOR_LEVEL_OPTIONS,
   MISTRI_FULL_STRUCTURE_NOTE,
   MISTRI_PLASTER_SIDE_OPTIONS,
   MISTRI_START_TIME_OPTIONS,
   MISTRI_STRUCTURAL_CIVIL_WORK,
+  MISTRI_STRUCTURAL_FLOOR_OPTIONS,
   getMistriWorkRequirementBlocks,
   mistriFloorLevelRequired,
+  normalizeFloorPlanValue,
   toggleMistriCivilWorkType,
   validateMistriDetailsInput,
   type MistriCivilWorkType,
   type MistriContractType,
-  type MistriFloorLevel,
   type MistriPlasterSide,
   type MistriStartTimeType,
+  type MistriStructuralFloorOption,
 } from '@/lib/mistriDetails';
 import { cn } from '@/lib/utils';
 import { createProjectAction } from '@/app/actions/createProject';
@@ -55,8 +57,10 @@ interface FormState {
   civilWorkTypes: MistriCivilWorkType[];
   plasterSide: MistriPlasterSide | null;
   approximateArea: string;
-  floorLevel: MistriFloorLevel | null;
-  customFloorCount: string;
+  currentFloorOption: MistriStructuralFloorOption | null;
+  currentFloorCustom: string;
+  futureFloorOption: MistriStructuralFloorOption | null;
+  futureFloorCustom: string;
   contractType: MistriContractType | null;
   projectStartTimeType: MistriStartTimeType | null;
   projectStartTimeSpecificDate: string;
@@ -70,8 +74,10 @@ const EMPTY_FORM: FormState = {
   civilWorkTypes: [],
   plasterSide: null,
   approximateArea: '',
-  floorLevel: null,
-  customFloorCount: '',
+  currentFloorOption: null,
+  currentFloorCustom: '',
+  futureFloorOption: null,
+  futureFloorCustom: '',
   contractType: null,
   projectStartTimeType: null,
   projectStartTimeSpecificDate: '',
@@ -135,13 +141,26 @@ export function LabourContractorProjectWizard() {
       civilWorkTypes: form.civilWorkTypes,
       plasterSide: form.plasterSide,
       approximateArea: form.approximateArea,
-      floorLevel: form.floorLevel,
-      customFloorCount: form.customFloorCount,
+      currentFloorOption: form.currentFloorOption,
+      currentFloorCustom: form.currentFloorCustom,
+      futureFloorOption: form.futureFloorOption,
+      futureFloorCustom: form.futureFloorCustom,
       contractType: form.contractType,
       projectStartTimeType: form.projectStartTimeType,
       projectStartTimeSpecificDate: form.projectStartTimeSpecificDate,
       additionalRequirements: form.additionalRequirements,
     };
+  }
+
+  function customFloorInlineError(
+    option: MistriStructuralFloorOption | null,
+    customValue: string,
+  ): string | null {
+    if (option !== 'custom') return null;
+    if (!customValue.trim() || !normalizeFloorPlanValue(customValue)) {
+      return CUSTOM_FLOOR_PLAN_INVALID_MESSAGE;
+    }
+    return null;
   }
 
   function tryGoStep2() {
@@ -235,6 +254,26 @@ export function LabourContractorProjectWizard() {
   })();
 
   const floorLevelRequired = mistriFloorLevelRequired(form.civilWorkTypes);
+  const currentCustomError = floorLevelRequired
+    ? customFloorInlineError(form.currentFloorOption, form.currentFloorCustom)
+    : null;
+  const futureCustomError = floorLevelRequired
+    ? customFloorInlineError(form.futureFloorOption, form.futureFloorCustom)
+    : null;
+
+  function selectFloorOption(
+    field: 'current' | 'future',
+    option: MistriStructuralFloorOption,
+  ) {
+    if (field === 'current') {
+      update('currentFloorOption', option);
+      if (option !== 'custom') update('currentFloorCustom', '');
+    } else {
+      update('futureFloorOption', option);
+      if (option !== 'custom') update('futureFloorCustom', '');
+    }
+    setStep2Error(null);
+  }
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -424,55 +463,89 @@ export function LabourContractorProjectWizard() {
                 }}
               />
 
-              <div className="flex flex-col gap-1.5">
+              <div className="flex flex-col gap-3">
                 <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Floor / Height Level
+                  Structural Floor Planning
                   {!floorLevelRequired && (
                     <span className="normal-case tracking-normal"> (Optional)</span>
                   )}
                 </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {MISTRI_FLOOR_LEVEL_OPTIONS.map((opt) => {
-                    const selected = form.floorLevel === opt.value;
-                    return (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        onClick={() => {
-                          update('floorLevel', opt.value);
-                          if (opt.value !== 'custom') {
-                            update('customFloorCount', '');
-                          }
-                          setStep2Error(null);
-                        }}
-                        className={cn(
-                          'rounded-lg border px-3 py-2.5 text-left text-xs font-semibold transition-colors',
-                          selected
-                            ? 'border-emerald-500/70 bg-emerald-500/10 text-foreground'
-                            : 'border-border bg-card text-muted-foreground hover:border-muted-foreground/40',
-                        )}
-                      >
-                        {opt.label}
-                      </button>
-                    );
-                  })}
-                </div>
-                {form.floorLevel === 'custom' && (
-                  <Input
-                    label="Enter exact number of floors"
-                    type="number"
-                    inputMode="numeric"
-                    min={3}
-                    max={50}
-                    placeholder="Enter exact number of floors"
-                    value={form.customFloorCount}
-                    onChange={(e) => {
-                      update('customFloorCount', e.target.value.replace(/[^\d]/g, ''));
-                      setStep2Error(null);
-                    }}
-                    className="mt-1"
-                  />
+                {floorLevelRequired && (
+                  <p className="text-xs text-muted-foreground -mt-1">
+                    Required for Foundation &amp; Concrete Structure / Complete Full Structure.
+                    Future capacity must be equal to or greater than current construction.
+                  </p>
                 )}
+
+                {(
+                  [
+                    {
+                      key: 'current' as const,
+                      title: 'Current Construction',
+                      option: form.currentFloorOption,
+                      custom: form.currentFloorCustom,
+                      customError: currentCustomError,
+                      setCustom: (v: string) => update('currentFloorCustom', v),
+                    },
+                    {
+                      key: 'future' as const,
+                      title: 'Future Planned Capacity',
+                      option: form.futureFloorOption,
+                      custom: form.futureFloorCustom,
+                      customError: futureCustomError,
+                      setCustom: (v: string) => update('futureFloorCustom', v),
+                    },
+                  ] as const
+                ).map((section) => (
+                  <div
+                    key={section.key}
+                    className="rounded-lg border border-border/80 bg-muted/20 p-3 space-y-2"
+                  >
+                    <p className="text-xs font-semibold text-foreground">{section.title}</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {MISTRI_STRUCTURAL_FLOOR_OPTIONS.map((opt) => {
+                        const selected = section.option === opt.value;
+                        return (
+                          <button
+                            key={`${section.key}-${opt.value}`}
+                            type="button"
+                            onClick={() => selectFloorOption(section.key, opt.value)}
+                            className={cn(
+                              'rounded-lg border px-3 py-2.5 text-left text-xs font-semibold transition-colors',
+                              selected
+                                ? 'border-emerald-500/70 bg-emerald-500/10 text-foreground'
+                                : 'border-border bg-card text-muted-foreground hover:border-muted-foreground/40',
+                            )}
+                          >
+                            {opt.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {section.option === 'custom' && (
+                      <div className="space-y-1">
+                        <Input
+                          label="Enter floor plan (e.g. G+4, G+5)"
+                          type="text"
+                          inputMode="text"
+                          placeholder="e.g. G+4 or G+5"
+                          value={section.custom}
+                          onChange={(e) => {
+                            section.setCustom(e.target.value);
+                            setStep2Error(null);
+                          }}
+                          className="mt-1"
+                        />
+                        {section.customError && (
+                          <p className="text-xs text-destructive flex items-center gap-1">
+                            <AlertCircle className="h-3 w-3 shrink-0" />
+                            {section.customError}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
 
               <div className="flex flex-col gap-1.5">

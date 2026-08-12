@@ -285,7 +285,9 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                         className={
                           block.label === 'Additional Requirements' ||
                           block.label === 'Additional Notes' ||
-                          block.label === 'Civil Work Type'
+                          block.label === 'Civil Work Type' ||
+                          block.label === 'Current Construction' ||
+                          block.label === 'Future Planned Capacity'
                             ? 'col-span-2 sm:col-span-3'
                             : undefined
                         }
