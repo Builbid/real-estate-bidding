@@ -639,17 +639,23 @@ export function LabourContractorProjectWizard() {
                     })()}
                   </div>
                   {form.workAreaFloors.includes('custom') && (
-                    <Input
-                      label="Custom Floor(s)"
-                      type="text"
-                      inputMode="text"
-                      placeholder="e.g. 3rd Floor, 4th Floor, Terrace"
-                      value={form.workAreaCustomFloors}
-                      onChange={(e) => {
-                        update('workAreaCustomFloors', e.target.value);
-                        setStep2Error(null);
-                      }}
-                    />
+                    <div className="space-y-1.5">
+                      <Input
+                        label="Custom Floor(s)"
+                        type="text"
+                        inputMode="text"
+                        placeholder="e.g. 3rd Floor, 4th Floor, Terrace"
+                        value={form.workAreaCustomFloors}
+                        onChange={(e) => {
+                          update('workAreaCustomFloors', e.target.value);
+                          setStep2Error(null);
+                        }}
+                      />
+                      <p className="text-[11px] text-muted-foreground leading-relaxed">
+                        * Note: If selecting custom floors, please enter all required floors separated by
+                        commas (e.g., 3rd Floor, 4th Floor, Terrace).
+                      </p>
+                    </div>
                   )}
                 </div>
               )}
