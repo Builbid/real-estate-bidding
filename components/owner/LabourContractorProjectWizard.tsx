@@ -353,16 +353,52 @@ export function LabourContractorProjectWizard() {
 
   function toggleWorkAreaFloor(value: MistriWorkAreaFloor) {
     if (!workAreaRequired) return;
+
+    const STANDARD: MistriWorkAreaFloor[] = ['ground', '1st', '2nd'];
+    const isExclusive = value === 'whole_house' || value === 'custom';
+    const isStandard = STANDARD.includes(value);
+
     setForm((f) => {
       const selected = f.workAreaFloors.includes(value);
-      const next = selected
-        ? f.workAreaFloors.filter((v) => v !== value)
-        : [...f.workAreaFloors, value];
-      return {
-        ...f,
-        workAreaFloors: next,
-        workAreaCustomFloors: next.includes('custom') ? f.workAreaCustomFloors : '',
-      };
+      const exclusiveActive =
+        f.workAreaFloors.includes('whole_house') || f.workAreaFloors.includes('custom');
+
+      // Exclusive options: toggle alone; selecting clears everything else.
+      if (isExclusive) {
+        if (selected) {
+          return {
+            ...f,
+            workAreaFloors: [],
+            workAreaCustomFloors: '',
+          };
+        }
+        return {
+          ...f,
+          workAreaFloors: [value],
+          workAreaCustomFloors: value === 'custom' ? f.workAreaCustomFloors : '',
+        };
+      }
+
+      // Standard floors: multi-select among themselves; clicking clears any exclusive mode.
+      if (isStandard) {
+        if (exclusiveActive) {
+          return {
+            ...f,
+            workAreaFloors: [value],
+            workAreaCustomFloors: '',
+          };
+        }
+        const next = selected
+          ? f.workAreaFloors.filter((v) => v !== value)
+          : [...f.workAreaFloors.filter((v) => STANDARD.includes(v)), value];
+        return {
+          ...f,
+          workAreaFloors: next,
+          workAreaCustomFloors: '',
+        };
+      }
+
+      return f;
     });
     setStep2Error(null);
   }
@@ -562,29 +598,52 @@ export function LabourContractorProjectWizard() {
                       Work Area (Floor Selection)
                     </label>
                     <p className="text-[11px] text-muted-foreground leading-relaxed">
-                      Select every floor where brickwork or plastering work is required. You can
-                      choose more than one.
+                      Select the floors where brickwork or plastering work is required. Ground /
+                      1st / 2nd can be combined; Whole House and Custom replace all other choices.
                     </p>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {MISTRI_WORK_AREA_FLOOR_OPTIONS.map((opt) => {
-                      const selected = form.workAreaFloors.includes(opt.value);
-                      return (
-                        <button
-                          key={`work-area-${opt.value}`}
-                          type="button"
-                          onClick={() => toggleWorkAreaFloor(opt.value)}
-                          className={cn(
-                            'rounded-lg border px-3 py-2.5 text-left text-xs font-semibold transition-colors',
-                            selected
-                              ? 'border-emerald-500/70 bg-emerald-500/10 text-foreground'
-                              : 'border-border bg-card text-muted-foreground hover:border-muted-foreground/40',
-                          )}
-                        >
-                          {opt.label}
-                        </button>
-                      );
-                    })}
+                    {(() => {
+                      const exclusiveActive =
+                        form.workAreaFloors.includes('whole_house') ||
+                        form.workAreaFloors.includes('custom');
+                      return MISTRI_WORK_AREA_FLOOR_OPTIONS.map((opt) => {
+                        const selected = form.workAreaFloors.includes(opt.value);
+                        // While Whole House or Custom is active, block every other option.
+                        // Click the active exclusive again to unlock multi-select floors.
+                        const locked = exclusiveActive && !selected;
+                        return (
+                          <button
+                            key={`work-area-${opt.value}`}
+                            type="button"
+                            disabled={locked}
+                            aria-disabled={locked}
+                            onClick={() => {
+                              if (locked) return;
+                              toggleWorkAreaFloor(opt.value);
+                            }}
+                            className={cn(
+                              'flex w-full items-center justify-between gap-3 rounded-lg border px-3 py-2.5 text-left text-xs font-semibold transition-colors',
+                              selected
+                                ? 'border-emerald-500/70 bg-emerald-500/10 text-foreground'
+                                : 'border-border bg-card text-muted-foreground hover:border-muted-foreground/40',
+                              locked &&
+                                'cursor-not-allowed opacity-45 hover:border-border',
+                            )}
+                          >
+                            <span>{opt.label}</span>
+                            {selected ? (
+                              <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                            ) : (
+                              <span
+                                aria-hidden
+                                className="h-4 w-4 flex-shrink-0 rounded-full border border-border/70"
+                              />
+                            )}
+                          </button>
+                        );
+                      });
+                    })()}
                   </div>
                   {form.workAreaFloors.includes('custom') && (
                     <Input
