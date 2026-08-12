@@ -129,10 +129,19 @@ export function LabourContractorProjectWizard() {
   function toggleCivilWork(value: MistriCivilWorkType) {
     setForm((f) => {
       const nextTypes = toggleMistriCivilWorkType(f.civilWorkTypes, value);
+      const floorStillRequired = mistriFloorLevelRequired(nextTypes);
       return {
         ...f,
         civilWorkTypes: nextTypes,
         plasterSide: nextTypes.includes('plastering') ? f.plasterSide : null,
+        ...(floorStillRequired
+          ? {}
+          : {
+              currentFloorOption: null,
+              currentFloorCustom: '',
+              futureFloorOption: null,
+              futureFloorCustom: '',
+            }),
       };
     });
     // Clears floor (and any other) step-2 validation error when structural options change.
@@ -285,6 +294,7 @@ export function LabourContractorProjectWizard() {
     field: 'current' | 'future',
     option: MistriStructuralFloorOption,
   ) {
+    if (!floorLevelRequired) return;
     if (field === 'current') {
       update('currentFloorOption', option);
       if (option !== 'custom') update('currentFloorCustom', '');
@@ -483,35 +493,50 @@ export function LabourContractorProjectWizard() {
                 }}
               />
 
-              <div className="flex flex-col gap-3">
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Structural Floor Planning
-                  {floorLevelRequired ? (
-                    <span className="normal-case tracking-normal"> (Required)</span>
-                  ) : (
-                    <span className="normal-case tracking-normal"> (Optional)</span>
+              <div
+                className={cn(
+                  'flex flex-col gap-3 transition-opacity',
+                  !floorLevelRequired && 'opacity-50 pointer-events-none select-none',
+                )}
+                aria-disabled={!floorLevelRequired}
+              >
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Structural Floor Planning
+                  </label>
+                  {!floorLevelRequired && (
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                      Applies only when Foundation &amp; Concrete Structure or Complete Full
+                      Structure is selected.
+                    </p>
                   )}
-                </label>
+                </div>
 
                 {(
                   [
                     {
                       key: 'current' as const,
-                      title: 'Current Construction Scope (This Bid)',
-                      help: 'Specify how many floors will actually be constructed under this contract (e.g., Ground + 1 Floor).',
+                      title: 'How many floors do you plan to build in this current project?',
+                      help: 'Select the exact number of floors to be constructed now under this bid.',
                       option: form.currentFloorOption,
                       custom: form.currentFloorCustom,
                       customError: currentCustomError,
-                      setCustom: (v: string) => update('currentFloorCustom', v),
+                      setCustom: (v: string) => {
+                        if (!floorLevelRequired) return;
+                        update('currentFloorCustom', v);
+                      },
                     },
                     {
                       key: 'future' as const,
-                      title: 'Foundation Engineering Load Capacity (For Future Expansion)',
-                      help: 'Specify the maximum total floor load the foundation, footings, and columns must be engineered to support now (e.g., building G+1 now, but engineering a G+5 foundation for future vertical additions).',
+                      title: 'What is your future expansion plan for the foundation?',
+                      help: 'Select the total floor capacity the foundation and columns must be engineered to support for future building additions.',
                       option: form.futureFloorOption,
                       custom: form.futureFloorCustom,
                       customError: futureCustomError,
-                      setCustom: (v: string) => update('futureFloorCustom', v),
+                      setCustom: (v: string) => {
+                        if (!floorLevelRequired) return;
+                        update('futureFloorCustom', v);
+                      },
                     },
                   ] as const
                 ).map((section) => (
@@ -532,12 +557,14 @@ export function LabourContractorProjectWizard() {
                           <button
                             key={`${section.key}-${opt.value}`}
                             type="button"
+                            disabled={!floorLevelRequired}
                             onClick={() => selectFloorOption(section.key, opt.value)}
                             className={cn(
                               'rounded-lg border px-3 py-2.5 text-left text-xs font-semibold transition-colors',
                               selected
                                 ? 'border-emerald-500/70 bg-emerald-500/10 text-foreground'
                                 : 'border-border bg-card text-muted-foreground hover:border-muted-foreground/40',
+                              !floorLevelRequired && 'cursor-not-allowed hover:border-border',
                             )}
                           >
                             {opt.label}
@@ -545,7 +572,7 @@ export function LabourContractorProjectWizard() {
                         );
                       })}
                     </div>
-                    {section.option === 'custom' && (
+                    {section.option === 'custom' && floorLevelRequired && (
                       <div className="space-y-1">
                         <Input
                           label="Enter floor plan (e.g. G+4, G+5)"
@@ -553,6 +580,7 @@ export function LabourContractorProjectWizard() {
                           inputMode="text"
                           placeholder="e.g. G+4 or G+5"
                           value={section.custom}
+                          disabled={!floorLevelRequired}
                           onChange={(e) => {
                             section.setCustom(e.target.value);
                             setStep2Error(null);
@@ -570,7 +598,7 @@ export function LabourContractorProjectWizard() {
                   </div>
                 ))}
 
-                {foundationCapacityError && (
+                {floorLevelRequired && foundationCapacityError && (
                   <p className="text-xs text-destructive flex items-start gap-1.5">
                     <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
                     {foundationCapacityError}
@@ -578,9 +606,9 @@ export function LabourContractorProjectWizard() {
                 )}
 
                 <p className="text-[11px] text-muted-foreground leading-relaxed border-l-2 border-amber-500/50 pl-2.5">
-                  * Note: Higher foundation load capacity requires deeper footings, thicker columns,
-                  and additional steel reinforcement in this current phase, which affects structural
-                  material and labor estimates.
+                  * Note: Designing for higher future floor capacity requires stronger foundations,
+                  thicker columns, and more steel reinforcement today, directly affecting labor and
+                  material costs.
                 </p>
               </div>
 

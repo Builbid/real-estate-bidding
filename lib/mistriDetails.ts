@@ -232,7 +232,7 @@ export const CUSTOM_FLOOR_PLAN_INVALID_MESSAGE =
   'Please enter an accurate floor plan value.';
 
 export const FOUNDATION_CAPACITY_INVALID_MESSAGE =
-  'Foundation load capacity must be equal to or greater than the current construction floors.';
+  'Future foundation plan must be equal to or greater than current build floors.';
 
 const CIVIL_WORK_SET = new Set<string>(MISTRI_CIVIL_WORK_OPTIONS.map((o) => o.value));
 const STRUCTURAL_FLOOR_OPTION_SET = new Set<string>(
@@ -677,11 +677,11 @@ export function getMistriWorkRequirementBlocks(details: MistriDetails): {
 
   if (details.currentFloorPlan || details.futureFloorPlan) {
     blocks.push({
-      label: 'Current Construction Scope (This Bid)',
+      label: 'Current Build Floors',
       value: formatMistriFloorPlan(details.currentFloorPlan),
     });
     blocks.push({
-      label: 'Foundation Engineering Load Capacity',
+      label: 'Future Foundation Expansion',
       value: formatMistriFloorPlan(details.futureFloorPlan),
     });
   } else if (details.floorLevel) {
@@ -814,7 +814,7 @@ export function validateMistriDetailsInput(input: {
       ) {
         return { error: CUSTOM_FLOOR_PLAN_INVALID_MESSAGE };
       }
-      return { error: 'Select Current Construction Scope.' };
+      return { error: 'Select how many floors you plan to build in this current project.' };
     }
 
     const futureResolved = resolveStructuralFloorPlan(
@@ -828,7 +828,7 @@ export function validateMistriDetailsInput(input: {
       ) {
         return { error: CUSTOM_FLOOR_PLAN_INVALID_MESSAGE };
       }
-      return { error: 'Select Foundation Engineering Load Capacity.' };
+      return { error: 'Select your future expansion plan for the foundation.' };
     }
 
     currentFloorPlan = currentResolved.value;
@@ -845,32 +845,9 @@ export function validateMistriDetailsInput(input: {
       };
     }
   } else {
-    // Optional: accept if both sides are fully provided.
-    if (input.currentFloorOption || input.futureFloorOption) {
-      const currentResolved = resolveStructuralFloorPlan(
-        input.currentFloorOption,
-        input.currentFloorCustom,
-      );
-      const futureResolved = resolveStructuralFloorPlan(
-        input.futureFloorOption,
-        input.futureFloorCustom,
-      );
-      if ('error' in currentResolved || 'error' in futureResolved) {
-        return {
-          error:
-            'Complete both Current Construction Scope and Foundation Engineering Load Capacity, or clear them.',
-        };
-      }
-      currentFloorPlan = currentResolved.value;
-      futureFloorPlan = futureResolved.value;
-      const currentN = floorPlanUpperCount(currentFloorPlan);
-      const futureN = floorPlanUpperCount(futureFloorPlan);
-      if (currentN == null || futureN == null || futureN < currentN) {
-        return {
-          error: FOUNDATION_CAPACITY_INVALID_MESSAGE,
-        };
-      }
-    }
+    // Non-structural work: floor planning does not apply — ignore any leftover selections.
+    currentFloorPlan = null;
+    futureFloorPlan = null;
   }
 
   if (!input.contractType || !CONTRACT_SET.has(input.contractType)) {
