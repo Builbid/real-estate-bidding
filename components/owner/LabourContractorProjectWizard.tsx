@@ -609,26 +609,19 @@ export function LabourContractorProjectWizard() {
                         form.workAreaFloors.includes('custom');
                       return MISTRI_WORK_AREA_FLOOR_OPTIONS.map((opt) => {
                         const selected = form.workAreaFloors.includes(opt.value);
-                        // While Whole House or Custom is active, block every other option.
-                        // Click the active exclusive again to unlock multi-select floors.
-                        const locked = exclusiveActive && !selected;
                         return (
                           <button
                             key={`work-area-${opt.value}`}
                             type="button"
-                            disabled={locked}
-                            aria-disabled={locked}
-                            onClick={() => {
-                              if (locked) return;
-                              toggleWorkAreaFloor(opt.value);
-                            }}
+                            onClick={() => toggleWorkAreaFloor(opt.value)}
                             className={cn(
                               'flex w-full items-center justify-between gap-3 rounded-lg border px-3 py-2.5 text-left text-xs font-semibold transition-colors',
                               selected
                                 ? 'border-emerald-500/70 bg-emerald-500/10 text-foreground'
                                 : 'border-border bg-card text-muted-foreground hover:border-muted-foreground/40',
-                              locked &&
-                                'cursor-not-allowed opacity-45 hover:border-border',
+                              // Dim siblings while an exclusive choice is active; a click still
+                              // switches mode (clears exclusive / takes over).
+                              exclusiveActive && !selected && 'opacity-45',
                             )}
                           >
                             <span>{opt.label}</span>
