@@ -63,6 +63,47 @@ type Step = 1 | 2 | 3 | 4;
 
 const BIDDING_MINUTES = 7;
 
+const SECTION_LABEL =
+  'text-xs font-semibold text-gray-800 dark:text-zinc-100 uppercase tracking-wider';
+const HELPER_TEXT =
+  'text-[11px] font-medium text-gray-700 dark:text-zinc-300 leading-relaxed';
+
+function OptionCardButton({
+  selected,
+  onClick,
+  children,
+  className,
+}: {
+  selected: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'flex w-full items-center justify-between gap-3 rounded-lg border px-3 py-2.5 text-left text-xs font-semibold transition-colors',
+        selected
+          ? 'border-emerald-500/70 bg-emerald-500/15 text-gray-900 dark:text-white'
+          : 'border-border bg-card text-gray-800 dark:text-zinc-100 hover:border-zinc-400 dark:hover:border-zinc-500',
+        className,
+      )}
+    >
+      <span className="min-w-0">{children}</span>
+      {selected ? (
+        <CheckCircle2 className="w-4 h-4 text-emerald-500 dark:text-emerald-400 flex-shrink-0" />
+      ) : (
+        <span
+          aria-hidden
+          className="h-4 w-4 flex-shrink-0 rounded-full border border-gray-300 dark:border-zinc-500"
+        />
+      )}
+    </button>
+  );
+}
+
 function NestedChoiceButtons<T extends string>({
   question,
   options,
@@ -76,26 +117,17 @@ function NestedChoiceButtons<T extends string>({
 }) {
   return (
     <div className="space-y-1.5">
-      <p className="text-xs font-semibold text-foreground">{question}</p>
+      <p className="text-xs font-semibold text-gray-900 dark:text-zinc-100">{question}</p>
       <div className="grid grid-cols-1 gap-2">
-        {options.map((opt) => {
-          const selected = value === opt.value;
-          return (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => onChange(opt.value)}
-              className={cn(
-                'rounded-md border px-3 py-2 text-left text-xs font-semibold transition-colors',
-                selected
-                  ? 'border-emerald-500/70 bg-emerald-500/15 text-foreground'
-                  : 'border-border bg-card text-muted-foreground hover:border-muted-foreground/40',
-              )}
-            >
-              {opt.label}
-            </button>
-          );
-        })}
+        {options.map((opt) => (
+          <OptionCardButton
+            key={opt.value}
+            selected={value === opt.value}
+            onClick={() => onChange(opt.value)}
+          >
+            {opt.label}
+          </OptionCardButton>
+        ))}
       </div>
     </div>
   );
@@ -489,7 +521,7 @@ export function LabourContractorProjectWizard() {
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
         <h1 className="text-xl font-bold text-foreground">Post Mistri Contractor Project</h1>
-        <p className="text-sm text-muted-foreground mt-1">
+        <p className="text-sm font-medium text-gray-700 dark:text-zinc-300 mt-1">
           Specify civil work scope clearly so mistri contractors can bid without disputes.
         </p>
       </div>
@@ -511,7 +543,7 @@ export function LabourContractorProjectWizard() {
               <span
                 className={cn(
                   'text-[10px] sm:text-xs truncate',
-                  i + 1 === step ? 'text-foreground font-semibold' : 'text-muted-foreground',
+                  i + 1 === step ? 'text-foreground font-semibold' : 'text-gray-700 dark:text-zinc-300 font-medium',
                 )}
               >
                 {label}
@@ -554,7 +586,7 @@ export function LabourContractorProjectWizard() {
               />
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <label className={SECTION_LABEL}>
                   Bidding Duration
                 </label>
                 <Select value={form.bidding_minutes} onValueChange={(v) => update('bidding_minutes', v)}>
@@ -566,7 +598,7 @@ export function LabourContractorProjectWizard() {
                     <SelectItem value="1440">24 Hours (Standard)</SelectItem>
                   </SelectContent>
                 </Select>
-                <p className="text-[11px] text-indigo-400/60">
+                <p className="text-[11px] font-medium text-indigo-700 dark:text-indigo-300">
                   After bidding closes you have 5 minutes to select a mistri contractor.
                 </p>
               </div>
@@ -581,7 +613,7 @@ export function LabourContractorProjectWizard() {
             <div className="space-y-5">
               <div>
                 <h2 className="text-base font-semibold text-foreground">Civil Work Requirements</h2>
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-xs font-medium text-gray-700 dark:text-zinc-300 mt-1">
                   Select the work type that best matches the scope so bids stay accurate.
                 </p>
               </div>
@@ -599,47 +631,31 @@ export function LabourContractorProjectWizard() {
                     const selected = form.civilWorkTypes.includes(opt.value);
                     return (
                       <div key={opt.value} className="space-y-2">
-                        <button
-                          type="button"
+                        <OptionCardButton
+                          selected={selected}
                           onClick={() => toggleCivilWork(opt.value)}
-                          className={cn(
-                            'flex w-full items-center justify-between gap-3 rounded-lg border px-3 py-2.5 text-left text-xs font-semibold transition-colors',
-                            selected
-                              ? 'border-emerald-500/70 bg-emerald-500/10 text-foreground'
-                              : 'border-border bg-card text-muted-foreground hover:border-muted-foreground/40',
-                          )}
                         >
-                          <span>{opt.label}</span>
-                          {selected && <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />}
-                        </button>
+                          {opt.label}
+                        </OptionCardButton>
                         {opt.value === 'complete_full_structure' && (
-                          <p className="px-1 text-[11px] leading-relaxed text-muted-foreground">
+                          <p className={cn('px-1', HELPER_TEXT)}>
                             {MISTRI_FULL_STRUCTURE_NOTE}
                           </p>
                         )}
                         {opt.value === 'plastering' && selected && (
                           <div className="ml-2 grid grid-cols-1 sm:grid-cols-2 gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-2">
-                            {MISTRI_PLASTER_SIDE_OPTIONS.map((side) => {
-                              const sideSelected = form.plasterSide === side.value;
-                              return (
-                                <button
-                                  key={side.value}
-                                  type="button"
-                                  onClick={() => {
-                                    update('plasterSide', side.value);
-                                    setStep2Error(null);
-                                  }}
-                                  className={cn(
-                                    'rounded-md border px-3 py-2 text-left text-xs font-semibold transition-colors',
-                                    sideSelected
-                                      ? 'border-emerald-500/70 bg-emerald-500/15 text-foreground'
-                                      : 'border-border bg-card text-muted-foreground hover:border-muted-foreground/40',
-                                  )}
-                                >
-                                  {side.label}
-                                </button>
-                              );
-                            })}
+                            {MISTRI_PLASTER_SIDE_OPTIONS.map((side) => (
+                              <OptionCardButton
+                                key={side.value}
+                                selected={form.plasterSide === side.value}
+                                onClick={() => {
+                                  update('plasterSide', side.value);
+                                  setStep2Error(null);
+                                }}
+                              >
+                                {side.label}
+                              </OptionCardButton>
+                            ))}
                           </div>
                         )}
                         {opt.value === 'brickwork_aac' && selected && (
@@ -704,39 +720,30 @@ export function LabourContractorProjectWizard() {
               {floorLevelRequired && (
               <div className="flex flex-col gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <label className={SECTION_LABEL}>
                     Structural Floor Planning
                   </label>
                 </div>
 
                 <div className="rounded-lg border border-border/80 bg-muted/20 p-3 space-y-2">
                   <div className="space-y-1">
-                    <p className="text-xs font-semibold text-foreground">
+                    <p className="text-xs font-semibold text-gray-900 dark:text-zinc-100">
                       How many floors do you plan to build in this current project?
                     </p>
-                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    <p className={HELPER_TEXT}>
                       Select the exact number of floors to be constructed now under this bid.
                     </p>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {MISTRI_CURRENT_FLOOR_OPTIONS.map((opt) => {
-                      const selected = form.currentFloorOption === opt.value;
-                      return (
-                        <button
-                          key={`current-${opt.value}`}
-                          type="button"
-                          onClick={() => selectCurrentFloorOption(opt.value)}
-                          className={cn(
-                            'rounded-lg border px-3 py-2.5 text-left text-xs font-semibold transition-colors',
-                            selected
-                              ? 'border-emerald-500/70 bg-emerald-500/10 text-foreground'
-                              : 'border-border bg-card text-muted-foreground hover:border-muted-foreground/40',
-                          )}
-                        >
-                          {opt.label}
-                        </button>
-                      );
-                    })}
+                    {MISTRI_CURRENT_FLOOR_OPTIONS.map((opt) => (
+                      <OptionCardButton
+                        key={`current-${opt.value}`}
+                        selected={form.currentFloorOption === opt.value}
+                        onClick={() => selectCurrentFloorOption(opt.value)}
+                      >
+                        {opt.label}
+                      </OptionCardButton>
+                    ))}
                   </div>
                   {form.currentFloorOption === 'custom' && (
                     <div className="space-y-1">
@@ -784,10 +791,10 @@ export function LabourContractorProjectWizard() {
 
                 <div className="rounded-lg border border-border/80 bg-muted/20 p-3 space-y-2">
                   <div className="space-y-1">
-                    <p className="text-xs font-semibold text-foreground">
+                    <p className="text-xs font-semibold text-gray-900 dark:text-zinc-100">
                       What is your future expansion plan for the foundation?
                     </p>
-                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    <p className={HELPER_TEXT}>
                       Select the total floor capacity the foundation and columns must be engineered
                       to support for future building additions.
                     </p>
@@ -851,7 +858,7 @@ export function LabourContractorProjectWizard() {
                   </p>
                 )}
 
-                <p className="text-[11px] text-muted-foreground leading-relaxed border-l-2 border-amber-500/50 pl-2.5">
+                <p className={cn(HELPER_TEXT, 'border-l-2 border-amber-500/50 pl-2.5')}>
                   * Note: Designing for higher future floor capacity requires stronger foundations,
                   thicker columns, and more steel reinforcement today, directly affecting labor and
                   material costs.
@@ -861,31 +868,22 @@ export function LabourContractorProjectWizard() {
 
               {showContractType && (
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <label className={SECTION_LABEL}>
                   Contract Type (Supply Scope)
                 </label>
                 <div className="grid grid-cols-1 gap-2">
-                  {MISTRI_CONTRACT_TYPE_OPTIONS.map((opt) => {
-                    const selected = form.contractType === opt.value;
-                    return (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        onClick={() => {
-                          update('contractType', opt.value);
-                          setStep2Error(null);
-                        }}
-                        className={cn(
-                          'rounded-lg border px-3 py-2.5 text-left text-xs font-semibold transition-colors',
-                          selected
-                            ? 'border-emerald-500/70 bg-emerald-500/10 text-foreground'
-                            : 'border-border bg-card text-muted-foreground hover:border-muted-foreground/40',
-                        )}
-                      >
-                        {opt.label}
-                      </button>
-                    );
-                  })}
+                  {MISTRI_CONTRACT_TYPE_OPTIONS.map((opt) => (
+                    <OptionCardButton
+                      key={opt.value}
+                      selected={form.contractType === opt.value}
+                      onClick={() => {
+                        update('contractType', opt.value);
+                        setStep2Error(null);
+                      }}
+                    >
+                      {opt.label}
+                    </OptionCardButton>
+                  ))}
                 </div>
               </div>
               )}
@@ -893,10 +891,10 @@ export function LabourContractorProjectWizard() {
               {workAreaRequired && (
                 <div className="flex flex-col gap-3">
                   <div className="space-y-1">
-                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    <label className={SECTION_LABEL}>
                       Work Area (Floor Selection)
                     </label>
-                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    <p className={HELPER_TEXT}>
                       Select the specific floors where work is required (Ground, 1st, or 2nd can
                       be combined), or select Custom Floor(s) for other floor configurations.
                     </p>
@@ -907,30 +905,16 @@ export function LabourContractorProjectWizard() {
                       return MISTRI_WORK_AREA_FLOOR_OPTIONS.map((opt) => {
                         const selected = form.workAreaFloors.includes(opt.value);
                         return (
-                          <button
+                          <OptionCardButton
                             key={`work-area-${opt.value}`}
-                            type="button"
+                            selected={selected}
                             onClick={() => toggleWorkAreaFloor(opt.value)}
-                            className={cn(
-                              'flex w-full items-center justify-between gap-3 rounded-lg border px-3 py-2.5 text-left text-xs font-semibold transition-colors',
-                              selected
-                                ? 'border-emerald-500/70 bg-emerald-500/10 text-foreground'
-                                : 'border-border bg-card text-muted-foreground hover:border-muted-foreground/40',
-                              // Dim siblings while an exclusive choice is active; a click still
-                              // switches mode (clears exclusive / takes over).
-                              exclusiveActive && !selected && 'opacity-45',
-                            )}
+                            className={
+                              exclusiveActive && !selected ? 'opacity-45' : undefined
+                            }
                           >
-                            <span>{opt.label}</span>
-                            {selected ? (
-                              <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                            ) : (
-                              <span
-                                aria-hidden
-                                className="h-4 w-4 flex-shrink-0 rounded-full border border-border/70"
-                              />
-                            )}
-                          </button>
+                            {opt.label}
+                          </OptionCardButton>
                         );
                       });
                     })()}
@@ -948,7 +932,7 @@ export function LabourContractorProjectWizard() {
                           setStep2Error(null);
                         }}
                       />
-                      <p className="text-[11px] text-muted-foreground leading-relaxed">
+                      <p className={HELPER_TEXT}>
                         * Note: If selecting custom floors, please enter all required floors separated by
                         commas (e.g., 3rd Floor, 4th Floor, Terrace).
                       </p>
@@ -958,34 +942,25 @@ export function LabourContractorProjectWizard() {
               )}
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <label className={SECTION_LABEL}>
                   Project Starting Time
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {MISTRI_START_TIME_OPTIONS.map((opt) => {
-                    const selected = form.projectStartTimeType === opt.value;
-                    return (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        onClick={() => {
-                          update('projectStartTimeType', opt.value);
-                          if (opt.value !== 'specific') {
-                            update('projectStartTimeSpecificDate', '');
-                          }
-                          setStep2Error(null);
-                        }}
-                        className={cn(
-                          'rounded-lg border px-3 py-2.5 text-left text-xs font-semibold transition-colors',
-                          selected
-                            ? 'border-emerald-500/70 bg-emerald-500/10 text-foreground'
-                            : 'border-border bg-card text-muted-foreground hover:border-muted-foreground/40',
-                        )}
-                      >
-                        {opt.label}
-                      </button>
-                    );
-                  })}
+                  {MISTRI_START_TIME_OPTIONS.map((opt) => (
+                    <OptionCardButton
+                      key={opt.value}
+                      selected={form.projectStartTimeType === opt.value}
+                      onClick={() => {
+                        update('projectStartTimeType', opt.value);
+                        if (opt.value !== 'specific') {
+                          update('projectStartTimeSpecificDate', '');
+                        }
+                        setStep2Error(null);
+                      }}
+                    >
+                      {opt.label}
+                    </OptionCardButton>
+                  ))}
                 </div>
                 {form.projectStartTimeType === 'specific' && (
                   <Input
@@ -1014,7 +989,7 @@ export function LabourContractorProjectWizard() {
               />
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <label className={SECTION_LABEL}>
                   Additional Requirements <span className="normal-case tracking-normal">(optional)</span>
                 </label>
                 <textarea
@@ -1025,7 +1000,7 @@ export function LabourContractorProjectWizard() {
                     update('additionalRequirements', e.target.value);
                     setStep2Error(null);
                   }}
-                  className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
+                  className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm text-gray-900 dark:text-zinc-100 placeholder:text-gray-500 dark:placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
                 />
               </div>
 
@@ -1063,7 +1038,7 @@ export function LabourContractorProjectWizard() {
                   { label: 'Selection Window', value: '5 minutes after bids close' },
                 ].map(({ label, value }) => (
                   <div key={label} className="flex items-start justify-between gap-3 px-4 py-3">
-                    <span className="text-xs text-muted-foreground flex-1 min-w-0">{label}</span>
+                    <span className="text-xs font-medium text-gray-700 dark:text-zinc-300 flex-1 min-w-0">{label}</span>
                     <div className="text-sm font-semibold text-foreground text-right flex-shrink-0 max-w-[55%]">
                       {value}
                     </div>
@@ -1096,7 +1071,7 @@ export function LabourContractorProjectWizard() {
               </div>
               <div>
                 <h2 className="text-xl font-bold text-foreground mb-2">Auction Launched! 🎉</h2>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm font-medium text-gray-700 dark:text-zinc-300">
                   Your project <strong className="text-foreground">&quot;{submittedTitle}&quot;</strong> is now live.
                 </p>
               </div>

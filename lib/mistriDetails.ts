@@ -284,7 +284,7 @@ export const MISTRI_CURRENT_FLOOR_OPTIONS: {
   value: MistriCurrentFloorOption;
   label: string;
 }[] = [
-  { value: 'G+0', label: 'Ground Floor Only (G Only / Single Story)' },
+  { value: 'G+0', label: 'Ground Floor Only' },
   { value: 'G+1', label: 'G+1 (Ground + 1 Floor)' },
   { value: 'G+2', label: 'G+2 (Ground + 2 Floors)' },
   { value: 'custom', label: 'Custom (Manual Entry)' },
@@ -311,7 +311,7 @@ export const MISTRI_STRUCTURAL_FLOOR_OPTIONS: {
   value: MistriStructuralFloorOption;
   label: string;
 }[] = [
-  { value: 'G+0', label: 'Ground Floor Only (G Only / Single Story)' },
+  { value: 'G+0', label: 'Ground Floor Only' },
   { value: 'G+1', label: 'G+1 (Ground + 1 Floor)' },
   { value: 'G+2', label: 'G+2 (Ground + 2 Floors)' },
   { value: 'G+3', label: 'G+3 (Ground + 3 Floors)' },
@@ -345,7 +345,7 @@ export const MISTRI_CONTRACT_TYPE_OPTIONS: {
   label: string;
 }[] = [
   { value: 'labor_only', label: 'Labor Rate Only' },
-  { value: 'labor_centering', label: 'Labor + Centering/Shuttering' },
+  { value: 'labor_centering', label: 'Labor + Shuttering' },
 ];
 
 const LEGACY_CIVIL_WORK_MAP: Record<LegacyMistriCivilWorkType, MistriCivilWorkType> = {

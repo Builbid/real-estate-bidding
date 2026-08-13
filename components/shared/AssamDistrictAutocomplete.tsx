@@ -119,7 +119,7 @@ export function AssamDistrictAutocomplete({
     <div ref={containerRef} className="relative flex flex-col gap-1.5 w-full">
       <label
         htmlFor={listboxId}
-        className="text-xs font-medium text-muted-foreground uppercase tracking-wider"
+        className="text-xs font-semibold text-gray-800 dark:text-zinc-100 uppercase tracking-wider"
       >
         {label}
       </label>
@@ -148,7 +148,7 @@ export function AssamDistrictAutocomplete({
           onFocus={handleFocus}
           onKeyDown={handleKeyDown}
           className={cn(
-            'flex h-11 w-full rounded-lg border border-input bg-background pl-8 pr-9 py-2 text-base md:text-sm text-foreground placeholder:text-muted-foreground',
+            'flex h-11 w-full rounded-lg border border-input bg-background pl-8 pr-9 py-2 text-base md:text-sm text-foreground placeholder:text-gray-500 dark:placeholder:text-zinc-400',
             'ring-offset-background transition-all duration-150',
             'focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500',
             'disabled:cursor-not-allowed disabled:opacity-50',
