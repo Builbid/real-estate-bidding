@@ -24,6 +24,7 @@ import {
   buildingTypesFromFloorPlan,
   constructionTypesFromMistriDetails,
   isMistriDetails,
+  mistriNestedDetailsCreateError,
   type MistriDetails,
 } from '@/lib/mistriDetails'
 import { sendNewProjectAnnouncementEmails } from '@/lib/email/newProjectAnnouncement'
@@ -224,6 +225,10 @@ export async function createProjectAction(
         if (!isMistriDetails(labour.mistri_details)) {
           return { error: 'Mistri work requirements are incomplete.' }
         }
+        const nestedError = mistriNestedDetailsCreateError(labour.mistri_details)
+        if (nestedError) {
+          return { error: nestedError }
+        }
         if (
           labour.mistri_details.projectStartTimeType === 'specific' &&
           !labour.mistri_details.projectStartTimeSpecificDate
@@ -238,9 +243,13 @@ export async function createProjectAction(
         insertPayload.mistri_details = {
           civilWorkTypes: labour.mistri_details.civilWorkTypes,
           plasterSide: labour.mistri_details.plasterSide ?? null,
+          brickworkDetails: labour.mistri_details.brickworkDetails ?? null,
+          boundaryWallDetails: labour.mistri_details.boundaryWallDetails ?? null,
           approximateAreaSqft: labour.mistri_details.approximateAreaSqft,
           currentFloorPlan: labour.mistri_details.currentFloorPlan,
           futureFloorPlan: labour.mistri_details.futureFloorPlan,
+          workAreaFloors: labour.mistri_details.workAreaFloors ?? null,
+          workAreaCustomFloors: labour.mistri_details.workAreaCustomFloors ?? null,
           floorLevel: labour.mistri_details.floorLevel ?? null,
           customFloorCount: labour.mistri_details.customFloorCount ?? null,
           contractType: labour.mistri_details.contractType,

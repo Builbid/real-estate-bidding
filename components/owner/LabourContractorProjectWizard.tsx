@@ -20,6 +20,9 @@ import { formatPincodeInput, validatePincode } from '@/lib/validation/pincode';
 import {
   CUSTOM_FLOOR_PLAN_INVALID_MESSAGE,
   FOUNDATION_CAPACITY_INVALID_MESSAGE,
+  MISTRI_BOUNDARY_WALL_STRUCTURE_OPTIONS,
+  MISTRI_BOUNDARY_WALL_THICKNESS_OPTIONS,
+  MISTRI_BRICKWORK_MATERIAL_OPTIONS,
   MISTRI_CIVIL_WORK_OPTIONS,
   MISTRI_CONTRACT_TYPE_OPTIONS,
   MISTRI_CURRENT_FLOOR_OPTIONS,
@@ -27,6 +30,7 @@ import {
   MISTRI_FUTURE_FLOOR_OPTIONS,
   MISTRI_PLASTER_SIDE_OPTIONS,
   MISTRI_START_TIME_OPTIONS,
+  MISTRI_WALL_PLASTERING_SCOPE_OPTIONS,
   MISTRI_WORK_AREA_FLOOR_OPTIONS,
   floorPlanUpperCount,
   getMistriWorkRequirementBlocks,
@@ -38,12 +42,16 @@ import {
   resolveFutureFloorPlan,
   toggleMistriCivilWorkType,
   validateMistriDetailsInput,
+  type MistriBoundaryWallStructure,
+  type MistriBoundaryWallThickness,
+  type MistriBrickworkMaterial,
   type MistriCivilWorkType,
   type MistriContractType,
   type MistriCurrentFloorOption,
   type MistriFutureFloorOption,
   type MistriPlasterSide,
   type MistriStartTimeType,
+  type MistriWallPlasteringScope,
   type MistriWorkAreaFloor,
 } from '@/lib/mistriDetails';
 import { cn } from '@/lib/utils';
@@ -52,6 +60,44 @@ import { createProjectAction } from '@/app/actions/createProject';
 type Step = 1 | 2 | 3 | 4;
 
 const BIDDING_MINUTES = 7;
+
+function NestedChoiceButtons<T extends string>({
+  question,
+  options,
+  value,
+  onChange,
+}: {
+  question: string;
+  options: { value: T; label: string }[];
+  value: T | null;
+  onChange: (value: T) => void;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <p className="text-xs font-semibold text-foreground">{question}</p>
+      <div className="grid grid-cols-1 gap-2">
+        {options.map((opt) => {
+          const selected = value === opt.value;
+          return (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => onChange(opt.value)}
+              className={cn(
+                'rounded-md border px-3 py-2 text-left text-xs font-semibold transition-colors',
+                selected
+                  ? 'border-emerald-500/70 bg-emerald-500/15 text-foreground'
+                  : 'border-border bg-card text-muted-foreground hover:border-muted-foreground/40',
+              )}
+            >
+              {opt.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 const PROGRESS_LABELS = [
   'Project Info',
@@ -65,6 +111,11 @@ interface FormState {
   bidding_minutes: string;
   civilWorkTypes: MistriCivilWorkType[];
   plasterSide: MistriPlasterSide | null;
+  brickworkMaterial: MistriBrickworkMaterial | null;
+  brickworkPlastering: MistriWallPlasteringScope | null;
+  boundaryWallThickness: MistriBoundaryWallThickness | null;
+  boundaryWallStructure: MistriBoundaryWallStructure | null;
+  boundaryWallPlastering: MistriWallPlasteringScope | null;
   approximateArea: string;
   currentFloorOption: MistriCurrentFloorOption | null;
   currentFloorCustom: string;
@@ -84,6 +135,11 @@ const EMPTY_FORM: FormState = {
   bidding_minutes: String(BIDDING_MINUTES),
   civilWorkTypes: [],
   plasterSide: null,
+  brickworkMaterial: null,
+  brickworkPlastering: null,
+  boundaryWallThickness: null,
+  boundaryWallStructure: null,
+  boundaryWallPlastering: null,
   approximateArea: '',
   currentFloorOption: null,
   currentFloorCustom: '',
@@ -145,6 +201,19 @@ export function LabourContractorProjectWizard() {
         ...f,
         civilWorkTypes: nextTypes,
         plasterSide: nextTypes.includes('plastering') ? f.plasterSide : null,
+        brickworkMaterial: nextTypes.includes('brickwork_aac') ? f.brickworkMaterial : null,
+        brickworkPlastering: nextTypes.includes('brickwork_aac')
+          ? f.brickworkPlastering
+          : null,
+        boundaryWallThickness: nextTypes.includes('boundary_wall_fencing')
+          ? f.boundaryWallThickness
+          : null,
+        boundaryWallStructure: nextTypes.includes('boundary_wall_fencing')
+          ? f.boundaryWallStructure
+          : null,
+        boundaryWallPlastering: nextTypes.includes('boundary_wall_fencing')
+          ? f.boundaryWallPlastering
+          : null,
         ...(floorStillRequired
           ? {}
           : {
@@ -169,6 +238,11 @@ export function LabourContractorProjectWizard() {
     return {
       civilWorkTypes: form.civilWorkTypes,
       plasterSide: form.plasterSide,
+      brickworkMaterial: form.brickworkMaterial,
+      brickworkPlastering: form.brickworkPlastering,
+      boundaryWallThickness: form.boundaryWallThickness,
+      boundaryWallStructure: form.boundaryWallStructure,
+      boundaryWallPlastering: form.boundaryWallPlastering,
       approximateArea: form.approximateArea,
       currentFloorOption: form.currentFloorOption,
       currentFloorCustom: form.currentFloorCustom,
@@ -557,6 +631,59 @@ export function LabourContractorProjectWizard() {
                                 </button>
                               );
                             })}
+                          </div>
+                        )}
+                        {opt.value === 'brickwork_aac' && selected && (
+                          <div className="ml-2 space-y-3 rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-2.5">
+                            <NestedChoiceButtons
+                              question="What type of wall material will be used?"
+                              options={MISTRI_BRICKWORK_MATERIAL_OPTIONS}
+                              value={form.brickworkMaterial}
+                              onChange={(v) => {
+                                update('brickworkMaterial', v);
+                                setStep2Error(null);
+                              }}
+                            />
+                            <NestedChoiceButtons
+                              question="Do you require plastering work for these walls?"
+                              options={MISTRI_WALL_PLASTERING_SCOPE_OPTIONS}
+                              value={form.brickworkPlastering}
+                              onChange={(v) => {
+                                update('brickworkPlastering', v);
+                                setStep2Error(null);
+                              }}
+                            />
+                          </div>
+                        )}
+                        {opt.value === 'boundary_wall_fencing' && selected && (
+                          <div className="ml-2 space-y-3 rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-2.5">
+                            <NestedChoiceButtons
+                              question="What thickness/size of boundary wall do you plan to build?"
+                              options={MISTRI_BOUNDARY_WALL_THICKNESS_OPTIONS}
+                              value={form.boundaryWallThickness}
+                              onChange={(v) => {
+                                update('boundaryWallThickness', v);
+                                setStep2Error(null);
+                              }}
+                            />
+                            <NestedChoiceButtons
+                              question="What type of boundary wall structure do you need?"
+                              options={MISTRI_BOUNDARY_WALL_STRUCTURE_OPTIONS}
+                              value={form.boundaryWallStructure}
+                              onChange={(v) => {
+                                update('boundaryWallStructure', v);
+                                setStep2Error(null);
+                              }}
+                            />
+                            <NestedChoiceButtons
+                              question="What plastering finish is required for the boundary wall?"
+                              options={MISTRI_WALL_PLASTERING_SCOPE_OPTIONS}
+                              value={form.boundaryWallPlastering}
+                              onChange={(v) => {
+                                update('boundaryWallPlastering', v);
+                                setStep2Error(null);
+                              }}
+                            />
                           </div>
                         )}
                       </div>
