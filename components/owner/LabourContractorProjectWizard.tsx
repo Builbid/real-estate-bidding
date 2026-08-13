@@ -18,6 +18,7 @@ import { generateProjectTitle } from '@/lib/generateProjectTitle';
 import { hasContactInfo } from '@/lib/validation/projectContactInfo';
 import { formatPincodeInput, validatePincode } from '@/lib/validation/pincode';
 import {
+  ALLOWED_CONTRACT_TYPE_WORK_TYPES,
   CUSTOM_FLOOR_PLAN_INVALID_MESSAGE,
   FOUNDATION_CAPACITY_INVALID_MESSAGE,
   MISTRI_BOUNDARY_WALL_STRUCTURE_OPTIONS,
@@ -35,6 +36,7 @@ import {
   floorPlanUpperCount,
   getMistriWorkRequirementBlocks,
   isFutureFloorOptionAllowed,
+  mistriContractTypeRequired,
   mistriFloorLevelRequired,
   mistriWorkAreaRequired,
   normalizeFloorPlanValue,
@@ -197,6 +199,7 @@ export function LabourContractorProjectWizard() {
       const nextTypes = toggleMistriCivilWorkType(f.civilWorkTypes, value);
       const floorStillRequired = mistriFloorLevelRequired(nextTypes);
       const workAreaStillRequired = mistriWorkAreaRequired(nextTypes);
+      const contractStillRequired = mistriContractTypeRequired(nextTypes);
       return {
         ...f,
         civilWorkTypes: nextTypes,
@@ -214,6 +217,7 @@ export function LabourContractorProjectWizard() {
         boundaryWallPlastering: nextTypes.includes('boundary_wall_fencing')
           ? f.boundaryWallPlastering
           : null,
+        contractType: contractStillRequired ? f.contractType : null,
         ...(floorStillRequired
           ? {}
           : {
@@ -360,6 +364,12 @@ export function LabourContractorProjectWizard() {
 
   const floorLevelRequired = mistriFloorLevelRequired(form.civilWorkTypes);
   const workAreaRequired = mistriWorkAreaRequired(form.civilWorkTypes);
+  const selectedWorkTypes = form.civilWorkTypes.map(
+    (t) => MISTRI_CIVIL_WORK_OPTIONS.find((o) => o.value === t)?.label ?? t,
+  );
+  const showContractType = selectedWorkTypes.some((type: string) =>
+    (ALLOWED_CONTRACT_TYPE_WORK_TYPES as readonly string[]).includes(type),
+  );
   const currentCustomError = floorLevelRequired
     ? customFloorInlineError(form.currentFloorOption, form.currentFloorCustom)
     : null;
@@ -931,6 +941,7 @@ export function LabourContractorProjectWizard() {
               </div>
               )}
 
+              {showContractType && (
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Contract Type (Supply Scope)
@@ -959,6 +970,7 @@ export function LabourContractorProjectWizard() {
                   })}
                 </div>
               </div>
+              )}
 
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">

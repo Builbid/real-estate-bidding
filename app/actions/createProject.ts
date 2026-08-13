@@ -252,7 +252,7 @@ export async function createProjectAction(
           workAreaCustomFloors: labour.mistri_details.workAreaCustomFloors ?? null,
           floorLevel: labour.mistri_details.floorLevel ?? null,
           customFloorCount: labour.mistri_details.customFloorCount ?? null,
-          contractType: labour.mistri_details.contractType,
+          contractType: labour.mistri_details.contractType ?? null,
           projectStartTimeType: labour.mistri_details.projectStartTimeType,
           projectStartTimeSpecificDate:
             labour.mistri_details.projectStartTimeType === 'specific'

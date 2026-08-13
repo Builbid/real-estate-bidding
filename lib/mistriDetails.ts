@@ -119,7 +119,8 @@ export interface MistriDetails {
   floorLevel?: MistriFloorLevel | null;
   /** @deprecated Legacy custom floor count for floorLevel === 'custom'. */
   customFloorCount?: number | null;
-  contractType: MistriContractType;
+  /** Required on new posts only for full structure / foundation & concrete structure. */
+  contractType: MistriContractType | null;
   projectStartTimeType: MistriStartTimeType;
   /** ISO date YYYY-MM-DD when projectStartTimeType === 'specific' */
   projectStartTimeSpecificDate?: string | null;
@@ -164,6 +165,18 @@ export const MISTRI_FLOOR_REQUIRED_CIVIL_WORK: readonly MistriCivilWorkType[] = 
   'foundation_concrete_structure',
 ] as const;
 
+/** The only civil work types that may render Contract Type. */
+export const MISTRI_CONTRACT_TYPE_REQUIRED_CIVIL_WORK: readonly MistriCivilWorkType[] = [
+  'complete_full_structure',
+  'foundation_concrete_structure',
+] as const;
+
+/** Labels for the only options allowed to show the Contract Type section. */
+export const ALLOWED_CONTRACT_TYPE_WORK_TYPES: readonly string[] = [
+  'Complete Full Structure (Foundation to Plastering)',
+  'Foundation & Concrete Structure (PCC / RCC Column, Beam & Slab)',
+];
+
 /** Civil work types that require work-area (floor) selection. */
 export const MISTRI_WORK_AREA_REQUIRED_CIVIL_WORK: readonly MistriCivilWorkType[] = [
   'brickwork_aac',
@@ -177,6 +190,17 @@ export function mistriFloorLevelRequired(
   return types.some((t) =>
     (MISTRI_FLOOR_REQUIRED_CIVIL_WORK as readonly string[]).includes(t),
   );
+}
+
+/** True when Contract Type may be shown / required for the given civil work types. */
+export function mistriContractTypeRequired(
+  types: readonly MistriCivilWorkType[],
+): boolean {
+  return types.some((t) => {
+    const label =
+      MISTRI_CIVIL_WORK_OPTIONS.find((o) => o.value === t)?.label ?? t;
+    return (ALLOWED_CONTRACT_TYPE_WORK_TYPES as readonly string[]).includes(label);
+  });
 }
 
 /** True when brickwork/plastering work-area floors must be selected. */
@@ -734,6 +758,7 @@ export function isMistriDetails(value: unknown): value is MistriDetails {
   const contractType = normalizeContractType(v.contractType);
   const { currentFloorPlan, futureFloorPlan, floorLevel } = extractFloorPlans(v);
   const floorRequired = mistriFloorLevelRequired(civilWorkTypes);
+  const contractRequired = mistriContractTypeRequired(civilWorkTypes);
   const additionalOk =
     v.additionalRequirements === undefined ||
     v.additionalRequirements === null ||
@@ -745,11 +770,15 @@ export function isMistriDetails(value: unknown): value is MistriDetails {
     !Number.isFinite(v.approximateAreaSqft) ||
     v.approximateAreaSqft <= 0 ||
     (floorRequired && (!currentFloorPlan || !futureFloorPlan)) ||
-    contractType == null ||
+    (contractRequired && contractType == null) ||
     typeof v.projectStartTimeType !== 'string' ||
     !START_TIME_TYPES.has(v.projectStartTimeType as MistriStartTimeType) ||
     !additionalOk
   ) {
+    return false;
+  }
+
+  if (v.contractType != null && v.contractType !== '' && !contractType) {
     return false;
   }
 
@@ -826,7 +855,9 @@ export function parseMistriDetails(value: unknown): MistriDetails | null {
   const { currentFloorPlan, futureFloorPlan, floorLevel, customFloorCount } =
     extractFloorPlans(raw);
   const floorRequired = mistriFloorLevelRequired(civilWorkTypes);
-  if (civilWorkTypes.length === 0 || !contractType) return null;
+  const contractRequired = mistriContractTypeRequired(civilWorkTypes);
+  if (civilWorkTypes.length === 0) return null;
+  if (contractRequired && !contractType) return null;
   if (floorRequired && (!currentFloorPlan || !futureFloorPlan)) return null;
 
   const plasterSide = civilWorkTypes.includes('plastering')
@@ -882,7 +913,7 @@ export function parseMistriDetails(value: unknown): MistriDetails | null {
     floorLevel: floorLevel ?? null,
     customFloorCount:
       floorLevel === 'custom' ? (customFloorCount ?? 3) : null,
-    contractType,
+    contractType: contractRequired ? contractType : null,
     projectStartTimeType,
     projectStartTimeSpecificDate: specific,
     additionalRequirements,
@@ -1077,16 +1108,17 @@ export function getMistriWorkRequirementBlocks(details: MistriDetails): {
     });
   }
 
-  blocks.push(
-    {
+  if (mistriContractTypeRequired(details.civilWorkTypes) && details.contractType) {
+    blocks.push({
       label: 'Contract Type',
       value: optionLabel(MISTRI_CONTRACT_TYPE_OPTIONS, details.contractType),
-    },
-    {
-      label: 'Start Time',
-      value: formatMistriStartTime(details),
-    },
-  );
+    });
+  }
+
+  blocks.push({
+    label: 'Start Time',
+    value: formatMistriStartTime(details),
+  });
 
   if (details.additionalRequirements) {
     blocks.push({
@@ -1293,8 +1325,12 @@ export function validateMistriDetailsInput(input: {
     workAreaFloors = normalized;
   }
 
-  if (!input.contractType || !CONTRACT_SET.has(input.contractType)) {
-    return { error: 'Select a contract type.' };
+  let contractType: MistriContractType | null = null;
+  if (mistriContractTypeRequired(civilWorkTypes)) {
+    if (!input.contractType || !CONTRACT_SET.has(input.contractType)) {
+      return { error: 'Select a contract type.' };
+    }
+    contractType = input.contractType;
   }
 
   if (!input.projectStartTimeType || !START_TIME_TYPES.has(input.projectStartTimeType)) {
@@ -1315,7 +1351,7 @@ export function validateMistriDetailsInput(input: {
     workAreaCustomFloors,
     floorLevel: null,
     customFloorCount: null,
-    contractType: input.contractType,
+    contractType,
     additionalRequirements: additional,
   };
 
