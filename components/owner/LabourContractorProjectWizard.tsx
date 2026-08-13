@@ -701,85 +701,6 @@ export function LabourContractorProjectWizard() {
                 </div>
               </div>
 
-              <Input
-                label="Approximate Project Area (Sq. Ft.)"
-                type="text"
-                inputMode="decimal"
-                placeholder="e.g. Approx. 1200 Sq. Ft. (Rough estimate is fine)"
-                value={form.approximateArea}
-                onChange={(e) => {
-                  update('approximateArea', e.target.value);
-                  setStep2Error(null);
-                }}
-              />
-
-              {workAreaRequired && (
-                <div className="flex flex-col gap-3">
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      Work Area (Floor Selection)
-                    </label>
-                    <p className="text-[11px] text-muted-foreground leading-relaxed">
-                      Select the specific floors where work is required (Ground, 1st, or 2nd can
-                      be combined), or select Custom Floor(s) for other floor configurations.
-                    </p>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {(() => {
-                      const exclusiveActive = form.workAreaFloors.includes('custom');
-                      return MISTRI_WORK_AREA_FLOOR_OPTIONS.map((opt) => {
-                        const selected = form.workAreaFloors.includes(opt.value);
-                        return (
-                          <button
-                            key={`work-area-${opt.value}`}
-                            type="button"
-                            onClick={() => toggleWorkAreaFloor(opt.value)}
-                            className={cn(
-                              'flex w-full items-center justify-between gap-3 rounded-lg border px-3 py-2.5 text-left text-xs font-semibold transition-colors',
-                              selected
-                                ? 'border-emerald-500/70 bg-emerald-500/10 text-foreground'
-                                : 'border-border bg-card text-muted-foreground hover:border-muted-foreground/40',
-                              // Dim siblings while an exclusive choice is active; a click still
-                              // switches mode (clears exclusive / takes over).
-                              exclusiveActive && !selected && 'opacity-45',
-                            )}
-                          >
-                            <span>{opt.label}</span>
-                            {selected ? (
-                              <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                            ) : (
-                              <span
-                                aria-hidden
-                                className="h-4 w-4 flex-shrink-0 rounded-full border border-border/70"
-                              />
-                            )}
-                          </button>
-                        );
-                      });
-                    })()}
-                  </div>
-                  {form.workAreaFloors.includes('custom') && (
-                    <div className="space-y-1.5">
-                      <Input
-                        label="Custom Floor(s)"
-                        type="text"
-                        inputMode="text"
-                        placeholder="e.g. 3rd Floor, 4th Floor, Terrace"
-                        value={form.workAreaCustomFloors}
-                        onChange={(e) => {
-                          update('workAreaCustomFloors', e.target.value);
-                          setStep2Error(null);
-                        }}
-                      />
-                      <p className="text-[11px] text-muted-foreground leading-relaxed">
-                        * Note: If selecting custom floors, please enter all required floors separated by
-                        commas (e.g., 3rd Floor, 4th Floor, Terrace).
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-
               {floorLevelRequired && (
               <div className="flex flex-col gap-3">
                 <div className="space-y-1">
@@ -969,6 +890,73 @@ export function LabourContractorProjectWizard() {
               </div>
               )}
 
+              {workAreaRequired && (
+                <div className="flex flex-col gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      Work Area (Floor Selection)
+                    </label>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                      Select the specific floors where work is required (Ground, 1st, or 2nd can
+                      be combined), or select Custom Floor(s) for other floor configurations.
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {(() => {
+                      const exclusiveActive = form.workAreaFloors.includes('custom');
+                      return MISTRI_WORK_AREA_FLOOR_OPTIONS.map((opt) => {
+                        const selected = form.workAreaFloors.includes(opt.value);
+                        return (
+                          <button
+                            key={`work-area-${opt.value}`}
+                            type="button"
+                            onClick={() => toggleWorkAreaFloor(opt.value)}
+                            className={cn(
+                              'flex w-full items-center justify-between gap-3 rounded-lg border px-3 py-2.5 text-left text-xs font-semibold transition-colors',
+                              selected
+                                ? 'border-emerald-500/70 bg-emerald-500/10 text-foreground'
+                                : 'border-border bg-card text-muted-foreground hover:border-muted-foreground/40',
+                              // Dim siblings while an exclusive choice is active; a click still
+                              // switches mode (clears exclusive / takes over).
+                              exclusiveActive && !selected && 'opacity-45',
+                            )}
+                          >
+                            <span>{opt.label}</span>
+                            {selected ? (
+                              <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                            ) : (
+                              <span
+                                aria-hidden
+                                className="h-4 w-4 flex-shrink-0 rounded-full border border-border/70"
+                              />
+                            )}
+                          </button>
+                        );
+                      });
+                    })()}
+                  </div>
+                  {form.workAreaFloors.includes('custom') && (
+                    <div className="space-y-1.5">
+                      <Input
+                        label="Custom Floor(s)"
+                        type="text"
+                        inputMode="text"
+                        placeholder="e.g. 3rd Floor, 4th Floor, Terrace"
+                        value={form.workAreaCustomFloors}
+                        onChange={(e) => {
+                          update('workAreaCustomFloors', e.target.value);
+                          setStep2Error(null);
+                        }}
+                      />
+                      <p className="text-[11px] text-muted-foreground leading-relaxed">
+                        * Note: If selecting custom floors, please enter all required floors separated by
+                        commas (e.g., 3rd Floor, 4th Floor, Terrace).
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Project Starting Time
@@ -1012,6 +1000,18 @@ export function LabourContractorProjectWizard() {
                   />
                 )}
               </div>
+
+              <Input
+                label="Approximate Project Area (Sq. Ft.)"
+                type="text"
+                inputMode="decimal"
+                placeholder="e.g. Approx. 1200 Sq. Ft."
+                value={form.approximateArea}
+                onChange={(e) => {
+                  update('approximateArea', e.target.value);
+                  setStep2Error(null);
+                }}
+              />
 
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
