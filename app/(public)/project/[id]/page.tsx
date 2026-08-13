@@ -162,7 +162,7 @@ function ActiveBidCta({
       viewer.role === 'service_provider' && viewer.serviceType
         ? getProviderSpecialtyLabel(viewer.serviceType)
         : viewer.role === 'labour_contractor'
-          ? 'Mistri Contractor'
+          ? 'Mistri Worker'
           : viewer.role === 'construction_firm'
             ? 'Construction Firm'
             : 'bidder';

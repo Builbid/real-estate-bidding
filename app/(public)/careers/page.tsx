@@ -20,7 +20,7 @@ const OPEN_ROLES = [
     location: 'Assam',
     type: 'Full-time / Contract',
     summary:
-      'Onboard mistri contractors and construction firms, explain the BuilBid auction model, and grow our verified builder network.',
+      'Onboard mistri workers and construction firms, explain the BuilBid auction model, and grow our verified builder network.',
   },
   {
     title: 'Customer Success Associate',

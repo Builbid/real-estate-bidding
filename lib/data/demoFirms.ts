@@ -19,7 +19,7 @@ export const DEMO_LABOUR_CONTRACTORS: DemoFirm[] = [
     location: 'Guwahati',
     rating: 4.7,
     reviewCount: 38,
-    specialty: 'Mistri Contractor',
+    specialty: 'Mistri Worker',
     logoUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=KamrupInfra',
     portfolioLink: '/builder/kamrup-infra-works',
     partnerType: 'labour_contractor',

@@ -83,17 +83,17 @@ export function ServiceCategoryBar({ isAuthenticated, role }: ServiceCategoryBar
             Post your project and receive competitive ₹/sqft bids from verified professionals.
           </p>
 
-          <div className="mt-4 grid grid-cols-4 gap-2 sm:mt-5 md:grid-cols-8 md:gap-1 lg:gap-2">
+          <div className="mt-4 grid grid-cols-4 gap-2 auto-rows-fr items-stretch sm:mt-5 md:grid-cols-8 md:gap-1 lg:gap-2">
             {categories.map((cat, index) => (
               <button
                 key={cat.value}
                 type="button"
                 onClick={() => handleSelect(cat.value)}
-                className="group flex min-w-0 flex-col items-center gap-1 text-center"
+                className="group flex h-full min-w-0 flex-col items-center gap-1 text-center"
               >
                 <span
                   className={cn(
-                    'relative flex h-10 w-10 items-center justify-center rounded-lg border bg-gradient-to-br shadow-sm transition-all duration-200 sm:h-11 sm:w-11',
+                    'relative flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border bg-gradient-to-br shadow-sm transition-all duration-200 sm:h-11 sm:w-11',
                     'group-hover:-translate-y-0.5 group-hover:shadow-md group-active:scale-[0.97]',
                     TILE_TONES[index % TILE_TONES.length],
                   )}
@@ -107,7 +107,7 @@ export function ServiceCategoryBar({ isAuthenticated, role }: ServiceCategoryBar
                     )}
                   </span>
                 </span>
-                <span className="line-clamp-2 px-0.5 text-[9px] font-semibold leading-tight text-slate-800 transition-colors group-hover:text-emerald-700 dark:text-slate-100 dark:group-hover:text-emerald-400 sm:text-[10px]">
+                <span className="line-clamp-2 min-h-[2em] px-0.5 text-[9px] font-semibold leading-tight text-slate-800 transition-colors group-hover:text-emerald-700 dark:text-slate-100 dark:group-hover:text-emerald-400 sm:text-[10px]">
                   {cat.label}
                 </span>
               </button>

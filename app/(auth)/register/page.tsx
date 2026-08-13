@@ -63,7 +63,7 @@ const ROLE_CARDS = [
   {
     role: 'labour_contractor' as const,
     emoji: '👷',
-    title: 'Mistri Contractor',
+    title: 'Mistri Worker',
     subtitle: 'I provide construction labour & skilled workers',
     bullets: [
       'Browse live labour contract auctions',
@@ -331,7 +331,7 @@ function RegisterPageContent() {
     role === 'owner'
       ? 'Client'
       : role === 'labour_contractor'
-        ? 'Mistri Contractor'
+        ? 'Mistri Worker'
         : role === 'construction_firm'
           ? 'Construction Firm'
           : isProviderSpecialtyType(role)
@@ -361,7 +361,7 @@ function RegisterPageContent() {
     roleParam === 'owner'
       ? 'Create your client account to post your construction project'
       : roleParam === 'labour_contractor'
-        ? 'Create your mistri contractor account to browse and bid on projects'
+        ? 'Create your mistri worker account to browse and bid on projects'
         : roleParam === 'construction_firm'
           ? 'Create your construction firm account to bid on turnkey projects'
       : isProviderSpecialtyType(roleParam)

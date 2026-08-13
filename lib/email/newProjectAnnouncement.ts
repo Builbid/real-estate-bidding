@@ -82,7 +82,7 @@ export async function sendNewProjectAnnouncementEmails(
     ? 'Construction Firm'
     : isSpecialty
       ? getProviderSpecialtyLabel(input.serviceType)
-      : 'Mistri Contractor';
+      : 'Mistri Worker';
   const bidPath = isFirm
     ? `/dashboard/firm/bid/${input.projectId}`
     : `/dashboard/builder/bid/${input.projectId}`;

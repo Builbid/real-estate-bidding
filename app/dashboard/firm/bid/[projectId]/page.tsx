@@ -140,7 +140,7 @@ export default async function FirmBidPage({ params }: PageProps) {
         <RoleGuardBlocked
           message="This project requires a Construction Firm account."
           backHref="/dashboard/builder"
-          backLabel="Back to Mistri Contractor Console"
+          backLabel="Back to Mistri Worker Console"
         />
       );
     }

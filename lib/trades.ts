@@ -98,7 +98,7 @@ export interface ServiceCategoryOption {
 export const ALL_SERVICE_CATEGORIES: ServiceCategoryOption[] = [
   {
     value: 'labour_contractor',
-    label: 'Mistri Contractor',
+    label: 'Mistri Worker',
     emoji: '👷',
     description: 'Labour-only ₹/sqft bidding',
   },

@@ -18,7 +18,7 @@ export default function PrivacyPage() {
         <p>
           BuilBid (&ldquo;we&rdquo;, &ldquo;us&rdquo;, &ldquo;our&rdquo;) operates the BuilBid
           construction bidding platform at builbid.in and related services. We are committed
-          to protecting the personal information of clients, mistri contractors,
+          to protecting the personal information of clients, mistri workers,
           construction firms, and visitors to our website.
         </p>
         <p>
@@ -32,7 +32,7 @@ export default function PrivacyPage() {
       <StaticSection title="2. Information we collect">
         <p>We collect information you provide directly and data generated through your use of the platform:</p>
         <ul className="list-disc pl-5 space-y-2 mt-2">
-          <li><strong className="text-foreground">Account information:</strong> name, email address, mobile number, password (stored securely hashed), role (owner, mistri contractor, or construction firm).</li>
+          <li><strong className="text-foreground">Account information:</strong> name, email address, mobile number, password (stored securely hashed), role (owner, mistri worker, or construction firm).</li>
           <li><strong className="text-foreground">Profile information:</strong> company name, GST number, physical address, profile photo or firm logo, years in business, and portfolio details you choose to upload.</li>
           <li><strong className="text-foreground">Project & bidding data:</strong> project specifications, bid rates, auction timestamps, and selection decisions.</li>
           <li><strong className="text-foreground">Technical data:</strong> IP address, browser type, device information, and usage logs for security and performance.</li>

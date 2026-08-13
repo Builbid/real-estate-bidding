@@ -520,9 +520,9 @@ export function LabourContractorProjectWizard() {
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
-        <h1 className="text-xl font-bold text-foreground">Post Mistri Contractor Project</h1>
+        <h1 className="text-xl font-bold text-foreground">Post Mistri Worker Project</h1>
         <p className="text-sm font-medium text-gray-700 dark:text-zinc-300 mt-1">
-          Specify civil work scope clearly so mistri contractors can bid without disputes.
+          Specify civil work scope clearly so mistri workers can bid without disputes.
         </p>
       </div>
 
@@ -599,7 +599,7 @@ export function LabourContractorProjectWizard() {
                   </SelectContent>
                 </Select>
                 <p className="text-[11px] font-medium text-indigo-700 dark:text-indigo-300">
-                  After bidding closes you have 5 minutes to select a mistri contractor.
+                  After bidding closes you have 5 minutes to select a mistri worker.
                 </p>
               </div>
 

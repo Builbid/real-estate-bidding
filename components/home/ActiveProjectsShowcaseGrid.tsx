@@ -31,7 +31,7 @@ interface ActiveProjectsShowcaseGridProps {
 
 const FILTER_OPTIONS: { id: ServiceFilter; label: string }[] = [
   { id: 'all', label: 'All Projects' },
-  { id: 'labour_contractor', label: 'Mistri Contractor' },
+  { id: 'labour_contractor', label: 'Mistri Worker' },
   ...(isConstructionFirmEnabled()
     ? [{ id: 'construction_firm' as const, label: 'Construction Firm' }]
     : []),
@@ -39,7 +39,7 @@ const FILTER_OPTIONS: { id: ServiceFilter; label: string }[] = [
 
 /** Extra tokens so short searches like "mistri" / "firm" match the right category. */
 const CATEGORY_SEARCH_ALIASES: Partial<Record<ServiceType, string[]>> = {
-  labour_contractor: ['mistri', 'mistri contractor', 'labour', 'labor', 'labour contractor'],
+  labour_contractor: ['mistri', 'mistri worker', 'mistri contractor', 'labour', 'labor', 'labour contractor'],
   construction_firm: ['firm', 'construction firm', 'turnkey'],
   drawing_design: ['drawing', 'design', 'drawings', 'drawing and design'],
   painter: ['painter', 'paint', 'painting'],

@@ -20,7 +20,7 @@ export const en = {
   },
   roles: {
     owner: 'Client',
-    labour_contractor: 'Mistri Contractor',
+    labour_contractor: 'Mistri Worker',
     construction_firm: 'Construction Firm',
     admin: 'Admin',
     service_provider: 'Service Provider',
@@ -90,8 +90,8 @@ export const en = {
       bidsSubmitted: 'Bids Submitted',
     },
     featuredFirms: {
-      labourTitle: 'Top Mistri Contractors',
-      labourSubtitle: 'Browse trusted mistri contractors on BuilBid',
+      labourTitle: 'Top Mistri Workers',
+      labourSubtitle: 'Browse trusted mistri workers on BuilBid',
       firmsTitle: 'Top Construction Firms',
       firmsSubtitle: 'Browse verified construction firms on BuilBid',
       viewPortfolio: 'View Portfolio',

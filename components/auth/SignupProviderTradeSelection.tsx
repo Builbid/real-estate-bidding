@@ -42,21 +42,23 @@ export function SignupProviderTradeSelection() {
           <p className="text-sm font-semibold text-foreground/80 mb-1">
             Bid your rate/sqft on live client projects
           </p>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 auto-rows-fr items-stretch">
             {ALL_SERVICE_CATEGORIES.map((service) => (
               <Link
                 key={service.value}
                 href={`/register?role=${service.value}`}
                 prefetch
                 className={cn(
-                  'flex flex-col items-center text-center gap-1.5 px-3 py-4 rounded-xl border-2 transition-all duration-200',
+                  'flex h-full flex-col items-center text-center gap-1.5 px-3 py-4 rounded-xl border-2 transition-all duration-200',
                   'hover:scale-[1.02] active:scale-[0.98] shadow-sm hover:shadow-md',
                   'border-border bg-secondary/30 hover:border-emerald-500/40',
                 )}
               >
                 <span className="text-2xl leading-none">{service.emoji}</span>
                 <span className="text-sm font-bold text-foreground">{service.label}</span>
-                <span className="text-[11px] text-muted-foreground leading-snug">{service.description}</span>
+                <span className="flex-1 text-[11px] leading-snug text-muted-foreground">
+                  {service.description}
+                </span>
               </Link>
             ))}
           </div>

@@ -1,5 +1,5 @@
 // ============================================================
-// Mistri Contractor work requirements — stored as projects.mistri_details
+// Mistri Worker work requirements — stored as projects.mistri_details
 // ============================================================
 
 import type { BuildingType, ConstructionTypesMap } from './buildingConfig';

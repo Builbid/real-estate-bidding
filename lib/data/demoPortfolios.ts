@@ -105,7 +105,7 @@ const LABOUR_EXTRAS: Record<
     projectsCompleted: 86,
     isVerified: true,
     about:
-      'Kamrup Infra Works is a Guwahati-based mistri contractor specialising in RCC residential builds across Kamrup Metropolitan. Our crews handle foundation, column, slab, and full finishing scopes with on-site supervision and transparent milestone reporting for clients.',
+      'Kamrup Infra Works is a Guwahati-based mistri worker specialising in RCC residential builds across Kamrup Metropolitan. Our crews handle foundation, column, slab, and full finishing scopes with on-site supervision and transparent milestone reporting for clients.',
     portfolio: labourPortfolio('kamrup-infra-works', [
       {
         id: 'kiw-1',

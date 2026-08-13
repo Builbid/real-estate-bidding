@@ -63,7 +63,7 @@ export default async function BuilderDashboard() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Mistri Contractor Console</h1>
+        <h1 className="text-2xl font-bold text-foreground">Mistri Worker Console</h1>
         <p className="text-sm text-muted-foreground mt-1">Welcome, <span className="text-foreground font-semibold">{profile.full_name}</span></p>
       </div>
 

@@ -25,7 +25,7 @@ export function isTradeProject(project: { service_type?: ServiceType | null }): 
   return isTradeServiceType(getProjectServiceType(project));
 }
 
-/** Canonical service label + emoji (Mistri Contractor, Construction Firm, Painter, …). */
+/** Canonical service label + emoji (Mistri Worker, Construction Firm, Painter, …). */
 export function getServiceCategoryOption(serviceType: ServiceType): ServiceCategoryOption {
   return (
     ALL_SERVICE_CATEGORIES.find((c) => c.value === serviceType) ??
@@ -45,8 +45,8 @@ export function getServiceBidderLabels(serviceType: ServiceType): {
 } {
   if (serviceType === 'labour_contractor') {
     return {
-      singular: 'Mistri Contractor',
-      plural: 'Mistri Contractors',
+      singular: 'Mistri Worker',
+      plural: 'Mistri Workers',
       registerHref: '/register?role=labour_contractor',
     };
   }

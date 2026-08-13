@@ -21,7 +21,7 @@ type ConstructionOption = {
 const MISTRI_OPTION: ConstructionOption = {
   type: 'labour_contractor',
   emoji: '👷',
-  title: 'Mistri Contractor',
+  title: 'Mistri Worker',
   bullets: [
     'Hire skilled construction workers',
     'You purchase & manage all materials',
@@ -71,7 +71,7 @@ export function ServiceTypeSelector({ value, onChange, onContinue }: ServiceType
 
       <div
         className={cn(
-          'grid gap-4',
+          'grid gap-4 items-stretch auto-rows-fr',
           constructionOptions.length > 1 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1',
         )}
       >
@@ -84,7 +84,7 @@ export function ServiceTypeSelector({ value, onChange, onContinue }: ServiceType
               type="button"
               onClick={() => onChange(opt.type)}
               className={cn(
-                'relative text-left rounded-2xl border-2 p-5 transition-all duration-200 transform',
+                'relative flex h-full flex-col text-left rounded-2xl border-2 p-5 transition-all duration-200 transform',
                 selected && 'scale-[1.02]',
                 selected && opt.accent === 'amber' && 'border-amber-500/70 bg-amber-500/8 shadow-lg shadow-amber-500/15',
                 selected && opt.accent === 'indigo' && 'border-indigo-500/70 bg-indigo-500/10 shadow-lg shadow-indigo-500/20 ring-1 ring-indigo-500/25',
@@ -105,7 +105,7 @@ export function ServiceTypeSelector({ value, onChange, onContinue }: ServiceType
               {opt.subtitle && (
                 <p className="text-xs text-muted-foreground mb-3">{opt.subtitle}</p>
               )}
-              <ul className="space-y-1 mb-3">
+              <ul className="space-y-1 mb-3 flex-1">
                 {opt.bullets.map((b) => (
                   <li key={b} className="text-[11px] text-muted-foreground flex gap-1.5">
                     <span className="text-emerald-500">•</span>{b}
@@ -113,7 +113,7 @@ export function ServiceTypeSelector({ value, onChange, onContinue }: ServiceType
                 ))}
               </ul>
               <span className={cn(
-                'inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full border',
+                'inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full border mt-auto',
                 isFirm
                   ? 'bg-indigo-100 text-indigo-800 border-indigo-300 dark:bg-indigo-500/25 dark:text-indigo-100 dark:border-indigo-400/50'
                   : 'bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-500/20 dark:text-amber-100 dark:border-amber-400/45',
@@ -168,7 +168,7 @@ export function ServiceTypeSelector({ value, onChange, onContinue }: ServiceType
           </span>
           <div className="h-px flex-1 bg-border" />
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 auto-rows-fr items-stretch">
           {TRADE_SERVICE_OPTIONS.map((trade) => {
             const selected = value === trade.value;
             return (
@@ -177,18 +177,20 @@ export function ServiceTypeSelector({ value, onChange, onContinue }: ServiceType
                 type="button"
                 onClick={() => onChange(trade.value)}
                 className={cn(
-                  'relative text-left rounded-xl border-2 p-3.5 transition-all duration-200',
+                  'relative flex h-full min-h-0 flex-col text-left rounded-xl border-2 p-3.5 transition-all duration-200',
                   selected
                     ? 'border-emerald-500/70 bg-emerald-500/8 shadow-md shadow-emerald-500/15 scale-[1.02]'
                     : 'border-border bg-secondary/30 hover:border-muted-foreground/40',
                 )}
               >
-                <div className="flex items-center justify-between gap-2 mb-1">
+                <div className="mb-1 flex items-center justify-between gap-2">
                   <span className="text-xl leading-none">{trade.emoji}</span>
                   {selected && <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />}
                 </div>
                 <p className="text-xs font-bold text-foreground">{trade.label}</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5 leading-snug">{trade.description}</p>
+                <p className="mt-0.5 flex-1 text-[10px] leading-snug text-muted-foreground">
+                  {trade.description}
+                </p>
               </button>
             );
           })}
