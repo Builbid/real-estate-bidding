@@ -82,7 +82,6 @@ export type MistriWorkAreaFloor =
   | 'ground'
   | '1st'
   | '2nd'
-  | 'whole_house'
   | 'custom';
 
 export interface MistriDetails {
@@ -338,7 +337,6 @@ export const MISTRI_WORK_AREA_FLOOR_OPTIONS: {
   { value: 'ground', label: 'Ground Floor' },
   { value: '1st', label: '1st Floor' },
   { value: '2nd', label: '2nd Floor' },
-  { value: 'whole_house', label: 'Whole House / Entire Frame' },
   { value: 'custom', label: 'Custom Floor(s)' },
 ];
 

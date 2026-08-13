@@ -438,13 +438,12 @@ export function LabourContractorProjectWizard() {
     if (!workAreaRequired) return;
 
     const STANDARD: MistriWorkAreaFloor[] = ['ground', '1st', '2nd'];
-    const isExclusive = value === 'whole_house' || value === 'custom';
+    const isExclusive = value === 'custom';
     const isStandard = STANDARD.includes(value);
 
     setForm((f) => {
       const selected = f.workAreaFloors.includes(value);
-      const exclusiveActive =
-        f.workAreaFloors.includes('whole_house') || f.workAreaFloors.includes('custom');
+      const exclusiveActive = f.workAreaFloors.includes('custom');
 
       // Exclusive options: toggle alone; selecting clears everything else.
       if (isExclusive) {
@@ -721,15 +720,13 @@ export function LabourContractorProjectWizard() {
                       Work Area (Floor Selection)
                     </label>
                     <p className="text-[11px] text-muted-foreground leading-relaxed">
-                      Select the floors where brickwork or plastering work is required. Ground /
-                      1st / 2nd can be combined; Whole House and Custom replace all other choices.
+                      Select the specific floors where work is required (Ground, 1st, or 2nd can
+                      be combined), or select Custom Floor(s) for other floor configurations.
                     </p>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {(() => {
-                      const exclusiveActive =
-                        form.workAreaFloors.includes('whole_house') ||
-                        form.workAreaFloors.includes('custom');
+                      const exclusiveActive = form.workAreaFloors.includes('custom');
                       return MISTRI_WORK_AREA_FLOOR_OPTIONS.map((opt) => {
                         const selected = form.workAreaFloors.includes(opt.value);
                         return (
