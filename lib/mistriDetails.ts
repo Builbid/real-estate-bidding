@@ -113,11 +113,11 @@ export const MISTRI_CIVIL_WORK_OPTIONS: {
     value: 'foundation_concrete_structure',
     label: 'Foundation & Concrete Structure (PCC / RCC Column, Beam & Slab)',
   },
-  { value: 'brickwork_aac', label: 'Brickwork / AAC Block Masonry' },
+  { value: 'brickwork_aac', label: 'Brickwork / AAC Block Work' },
   { value: 'plastering', label: 'Plastering Work' },
   {
     value: 'tile_marble_flooring',
-    label: 'Flooring Work (Tiles / Marble / Granites Laying)',
+    label: 'Flooring Work (Tiles / Marble / Granites Work)',
   },
   { value: 'boundary_wall_fencing', label: 'Boundary Wall / Fencing Work' },
 ];
@@ -772,7 +772,7 @@ export function summarizeMistriCivilWorkScope(
   if (types.includes('complete_full_structure')) {
     const fullLabel = 'Complete Full Structure (Foundation to Plastering)';
     if (types.includes('tile_marble_flooring')) {
-      return `${fullLabel} with Flooring Work (Tiles / Marble / Granites Laying)`;
+      return `${fullLabel} with Flooring Work (Tiles / Marble / Granites Work)`;
     }
     return fullLabel;
   }
