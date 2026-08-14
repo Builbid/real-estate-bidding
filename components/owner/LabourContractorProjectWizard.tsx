@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useProfile } from '@/lib/hooks/useProfile';
@@ -10,6 +10,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select';
+import { BuildingTypeSelector } from '@/components/construction/BuildingTypeSelector';
 import {
   AssamDistrictAutocomplete,
   parseAssamDistrictSelection,
@@ -17,44 +18,44 @@ import {
 import { generateProjectTitle } from '@/lib/generateProjectTitle';
 import { hasContactInfo } from '@/lib/validation/projectContactInfo';
 import { formatPincodeInput, validatePincode } from '@/lib/validation/pincode';
+import type { BuildingType } from '@/lib/buildingConfig';
+import { ASSAM_BUILDING_TYPE } from '@/lib/buildingConfig';
 import {
-  ALLOWED_CONTRACT_TYPE_WORK_TYPES,
+  CUSTOM_FLOOR_NUMBER_INVALID_MESSAGE,
   CUSTOM_FLOOR_PLAN_INVALID_MESSAGE,
   FOUNDATION_CAPACITY_INVALID_MESSAGE,
-  MISTRI_BOUNDARY_WALL_STRUCTURE_OPTIONS,
-  MISTRI_BOUNDARY_WALL_THICKNESS_OPTIONS,
   MISTRI_BRICKWORK_MATERIAL_OPTIONS,
-  MISTRI_CIVIL_WORK_OPTIONS,
   MISTRI_CONTRACT_TYPE_OPTIONS,
-  MISTRI_CURRENT_FLOOR_OPTIONS,
-  MISTRI_FULL_STRUCTURE_NOTE,
+  MISTRI_CUSTOM_FLOOR_ID,
+  MISTRI_FLOORING_MATERIAL_OPTIONS,
   MISTRI_FUTURE_FLOOR_OPTIONS,
-  MISTRI_PLASTER_SIDE_OPTIONS,
+  MISTRI_PLASTER_SCOPE_OPTIONS,
   MISTRI_START_TIME_OPTIONS,
-  MISTRI_WALL_PLASTERING_SCOPE_OPTIONS,
-  MISTRI_WORK_AREA_FLOOR_OPTIONS,
+  applyMistriFloorWorkSelection,
+  currentFloorPlanFromFloorWork,
   floorPlanUpperCount,
+  formatMistriFloorWorkLabel,
+  getMistriFrameSkeletonIncludes,
+  getMistriFullFinishedIncludes,
   getMistriWorkRequirementBlocks,
   isFutureFloorOptionAllowed,
-  mistriContractTypeRequired,
-  mistriFloorLevelRequired,
-  mistriWorkAreaRequired,
-  normalizeFloorPlanValue,
-  resolveCurrentFloorPlan,
+  mistriContractTypeRequiredForFloorWork,
+  mistriFoundationProvisionRequired,
+  parseCustomFloorNumber,
   resolveFutureFloorPlan,
-  toggleMistriCivilWorkType,
-  validateMistriDetailsInput,
-  type MistriBoundaryWallStructure,
-  type MistriBoundaryWallThickness,
+  sortMistriFloorWork,
+  validateMistriFloorWorkInput,
+  visibleMistriFloorWorkTypes,
+  floorWorkOptionsForFloor,
   type MistriBrickworkMaterial,
-  type MistriCivilWorkType,
   type MistriContractType,
-  type MistriCurrentFloorOption,
+  type MistriFloorId,
+  type MistriFloorWork,
+  type MistriFloorWorkType,
+  type MistriFlooringMaterial,
   type MistriFutureFloorOption,
-  type MistriPlasterSide,
+  type MistriPlasterScope,
   type MistriStartTimeType,
-  type MistriWallPlasteringScope,
-  type MistriWorkAreaFloor,
 } from '@/lib/mistriDetails';
 import { cn } from '@/lib/utils';
 import { createProjectAction } from '@/app/actions/createProject';
@@ -67,6 +68,20 @@ const SECTION_LABEL =
   'text-xs font-semibold text-gray-800 dark:text-zinc-100 uppercase tracking-wider';
 const HELPER_TEXT =
   'text-[11px] font-medium text-gray-700 dark:text-zinc-300 leading-relaxed';
+
+interface FloorWorkForm {
+  workTypes: MistriFloorWorkType[];
+  brickMaterial: MistriBrickworkMaterial | null;
+  plasterScope: MistriPlasterScope | null;
+  flooringMaterial: MistriFlooringMaterial | null;
+}
+
+const EMPTY_FLOOR_WORK: FloorWorkForm = {
+  workTypes: [],
+  brickMaterial: null,
+  plasterScope: null,
+  flooringMaterial: null,
+};
 
 function OptionCardButton({
   selected,
@@ -143,20 +158,13 @@ interface FormState {
   location: string;
   pincode: string;
   bidding_minutes: string;
-  civilWorkTypes: MistriCivilWorkType[];
-  plasterSide: MistriPlasterSide | null;
-  brickworkMaterial: MistriBrickworkMaterial | null;
-  brickworkPlastering: MistriWallPlasteringScope | null;
-  boundaryWallThickness: MistriBoundaryWallThickness | null;
-  boundaryWallStructure: MistriBoundaryWallStructure | null;
-  boundaryWallPlastering: MistriWallPlasteringScope | null;
+  buildingTypes: BuildingType[];
+  customFloorSelected: boolean;
+  customFloorNumber: string;
+  floorWorkById: Record<string, FloorWorkForm>;
   approximateArea: string;
-  currentFloorOption: MistriCurrentFloorOption | null;
-  currentFloorCustom: string;
   futureFloorOption: MistriFutureFloorOption | null;
   futureFloorCustom: string;
-  workAreaFloors: MistriWorkAreaFloor[];
-  workAreaCustomFloors: string;
   contractType: MistriContractType | null;
   projectStartTimeType: MistriStartTimeType | null;
   projectStartTimeSpecificDate: string;
@@ -167,25 +175,28 @@ const EMPTY_FORM: FormState = {
   location: '',
   pincode: '',
   bidding_minutes: String(BIDDING_MINUTES),
-  civilWorkTypes: [],
-  plasterSide: null,
-  brickworkMaterial: null,
-  brickworkPlastering: null,
-  boundaryWallThickness: null,
-  boundaryWallStructure: null,
-  boundaryWallPlastering: null,
+  buildingTypes: [],
+  customFloorSelected: false,
+  customFloorNumber: '',
+  floorWorkById: {},
   approximateArea: '',
-  currentFloorOption: null,
-  currentFloorCustom: '',
   futureFloorOption: null,
   futureFloorCustom: '',
-  workAreaFloors: [],
-  workAreaCustomFloors: '',
   contractType: null,
   projectStartTimeType: null,
   projectStartTimeSpecificDate: '',
   additionalRequirements: '',
 };
+
+function selectedFloorIds(form: FormState): MistriFloorId[] {
+  const ids: MistriFloorId[] = [...form.buildingTypes];
+  if (form.customFloorSelected) ids.push(MISTRI_CUSTOM_FLOOR_ID);
+  return ids;
+}
+
+function floorWorkKey(floorId: MistriFloorId): string {
+  return floorId;
+}
 
 export function LabourContractorProjectWizard() {
   const router = useRouter();
@@ -202,16 +213,37 @@ export function LabourContractorProjectWizard() {
   const [step1Errors, setStep1Errors] = useState<{
     location?: string;
     pincode?: string;
+    floors?: string;
+    customFloor?: string;
   }>({});
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [submittedTitle, setSubmittedTitle] = useState('');
 
   const districtSelection = parseAssamDistrictSelection(form.location);
+  const selectedFloors = selectedFloorIds(form);
+  const parsedCustomFloor = parseCustomFloorNumber(form.customFloorNumber);
+
+  const assembledFloorWork: MistriFloorWork[] = useMemo(() => {
+    return sortMistriFloorWork(
+      selectedFloors.map((floorId) => {
+        const entry = form.floorWorkById[floorWorkKey(floorId)] ?? EMPTY_FLOOR_WORK;
+        return {
+          floorId,
+          customFloorNumber:
+            floorId === MISTRI_CUSTOM_FLOOR_ID ? parsedCustomFloor : null,
+          workTypes: entry.workTypes,
+          brickMaterial: entry.brickMaterial,
+          plasterScope: entry.plasterScope,
+          flooringMaterial: entry.flooringMaterial,
+        };
+      }),
+    );
+  }, [form.floorWorkById, parsedCustomFloor, selectedFloors]);
+
   const previewTitle = generateProjectTitle({
     serviceType: 'labour_contractor',
     district: districtSelection?.district ?? form.location,
-    civilWorkTypes: form.civilWorkTypes,
-    plasterSide: form.plasterSide,
+    floorWork: assembledFloorWork,
   });
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
@@ -226,82 +258,104 @@ export function LabourContractorProjectWizard() {
     }
   }
 
-  function toggleCivilWork(value: MistriCivilWorkType) {
+  function setBuildingTypes(nextTypes: BuildingType[]) {
     setForm((f) => {
-      const nextTypes = toggleMistriCivilWorkType(f.civilWorkTypes, value);
-      const floorStillRequired = mistriFloorLevelRequired(nextTypes);
-      const workAreaStillRequired = mistriWorkAreaRequired(nextTypes);
-      const contractStillRequired = mistriContractTypeRequired(nextTypes);
+      const nextIds = new Set<string>([
+        ...nextTypes,
+        ...(f.customFloorSelected ? [MISTRI_CUSTOM_FLOOR_ID] : []),
+      ]);
+      const floorWorkById = { ...f.floorWorkById };
+      for (const key of Object.keys(floorWorkById)) {
+        if (!nextIds.has(key)) delete floorWorkById[key];
+      }
+      const droppedGround =
+        f.buildingTypes.includes('RCC Ground Floor') &&
+        !nextTypes.includes('RCC Ground Floor');
+      const droppedAssam =
+        f.buildingTypes.includes(ASSAM_BUILDING_TYPE) &&
+        !nextTypes.includes(ASSAM_BUILDING_TYPE);
       return {
         ...f,
-        civilWorkTypes: nextTypes,
-        plasterSide: nextTypes.includes('plastering') ? f.plasterSide : null,
-        brickworkMaterial: nextTypes.includes('brickwork_aac') ? f.brickworkMaterial : null,
-        brickworkPlastering: nextTypes.includes('brickwork_aac')
-          ? f.brickworkPlastering
-          : null,
-        boundaryWallThickness: nextTypes.includes('boundary_wall_fencing')
-          ? f.boundaryWallThickness
-          : null,
-        boundaryWallStructure: nextTypes.includes('boundary_wall_fencing')
-          ? f.boundaryWallStructure
-          : null,
-        boundaryWallPlastering: nextTypes.includes('boundary_wall_fencing')
-          ? f.boundaryWallPlastering
-          : null,
-        contractType: contractStillRequired ? f.contractType : null,
-        ...(floorStillRequired
-          ? {}
-          : {
-              currentFloorOption: null,
-              currentFloorCustom: '',
-              futureFloorOption: null,
-              futureFloorCustom: '',
-            }),
-        ...(workAreaStillRequired
-          ? {}
-          : {
-              workAreaFloors: [],
-              workAreaCustomFloors: '',
-            }),
+        buildingTypes: nextTypes,
+        floorWorkById,
+        ...(droppedGround || droppedAssam
+          ? { futureFloorOption: null, futureFloorCustom: '' }
+          : {}),
       };
     });
-    // Clears floor (and any other) step-2 validation error when structural options change.
+    setStep1Errors((errors) => {
+      const next = { ...errors };
+      delete next.floors;
+      return next;
+    });
+  }
+
+  function setCustomFloor(selected: boolean, number: string) {
+    setForm((f) => {
+      const floorWorkById = { ...f.floorWorkById };
+      if (!selected) delete floorWorkById[MISTRI_CUSTOM_FLOOR_ID];
+      return {
+        ...f,
+        customFloorSelected: selected,
+        customFloorNumber: number,
+        floorWorkById,
+      };
+    });
+    setStep1Errors((errors) => {
+      const next = { ...errors };
+      delete next.floors;
+      delete next.customFloor;
+      return next;
+    });
+  }
+
+  function patchFloorWork(floorId: MistriFloorId, patch: Partial<FloorWorkForm>) {
+    setForm((f) => {
+      const key = floorWorkKey(floorId);
+      const current = f.floorWorkById[key] ?? EMPTY_FLOOR_WORK;
+      return {
+        ...f,
+        floorWorkById: {
+          ...f.floorWorkById,
+          [key]: { ...current, ...patch },
+        },
+      };
+    });
+    setStep2Error(null);
+  }
+
+  function toggleFloorWorkType(floorId: MistriFloorId, workType: MistriFloorWorkType) {
+    setForm((f) => {
+      const key = floorWorkKey(floorId);
+      const current = f.floorWorkById[key] ?? EMPTY_FLOOR_WORK;
+      const workTypes = applyMistriFloorWorkSelection(current.workTypes, workType);
+      return {
+        ...f,
+        floorWorkById: {
+          ...f.floorWorkById,
+          [key]: {
+            workTypes,
+            brickMaterial: workTypes.includes('brick_aac') ? current.brickMaterial : null,
+            plasterScope: workTypes.includes('plastering') ? current.plasterScope : null,
+            flooringMaterial: workTypes.includes('flooring') ? current.flooringMaterial : null,
+          },
+        },
+      };
+    });
     setStep2Error(null);
   }
 
   function mistriValidationInput() {
     return {
-      civilWorkTypes: form.civilWorkTypes,
-      plasterSide: form.plasterSide,
-      brickworkMaterial: form.brickworkMaterial,
-      brickworkPlastering: form.brickworkPlastering,
-      boundaryWallThickness: form.boundaryWallThickness,
-      boundaryWallStructure: form.boundaryWallStructure,
-      boundaryWallPlastering: form.boundaryWallPlastering,
+      floorWork: assembledFloorWork,
       approximateArea: form.approximateArea,
-      currentFloorOption: form.currentFloorOption,
-      currentFloorCustom: form.currentFloorCustom,
       futureFloorOption: form.futureFloorOption,
       futureFloorCustom: form.futureFloorCustom,
-      workAreaFloors: form.workAreaFloors,
-      workAreaCustomFloors: form.workAreaCustomFloors,
       contractType: form.contractType,
       projectStartTimeType: form.projectStartTimeType,
       projectStartTimeSpecificDate: form.projectStartTimeSpecificDate,
       additionalRequirements: form.additionalRequirements,
     };
-  }
-
-  function customFloorInlineError(
-    option: 'custom' | string | null,
-    customValue: string,
-  ): string | null {
-    if (option !== 'custom') return null;
-    if (!customValue.trim() || !normalizeFloorPlanValue(customValue)) {
-      return CUSTOM_FLOOR_PLAN_INVALID_MESSAGE;
-    }
-    return null;
   }
 
   function tryGoStep2() {
@@ -316,6 +370,14 @@ export function LabourContractorProjectWizard() {
       errors.pincode = pincodeError;
     }
 
+    if (selectedFloors.length === 0) {
+      errors.floors = 'Select Assam Type or at least one RCC floor.';
+    }
+
+    if (form.customFloorSelected && parsedCustomFloor == null) {
+      errors.customFloor = CUSTOM_FLOOR_NUMBER_INVALID_MESSAGE;
+    }
+
     if (Object.keys(errors).length > 0) {
       setStep1ValidationAttempted(true);
       setStep1Errors(errors);
@@ -328,7 +390,7 @@ export function LabourContractorProjectWizard() {
   }
 
   function tryGoStep3() {
-    const validated = validateMistriDetailsInput(mistriValidationInput());
+    const validated = validateMistriFloorWorkInput(mistriValidationInput());
     if ('error' in validated) {
       setStep2Error(validated.error);
       return;
@@ -355,7 +417,7 @@ export function LabourContractorProjectWizard() {
       return;
     }
 
-    const validated = validateMistriDetailsInput(mistriValidationInput());
+    const validated = validateMistriFloorWorkInput(mistriValidationInput());
     if ('error' in validated) {
       setError(validated.error);
       setLoading(false);
@@ -365,8 +427,7 @@ export function LabourContractorProjectWizard() {
     const autoTitle = generateProjectTitle({
       serviceType: 'labour_contractor',
       district: districtSelection.district,
-      civilWorkTypes: form.civilWorkTypes,
-      plasterSide: form.plasterSide,
+      floorWork: validated.details.floorWork,
     });
 
     const result = await createProjectAction({
@@ -390,132 +451,38 @@ export function LabourContractorProjectWizard() {
   }
 
   const reviewBlocks = (() => {
-    const validated = validateMistriDetailsInput(mistriValidationInput());
+    const validated = validateMistriFloorWorkInput(mistriValidationInput());
     return 'details' in validated ? getMistriWorkRequirementBlocks(validated.details) : [];
   })();
 
-  const floorLevelRequired = mistriFloorLevelRequired(form.civilWorkTypes);
-  const workAreaRequired = mistriWorkAreaRequired(form.civilWorkTypes);
-  const selectedWorkTypes = form.civilWorkTypes.map(
-    (t) => MISTRI_CIVIL_WORK_OPTIONS.find((o) => o.value === t)?.label ?? t,
-  );
-  const showContractType = selectedWorkTypes.some((type: string) =>
-    (ALLOWED_CONTRACT_TYPE_WORK_TYPES as readonly string[]).includes(type),
-  );
-  const currentCustomError = floorLevelRequired
-    ? customFloorInlineError(form.currentFloorOption, form.currentFloorCustom)
-    : null;
-  const futureCustomError = floorLevelRequired
-    ? customFloorInlineError(form.futureFloorOption, form.futureFloorCustom)
-    : null;
+  const showFoundationProvision = mistriFoundationProvisionRequired(assembledFloorWork);
+  const showContractType = mistriContractTypeRequiredForFloorWork(assembledFloorWork);
+  const currentFloorPlan = currentFloorPlanFromFloorWork(assembledFloorWork);
+  const currentUpper = floorPlanUpperCount(currentFloorPlan);
 
-  const resolvedCurrentPlan = (() => {
-    const resolved = resolveCurrentFloorPlan(
-      form.currentFloorOption,
-      form.currentFloorCustom,
+  const futureCustomError = (() => {
+    if (!showFoundationProvision || form.futureFloorOption !== 'custom') return null;
+    const resolved = resolveFutureFloorPlan(
+      'custom',
+      form.futureFloorCustom,
+      currentFloorPlan,
     );
-    return 'value' in resolved ? resolved.value : null;
+    return 'error' in resolved ? CUSTOM_FLOOR_PLAN_INVALID_MESSAGE : null;
   })();
-  const currentUpper = floorPlanUpperCount(resolvedCurrentPlan);
 
   const foundationCapacityError = (() => {
-    if (!form.currentFloorOption || !form.futureFloorOption || !resolvedCurrentPlan) {
-      return null;
-    }
+    if (!showFoundationProvision || !form.futureFloorOption) return null;
     const futureResolved = resolveFutureFloorPlan(
       form.futureFloorOption,
       form.futureFloorCustom,
-      resolvedCurrentPlan,
+      currentFloorPlan,
     );
     if ('error' in futureResolved) return null;
     const futureN = floorPlanUpperCount(futureResolved.value);
-    if (currentUpper == null || futureN == null || futureN >= currentUpper) return null;
-    return FOUNDATION_CAPACITY_INVALID_MESSAGE;
+    if (currentUpper == null || futureN == null) return null;
+    if (futureN < currentUpper) return FOUNDATION_CAPACITY_INVALID_MESSAGE;
+    return null;
   })();
-
-  function selectCurrentFloorOption(option: MistriCurrentFloorOption) {
-    if (!floorLevelRequired) return;
-    setForm((f) => {
-      const nextCurrentCustom = option === 'custom' ? f.currentFloorCustom : '';
-      const resolved = resolveCurrentFloorPlan(option, nextCurrentCustom);
-      const nextUpper =
-        'value' in resolved ? floorPlanUpperCount(resolved.value) : null;
-      const futureStillOk =
-        f.futureFloorOption == null ||
-        isFutureFloorOptionAllowed(f.futureFloorOption, nextUpper);
-      return {
-        ...f,
-        currentFloorOption: option,
-        currentFloorCustom: nextCurrentCustom,
-        ...(futureStillOk
-          ? {}
-          : {
-              futureFloorOption: null,
-              futureFloorCustom: '',
-            }),
-      };
-    });
-    setStep2Error(null);
-  }
-
-  function selectFutureFloorOption(option: MistriFutureFloorOption) {
-    if (!floorLevelRequired) return;
-    if (!isFutureFloorOptionAllowed(option, currentUpper)) return;
-    update('futureFloorOption', option);
-    if (option !== 'custom') update('futureFloorCustom', '');
-    setStep2Error(null);
-  }
-
-  function toggleWorkAreaFloor(value: MistriWorkAreaFloor) {
-    if (!workAreaRequired) return;
-
-    const STANDARD: MistriWorkAreaFloor[] = ['ground', '1st', '2nd'];
-    const isExclusive = value === 'custom';
-    const isStandard = STANDARD.includes(value);
-
-    setForm((f) => {
-      const selected = f.workAreaFloors.includes(value);
-      const exclusiveActive = f.workAreaFloors.includes('custom');
-
-      // Exclusive options: toggle alone; selecting clears everything else.
-      if (isExclusive) {
-        if (selected) {
-          return {
-            ...f,
-            workAreaFloors: [],
-            workAreaCustomFloors: '',
-          };
-        }
-        return {
-          ...f,
-          workAreaFloors: [value],
-          workAreaCustomFloors: value === 'custom' ? f.workAreaCustomFloors : '',
-        };
-      }
-
-      // Standard floors: multi-select among themselves; clicking clears any exclusive mode.
-      if (isStandard) {
-        if (exclusiveActive) {
-          return {
-            ...f,
-            workAreaFloors: [value],
-            workAreaCustomFloors: '',
-          };
-        }
-        const next = selected
-          ? f.workAreaFloors.filter((v) => v !== value)
-          : [...f.workAreaFloors.filter((v) => STANDARD.includes(v)), value];
-        return {
-          ...f,
-          workAreaFloors: next,
-          workAreaCustomFloors: '',
-        };
-      }
-
-      return f;
-    });
-    setStep2Error(null);
-  }
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -587,6 +554,23 @@ export function LabourContractorProjectWizard() {
 
               <div className="flex flex-col gap-1.5">
                 <label className={SECTION_LABEL}>
+                  Building / Floor Type
+                </label>
+                <BuildingTypeSelector
+                  purpose="mistri"
+                  value={form.buildingTypes}
+                  onChange={setBuildingTypes}
+                  showCustomFloor
+                  customSelected={form.customFloorSelected}
+                  customFloorNumber={form.customFloorNumber}
+                  onCustomChange={setCustomFloor}
+                  error={step1ValidationAttempted ? step1Errors.floors : null}
+                  customError={step1ValidationAttempted ? step1Errors.customFloor : null}
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className={SECTION_LABEL}>
                   Bidding Duration
                 </label>
                 <Select value={form.bidding_minutes} onValueChange={(v) => update('bidding_minutes', v)}>
@@ -612,9 +596,9 @@ export function LabourContractorProjectWizard() {
           {step === 2 && (
             <div className="space-y-5">
               <div>
-                <h2 className="text-base font-semibold text-foreground">Civil Work Requirements</h2>
+                <h2 className="text-base font-semibold text-foreground">Work Requirements</h2>
                 <p className="text-xs font-medium text-gray-700 dark:text-zinc-300 mt-1">
-                  Select the work type that best matches the scope so bids stay accurate.
+                  Choose the work type for each selected floor. Options that cannot be combined are removed after you pick one.
                 </p>
               </div>
 
@@ -625,319 +609,187 @@ export function LabourContractorProjectWizard() {
                 </div>
               )}
 
-              <div className="flex flex-col gap-1.5">
-                <div className="grid grid-cols-1 gap-2">
-                  {MISTRI_CIVIL_WORK_OPTIONS.map((opt) => {
-                    const selected = form.civilWorkTypes.includes(opt.value);
-                    return (
-                      <div key={opt.value} className="space-y-2">
-                        <OptionCardButton
-                          selected={selected}
-                          onClick={() => toggleCivilWork(opt.value)}
-                        >
-                          {opt.label}
-                        </OptionCardButton>
-                        {opt.value === 'complete_full_structure' && (
-                          <p className={cn('px-1', HELPER_TEXT)}>
-                            {MISTRI_FULL_STRUCTURE_NOTE}
+              {assembledFloorWork.map((fw) => {
+                const key = floorWorkKey(fw.floorId);
+                const entry = form.floorWorkById[key] ?? EMPTY_FLOOR_WORK;
+                const visible = visibleMistriFloorWorkTypes(entry.workTypes, fw.floorId);
+                const options = floorWorkOptionsForFloor(fw.floorId).filter((opt) =>
+                  visible.includes(opt.value),
+                );
+                const title = formatMistriFloorWorkLabel(fw);
+
+                return (
+                  <div
+                    key={key}
+                    className="rounded-xl border border-border/80 bg-muted/20 p-3 space-y-3"
+                  >
+                    <div className="space-y-1">
+                      <p className="text-sm font-semibold text-foreground">{title}</p>
+                      <p className={HELPER_TEXT}>
+                        Select one work type for this floor. Brick / AAC can be combined with plastering.
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-1 gap-2">
+                      {options.map((opt) => {
+                        const selected = entry.workTypes.includes(opt.value);
+                        return (
+                          <div key={opt.value} className="space-y-2">
+                            <OptionCardButton
+                              selected={selected}
+                              onClick={() => toggleFloorWorkType(fw.floorId, opt.value)}
+                            >
+                              {opt.label}
+                            </OptionCardButton>
+                            {opt.value === 'full_finished' && selected && (
+                              <p className={cn('px-1', HELPER_TEXT)}>
+                                {getMistriFullFinishedIncludes(fw.floorId)}
+                              </p>
+                            )}
+                            {opt.value === 'frame_skeleton' && selected && (
+                              <p className={cn('px-1', HELPER_TEXT)}>
+                                {getMistriFrameSkeletonIncludes(fw.floorId)}
+                              </p>
+                            )}
+                            {opt.value === 'brick_aac' && selected && (
+                              <div className="ml-2 space-y-3 rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-2.5">
+                                <NestedChoiceButtons
+                                  question="What type of wall material will be used?"
+                                  options={MISTRI_BRICKWORK_MATERIAL_OPTIONS}
+                                  value={entry.brickMaterial}
+                                  onChange={(v) => patchFloorWork(fw.floorId, { brickMaterial: v })}
+                                />
+                              </div>
+                            )}
+                            {opt.value === 'plastering' && selected && (
+                              <div className="ml-2 space-y-3 rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-2.5">
+                                <NestedChoiceButtons
+                                  question="Which plastering do you need?"
+                                  options={MISTRI_PLASTER_SCOPE_OPTIONS}
+                                  value={entry.plasterScope}
+                                  onChange={(v) => patchFloorWork(fw.floorId, { plasterScope: v })}
+                                />
+                              </div>
+                            )}
+                            {opt.value === 'flooring' && selected && (
+                              <div className="ml-2 space-y-3 rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-2.5">
+                                <NestedChoiceButtons
+                                  question="What flooring material will be used?"
+                                  options={MISTRI_FLOORING_MATERIAL_OPTIONS}
+                                  value={entry.flooringMaterial}
+                                  onChange={(v) =>
+                                    patchFloorWork(fw.floorId, { flooringMaterial: v })
+                                  }
+                                />
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {showFoundationProvision && (
+                <div className="flex flex-col gap-3">
+                  <div className="rounded-lg border border-border/80 bg-muted/20 p-3 space-y-2">
+                    <div className="space-y-1">
+                      <p className="text-xs font-semibold text-gray-900 dark:text-zinc-100">
+                        What is your future expansion plan for the foundation?
+                      </p>
+                      <p className={HELPER_TEXT}>
+                        Select the total floor capacity the foundation and columns must be engineered
+                        to support for future building additions.
+                      </p>
+                    </div>
+                    <Select
+                      value={form.futureFloorOption ?? undefined}
+                      onValueChange={(v) => {
+                        update('futureFloorOption', v as MistriFutureFloorOption);
+                        if (v !== 'custom') update('futureFloorCustom', '');
+                        setStep2Error(null);
+                      }}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select future foundation capacity" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {MISTRI_FUTURE_FLOOR_OPTIONS.map((opt) => {
+                          const allowed = isFutureFloorOptionAllowed(opt.value, currentUpper);
+                          return (
+                            <SelectItem
+                              key={opt.value}
+                              value={opt.value}
+                              disabled={!allowed}
+                            >
+                              {opt.label}
+                              {!allowed ? ' (below current build)' : ''}
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
+                    {form.futureFloorOption === 'custom' && (
+                      <div className="space-y-1">
+                        <Input
+                          label="Enter total upper floors (e.g. 6, 7, 8)"
+                          type="text"
+                          inputMode="numeric"
+                          placeholder="e.g. 6 or 7 or 8+"
+                          value={form.futureFloorCustom}
+                          onChange={(e) => {
+                            update(
+                              'futureFloorCustom',
+                              e.target.value.replace(/[^\d+]/g, ''),
+                            );
+                            setStep2Error(null);
+                          }}
+                          className="mt-1"
+                        />
+                        {futureCustomError && (
+                          <p className="text-xs text-destructive flex items-center gap-1">
+                            <AlertCircle className="h-3 w-3 shrink-0" />
+                            {futureCustomError}
                           </p>
                         )}
-                        {opt.value === 'plastering' && selected && (
-                          <div className="ml-2 grid grid-cols-1 sm:grid-cols-2 gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-2">
-                            {MISTRI_PLASTER_SIDE_OPTIONS.map((side) => (
-                              <OptionCardButton
-                                key={side.value}
-                                selected={form.plasterSide === side.value}
-                                onClick={() => {
-                                  update('plasterSide', side.value);
-                                  setStep2Error(null);
-                                }}
-                              >
-                                {side.label}
-                              </OptionCardButton>
-                            ))}
-                          </div>
-                        )}
-                        {opt.value === 'brickwork_aac' && selected && (
-                          <div className="ml-2 space-y-3 rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-2.5">
-                            <NestedChoiceButtons
-                              question="What type of wall material will be used?"
-                              options={MISTRI_BRICKWORK_MATERIAL_OPTIONS}
-                              value={form.brickworkMaterial}
-                              onChange={(v) => {
-                                update('brickworkMaterial', v);
-                                setStep2Error(null);
-                              }}
-                            />
-                            <NestedChoiceButtons
-                              question="Do you require plastering work for these walls?"
-                              options={MISTRI_WALL_PLASTERING_SCOPE_OPTIONS}
-                              value={form.brickworkPlastering}
-                              onChange={(v) => {
-                                update('brickworkPlastering', v);
-                                setStep2Error(null);
-                              }}
-                            />
-                          </div>
-                        )}
-                        {opt.value === 'boundary_wall_fencing' && selected && (
-                          <div className="ml-2 space-y-3 rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-2.5">
-                            <NestedChoiceButtons
-                              question="What thickness/size of boundary wall do you plan to build?"
-                              options={MISTRI_BOUNDARY_WALL_THICKNESS_OPTIONS}
-                              value={form.boundaryWallThickness}
-                              onChange={(v) => {
-                                update('boundaryWallThickness', v);
-                                setStep2Error(null);
-                              }}
-                            />
-                            <NestedChoiceButtons
-                              question="What type of boundary wall structure do you need?"
-                              options={MISTRI_BOUNDARY_WALL_STRUCTURE_OPTIONS}
-                              value={form.boundaryWallStructure}
-                              onChange={(v) => {
-                                update('boundaryWallStructure', v);
-                                setStep2Error(null);
-                              }}
-                            />
-                            <NestedChoiceButtons
-                              question="What plastering finish is required for the boundary wall?"
-                              options={MISTRI_WALL_PLASTERING_SCOPE_OPTIONS}
-                              value={form.boundaryWallPlastering}
-                              onChange={(v) => {
-                                update('boundaryWallPlastering', v);
-                                setStep2Error(null);
-                              }}
-                            />
-                          </div>
-                        )}
                       </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {floorLevelRequired && (
-              <div className="flex flex-col gap-3">
-                <div className="space-y-1">
-                  <label className={SECTION_LABEL}>
-                    Structural Floor Planning
-                  </label>
-                </div>
-
-                <div className="rounded-lg border border-border/80 bg-muted/20 p-3 space-y-2">
-                  <div className="space-y-1">
-                    <p className="text-xs font-semibold text-gray-900 dark:text-zinc-100">
-                      How many floors do you plan to build in this current project?
-                    </p>
-                    <p className={HELPER_TEXT}>
-                      Select the exact number of floors to be constructed now under this bid.
-                    </p>
+                    )}
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {MISTRI_CURRENT_FLOOR_OPTIONS.map((opt) => (
+
+                  {foundationCapacityError && (
+                    <p className="text-xs text-destructive flex items-start gap-1.5">
+                      <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                      {foundationCapacityError}
+                    </p>
+                  )}
+
+                  <p className={cn(HELPER_TEXT, 'border-l-2 border-amber-500/50 pl-2.5')}>
+                    * Note: Designing for higher future floor capacity requires stronger foundations,
+                    thicker columns, and more steel reinforcement today, directly affecting labor and
+                    material costs.
+                  </p>
+                </div>
+              )}
+
+              {showContractType && (
+                <div className="flex flex-col gap-1.5">
+                  <label className={SECTION_LABEL}>
+                    Contract Type (Supply Scope)
+                  </label>
+                  <div className="grid grid-cols-1 gap-2">
+                    {MISTRI_CONTRACT_TYPE_OPTIONS.map((opt) => (
                       <OptionCardButton
-                        key={`current-${opt.value}`}
-                        selected={form.currentFloorOption === opt.value}
-                        onClick={() => selectCurrentFloorOption(opt.value)}
+                        key={opt.value}
+                        selected={form.contractType === opt.value}
+                        onClick={() => {
+                          update('contractType', opt.value);
+                          setStep2Error(null);
+                        }}
                       >
                         {opt.label}
                       </OptionCardButton>
                     ))}
                   </div>
-                  {form.currentFloorOption === 'custom' && (
-                    <div className="space-y-1">
-                      <Input
-                        label="Enter floor plan (e.g. G+3, G+4)"
-                        type="text"
-                        inputMode="text"
-                        placeholder="e.g. G+3 or G+4"
-                        value={form.currentFloorCustom}
-                        onChange={(e) => {
-                          const nextCustom = e.target.value;
-                          setForm((f) => {
-                            const resolved = resolveCurrentFloorPlan('custom', nextCustom);
-                            const nextUpper =
-                              'value' in resolved
-                                ? floorPlanUpperCount(resolved.value)
-                                : null;
-                            const futureStillOk =
-                              f.futureFloorOption == null ||
-                              isFutureFloorOptionAllowed(f.futureFloorOption, nextUpper);
-                            return {
-                              ...f,
-                              currentFloorCustom: nextCustom,
-                              ...(futureStillOk
-                                ? {}
-                                : {
-                                    futureFloorOption: null,
-                                    futureFloorCustom: '',
-                                  }),
-                            };
-                          });
-                          setStep2Error(null);
-                        }}
-                        className="mt-1"
-                      />
-                      {currentCustomError && (
-                        <p className="text-xs text-destructive flex items-center gap-1">
-                          <AlertCircle className="h-3 w-3 shrink-0" />
-                          {currentCustomError}
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                <div className="rounded-lg border border-border/80 bg-muted/20 p-3 space-y-2">
-                  <div className="space-y-1">
-                    <p className="text-xs font-semibold text-gray-900 dark:text-zinc-100">
-                      What is your future expansion plan for the foundation?
-                    </p>
-                    <p className={HELPER_TEXT}>
-                      Select the total floor capacity the foundation and columns must be engineered
-                      to support for future building additions.
-                    </p>
-                  </div>
-                  <Select
-                    value={form.futureFloorOption ?? undefined}
-                    onValueChange={(v) =>
-                      selectFutureFloorOption(v as MistriFutureFloorOption)
-                    }
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select future foundation capacity" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {MISTRI_FUTURE_FLOOR_OPTIONS.map((opt) => {
-                        const allowed = isFutureFloorOptionAllowed(opt.value, currentUpper);
-                        return (
-                          <SelectItem
-                            key={opt.value}
-                            value={opt.value}
-                            disabled={!allowed}
-                          >
-                            {opt.label}
-                            {!allowed ? ' (below current build)' : ''}
-                          </SelectItem>
-                        );
-                      })}
-                    </SelectContent>
-                  </Select>
-                  {form.futureFloorOption === 'custom' && (
-                    <div className="space-y-1">
-                      <Input
-                        label="Enter total upper floors (e.g. 6, 7, 8)"
-                        type="text"
-                        inputMode="numeric"
-                        placeholder="e.g. 6 or 7 or 8+"
-                        value={form.futureFloorCustom}
-                        onChange={(e) => {
-                          update(
-                            'futureFloorCustom',
-                            e.target.value.replace(/[^\d+]/g, ''),
-                          );
-                          setStep2Error(null);
-                        }}
-                        className="mt-1"
-                      />
-                      {futureCustomError && (
-                        <p className="text-xs text-destructive flex items-center gap-1">
-                          <AlertCircle className="h-3 w-3 shrink-0" />
-                          {futureCustomError}
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {foundationCapacityError && (
-                  <p className="text-xs text-destructive flex items-start gap-1.5">
-                    <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                    {foundationCapacityError}
-                  </p>
-                )}
-
-                <p className={cn(HELPER_TEXT, 'border-l-2 border-amber-500/50 pl-2.5')}>
-                  * Note: Designing for higher future floor capacity requires stronger foundations,
-                  thicker columns, and more steel reinforcement today, directly affecting labor and
-                  material costs.
-                </p>
-              </div>
-              )}
-
-              {showContractType && (
-              <div className="flex flex-col gap-1.5">
-                <label className={SECTION_LABEL}>
-                  Contract Type (Supply Scope)
-                </label>
-                <div className="grid grid-cols-1 gap-2">
-                  {MISTRI_CONTRACT_TYPE_OPTIONS.map((opt) => (
-                    <OptionCardButton
-                      key={opt.value}
-                      selected={form.contractType === opt.value}
-                      onClick={() => {
-                        update('contractType', opt.value);
-                        setStep2Error(null);
-                      }}
-                    >
-                      {opt.label}
-                    </OptionCardButton>
-                  ))}
-                </div>
-              </div>
-              )}
-
-              {workAreaRequired && (
-                <div className="flex flex-col gap-3">
-                  <div className="space-y-1">
-                    <label className={SECTION_LABEL}>
-                      Work Area (Floor Selection)
-                    </label>
-                    <p className={HELPER_TEXT}>
-                      Select the specific floors where work is required (Ground, 1st, or 2nd can
-                      be combined), or select Custom Floor(s) for other floor configurations.
-                    </p>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {(() => {
-                      const exclusiveActive = form.workAreaFloors.includes('custom');
-                      return MISTRI_WORK_AREA_FLOOR_OPTIONS.map((opt) => {
-                        const selected = form.workAreaFloors.includes(opt.value);
-                        return (
-                          <OptionCardButton
-                            key={`work-area-${opt.value}`}
-                            selected={selected}
-                            onClick={() => toggleWorkAreaFloor(opt.value)}
-                            className={
-                              exclusiveActive && !selected ? 'opacity-45' : undefined
-                            }
-                          >
-                            {opt.label}
-                          </OptionCardButton>
-                        );
-                      });
-                    })()}
-                  </div>
-                  {form.workAreaFloors.includes('custom') && (
-                    <div className="space-y-1.5">
-                      <Input
-                        label="Custom Floor(s)"
-                        type="text"
-                        inputMode="text"
-                        placeholder="e.g. 3rd Floor, 4th Floor, Terrace"
-                        value={form.workAreaCustomFloors}
-                        onChange={(e) => {
-                          update('workAreaCustomFloors', e.target.value);
-                          setStep2Error(null);
-                        }}
-                      />
-                      <p className={HELPER_TEXT}>
-                        * Note: If selecting custom floors, please enter all required floors separated by
-                        commas (e.g., 3rd Floor, 4th Floor, Terrace).
-                      </p>
-                    </div>
-                  )}
                 </div>
               )}
 

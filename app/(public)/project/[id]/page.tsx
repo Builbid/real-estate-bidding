@@ -291,7 +291,9 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                           block.label === 'Current Construction Scope (This Bid)' ||
                           block.label === 'Foundation Engineering Load Capacity' ||
                           block.label === 'Current Construction' ||
-                          block.label === 'Future Planned Capacity'
+                          block.label === 'Future Planned Capacity' ||
+                          block.label.startsWith('Assam Type') ||
+                          block.label.startsWith('RCC ')
                             ? 'col-span-2 sm:col-span-3'
                             : undefined
                         }

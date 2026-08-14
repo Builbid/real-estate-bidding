@@ -2,8 +2,10 @@
 // Mistri Worker work requirements — stored as projects.mistri_details
 // ============================================================
 
-import type { BuildingType, ConstructionTypesMap } from './buildingConfig';
+import type { BuildingType, ConstructionTypesMap, ConstructionTypeValue } from './buildingConfig';
 import {
+  ASSAM_BUILDING_TYPE,
+  BUILDING_TYPE_OPTIONS,
   CONSTRUCTION_TYPE_FULL,
   CONSTRUCTION_TYPE_GROUND,
   CONSTRUCTION_TYPE_UPPER,
@@ -84,7 +86,38 @@ export type MistriWorkAreaFloor =
   | '2nd'
   | 'custom';
 
+/** Floor picker on the Mistri Project Info step (Assam XOR RCC / custom). */
+export type MistriFloorId = BuildingType | 'custom';
+
+export type MistriFloorWorkType =
+  | 'full_finished'
+  | 'frame_skeleton'
+  | 'brick_aac'
+  | 'plastering'
+  | 'flooring';
+
+/** Plaster scope nested under Brick/AAC or standalone plastering. */
+export type MistriPlasterScope = 'both' | 'exterior' | 'interior';
+
+export type MistriFlooringMaterial = 'tile' | 'marble' | 'granite';
+
+/** Per-floor work captured on new Mistri posts. */
+export interface MistriFloorWork {
+  floorId: MistriFloorId;
+  /** Required when floorId === 'custom' (typically 5+). */
+  customFloorNumber?: number | null;
+  workTypes: MistriFloorWorkType[];
+  brickMaterial?: MistriBrickworkMaterial | null;
+  plasterScope?: MistriPlasterScope | null;
+  flooringMaterial?: MistriFlooringMaterial | null;
+}
+
 export interface MistriDetails {
+  /**
+   * Per-floor work for new posts. When present and non-empty this is the source of truth.
+   * Legacy rows omit this and use civilWorkTypes instead.
+   */
+  floorWork?: MistriFloorWork[] | null;
   /** Selected civil work type(s). New posts are single-select; legacy rows may include multiple. */
   civilWorkTypes: MistriCivilWorkType[];
   /** Required when civilWorkTypes includes plastering. */
@@ -367,6 +400,53 @@ export const MISTRI_START_TIME_OPTIONS: {
   { value: 'specific', label: 'Specific Date' },
 ];
 
+export const MISTRI_CUSTOM_FLOOR_ID = 'custom' as const;
+
+export const MIN_CUSTOM_RCC_FLOOR = 5;
+export const MAX_CUSTOM_RCC_FLOOR = 50;
+
+export const MISTRI_RCC_FLOOR_WORK_OPTIONS: {
+  value: MistriFloorWorkType;
+  label: string;
+}[] = [
+  { value: 'full_finished', label: 'Full Finished Structure' },
+  { value: 'frame_skeleton', label: 'Frame (Skeleton) only' },
+  { value: 'brick_aac', label: 'Brick / AAC wall' },
+  { value: 'plastering', label: 'Plastering work' },
+  { value: 'flooring', label: 'Flooring work (Tile / Marble / Granite)' },
+];
+
+export const MISTRI_ASSAM_FLOOR_WORK_OPTIONS: {
+  value: MistriFloorWorkType;
+  label: string;
+}[] = [
+  { value: 'full_finished', label: 'Full finished work' },
+  { value: 'brick_aac', label: 'Brick / AAC wall' },
+  { value: 'plastering', label: 'Plastering work' },
+  { value: 'flooring', label: 'Flooring work (Tile / Marble / Granite)' },
+];
+
+export const MISTRI_PLASTER_SCOPE_OPTIONS: {
+  value: MistriPlasterScope;
+  label: string;
+}[] = [
+  { value: 'both', label: 'Both side plaster' },
+  { value: 'exterior', label: 'Exterior plaster' },
+  { value: 'interior', label: 'Interior plaster' },
+];
+
+export const MISTRI_FLOORING_MATERIAL_OPTIONS: {
+  value: MistriFlooringMaterial;
+  label: string;
+}[] = [
+  { value: 'tile', label: 'Tile' },
+  { value: 'marble', label: 'Marble' },
+  { value: 'granite', label: 'Granite' },
+];
+
+export const CUSTOM_FLOOR_NUMBER_INVALID_MESSAGE =
+  'Enter a custom floor number from 5 to 50.';
+
 export const CUSTOM_FLOOR_PLAN_INVALID_MESSAGE =
   'Please enter an accurate floor plan value.';
 
@@ -404,6 +484,24 @@ const START_TIME_TYPES = new Set<MistriStartTimeType>([
   '1month',
   'specific',
 ]);
+const BUILDING_TYPE_SET = new Set<string>(BUILDING_TYPE_OPTIONS);
+const FLOOR_WORK_TYPE_SET = new Set<string>(
+  MISTRI_RCC_FLOOR_WORK_OPTIONS.map((o) => o.value),
+);
+const PLASTER_SCOPE_SET = new Set<string>(
+  MISTRI_PLASTER_SCOPE_OPTIONS.map((o) => o.value),
+);
+const FLOORING_MATERIAL_SET = new Set<string>(
+  MISTRI_FLOORING_MATERIAL_OPTIONS.map((o) => o.value),
+);
+
+const RCC_FLOOR_UPPER: Record<string, number> = {
+  'RCC Ground Floor': 0,
+  'RCC 1st Floor': 1,
+  'RCC 2nd Floor': 2,
+  'RCC 3rd Floor': 3,
+  'RCC 4th Floor': 4,
+};
 
 const MIN_UPPER_FLOORS = 0;
 const MAX_UPPER_FLOORS = 50;
@@ -749,9 +847,436 @@ function extractFloorPlans(raw: Record<string, unknown>): {
   return { currentFloorPlan, futureFloorPlan, floorLevel, customFloorCount };
 }
 
+export function isAssamMistriFloor(floorId: MistriFloorId): boolean {
+  return floorId === ASSAM_BUILDING_TYPE;
+}
+
+export function ordinalFloorSuffix(n: number): string {
+  const mod100 = n % 100;
+  const mod10 = n % 10;
+  if (mod100 >= 11 && mod100 <= 13) return 'th';
+  if (mod10 === 1) return 'st';
+  if (mod10 === 2) return 'nd';
+  if (mod10 === 3) return 'rd';
+  return 'th';
+}
+
+export function formatRccNthFloorLabel(n: number): string {
+  if (n <= 0) return 'RCC Ground Floor';
+  return `RCC ${n}${ordinalFloorSuffix(n)} Floor`;
+}
+
+export function parseCustomFloorNumber(raw: unknown): number | null {
+  if (typeof raw === 'number' && Number.isInteger(raw)) {
+    if (raw >= MIN_CUSTOM_RCC_FLOOR && raw <= MAX_CUSTOM_RCC_FLOOR) return raw;
+    return null;
+  }
+  if (typeof raw === 'string' && /^\d+$/.test(raw.trim())) {
+    const n = parseInt(raw.trim(), 10);
+    if (n >= MIN_CUSTOM_RCC_FLOOR && n <= MAX_CUSTOM_RCC_FLOOR) return n;
+  }
+  return null;
+}
+
+export function mistriFloorUpperCount(
+  floorId: MistriFloorId,
+  customFloorNumber?: number | null,
+): number {
+  if (floorId === ASSAM_BUILDING_TYPE) return 0;
+  if (floorId === MISTRI_CUSTOM_FLOOR_ID) {
+    return customFloorNumber ?? MIN_CUSTOM_RCC_FLOOR;
+  }
+  return RCC_FLOOR_UPPER[floorId] ?? 0;
+}
+
+export function highestSelectedFloorUpper(floorWork: readonly MistriFloorWork[]): number {
+  if (floorWork.length === 0) return 0;
+  return Math.max(
+    ...floorWork.map((fw) => mistriFloorUpperCount(fw.floorId, fw.customFloorNumber)),
+  );
+}
+
+export function currentFloorPlanFromFloorWork(
+  floorWork: readonly MistriFloorWork[],
+): string {
+  return `G+${highestSelectedFloorUpper(floorWork)}`;
+}
+
+export function formatMistriFloorWorkLabel(
+  floor: Pick<MistriFloorWork, 'floorId' | 'customFloorNumber'>,
+): string {
+  if (floor.floorId === MISTRI_CUSTOM_FLOOR_ID) {
+    const n = floor.customFloorNumber;
+    return n != null ? formatRccNthFloorLabel(n) : 'Custom Floor';
+  }
+  return floor.floorId;
+}
+
+export function sortMistriFloorWork<T extends Pick<MistriFloorWork, 'floorId' | 'customFloorNumber'>>(
+  floors: readonly T[],
+): T[] {
+  return [...floors].sort((a, b) => {
+    if (a.floorId === ASSAM_BUILDING_TYPE) return -1;
+    if (b.floorId === ASSAM_BUILDING_TYPE) return 1;
+    return (
+      mistriFloorUpperCount(a.floorId, a.customFloorNumber) -
+      mistriFloorUpperCount(b.floorId, b.customFloorNumber)
+    );
+  });
+}
+
+export function floorWorkOptionsForFloor(
+  floorId: MistriFloorId,
+): { value: MistriFloorWorkType; label: string }[] {
+  return isAssamMistriFloor(floorId)
+    ? MISTRI_ASSAM_FLOOR_WORK_OPTIONS
+    : MISTRI_RCC_FLOOR_WORK_OPTIONS;
+}
+
+export function applyMistriFloorWorkSelection(
+  current: readonly MistriFloorWorkType[],
+  next: MistriFloorWorkType,
+): MistriFloorWorkType[] {
+  if (current.includes(next)) {
+    return current.filter((t) => t !== next);
+  }
+  if (next === 'full_finished' || next === 'frame_skeleton' || next === 'flooring') {
+    return [next];
+  }
+  if (next === 'brick_aac') {
+    return [...current.filter((t) => t === 'plastering'), 'brick_aac'];
+  }
+  if (next === 'plastering') {
+    return [...current.filter((t) => t === 'brick_aac'), 'plastering'];
+  }
+  return [next];
+}
+
+export function visibleMistriFloorWorkTypes(
+  current: readonly MistriFloorWorkType[],
+  floorId: MistriFloorId,
+): MistriFloorWorkType[] {
+  const all = floorWorkOptionsForFloor(floorId).map((o) => o.value);
+  if (current.length === 0) return all;
+  if (current.includes('full_finished')) return ['full_finished'];
+  if (current.includes('frame_skeleton')) return ['frame_skeleton'];
+  if (current.includes('flooring')) return ['flooring'];
+  return all.filter((t) => t === 'brick_aac' || t === 'plastering');
+}
+
+export function getMistriFullFinishedIncludes(floorId: MistriFloorId): string {
+  if (floorId === 'RCC Ground Floor' || floorId === ASSAM_BUILDING_TYPE) {
+    return 'Includes Foundation work, column, beam, slab, brick work, plastering and rough flooring work.';
+  }
+  return 'Includes column, beam, slab, brick work, plastering and rough flooring work.';
+}
+
+export function getMistriFrameSkeletonIncludes(floorId: MistriFloorId): string {
+  if (floorId === 'RCC Ground Floor') {
+    return 'Includes Foundation work, column, beam and slab (skeleton frame only).';
+  }
+  return 'Includes column, beam and slab (skeleton frame only).';
+}
+
+export function mistriFoundationProvisionRequired(
+  floorWork: readonly MistriFloorWork[],
+): boolean {
+  return floorWork.some((fw) => {
+    if (fw.floorId === ASSAM_BUILDING_TYPE) {
+      return fw.workTypes.includes('full_finished');
+    }
+    if (fw.floorId === 'RCC Ground Floor') {
+      return (
+        fw.workTypes.includes('full_finished') ||
+        fw.workTypes.includes('frame_skeleton')
+      );
+    }
+    return false;
+  });
+}
+
+export function mistriContractTypeRequiredForFloorWork(
+  floorWork: readonly MistriFloorWork[],
+): boolean {
+  return floorWork.some(
+    (fw) =>
+      fw.workTypes.includes('full_finished') ||
+      fw.workTypes.includes('frame_skeleton'),
+  );
+}
+
+export function formatMistriFloorWorkTypes(
+  workTypes: readonly MistriFloorWorkType[],
+  extras?: {
+    brickMaterial?: MistriBrickworkMaterial | null;
+    plasterScope?: MistriPlasterScope | null;
+    flooringMaterial?: MistriFlooringMaterial | null;
+  },
+): string {
+  const labels = workTypes.map((t) => {
+    if (t === 'full_finished') return 'Full Finished Structure';
+    if (t === 'frame_skeleton') return 'Frame (Skeleton) only';
+    if (t === 'brick_aac') {
+      const material = extras?.brickMaterial
+        ? optionLabel(MISTRI_BRICKWORK_MATERIAL_OPTIONS, extras.brickMaterial)
+        : null;
+      return material ? `Brick / AAC wall (${material})` : 'Brick / AAC wall';
+    }
+    if (t === 'plastering') {
+      const scope = extras?.plasterScope
+        ? optionLabel(MISTRI_PLASTER_SCOPE_OPTIONS, extras.plasterScope)
+        : null;
+      return scope ? `Plastering (${scope})` : 'Plastering work';
+    }
+    if (t === 'flooring') {
+      const material = extras?.flooringMaterial
+        ? optionLabel(MISTRI_FLOORING_MATERIAL_OPTIONS, extras.flooringMaterial)
+        : null;
+      return material
+        ? `Flooring (${material})`
+        : 'Flooring work (Tile / Marble / Granite)';
+    }
+    return t;
+  });
+  if (labels.length === 0) return '—';
+  if (labels.length === 1) return labels[0];
+  if (labels.length === 2) return `${labels[0]} + ${labels[1]}`;
+  return labels.join(' + ');
+}
+
+export function civilWorkTypesFromFloorWork(
+  floorWork: readonly MistriFloorWork[],
+): MistriCivilWorkType[] {
+  const types: MistriCivilWorkType[] = [];
+  const add = (t: MistriCivilWorkType) => {
+    if (!types.includes(t)) types.push(t);
+  };
+  for (const fw of floorWork) {
+    if (fw.workTypes.includes('full_finished')) add('complete_full_structure');
+    if (fw.workTypes.includes('frame_skeleton')) add('foundation_concrete_structure');
+    if (fw.workTypes.includes('brick_aac')) add('brickwork_aac');
+    if (fw.workTypes.includes('plastering')) add('plastering');
+    if (fw.workTypes.includes('flooring')) add('tile_marble_flooring');
+  }
+  return types;
+}
+
+export function summarizeMistriFloorWorkScope(
+  floorWork: readonly MistriFloorWork[],
+): string {
+  const ordered = sortMistriFloorWork(floorWork);
+  if (ordered.length === 0) return '';
+  const parts = ordered.map((fw) => {
+    const floor = formatMistriFloorWorkLabel(fw);
+    const work = formatMistriFloorWorkTypes(fw.workTypes, fw);
+    return `${floor} — ${work}`;
+  });
+  if (parts.length === 1) return parts[0];
+  if (parts.length === 2) return `${parts[0]}; ${parts[1]}`;
+  return `${parts[0]} + ${parts.length - 1} more floors`;
+}
+
+function normalizeMistriFloorId(value: unknown): MistriFloorId | null {
+  if (typeof value !== 'string') return null;
+  if (value === MISTRI_CUSTOM_FLOOR_ID) return MISTRI_CUSTOM_FLOOR_ID;
+  if (BUILDING_TYPE_SET.has(value)) return value as BuildingType;
+  return null;
+}
+
+function normalizeFloorWorkType(value: unknown): MistriFloorWorkType | null {
+  if (typeof value !== 'string') return null;
+  if (FLOOR_WORK_TYPE_SET.has(value)) return value as MistriFloorWorkType;
+  return null;
+}
+
+function normalizePlasterScope(value: unknown): MistriPlasterScope | null {
+  if (typeof value !== 'string') return null;
+  if (PLASTER_SCOPE_SET.has(value)) return value as MistriPlasterScope;
+  return null;
+}
+
+function normalizeFlooringMaterial(value: unknown): MistriFlooringMaterial | null {
+  if (typeof value !== 'string') return null;
+  if (FLOORING_MATERIAL_SET.has(value)) return value as MistriFlooringMaterial;
+  return null;
+}
+
+function normalizeSingleFloorWork(raw: unknown): MistriFloorWork | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const v = raw as Record<string, unknown>;
+  const floorId = normalizeMistriFloorId(v.floorId);
+  if (!floorId) return null;
+
+  const customFloorNumber =
+    floorId === MISTRI_CUSTOM_FLOOR_ID ? parseCustomFloorNumber(v.customFloorNumber) : null;
+  if (floorId === MISTRI_CUSTOM_FLOOR_ID && customFloorNumber == null) return null;
+
+  if (!Array.isArray(v.workTypes) || v.workTypes.length === 0) return null;
+  const workTypes: MistriFloorWorkType[] = [];
+  for (const item of v.workTypes) {
+    const next = normalizeFloorWorkType(item);
+    if (next && !workTypes.includes(next)) workTypes.push(next);
+  }
+  if (workTypes.length === 0) return null;
+  if (isAssamMistriFloor(floorId) && workTypes.includes('frame_skeleton')) return null;
+
+  const exclusiveCount = [
+    workTypes.includes('full_finished'),
+    workTypes.includes('frame_skeleton'),
+    workTypes.includes('flooring'),
+    workTypes.includes('brick_aac') || workTypes.includes('plastering'),
+  ].filter(Boolean).length;
+  if (exclusiveCount > 1) return null;
+
+  let brickMaterial: MistriBrickworkMaterial | null = null;
+  if (workTypes.includes('brick_aac')) {
+    brickMaterial = normalizeBrickworkMaterial(v.brickMaterial);
+    if (!brickMaterial) return null;
+  }
+
+  let plasterScope: MistriPlasterScope | null = null;
+  if (workTypes.includes('plastering')) {
+    plasterScope = normalizePlasterScope(v.plasterScope);
+    if (!plasterScope) return null;
+  }
+
+  let flooringMaterial: MistriFlooringMaterial | null = null;
+  if (workTypes.includes('flooring')) {
+    flooringMaterial = normalizeFlooringMaterial(v.flooringMaterial);
+    if (!flooringMaterial) return null;
+  }
+
+  return {
+    floorId,
+    customFloorNumber,
+    workTypes,
+    brickMaterial,
+    plasterScope,
+    flooringMaterial,
+  };
+}
+
+export function normalizeMistriFloorWork(raw: unknown): MistriFloorWork[] | null {
+  if (!Array.isArray(raw) || raw.length === 0) return null;
+  const floors: MistriFloorWork[] = [];
+  const seen = new Set<string>();
+  for (const item of raw) {
+    const next = normalizeSingleFloorWork(item);
+    if (!next) return null;
+    const key =
+      next.floorId === MISTRI_CUSTOM_FLOOR_ID
+        ? `custom:${next.customFloorNumber}`
+        : next.floorId;
+    if (seen.has(key)) return null;
+    seen.add(key);
+    floors.push(next);
+  }
+  const hasAssam = floors.some((f) => isAssamMistriFloor(f.floorId));
+  const hasRcc = floors.some((f) => !isAssamMistriFloor(f.floorId));
+  if (hasAssam && hasRcc) return null;
+  return sortMistriFloorWork(floors);
+}
+
+function mappedCustomBuildingType(customFloorNumber: number): BuildingType {
+  if (customFloorNumber <= 0) return 'RCC Ground Floor';
+  if (customFloorNumber === 1) return 'RCC 1st Floor';
+  if (customFloorNumber === 2) return 'RCC 2nd Floor';
+  if (customFloorNumber === 3) return 'RCC 3rd Floor';
+  return 'RCC 4th Floor';
+}
+
+export function buildingTypesFromFloorWork(
+  floorWork: readonly MistriFloorWork[],
+): BuildingType[] {
+  const types: BuildingType[] = [];
+  for (const fw of floorWork) {
+    let next: BuildingType;
+    if (fw.floorId === MISTRI_CUSTOM_FLOOR_ID) {
+      next = mappedCustomBuildingType(fw.customFloorNumber ?? MIN_CUSTOM_RCC_FLOOR);
+    } else {
+      next = fw.floorId;
+    }
+    if (!types.includes(next)) types.push(next);
+  }
+  return types.length > 0 ? types : ['RCC Ground Floor'];
+}
+
+function constructionTypeFromFloorWork(
+  buildingType: BuildingType,
+  fw: MistriFloorWork | undefined,
+): ConstructionTypeValue {
+  if (fw?.workTypes.includes('full_finished')) return CONSTRUCTION_TYPE_FULL;
+  if (buildingType === ASSAM_BUILDING_TYPE || buildingType === 'RCC Ground Floor') {
+    return CONSTRUCTION_TYPE_GROUND;
+  }
+  return CONSTRUCTION_TYPE_UPPER;
+}
+
+function plasterSideFromScope(scope: MistriPlasterScope | null | undefined): MistriPlasterSide | null {
+  if (!scope) return null;
+  return scope === 'both' ? 'both' : 'single';
+}
+
+function brickworkDetailsFromFloorWork(
+  floorWork: readonly MistriFloorWork[],
+): MistriBrickworkDetails | null {
+  const brick = floorWork.find((fw) => fw.workTypes.includes('brick_aac') && fw.brickMaterial);
+  if (!brick?.brickMaterial) return null;
+  const plasteringScope: MistriWallPlasteringScope = brick.workTypes.includes('plastering')
+    ? brick.plasterScope === 'both'
+      ? 'both'
+      : 'single'
+    : 'none';
+  return { materialType: brick.brickMaterial, plasteringScope };
+}
+
+function isNewFormatMistriDetails(
+  v: Record<string, unknown>,
+  floorWork: MistriFloorWork[],
+): boolean {
+  const contractType = normalizeContractType(v.contractType);
+  const { currentFloorPlan, futureFloorPlan } = extractFloorPlans(v);
+  const additionalOk =
+    v.additionalRequirements === undefined ||
+    v.additionalRequirements === null ||
+    typeof v.additionalRequirements === 'string';
+
+  if (
+    typeof v.approximateAreaSqft !== 'number' ||
+    !Number.isFinite(v.approximateAreaSqft) ||
+    v.approximateAreaSqft <= 0 ||
+    typeof v.projectStartTimeType !== 'string' ||
+    !START_TIME_TYPES.has(v.projectStartTimeType as MistriStartTimeType) ||
+    !additionalOk
+  ) {
+    return false;
+  }
+
+  if (mistriContractTypeRequiredForFloorWork(floorWork) && contractType == null) {
+    return false;
+  }
+
+  if (mistriFoundationProvisionRequired(floorWork)) {
+    const current = currentFloorPlan ?? currentFloorPlanFromFloorWork(floorWork);
+    if (!futureFloorPlan) return false;
+    const currentN = floorPlanUpperCount(current);
+    const futureN = floorPlanUpperCount(futureFloorPlan);
+    if (currentN == null || futureN == null || futureN < currentN) return false;
+  }
+
+  return true;
+}
+
 export function isMistriDetails(value: unknown): value is MistriDetails {
   if (!value || typeof value !== 'object') return false;
   const v = value as Record<string, unknown>;
+
+  if (v.floorWork != null) {
+    const floorWork = normalizeMistriFloorWork(v.floorWork);
+    if (!floorWork || floorWork.length === 0) return false;
+    return isNewFormatMistriDetails(v, floorWork);
+  }
+
   const civilWorkTypes = normalizeCivilWorkTypes(v.civilWorkTypes);
   const contractType = normalizeContractType(v.contractType);
   const { currentFloorPlan, futureFloorPlan, floorLevel } = extractFloorPlans(v);
@@ -848,10 +1373,60 @@ export function parseMistriDetails(value: unknown): MistriDetails | null {
   if (!isMistriDetails(value)) return null;
 
   const raw = value as unknown as Record<string, unknown>;
-  const civilWorkTypes = normalizeCivilWorkTypes(raw.civilWorkTypes);
+  const floorWork = normalizeMistriFloorWork(raw.floorWork);
   const contractType = normalizeContractType(raw.contractType);
   const { currentFloorPlan, futureFloorPlan, floorLevel, customFloorCount } =
     extractFloorPlans(raw);
+
+  const projectStartTimeType = raw.projectStartTimeType as MistriStartTimeType;
+  const specific =
+    projectStartTimeType === 'specific' &&
+    typeof raw.projectStartTimeSpecificDate === 'string' &&
+    /^\d{4}-\d{2}-\d{2}$/.test(raw.projectStartTimeSpecificDate)
+      ? raw.projectStartTimeSpecificDate
+      : null;
+
+  const additionalRequirements =
+    typeof raw.additionalRequirements === 'string' && raw.additionalRequirements.trim()
+      ? raw.additionalRequirements.trim()
+      : null;
+
+  const approximateAreaSqft =
+    typeof raw.approximateAreaSqft === 'number' ? raw.approximateAreaSqft : NaN;
+  if (!Number.isFinite(approximateAreaSqft) || approximateAreaSqft <= 0) return null;
+
+  if (floorWork && floorWork.length > 0) {
+    const derivedCivil = civilWorkTypesFromFloorWork(floorWork);
+    const foundationRequired = mistriFoundationProvisionRequired(floorWork);
+    const contractRequired = mistriContractTypeRequiredForFloorWork(floorWork);
+    if (contractRequired && !contractType) return null;
+    const resolvedCurrent =
+      currentFloorPlan ?? currentFloorPlanFromFloorWork(floorWork);
+    if (foundationRequired && !futureFloorPlan) return null;
+
+    return {
+      floorWork,
+      civilWorkTypes: derivedCivil.length > 0 ? derivedCivil : ['complete_full_structure'],
+      plasterSide: plasterSideFromScope(
+        floorWork.find((fw) => fw.plasterScope)?.plasterScope,
+      ),
+      brickworkDetails: brickworkDetailsFromFloorWork(floorWork),
+      boundaryWallDetails: null,
+      approximateAreaSqft,
+      currentFloorPlan: resolvedCurrent,
+      futureFloorPlan,
+      workAreaFloors: null,
+      workAreaCustomFloors: null,
+      floorLevel: null,
+      customFloorCount: null,
+      contractType: contractRequired ? contractType : null,
+      projectStartTimeType,
+      projectStartTimeSpecificDate: specific,
+      additionalRequirements,
+    };
+  }
+
+  const civilWorkTypes = normalizeCivilWorkTypes(raw.civilWorkTypes);
   const floorRequired = mistriFloorLevelRequired(civilWorkTypes);
   const contractRequired = mistriContractTypeRequired(civilWorkTypes);
   if (civilWorkTypes.length === 0) return null;
@@ -870,19 +1445,6 @@ export function parseMistriDetails(value: unknown): MistriDetails | null {
     ? normalizeBoundaryWallDetails(raw.boundaryWallDetails)
     : null;
 
-  const projectStartTimeType = raw.projectStartTimeType as MistriStartTimeType;
-  const specific =
-    projectStartTimeType === 'specific' &&
-    typeof raw.projectStartTimeSpecificDate === 'string' &&
-    /^\d{4}-\d{2}-\d{2}$/.test(raw.projectStartTimeSpecificDate)
-      ? raw.projectStartTimeSpecificDate
-      : null;
-
-  const additionalRequirements =
-    typeof raw.additionalRequirements === 'string' && raw.additionalRequirements.trim()
-      ? raw.additionalRequirements.trim()
-      : null;
-
   const workAreaRequired = mistriWorkAreaRequired(civilWorkTypes);
   const workAreaFloors = workAreaRequired
     ? normalizeWorkAreaFloors(raw.workAreaFloors)
@@ -893,10 +1455,6 @@ export function parseMistriDetails(value: unknown): MistriDetails | null {
     raw.workAreaCustomFloors.trim()
       ? raw.workAreaCustomFloors.trim()
       : null;
-
-  const approximateAreaSqft =
-    typeof raw.approximateAreaSqft === 'number' ? raw.approximateAreaSqft : NaN;
-  if (!Number.isFinite(approximateAreaSqft) || approximateAreaSqft <= 0) return null;
 
   return {
     civilWorkTypes,
@@ -1023,6 +1581,51 @@ export function getMistriWorkRequirementBlocks(details: MistriDetails): {
   label: string;
   value: string;
 }[] {
+  if (details.floorWork && details.floorWork.length > 0) {
+    const blocks: { label: string; value: string }[] = sortMistriFloorWork(
+      details.floorWork,
+    ).map((fw) => ({
+      label: formatMistriFloorWorkLabel(fw),
+      value: formatMistriFloorWorkTypes(fw.workTypes, fw),
+    }));
+
+    blocks.push({
+      label: 'Approx. Area',
+      value: formatMistriArea(details.approximateAreaSqft),
+    });
+
+    if (mistriFoundationProvisionRequired(details.floorWork) && details.futureFloorPlan) {
+      blocks.push({
+        label: 'Future Foundation Expansion',
+        value: formatMistriFloorPlan(details.futureFloorPlan),
+      });
+    }
+
+    if (
+      mistriContractTypeRequiredForFloorWork(details.floorWork) &&
+      details.contractType
+    ) {
+      blocks.push({
+        label: 'Contract Type',
+        value: optionLabel(MISTRI_CONTRACT_TYPE_OPTIONS, details.contractType),
+      });
+    }
+
+    blocks.push({
+      label: 'Start Time',
+      value: formatMistriStartTime(details),
+    });
+
+    if (details.additionalRequirements) {
+      blocks.push({
+        label: 'Additional Notes',
+        value: details.additionalRequirements,
+      });
+    }
+
+    return blocks;
+  }
+
   const blocks: { label: string; value: string }[] = [
     {
       label: 'Civil Work Type',
@@ -1156,10 +1759,36 @@ export function buildingTypesFromMistriFloor(
   return buildingTypesFromFloorPlan(legacyFloorToPlan(floor, customFloorCount ?? null));
 }
 
+export function buildingTypesFromMistriDetails(details: MistriDetails): BuildingType[] {
+  if (details.floorWork && details.floorWork.length > 0) {
+    return buildingTypesFromFloorWork(details.floorWork);
+  }
+  if (details.currentFloorPlan || details.futureFloorPlan) {
+    return buildingTypesFromFloorPlan(details.futureFloorPlan ?? details.currentFloorPlan);
+  }
+  return buildingTypesFromMistriFloor(details.floorLevel ?? null, details.customFloorCount);
+}
+
 /** Derive construction_types from civil work selection + floor plan. */
 export function constructionTypesFromMistriDetails(
   details: MistriDetails,
 ): ConstructionTypesMap {
+  if (details.floorWork && details.floorWork.length > 0) {
+    const map: ConstructionTypesMap = {};
+    const buildingTypes = buildingTypesFromFloorWork(details.floorWork);
+    for (const bt of buildingTypes) {
+      const fw = details.floorWork.find((item) => {
+        if (item.floorId === bt) return true;
+        if (item.floorId === MISTRI_CUSTOM_FLOOR_ID) {
+          return mappedCustomBuildingType(item.customFloorNumber ?? MIN_CUSTOM_RCC_FLOOR) === bt;
+        }
+        return false;
+      });
+      map[bt] = constructionTypeFromFloorWork(bt, fw);
+    }
+    return map;
+  }
+
   const plan = details.futureFloorPlan ?? details.currentFloorPlan;
   const buildingTypes = plan
     ? buildingTypesFromFloorPlan(plan)
@@ -1177,6 +1806,134 @@ export function constructionTypesFromMistriDetails(
     }
   }
   return map;
+}
+
+export function validateMistriFloorWorkInput(input: {
+  floorWork: MistriFloorWork[];
+  approximateArea: string | number;
+  futureFloorOption: MistriFutureFloorOption | null;
+  futureFloorCustom: string | number;
+  contractType: MistriContractType | null;
+  projectStartTimeType: MistriStartTimeType | null;
+  projectStartTimeSpecificDate: string;
+  additionalRequirements: string;
+}): { error: string } | { details: MistriDetails } {
+  if (!input.floorWork.length) {
+    return { error: 'Select Assam Type or at least one RCC floor.' };
+  }
+
+  for (const fw of input.floorWork) {
+    const label = formatMistriFloorWorkLabel(fw);
+    if (fw.workTypes.length === 0) {
+      return { error: `Select work type for ${label}.` };
+    }
+    if (fw.workTypes.includes('brick_aac') && !fw.brickMaterial) {
+      return { error: `Select Red Brick or AAC Block for ${label}.` };
+    }
+    if (fw.workTypes.includes('plastering') && !fw.plasterScope) {
+      return { error: `Select plaster type (both side, exterior, or interior) for ${label}.` };
+    }
+    if (fw.workTypes.includes('flooring') && !fw.flooringMaterial) {
+      return { error: `Select flooring material (Tile, Marble, or Granite) for ${label}.` };
+    }
+  }
+
+  const floorWork = normalizeMistriFloorWork(input.floorWork);
+  if (!floorWork || floorWork.length === 0) {
+    return { error: 'Select work type for each selected floor.' };
+  }
+
+  const area = parseApproximateAreaSqft(input.approximateArea);
+  if (area == null) {
+    return { error: 'Enter an approximate project area in sq.ft. (rough estimate is fine).' };
+  }
+
+  const currentFloorPlan = currentFloorPlanFromFloorWork(floorWork);
+  let futureFloorPlan: string | null = null;
+
+  if (mistriFoundationProvisionRequired(floorWork)) {
+    const futureResolved = resolveFutureFloorPlan(
+      input.futureFloorOption,
+      input.futureFloorCustom,
+      currentFloorPlan,
+    );
+    if ('error' in futureResolved) {
+      if (
+        input.futureFloorOption === 'custom' &&
+        futureResolved.error === CUSTOM_FLOOR_PLAN_INVALID_MESSAGE
+      ) {
+        return { error: CUSTOM_FLOOR_PLAN_INVALID_MESSAGE };
+      }
+      return { error: 'Select your future expansion plan for the foundation.' };
+    }
+    futureFloorPlan = futureResolved.value;
+    const currentN = floorPlanUpperCount(currentFloorPlan);
+    const futureN = floorPlanUpperCount(futureFloorPlan);
+    if (currentN == null || futureN == null) {
+      return { error: CUSTOM_FLOOR_PLAN_INVALID_MESSAGE };
+    }
+    if (futureN < currentN) {
+      return { error: FOUNDATION_CAPACITY_INVALID_MESSAGE };
+    }
+  }
+
+  let contractType: MistriContractType | null = null;
+  if (mistriContractTypeRequiredForFloorWork(floorWork)) {
+    if (!input.contractType || !CONTRACT_SET.has(input.contractType)) {
+      return { error: 'Select a contract type.' };
+    }
+    contractType = input.contractType;
+  }
+
+  if (!input.projectStartTimeType || !START_TIME_TYPES.has(input.projectStartTimeType)) {
+    return { error: 'Select when the project should start.' };
+  }
+
+  const additional = input.additionalRequirements.trim() || null;
+  const civilWorkTypes = civilWorkTypesFromFloorWork(floorWork);
+  const plasterSide = plasterSideFromScope(
+    floorWork.find((fw) => fw.plasterScope)?.plasterScope,
+  );
+  const brickworkDetails = brickworkDetailsFromFloorWork(floorWork);
+
+  const base: Omit<MistriDetails, 'projectStartTimeType' | 'projectStartTimeSpecificDate'> = {
+    floorWork,
+    civilWorkTypes,
+    plasterSide,
+    brickworkDetails,
+    boundaryWallDetails: null,
+    approximateAreaSqft: area,
+    currentFloorPlan,
+    futureFloorPlan,
+    workAreaFloors: null,
+    workAreaCustomFloors: null,
+    floorLevel: null,
+    customFloorCount: null,
+    contractType,
+    additionalRequirements: additional,
+  };
+
+  if (input.projectStartTimeType === 'specific') {
+    const date = input.projectStartTimeSpecificDate.trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return { error: 'Select a specific project start date.' };
+    }
+    return {
+      details: {
+        ...base,
+        projectStartTimeType: 'specific',
+        projectStartTimeSpecificDate: date,
+      },
+    };
+  }
+
+  return {
+    details: {
+      ...base,
+      projectStartTimeType: input.projectStartTimeType,
+      projectStartTimeSpecificDate: null,
+    },
+  };
 }
 
 export function validateMistriDetailsInput(input: {
@@ -1378,6 +2135,9 @@ export function validateMistriDetailsInput(input: {
 
 /** Create-time gate: nested brickwork / boundary wall answers are required on new posts. */
 export function mistriNestedDetailsCreateError(details: MistriDetails): string | null {
+  if (details.floorWork && details.floorWork.length > 0) {
+    return null;
+  }
   if (
     details.civilWorkTypes.includes('brickwork_aac') &&
     !normalizeBrickworkDetails(details.brickworkDetails)

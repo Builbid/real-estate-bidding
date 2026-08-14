@@ -7,6 +7,7 @@ import {
   RCC_BUILDING_TYPES,
   type BuildingType,
 } from '@/lib/buildingConfig';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
 interface BuildingTypeSelectorProps {
@@ -14,7 +15,12 @@ interface BuildingTypeSelectorProps {
   onChange: (value: BuildingType[]) => void;
   error?: string | null;
   /** Defaults to construction copy; use "drawing" for Drawing & Design projects. */
-  purpose?: 'construction' | 'drawing';
+  purpose?: 'construction' | 'drawing' | 'mistri';
+  showCustomFloor?: boolean;
+  customSelected?: boolean;
+  customFloorNumber?: string;
+  onCustomChange?: (selected: boolean, number: string) => void;
+  customError?: string | null;
 }
 
 export function BuildingTypeSelector({
@@ -22,13 +28,24 @@ export function BuildingTypeSelector({
   onChange,
   error,
   purpose = 'construction',
+  showCustomFloor = false,
+  customSelected = false,
+  customFloorNumber = '',
+  onCustomChange,
+  customError,
 }: BuildingTypeSelectorProps) {
   const hasAssam = value.includes(ASSAM_BUILDING_TYPE);
-  const hasRcc = value.some((t) => RCC_BUILDING_TYPES.includes(t));
+  const hasRcc =
+    value.some((t) => RCC_BUILDING_TYPES.includes(t)) || customSelected;
 
   function toggle(type: BuildingType) {
     if (type === ASSAM_BUILDING_TYPE) {
-      onChange(value.includes(ASSAM_BUILDING_TYPE) ? [] : [ASSAM_BUILDING_TYPE]);
+      if (value.includes(ASSAM_BUILDING_TYPE)) {
+        onChange([]);
+      } else {
+        onChange([ASSAM_BUILDING_TYPE]);
+        onCustomChange?.(false, '');
+      }
       return;
     }
     const next = value.filter((t) => t !== ASSAM_BUILDING_TYPE);
@@ -37,6 +54,15 @@ export function BuildingTypeSelector({
     } else {
       onChange([...next, type]);
     }
+  }
+
+  function toggleCustom() {
+    if (customSelected) {
+      onCustomChange?.(false, customFloorNumber);
+      return;
+    }
+    onChange(value.filter((t) => t !== ASSAM_BUILDING_TYPE));
+    onCustomChange?.(true, customFloorNumber);
   }
 
   return (
@@ -51,6 +77,15 @@ export function BuildingTypeSelector({
               Assam Type and RCC cannot be mixed.
               <br />
               For RCC you can select multiple floors (e.g. Ground + 1st Floor).
+            </p>
+          </>
+        ) : purpose === 'mistri' ? (
+          <>
+            <p className="text-sm text-muted-foreground">
+              Select Assam Type <span className="font-semibold">or</span> RCC floor(s) for this project.
+            </p>
+            <p className="text-xs text-muted-foreground/80">
+              Assam Type and RCC cannot be mixed. For RCC you can select multiple floors.
             </p>
           </>
         ) : (
@@ -112,7 +147,46 @@ export function BuildingTypeSelector({
             </button>
           );
         })}
+
+        {showCustomFloor && (
+          <button
+            type="button"
+            disabled={hasAssam}
+            onClick={toggleCustom}
+            className={cn(
+              'flex items-center gap-3 w-full text-left rounded-xl border-2 px-4 py-3 transition-all',
+              hasAssam && 'opacity-45 cursor-not-allowed grayscale',
+              customSelected
+                ? 'border-emerald-500/60 bg-emerald-500/10 shadow-sm'
+                : 'border-border bg-card/80 hover:border-emerald-500/30 hover:bg-accent/40',
+            )}
+          >
+            <span
+              className={cn(
+                'flex h-5 w-5 flex-shrink-0 items-center justify-center rounded border-2 transition-colors',
+                customSelected
+                  ? 'border-emerald-500 bg-emerald-500 text-white'
+                  : 'border-muted-foreground/40 bg-background',
+              )}
+            >
+              {customSelected && <Check className="h-3 w-3" strokeWidth={3} />}
+            </span>
+            <span className="text-sm font-medium text-foreground">Custom Floor Number</span>
+          </button>
+        )}
       </div>
+
+      {showCustomFloor && customSelected && (
+        <Input
+          label="Custom floor number (5 or above)"
+          type="text"
+          inputMode="numeric"
+          placeholder="e.g. 5"
+          value={customFloorNumber}
+          onChange={(e) => onCustomChange?.(true, e.target.value.replace(/[^\d]/g, ''))}
+          error={customError ?? undefined}
+        />
+      )}
 
       {error && (
         <p className="text-sm text-red-400">{error}</p>

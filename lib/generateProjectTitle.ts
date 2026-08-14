@@ -7,7 +7,9 @@
 import type { BuildingType } from '@/lib/buildingConfig';
 import {
   summarizeMistriCivilWorkScope,
+  summarizeMistriFloorWorkScope,
   type MistriCivilWorkType,
+  type MistriFloorWork,
   type MistriPlasterSide,
 } from '@/lib/mistriDetails';
 import type { PainterPaintingScope } from '@/lib/painterDetails';
@@ -22,6 +24,7 @@ export interface GenerateProjectTitleInput {
   trackType?: TrackType | null;
   civilWorkTypes?: MistriCivilWorkType[];
   plasterSide?: MistriPlasterSide | null;
+  floorWork?: MistriFloorWork[] | null;
   buildingTypes?: BuildingType[];
 }
 
@@ -34,17 +37,21 @@ export function generateProjectTitle(input: GenerateProjectTitleInput): string {
   const district = input.district.trim() || 'Assam';
   const categoryName = getServiceCategoryLabel(input.serviceType);
 
-  if (
-    input.serviceType === 'labour_contractor' &&
-    input.civilWorkTypes &&
-    input.civilWorkTypes.length > 0
-  ) {
-    const scope = summarizeMistriCivilWorkScope(
-      input.civilWorkTypes,
-      input.plasterSide,
-    );
-    if (scope) {
-      return `${categoryName} — ${scope} in ${district}`;
+  if (input.serviceType === 'labour_contractor') {
+    if (input.floorWork && input.floorWork.length > 0) {
+      const scope = summarizeMistriFloorWorkScope(input.floorWork);
+      if (scope) {
+        return `${categoryName} — ${scope} in ${district}`;
+      }
+    }
+    if (input.civilWorkTypes && input.civilWorkTypes.length > 0) {
+      const scope = summarizeMistriCivilWorkScope(
+        input.civilWorkTypes,
+        input.plasterSide,
+      );
+      if (scope) {
+        return `${categoryName} — ${scope} in ${district}`;
+      }
     }
   }
 
