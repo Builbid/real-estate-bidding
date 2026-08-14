@@ -79,7 +79,7 @@ export const en = {
       serviceProviderSignup: 'Sign up as Service Provider',
     },
     trust: {
-      verifiedBuilders: 'Verified Builders',
+      verifiedBuilders: 'Verified Professionals',
       privateContact: 'Secured Contact Details',
       transparentPricing: 'Transparent Pricing',
     },

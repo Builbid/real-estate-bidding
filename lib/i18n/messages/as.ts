@@ -81,7 +81,7 @@ export const as: Messages = {
       serviceProviderSignup: 'Sign up as Service Provider',
     },
     trust: {
-      verifiedBuilders: 'Verified Builders',
+      verifiedBuilders: 'Verified Professionals',
       privateContact: 'Contact Details Private',
       transparentPricing: 'Transparent Pricing',
     },
