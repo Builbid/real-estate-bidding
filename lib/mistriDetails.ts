@@ -520,7 +520,16 @@ export const CUSTOM_FLOOR_NUMBER_INVALID_MESSAGE =
   'Enter a custom floor number from 5 to 50.';
 
 export const CUSTOM_FLOOR_SEQUENCE_INVALID_MESSAGE =
-  'Enter floors above the 4th as a consecutive sequence starting at 5 (e.g. 5,6,7).';
+  'Enter consecutive floor numbers from 5–50 (e.g. 7,8,9). Gaps or out-of-order values are invalid.';
+
+export const CUSTOM_FLOOR_SEQUENCE_AFTER_4TH_INVALID_MESSAGE =
+  'With RCC 4th Floor selected, custom floors must be a consecutive sequence starting at 5 (e.g. 5,6,7).';
+
+export function getCustomFloorSequenceInvalidMessage(requireStartAt5: boolean): string {
+  return requireStartAt5
+    ? CUSTOM_FLOOR_SEQUENCE_AFTER_4TH_INVALID_MESSAGE
+    : CUSTOM_FLOOR_SEQUENCE_INVALID_MESSAGE;
+}
 
 export const CUSTOM_FLOOR_PLAN_INVALID_MESSAGE =
   'Please enter an accurate floor plan value.';
@@ -957,13 +966,21 @@ export function parseCustomFloorNumber(raw: unknown): number | null {
 }
 
 /**
- * Comma-separated floors above 4th: must start at 5 and run consecutively (e.g. 5 or 5,6,7).
- * Returns null when empty or invalid.
+ * Comma-separated floors above 4th (5–50), consecutive ascending.
+ * When `requireStartAt5` is true (RCC 4th Floor selected), the sequence must start at 5.
+ * When false, any start ≥ 5 is allowed (e.g. 7,8,9 for an existing building).
  */
-export function parseCustomFloorSequence(raw: unknown): number[] | null {
+export function parseCustomFloorSequence(
+  raw: unknown,
+  options?: { requireStartAt5?: boolean },
+): number[] | null {
+  const requireStartAt5 = options?.requireStartAt5 === true;
+
   if (typeof raw === 'number' && Number.isInteger(raw)) {
     const single = parseCustomFloorNumber(raw);
-    return single != null && single === MIN_CUSTOM_RCC_FLOOR ? [single] : null;
+    if (single == null) return null;
+    if (requireStartAt5 && single !== MIN_CUSTOM_RCC_FLOOR) return null;
+    return [single];
   }
   if (typeof raw !== 'string') return null;
   const trimmed = raw.trim();
@@ -983,7 +1000,7 @@ export function parseCustomFloorSequence(raw: unknown): number[] | null {
     nums.push(n);
   }
 
-  if (nums[0] !== MIN_CUSTOM_RCC_FLOOR) return null;
+  if (requireStartAt5 && nums[0] !== MIN_CUSTOM_RCC_FLOOR) return null;
   for (let i = 1; i < nums.length; i++) {
     if (nums[i] !== nums[i - 1] + 1) return null;
   }
@@ -1014,7 +1031,10 @@ export function collectMistriFloorUpperLevels(input: {
     if (typeof upper === 'number') levels.push(upper);
   }
   if (input.customSelected) {
-    const sequence = parseCustomFloorSequence(input.customFloorNumber);
+    const requireStartAt5 = input.buildingTypes.includes('RCC 4th Floor');
+    const sequence = parseCustomFloorSequence(input.customFloorNumber, {
+      requireStartAt5,
+    });
     if (sequence) levels.push(...sequence);
   }
   return [...new Set(levels)].sort((a, b) => a - b);

@@ -22,7 +22,7 @@ import type { BuildingType } from '@/lib/buildingConfig';
 import { ASSAM_BUILDING_TYPE } from '@/lib/buildingConfig';
 import {
   CUSTOM_FLOOR_PLAN_INVALID_MESSAGE,
-  CUSTOM_FLOOR_SEQUENCE_INVALID_MESSAGE,
+  getCustomFloorSequenceInvalidMessage,
   FOUNDATION_CAPACITY_INVALID_MESSAGE,
   MISTRI_ACTIVITY_CATEGORY_OPTIONS,
   MISTRI_BRICKWORK_MATERIAL_OPTIONS,
@@ -204,7 +204,9 @@ function selectedFloorEntries(form: FormState): Array<{
     form.buildingTypes.map((floorId) => ({ floorId, customFloorNumber: null }));
 
   if (form.customFloorSelected) {
-    const sequence = parseCustomFloorSequence(form.customFloorNumber);
+    const sequence = parseCustomFloorSequence(form.customFloorNumber, {
+      requireStartAt5: form.buildingTypes.includes('RCC 4th Floor'),
+    });
     if (sequence) {
       for (const n of sequence) {
         entries.push({ floorId: MISTRI_CUSTOM_FLOOR_ID, customFloorNumber: n });
@@ -257,7 +259,10 @@ export function LabourContractorProjectWizard() {
   const [submittedTitle, setSubmittedTitle] = useState('');
 
   const districtSelection = parseAssamDistrictSelection(form.location);
-  const parsedCustomSequence = parseCustomFloorSequence(form.customFloorNumber);
+  const requireCustomStartAt5 = form.buildingTypes.includes('RCC 4th Floor');
+  const parsedCustomSequence = parseCustomFloorSequence(form.customFloorNumber, {
+    requireStartAt5: requireCustomStartAt5,
+  });
 
   const assembledFloorWork: MistriFloorWork[] = useMemo(() => {
     const entries = selectedFloorEntries(form);
@@ -457,7 +462,7 @@ export function LabourContractorProjectWizard() {
 
     if (form.customFloorSelected) {
       if (!parsedCustomSequence || parsedCustomSequence.length === 0) {
-        errors.customFloor = CUSTOM_FLOOR_SEQUENCE_INVALID_MESSAGE;
+        errors.customFloor = getCustomFloorSequenceInvalidMessage(requireCustomStartAt5);
       }
     }
 

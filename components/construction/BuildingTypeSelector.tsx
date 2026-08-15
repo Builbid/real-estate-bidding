@@ -125,7 +125,9 @@ export function BuildingTypeSelector({
     }
     if (!customSelectable) return;
 
-    const sequence = parseCustomFloorSequence(customFloorNumber);
+    const sequence = parseCustomFloorSequence(customFloorNumber, {
+      requireStartAt5: has4thFloor,
+    });
     if (enforceContiguousFloors && sequence) {
       const withoutCustom = collectMistriFloorUpperLevels({
         buildingTypes: value,
@@ -147,7 +149,9 @@ export function BuildingTypeSelector({
       onCustomChange?.(true, cleaned);
       return;
     }
-    const sequence = parseCustomFloorSequence(cleaned);
+    const sequence = parseCustomFloorSequence(cleaned, {
+      requireStartAt5: has4thFloor,
+    });
     if (sequence == null) {
       onCustomChange?.(true, cleaned);
       return;
@@ -308,8 +312,9 @@ export function BuildingTypeSelector({
             error={customError ?? undefined}
           />
           <p className="text-[11px] font-medium text-muted-foreground leading-snug">
-            Enter consecutive floors starting at 5, separated by commas (example: 5,6,7). Gaps or
-            out-of-order values are invalid.
+            {has4thFloor
+              ? 'With 4th floor selected, enter consecutive floors starting at 5 (example: 5,6,7).'
+              : 'Enter consecutive floors from 5–50 (example: 7,8,9). Gaps or out-of-order values are invalid.'}
           </p>
         </div>
       )}
