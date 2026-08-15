@@ -21,8 +21,8 @@ import { formatPincodeInput, validatePincode } from '@/lib/validation/pincode';
 import type { BuildingType } from '@/lib/buildingConfig';
 import { ASSAM_BUILDING_TYPE } from '@/lib/buildingConfig';
 import {
-  CUSTOM_FLOOR_NUMBER_INVALID_MESSAGE,
   CUSTOM_FLOOR_PLAN_INVALID_MESSAGE,
+  CUSTOM_FLOOR_SEQUENCE_INVALID_MESSAGE,
   FOUNDATION_CAPACITY_INVALID_MESSAGE,
   MISTRI_ACTIVITY_CATEGORY_OPTIONS,
   MISTRI_BRICKWORK_MATERIAL_OPTIONS,
@@ -42,7 +42,7 @@ import {
   isFutureFloorOptionAllowed,
   mistriContractTypeRequiredForFloorWork,
   mistriFoundationProvisionRequired,
-  parseCustomFloorNumber,
+  parseCustomFloorSequence,
   resolveFutureFloorPlan,
   sortMistriFloorWork,
   validateMajorMistriFloorSequence,
@@ -193,14 +193,43 @@ const EMPTY_FORM: FormState = {
   additionalRequirements: '',
 };
 
-function selectedFloorIds(form: FormState): MistriFloorId[] {
-  const ids: MistriFloorId[] = [...form.buildingTypes];
-  if (form.customFloorSelected) ids.push(MISTRI_CUSTOM_FLOOR_ID);
-  return ids;
+function selectedFloorEntries(form: FormState): Array<{
+  floorId: MistriFloorId;
+  customFloorNumber: number | null;
+}> {
+  const entries: Array<{ floorId: MistriFloorId; customFloorNumber: number | null }> =
+    form.buildingTypes.map((floorId) => ({ floorId, customFloorNumber: null }));
+
+  const has4th = form.buildingTypes.includes('RCC 4th Floor');
+  if (form.customFloorSelected && has4th) {
+    const sequence = parseCustomFloorSequence(form.customFloorNumber);
+    if (sequence) {
+      for (const n of sequence) {
+        entries.push({ floorId: MISTRI_CUSTOM_FLOOR_ID, customFloorNumber: n });
+      }
+    }
+  }
+  return entries;
 }
 
-function floorWorkKey(floorId: MistriFloorId): string {
+function floorWorkKey(
+  floorId: MistriFloorId,
+  customFloorNumber?: number | null,
+): string {
+  if (floorId === MISTRI_CUSTOM_FLOOR_ID) return `custom:${customFloorNumber ?? ''}`;
   return floorId;
+}
+
+function pruneFloorWorkById(
+  floorWorkById: Record<string, FloorWorkForm>,
+  entries: Array<{ floorId: MistriFloorId; customFloorNumber: number | null }>,
+): Record<string, FloorWorkForm> {
+  const keep = new Set(entries.map((e) => floorWorkKey(e.floorId, e.customFloorNumber)));
+  const next: Record<string, FloorWorkForm> = {};
+  for (const [key, value] of Object.entries(floorWorkById)) {
+    if (keep.has(key)) next[key] = value;
+  }
+  return next;
 }
 
 export function LabourContractorProjectWizard() {
@@ -226,25 +255,30 @@ export function LabourContractorProjectWizard() {
   const [submittedTitle, setSubmittedTitle] = useState('');
 
   const districtSelection = parseAssamDistrictSelection(form.location);
-  const selectedFloors = selectedFloorIds(form);
-  const parsedCustomFloor = parseCustomFloorNumber(form.customFloorNumber);
+  const parsedCustomSequence = parseCustomFloorSequence(form.customFloorNumber);
 
   const assembledFloorWork: MistriFloorWork[] = useMemo(() => {
+    const entries = selectedFloorEntries(form);
     return sortMistriFloorWork(
-      selectedFloors.map((floorId) => {
-        const entry = form.floorWorkById[floorWorkKey(floorId)] ?? EMPTY_FLOOR_WORK;
+      entries.map((entry) => {
+        const key = floorWorkKey(entry.floorId, entry.customFloorNumber);
+        const work = form.floorWorkById[key] ?? EMPTY_FLOOR_WORK;
         return {
-          floorId,
-          customFloorNumber:
-            floorId === MISTRI_CUSTOM_FLOOR_ID ? parsedCustomFloor : null,
-          workTypes: entry.workTypes,
-          brickMaterial: entry.brickMaterial,
-          plasterScope: entry.plasterScope,
-          flooringMaterial: entry.flooringMaterial,
+          floorId: entry.floorId,
+          customFloorNumber: entry.customFloorNumber,
+          workTypes: work.workTypes,
+          brickMaterial: work.brickMaterial,
+          plasterScope: work.plasterScope,
+          flooringMaterial: work.flooringMaterial,
         };
       }),
     );
-  }, [form.floorWorkById, parsedCustomFloor, selectedFloors]);
+  }, [
+    form.buildingTypes,
+    form.customFloorSelected,
+    form.customFloorNumber,
+    form.floorWorkById,
+  ]);
 
   const previewTitle = generateProjectTitle({
     serviceType: 'labour_contractor',
@@ -267,14 +301,17 @@ export function LabourContractorProjectWizard() {
 
   function setBuildingTypes(nextTypes: BuildingType[]) {
     setForm((f) => {
-      const nextIds = new Set<string>([
-        ...nextTypes,
-        ...(f.customFloorSelected ? [MISTRI_CUSTOM_FLOOR_ID] : []),
-      ]);
-      const floorWorkById = { ...f.floorWorkById };
-      for (const key of Object.keys(floorWorkById)) {
-        if (!nextIds.has(key)) delete floorWorkById[key];
-      }
+      const has4th = nextTypes.includes('RCC 4th Floor');
+      const customFloorSelected = has4th ? f.customFloorSelected : false;
+      const customFloorNumber = has4th ? f.customFloorNumber : '';
+      const draft: FormState = {
+        ...f,
+        buildingTypes: nextTypes,
+        customFloorSelected,
+        customFloorNumber,
+      };
+      const entries = selectedFloorEntries(draft);
+      const floorWorkById = pruneFloorWorkById(f.floorWorkById, entries);
       const droppedGround =
         f.buildingTypes.includes('RCC Ground Floor') &&
         !nextTypes.includes('RCC Ground Floor');
@@ -282,8 +319,7 @@ export function LabourContractorProjectWizard() {
         f.buildingTypes.includes(ASSAM_BUILDING_TYPE) &&
         !nextTypes.includes(ASSAM_BUILDING_TYPE);
       return {
-        ...f,
-        buildingTypes: nextTypes,
+        ...draft,
         floorWorkById,
         ...(droppedGround || droppedAssam
           ? { futureFloorOption: null, futureFloorCustom: '' }
@@ -293,19 +329,21 @@ export function LabourContractorProjectWizard() {
     setStep1Errors((errors) => {
       const next = { ...errors };
       delete next.floors;
+      delete next.customFloor;
       return next;
     });
   }
 
   function setCustomFloor(selected: boolean, number: string) {
     setForm((f) => {
-      const floorWorkById = { ...f.floorWorkById };
-      if (!selected) delete floorWorkById[MISTRI_CUSTOM_FLOOR_ID];
-      return {
+      const draft: FormState = {
         ...f,
         customFloorSelected: selected,
         customFloorNumber: number,
-        floorWorkById,
+      };
+      return {
+        ...draft,
+        floorWorkById: pruneFloorWorkById(f.floorWorkById, selectedFloorEntries(draft)),
       };
     });
     setStep1Errors((errors) => {
@@ -336,9 +374,13 @@ export function LabourContractorProjectWizard() {
     });
   }
 
-  function patchFloorWork(floorId: MistriFloorId, patch: Partial<FloorWorkForm>) {
+  function patchFloorWork(
+    floorId: MistriFloorId,
+    patch: Partial<FloorWorkForm>,
+    customFloorNumber?: number | null,
+  ) {
     setForm((f) => {
-      const key = floorWorkKey(floorId);
+      const key = floorWorkKey(floorId, customFloorNumber);
       const current = f.floorWorkById[key] ?? EMPTY_FLOOR_WORK;
       return {
         ...f,
@@ -351,9 +393,13 @@ export function LabourContractorProjectWizard() {
     setStep2Error(null);
   }
 
-  function toggleFloorWorkType(floorId: MistriFloorId, workType: MistriFloorWorkType) {
+  function toggleFloorWorkType(
+    floorId: MistriFloorId,
+    workType: MistriFloorWorkType,
+    customFloorNumber?: number | null,
+  ) {
     setForm((f) => {
-      const key = floorWorkKey(floorId);
+      const key = floorWorkKey(floorId, customFloorNumber);
       const current = f.floorWorkById[key] ?? EMPTY_FLOOR_WORK;
       const workTypes = applyMistriFloorWorkSelection(current.workTypes, workType);
       return {
@@ -401,12 +447,16 @@ export function LabourContractorProjectWizard() {
       errors.activityCategory = 'Select Major activities or Minor activities first.';
     }
 
-    if (selectedFloors.length === 0) {
+    if (form.buildingTypes.length === 0) {
       errors.floors = 'Select Assam Type or at least one RCC floor.';
     }
 
-    if (form.customFloorSelected && parsedCustomFloor == null) {
-      errors.customFloor = CUSTOM_FLOOR_NUMBER_INVALID_MESSAGE;
+    if (form.customFloorSelected) {
+      if (!form.buildingTypes.includes('RCC 4th Floor')) {
+        errors.customFloor = 'Select RCC 4th Floor before adding floors above it.';
+      } else if (!parsedCustomSequence || parsedCustomSequence.length === 0) {
+        errors.customFloor = CUSTOM_FLOOR_SEQUENCE_INVALID_MESSAGE;
+      }
     }
 
     if (
@@ -706,7 +756,7 @@ export function LabourContractorProjectWizard() {
               )}
 
               {assembledFloorWork.map((fw) => {
-                const key = floorWorkKey(fw.floorId);
+                const key = floorWorkKey(fw.floorId, fw.customFloorNumber);
                 const entry = form.floorWorkById[key] ?? EMPTY_FLOOR_WORK;
                 const activityCategory = form.activityCategory;
                 const options = activityCategory
@@ -741,7 +791,13 @@ export function LabourContractorProjectWizard() {
                           <div key={opt.value} className="space-y-2">
                             <OptionCardButton
                               selected={selected}
-                              onClick={() => toggleFloorWorkType(fw.floorId, opt.value)}
+                              onClick={() =>
+                                toggleFloorWorkType(
+                                  fw.floorId,
+                                  opt.value,
+                                  fw.customFloorNumber,
+                                )
+                              }
                             >
                               {opt.label}
                             </OptionCardButton>
@@ -762,7 +818,7 @@ export function LabourContractorProjectWizard() {
                                   options={MISTRI_BRICKWORK_MATERIAL_OPTIONS}
                                   value={entry.brickMaterial}
                                   onChange={(v) =>
-                                    patchFloorWork(fw.floorId, { brickMaterial: v })
+                                    patchFloorWork(fw.floorId, { brickMaterial: v }, fw.customFloorNumber)
                                   }
                                 />
                               </div>
@@ -774,7 +830,7 @@ export function LabourContractorProjectWizard() {
                                   options={MISTRI_PLASTER_SCOPE_OPTIONS}
                                   value={entry.plasterScope}
                                   onChange={(v) =>
-                                    patchFloorWork(fw.floorId, { plasterScope: v })
+                                    patchFloorWork(fw.floorId, { plasterScope: v }, fw.customFloorNumber)
                                   }
                                 />
                               </div>
@@ -786,7 +842,11 @@ export function LabourContractorProjectWizard() {
                                   options={MISTRI_FLOORING_MATERIAL_OPTIONS}
                                   value={entry.flooringMaterial}
                                   onChange={(v) =>
-                                    patchFloorWork(fw.floorId, { flooringMaterial: v })
+                                    patchFloorWork(
+                                      fw.floorId,
+                                      { flooringMaterial: v },
+                                      fw.customFloorNumber,
+                                    )
                                   }
                                 />
                               </div>

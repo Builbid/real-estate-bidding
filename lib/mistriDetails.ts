@@ -509,6 +509,9 @@ export const MISTRI_FLOORING_MATERIAL_OPTIONS: {
 export const CUSTOM_FLOOR_NUMBER_INVALID_MESSAGE =
   'Enter a custom floor number from 5 to 50.';
 
+export const CUSTOM_FLOOR_SEQUENCE_INVALID_MESSAGE =
+  'Enter floors above the 4th as a consecutive sequence starting at 5 (e.g. 5,6,7).';
+
 export const CUSTOM_FLOOR_PLAN_INVALID_MESSAGE =
   'Please enter an accurate floor plan value.';
 
@@ -943,6 +946,40 @@ export function parseCustomFloorNumber(raw: unknown): number | null {
   return null;
 }
 
+/**
+ * Comma-separated floors above 4th: must start at 5 and run consecutively (e.g. 5 or 5,6,7).
+ * Returns null when empty or invalid.
+ */
+export function parseCustomFloorSequence(raw: unknown): number[] | null {
+  if (typeof raw === 'number' && Number.isInteger(raw)) {
+    const single = parseCustomFloorNumber(raw);
+    return single != null && single === MIN_CUSTOM_RCC_FLOOR ? [single] : null;
+  }
+  if (typeof raw !== 'string') return null;
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+
+  const parts = trimmed
+    .split(',')
+    .map((p) => p.trim())
+    .filter((p) => p.length > 0);
+  if (parts.length === 0) return null;
+
+  const nums: number[] = [];
+  for (const part of parts) {
+    if (!/^\d+$/.test(part)) return null;
+    const n = parseInt(part, 10);
+    if (n < MIN_CUSTOM_RCC_FLOOR || n > MAX_CUSTOM_RCC_FLOOR) return null;
+    nums.push(n);
+  }
+
+  if (nums[0] !== MIN_CUSTOM_RCC_FLOOR) return null;
+  for (let i = 1; i < nums.length; i++) {
+    if (nums[i] !== nums[i - 1] + 1) return null;
+  }
+  return nums;
+}
+
 export function mistriFloorUpperCount(
   floorId: MistriFloorId,
   customFloorNumber?: number | null,
@@ -954,7 +991,7 @@ export function mistriFloorUpperCount(
   return RCC_FLOOR_UPPER[floorId] ?? 0;
 }
 
-/** Upper-storey indexes for selected RCC floors (Ground=0 … 4th=4, custom=N). Assam excluded. */
+/** Upper-storey indexes for selected RCC floors (Ground=0 … 4th=4, custom=N…). Assam excluded. */
 export function collectMistriFloorUpperLevels(input: {
   buildingTypes: readonly BuildingType[];
   customSelected?: boolean;
@@ -967,8 +1004,8 @@ export function collectMistriFloorUpperLevels(input: {
     if (typeof upper === 'number') levels.push(upper);
   }
   if (input.customSelected) {
-    const custom = parseCustomFloorNumber(input.customFloorNumber);
-    if (custom != null) levels.push(custom);
+    const sequence = parseCustomFloorSequence(input.customFloorNumber);
+    if (sequence) levels.push(...sequence);
   }
   return [...new Set(levels)].sort((a, b) => a - b);
 }
