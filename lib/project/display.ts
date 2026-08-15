@@ -2,7 +2,7 @@ import type { FinishingLevel, Project, ServiceType } from '@/lib/types';
 import { FINISHING_LEVEL_CONFIG, getFinishingClassBadge } from '@/lib/firm/finishingLevel';
 import { formatBudgetRange } from '@/lib/formatIndianCurrency';
 import {
-  DRAWING_PACKAGE_OPTIONS,
+  formatDrawingPackagesSummary,
   formatDrawingTypesSummary,
   isDrawingDesignServiceType,
   parseDrawingDetails,
@@ -104,10 +104,7 @@ export function getProjectConfigOrDrawingMeta(project: {
   if (isDrawingDesignServiceType(project.service_type)) {
     const details = parseDrawingDetails(project.drawing_details);
     if (details) {
-      return (
-        DRAWING_PACKAGE_OPTIONS.find((o) => o.value === details.package)?.label ??
-        formatDrawingTypesSummary(project.drawing_types)
-      );
+      return formatDrawingPackagesSummary(details.packages);
     }
     return formatDrawingTypesSummary(project.drawing_types);
   }

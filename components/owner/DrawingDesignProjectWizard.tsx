@@ -21,8 +21,9 @@ import {
   DRAWING_DELIVERABLE_OPTIONS,
   DRAWING_FLOOR_OPTIONS,
   DRAWING_PACKAGE_OPTIONS,
-  DRAWING_PACKAGE_TO_TYPES,
   buildingTypesFromDrawingFloors,
+  drawingTypesFromPackages,
+  formatDrawingPackagesSummary,
   getDrawingWorkRequirementBlocks,
   validateDrawingDetailsInput,
   type DrawingDeliverable,
@@ -43,7 +44,7 @@ interface FormState {
   location: string;
   pincode: string;
   bidding_minutes: string;
-  package: DrawingDesignPackage | null;
+  packages: DrawingDesignPackage[];
   floorOption: DrawingFloorPlan | null;
   customFloors: string;
   plotDimensions: string;
@@ -57,7 +58,7 @@ const EMPTY_FORM: FormState = {
   location: '',
   pincode: '',
   bidding_minutes: String(BIDDING_MINUTES),
-  package: null,
+  packages: [],
   floorOption: null,
   customFloors: '',
   plotDimensions: '',
@@ -98,7 +99,7 @@ export function DrawingDesignProjectWizard() {
 
   function validatedDetails() {
     return validateDrawingDetailsInput({
-      package: form.package,
+      packages: form.packages,
       floorOption: form.floorOption,
       customFloors: form.customFloors,
       plotDimensions: form.plotDimensions,
@@ -163,7 +164,7 @@ export function DrawingDesignProjectWizard() {
       serviceType: 'drawing_design',
       district: districtSelection.district,
       buildingTypes: buildingTypesFromDrawingFloors(validated.details.numberOfFloors),
-      scopeLabel: DRAWING_PACKAGE_OPTIONS.find((o) => o.value === validated.details.package)?.label,
+      scopeLabel: formatDrawingPackagesSummary(validated.details.packages),
     });
 
     const result = await createProjectAction({
@@ -174,7 +175,7 @@ export function DrawingDesignProjectWizard() {
       pincode: form.pincode.trim() || undefined,
       bidding_minutes: parseInt(form.bidding_minutes, 10) || BIDDING_MINUTES,
       building_types: buildingTypesFromDrawingFloors(validated.details.numberOfFloors),
-      drawing_types: DRAWING_PACKAGE_TO_TYPES[validated.details.package],
+      drawing_types: drawingTypesFromPackages(validated.details.packages),
       drawing_details: validated.details,
     });
 
@@ -190,9 +191,8 @@ export function DrawingDesignProjectWizard() {
   const previewTitle = generateProjectTitle({
     serviceType: 'drawing_design',
     district: districtSelection?.district ?? form.location,
-    scopeLabel: form.package
-      ? DRAWING_PACKAGE_OPTIONS.find((o) => o.value === form.package)?.label
-      : null,
+    scopeLabel:
+      form.packages.length > 0 ? formatDrawingPackagesSummary(form.packages) : null,
   });
   const reviewDetails = validatedDetails();
   const reviewBlocks =
@@ -205,7 +205,7 @@ export function DrawingDesignProjectWizard() {
           <span>✏️</span> Post Drawing and Design Project
         </h1>
         <p className="text-sm font-medium text-gray-700 dark:text-zinc-300 mt-1">
-          Choose a drawing package and building details so designers can bid without scope conflicts.
+          Choose drawing packages and building details so designers can bid without scope conflicts.
         </p>
       </div>
 
@@ -290,7 +290,7 @@ export function DrawingDesignProjectWizard() {
               <div>
                 <h2 className="text-base font-semibold text-gray-900 dark:text-white">Work Requirements</h2>
                 <p className="mt-1 text-sm font-medium text-gray-700 dark:text-zinc-300">
-                  Select the drawing package, building details, and deliverables you need.
+                  Select the drawing packages, building details, and deliverables you need.
                 </p>
               </div>
 
@@ -305,9 +305,14 @@ export function DrawingDesignProjectWizard() {
                 <label className={WIZARD_SECTION_LABEL}>Package Selection</label>
                 <OptionSelectGrid
                   options={DRAWING_PACKAGE_OPTIONS}
-                  value={form.package}
-                  onSelect={(v) => {
-                    update('package', v);
+                  values={form.packages}
+                  onToggle={(value) => {
+                    update(
+                      'packages',
+                      form.packages.includes(value)
+                        ? form.packages.filter((pkg) => pkg !== value)
+                        : [...form.packages, value],
+                    );
                     setStep2Error(null);
                   }}
                 />

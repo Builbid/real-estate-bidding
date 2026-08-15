@@ -20,8 +20,9 @@ export type DrawingDesignPackage =
   | 'structural_drawings'
   | 'electrical_drawing'
   | 'plumbing_drawing'
-  | 'full_architectural'
-  | 'municipal_approval';
+  | 'municipal_approval'
+  /** Legacy single-select option — no longer offered on new submissions. */
+  | 'full_architectural';
 
 export type DrawingFloorPlan = 'G' | 'G+1' | 'G+2' | 'G+3' | 'G+4' | 'custom';
 
@@ -32,6 +33,9 @@ export type DrawingDeliverable =
   | 'autocad_dwg_revit';
 
 export interface DrawingDetails {
+  /** Selected drawing packages (one or more). */
+  packages: DrawingDesignPackage[];
+  /** First selected package — kept for older stored records and readers. */
   package: DrawingDesignPackage;
   numberOfFloors: string;
   plotDimensions: string;
@@ -82,12 +86,6 @@ export const DRAWING_PACKAGE_OPTIONS: {
     description: 'Water supply, drainage and sanitary layout',
   },
   {
-    value: 'full_architectural',
-    label: 'Full Architectural Package (2D + 3D + Structural)',
-    emoji: '🏠',
-    description: 'Complete 2D, 3D and structural drawing set',
-  },
-  {
     value: 'municipal_approval',
     label: 'Municipal / GMDA Approval Drawings',
     emoji: '📋',
@@ -121,7 +119,11 @@ export const DRAWING_PACKAGE_TO_TYPES: Record<DrawingDesignPackage, DrawingDesig
   municipal_approval: ['2d_house_plan', 'structural_drawing'],
 };
 
-const PACKAGE_SET = new Set(DRAWING_PACKAGE_OPTIONS.map((o) => o.value));
+const SELECTABLE_PACKAGE_SET = new Set(DRAWING_PACKAGE_OPTIONS.map((o) => o.value));
+const PACKAGE_SET = new Set<DrawingDesignPackage>([
+  ...SELECTABLE_PACKAGE_SET,
+  'full_architectural',
+]);
 const DELIVERABLE_SET = new Set(DRAWING_DELIVERABLE_OPTIONS.map((o) => o.value));
 const FLOOR_PRESET_SET = new Set(
   DRAWING_FLOOR_OPTIONS.filter((o) => o.value !== 'custom').map((o) => o.value),
@@ -155,6 +157,39 @@ function parseDeliverables(raw: unknown): DrawingDeliverable[] {
   return next;
 }
 
+function parsePackages(raw: unknown): DrawingDesignPackage[] {
+  if (!Array.isArray(raw)) return [];
+  const next: DrawingDesignPackage[] = [];
+  for (const item of raw) {
+    if (typeof item === 'string' && PACKAGE_SET.has(item as DrawingDesignPackage)) {
+      const value = item as DrawingDesignPackage;
+      if (!next.includes(value)) next.push(value);
+    }
+  }
+  return next;
+}
+
+export function formatDrawingPackagesSummary(
+  packages: DrawingDesignPackage[] | null | undefined,
+): string {
+  if (!packages?.length) return 'No packages selected';
+  return packages
+    .map((value) => optionLabel(DRAWING_PACKAGE_OPTIONS, value) || value)
+    .join(', ');
+}
+
+export function drawingTypesFromPackages(
+  packages: DrawingDesignPackage[],
+): DrawingDesignType[] {
+  const types: DrawingDesignType[] = [];
+  for (const pkg of packages) {
+    for (const type of DRAWING_PACKAGE_TO_TYPES[pkg] ?? []) {
+      if (!types.includes(type)) types.push(type);
+    }
+  }
+  return types;
+}
+
 export function normalizeDrawingFloorLabel(raw: unknown): string | null {
   if (typeof raw !== 'string') return null;
   const trimmed = raw.trim().toUpperCase().replace(/\s+/g, '');
@@ -180,9 +215,15 @@ export function isDrawingDetails(value: unknown): value is DrawingDetails {
 export function parseDrawingDetails(value: unknown): DrawingDetails | null {
   if (!value || typeof value !== 'object') return null;
   const v = value as Record<string, unknown>;
-  if (typeof v.package !== 'string' || !PACKAGE_SET.has(v.package as DrawingDesignPackage)) {
-    return null;
+  let packages = parsePackages(v.packages);
+  if (
+    packages.length === 0 &&
+    typeof v.package === 'string' &&
+    PACKAGE_SET.has(v.package as DrawingDesignPackage)
+  ) {
+    packages = [v.package as DrawingDesignPackage];
   }
+  if (packages.length === 0) return null;
   const floors = normalizeDrawingFloorLabel(v.numberOfFloors);
   const dimensions = typeof v.plotDimensions === 'string' ? v.plotDimensions.trim() : '';
   const area = parsePositiveNumber(v.plotAreaSqft);
@@ -208,7 +249,8 @@ export function parseDrawingDetails(value: unknown): DrawingDetails | null {
       : null;
 
   return {
-    package: v.package as DrawingDesignPackage,
+    packages,
+    package: packages[0],
     numberOfFloors: floors,
     plotDimensions: dimensions,
     plotAreaSqft: area,
@@ -229,7 +271,7 @@ export function getDrawingWorkRequirementBlocks(details: DrawingDetails): {
     blocks.push({ label: 'Project Address', value: details.projectAddress });
   }
   blocks.push(
-    { label: 'Package', value: optionLabel(DRAWING_PACKAGE_OPTIONS, details.package) },
+    { label: 'Packages', value: formatDrawingPackagesSummary(details.packages) },
     { label: 'Number of Floors', value: details.numberOfFloors },
     { label: 'Plot Dimensions', value: details.plotDimensions },
   );
@@ -262,7 +304,7 @@ export function getDrawingWorkRequirementBlocks(details: DrawingDetails): {
 }
 
 export function validateDrawingDetailsInput(input: {
-  package: DrawingDesignPackage | null;
+  packages: DrawingDesignPackage[];
   floorOption: DrawingFloorPlan | null;
   customFloors: string;
   plotDimensions: string;
@@ -271,8 +313,11 @@ export function validateDrawingDetailsInput(input: {
   projectStartTimeSpecificDate: string;
   additionalRequirements: string;
 }): { error: string } | { details: DrawingDetails } {
-  if (!input.package || !PACKAGE_SET.has(input.package)) {
-    return { error: 'Select a drawing package.' };
+  const packages = parsePackages(input.packages).filter((value) =>
+    SELECTABLE_PACKAGE_SET.has(value),
+  );
+  if (packages.length === 0) {
+    return { error: 'Select at least one drawing package.' };
   }
   if (!input.floorOption) {
     return { error: 'Select the number of floors.' };
@@ -300,7 +345,8 @@ export function validateDrawingDetailsInput(input: {
 
   return {
     details: {
-      package: input.package,
+      packages,
+      package: packages[0],
       numberOfFloors: floors,
       plotDimensions: dimensions,
       deliverables,
