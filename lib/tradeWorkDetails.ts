@@ -113,7 +113,9 @@ export interface ElectricianDetails extends TradeDetailsBase {
   scopeType: ElectricianScopeType;
   pointEstimate: ElectricianPointEstimate;
   heavyAppliances: ElectricianHeavyAppliance[];
-  materialScope: ElectricianMaterialScope;
+  concealedWiring?: boolean | null;
+  /** Legacy field — no longer collected on new electrician submissions. */
+  materialScope?: ElectricianMaterialScope | null;
 }
 
 export interface CarpenterDetails extends TradeDetailsBase {
@@ -166,11 +168,15 @@ export const PLUMBER_MATERIAL_OPTIONS: { value: PlumberMaterialScope; label: str
 
 export const ELECTRICIAN_SCOPE_OPTIONS: { value: ElectricianScopeType; label: string }[] = [
   { value: 'full_house_wiring', label: 'Full House Wiring (New Construction)' },
-  { value: 'db_mcb', label: 'DB Box & MCB Setup' },
-  { value: 'switchboard_lights', label: 'Switchboard & Light Fitting' },
-  { value: 'earthing', label: 'Earthing Installation' },
-  { value: 'repair_alteration', label: 'Repair / Alteration' },
 ];
+
+const LEGACY_ELECTRICIAN_SCOPE_LABELS: Record<ElectricianScopeType, string> = {
+  full_house_wiring: 'Full House Wiring (New Construction)',
+  db_mcb: 'DB Box & MCB Setup',
+  switchboard_lights: 'Switchboard & Light Fitting',
+  earthing: 'Earthing Installation',
+  repair_alteration: 'Repair / Alteration',
+};
 
 export const ELECTRICIAN_POINT_OPTIONS: { value: ElectricianPointEstimate; label: string }[] = [
   { value: 'under_20', label: '< 20 Points' },
@@ -245,7 +251,13 @@ const PLUMBER_SCOPE_SET = new Set<PlumberScopeType>([
   'repair_leakage',
 ]);
 const PLUMBER_MATERIAL_SET = new Set(PLUMBER_MATERIAL_OPTIONS.map((o) => o.value));
-const ELECTRICIAN_SCOPE_SET = new Set(ELECTRICIAN_SCOPE_OPTIONS.map((o) => o.value));
+const ELECTRICIAN_SCOPE_SET = new Set<ElectricianScopeType>([
+  'full_house_wiring',
+  'db_mcb',
+  'switchboard_lights',
+  'earthing',
+  'repair_alteration',
+]);
 const ELECTRICIAN_POINT_SET = new Set(ELECTRICIAN_POINT_OPTIONS.map((o) => o.value));
 const ELECTRICIAN_APPLIANCE_SET = new Set(ELECTRICIAN_APPLIANCE_OPTIONS.map((o) => o.value));
 const ELECTRICIAN_MATERIAL_SET = new Set(ELECTRICIAN_MATERIAL_OPTIONS.map((o) => o.value));
@@ -386,12 +398,16 @@ export function parseTradeDetails(value: unknown): TradeDetails | null {
       typeof v.scopeType !== 'string' ||
       !ELECTRICIAN_SCOPE_SET.has(v.scopeType as ElectricianScopeType) ||
       typeof v.pointEstimate !== 'string' ||
-      !ELECTRICIAN_POINT_SET.has(v.pointEstimate as ElectricianPointEstimate) ||
-      typeof v.materialScope !== 'string' ||
-      !ELECTRICIAN_MATERIAL_SET.has(v.materialScope as ElectricianMaterialScope)
+      !ELECTRICIAN_POINT_SET.has(v.pointEstimate as ElectricianPointEstimate)
     ) {
       return null;
     }
+    const materialScope =
+      typeof v.materialScope === 'string' &&
+      ELECTRICIAN_MATERIAL_SET.has(v.materialScope as ElectricianMaterialScope)
+        ? (v.materialScope as ElectricianMaterialScope)
+        : null;
+    const concealedWiring = typeof v.concealedWiring === 'boolean' ? v.concealedWiring : null;
     return {
       service: 'electrician',
       projectAddress: address,
@@ -400,7 +416,8 @@ export function parseTradeDetails(value: unknown): TradeDetails | null {
       scopeType: v.scopeType as ElectricianScopeType,
       pointEstimate: v.pointEstimate as ElectricianPointEstimate,
       heavyAppliances: parseAppliances(v.heavyAppliances),
-      materialScope: v.materialScope as ElectricianMaterialScope,
+      concealedWiring,
+      materialScope,
     };
   }
 
@@ -510,7 +527,7 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
     }
   } else if (details.service === 'electrician') {
     blocks.push(
-      { label: 'Scope Type', value: optionLabel(ELECTRICIAN_SCOPE_OPTIONS, details.scopeType) },
+      { label: 'Scope Type', value: LEGACY_ELECTRICIAN_SCOPE_LABELS[details.scopeType] },
       { label: 'Approximate Points', value: optionLabel(ELECTRICIAN_POINT_OPTIONS, details.pointEstimate) },
       {
         label: 'Heavy Appliances',
@@ -521,11 +538,16 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
                 .join(', ')
             : 'None selected',
       },
-      {
+    );
+    if (details.concealedWiring != null) {
+      blocks.push({ label: 'Concealed Wiring', value: yesNo(details.concealedWiring) });
+    }
+    if (details.materialScope) {
+      blocks.push({
         label: 'Material Scope',
         value: optionLabel(ELECTRICIAN_MATERIAL_OPTIONS, details.materialScope),
-      },
-    );
+      });
+    }
   } else if (details.service === 'carpenter') {
     blocks.push(
       { label: 'Scope Type', value: optionLabel(CARPENTER_SCOPE_OPTIONS, details.scopeType) },
@@ -592,7 +614,7 @@ export function getTradeScopeLabel(details: TradeDetails): string {
     return LEGACY_PLUMBER_SCOPE_LABELS[details.scopeType];
   }
   if (details.service === 'electrician') {
-    return optionLabel(ELECTRICIAN_SCOPE_OPTIONS, details.scopeType);
+    return LEGACY_ELECTRICIAN_SCOPE_LABELS[details.scopeType];
   }
   if (details.service === 'carpenter') {
     return optionLabel(CARPENTER_SCOPE_OPTIONS, details.scopeType);
@@ -613,10 +635,10 @@ export interface TradeDetailsFormInput {
   kitchens: number;
   overheadTank: boolean | null;
   concealedPiping: boolean | null;
-  electricianScope: ElectricianScopeType | null;
+  electricianScope?: ElectricianScopeType | null;
   pointEstimate: ElectricianPointEstimate | null;
   heavyAppliances: ElectricianHeavyAppliance[];
-  electricianMaterial: ElectricianMaterialScope | null;
+  concealedWiring: boolean | null;
   carpenterScope: CarpenterScopeType | null;
   woodType: CarpenterWoodType | null;
   approxArea: string;
@@ -667,23 +689,20 @@ export function validateTradeDetailsInput(
   }
 
   if (input.service === 'electrician') {
-    if (!input.electricianScope || !ELECTRICIAN_SCOPE_SET.has(input.electricianScope)) {
-      return { error: 'Select an electrical scope type.' };
-    }
     if (!input.pointEstimate || !ELECTRICIAN_POINT_SET.has(input.pointEstimate)) {
       return { error: 'Select the approximate number of points.' };
     }
-    if (!input.electricianMaterial || !ELECTRICIAN_MATERIAL_SET.has(input.electricianMaterial)) {
-      return { error: 'Select a material scope.' };
+    if (input.concealedWiring == null) {
+      return { error: 'Select whether concealed wiring is required.' };
     }
     return {
       details: {
         ...base,
         service: 'electrician',
-        scopeType: input.electricianScope,
+        scopeType: 'full_house_wiring',
         pointEstimate: input.pointEstimate,
         heavyAppliances: parseAppliances(input.heavyAppliances),
-        materialScope: input.electricianMaterial,
+        concealedWiring: input.concealedWiring,
       },
     };
   }

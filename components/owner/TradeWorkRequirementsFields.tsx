@@ -10,7 +10,6 @@ import {
   EARTHWORK_MACHINE_OPTIONS,
   EARTHWORK_TYPE_OPTIONS,
   ELECTRICIAN_APPLIANCE_OPTIONS,
-  ELECTRICIAN_MATERIAL_OPTIONS,
   ELECTRICIAN_POINT_OPTIONS,
   ELECTRICIAN_SCOPE_OPTIONS,
   INTERIOR_SCOPE_OPTIONS,
@@ -21,7 +20,6 @@ import {
   type EarthworkMachine,
   type EarthworkType,
   type ElectricianHeavyAppliance,
-  type ElectricianMaterialScope,
   type ElectricianPointEstimate,
   type ElectricianScopeType,
   type InteriorScopeType,
@@ -37,10 +35,10 @@ export interface TradeWorkFormFields {
   kitchens: number;
   overheadTank: boolean | null;
   concealedPiping: boolean | null;
-  electricianScope: ElectricianScopeType | null;
+  electricianScope: ElectricianScopeType;
   pointEstimate: ElectricianPointEstimate | null;
   heavyAppliances: ElectricianHeavyAppliance[];
-  electricianMaterial: ElectricianMaterialScope | null;
+  concealedWiring: boolean | null;
   carpenterScope: CarpenterScopeType | null;
   woodType: CarpenterWoodType | null;
   approxArea: string;
@@ -125,10 +123,11 @@ export function TradeWorkRequirementsFields({
       {trade === 'electrician' && (
         <>
           <FieldGroup label="Scope Type">
-            <OptionSelectGrid
-              options={ELECTRICIAN_SCOPE_OPTIONS}
-              value={form.electricianScope}
-              onSelect={(v) => onChange('electricianScope', v)}
+            <OptionSelectCard
+              selected
+              disabled
+              label={ELECTRICIAN_SCOPE_OPTIONS[0].label}
+              onClick={() => {}}
             />
           </FieldGroup>
           <FieldGroup label="Approximate Number of Points">
@@ -139,19 +138,20 @@ export function TradeWorkRequirementsFields({
               columns={2}
             />
           </FieldGroup>
+          <FieldGroup label="Concealed Wiring">
+            <OptionSelectGrid
+              options={YES_NO}
+              value={form.concealedWiring == null ? null : form.concealedWiring ? 'yes' : 'no'}
+              onSelect={(v) => onChange('concealedWiring', v === 'yes')}
+              columns={2}
+            />
+          </FieldGroup>
           <FieldGroup label="Heavy Appliances">
             <OptionSelectGrid
               options={ELECTRICIAN_APPLIANCE_OPTIONS}
               values={form.heavyAppliances}
               onToggle={(v) => onChange('heavyAppliances', toggleUnique(form.heavyAppliances, v))}
               columns={2}
-            />
-          </FieldGroup>
-          <FieldGroup label="Material Scope">
-            <OptionSelectGrid
-              options={ELECTRICIAN_MATERIAL_OPTIONS}
-              value={form.electricianMaterial}
-              onSelect={(v) => onChange('electricianMaterial', v)}
             />
           </FieldGroup>
         </>
