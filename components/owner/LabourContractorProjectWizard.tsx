@@ -31,7 +31,6 @@ import {
   MISTRI_CONTRACT_TYPE_OPTIONS,
   MISTRI_CUSTOM_FLOOR_ID,
   MISTRI_FLOORING_MATERIAL_OPTIONS,
-  MISTRI_FUTURE_FLOOR_OPTIONS,
   MISTRI_PLASTER_SCOPE_OPTIONS,
   MISTRI_START_TIME_OPTIONS,
   MISTRI_YES_NO_OPTIONS,
@@ -43,13 +42,11 @@ import {
   getMistriFullFinishedIncludes,
   getMistriWorkRequirementBlocks,
   isAssamMistriFloor,
-  isFutureFloorOptionAllowed,
   mistriContractTypeRequiredForFloorWork,
   mistriFoundationProvisionRequired,
   parseCustomFloorSequence,
   parseFoundationCustomFloorCount,
   parseFoundationDepthFt,
-  resolveFutureFloorPlan,
   sortMistriFloorWork,
   validateMajorMistriFloorSequence,
   validateMistriFloorWorkInput,
@@ -63,7 +60,6 @@ import {
   type MistriFloorWork,
   type MistriFloorWorkType,
   type MistriFlooringMaterial,
-  type MistriFutureFloorOption,
   type MistriPlasterScope,
   type MistriStartTimeType,
 } from '@/lib/mistriDetails';
@@ -185,7 +181,7 @@ interface FormState {
   customFloorNumber: string;
   floorWorkById: Record<string, FloorWorkForm>;
   approximateArea: string;
-  futureFloorOption: MistriFutureFloorOption | null;
+  /** Whole-number floor count for foundation provision (Ground Floor major only). */
   futureFloorCustom: string;
   contractType: MistriContractType | null;
   projectStartTimeType: MistriStartTimeType | null;
@@ -203,7 +199,6 @@ const EMPTY_FORM: FormState = {
   customFloorNumber: '',
   floorWorkById: {},
   approximateArea: '',
-  futureFloorOption: null,
   futureFloorCustom: '',
   contractType: null,
   projectStartTimeType: null,
@@ -384,9 +379,7 @@ export function LabourContractorProjectWizard() {
       return {
         ...draft,
         floorWorkById,
-        ...(droppedGround || droppedAssam
-          ? { futureFloorOption: null, futureFloorCustom: '' }
-          : {}),
+        ...(droppedGround || droppedAssam ? { futureFloorCustom: '' } : {}),
       };
     });
     setStep1Errors((errors) => {
@@ -426,7 +419,6 @@ export function LabourContractorProjectWizard() {
         activityCategory: category,
         // Switching Major ↔ Minor clears floor-wise picks so options stay valid.
         floorWorkById: {},
-        futureFloorOption: null,
         futureFloorCustom: '',
         contractType: null,
       };
@@ -494,7 +486,7 @@ export function LabourContractorProjectWizard() {
     return {
       floorWork: assembledFloorWork,
       approximateArea: form.approximateArea,
-      futureFloorOption: form.futureFloorOption,
+      futureFloorOption: 'custom' as const,
       futureFloorCustom: form.futureFloorCustom,
       contractType: form.contractType,
       projectStartTimeType: form.projectStartTimeType,
@@ -630,29 +622,17 @@ export function LabourContractorProjectWizard() {
   const currentUpper = floorPlanUpperCount(currentFloorPlan);
 
   const futureCustomError = (() => {
-    if (!showFoundationProvision || form.futureFloorOption !== 'custom') return null;
+    if (!showFoundationProvision) return null;
     const raw = form.futureFloorCustom.trim();
     if (!raw) return null;
     const n = parseFoundationCustomFloorCount(raw);
     if (n == null) return FOUNDATION_CUSTOM_FLOORS_INVALID_MESSAGE;
-    if (currentUpper != null && n < currentUpper) return FOUNDATION_CAPACITY_INVALID_MESSAGE;
+    if (currentUpper != null && n <= currentUpper) return FOUNDATION_CAPACITY_INVALID_MESSAGE;
     return null;
   })();
 
-  const foundationCapacityError = (() => {
-    if (!showFoundationProvision || !form.futureFloorOption) return null;
-    if (form.futureFloorOption === 'custom' && !form.futureFloorCustom.trim()) return null;
-    const futureResolved = resolveFutureFloorPlan(
-      form.futureFloorOption,
-      form.futureFloorCustom,
-      currentFloorPlan,
-    );
-    if ('error' in futureResolved) return null;
-    const futureN = floorPlanUpperCount(futureResolved.value);
-    if (currentUpper == null || futureN == null) return null;
-    if (futureN < currentUpper) return FOUNDATION_CAPACITY_INVALID_MESSAGE;
-    return null;
-  })();
+  const minFoundationFloors =
+    currentUpper != null ? currentUpper + 1 : 1;
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -1079,83 +1059,32 @@ export function LabourContractorProjectWizard() {
                         Foundation provision for
                       </p>
                       <p className={HELPER_TEXT}>
-                        Asked only when Ground Floor is included. Choose how many floors the
-                        foundation must support — equal to or above your current highest floor
-                        (e.g. building up to 4th floor → 4 or higher).
+                        Enter the number of floors the foundation must support (whole number only).
+                        It must be greater than your highest constructing floor
+                        {currentUpper != null
+                          ? ` — minimum ${minFoundationFloors}`
+                          : ''}
+                        .
                       </p>
                     </div>
-                    <Select
-                      value={form.futureFloorOption ?? undefined}
-                      onValueChange={(v) => {
-                        update('futureFloorOption', v as MistriFutureFloorOption);
-                        if (v !== 'custom') update('futureFloorCustom', '');
+                    <Input
+                      label="No. of floors"
+                      type="text"
+                      inputMode="numeric"
+                      placeholder={`e.g. ${minFoundationFloors}`}
+                      value={form.futureFloorCustom}
+                      onChange={(e) => {
+                        update('futureFloorCustom', e.target.value.replace(/\D/g, ''));
                         setStep2Error(null);
                       }}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select foundation provision (floor capacity)" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {MISTRI_FUTURE_FLOOR_OPTIONS.map((opt) => {
-                          const allowed = isFutureFloorOptionAllowed(opt.value, currentUpper);
-                          return (
-                            <SelectItem
-                              key={opt.value}
-                              value={opt.value}
-                              disabled={!allowed}
-                            >
-                              {opt.label}
-                              {!allowed ? ' (below current build)' : ''}
-                            </SelectItem>
-                          );
-                        })}
-                      </SelectContent>
-                    </Select>
-                    {form.futureFloorOption === 'custom' && (
-                      <div className="space-y-1">
-                        <Input
-                          label={
-                            currentUpper != null
-                              ? `Future number of floors (min ${currentUpper})`
-                              : 'Future number of floors'
-                          }
-                          type="text"
-                          inputMode="numeric"
-                          placeholder={
-                            currentUpper != null
-                              ? `e.g. ${currentUpper} or ${currentUpper + 1}`
-                              : 'e.g. 4'
-                          }
-                          value={form.futureFloorCustom}
-                          onChange={(e) => {
-                            update(
-                              'futureFloorCustom',
-                              e.target.value.replace(/\D/g, ''),
-                            );
-                            setStep2Error(null);
-                          }}
-                          className="mt-1"
-                        />
-                        <p className={HELPER_TEXT}>
-                          Enter a whole number only (digits). Must be equal to or greater than your
-                          currently selected floors.
-                        </p>
-                        {futureCustomError && (
-                          <p className="text-xs text-destructive flex items-center gap-1">
-                            <AlertCircle className="h-3 w-3 shrink-0" />
-                            {futureCustomError}
-                          </p>
-                        )}
-                      </div>
+                    />
+                    {futureCustomError && (
+                      <p className="text-xs text-destructive flex items-center gap-1">
+                        <AlertCircle className="h-3 w-3 shrink-0" />
+                        {futureCustomError}
+                      </p>
                     )}
                   </div>
-
-                  {foundationCapacityError && (
-                    <p className="text-xs text-destructive flex items-start gap-1.5">
-                      <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                      {foundationCapacityError}
-                    </p>
-                  )}
 
                   <p className={cn(HELPER_TEXT, 'border-l-2 border-amber-500/50 pl-2.5')}>
                     * Note: Higher foundation provision needs stronger foundations, thicker columns,

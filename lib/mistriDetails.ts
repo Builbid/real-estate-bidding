@@ -554,10 +554,10 @@ export const CUSTOM_FLOOR_PLAN_INVALID_MESSAGE =
   'Please enter an accurate floor plan value.';
 
 export const FOUNDATION_CUSTOM_FLOORS_INVALID_MESSAGE =
-  'Enter the future number of floors as a whole number (digits only).';
+  'Enter foundation provision as a whole number of floors (digits only).';
 
 export const FOUNDATION_CAPACITY_INVALID_MESSAGE =
-  'Foundation provision must be equal to or greater than your currently selected floors (e.g. building up to 4th floor → enter 4 or higher).';
+  'Foundation provision must be greater than your highest constructing floor (e.g. building up to 4th floor → enter 5 or higher).';
 
 export const MAJOR_FLOOR_SEQUENCE_INVALID_MESSAGE =
   'For major activities, selected floors must be consecutive with no gaps. Ground + 3rd is invalid without 1st and 2nd. Selecting only 3rd + 4th is fine for an existing building.';
@@ -2237,19 +2237,12 @@ export function validateMistriFloorWorkInput(input: {
 
   if (mistriFoundationProvisionRequired(floorWork)) {
     const futureResolved = resolveFutureFloorPlan(
-      input.futureFloorOption,
+      'custom',
       input.futureFloorCustom,
       currentFloorPlan,
     );
     if ('error' in futureResolved) {
-      if (
-        input.futureFloorOption === 'custom' &&
-        (futureResolved.error === FOUNDATION_CUSTOM_FLOORS_INVALID_MESSAGE ||
-          futureResolved.error === CUSTOM_FLOOR_PLAN_INVALID_MESSAGE)
-      ) {
-        return { error: FOUNDATION_CUSTOM_FLOORS_INVALID_MESSAGE };
-      }
-      return { error: 'Select foundation provision for (highest floor capacity or above).' };
+      return { error: FOUNDATION_CUSTOM_FLOORS_INVALID_MESSAGE };
     }
     futureFloorPlan = futureResolved.value;
     const currentN = floorPlanUpperCount(currentFloorPlan);
@@ -2257,7 +2250,8 @@ export function validateMistriFloorWorkInput(input: {
     if (currentN == null || futureN == null) {
       return { error: FOUNDATION_CUSTOM_FLOORS_INVALID_MESSAGE };
     }
-    if (futureN < currentN) {
+    // Must be strictly above the highest floor currently under construction.
+    if (futureN <= currentN) {
       return { error: FOUNDATION_CAPACITY_INVALID_MESSAGE };
     }
   }
