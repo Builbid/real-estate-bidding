@@ -553,8 +553,11 @@ export function getCustomFloorSequenceInvalidMessage(requireStartAt5: boolean): 
 export const CUSTOM_FLOOR_PLAN_INVALID_MESSAGE =
   'Please enter an accurate floor plan value.';
 
+export const FOUNDATION_CUSTOM_FLOORS_INVALID_MESSAGE =
+  'Enter the future number of floors as a whole number (digits only).';
+
 export const FOUNDATION_CAPACITY_INVALID_MESSAGE =
-  'Foundation provision must be for the highest floor you are building, or above (e.g. up to 4th floor → 4th floor capacity or higher).';
+  'Foundation provision must be equal to or greater than your currently selected floors (e.g. building up to 4th floor → enter 4 or higher).';
 
 export const MAJOR_FLOOR_SEQUENCE_INVALID_MESSAGE =
   'For major activities, selected floors must be consecutive with no gaps. Ground + 3rd is invalid without 1st and 2nd. Selecting only 3rd + 4th is fine for an existing building.';
@@ -808,6 +811,7 @@ export function resolveCurrentFloorPlan(
 /**
  * Resolve future-expansion dropdown selection.
  * `same` copies the already-resolved current floor plan.
+ * Custom = whole-number floor count (G+N upper floors), digits only.
  */
 export function resolveFutureFloorPlan(
   option: MistriFutureFloorOption | null,
@@ -821,13 +825,30 @@ export function resolveFutureFloorPlan(
     return { value: currentFloorPlan };
   }
   if (option === 'custom') {
-    const normalized = normalizeFloorPlanValue(customValue);
-    if (!normalized) {
-      return { error: CUSTOM_FLOOR_PLAN_INVALID_MESSAGE };
+    const n = parseFoundationCustomFloorCount(customValue);
+    if (n == null) {
+      return { error: FOUNDATION_CUSTOM_FLOORS_INVALID_MESSAGE };
     }
-    return { value: normalized };
+    return { value: `G+${n}` };
   }
   return { value: option };
+}
+
+/**
+ * Whole-number floor count for custom foundation provision (stored as G+N).
+ * Digits only — no "+", letters, or decimals.
+ */
+export function parseFoundationCustomFloorCount(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isInteger(value)) {
+    if (value >= MIN_UPPER_FLOORS && value <= MAX_UPPER_FLOORS) return value;
+    return null;
+  }
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!/^\d+$/.test(trimmed)) return null;
+  const n = parseInt(trimmed, 10);
+  if (n < MIN_UPPER_FLOORS || n > MAX_UPPER_FLOORS) return null;
+  return n;
 }
 
 /**
@@ -1208,14 +1229,15 @@ export function getMistriFrameSkeletonIncludes(floorId: MistriFloorId): string {
 }
 
 /**
- * RCC major work needs an explicit foundation capacity (highest build floor or above).
+ * Foundation provision is only asked when RCC Ground Floor is in scope with
+ * major work (full finished / frame). Upper-floor-only posts skip it.
  * Assam Type uses foundationDepthFt instead.
  */
 export function mistriFoundationProvisionRequired(
   floorWork: readonly MistriFloorWork[],
 ): boolean {
   return floorWork.some((fw) => {
-    if (isAssamMistriFloor(fw.floorId)) return false;
+    if (fw.floorId !== 'RCC Ground Floor') return false;
     return (
       fw.workTypes.includes('full_finished') ||
       fw.workTypes.includes('frame_skeleton')
@@ -2222,9 +2244,10 @@ export function validateMistriFloorWorkInput(input: {
     if ('error' in futureResolved) {
       if (
         input.futureFloorOption === 'custom' &&
-        futureResolved.error === CUSTOM_FLOOR_PLAN_INVALID_MESSAGE
+        (futureResolved.error === FOUNDATION_CUSTOM_FLOORS_INVALID_MESSAGE ||
+          futureResolved.error === CUSTOM_FLOOR_PLAN_INVALID_MESSAGE)
       ) {
-        return { error: CUSTOM_FLOOR_PLAN_INVALID_MESSAGE };
+        return { error: FOUNDATION_CUSTOM_FLOORS_INVALID_MESSAGE };
       }
       return { error: 'Select foundation provision for (highest floor capacity or above).' };
     }
@@ -2232,7 +2255,7 @@ export function validateMistriFloorWorkInput(input: {
     const currentN = floorPlanUpperCount(currentFloorPlan);
     const futureN = floorPlanUpperCount(futureFloorPlan);
     if (currentN == null || futureN == null) {
-      return { error: CUSTOM_FLOOR_PLAN_INVALID_MESSAGE };
+      return { error: FOUNDATION_CUSTOM_FLOORS_INVALID_MESSAGE };
     }
     if (futureN < currentN) {
       return { error: FOUNDATION_CAPACITY_INVALID_MESSAGE };
@@ -2397,9 +2420,10 @@ export function validateMistriDetailsInput(input: {
     if ('error' in futureResolved) {
       if (
         input.futureFloorOption === 'custom' &&
-        futureResolved.error === CUSTOM_FLOOR_PLAN_INVALID_MESSAGE
+        (futureResolved.error === FOUNDATION_CUSTOM_FLOORS_INVALID_MESSAGE ||
+          futureResolved.error === CUSTOM_FLOOR_PLAN_INVALID_MESSAGE)
       ) {
-        return { error: CUSTOM_FLOOR_PLAN_INVALID_MESSAGE };
+        return { error: FOUNDATION_CUSTOM_FLOORS_INVALID_MESSAGE };
       }
       return { error: 'Select foundation provision for (highest floor capacity or above).' };
     }
@@ -2410,7 +2434,7 @@ export function validateMistriDetailsInput(input: {
     const currentN = floorPlanUpperCount(currentFloorPlan);
     const futureN = floorPlanUpperCount(futureFloorPlan);
     if (currentN == null || futureN == null) {
-      return { error: CUSTOM_FLOOR_PLAN_INVALID_MESSAGE };
+      return { error: FOUNDATION_CUSTOM_FLOORS_INVALID_MESSAGE };
     }
     if (futureN < currentN) {
       return {

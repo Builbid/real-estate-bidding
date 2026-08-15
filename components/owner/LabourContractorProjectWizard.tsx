@@ -21,9 +21,9 @@ import { formatPincodeInput, validatePincode } from '@/lib/validation/pincode';
 import type { BuildingType } from '@/lib/buildingConfig';
 import { ASSAM_BUILDING_TYPE } from '@/lib/buildingConfig';
 import {
-  CUSTOM_FLOOR_PLAN_INVALID_MESSAGE,
   getCustomFloorSequenceInvalidMessage,
   FOUNDATION_CAPACITY_INVALID_MESSAGE,
+  FOUNDATION_CUSTOM_FLOORS_INVALID_MESSAGE,
   MISTRI_ACTIVITY_CATEGORY_OPTIONS,
   MISTRI_ASSAM_FLOORING_MATERIAL_OPTIONS,
   MISTRI_ASSAM_ROOF_OPTIONS,
@@ -47,6 +47,7 @@ import {
   mistriContractTypeRequiredForFloorWork,
   mistriFoundationProvisionRequired,
   parseCustomFloorSequence,
+  parseFoundationCustomFloorCount,
   parseFoundationDepthFt,
   resolveFutureFloorPlan,
   sortMistriFloorWork,
@@ -630,16 +631,17 @@ export function LabourContractorProjectWizard() {
 
   const futureCustomError = (() => {
     if (!showFoundationProvision || form.futureFloorOption !== 'custom') return null;
-    const resolved = resolveFutureFloorPlan(
-      'custom',
-      form.futureFloorCustom,
-      currentFloorPlan,
-    );
-    return 'error' in resolved ? CUSTOM_FLOOR_PLAN_INVALID_MESSAGE : null;
+    const raw = form.futureFloorCustom.trim();
+    if (!raw) return null;
+    const n = parseFoundationCustomFloorCount(raw);
+    if (n == null) return FOUNDATION_CUSTOM_FLOORS_INVALID_MESSAGE;
+    if (currentUpper != null && n < currentUpper) return FOUNDATION_CAPACITY_INVALID_MESSAGE;
+    return null;
   })();
 
   const foundationCapacityError = (() => {
     if (!showFoundationProvision || !form.futureFloorOption) return null;
+    if (form.futureFloorOption === 'custom' && !form.futureFloorCustom.trim()) return null;
     const futureResolved = resolveFutureFloorPlan(
       form.futureFloorOption,
       form.futureFloorCustom,
@@ -1077,8 +1079,9 @@ export function LabourContractorProjectWizard() {
                         Foundation provision for
                       </p>
                       <p className={HELPER_TEXT}>
-                        Choose the floor capacity the foundation and columns must support. If you are
-                        constructing up to the 4th floor, provision must be for 4th floor or above.
+                        Asked only when Ground Floor is included. Choose how many floors the
+                        foundation must support — equal to or above your current highest floor
+                        (e.g. building up to 4th floor → 4 or higher).
                       </p>
                     </div>
                     <Select
@@ -1111,20 +1114,32 @@ export function LabourContractorProjectWizard() {
                     {form.futureFloorOption === 'custom' && (
                       <div className="space-y-1">
                         <Input
-                          label="Enter total upper floors (e.g. 6, 7, 8)"
+                          label={
+                            currentUpper != null
+                              ? `Future number of floors (min ${currentUpper})`
+                              : 'Future number of floors'
+                          }
                           type="text"
                           inputMode="numeric"
-                          placeholder="e.g. 6 or 7 or 8+"
+                          placeholder={
+                            currentUpper != null
+                              ? `e.g. ${currentUpper} or ${currentUpper + 1}`
+                              : 'e.g. 4'
+                          }
                           value={form.futureFloorCustom}
                           onChange={(e) => {
                             update(
                               'futureFloorCustom',
-                              e.target.value.replace(/[^\d+]/g, ''),
+                              e.target.value.replace(/\D/g, ''),
                             );
                             setStep2Error(null);
                           }}
                           className="mt-1"
                         />
+                        <p className={HELPER_TEXT}>
+                          Enter a whole number only (digits). Must be equal to or greater than your
+                          currently selected floors.
+                        </p>
                         {futureCustomError && (
                           <p className="text-xs text-destructive flex items-center gap-1">
                             <AlertCircle className="h-3 w-3 shrink-0" />
