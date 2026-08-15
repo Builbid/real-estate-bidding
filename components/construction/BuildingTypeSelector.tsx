@@ -16,8 +16,6 @@ import {
 } from '@/lib/mistriDetails';
 import { cn } from '@/lib/utils';
 
-const RCC_4TH_FLOOR: BuildingType = 'RCC 4th Floor';
-
 interface BuildingTypeSelectorProps {
   value: BuildingType[];
   onChange: (value: BuildingType[]) => void;
@@ -49,8 +47,7 @@ export function BuildingTypeSelector({
   enforceContiguousFloors = false,
 }: BuildingTypeSelectorProps) {
   const hasAssam = value.includes(ASSAM_BUILDING_TYPE);
-  const has4thFloor = value.includes(RCC_4TH_FLOOR);
-  const customFloorVisible = showCustomFloor && has4thFloor && !hasAssam;
+  const customFloorVisible = showCustomFloor && !hasAssam;
   const hasRcc =
     value.some((t) => RCC_BUILDING_TYPES.includes(t)) ||
     (customSelected && customFloorVisible);
@@ -81,13 +78,6 @@ export function BuildingTypeSelector({
 
     const next = value.filter((t) => t !== ASSAM_BUILDING_TYPE);
     const isSelected = next.includes(type);
-
-    if (type === RCC_4TH_FLOOR && isSelected) {
-      // Deselecting 4th removes custom floors above it.
-      onCustomChange?.(false, '');
-      onChange(next.filter((t) => t !== type));
-      return;
-    }
 
     if (enforceContiguousFloors) {
       const level = mistriFloorUpperCount(type);
@@ -198,8 +188,8 @@ export function BuildingTypeSelector({
               {showCustomFloor && (
                 <>
                   <br />
-                  Floors above the 4th appear after you select RCC 4th Floor — enter them as
-                  5,6,7 in sequence.
+                  Floors above the 4th can be selected with RCC 4th Floor or on their own —
+                  enter them as 5,6,7 in sequence.
                 </>
               )}
             </p>
@@ -237,7 +227,6 @@ export function BuildingTypeSelector({
             !isAssamOption && !selected && isContiguousBlocked(mistriFloorUpperCount(type));
           const deselectBlocked =
             !isAssamOption &&
-            type !== RCC_4TH_FLOOR &&
             selected &&
             enforceContiguousFloors &&
             !canToggleMistriFloorUpper(currentLevels, mistriFloorUpperCount(type));

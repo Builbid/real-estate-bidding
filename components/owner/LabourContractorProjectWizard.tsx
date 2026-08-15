@@ -200,8 +200,7 @@ function selectedFloorEntries(form: FormState): Array<{
   const entries: Array<{ floorId: MistriFloorId; customFloorNumber: number | null }> =
     form.buildingTypes.map((floorId) => ({ floorId, customFloorNumber: null }));
 
-  const has4th = form.buildingTypes.includes('RCC 4th Floor');
-  if (form.customFloorSelected && has4th) {
+  if (form.customFloorSelected) {
     const sequence = parseCustomFloorSequence(form.customFloorNumber);
     if (sequence) {
       for (const n of sequence) {
@@ -301,14 +300,9 @@ export function LabourContractorProjectWizard() {
 
   function setBuildingTypes(nextTypes: BuildingType[]) {
     setForm((f) => {
-      const has4th = nextTypes.includes('RCC 4th Floor');
-      const customFloorSelected = has4th ? f.customFloorSelected : false;
-      const customFloorNumber = has4th ? f.customFloorNumber : '';
       const draft: FormState = {
         ...f,
         buildingTypes: nextTypes,
-        customFloorSelected,
-        customFloorNumber,
       };
       const entries = selectedFloorEntries(draft);
       const floorWorkById = pruneFloorWorkById(f.floorWorkById, entries);
@@ -447,14 +441,12 @@ export function LabourContractorProjectWizard() {
       errors.activityCategory = 'Select Major activities or Minor activities first.';
     }
 
-    if (form.buildingTypes.length === 0) {
+    if (form.buildingTypes.length === 0 && !form.customFloorSelected) {
       errors.floors = 'Select Assam Type or at least one RCC floor.';
     }
 
     if (form.customFloorSelected) {
-      if (!form.buildingTypes.includes('RCC 4th Floor')) {
-        errors.customFloor = 'Select RCC 4th Floor before adding floors above it.';
-      } else if (!parsedCustomSequence || parsedCustomSequence.length === 0) {
+      if (!parsedCustomSequence || parsedCustomSequence.length === 0) {
         errors.customFloor = CUSTOM_FLOOR_SEQUENCE_INVALID_MESSAGE;
       }
     }
