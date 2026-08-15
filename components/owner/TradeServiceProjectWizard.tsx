@@ -61,7 +61,6 @@ const BUILDING_TYPE_OPTIONS: { value: TrackType; label: string; description: str
 interface FormState extends TradeWorkFormFields {
   location: string;
   pincode: string;
-  projectAddress: string;
   bidding_minutes: string;
   track_type: TrackType | null;
   projectArea: string;
@@ -75,7 +74,6 @@ interface FormState extends TradeWorkFormFields {
 const EMPTY_FORM: FormState = {
   location: '',
   pincode: '',
-  projectAddress: '',
   bidding_minutes: String(BIDDING_MINUTES),
   track_type: null,
   projectArea: '',
@@ -128,7 +126,6 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
   const [step1Errors, setStep1Errors] = useState<{
     location?: string;
     pincode?: string;
-    projectAddress?: string;
   }>({});
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
 
@@ -160,15 +157,11 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((f) => ({ ...f, [key]: value }));
-    if (
-      step1ValidationAttempted &&
-      (key === 'location' || key === 'pincode' || key === 'projectAddress')
-    ) {
+    if (step1ValidationAttempted && (key === 'location' || key === 'pincode')) {
       setStep1Errors((errors) => {
         const next = { ...errors };
         if (key === 'location') delete next.location;
         if (key === 'pincode') delete next.pincode;
-        if (key === 'projectAddress') delete next.projectAddress;
         return next;
       });
     }
@@ -186,12 +179,6 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
       errors.pincode = pincodeError;
     }
 
-    if (form.projectAddress.trim().length < 4) {
-      errors.projectAddress = 'Enter the project address / location.';
-    } else if (hasContactInfo(form.projectAddress)) {
-      errors.projectAddress = 'Remove phone numbers or emails from the address.';
-    }
-
     if (Object.keys(errors).length > 0) {
       setStep1ValidationAttempted(true);
       setStep1Errors(errors);
@@ -207,7 +194,6 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
     if (!isCustomTrade) return null;
     return validateTradeDetailsInput({
       service: trade,
-      projectAddress: form.projectAddress,
       projectStartTimeType: form.projectStartTimeType,
       projectStartTimeSpecificDate: form.projectStartTimeSpecificDate,
       additionalRequirements: form.additionalRequirements,
@@ -280,8 +266,8 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
       return;
     }
 
-    if (hasContactInfo(form.additionalRequirements) || hasContactInfo(form.projectAddress)) {
-      setError('Remove contact details from the address or additional requirements before submitting.');
+    if (hasContactInfo(form.additionalRequirements)) {
+      setError('Remove contact details from additional requirements before submitting.');
       setLoading(false);
       return;
     }
@@ -341,7 +327,6 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
       pincode: form.pincode.trim() || undefined,
       bidding_minutes: parseInt(form.bidding_minutes, 10),
       service_type: trade,
-      description: form.projectAddress.trim() || undefined,
       ...(painterDetails ? { painter_details: painterDetails } : {}),
       ...(tradeDetails ? { trade_details: tradeDetails } : {}),
     });
@@ -427,15 +412,6 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                 value={form.pincode}
                 onChange={(e) => update('pincode', formatPincodeInput(e.target.value))}
                 error={step1ValidationAttempted ? step1Errors.pincode : undefined}
-              />
-
-              <Input
-                label="Project Address / Location"
-                type="text"
-                placeholder="e.g. House no. 12, Zoo Road Tiniali"
-                value={form.projectAddress}
-                onChange={(e) => update('projectAddress', e.target.value)}
-                error={step1ValidationAttempted ? step1Errors.projectAddress : undefined}
               />
 
               <div className="flex flex-col gap-1.5">
@@ -663,7 +639,6 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                   { label: 'Project Title', value: previewTitle },
                   { label: 'District', value: form.location },
                   { label: 'Pincode', value: form.pincode.trim() || 'Not specified' },
-                  { label: 'Project Address', value: form.projectAddress.trim() },
                   ...(isPainter
                     ? [
                         {
@@ -686,7 +661,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                         additionalRequirements: form.additionalRequirements.trim() || null,
                       })
                     : []),
-                  ...reviewTradeBlocks.filter((block) => block.label !== 'Project Address'),
+                  ...reviewTradeBlocks,
                   {
                     label: 'Bidding Window',
                     value:

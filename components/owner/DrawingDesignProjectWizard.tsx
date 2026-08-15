@@ -42,13 +42,11 @@ const PROGRESS_LABELS = ['Project Info', 'Work Requirements', 'Review & Launch']
 interface FormState {
   location: string;
   pincode: string;
-  projectAddress: string;
   bidding_minutes: string;
   package: DrawingDesignPackage | null;
   floorOption: DrawingFloorPlan | null;
   customFloors: string;
   plotDimensions: string;
-  plotArea: string;
   deliverables: DrawingDeliverable[];
   projectStartTimeType: ProjectStartTimeType | null;
   projectStartTimeSpecificDate: string;
@@ -58,13 +56,11 @@ interface FormState {
 const EMPTY_FORM: FormState = {
   location: '',
   pincode: '',
-  projectAddress: '',
   bidding_minutes: String(BIDDING_MINUTES),
   package: null,
   floorOption: null,
   customFloors: '',
   plotDimensions: '',
-  plotArea: '',
   deliverables: [],
   projectStartTimeType: null,
   projectStartTimeSpecificDate: '',
@@ -85,21 +81,16 @@ export function DrawingDesignProjectWizard() {
   const [step1Errors, setStep1Errors] = useState<{
     location?: string;
     pincode?: string;
-    projectAddress?: string;
   }>({});
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((f) => ({ ...f, [key]: value }));
-    if (
-      step1ValidationAttempted &&
-      (key === 'location' || key === 'pincode' || key === 'projectAddress')
-    ) {
+    if (step1ValidationAttempted && (key === 'location' || key === 'pincode')) {
       setStep1Errors((errors) => {
         const next = { ...errors };
         if (key === 'location') delete next.location;
         if (key === 'pincode') delete next.pincode;
-        if (key === 'projectAddress') delete next.projectAddress;
         return next;
       });
     }
@@ -111,9 +102,7 @@ export function DrawingDesignProjectWizard() {
       floorOption: form.floorOption,
       customFloors: form.customFloors,
       plotDimensions: form.plotDimensions,
-      plotArea: form.plotArea,
       deliverables: form.deliverables,
-      projectAddress: form.projectAddress,
       projectStartTimeType: form.projectStartTimeType,
       projectStartTimeSpecificDate: form.projectStartTimeSpecificDate,
       additionalRequirements: form.additionalRequirements,
@@ -127,11 +116,6 @@ export function DrawingDesignProjectWizard() {
     }
     const pincodeError = validatePincode(form.pincode);
     if (pincodeError) errors.pincode = pincodeError;
-    if (form.projectAddress.trim().length < 4) {
-      errors.projectAddress = 'Enter the project address / location.';
-    } else if (hasContactInfo(form.projectAddress)) {
-      errors.projectAddress = 'Remove phone numbers or emails from the address.';
-    }
 
     if (Object.keys(errors).length > 0) {
       setStep1ValidationAttempted(true);
@@ -169,8 +153,8 @@ export function DrawingDesignProjectWizard() {
       return;
     }
 
-    if (hasContactInfo(form.additionalRequirements) || hasContactInfo(form.projectAddress)) {
-      setError('Remove contact details from the address or additional requirements before submitting.');
+    if (hasContactInfo(form.additionalRequirements)) {
+      setError('Remove contact details from additional requirements before submitting.');
       setLoading(false);
       return;
     }
@@ -192,7 +176,6 @@ export function DrawingDesignProjectWizard() {
       building_types: buildingTypesFromDrawingFloors(validated.details.numberOfFloors),
       drawing_types: DRAWING_PACKAGE_TO_TYPES[validated.details.package],
       drawing_details: validated.details,
-      description: form.projectAddress.trim() || undefined,
     });
 
     if (result.error) {
@@ -283,14 +266,6 @@ export function DrawingDesignProjectWizard() {
                 onChange={(e) => update('pincode', formatPincodeInput(e.target.value))}
                 error={step1ValidationAttempted ? step1Errors.pincode : undefined}
               />
-              <Input
-                label="Project Address / Location"
-                type="text"
-                placeholder="e.g. House no. 12, Zoo Road Tiniali"
-                value={form.projectAddress}
-                onChange={(e) => update('projectAddress', e.target.value)}
-                error={step1ValidationAttempted ? step1Errors.projectAddress : undefined}
-              />
               <div className="flex flex-col gap-1.5">
                 <label className={WIZARD_SECTION_LABEL}>
                   Bidding Duration
@@ -365,25 +340,12 @@ export function DrawingDesignProjectWizard() {
               </div>
 
               <Input
-                label="Plot Dimensions"
+                label="Plot Dimensions (e.g. 30ft x 40ft)"
                 type="text"
                 placeholder="e.g. 30ft x 40ft"
                 value={form.plotDimensions}
                 onChange={(e) => {
                   update('plotDimensions', e.target.value);
-                  setStep2Error(null);
-                }}
-              />
-
-              <Input
-                label="Total Plot Area (Sq. Ft.)"
-                type="number"
-                inputMode="decimal"
-                min={1}
-                placeholder="e.g. 1200"
-                value={form.plotArea}
-                onChange={(e) => {
-                  update('plotArea', e.target.value);
                   setStep2Error(null);
                 }}
               />

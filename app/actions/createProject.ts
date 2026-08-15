@@ -185,7 +185,6 @@ export async function createProjectAction(
       return { error: 'Select a specific project start date.' }
     }
     insertPayload.drawing_details = drawing.drawing_details
-    insertPayload.plot_area_sqft = drawing.drawing_details.plotAreaSqft
   } else if (isTrade) {
     const trade = input as CreateTradeProjectInput
     insertPayload.track_type = trade.track_type

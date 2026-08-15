@@ -91,7 +91,7 @@ export type EarthworkMachine =
 // ─── Stored payloads ────────────────────────────────────────
 
 interface TradeDetailsBase {
-  projectAddress: string;
+  projectAddress?: string | null;
   projectStartTimeType: ProjectStartTimeType;
   projectStartTimeSpecificDate?: string | null;
   additionalRequirements?: string | null;
@@ -337,7 +337,7 @@ export function parseTradeDetails(value: unknown): TradeDetails | null {
   const v = value as Record<string, unknown>;
   const address = normalizeAddress(v.projectAddress);
   const start = parseStartFields(v);
-  if (!address || !start) return null;
+  if (!start) return null;
   const additional = normalizeAdditional(v.additionalRequirements);
 
   if (v.service === 'plumber') {
@@ -476,9 +476,10 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
   label: string;
   value: string;
 }[] {
-  const blocks: { label: string; value: string }[] = [
-    { label: 'Project Address', value: details.projectAddress },
-  ];
+  const blocks: { label: string; value: string }[] = [];
+  if (details.projectAddress) {
+    blocks.push({ label: 'Project Address', value: details.projectAddress });
+  }
 
   if (details.service === 'plumber') {
     blocks.push(
@@ -586,7 +587,6 @@ export function getTradeScopeLabel(details: TradeDetails): string {
 
 export interface TradeDetailsFormInput {
   service: TradeWorkService;
-  projectAddress: string;
   projectStartTimeType: ProjectStartTimeType | null;
   projectStartTimeSpecificDate: string;
   additionalRequirements: string;
@@ -616,11 +616,6 @@ export interface TradeDetailsFormInput {
 export function validateTradeDetailsInput(
   input: TradeDetailsFormInput,
 ): { error: string } | { details: TradeDetails } {
-  const address = input.projectAddress.trim();
-  if (address.length < 4) {
-    return { error: 'Enter the project address / location.' };
-  }
-
   const start = validateProjectStartTime({
     projectStartTimeType: input.projectStartTimeType,
     projectStartTimeSpecificDate: input.projectStartTimeSpecificDate,
@@ -629,7 +624,6 @@ export function validateTradeDetailsInput(
 
   const additional = input.additionalRequirements.trim() || null;
   const base = {
-    projectAddress: address,
     projectStartTimeType: start.type,
     projectStartTimeSpecificDate: start.specificDate,
     additionalRequirements: additional,

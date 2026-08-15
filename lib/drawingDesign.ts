@@ -18,20 +18,28 @@ export type DrawingDesignPackage =
   | '2d_floor_plan_only'
   | '3d_front_elevation'
   | 'structural_drawings'
+  | 'electrical_drawing'
+  | 'plumbing_drawing'
   | 'full_architectural'
   | 'municipal_approval';
 
 export type DrawingFloorPlan = 'G' | 'G+1' | 'G+2' | 'G+3' | 'G+4' | 'custom';
 
-export type DrawingDeliverable = 'pdf_soft_copy' | 'printed_blueprints' | '3d_rendering_images';
+export type DrawingDeliverable =
+  | 'pdf_soft_copy'
+  | 'printed_blueprints'
+  | '3d_rendering_images'
+  | 'autocad_dwg_revit';
 
 export interface DrawingDetails {
   package: DrawingDesignPackage;
   numberOfFloors: string;
   plotDimensions: string;
-  plotAreaSqft: number;
+  /** Legacy field — no longer collected on new submissions. */
+  plotAreaSqft?: number | null;
   deliverables: DrawingDeliverable[];
-  projectAddress: string;
+  /** Legacy field — no longer collected on new submissions. */
+  projectAddress?: string | null;
   projectStartTimeType: ProjectStartTimeType;
   projectStartTimeSpecificDate?: string | null;
   additionalRequirements?: string | null;
@@ -62,6 +70,18 @@ export const DRAWING_PACKAGE_OPTIONS: {
     description: 'Column, beam, footing and slab drawings',
   },
   {
+    value: 'electrical_drawing',
+    label: 'Electrical Drawing',
+    emoji: '⚡',
+    description: 'Wiring, points, DB and switchboard layout',
+  },
+  {
+    value: 'plumbing_drawing',
+    label: 'Plumbing Drawing',
+    emoji: '🔧',
+    description: 'Water supply, drainage and sanitary layout',
+  },
+  {
     value: 'full_architectural',
     label: 'Full Architectural Package (2D + 3D + Structural)',
     emoji: '🏠',
@@ -69,7 +89,7 @@ export const DRAWING_PACKAGE_OPTIONS: {
   },
   {
     value: 'municipal_approval',
-    label: 'Municipal/GMDA Approval Drawings',
+    label: 'Municipal / GMDA Approval Drawings',
     emoji: '📋',
     description: 'Drawings prepared for municipal / GMDA approval',
   },
@@ -88,12 +108,15 @@ export const DRAWING_DELIVERABLE_OPTIONS: { value: DrawingDeliverable; label: st
   { value: 'pdf_soft_copy', label: 'PDF Soft Copy' },
   { value: 'printed_blueprints', label: 'Printed Blueprints' },
   { value: '3d_rendering_images', label: '3D Rendering Images' },
+  { value: 'autocad_dwg_revit', label: 'AutoCAD DWG / Revit File (for organization purpose)' },
 ];
 
 export const DRAWING_PACKAGE_TO_TYPES: Record<DrawingDesignPackage, DrawingDesignType[]> = {
   '2d_floor_plan_only': ['2d_house_plan'],
   '3d_front_elevation': ['3d_front_elevation'],
   structural_drawings: ['structural_drawing'],
+  electrical_drawing: ['electrical_layout'],
+  plumbing_drawing: ['plumbing_layout'],
   full_architectural: ['2d_house_plan', '3d_house_plan', 'structural_drawing'],
   municipal_approval: ['2d_house_plan', 'structural_drawing'],
 };
@@ -163,9 +186,12 @@ export function parseDrawingDetails(value: unknown): DrawingDetails | null {
   const floors = normalizeDrawingFloorLabel(v.numberOfFloors);
   const dimensions = typeof v.plotDimensions === 'string' ? v.plotDimensions.trim() : '';
   const area = parsePositiveNumber(v.plotAreaSqft);
-  const address = typeof v.projectAddress === 'string' ? v.projectAddress.trim() : '';
+  const address =
+    typeof v.projectAddress === 'string' && v.projectAddress.trim().length >= 4
+      ? v.projectAddress.trim()
+      : null;
   const deliverables = parseDeliverables(v.deliverables);
-  if (!floors || dimensions.length < 2 || area == null || address.length < 4 || deliverables.length === 0) {
+  if (!floors || dimensions.length < 2 || deliverables.length === 0) {
     return null;
   }
   if (!isProjectStartTimeType(v.projectStartTimeType)) return null;
@@ -198,29 +224,34 @@ export function getDrawingWorkRequirementBlocks(details: DrawingDetails): {
   label: string;
   value: string;
 }[] {
-  const blocks: { label: string; value: string }[] = [
-    { label: 'Project Address', value: details.projectAddress },
+  const blocks: { label: string; value: string }[] = [];
+  if (details.projectAddress) {
+    blocks.push({ label: 'Project Address', value: details.projectAddress });
+  }
+  blocks.push(
     { label: 'Package', value: optionLabel(DRAWING_PACKAGE_OPTIONS, details.package) },
     { label: 'Number of Floors', value: details.numberOfFloors },
     { label: 'Plot Dimensions', value: details.plotDimensions },
-    {
+  );
+  if (details.plotAreaSqft != null) {
+    blocks.push({
       label: 'Total Plot Area',
       value: `${details.plotAreaSqft.toLocaleString('en-IN')} Sq. Ft.`,
-    },
-    {
-      label: 'Deliverables',
-      value: details.deliverables
-        .map((d) => optionLabel(DRAWING_DELIVERABLE_OPTIONS, d))
-        .join(', '),
-    },
-    {
-      label: 'Start Time',
-      value: formatProjectStartTime(
-        details.projectStartTimeType,
-        details.projectStartTimeSpecificDate,
-      ),
-    },
-  ];
+    });
+  }
+  blocks.push({
+    label: 'Deliverables',
+    value: details.deliverables
+      .map((d) => optionLabel(DRAWING_DELIVERABLE_OPTIONS, d))
+      .join(', '),
+  });
+  blocks.push({
+    label: 'Start Time',
+    value: formatProjectStartTime(
+      details.projectStartTimeType,
+      details.projectStartTimeSpecificDate,
+    ),
+  });
   if (details.additionalRequirements) {
     blocks.push({
       label: 'Additional Requirements',
@@ -235,9 +266,7 @@ export function validateDrawingDetailsInput(input: {
   floorOption: DrawingFloorPlan | null;
   customFloors: string;
   plotDimensions: string;
-  plotArea: string;
   deliverables: DrawingDeliverable[];
-  projectAddress: string;
   projectStartTimeType: ProjectStartTimeType | null;
   projectStartTimeSpecificDate: string;
   additionalRequirements: string;
@@ -259,17 +288,9 @@ export function validateDrawingDetailsInput(input: {
   if (dimensions.length < 2) {
     return { error: 'Enter plot dimensions (e.g. 30ft x 40ft).' };
   }
-  const area = parsePositiveNumber(input.plotArea);
-  if (area == null) {
-    return { error: 'Enter the total plot area in Sq. Ft.' };
-  }
   const deliverables = parseDeliverables(input.deliverables);
   if (deliverables.length === 0) {
     return { error: 'Select at least one deliverable.' };
-  }
-  const address = input.projectAddress.trim();
-  if (address.length < 4) {
-    return { error: 'Enter the project address / location.' };
   }
   const start = validateProjectStartTime({
     projectStartTimeType: input.projectStartTimeType,
@@ -282,9 +303,7 @@ export function validateDrawingDetailsInput(input: {
       package: input.package,
       numberOfFloors: floors,
       plotDimensions: dimensions,
-      plotAreaSqft: area,
       deliverables,
-      projectAddress: address,
       projectStartTimeType: start.type,
       projectStartTimeSpecificDate: start.specificDate,
       additionalRequirements: input.additionalRequirements.trim() || null,
