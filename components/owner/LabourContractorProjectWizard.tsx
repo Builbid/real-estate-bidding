@@ -306,7 +306,7 @@ export function LabourContractorProjectWizard() {
     form.floorWorkById,
   ]);
 
-  // Assam Type always uses full finished up to plastering on Work Requirements.
+  // Assam Type always uses full finishing upto plastering and roof work on Work Requirements.
   useEffect(() => {
     if (step !== 2) return;
     if (!form.buildingTypes.includes(ASSAM_BUILDING_TYPE)) return;
@@ -792,7 +792,7 @@ export function LabourContractorProjectWizard() {
                 <h2 className="text-base font-semibold text-foreground">Work Requirements</h2>
                 <p className="text-xs font-medium text-gray-700 dark:text-zinc-300 mt-1">
                   {form.buildingTypes.includes(ASSAM_BUILDING_TYPE)
-                    ? 'Assam Type — full finished up to plastering is included. Choose roof truss, roofing sheet, flooring, and foundation depth.'
+                    ? 'Assam Type — Full finishing upto Plastering and Roof work is included. Choose roof truss, roofing sheet, flooring, and foundation depth.'
                     : form.activityCategory === 'major'
                       ? 'Major activities — for each floor pick Full Finished or Frame (Slab) only.'
                       : 'Minor activities — for each floor you can select brick wall, plastering, and flooring together.'}
@@ -842,7 +842,7 @@ export function LabourContractorProjectWizard() {
                       <p className="text-sm font-semibold text-foreground">{title}</p>
                       <p className={HELPER_TEXT}>
                         {isAssam
-                          ? 'Full finished up to plastering is included. Select roof truss, roofing sheet, flooring, and foundation depth.'
+                          ? 'Full finishing upto Plastering and Roof work is included. Select roof truss, roofing sheet, flooring, and foundation depth.'
                           : activityCategory === 'major'
                             ? 'Select one major activity for this floor.'
                             : 'Select one or more minor works for this floor. Brick, plastering, and flooring can all be combined.'}
@@ -853,7 +853,7 @@ export function LabourContractorProjectWizard() {
                       <div className="space-y-3">
                         <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2.5">
                           <p className="text-xs font-semibold text-gray-900 dark:text-white">
-                            Full finished up to plastering
+                            Full finishing upto Plastering and Roof work
                           </p>
                           <p className={cn('mt-1', HELPER_TEXT)}>
                             {getMistriFullFinishedIncludes(fw.floorId)}

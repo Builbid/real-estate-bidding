@@ -533,7 +533,7 @@ export const MISTRI_ASSAM_FLOOR_WORK_OPTIONS: {
 }[] = [
   {
     value: 'full_finished',
-    label: 'Full finished up to plastering',
+    label: 'Full finishing upto Plastering and Roof work',
     category: 'major',
   },
 ];
@@ -1237,7 +1237,7 @@ export function visibleMistriFloorWorkTypes(
 
 export function getMistriFullFinishedIncludes(floorId: MistriFloorId): string {
   if (isAssamMistriFloor(floorId)) {
-    return 'Full finished Assam Type work up to plastering (foundation, frame, walls, and plaster).';
+    return 'Full finishing Assam Type work upto Plastering and Roof work (foundation, frame, walls, plaster, and roof).';
   }
   if (floorId === 'RCC Ground Floor') {
     return 'Includes Foundation work, column, beam, slab, brick work, plastering and rough flooring work.';
@@ -1304,7 +1304,7 @@ export function formatMistriFloorWorkTypes(
   const labels = workTypes.map((t) => {
     if (t === 'full_finished') {
       const base = isAssam
-        ? 'Full finished up to plastering'
+        ? 'Full finishing upto Plastering and Roof work'
         : 'Full Finished Structure';
       if (extras?.includeFineFlooring && extras.flooringMaterial) {
         const material = optionLabel(flooringOptions, extras.flooringMaterial);
@@ -2212,7 +2212,7 @@ export function validateMistriFloorWorkInput(input: {
     if (isAssamMistriFloor(fw.floorId)) {
       if (!fw.workTypes.includes('full_finished') || fw.workTypes.length !== 1) {
         return {
-          error: 'Assam Type is full finished up to plastering. Complete the Assam work requirements.',
+          error: 'Assam Type is Full finishing upto Plastering and Roof work. Complete the Assam work requirements.',
         };
       }
       if (!fw.assamRoofType || !ASSAM_ROOF_SET.has(fw.assamRoofType)) {
