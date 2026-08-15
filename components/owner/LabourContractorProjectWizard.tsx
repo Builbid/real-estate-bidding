@@ -45,6 +45,7 @@ import {
   parseCustomFloorNumber,
   resolveFutureFloorPlan,
   sortMistriFloorWork,
+  validateMajorMistriFloorSequence,
   validateMistriFloorWorkInput,
   visibleMistriFloorWorkTypes,
   floorWorkOptionsForCategory,
@@ -407,6 +408,21 @@ export function LabourContractorProjectWizard() {
       errors.customFloor = CUSTOM_FLOOR_NUMBER_INVALID_MESSAGE;
     }
 
+    if (
+      form.activityCategory === 'major' &&
+      !errors.floors &&
+      !errors.customFloor
+    ) {
+      const sequenceError = validateMajorMistriFloorSequence({
+        buildingTypes: form.buildingTypes,
+        customSelected: form.customFloorSelected,
+        customFloorNumber: form.customFloorNumber,
+      });
+      if (sequenceError) {
+        errors.floors = sequenceError;
+      }
+    }
+
     if (Object.keys(errors).length > 0) {
       setStep1ValidationAttempted(true);
       setStep1Errors(errors);
@@ -625,6 +641,7 @@ export function LabourContractorProjectWizard() {
                     customSelected={form.customFloorSelected}
                     customFloorNumber={form.customFloorNumber}
                     onCustomChange={setCustomFloor}
+                    enforceContiguousFloors={form.activityCategory === 'major'}
                     error={step1ValidationAttempted ? step1Errors.floors : null}
                     customError={step1ValidationAttempted ? step1Errors.customFloor : null}
                   />

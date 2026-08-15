@@ -512,6 +512,9 @@ export const CUSTOM_FLOOR_PLAN_INVALID_MESSAGE =
 export const FOUNDATION_CAPACITY_INVALID_MESSAGE =
   'Future foundation plan must be equal to or greater than current build floors.';
 
+export const MAJOR_FLOOR_SEQUENCE_INVALID_MESSAGE =
+  'For major activities, selected floors must be consecutive with no gaps. Ground + 3rd is invalid without 1st and 2nd. Selecting only 3rd + 4th is fine for an existing building.';
+
 const CIVIL_WORK_SET = new Set<string>(MISTRI_CIVIL_WORK_OPTIONS.map((o) => o.value));
 const CURRENT_FLOOR_OPTION_SET = new Set<string>(
   MISTRI_CURRENT_FLOOR_OPTIONS.map((o) => o.value),
@@ -946,6 +949,64 @@ export function mistriFloorUpperCount(
     return customFloorNumber ?? MIN_CUSTOM_RCC_FLOOR;
   }
   return RCC_FLOOR_UPPER[floorId] ?? 0;
+}
+
+/** Upper-storey indexes for selected RCC floors (Ground=0 … 4th=4, custom=N). Assam excluded. */
+export function collectMistriFloorUpperLevels(input: {
+  buildingTypes: readonly BuildingType[];
+  customSelected?: boolean;
+  customFloorNumber?: string | number | null;
+}): number[] {
+  const levels: number[] = [];
+  for (const type of input.buildingTypes) {
+    if (type === ASSAM_BUILDING_TYPE) continue;
+    const upper = RCC_FLOOR_UPPER[type];
+    if (typeof upper === 'number') levels.push(upper);
+  }
+  if (input.customSelected) {
+    const custom = parseCustomFloorNumber(input.customFloorNumber);
+    if (custom != null) levels.push(custom);
+  }
+  return [...new Set(levels)].sort((a, b) => a - b);
+}
+
+/** True when floors form one unbroken run (e.g. 3–4 OK; 0+3 not OK). */
+export function areMistriFloorUppersContiguous(levels: readonly number[]): boolean {
+  if (levels.length <= 1) return true;
+  const sorted = [...levels].sort((a, b) => a - b);
+  for (let i = 1; i < sorted.length; i++) {
+    if (sorted[i] !== sorted[i - 1] + 1) return false;
+  }
+  return true;
+}
+
+/**
+ * Whether toggling `nextLevel` on/off keeps a contiguous major-work selection.
+ * Empty → any single floor is allowed (existing-building start at 3rd, etc.).
+ */
+export function canToggleMistriFloorUpper(
+  currentLevels: readonly number[],
+  nextLevel: number,
+): boolean {
+  const set = new Set(currentLevels);
+  if (set.has(nextLevel)) {
+    set.delete(nextLevel);
+  } else {
+    set.add(nextLevel);
+  }
+  return areMistriFloorUppersContiguous([...set]);
+}
+
+export function validateMajorMistriFloorSequence(input: {
+  buildingTypes: readonly BuildingType[];
+  customSelected?: boolean;
+  customFloorNumber?: string | number | null;
+}): string | null {
+  const levels = collectMistriFloorUpperLevels(input);
+  if (!areMistriFloorUppersContiguous(levels)) {
+    return MAJOR_FLOOR_SEQUENCE_INVALID_MESSAGE;
+  }
+  return null;
 }
 
 export function highestSelectedFloorUpper(floorWork: readonly MistriFloorWork[]): number {
