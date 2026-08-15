@@ -37,7 +37,7 @@ export interface TradeWorkFormFields {
   pointEstimate: ElectricianPointEstimate | null;
   heavyAppliances: ElectricianHeavyAppliance[];
   concealedWiring: boolean | null;
-  carpenterScope: CarpenterScopeType | null;
+  carpenterScopes: CarpenterScopeType[];
   interiorScope: InteriorScopeType | null;
   targetSpaces: InteriorTargetSpace[];
   interiorArea: string;
@@ -153,11 +153,14 @@ export function TradeWorkRequirementsFields({
       )}
 
       {trade === 'carpenter' && (
-        <FieldGroup label="Scope Type">
+        <FieldGroup
+          label="Scope Type"
+          hint="(Bidding will be based on rate/sqft)"
+        >
           <OptionSelectGrid
             options={CARPENTER_SCOPE_OPTIONS}
-            value={form.carpenterScope}
-            onSelect={(v) => onChange('carpenterScope', v)}
+            values={form.carpenterScopes}
+            onToggle={(value) => onChange('carpenterScopes', toggleUnique(form.carpenterScopes, value))}
           />
         </FieldGroup>
       )}
@@ -254,14 +257,23 @@ export function TradeWorkRequirementsFields({
 
 function FieldGroup({
   label,
+  hint,
   children,
 }: {
   label: string;
+  hint?: string;
   children: React.ReactNode;
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label className={WIZARD_SECTION_LABEL}>{label}</label>
+      <label className={WIZARD_SECTION_LABEL}>
+        {label}
+        {hint ? (
+          <span className="ml-1.5 normal-case tracking-normal font-medium text-gray-600 dark:text-zinc-400">
+            {hint}
+          </span>
+        ) : null}
+      </label>
       {children}
     </div>
   );

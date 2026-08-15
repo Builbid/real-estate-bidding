@@ -74,6 +74,7 @@ export function isWideRequirementLabel(label: string): boolean {
     label === 'Project Address' ||
     label === 'Package' ||
     label === 'Packages' ||
+    label === 'Scope Type' ||
     label === 'Deliverables' ||
     label === 'Project Submission Time' ||
     label === 'Approximate Paint Area' ||

@@ -120,6 +120,9 @@ export interface ElectricianDetails extends TradeDetailsBase {
 
 export interface CarpenterDetails extends TradeDetailsBase {
   service: 'carpenter';
+  /** Selected carpentry scopes (one or more). */
+  scopeTypes: CarpenterScopeType[];
+  /** First selected scope — kept for older stored records and readers. */
   scopeType: CarpenterScopeType;
   /** Legacy fields — no longer collected on new carpenter submissions. */
   woodType?: CarpenterWoodType | null;
@@ -363,6 +366,25 @@ function parseSpaces(raw: unknown): InteriorTargetSpace[] {
   return next;
 }
 
+function parseCarpenterScopes(raw: unknown): CarpenterScopeType[] {
+  if (!Array.isArray(raw)) return [];
+  const next: CarpenterScopeType[] = [];
+  for (const item of raw) {
+    if (typeof item === 'string' && CARPENTER_SCOPE_SET.has(item as CarpenterScopeType)) {
+      const value = item as CarpenterScopeType;
+      if (!next.includes(value)) next.push(value);
+    }
+  }
+  return next;
+}
+
+export function formatCarpenterScopesSummary(
+  scopes: CarpenterScopeType[] | null | undefined,
+): string {
+  if (!scopes?.length) return 'No scope selected';
+  return scopes.map((value) => LEGACY_CARPENTER_SCOPE_LABELS[value] ?? value).join(', ');
+}
+
 export function isTradeDetails(value: unknown): value is TradeDetails {
   return parseTradeDetails(value) != null;
 }
@@ -435,12 +457,15 @@ export function parseTradeDetails(value: unknown): TradeDetails | null {
   }
 
   if (v.service === 'carpenter') {
+    let scopeTypes = parseCarpenterScopes(v.scopeTypes);
     if (
-      typeof v.scopeType !== 'string' ||
-      !CARPENTER_SCOPE_SET.has(v.scopeType as CarpenterScopeType)
+      scopeTypes.length === 0 &&
+      typeof v.scopeType === 'string' &&
+      CARPENTER_SCOPE_SET.has(v.scopeType as CarpenterScopeType)
     ) {
-      return null;
+      scopeTypes = [v.scopeType as CarpenterScopeType];
     }
+    if (scopeTypes.length === 0) return null;
     const woodType =
       typeof v.woodType === 'string' && CARPENTER_WOOD_SET.has(v.woodType as CarpenterWoodType)
         ? (v.woodType as CarpenterWoodType)
@@ -452,7 +477,8 @@ export function parseTradeDetails(value: unknown): TradeDetails | null {
       projectAddress: address,
       ...start,
       additionalRequirements: additional,
-      scopeType: v.scopeType as CarpenterScopeType,
+      scopeTypes,
+      scopeType: scopeTypes[0],
       woodType,
       approxAreaSqft: area,
       doorWindowCount: count,
@@ -565,7 +591,7 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
   } else if (details.service === 'carpenter') {
     blocks.push({
       label: 'Scope Type',
-      value: LEGACY_CARPENTER_SCOPE_LABELS[details.scopeType],
+      value: formatCarpenterScopesSummary(details.scopeTypes),
     });
   } else if (details.service === 'false_ceiling_work') {
     blocks.push(
@@ -619,7 +645,7 @@ export function getTradeScopeLabel(details: TradeDetails): string {
     return LEGACY_ELECTRICIAN_SCOPE_LABELS[details.scopeType];
   }
   if (details.service === 'carpenter') {
-    return LEGACY_CARPENTER_SCOPE_LABELS[details.scopeType];
+    return formatCarpenterScopesSummary(details.scopeTypes);
   }
   if (details.service === 'false_ceiling_work') {
     return optionLabel(INTERIOR_SCOPE_OPTIONS, details.scopeType);
@@ -641,7 +667,7 @@ export interface TradeDetailsFormInput {
   pointEstimate: ElectricianPointEstimate | null;
   heavyAppliances: ElectricianHeavyAppliance[];
   concealedWiring: boolean | null;
-  carpenterScope: CarpenterScopeType | null;
+  carpenterScopes: CarpenterScopeType[];
   interiorScope: InteriorScopeType | null;
   targetSpaces: InteriorTargetSpace[];
   interiorArea: string;
@@ -707,14 +733,18 @@ export function validateTradeDetailsInput(
   }
 
   if (input.service === 'carpenter') {
-    if (!input.carpenterScope || !SELECTABLE_CARPENTER_SCOPE_SET.has(input.carpenterScope)) {
-      return { error: 'Select a carpentry scope type.' };
+    const scopeTypes = parseCarpenterScopes(input.carpenterScopes).filter((value) =>
+      SELECTABLE_CARPENTER_SCOPE_SET.has(value),
+    );
+    if (scopeTypes.length === 0) {
+      return { error: 'Select at least one carpentry scope type.' };
     }
     return {
       details: {
         ...base,
         service: 'carpenter',
-        scopeType: input.carpenterScope,
+        scopeTypes,
+        scopeType: scopeTypes[0],
       },
     };
   }
