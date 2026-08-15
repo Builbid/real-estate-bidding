@@ -679,7 +679,7 @@ export function LabourContractorProjectWizard() {
                 <p className="text-xs font-medium text-gray-700 dark:text-zinc-300 mt-1">
                   {form.activityCategory === 'major'
                     ? 'Major activities — for each floor pick Full Finished or Frame (Slab) only.'
-                    : 'Minor activities — for each floor pick brick wall, plastering, and/or flooring.'}
+                    : 'Minor activities — for each floor you can select brick wall, plastering, and flooring together.'}
                 </p>
                 {form.activityCategory && (
                   <p className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 mt-1.5">
@@ -725,7 +725,7 @@ export function LabourContractorProjectWizard() {
                       <p className={HELPER_TEXT}>
                         {activityCategory === 'major'
                           ? 'Select one major activity for this floor.'
-                          : 'Select minor work for this floor. Brick and plastering can be combined; flooring is separate.'}
+                          : 'Select one or more minor works for this floor. Brick, plastering, and flooring can all be combined.'}
                       </p>
                     </div>
 

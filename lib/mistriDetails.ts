@@ -1062,7 +1062,7 @@ export function floorWorkOptionsForCategory(
 
 /**
  * Major: Full finished ↔ Frame (slab) are mutually exclusive (single select).
- * Minor: flooring is exclusive; brick + plastering may be combined.
+ * Minor: brick, plastering, and flooring may all be combined (multi-select).
  */
 export function applyMistriFloorWorkSelection(
   current: readonly MistriFloorWorkType[],
@@ -1074,14 +1074,11 @@ export function applyMistriFloorWorkSelection(
   if (next === 'full_finished' || next === 'frame_skeleton') {
     return [next];
   }
-  if (next === 'flooring') {
-    return ['flooring'];
-  }
-  if (next === 'brick_aac') {
-    return [...current.filter((t) => t === 'plastering'), 'brick_aac'];
-  }
-  if (next === 'plastering') {
-    return [...current.filter((t) => t === 'brick_aac'), 'plastering'];
+  if (next === 'brick_aac' || next === 'plastering' || next === 'flooring') {
+    const minor = current.filter(
+      (t) => t === 'brick_aac' || t === 'plastering' || t === 'flooring',
+    );
+    return [...minor, next];
   }
   return [next];
 }
@@ -1255,8 +1252,9 @@ function normalizeSingleFloorWork(raw: unknown): MistriFloorWork | null {
   const exclusiveCount = [
     workTypes.includes('full_finished'),
     workTypes.includes('frame_skeleton'),
-    workTypes.includes('flooring'),
-    workTypes.includes('brick_aac') || workTypes.includes('plastering'),
+    workTypes.includes('brick_aac') ||
+      workTypes.includes('plastering') ||
+      workTypes.includes('flooring'),
   ].filter(Boolean).length;
   if (exclusiveCount > 1) return null;
 
