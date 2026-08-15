@@ -466,7 +466,7 @@ export const MISTRI_ACTIVITY_CATEGORY_OPTIONS: {
     value: 'major',
     label: 'Major activities',
     description: '1. Full Finished Structure  ·  2. Frame (Slab) only',
-    note: 'Structural work such as foundation, frame, and slab — the load-bearing core of the building.',
+    note: 'Full Finished Structure includes: foundation for ground floor, column, beam, slab, Brick/AAC wall, plastering, rough flooring, staircase, etc. Frame (Slab) only is structure without wall finishing.',
   },
   {
     value: 'minor',
@@ -1240,9 +1240,9 @@ export function getMistriFullFinishedIncludes(floorId: MistriFloorId): string {
     return 'Full finishing Assam Type work upto Plastering and Roof work (foundation, frame, walls, plaster, and roof).';
   }
   if (floorId === 'RCC Ground Floor') {
-    return 'Includes Foundation work, column, beam, slab, brick work, plastering and rough flooring work.';
+    return 'Includes: foundation for ground floor, column, beam, slab, Brick/AAC wall, plastering, rough flooring, staircase, etc.';
   }
-  return 'Includes column, beam, slab, brick work, plastering and rough flooring work.';
+  return 'Includes: column, beam, slab, Brick/AAC wall, plastering, rough flooring, staircase, etc.';
 }
 
 export function getMistriFrameSkeletonIncludes(floorId: MistriFloorId): string {
