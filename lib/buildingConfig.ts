@@ -24,13 +24,26 @@ export const BUILDING_TYPE_ORDER: BuildingType[] = [...BUILDING_TYPE_OPTIONS];
 export const CONSTRUCTION_TYPE_GROUND = 'Foundation + Column + Slab Casting' as const;
 export const CONSTRUCTION_TYPE_UPPER = 'Column + Slab Casting' as const;
 export const CONSTRUCTION_TYPE_FULL = 'Full Finishing' as const;
+export const CONSTRUCTION_TYPE_BRICK = 'Brick / AAC Wall' as const;
+export const CONSTRUCTION_TYPE_PLASTER = 'Plastering Work' as const;
+export const CONSTRUCTION_TYPE_FLOORING = 'Flooring Work' as const;
 
 export type ConstructionTypeValue =
   | typeof CONSTRUCTION_TYPE_GROUND
   | typeof CONSTRUCTION_TYPE_UPPER
-  | typeof CONSTRUCTION_TYPE_FULL;
+  | typeof CONSTRUCTION_TYPE_FULL
+  | typeof CONSTRUCTION_TYPE_BRICK
+  | typeof CONSTRUCTION_TYPE_PLASTER
+  | typeof CONSTRUCTION_TYPE_FLOORING;
 
 export type ConstructionTypesMap = Partial<Record<BuildingType, ConstructionTypeValue>>;
+
+export interface LabourConstructionOption {
+  value: ConstructionTypeValue;
+  title: string;
+  description: string;
+  kind: 'structural' | 'finishing';
+}
 
 export function isAssamBuildingType(type: BuildingType): boolean {
   return type === ASSAM_BUILDING_TYPE;
@@ -40,25 +53,170 @@ export function includesFoundation(type: BuildingType): boolean {
   return type === ASSAM_BUILDING_TYPE || type === 'RCC Ground Floor';
 }
 
+export function isSkeletonConstructionType(value: ConstructionTypeValue): boolean {
+  return value === CONSTRUCTION_TYPE_GROUND || value === CONSTRUCTION_TYPE_UPPER;
+}
+
+export function isStructuralConstructionType(value: ConstructionTypeValue): boolean {
+  return isSkeletonConstructionType(value) || value === CONSTRUCTION_TYPE_FULL;
+}
+
+export function isFinishingOnlyConstructionType(value: ConstructionTypeValue): boolean {
+  return (
+    value === CONSTRUCTION_TYPE_BRICK ||
+    value === CONSTRUCTION_TYPE_PLASTER ||
+    value === CONSTRUCTION_TYPE_FLOORING
+  );
+}
+
+export function getSkeletonOptionValue(type: BuildingType): ConstructionTypeValue {
+  return includesFoundation(type) ? CONSTRUCTION_TYPE_GROUND : CONSTRUCTION_TYPE_UPPER;
+}
+
+export function getSkeletonSubLabel(type: BuildingType): string {
+  return includesFoundation(type) ? 'Foundation + Column + Slab' : 'Column + Slab only';
+}
+
+/** All labour Construction Scope radios for a floor (availability not applied). */
+export function getLabourConstructionOptions(buildingType: BuildingType): LabourConstructionOption[] {
+  const skeleton = getSkeletonOptionValue(buildingType);
+  return [
+    {
+      value: CONSTRUCTION_TYPE_FULL,
+      title: 'Full Finished Structure',
+      description:
+        'Includes column, beam, slab, brick work, plastering and rough flooring work.',
+      kind: 'structural',
+    },
+    {
+      value: skeleton,
+      title: 'Frame (Skeleton) only',
+      description: includesFoundation(buildingType)
+        ? 'Foundation, columns, beams and slab casting only — no walls or finishing.'
+        : 'Columns, beams and slab casting only — no walls or finishing.',
+      kind: 'structural',
+    },
+    {
+      value: CONSTRUCTION_TYPE_BRICK,
+      title: 'Brick / AAC wall',
+      description: 'Wall construction only. Floor skeleton must already be complete.',
+      kind: 'finishing',
+    },
+    {
+      value: CONSTRUCTION_TYPE_PLASTER,
+      title: 'Plastering work',
+      description: 'Internal and external plastering. Walls should already be built.',
+      kind: 'finishing',
+    },
+    {
+      value: CONSTRUCTION_TYPE_FLOORING,
+      title: 'Flooring work (Tile / Marble / Granite)',
+      description: 'Floor finishing only. Structure and walls should already be ready.',
+      kind: 'finishing',
+    },
+  ];
+}
+
+/**
+ * Finishing-only work on floor F is blocked when any lower selected floor has
+ * structural scope (Full Finished or Skeleton) — that lower storey is being built now,
+ * so F's frame does not exist yet.
+ */
+export function getFinishingBlockReason(
+  buildingType: BuildingType,
+  buildingTypes: BuildingType[],
+  constructionTypes: ConstructionTypesMap,
+): string | null {
+  const ordered = sortBuildingTypes(buildingTypes);
+  const index = ordered.indexOf(buildingType);
+  if (index <= 0) return null;
+
+  for (let i = 0; i < index; i++) {
+    const lower = ordered[i];
+    const lowerScope = constructionTypes[lower];
+    if (lowerScope && isStructuralConstructionType(lowerScope)) {
+      return (
+        `${getFloorDisplayName(buildingType)} frame isn't built yet while ` +
+        `${getFloorDisplayName(lower)} is under structural work.`
+      );
+    }
+  }
+  return null;
+}
+
+export function getAvailableLabourConstructionOptions(
+  buildingType: BuildingType,
+  buildingTypes: BuildingType[],
+  constructionTypes: ConstructionTypesMap,
+): Array<LabourConstructionOption & { disabled: boolean; disabledReason: string | null }> {
+  const blockReason = getFinishingBlockReason(buildingType, buildingTypes, constructionTypes);
+  return getLabourConstructionOptions(buildingType).map((opt) => {
+    const disabled = opt.kind === 'finishing' && !!blockReason;
+    return {
+      ...opt,
+      disabled,
+      disabledReason: disabled ? blockReason : null,
+    };
+  });
+}
+
+/** Clear finishing-only picks that violate lower-floor structural dependency. */
+export function pruneInvalidConstructionTypes(
+  buildingTypes: BuildingType[],
+  constructionTypes: ConstructionTypesMap,
+): { next: ConstructionTypesMap; cleared: BuildingType[] } {
+  const ordered = sortBuildingTypes(buildingTypes);
+  const next: ConstructionTypesMap = {};
+  const cleared: BuildingType[] = [];
+
+  for (const type of ordered) {
+    const scope = constructionTypes[type];
+    if (!scope) continue;
+    if (
+      isFinishingOnlyConstructionType(scope) &&
+      getFinishingBlockReason(type, buildingTypes, constructionTypes)
+    ) {
+      cleared.push(type);
+      continue;
+    }
+    next[type] = scope;
+  }
+
+  return { next, cleared };
+}
+
+export function validateLabourConstructionDependencies(
+  buildingTypes: BuildingType[],
+  constructionTypes: ConstructionTypesMap,
+): string | null {
+  const ordered = sortBuildingTypes(buildingTypes);
+  for (const type of ordered) {
+    const scope = constructionTypes[type];
+    if (!scope) continue;
+    if (!isFinishingOnlyConstructionType(scope)) continue;
+    const reason = getFinishingBlockReason(type, buildingTypes, constructionTypes);
+    if (reason) return reason;
+  }
+  return null;
+}
+
 export function getConstructionOptionsForBuildingType(
   type: BuildingType,
 ): { value: ConstructionTypeValue; emoji: string }[] {
-  if (includesFoundation(type)) {
-    return [
-      { value: CONSTRUCTION_TYPE_GROUND, emoji: '🏗️' },
-      { value: CONSTRUCTION_TYPE_FULL, emoji: '🏠' },
-    ];
-  }
-  return [
-    { value: CONSTRUCTION_TYPE_UPPER, emoji: '🏗️' },
-    { value: CONSTRUCTION_TYPE_FULL, emoji: '🏠' },
-  ];
+  return getLabourConstructionOptions(type).map((opt) => ({
+    value: opt.value,
+    emoji: getConstructionDisplayEmoji(opt.value),
+  }));
 }
 
 export function getIncludedSteps(
   buildingType: BuildingType,
   constructionType: ConstructionTypeValue,
 ): { label: string; included: boolean }[] {
+  if (isFinishingOnlyConstructionType(constructionType)) {
+    return getFinishingOnlyIncludedSteps(constructionType);
+  }
+
   const isFull = constructionType === CONSTRUCTION_TYPE_FULL;
   const steps: { label: string; included: boolean }[] = [];
 
@@ -87,6 +245,31 @@ export function getIncludedSteps(
   return steps;
 }
 
+function getFinishingOnlyIncludedSteps(
+  constructionType: ConstructionTypeValue,
+): { label: string; included: boolean }[] {
+  if (constructionType === CONSTRUCTION_TYPE_BRICK) {
+    return [
+      { label: 'Brick / AAC wall construction', included: true },
+      { label: 'Frame / skeleton (already complete — not in this bid)', included: false },
+      { label: 'Plastering (not included)', included: false },
+      { label: 'Flooring (not included)', included: false },
+    ];
+  }
+  if (constructionType === CONSTRUCTION_TYPE_PLASTER) {
+    return [
+      { label: 'Internal & external plastering', included: true },
+      { label: 'Brick walls (already built — not in this bid)', included: false },
+      { label: 'Flooring (not included)', included: false },
+    ];
+  }
+  return [
+    { label: 'Tile / marble / granite flooring', included: true },
+    { label: 'Structure & walls (already ready — not in this bid)', included: false },
+    { label: 'Plastering (not included)', included: false },
+  ];
+}
+
 export function sortBuildingTypes(types: BuildingType[]): BuildingType[] {
   const set = new Set(types);
   return BUILDING_TYPE_ORDER.filter((t) => set.has(t));
@@ -99,7 +282,8 @@ export function formatBuildingTypesSummary(types: BuildingType[]): string {
 const LEGACY_FLOOR_KEYS = ['ground', 'first', 'second'] as const;
 
 function toLegacyStage(value: ConstructionTypeValue): 'structural' | 'full' {
-  return value === CONSTRUCTION_TYPE_FULL ? 'full' : 'structural';
+  // Skeleton → structural; Full + finishing-only packages → full (bid matrix)
+  return isSkeletonConstructionType(value) ? 'structural' : 'full';
 }
 
 /** Map up to 3 RCC floors → legacy bid floor keys (bidding unchanged). */
@@ -157,8 +341,9 @@ export function deriveLegacyProjectFields(
 } {
   if (buildingTypes.includes(ASSAM_BUILDING_TYPE)) {
     const ct = constructionTypes[ASSAM_BUILDING_TYPE] ?? CONSTRUCTION_TYPE_GROUND;
-    const assam_config: AssamConfig =
-      ct === CONSTRUCTION_TYPE_FULL ? 'full_finishing' : 'frame_to_roof';
+    const assam_config: AssamConfig = isSkeletonConstructionType(ct)
+      ? 'frame_to_roof'
+      : 'full_finishing';
     return {
       track_type: 'AssamType',
       sub_configuration: {
@@ -257,33 +442,45 @@ export function getFloorHint(type: BuildingType, allSelected: BuildingType[]): s
   return 'Built above lower floors';
 }
 
-export function isSkeletonConstructionType(value: ConstructionTypeValue): boolean {
-  return value === CONSTRUCTION_TYPE_GROUND || value === CONSTRUCTION_TYPE_UPPER;
-}
-
 export function getConstructionDisplayShortLabel(value: ConstructionTypeValue): string {
-  return isSkeletonConstructionType(value) ? 'Skeleton Only' : 'Full Finishing';
+  switch (value) {
+    case CONSTRUCTION_TYPE_FULL:
+      return 'Full Finished Structure';
+    case CONSTRUCTION_TYPE_BRICK:
+      return 'Brick / AAC Wall';
+    case CONSTRUCTION_TYPE_PLASTER:
+      return 'Plastering Work';
+    case CONSTRUCTION_TYPE_FLOORING:
+      return 'Flooring Work';
+    default:
+      return isSkeletonConstructionType(value) ? 'Frame (Skeleton) only' : value;
+  }
 }
 
 export function getConstructionDisplayEmoji(value: ConstructionTypeValue): string {
-  return isSkeletonConstructionType(value) ? '🏗' : '🏡';
-}
-
-export function getSkeletonSubLabel(type: BuildingType): string {
-  return includesFoundation(type) ? 'Foundation + Column + Slab' : 'Column + Slab only';
-}
-
-export function getSkeletonOptionValue(type: BuildingType): ConstructionTypeValue {
-  return includesFoundation(type) ? CONSTRUCTION_TYPE_GROUND : CONSTRUCTION_TYPE_UPPER;
+  if (isSkeletonConstructionType(value)) return '🏗';
+  if (value === CONSTRUCTION_TYPE_FULL) return '🏡';
+  if (value === CONSTRUCTION_TYPE_BRICK) return '🧱';
+  if (value === CONSTRUCTION_TYPE_PLASTER) return '🎨';
+  if (value === CONSTRUCTION_TYPE_FLOORING) return '🪨';
+  return '🏗️';
 }
 
 export function getConstructionTooltipSteps(
   buildingType: BuildingType,
-  kind: 'skeleton' | 'full',
+  kind: 'skeleton' | 'full' | ConstructionTypeValue,
   serviceType: 'labour_contractor' | 'construction_firm' = 'labour_contractor',
 ): { label: string; included: boolean }[] {
+  if (
+    kind === CONSTRUCTION_TYPE_BRICK ||
+    kind === CONSTRUCTION_TYPE_PLASTER ||
+    kind === CONSTRUCTION_TYPE_FLOORING
+  ) {
+    return getFinishingOnlyIncludedSteps(kind);
+  }
+
   const withFoundation = includesFoundation(buildingType);
-  const isFull = kind === 'full';
+  const isFull = kind === 'full' || kind === CONSTRUCTION_TYPE_FULL;
 
   const steps: { label: string; included: boolean }[] = [];
 

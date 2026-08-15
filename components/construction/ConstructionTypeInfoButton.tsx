@@ -3,6 +3,7 @@
 import { Info } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
+  getConstructionDisplayShortLabel,
   getIncludedSteps,
   type BuildingType,
   type ConstructionTypeValue,
@@ -39,7 +40,9 @@ export function ConstructionTypeInfoButton({
         </button>
       </PopoverTrigger>
       <PopoverContent side="top" align="start" className="text-xs max-w-xs">
-        <p className="font-semibold text-foreground mb-2">What&apos;s included?</p>
+        <p className="font-semibold text-foreground mb-2">
+          {getConstructionDisplayShortLabel(constructionType)}
+        </p>
         <ul className="space-y-1">
           {steps.map((step) => (
             <li
