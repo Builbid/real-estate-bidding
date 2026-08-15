@@ -72,6 +72,7 @@ export function isWideRequirementLabel(label: string): boolean {
     label === 'Additional Notes' ||
     label === 'Civil Work Type' ||
     label === 'Project Address' ||
+    label === 'Village / Town Name' ||
     label === 'Package' ||
     label === 'Packages' ||
     label === 'Scope Type' ||

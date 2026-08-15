@@ -6,7 +6,7 @@ import { StartTimeAndNotes, WIZARD_SECTION_LABEL } from '@/components/owner/wiza
 import { StepperInput } from '@/components/owner/wizard/StepperInput';
 import {
   CARPENTER_SCOPE_OPTIONS,
-  EARTHWORK_MACHINE_OPTIONS,
+  EARTHWORK_SOIL_VEHICLE_OPTIONS,
   EARTHWORK_TYPE_OPTIONS,
   ELECTRICIAN_APPLIANCE_OPTIONS,
   ELECTRICIAN_POINT_OPTIONS,
@@ -43,8 +43,6 @@ export interface TradeWorkFormFields {
   interiorArea: string;
   earthworkType: EarthworkType | null;
   machineRequirement: EarthworkMachine | null;
-  estimatedDepth: string;
-  approxVolume: string;
   projectStartTimeType: ProjectStartTimeType | null;
   projectStartTimeSpecificDate: string;
   additionalRequirements: string;
@@ -210,33 +208,32 @@ export function TradeWorkRequirementsFields({
             <OptionSelectGrid
               options={EARTHWORK_TYPE_OPTIONS}
               value={form.earthworkType}
-              onSelect={(v) => onChange('earthworkType', v)}
+              onSelect={(v) => {
+                onChange('earthworkType', v);
+                if (v === 'soil_filling') {
+                  if (form.machineRequirement !== 'tractor' && form.machineRequirement !== 'dumper') {
+                    onChange('machineRequirement', null);
+                  }
+                } else {
+                  onChange('machineRequirement', 'jcb_excavator');
+                }
+              }}
             />
           </FieldGroup>
-          <FieldGroup label="Machine Requirement">
-            <OptionSelectGrid
-              options={EARTHWORK_MACHINE_OPTIONS}
-              value={form.machineRequirement}
-              onSelect={(v) => onChange('machineRequirement', v)}
-            />
-          </FieldGroup>
-          <Input
-            label="Estimated Depth (Ft.)"
-            type="number"
-            inputMode="decimal"
-            min={0.5}
-            step="0.5"
-            placeholder="e.g. 6"
-            value={form.estimatedDepth}
-            onChange={(e) => onChange('estimatedDepth', e.target.value)}
-          />
-          <Input
-            label="Approximate Area / Volume (Cu. Ft. / Sq. Ft.)"
-            type="text"
-            placeholder="e.g. 1200 Sq. Ft. or 800 Cu. Ft."
-            value={form.approxVolume}
-            onChange={(e) => onChange('approxVolume', e.target.value)}
-          />
+          {form.earthworkType === 'soil_filling' && (
+            <FieldGroup label="Vehicle Type for Soil Filling">
+              <OptionSelectGrid
+                options={EARTHWORK_SOIL_VEHICLE_OPTIONS}
+                value={
+                  form.machineRequirement === 'tractor' || form.machineRequirement === 'dumper'
+                    ? form.machineRequirement
+                    : null
+                }
+                onSelect={(v) => onChange('machineRequirement', v)}
+                columns={2}
+              />
+            </FieldGroup>
+          )}
         </>
       )}
 

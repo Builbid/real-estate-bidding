@@ -86,12 +86,17 @@ export type EarthworkType =
 export type EarthworkMachine =
   | 'jcb_excavator'
   | 'tractor_dumper'
-  | 'manual_labour';
+  | 'manual_labour'
+  | 'tractor'
+  | 'dumper';
+
+export type EarthworkSoilVehicle = 'tractor' | 'dumper';
 
 // ─── Stored payloads ────────────────────────────────────────
 
 interface TradeDetailsBase {
   projectAddress?: string | null;
+  villageTownName?: string | null;
   projectStartTimeType: ProjectStartTimeType;
   projectStartTimeSpecificDate?: string | null;
   additionalRequirements?: string | null;
@@ -141,8 +146,10 @@ export interface EarthworkDetails extends TradeDetailsBase {
   service: 'earthwork';
   workType: EarthworkType;
   machineRequirement: EarthworkMachine;
-  estimatedDepthFt: number;
-  approxVolume: string;
+  /** Legacy field — no longer collected on new earthwork submissions. */
+  estimatedDepthFt?: number | null;
+  /** Legacy field — no longer collected on new earthwork submissions. */
+  approxVolume?: string | null;
 }
 
 export type TradeDetails =
@@ -240,17 +247,44 @@ export const INTERIOR_SPACE_OPTIONS: { value: InteriorTargetSpace; label: string
   { value: 'full_house', label: 'Full House' },
 ];
 
-export const EARTHWORK_TYPE_OPTIONS: { value: EarthworkType; label: string }[] = [
-  { value: 'site_clearing', label: 'Site Clearing & Levelling' },
-  { value: 'foundation_excavation', label: 'Foundation Excavation' },
-  { value: 'pond_digging', label: 'Pond / Water Body Digging' },
-  { value: 'soil_filling', label: 'Soil Filling / Backfilling' },
+export const EARTHWORK_TYPE_OPTIONS: {
+  value: EarthworkType;
+  label: string;
+  description?: string;
+}[] = [
+  {
+    value: 'foundation_excavation',
+    label: 'Foundation Excavation (using JCB)',
+    description: '(Bidding will be based on rate per hour)',
+  },
+  {
+    value: 'soil_filling',
+    label: 'Soil Filling / Backfilling',
+    description: '(Bidding will be based on per trip basis)',
+  },
 ];
+
+const LEGACY_EARTHWORK_TYPE_LABELS: Record<EarthworkType, string> = {
+  site_clearing: 'Site Clearing & Levelling',
+  foundation_excavation: 'Foundation Excavation (using JCB)',
+  pond_digging: 'Pond / Water Body Digging',
+  soil_filling: 'Soil Filling / Backfilling',
+};
 
 export const EARTHWORK_MACHINE_OPTIONS: { value: EarthworkMachine; label: string }[] = [
   { value: 'jcb_excavator', label: 'JCB / Excavator Required' },
   { value: 'tractor_dumper', label: 'Tractor / Dumper Required' },
   { value: 'manual_labour', label: 'Manual Labour Only' },
+  { value: 'tractor', label: 'Tractor' },
+  { value: 'dumper', label: 'Dumper' },
+];
+
+export const EARTHWORK_SOIL_VEHICLE_OPTIONS: {
+  value: EarthworkSoilVehicle;
+  label: string;
+}[] = [
+  { value: 'tractor', label: 'Tractor' },
+  { value: 'dumper', label: 'Dumper' },
 ];
 
 const PLUMBER_SCOPE_SET = new Set<PlumberScopeType>([
@@ -281,8 +315,15 @@ const SELECTABLE_CARPENTER_SCOPE_SET = new Set(CARPENTER_SCOPE_OPTIONS.map((o) =
 const CARPENTER_WOOD_SET = new Set(CARPENTER_WOOD_OPTIONS.map((o) => o.value));
 const INTERIOR_SCOPE_SET = new Set(INTERIOR_SCOPE_OPTIONS.map((o) => o.value));
 const INTERIOR_SPACE_SET = new Set(INTERIOR_SPACE_OPTIONS.map((o) => o.value));
-const EARTHWORK_TYPE_SET = new Set(EARTHWORK_TYPE_OPTIONS.map((o) => o.value));
+const EARTHWORK_TYPE_SET = new Set<EarthworkType>([
+  'site_clearing',
+  'foundation_excavation',
+  'pond_digging',
+  'soil_filling',
+]);
+const SELECTABLE_EARTHWORK_TYPE_SET = new Set(EARTHWORK_TYPE_OPTIONS.map((o) => o.value));
 const EARTHWORK_MACHINE_SET = new Set(EARTHWORK_MACHINE_OPTIONS.map((o) => o.value));
+const EARTHWORK_SOIL_VEHICLE_SET = new Set(EARTHWORK_SOIL_VEHICLE_OPTIONS.map((o) => o.value));
 
 function optionLabel<T extends string>(
   options: { value: T; label: string }[],
@@ -315,6 +356,20 @@ function normalizeAddress(raw: unknown): string | null {
   if (typeof raw !== 'string') return null;
   const trimmed = raw.trim();
   return trimmed.length >= 4 ? trimmed : null;
+}
+
+function normalizeVillageTownName(raw: unknown): string | null {
+  if (typeof raw !== 'string') return null;
+  const trimmed = raw.trim();
+  return trimmed.length >= 2 ? trimmed : null;
+}
+
+function earthworkTypeLabel(type: EarthworkType): string {
+  return (
+    EARTHWORK_TYPE_OPTIONS.find((option) => option.value === type)?.label ??
+    LEGACY_EARTHWORK_TYPE_LABELS[type] ??
+    type
+  );
 }
 
 function normalizeAdditional(raw: unknown): string | null {
@@ -393,6 +448,7 @@ export function parseTradeDetails(value: unknown): TradeDetails | null {
   if (!value || typeof value !== 'object') return null;
   const v = value as Record<string, unknown>;
   const address = normalizeAddress(v.projectAddress);
+  const villageTownName = normalizeVillageTownName(v.villageTownName);
   const start = parseStartFields(v);
   if (!start) return null;
   const additional = normalizeAdditional(v.additionalRequirements);
@@ -417,6 +473,7 @@ export function parseTradeDetails(value: unknown): TradeDetails | null {
     return {
       service: 'plumber',
       projectAddress: address,
+      villageTownName,
       ...start,
       additionalRequirements: additional,
       scopeType: v.scopeType as PlumberScopeType,
@@ -446,6 +503,7 @@ export function parseTradeDetails(value: unknown): TradeDetails | null {
     return {
       service: 'electrician',
       projectAddress: address,
+      villageTownName,
       ...start,
       additionalRequirements: additional,
       scopeType: v.scopeType as ElectricianScopeType,
@@ -475,6 +533,7 @@ export function parseTradeDetails(value: unknown): TradeDetails | null {
     return {
       service: 'carpenter',
       projectAddress: address,
+      villageTownName,
       ...start,
       additionalRequirements: additional,
       scopeTypes,
@@ -498,6 +557,7 @@ export function parseTradeDetails(value: unknown): TradeDetails | null {
     return {
       service: 'false_ceiling_work',
       projectAddress: address,
+      villageTownName,
       ...start,
       additionalRequirements: additional,
       scopeType: v.scopeType as InteriorScopeType,
@@ -509,25 +569,36 @@ export function parseTradeDetails(value: unknown): TradeDetails | null {
   if (v.service === 'earthwork') {
     if (
       typeof v.workType !== 'string' ||
-      !EARTHWORK_TYPE_SET.has(v.workType as EarthworkType) ||
-      typeof v.machineRequirement !== 'string' ||
-      !EARTHWORK_MACHINE_SET.has(v.machineRequirement as EarthworkMachine) ||
-      typeof v.approxVolume !== 'string' ||
-      !v.approxVolume.trim()
+      !EARTHWORK_TYPE_SET.has(v.workType as EarthworkType)
     ) {
       return null;
     }
+    const workType = v.workType as EarthworkType;
+    let machine: EarthworkMachine | null = null;
+    if (
+      typeof v.machineRequirement === 'string' &&
+      EARTHWORK_MACHINE_SET.has(v.machineRequirement as EarthworkMachine)
+    ) {
+      machine = v.machineRequirement as EarthworkMachine;
+    } else if (workType === 'foundation_excavation') {
+      machine = 'jcb_excavator';
+    }
+    if (!machine) return null;
     const depth = parsePositiveNumber(v.estimatedDepthFt);
-    if (depth == null) return null;
+    const volume =
+      typeof v.approxVolume === 'string' && v.approxVolume.trim()
+        ? v.approxVolume.trim()
+        : null;
     return {
       service: 'earthwork',
       projectAddress: address,
+      villageTownName,
       ...start,
       additionalRequirements: additional,
-      workType: v.workType as EarthworkType,
-      machineRequirement: v.machineRequirement as EarthworkMachine,
+      workType,
+      machineRequirement: machine,
       estimatedDepthFt: depth,
-      approxVolume: v.approxVolume.trim(),
+      approxVolume: volume,
     };
   }
 
@@ -549,6 +620,9 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
   const blocks: { label: string; value: string }[] = [];
   if (details.projectAddress) {
     blocks.push({ label: 'Project Address', value: details.projectAddress });
+  }
+  if (details.villageTownName) {
+    blocks.push({ label: 'Village / Town Name', value: details.villageTownName });
   }
 
   if (details.service === 'plumber') {
@@ -608,15 +682,29 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
       },
     );
   } else {
-    blocks.push(
-      { label: 'Work Type', value: optionLabel(EARTHWORK_TYPE_OPTIONS, details.workType) },
-      {
+    blocks.push({ label: 'Work Type', value: earthworkTypeLabel(details.workType) });
+    if (details.workType === 'soil_filling') {
+      const vehicleLabel = EARTHWORK_SOIL_VEHICLE_SET.has(
+        details.machineRequirement as EarthworkSoilVehicle,
+      )
+        ? optionLabel(
+            EARTHWORK_SOIL_VEHICLE_OPTIONS,
+            details.machineRequirement as EarthworkSoilVehicle,
+          )
+        : optionLabel(EARTHWORK_MACHINE_OPTIONS, details.machineRequirement);
+      blocks.push({ label: 'Vehicle Type for Soil Filling', value: vehicleLabel });
+    } else if (details.machineRequirement && details.machineRequirement !== 'jcb_excavator') {
+      blocks.push({
         label: 'Machine Requirement',
         value: optionLabel(EARTHWORK_MACHINE_OPTIONS, details.machineRequirement),
-      },
-      { label: 'Estimated Depth', value: `${details.estimatedDepthFt} Ft.` },
-      { label: 'Area / Volume', value: details.approxVolume },
-    );
+      });
+    }
+    if (details.estimatedDepthFt != null) {
+      blocks.push({ label: 'Estimated Depth', value: `${details.estimatedDepthFt} Ft.` });
+    }
+    if (details.approxVolume) {
+      blocks.push({ label: 'Area / Volume', value: details.approxVolume });
+    }
   }
 
   blocks.push({
@@ -650,7 +738,7 @@ export function getTradeScopeLabel(details: TradeDetails): string {
   if (details.service === 'false_ceiling_work') {
     return optionLabel(INTERIOR_SCOPE_OPTIONS, details.scopeType);
   }
-  return optionLabel(EARTHWORK_TYPE_OPTIONS, details.workType);
+  return earthworkTypeLabel(details.workType);
 }
 
 export interface TradeDetailsFormInput {
@@ -671,10 +759,9 @@ export interface TradeDetailsFormInput {
   interiorScope: InteriorScopeType | null;
   targetSpaces: InteriorTargetSpace[];
   interiorArea: string;
+  villageTownName: string;
   earthworkType: EarthworkType | null;
   machineRequirement: EarthworkMachine | null;
-  estimatedDepth: string;
-  approxVolume: string;
 }
 
 export function validateTradeDetailsInput(
@@ -687,10 +774,15 @@ export function validateTradeDetailsInput(
   if ('error' in start) return start;
 
   const additional = input.additionalRequirements.trim() || null;
+  const villageTownName = normalizeVillageTownName(input.villageTownName);
+  if (!villageTownName) {
+    return { error: 'Enter the village or town name.' };
+  }
   const base = {
     projectStartTimeType: start.type,
     projectStartTimeSpecificDate: start.specificDate,
     additionalRequirements: additional,
+    villageTownName,
   };
 
   if (input.service === 'plumber') {
@@ -773,28 +865,27 @@ export function validateTradeDetailsInput(
   }
 
   if (input.service === 'earthwork') {
-    if (!input.earthworkType || !EARTHWORK_TYPE_SET.has(input.earthworkType)) {
+    if (!input.earthworkType || !SELECTABLE_EARTHWORK_TYPE_SET.has(input.earthworkType)) {
       return { error: 'Select an earthwork type.' };
     }
-    if (!input.machineRequirement || !EARTHWORK_MACHINE_SET.has(input.machineRequirement)) {
-      return { error: 'Select a machine requirement.' };
-    }
-    const depth = parsePositiveNumber(input.estimatedDepth);
-    if (depth == null) {
-      return { error: 'Enter the estimated soil depth in feet.' };
-    }
-    const volume = input.approxVolume.trim();
-    if (!volume) {
-      return { error: 'Enter the approximate area / volume (Cu. Ft. / Sq. Ft.).' };
+    let machineRequirement: EarthworkMachine;
+    if (input.earthworkType === 'soil_filling') {
+      if (
+        input.machineRequirement !== 'tractor' &&
+        input.machineRequirement !== 'dumper'
+      ) {
+        return { error: 'Select Tractor or Dumper for soil filling.' };
+      }
+      machineRequirement = input.machineRequirement;
+    } else {
+      machineRequirement = 'jcb_excavator';
     }
     return {
       details: {
         ...base,
         service: 'earthwork',
         workType: input.earthworkType,
-        machineRequirement: input.machineRequirement,
-        estimatedDepthFt: depth,
-        approxVolume: volume,
+        machineRequirement,
       },
     };
   }

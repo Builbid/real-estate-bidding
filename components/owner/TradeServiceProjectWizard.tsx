@@ -60,6 +60,7 @@ const BUILDING_TYPE_OPTIONS: { value: TrackType; label: string; description: str
 
 interface FormState extends TradeWorkFormFields {
   location: string;
+  villageTownName: string;
   pincode: string;
   bidding_minutes: string;
   track_type: TrackType | null;
@@ -73,6 +74,7 @@ interface FormState extends TradeWorkFormFields {
 
 const EMPTY_FORM: FormState = {
   location: '',
+  villageTownName: '',
   pincode: '',
   bidding_minutes: String(BIDDING_MINUTES),
   track_type: null,
@@ -97,8 +99,6 @@ const EMPTY_FORM: FormState = {
   interiorArea: '',
   earthworkType: null,
   machineRequirement: null,
-  estimatedDepth: '',
-  approxVolume: '',
   projectStartTimeType: null,
   projectStartTimeSpecificDate: '',
   additionalRequirements: '',
@@ -121,6 +121,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
   const [step1ValidationAttempted, setStep1ValidationAttempted] = useState(false);
   const [step1Errors, setStep1Errors] = useState<{
     location?: string;
+    villageTownName?: string;
     pincode?: string;
   }>({});
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
@@ -153,10 +154,11 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((f) => ({ ...f, [key]: value }));
-    if (step1ValidationAttempted && (key === 'location' || key === 'pincode')) {
+    if (step1ValidationAttempted && (key === 'location' || key === 'villageTownName' || key === 'pincode')) {
       setStep1Errors((errors) => {
         const next = { ...errors };
         if (key === 'location') delete next.location;
+        if (key === 'villageTownName') delete next.villageTownName;
         if (key === 'pincode') delete next.pincode;
         return next;
       });
@@ -168,6 +170,15 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
 
     if (!parseAssamDistrictSelection(form.location)) {
       errors.location = 'Please select a district from the list.';
+    }
+
+    const villageTownName = form.villageTownName.trim();
+    if (!villageTownName) {
+      errors.villageTownName = 'Enter the village or town name.';
+    } else if (villageTownName.length < 2) {
+      errors.villageTownName = 'Village / town name must be at least 2 characters.';
+    } else if (hasContactInfo(villageTownName)) {
+      errors.villageTownName = 'Village / town name cannot include contact details.';
     }
 
     const pincodeError = validatePincode(form.pincode);
@@ -206,10 +217,9 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
       interiorScope: form.interiorScope,
       targetSpaces: form.targetSpaces,
       interiorArea: form.interiorArea,
+      villageTownName: form.villageTownName,
       earthworkType: form.earthworkType,
       machineRequirement: form.machineRequirement,
-      estimatedDepth: form.estimatedDepth,
-      approxVolume: form.approxVolume,
     });
   }
 
@@ -313,6 +323,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
 
     const result = await createProjectAction({
       title: autoTitle,
+      description: form.villageTownName.trim(),
       track_type: form.track_type ?? 'RCC',
       district: districtSelection.district,
       state: districtSelection.state,
@@ -335,7 +346,12 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
   const reviewTradeDetails = isCustomTrade ? validatedTradeDetails() : null;
   const reviewTradeBlocks =
     reviewTradeDetails && !('error' in reviewTradeDetails)
-      ? getTradeWorkRequirementBlocks(reviewTradeDetails.details)
+      ? getTradeWorkRequirementBlocks(reviewTradeDetails.details).filter(
+          (block) =>
+            block.label !== 'Village / Town Name' &&
+            block.label !== 'Estimated Depth' &&
+            block.label !== 'Area / Volume',
+        )
       : [];
 
   return (
@@ -394,6 +410,15 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                 value={form.location}
                 onChange={(v) => update('location', v)}
                 error={step1ValidationAttempted ? step1Errors.location : undefined}
+              />
+
+              <Input
+                label="Village / Town Name"
+                type="text"
+                placeholder="e.g. Rampur, Nalbari"
+                value={form.villageTownName}
+                onChange={(e) => update('villageTownName', e.target.value)}
+                error={step1ValidationAttempted ? step1Errors.villageTownName : undefined}
               />
 
               <Input
@@ -619,6 +644,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                   { label: 'Service', value: `${tradeEmoji} ${tradeLabel}` },
                   { label: 'Project Title', value: previewTitle },
                   { label: 'District', value: form.location },
+                  { label: 'Village / Town Name', value: form.villageTownName.trim() },
                   { label: 'Pincode', value: form.pincode.trim() || 'Not specified' },
                   ...(isPainter
                     ? [
