@@ -22,13 +22,9 @@ import {
 import { getDashboardPath, normalizeRole } from '@/lib/auth/roles';
 import { getProviderSpecialtyLabel } from '@/lib/trades';
 import {
-  getPainterWorkRequirementBlocks,
-  parsePainterDetails,
-} from '@/lib/painterDetails';
-import {
-  getMistriWorkRequirementBlocks,
-  parseMistriDetails,
-} from '@/lib/mistriDetails';
+  getProjectWorkRequirementBlocks,
+  isWideRequirementLabel,
+} from '@/lib/project/workRequirements';
 import type { Project, ServiceType, UserRole } from '@/lib/types';
 
 interface PageProps {
@@ -214,22 +210,9 @@ export default async function ProjectDetailPage({ params }: PageProps) {
   const serviceType = getProjectServiceType(project);
   const bidder = getServiceBidderLabels(serviceType);
   const serviceLabel = getServiceCategoryLabel(serviceType);
-  const painterDetails =
-    serviceType === 'painter' ? parsePainterDetails(project.painter_details) : null;
-  const painterBlocks = painterDetails
-    ? getPainterWorkRequirementBlocks(painterDetails)
-    : null;
-  const mistriDetails =
-    serviceType === 'labour_contractor' ? parseMistriDetails(project.mistri_details) : null;
-  const mistriBlocks = mistriDetails
-    ? getMistriWorkRequirementBlocks(mistriDetails)
-    : null;
-  const requirementBlocks = painterBlocks ?? mistriBlocks;
-  const requirementsTitle = painterBlocks
-    ? 'Painter Work Requirements'
-    : mistriBlocks
-      ? 'Mistri Work Requirements'
-      : 'Engineering Specifications';
+  const workRequirements = getProjectWorkRequirementBlocks(project);
+  const requirementBlocks = workRequirements?.blocks ?? null;
+  const requirementsTitle = workRequirements?.title ?? 'Engineering Specifications';
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -283,17 +266,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                       <div
                         key={block.label}
                         className={
-                          block.label === 'Additional Requirements' ||
-                          block.label === 'Additional Notes' ||
-                          block.label === 'Civil Work Type' ||
-                          block.label === 'Current Build Floors' ||
-                          block.label === 'Future Foundation Expansion' ||
-                          block.label === 'Current Construction Scope (This Bid)' ||
-                          block.label === 'Foundation Engineering Load Capacity' ||
-                          block.label === 'Current Construction' ||
-                          block.label === 'Future Planned Capacity' ||
-                          block.label.startsWith('Assam Type') ||
-                          block.label.startsWith('RCC ')
+                          isWideRequirementLabel(block.label)
                             ? 'col-span-2 sm:col-span-3'
                             : undefined
                         }

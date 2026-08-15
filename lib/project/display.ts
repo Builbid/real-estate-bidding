@@ -2,8 +2,10 @@ import type { FinishingLevel, Project, ServiceType } from '@/lib/types';
 import { FINISHING_LEVEL_CONFIG, getFinishingClassBadge } from '@/lib/firm/finishingLevel';
 import { formatBudgetRange } from '@/lib/formatIndianCurrency';
 import {
+  DRAWING_PACKAGE_OPTIONS,
   formatDrawingTypesSummary,
   isDrawingDesignServiceType,
+  parseDrawingDetails,
 } from '@/lib/drawingDesign';
 import {
   ALL_SERVICE_CATEGORIES,
@@ -95,10 +97,18 @@ export function getProjectServiceBadgeLabel(project: {
 export function getProjectConfigOrDrawingMeta(project: {
   service_type?: ServiceType | null;
   drawing_types?: string[] | null;
+  drawing_details?: Project['drawing_details'];
   track_type?: Project['track_type'];
   sub_configuration?: Project['sub_configuration'];
 }): string {
   if (isDrawingDesignServiceType(project.service_type)) {
+    const details = parseDrawingDetails(project.drawing_details);
+    if (details) {
+      return (
+        DRAWING_PACKAGE_OPTIONS.find((o) => o.value === details.package)?.label ??
+        formatDrawingTypesSummary(project.drawing_types)
+      );
+    }
     return formatDrawingTypesSummary(project.drawing_types);
   }
   if (project.track_type && project.sub_configuration) {

@@ -29,14 +29,7 @@ import {
   isTradeProject,
 } from '@/lib/project/display';
 import { DRAWING_TYPE_OPTIONS, isDrawingDesignServiceType } from '@/lib/drawingDesign';
-import {
-  getPainterWorkRequirementBlocks,
-  parsePainterDetails,
-} from '@/lib/painterDetails';
-import {
-  getMistriWorkRequirementBlocks,
-  parseMistriDetails,
-} from '@/lib/mistriDetails';
+import { getProjectWorkRequirementBlocks } from '@/lib/project/workRequirements';
 import {
   formatShowcaseRemaining,
   getShowcaseCardAction,
@@ -271,15 +264,7 @@ export function ShowcaseProjectCard({
   const budgetDisplay = getProjectBudgetDisplay(project);
   const finishingBadge = getFinishingBadge(project.finishing_level);
   const postedDisplay = formatProjectPostedDisplay(project.created_at);
-  const painterDetails =
-    serviceType === 'painter' ? parsePainterDetails(project.painter_details) : null;
-  const mistriDetails =
-    serviceType === 'labour_contractor' ? parseMistriDetails(project.mistri_details) : null;
-  const requirementBlocks = painterDetails
-    ? getPainterWorkRequirementBlocks(painterDetails)
-    : mistriDetails
-      ? getMistriWorkRequirementBlocks(mistriDetails)
-      : null;
+  const requirementBlocks = getProjectWorkRequirementBlocks(project)?.blocks ?? null;
 
   const statCells: { label: string; value: string }[] = requirementBlocks
     ? requirementBlocks
@@ -352,7 +337,7 @@ export function ShowcaseProjectCard({
         </p>
       </div>
     );
-  } else if (!mistriDetails && project.building_types && project.building_types.length > 0) {
+  } else if (!requirementBlocks && project.building_types && project.building_types.length > 0) {
     metaBlock = (
       <div className="min-w-0">
         <BuildingConfigSummary

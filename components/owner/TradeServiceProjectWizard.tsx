@@ -13,6 +13,10 @@ import {
   AssamDistrictAutocomplete,
   parseAssamDistrictSelection,
 } from '@/components/shared/AssamDistrictAutocomplete';
+import {
+  TradeWorkRequirementsFields,
+  type TradeWorkFormFields,
+} from '@/components/owner/TradeWorkRequirementsFields';
 import { generateProjectTitle } from '@/lib/generateProjectTitle';
 import { hasContactInfo } from '@/lib/validation/projectContactInfo';
 import { formatPincodeInput, validatePincode } from '@/lib/validation/pincode';
@@ -33,6 +37,12 @@ import {
   type PainterStartTimeType,
   type PainterSurfaceCondition,
 } from '@/lib/painterDetails';
+import {
+  getTradeScopeLabel,
+  getTradeWorkRequirementBlocks,
+  isCustomTradeWorkService,
+  validateTradeDetailsInput,
+} from '@/lib/tradeWorkDetails';
 import { cn } from '@/lib/utils';
 import { createProjectAction } from '@/app/actions/createProject';
 import type { TrackType, TradeServiceType } from '@/lib/types';
@@ -41,33 +51,31 @@ type Step = 1 | 2 | 3;
 
 const BIDDING_MINUTES = 7;
 
-const PROGRESS_LABELS = ['Project Info', 'Building Type', 'Review & Launch'] as const;
+const PROGRESS_LABELS = ['Project Info', 'Work Requirements', 'Review & Launch'] as const;
 
 const BUILDING_TYPE_OPTIONS: { value: TrackType; label: string; description: string }[] = [
   { value: 'RCC', label: 'RCC', description: 'Reinforced cement concrete building' },
   { value: 'AssamType', label: 'Assam Type', description: 'Traditional Assam-type building' },
 ];
 
-interface FormState {
+interface FormState extends TradeWorkFormFields {
   location: string;
   pincode: string;
+  projectAddress: string;
   bidding_minutes: string;
   track_type: TrackType | null;
-  /** Painter-only */
   projectArea: string;
   paintingScope: PainterPaintingScope | null;
   paintFinish: PainterPaintFinish | null;
   surfaceCondition: PainterSurfaceCondition | null;
   primerRequirement: PainterPrimerRequirement | '';
   paintTopcoats: PainterPaintTopcoats | null;
-  projectStartTimeType: PainterStartTimeType | null;
-  projectStartTimeSpecificDate: string;
-  additionalRequirements: string;
 }
 
 const EMPTY_FORM: FormState = {
   location: '',
   pincode: '',
+  projectAddress: '',
   bidding_minutes: String(BIDDING_MINUTES),
   track_type: null,
   projectArea: '',
@@ -76,6 +84,27 @@ const EMPTY_FORM: FormState = {
   surfaceCondition: null,
   primerRequirement: '',
   paintTopcoats: null,
+  plumberScope: null,
+  bathrooms: 1,
+  kitchens: 1,
+  overheadTank: null,
+  concealedPiping: null,
+  plumberMaterial: null,
+  electricianScope: null,
+  pointEstimate: null,
+  heavyAppliances: [],
+  electricianMaterial: null,
+  carpenterScope: null,
+  woodType: null,
+  approxArea: '',
+  doorWindowCount: '',
+  interiorScope: null,
+  targetSpaces: [],
+  interiorArea: '',
+  earthworkType: null,
+  machineRequirement: null,
+  estimatedDepth: '',
+  approxVolume: '',
   projectStartTimeType: null,
   projectStartTimeSpecificDate: '',
   additionalRequirements: '',
@@ -99,14 +128,21 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
   const [step1Errors, setStep1Errors] = useState<{
     location?: string;
     pincode?: string;
+    projectAddress?: string;
   }>({});
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
 
   const tradeLabel = getTradeLabel(trade);
   const tradeEmoji = getTradeEmoji(trade);
   const isPainter = trade === 'painter';
+  const isCustomTrade = isCustomTradeWorkService(trade);
 
   const districtSelection = parseAssamDistrictSelection(form.location);
+  const previewTradeDetails = isCustomTrade ? validatedTradeDetails() : null;
+  const previewScope =
+    previewTradeDetails && !('error' in previewTradeDetails)
+      ? getTradeScopeLabel(previewTradeDetails.details)
+      : null;
   const previewTitle = generateProjectTitle(
     isPainter
       ? {
@@ -118,16 +154,21 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
           serviceType: trade,
           district: districtSelection?.district ?? form.location,
           trackType: form.track_type,
+          scopeLabel: previewScope,
         },
   );
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((f) => ({ ...f, [key]: value }));
-    if (step1ValidationAttempted && (key === 'location' || key === 'pincode')) {
+    if (
+      step1ValidationAttempted &&
+      (key === 'location' || key === 'pincode' || key === 'projectAddress')
+    ) {
       setStep1Errors((errors) => {
         const next = { ...errors };
         if (key === 'location') delete next.location;
         if (key === 'pincode') delete next.pincode;
+        if (key === 'projectAddress') delete next.projectAddress;
         return next;
       });
     }
@@ -145,6 +186,12 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
       errors.pincode = pincodeError;
     }
 
+    if (form.projectAddress.trim().length < 4) {
+      errors.projectAddress = 'Enter the project address / location.';
+    } else if (hasContactInfo(form.projectAddress)) {
+      errors.projectAddress = 'Remove phone numbers or emails from the address.';
+    }
+
     if (Object.keys(errors).length > 0) {
       setStep1ValidationAttempted(true);
       setStep1Errors(errors);
@@ -156,8 +203,40 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
     setStep(2);
   }
 
+  function validatedTradeDetails() {
+    if (!isCustomTrade) return null;
+    return validateTradeDetailsInput({
+      service: trade,
+      projectAddress: form.projectAddress,
+      projectStartTimeType: form.projectStartTimeType,
+      projectStartTimeSpecificDate: form.projectStartTimeSpecificDate,
+      additionalRequirements: form.additionalRequirements,
+      plumberScope: form.plumberScope,
+      bathrooms: form.bathrooms,
+      kitchens: form.kitchens,
+      overheadTank: form.overheadTank,
+      concealedPiping: form.concealedPiping,
+      plumberMaterial: form.plumberMaterial,
+      electricianScope: form.electricianScope,
+      pointEstimate: form.pointEstimate,
+      heavyAppliances: form.heavyAppliances,
+      electricianMaterial: form.electricianMaterial,
+      carpenterScope: form.carpenterScope,
+      woodType: form.woodType,
+      approxArea: form.approxArea,
+      doorWindowCount: form.doorWindowCount,
+      interiorScope: form.interiorScope,
+      targetSpaces: form.targetSpaces,
+      interiorArea: form.interiorArea,
+      earthworkType: form.earthworkType,
+      machineRequirement: form.machineRequirement,
+      estimatedDepth: form.estimatedDepth,
+      approxVolume: form.approxVolume,
+    });
+  }
+
   function tryGoStep3() {
-    if (!form.track_type) {
+    if (isPainter && !form.track_type) {
       setStep2Error('Please select a building type to continue.');
       return;
     }
@@ -165,7 +244,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
       const validated = validatePainterDetailsInput({
         projectArea: form.projectArea,
         primerRequirement: form.primerRequirement,
-        projectStartTimeType: form.projectStartTimeType,
+        projectStartTimeType: form.projectStartTimeType as PainterStartTimeType | null,
         projectStartTimeSpecificDate: form.projectStartTimeSpecificDate,
         paintingScope: form.paintingScope,
         paintFinish: form.paintFinish,
@@ -178,12 +257,19 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
         return;
       }
     }
+    if (isCustomTrade) {
+      const validated = validatedTradeDetails();
+      if (validated && 'error' in validated) {
+        setStep2Error(validated.error);
+        return;
+      }
+    }
     setStep2Error(null);
     setStep(3);
   }
 
   async function handleSubmit() {
-    if (!form.track_type) return;
+    if (isPainter && !form.track_type) return;
     setLoading(true);
     setError(null);
 
@@ -194,8 +280,8 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
       return;
     }
 
-    if (isPainter && hasContactInfo(form.additionalRequirements)) {
-      setError('Remove contact details from additional requirements before submitting.');
+    if (hasContactInfo(form.additionalRequirements) || hasContactInfo(form.projectAddress)) {
+      setError('Remove contact details from the address or additional requirements before submitting.');
       setLoading(false);
       return;
     }
@@ -205,7 +291,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
       const validated = validatePainterDetailsInput({
         projectArea: form.projectArea,
         primerRequirement: form.primerRequirement,
-        projectStartTimeType: form.projectStartTimeType,
+        projectStartTimeType: form.projectStartTimeType as PainterStartTimeType | null,
         projectStartTimeSpecificDate: form.projectStartTimeSpecificDate,
         paintingScope: form.paintingScope,
         paintFinish: form.paintFinish,
@@ -221,6 +307,17 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
       painterDetails = validated.details;
     }
 
+    let tradeDetails;
+    if (isCustomTrade) {
+      const validated = validatedTradeDetails();
+      if (!validated || 'error' in validated) {
+        setError(validated && 'error' in validated ? validated.error : 'Work requirements are incomplete.');
+        setLoading(false);
+        return;
+      }
+      tradeDetails = validated.details;
+    }
+
     const autoTitle = generateProjectTitle(
       isPainter
         ? {
@@ -232,18 +329,21 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
             serviceType: trade,
             district: districtSelection.district,
             trackType: form.track_type,
+            scopeLabel: tradeDetails ? getTradeScopeLabel(tradeDetails) : null,
           },
     );
 
     const result = await createProjectAction({
       title: autoTitle,
-      track_type: form.track_type,
+      track_type: form.track_type ?? 'RCC',
       district: districtSelection.district,
       state: districtSelection.state,
       pincode: form.pincode.trim() || undefined,
       bidding_minutes: parseInt(form.bidding_minutes, 10),
       service_type: trade,
+      description: form.projectAddress.trim() || undefined,
       ...(painterDetails ? { painter_details: painterDetails } : {}),
+      ...(tradeDetails ? { trade_details: tradeDetails } : {}),
     });
 
     if (result.error) {
@@ -255,13 +355,19 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
     router.push('/dashboard/owner');
   }
 
+  const reviewTradeDetails = isCustomTrade ? validatedTradeDetails() : null;
+  const reviewTradeBlocks =
+    reviewTradeDetails && !('error' in reviewTradeDetails)
+      ? getTradeWorkRequirementBlocks(reviewTradeDetails.details)
+      : [];
+
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
-        <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
+        <h1 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
           <span>{tradeEmoji}</span> Post {tradeLabel} Project
         </h1>
-        <p className="text-sm text-muted-foreground mt-1">
+        <p className="text-sm text-gray-700 dark:text-zinc-300 mt-1">
           Registered {tradeLabel.toLowerCase()}s will bid their rate per sqft on your project.
         </p>
       </div>
@@ -273,7 +379,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
               className={cn(
                 'flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold flex-shrink-0',
                 i + 1 < step ? 'bg-emerald-500 text-white' :
-                i + 1 === step ? 'bg-emerald-500/20 border-2 border-emerald-500 text-emerald-400' :
+                i + 1 === step ? 'bg-emerald-500/20 border-2 border-emerald-500 text-emerald-600 dark:text-emerald-400' :
                 'bg-secondary text-muted-foreground/80',
               )}
             >
@@ -282,7 +388,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
             <span
               className={cn(
                 'text-[10px] sm:text-xs truncate',
-                i + 1 === step ? 'text-foreground font-semibold' : 'text-muted-foreground',
+                i + 1 === step ? 'text-gray-900 dark:text-white font-semibold' : 'text-gray-600 dark:text-zinc-400',
               )}
             >
               {label}
@@ -305,7 +411,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
 
           {step === 1 && (
             <div className="space-y-5">
-              <h2 className="text-base font-semibold text-foreground">Project Information</h2>
+              <h2 className="text-base font-semibold text-gray-900 dark:text-white">Project Information</h2>
 
               <AssamDistrictAutocomplete
                 value={form.location}
@@ -323,8 +429,17 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                 error={step1ValidationAttempted ? step1Errors.pincode : undefined}
               />
 
+              <Input
+                label="Project Address / Location"
+                type="text"
+                placeholder="e.g. House no. 12, Zoo Road Tiniali"
+                value={form.projectAddress}
+                onChange={(e) => update('projectAddress', e.target.value)}
+                error={step1ValidationAttempted ? step1Errors.projectAddress : undefined}
+              />
+
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <label className="text-xs font-semibold text-gray-800 dark:text-zinc-100 uppercase tracking-wider">
                   Bidding Duration
                 </label>
                 <Select value={form.bidding_minutes} onValueChange={(v) => update('bidding_minutes', v)}>
@@ -336,7 +451,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                     <SelectItem value="1440">24 Hours (Standard)</SelectItem>
                   </SelectContent>
                 </Select>
-                <p className="text-[11px] text-indigo-400/60">
+                <p className="text-[11px] font-medium text-gray-700 dark:text-zinc-300">
                   After bidding closes you have 5 minutes to select a {tradeLabel.toLowerCase()}.
                 </p>
               </div>
@@ -349,13 +464,13 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
 
           {step === 2 && (
             <div className="space-y-5">
-              <h2 className="text-base font-semibold text-foreground">
-                {isPainter ? 'Building Type & Work Requirements' : 'Type of Building'}
+              <h2 className="text-base font-semibold text-gray-900 dark:text-white">
+                {isPainter ? 'Building Type & Work Requirements' : 'Work Requirements'}
               </h2>
-              <p className="text-xs text-muted-foreground -mt-3">
+              <p className="text-xs font-medium text-gray-700 dark:text-zinc-300 -mt-3">
                 {isPainter
                   ? 'Tell painters the building type, area, primer, materials, and when work should start.'
-                  : `Choose the building type so ${tradeLabel.toLowerCase()}s know what they are bidding on.`}
+                  : `Describe the ${tradeLabel.toLowerCase()} work so bidders can quote without scope conflicts.`}
               </p>
 
               {step2Error && (
@@ -365,33 +480,35 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                 </div>
               )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {BUILDING_TYPE_OPTIONS.map((opt) => {
-                  const selected = form.track_type === opt.value;
-                  return (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      onClick={() => {
-                        update('track_type', opt.value);
-                        setStep2Error(null);
-                      }}
-                      className={cn(
-                        'text-left rounded-xl border-2 p-4 transition-all duration-200',
-                        selected
-                          ? 'border-emerald-500/70 bg-emerald-500/8 shadow-md shadow-emerald-500/15 scale-[1.02]'
-                          : 'border-border bg-secondary/30 hover:border-muted-foreground/40',
-                      )}
-                    >
-                      <div className="flex items-center justify-between gap-2 mb-1">
-                        <span className="text-sm font-bold text-foreground">{opt.label}</span>
-                        {selected && <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />}
-                      </div>
-                      <p className="text-xs text-muted-foreground">{opt.description}</p>
-                    </button>
-                  );
-                })}
-              </div>
+              {isPainter && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {BUILDING_TYPE_OPTIONS.map((opt) => {
+                    const selected = form.track_type === opt.value;
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => {
+                          update('track_type', opt.value);
+                          setStep2Error(null);
+                        }}
+                        className={cn(
+                          'relative text-left rounded-xl border-2 p-4 pr-10 transition-all duration-200',
+                          selected
+                            ? 'border-emerald-500/70 bg-emerald-500/8 shadow-md shadow-emerald-500/15 scale-[1.02]'
+                            : 'border-border bg-secondary/30 hover:border-muted-foreground/40',
+                        )}
+                      >
+                        {selected && (
+                          <CheckCircle2 className="absolute top-2.5 right-2.5 w-5 h-5 text-emerald-500 dark:text-emerald-400 flex-shrink-0" />
+                        )}
+                        <span className="text-sm font-bold text-gray-900 dark:text-white">{opt.label}</span>
+                        <p className="text-xs font-medium text-gray-700 dark:text-zinc-300 mt-1">{opt.description}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
 
               {isPainter && (
                 <div className="space-y-4 rounded-xl border border-border/70 bg-secondary/20 p-4">
@@ -409,95 +526,39 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                     }}
                   />
 
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      Painting Scope
-                    </label>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                      {PAINTER_SCOPE_OPTIONS.map((opt) => {
-                        const selected = form.paintingScope === opt.value;
-                        return (
-                          <button
-                            key={opt.value}
-                            type="button"
-                            onClick={() => {
-                              update('paintingScope', opt.value);
-                              setStep2Error(null);
-                            }}
-                            className={cn(
-                              'rounded-lg border px-3 py-2.5 text-left text-xs font-semibold transition-colors',
-                              selected
-                                ? 'border-emerald-500/70 bg-emerald-500/10 text-foreground'
-                                : 'border-border bg-card text-muted-foreground hover:border-muted-foreground/40',
-                            )}
-                          >
-                            {opt.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
+                  <PainterChoice
+                    label="Painting Scope"
+                    options={PAINTER_SCOPE_OPTIONS}
+                    value={form.paintingScope}
+                    onChange={(v) => {
+                      update('paintingScope', v);
+                      setStep2Error(null);
+                    }}
+                    columns={3}
+                  />
+
+                  <PainterChoice
+                    label="Paint Finish / Quality"
+                    options={PAINTER_FINISH_OPTIONS}
+                    value={form.paintFinish}
+                    onChange={(v) => {
+                      update('paintFinish', v);
+                      setStep2Error(null);
+                    }}
+                  />
+
+                  <PainterChoice
+                    label="Surface Condition"
+                    options={PAINTER_SURFACE_OPTIONS}
+                    value={form.surfaceCondition}
+                    onChange={(v) => {
+                      update('surfaceCondition', v);
+                      setStep2Error(null);
+                    }}
+                  />
 
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      Paint Finish / Quality
-                    </label>
-                    <div className="grid grid-cols-1 gap-2">
-                      {PAINTER_FINISH_OPTIONS.map((opt) => {
-                        const selected = form.paintFinish === opt.value;
-                        return (
-                          <button
-                            key={opt.value}
-                            type="button"
-                            onClick={() => {
-                              update('paintFinish', opt.value);
-                              setStep2Error(null);
-                            }}
-                            className={cn(
-                              'rounded-lg border px-3 py-2.5 text-left text-xs font-semibold transition-colors',
-                              selected
-                                ? 'border-emerald-500/70 bg-emerald-500/10 text-foreground'
-                                : 'border-border bg-card text-muted-foreground hover:border-muted-foreground/40',
-                            )}
-                          >
-                            {opt.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      Surface Condition
-                    </label>
-                    <div className="grid grid-cols-1 gap-2">
-                      {PAINTER_SURFACE_OPTIONS.map((opt) => {
-                        const selected = form.surfaceCondition === opt.value;
-                        return (
-                          <button
-                            key={opt.value}
-                            type="button"
-                            onClick={() => {
-                              update('surfaceCondition', opt.value);
-                              setStep2Error(null);
-                            }}
-                            className={cn(
-                              'rounded-lg border px-3 py-2.5 text-left text-xs font-semibold transition-colors',
-                              selected
-                                ? 'border-emerald-500/70 bg-emerald-500/10 text-foreground'
-                                : 'border-border bg-card text-muted-foreground hover:border-muted-foreground/40',
-                            )}
-                          >
-                            {opt.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    <label className="text-xs font-semibold text-gray-800 dark:text-zinc-100 uppercase tracking-wider">
                       Primer Requirement
                     </label>
                     <Select
@@ -518,81 +579,42 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                     </Select>
                   </div>
 
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      Paint Topcoats
-                    </label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {PAINTER_TOPCOAT_OPTIONS.map((opt) => {
-                        const selected = form.paintTopcoats === opt;
-                        return (
-                          <button
-                            key={opt}
-                            type="button"
-                            onClick={() => {
-                              update('paintTopcoats', opt);
-                              setStep2Error(null);
-                            }}
-                            className={cn(
-                              'rounded-lg border px-3 py-2.5 text-center text-xs font-semibold transition-colors',
-                              selected
-                                ? 'border-emerald-500/70 bg-emerald-500/10 text-foreground'
-                                : 'border-border bg-card text-muted-foreground hover:border-muted-foreground/40',
-                            )}
-                          >
-                            {opt}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
+                  <PainterChoice
+                    label="Paint Topcoats"
+                    options={PAINTER_TOPCOAT_OPTIONS.map((opt) => ({ value: opt, label: opt }))}
+                    value={form.paintTopcoats}
+                    onChange={(v) => {
+                      update('paintTopcoats', v);
+                      setStep2Error(null);
+                    }}
+                    columns={3}
+                  />
+
+                  <PainterChoice
+                    label="Project Starting Time"
+                    options={PAINTER_START_TIME_OPTIONS}
+                    value={form.projectStartTimeType}
+                    onChange={(v) => {
+                      update('projectStartTimeType', v);
+                      if (v !== 'specific') update('projectStartTimeSpecificDate', '');
+                      setStep2Error(null);
+                    }}
+                    columns={2}
+                  />
+                  {form.projectStartTimeType === 'specific' && (
+                    <Input
+                      label="Specific Start Date"
+                      type="date"
+                      value={form.projectStartTimeSpecificDate}
+                      onChange={(e) => {
+                        update('projectStartTimeSpecificDate', e.target.value);
+                        setStep2Error(null);
+                      }}
+                    />
+                  )}
 
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      Project Starting Time
-                    </label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {PAINTER_START_TIME_OPTIONS.map((opt) => {
-                        const selected = form.projectStartTimeType === opt.value;
-                        return (
-                          <button
-                            key={opt.value}
-                            type="button"
-                            onClick={() => {
-                              update('projectStartTimeType', opt.value);
-                              if (opt.value !== 'specific') {
-                                update('projectStartTimeSpecificDate', '');
-                              }
-                              setStep2Error(null);
-                            }}
-                            className={cn(
-                              'rounded-lg border px-3 py-2.5 text-left text-xs font-semibold transition-colors',
-                              selected
-                                ? 'border-emerald-500/70 bg-emerald-500/10 text-foreground'
-                                : 'border-border bg-card text-muted-foreground hover:border-muted-foreground/40',
-                            )}
-                          >
-                            {opt.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                    {form.projectStartTimeType === 'specific' && (
-                      <Input
-                        label="Specific Start Date"
-                        type="date"
-                        value={form.projectStartTimeSpecificDate}
-                        onChange={(e) => {
-                          update('projectStartTimeSpecificDate', e.target.value);
-                          setStep2Error(null);
-                        }}
-                        className="mt-2"
-                      />
-                    )}
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    <label className="text-xs font-semibold text-gray-800 dark:text-zinc-100 uppercase tracking-wider">
                       Additional Requirements <span className="normal-case tracking-normal">(optional)</span>
                     </label>
                     <textarea
@@ -603,10 +625,21 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                         update('additionalRequirements', e.target.value);
                         setStep2Error(null);
                       }}
-                      className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
+                      className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm font-medium text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
                     />
                   </div>
                 </div>
+              )}
+
+              {isCustomTrade && (
+                <TradeWorkRequirementsFields
+                  trade={trade}
+                  form={form}
+                  onChange={(key, value) => {
+                    setForm((current) => ({ ...current, [key]: value }));
+                    setStep2Error(null);
+                  }}
+                />
               )}
 
               <div className="flex gap-3">
@@ -620,9 +653,9 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
             </div>
           )}
 
-          {step === 3 && form.track_type && (
+          {step === 3 && (isCustomTrade || form.track_type) && (
             <div className="space-y-5">
-              <h2 className="text-base font-semibold text-foreground">Review & Launch Auction</h2>
+              <h2 className="text-base font-semibold text-gray-900 dark:text-white">Review & Launch Auction</h2>
 
               <div className="rounded-xl bg-secondary/50 border border-border divide-y divide-border">
                 {[
@@ -630,16 +663,21 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                   { label: 'Project Title', value: previewTitle },
                   { label: 'District', value: form.location },
                   { label: 'Pincode', value: form.pincode.trim() || 'Not specified' },
-                  {
-                    label: 'Building Type',
-                    value: BUILDING_TYPE_OPTIONS.find((o) => o.value === form.track_type)?.label,
-                  },
+                  { label: 'Project Address', value: form.projectAddress.trim() },
+                  ...(isPainter
+                    ? [
+                        {
+                          label: 'Building Type',
+                          value: BUILDING_TYPE_OPTIONS.find((o) => o.value === form.track_type)?.label ?? '—',
+                        },
+                      ]
+                    : []),
                   ...(isPainter && form.projectArea && form.paintingScope && form.paintFinish && form.surfaceCondition && form.primerRequirement && form.paintTopcoats && form.projectStartTimeType
                     ? getPainterWorkRequirementBlocks({
                         projectArea: parseFloat(form.projectArea) || 0,
                         primerRequirement: form.primerRequirement,
                         materialsIncludeClient: null,
-                        projectStartTimeType: form.projectStartTimeType,
+                        projectStartTimeType: form.projectStartTimeType as PainterStartTimeType,
                         projectStartTimeSpecificDate: form.projectStartTimeSpecificDate || null,
                         paintingScope: form.paintingScope,
                         paintFinish: form.paintFinish,
@@ -648,6 +686,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                         additionalRequirements: form.additionalRequirements.trim() || null,
                       })
                     : []),
+                  ...reviewTradeBlocks.filter((block) => block.label !== 'Project Address'),
                   {
                     label: 'Bidding Window',
                     value:
@@ -658,8 +697,8 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                   { label: 'Selection Window', value: '5 minutes after bids close' },
                 ].map(({ label, value }) => (
                   <div key={label} className="flex items-start justify-between gap-3 px-4 py-3">
-                    <span className="text-xs text-muted-foreground flex-1 min-w-0">{label}</span>
-                    <div className="flex items-center gap-2 text-sm font-semibold text-foreground text-right flex-shrink-0 max-w-[55%]">
+                    <span className="text-xs font-medium text-gray-600 dark:text-zinc-400 flex-1 min-w-0">{label}</span>
+                    <div className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white text-right flex-shrink-0 max-w-[55%]">
                       <div className="min-w-0">{value}</div>
                     </div>
                   </div>
@@ -685,6 +724,61 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
           )}
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+function PainterChoice<T extends string>({
+  label,
+  options,
+  value,
+  onChange,
+  columns = 1,
+}: {
+  label: string;
+  options: { value: T; label: string }[] | readonly T[];
+  value: T | null;
+  onChange: (value: T) => void;
+  columns?: 1 | 2 | 3;
+}) {
+  const normalized = options.map((opt) =>
+    typeof opt === 'string' ? { value: opt, label: opt } : opt,
+  );
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label className="text-xs font-semibold text-gray-800 dark:text-zinc-100 uppercase tracking-wider">
+        {label}
+      </label>
+      <div
+        className={cn(
+          'grid gap-2',
+          columns === 3 && 'grid-cols-1 sm:grid-cols-3',
+          columns === 2 && 'grid-cols-1 sm:grid-cols-2',
+          columns === 1 && 'grid-cols-1',
+        )}
+      >
+        {normalized.map((opt) => {
+          const selected = value === opt.value;
+          return (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => onChange(opt.value)}
+              className={cn(
+                'relative rounded-lg border px-3 py-2.5 pr-8 text-left text-xs font-semibold transition-colors',
+                selected
+                  ? 'border-emerald-500/70 bg-emerald-500/10 text-gray-900 dark:text-white'
+                  : 'border-border bg-card text-gray-800 dark:text-zinc-100 hover:border-muted-foreground/40',
+              )}
+            >
+              {selected && (
+                <CheckCircle2 className="absolute top-2 right-2 h-4 w-4 text-emerald-500 dark:text-emerald-400" />
+              )}
+              {opt.label}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

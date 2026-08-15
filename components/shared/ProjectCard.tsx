@@ -18,13 +18,9 @@ import {
   isFirmProject,
 } from '@/lib/project/display';
 import {
-  getPainterWorkRequirementBlocks,
-  parsePainterDetails,
-} from '@/lib/painterDetails';
-import {
-  getMistriWorkRequirementBlocks,
-  parseMistriDetails,
-} from '@/lib/mistriDetails';
+  getProjectWorkRequirementBlocks,
+  isWideRequirementLabel,
+} from '@/lib/project/workRequirements';
 import { useTranslation } from '@/lib/context/LanguageProvider';
 import type { Project, ProjectStatus } from '@/lib/types';
 
@@ -59,17 +55,7 @@ export function ProjectCard({
   const finishingBadge = getFinishingBadge(project.finishing_level);
   const postedAt = formatProjectPostedAt(project.created_at);
   const compact = variant === 'compact';
-  const painterDetails =
-    serviceType === 'painter' ? parsePainterDetails(project.painter_details) : null;
-  const painterBlocks = painterDetails
-    ? getPainterWorkRequirementBlocks(painterDetails)
-    : null;
-  const mistriDetails =
-    serviceType === 'labour_contractor' ? parseMistriDetails(project.mistri_details) : null;
-  const mistriBlocks = mistriDetails
-    ? getMistriWorkRequirementBlocks(mistriDetails)
-    : null;
-  const detailBlocks = painterBlocks ?? mistriBlocks;
+  const detailBlocks = getProjectWorkRequirementBlocks(project)?.blocks ?? null;
 
   return (
     <Card className={cn(
@@ -156,7 +142,7 @@ export function ProjectCard({
                   key={block.label}
                   className={cn(
                     'rounded-xl border border-border/60 bg-muted/25 px-3 py-2.5 dark:bg-muted/15',
-                    (block.label === 'Additional Requirements' || block.label === 'Additional Notes' || block.label === 'Civil Work Type') && 'col-span-2',
+                    isWideRequirementLabel(block.label) && 'col-span-2',
                   )}
                 >
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{block.label}</p>

@@ -26,6 +26,8 @@ export interface GenerateProjectTitleInput {
   plasterSide?: MistriPlasterSide | null;
   floorWork?: MistriFloorWork[] | null;
   buildingTypes?: BuildingType[];
+  /** Optional scope phrase for trade / drawing packages. */
+  scopeLabel?: string | null;
 }
 
 /**
@@ -53,6 +55,11 @@ export function generateProjectTitle(input: GenerateProjectTitleInput): string {
         return `${categoryName} — ${scope} in ${district}`;
       }
     }
+  }
+
+  const scope = input.scopeLabel?.trim();
+  if (scope) {
+    return `${categoryName} — ${scope} in ${district}`;
   }
 
   return `${categoryName} Requirement in ${district}`;

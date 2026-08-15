@@ -13,13 +13,23 @@ import type {
   TrackType,
   TradeServiceType,
 } from '@/lib/types'
-import { isDrawingDesignServiceType } from '@/lib/drawingDesign'
+import {
+  isDrawingDesignServiceType,
+  isDrawingDetails,
+  type DrawingDetails,
+} from '@/lib/drawingDesign'
 import { isConstructionFirmEnabled } from '@/lib/features'
 import { isTradeServiceType } from '@/lib/trades'
 import {
   isPainterDetails,
   type PainterDetails,
 } from '@/lib/painterDetails'
+import {
+  isCustomTradeWorkService,
+  isTradeDetails,
+  tradeDetailsMatchesService,
+  type TradeDetails,
+} from '@/lib/tradeWorkDetails'
 import {
   buildingTypesFromMistriDetails,
   constructionTypesFromMistriDetails,
@@ -66,13 +76,16 @@ export interface CreateTradeProjectInput extends CreateProjectBase {
   track_type: TrackType
   /** Required when service_type === 'painter'. Ignored for other trades. */
   painter_details?: PainterDetails
+  /** Required for plumber, electrician, carpenter, interior, and earthwork. */
+  trade_details?: TradeDetails
 }
 
-/** Drawing & Design — house type (Assam XOR RCC floors) + multi-select drawings. */
+/** Drawing & Design — package selection, plot details, and deliverables. */
 export interface CreateDrawingDesignProjectInput extends CreateProjectBase {
   service_type: 'drawing_design'
   building_types: BuildingType[]
   drawing_types: DrawingDesignType[]
+  drawing_details: DrawingDetails
 }
 
 export type CreateProjectInput =
@@ -160,7 +173,19 @@ export async function createProjectAction(
     insertPayload.construction_types = {}
     insertPayload.total_floors = legacy.total_floors
     insertPayload.drawing_types = types
-    insertPayload.description = null
+    insertPayload.description = drawing.description?.trim() || null
+
+    if (!isDrawingDetails(drawing.drawing_details)) {
+      return { error: 'Drawing work requirements are incomplete.' }
+    }
+    if (
+      drawing.drawing_details.projectStartTimeType === 'specific' &&
+      !drawing.drawing_details.projectStartTimeSpecificDate
+    ) {
+      return { error: 'Select a specific project start date.' }
+    }
+    insertPayload.drawing_details = drawing.drawing_details
+    insertPayload.plot_area_sqft = drawing.drawing_details.plotAreaSqft
   } else if (isTrade) {
     const trade = input as CreateTradeProjectInput
     insertPayload.track_type = trade.track_type
@@ -194,6 +219,20 @@ export async function createProjectAction(
         paintTopcoats: trade.painter_details.paintTopcoats ?? null,
         additionalRequirements: trade.painter_details.additionalRequirements?.trim() || null,
       }
+    } else if (isCustomTradeWorkService(trade.service_type)) {
+      if (
+        !isTradeDetails(trade.trade_details) ||
+        !tradeDetailsMatchesService(trade.trade_details, trade.service_type)
+      ) {
+        return { error: 'Work requirements are incomplete.' }
+      }
+      if (
+        trade.trade_details.projectStartTimeType === 'specific' &&
+        !trade.trade_details.projectStartTimeSpecificDate
+      ) {
+        return { error: 'Select a specific project start date.' }
+      }
+      insertPayload.trade_details = trade.trade_details
     }
   } else {
     if (isFirm) {
