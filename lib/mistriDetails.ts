@@ -141,6 +141,11 @@ export interface MistriFloorWork {
   brickMaterial?: MistriBrickworkMaterial | null;
   plasterScope?: MistriPlasterScope | null;
   flooringMaterial?: MistriFlooringMaterial | null;
+  /**
+   * When workTypes includes full_finished: whether the client also wants
+   * Tile / Marble / Granite flooring (beyond rough flooring in the package).
+   */
+  includeFineFlooring?: boolean | null;
 }
 
 export interface MistriDetails {
@@ -454,6 +459,11 @@ export const MISTRI_ACTIVITY_CATEGORY_OPTIONS: {
     description: '1. Brick wall work  ·  2. Plastering  ·  3. Flooring',
     note: 'Add-on finishing work such as walls, plaster, and tiles — not the building\'s structural frame.',
   },
+];
+
+export const MISTRI_YES_NO_OPTIONS: { value: 'yes' | 'no'; label: string }[] = [
+  { value: 'yes', label: 'Yes' },
+  { value: 'no', label: 'No' },
 ];
 
 export const MISTRI_RCC_FLOOR_WORK_OPTIONS: {
@@ -1181,10 +1191,23 @@ export function formatMistriFloorWorkTypes(
     brickMaterial?: MistriBrickworkMaterial | null;
     plasterScope?: MistriPlasterScope | null;
     flooringMaterial?: MistriFlooringMaterial | null;
+    includeFineFlooring?: boolean | null;
   },
 ): string {
   const labels = workTypes.map((t) => {
-    if (t === 'full_finished') return 'Full Finished Structure';
+    if (t === 'full_finished') {
+      if (extras?.includeFineFlooring && extras.flooringMaterial) {
+        const material = optionLabel(
+          MISTRI_FLOORING_MATERIAL_OPTIONS,
+          extras.flooringMaterial,
+        );
+        return `Full Finished Structure + Flooring (${material})`;
+      }
+      if (extras?.includeFineFlooring === false) {
+        return 'Full Finished Structure (no fine flooring)';
+      }
+      return 'Full Finished Structure';
+    }
     if (t === 'frame_skeleton') return 'Frame (Slab) only';
     if (t === 'brick_aac') {
       const material = extras?.brickMaterial
@@ -1222,7 +1245,10 @@ export function civilWorkTypesFromFloorWork(
     if (!types.includes(t)) types.push(t);
   };
   for (const fw of floorWork) {
-    if (fw.workTypes.includes('full_finished')) add('complete_full_structure');
+    if (fw.workTypes.includes('full_finished')) {
+      add('complete_full_structure');
+      if (fw.includeFineFlooring) add('tile_marble_flooring');
+    }
     if (fw.workTypes.includes('frame_skeleton')) add('foundation_concrete_structure');
     if (fw.workTypes.includes('brick_aac')) add('brickwork_aac');
     if (fw.workTypes.includes('plastering')) add('plastering');
@@ -1311,9 +1337,20 @@ function normalizeSingleFloorWork(raw: unknown): MistriFloorWork | null {
   }
 
   let flooringMaterial: MistriFlooringMaterial | null = null;
+  let includeFineFlooring: boolean | null = null;
+
   if (workTypes.includes('flooring')) {
     flooringMaterial = normalizeFlooringMaterial(v.flooringMaterial);
     if (!flooringMaterial) return null;
+  } else if (workTypes.includes('full_finished')) {
+    if (v.includeFineFlooring === true) {
+      includeFineFlooring = true;
+      flooringMaterial = normalizeFlooringMaterial(v.flooringMaterial);
+      if (!flooringMaterial) return null;
+    } else if (v.includeFineFlooring === false) {
+      includeFineFlooring = false;
+    }
+    // Legacy full_finished rows may omit includeFineFlooring — keep null.
   }
 
   return {
@@ -1323,6 +1360,7 @@ function normalizeSingleFloorWork(raw: unknown): MistriFloorWork | null {
     brickMaterial,
     plasterScope,
     flooringMaterial,
+    includeFineFlooring,
   };
 }
 
@@ -2005,6 +2043,18 @@ export function validateMistriFloorWorkInput(input: {
     }
     if (fw.workTypes.includes('flooring') && !fw.flooringMaterial) {
       return { error: `Select flooring material (Tile, Marble, or Granite) for ${label}.` };
+    }
+    if (fw.workTypes.includes('full_finished')) {
+      if (fw.includeFineFlooring !== true && fw.includeFineFlooring !== false) {
+        return {
+          error: `Choose whether you want flooring (Tile / Marble / Granite) for ${label}.`,
+        };
+      }
+      if (fw.includeFineFlooring && !fw.flooringMaterial) {
+        return {
+          error: `Select flooring material (Tile, Marble, or Granite) for ${label}.`,
+        };
+      }
     }
   }
 
