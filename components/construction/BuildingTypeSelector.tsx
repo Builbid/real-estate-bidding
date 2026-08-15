@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { Check } from 'lucide-react';
 import {
   ASSAM_BUILDING_TYPE,
@@ -15,6 +16,8 @@ import {
   parseCustomFloorSequence,
 } from '@/lib/mistriDetails';
 import { cn } from '@/lib/utils';
+
+const RCC_4TH_FLOOR: BuildingType = 'RCC 4th Floor';
 
 interface BuildingTypeSelectorProps {
   value: BuildingType[];
@@ -48,17 +51,28 @@ export function BuildingTypeSelector({
 }: BuildingTypeSelectorProps) {
   const hasAssam = value.includes(ASSAM_BUILDING_TYPE);
   const customFloorVisible = showCustomFloor && !hasAssam;
+  const rccFloorsSelected = value.filter((t) => RCC_BUILDING_TYPES.includes(t));
+  const has4thFloor = value.includes(RCC_4TH_FLOOR);
+  /** Active with no RCC floors yet (custom alone) or together with 4th floor. */
+  const customSelectable = rccFloorsSelected.length === 0 || has4thFloor;
   const hasRcc =
-    value.some((t) => RCC_BUILDING_TYPES.includes(t)) ||
-    (customSelected && customFloorVisible);
+    rccFloorsSelected.length > 0 || (customSelected && customFloorVisible);
 
   const currentLevels = enforceContiguousFloors
     ? collectMistriFloorUpperLevels({
         buildingTypes: value,
-        customSelected: customSelected && customFloorVisible,
+        customSelected: customSelected && customFloorVisible && customSelectable,
         customFloorNumber,
       })
     : [];
+
+  useEffect(() => {
+    if (customSelected && !customSelectable) {
+      onCustomChange?.(false, '');
+    }
+    // Intentionally omit onCustomChange — parent handlers are often inline.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customSelected, customSelectable]);
 
   function isContiguousBlocked(nextLevel: number): boolean {
     if (!enforceContiguousFloors || hasAssam) return false;
@@ -85,9 +99,21 @@ export function BuildingTypeSelector({
     }
 
     if (isSelected) {
-      onChange(next.filter((t) => t !== type));
+      const nextTypes = next.filter((t) => t !== type);
+      if (
+        customSelected &&
+        nextTypes.length > 0 &&
+        !nextTypes.includes(RCC_4TH_FLOOR)
+      ) {
+        onCustomChange?.(false, '');
+      }
+      onChange(nextTypes);
     } else {
-      onChange([...next, type]);
+      const nextTypes = [...next, type];
+      if (customSelected && !nextTypes.includes(RCC_4TH_FLOOR)) {
+        onCustomChange?.(false, '');
+      }
+      onChange(nextTypes);
     }
   }
 
@@ -97,6 +123,8 @@ export function BuildingTypeSelector({
       onCustomChange?.(false, customFloorNumber);
       return;
     }
+    if (!customSelectable) return;
+
     const sequence = parseCustomFloorSequence(customFloorNumber);
     if (enforceContiguousFloors && sequence) {
       const withoutCustom = collectMistriFloorUpperLevels({
@@ -113,7 +141,7 @@ export function BuildingTypeSelector({
   }
 
   function onCustomSequenceChange(raw: string) {
-    // Allow digits, commas, and spaces while typing.
+    if (!customSelectable) return;
     const cleaned = raw.replace(/[^\d,\s]/g, '');
     if (!enforceContiguousFloors || !customSelected) {
       onCustomChange?.(true, cleaned);
@@ -121,7 +149,6 @@ export function BuildingTypeSelector({
     }
     const sequence = parseCustomFloorSequence(cleaned);
     if (sequence == null) {
-      // Keep partial input while the client types (e.g. "5,").
       onCustomChange?.(true, cleaned);
       return;
     }
@@ -136,24 +163,7 @@ export function BuildingTypeSelector({
     onCustomChange?.(true, cleaned);
   }
 
-  const parsedSequence = parseCustomFloorSequence(customFloorNumber);
-  const customBlocked =
-    !customSelected &&
-    enforceContiguousFloors &&
-    parsedSequence != null &&
-    (() => {
-      const withoutCustom = collectMistriFloorUpperLevels({
-        buildingTypes: value,
-        customSelected: false,
-      });
-      const combined = [...new Set([...withoutCustom, ...parsedSequence])].sort(
-        (a, b) => a - b,
-      );
-      for (let i = 1; i < combined.length; i++) {
-        if (combined[i] !== combined[i - 1] + 1) return true;
-      }
-      return false;
-    })();
+  const customDisabled = hasAssam || !customSelectable;
 
   return (
     <div className="space-y-4">
@@ -170,30 +180,10 @@ export function BuildingTypeSelector({
             </p>
           </>
         ) : purpose === 'mistri' ? (
-          <>
-            <p className="text-sm text-muted-foreground">
-              Select Assam Type <span className="font-semibold">or</span> RCC floor(s) for this project.
-            </p>
-            <p className="text-xs text-muted-foreground/80">
-              Assam Type and RCC cannot be mixed.
-              {enforceContiguousFloors ? (
-                <>
-                  <br />
-                  Major work floors must be consecutive (no skipped storeys). Starting at 3rd + 4th is
-                  OK for an existing building; Ground + 3rd without 1st and 2nd is not.
-                </>
-              ) : (
-                <> For RCC you can select multiple floors.</>
-              )}
-              {showCustomFloor && (
-                <>
-                  <br />
-                  Floors above the 4th can be selected with RCC 4th Floor or on their own —
-                  enter them as 5,6,7 in sequence.
-                </>
-              )}
-            </p>
-          </>
+          <p className="text-sm text-muted-foreground">
+            Select Assam Type <span className="font-semibold">or</span> RCC floor(s) for this project.
+            Assam Type and RCC cannot be mixed.
+          </p>
         ) : (
           <>
             <p className="text-sm text-muted-foreground">
@@ -272,17 +262,17 @@ export function BuildingTypeSelector({
         {customFloorVisible && (
           <button
             type="button"
-            disabled={hasAssam || customBlocked}
+            disabled={customDisabled}
             onClick={toggleCustom}
             title={
-              customBlocked
-                ? 'Custom floors must continue consecutively from the 4th floor (start at 5)'
+              !customSelectable
+                ? 'Select RCC 4th Floor first, or clear other floors to choose floors above 4th alone'
                 : undefined
             }
             className={cn(
               'flex items-center gap-3 w-full text-left rounded-xl border-2 px-4 py-3 transition-all',
-              (hasAssam || customBlocked) && 'opacity-45 cursor-not-allowed grayscale',
-              customSelected
+              customDisabled && 'opacity-45 cursor-not-allowed grayscale',
+              customSelected && customSelectable
                 ? 'border-emerald-500/60 bg-emerald-500/10 shadow-sm'
                 : 'border-border bg-card/80 hover:border-emerald-500/30 hover:bg-accent/40',
             )}
@@ -290,12 +280,14 @@ export function BuildingTypeSelector({
             <span
               className={cn(
                 'flex h-5 w-5 flex-shrink-0 items-center justify-center rounded border-2 transition-colors',
-                customSelected
+                customSelected && customSelectable
                   ? 'border-emerald-500 bg-emerald-500 text-white'
                   : 'border-muted-foreground/40 bg-background',
               )}
             >
-              {customSelected && <Check className="h-3 w-3" strokeWidth={3} />}
+              {customSelected && customSelectable && (
+                <Check className="h-3 w-3" strokeWidth={3} />
+              )}
             </span>
             <span className="text-sm font-medium text-foreground">
               Floors above 4th (custom)
@@ -304,7 +296,7 @@ export function BuildingTypeSelector({
         )}
       </div>
 
-      {customFloorVisible && customSelected && (
+      {customFloorVisible && customSelected && customSelectable && (
         <div className="space-y-1.5">
           <Input
             label="Custom floor numbers (above 4th)"
