@@ -132,6 +132,9 @@ export type MistriPlasterScope = 'both' | 'exterior' | 'interior';
 
 export type MistriFlooringMaterial = 'tile' | 'marble' | 'granite';
 
+/** Assam Type roof structure choice on Work Requirements. */
+export type MistriAssamRoofType = 'steel_truss' | 'wood_truss';
+
 /** Per-floor work captured on new Mistri posts. */
 export interface MistriFloorWork {
   floorId: MistriFloorId;
@@ -146,6 +149,10 @@ export interface MistriFloorWork {
    * Tile / Marble / Granite flooring (beyond rough flooring in the package).
    */
   includeFineFlooring?: boolean | null;
+  /** Assam Type only — Steel Truss or Wood Truss. */
+  assamRoofType?: MistriAssamRoofType | null;
+  /** Assam Type only — foundation depth in feet. */
+  foundationDepthFt?: number | null;
 }
 
 export interface MistriDetails {
@@ -466,6 +473,22 @@ export const MISTRI_YES_NO_OPTIONS: { value: 'yes' | 'no'; label: string }[] = [
   { value: 'no', label: 'No' },
 ];
 
+export const MISTRI_ASSAM_ROOF_OPTIONS: {
+  value: MistriAssamRoofType;
+  label: string;
+}[] = [
+  { value: 'steel_truss', label: 'Steel Truss' },
+  { value: 'wood_truss', label: 'Wood Truss' },
+];
+
+export const MISTRI_ASSAM_FLOORING_MATERIAL_OPTIONS: {
+  value: MistriFlooringMaterial;
+  label: string;
+}[] = [
+  { value: 'tile', label: 'Tile' },
+  { value: 'marble', label: 'Marble' },
+];
+
 export const MISTRI_RCC_FLOOR_WORK_OPTIONS: {
   value: MistriFloorWorkType;
   label: string;
@@ -487,14 +510,10 @@ export const MISTRI_ASSAM_FLOOR_WORK_OPTIONS: {
   label: string;
   category: MistriActivityCategory;
 }[] = [
-  { value: 'full_finished', label: 'Full Finished Structure', category: 'major' },
-  { value: 'frame_skeleton', label: 'Frame (Slab) only', category: 'major' },
-  { value: 'brick_aac', label: 'Brick / AAC wall', category: 'minor' },
-  { value: 'plastering', label: 'Plastering work', category: 'minor' },
   {
-    value: 'flooring',
-    label: 'Flooring work (Tile / Marble / Granite)',
-    category: 'minor',
+    value: 'full_finished',
+    label: 'Full finished up to plastering',
+    category: 'major',
   },
 ];
 
@@ -580,6 +599,10 @@ const PLASTER_SCOPE_SET = new Set<string>(
 );
 const FLOORING_MATERIAL_SET = new Set<string>(
   MISTRI_FLOORING_MATERIAL_OPTIONS.map((o) => o.value),
+);
+const ASSAM_ROOF_SET = new Set<string>(MISTRI_ASSAM_ROOF_OPTIONS.map((o) => o.value));
+const ASSAM_FLOORING_MATERIAL_SET = new Set<string>(
+  MISTRI_ASSAM_FLOORING_MATERIAL_OPTIONS.map((o) => o.value),
 );
 
 const RCC_FLOOR_UPPER: Record<string, number> = {
@@ -1168,7 +1191,10 @@ export function visibleMistriFloorWorkTypes(
 }
 
 export function getMistriFullFinishedIncludes(floorId: MistriFloorId): string {
-  if (floorId === 'RCC Ground Floor' || floorId === ASSAM_BUILDING_TYPE) {
+  if (isAssamMistriFloor(floorId)) {
+    return 'Full finished Assam Type work up to plastering (foundation, frame, walls, and plaster).';
+  }
+  if (floorId === 'RCC Ground Floor') {
     return 'Includes Foundation work, column, beam, slab, brick work, plastering and rough flooring work.';
   }
   return 'Includes column, beam, slab, brick work, plastering and rough flooring work.';
@@ -1185,7 +1211,9 @@ export function mistriFoundationProvisionRequired(
   floorWork: readonly MistriFloorWork[],
 ): boolean {
   return floorWork.some((fw) => {
-    if (fw.floorId === ASSAM_BUILDING_TYPE || fw.floorId === 'RCC Ground Floor') {
+    // Assam uses foundationDepthFt instead of future RCC floor capacity.
+    if (fw.floorId === ASSAM_BUILDING_TYPE) return false;
+    if (fw.floorId === 'RCC Ground Floor') {
       return (
         fw.workTypes.includes('full_finished') ||
         fw.workTypes.includes('frame_skeleton')
@@ -1193,6 +1221,10 @@ export function mistriFoundationProvisionRequired(
     }
     return false;
   });
+}
+
+export function isAssamFloorWork(fw: Pick<MistriFloorWork, 'floorId'>): boolean {
+  return isAssamMistriFloor(fw.floorId);
 }
 
 export function mistriContractTypeRequiredForFloorWork(
@@ -1208,25 +1240,33 @@ export function mistriContractTypeRequiredForFloorWork(
 export function formatMistriFloorWorkTypes(
   workTypes: readonly MistriFloorWorkType[],
   extras?: {
+    floorId?: MistriFloorId;
     brickMaterial?: MistriBrickworkMaterial | null;
     plasterScope?: MistriPlasterScope | null;
     flooringMaterial?: MistriFlooringMaterial | null;
     includeFineFlooring?: boolean | null;
+    assamRoofType?: MistriAssamRoofType | null;
+    foundationDepthFt?: number | null;
   },
 ): string {
+  const isAssam = extras?.floorId ? isAssamMistriFloor(extras.floorId) : false;
+  const flooringOptions = isAssam
+    ? MISTRI_ASSAM_FLOORING_MATERIAL_OPTIONS
+    : MISTRI_FLOORING_MATERIAL_OPTIONS;
+
   const labels = workTypes.map((t) => {
     if (t === 'full_finished') {
+      const base = isAssam
+        ? 'Full finished up to plastering'
+        : 'Full Finished Structure';
       if (extras?.includeFineFlooring && extras.flooringMaterial) {
-        const material = optionLabel(
-          MISTRI_FLOORING_MATERIAL_OPTIONS,
-          extras.flooringMaterial,
-        );
-        return `Full Finished Structure + Flooring (${material})`;
+        const material = optionLabel(flooringOptions, extras.flooringMaterial);
+        return `${base} + Flooring (${material})`;
       }
       if (extras?.includeFineFlooring === false) {
-        return 'Full Finished Structure (no fine flooring)';
+        return `${base} (no fine flooring)`;
       }
-      return 'Full Finished Structure';
+      return base;
     }
     if (t === 'frame_skeleton') return 'Frame (Slab) only';
     if (t === 'brick_aac') {
@@ -1317,6 +1357,32 @@ function normalizeFlooringMaterial(value: unknown): MistriFlooringMaterial | nul
   return null;
 }
 
+function normalizeAssamRoofType(value: unknown): MistriAssamRoofType | null {
+  if (typeof value !== 'string') return null;
+  if (ASSAM_ROOF_SET.has(value)) return value as MistriAssamRoofType;
+  return null;
+}
+
+function normalizeAssamFlooringMaterial(value: unknown): MistriFlooringMaterial | null {
+  if (typeof value !== 'string') return null;
+  if (ASSAM_FLOORING_MATERIAL_SET.has(value)) return value as MistriFlooringMaterial;
+  return null;
+}
+
+/** Positive foundation depth in feet (Assam Type). */
+export function parseFoundationDepthFt(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+    return Math.round(value * 100) / 100;
+  }
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    const n = Number(trimmed);
+    if (Number.isFinite(n) && n > 0) return Math.round(n * 100) / 100;
+  }
+  return null;
+}
+
 function normalizeSingleFloorWork(raw: unknown): MistriFloorWork | null {
   if (!raw || typeof raw !== 'object') return null;
   const v = raw as Record<string, unknown>;
@@ -1365,12 +1431,21 @@ function normalizeSingleFloorWork(raw: unknown): MistriFloorWork | null {
   } else if (workTypes.includes('full_finished')) {
     if (v.includeFineFlooring === true) {
       includeFineFlooring = true;
-      flooringMaterial = normalizeFlooringMaterial(v.flooringMaterial);
+      flooringMaterial = isAssamMistriFloor(floorId)
+        ? normalizeAssamFlooringMaterial(v.flooringMaterial)
+        : normalizeFlooringMaterial(v.flooringMaterial);
       if (!flooringMaterial) return null;
     } else if (v.includeFineFlooring === false) {
       includeFineFlooring = false;
     }
     // Legacy full_finished rows may omit includeFineFlooring — keep null.
+  }
+
+  let assamRoofType: MistriAssamRoofType | null = null;
+  let foundationDepthFt: number | null = null;
+  if (isAssamMistriFloor(floorId)) {
+    assamRoofType = normalizeAssamRoofType(v.assamRoofType);
+    foundationDepthFt = parseFoundationDepthFt(v.foundationDepthFt);
   }
 
   return {
@@ -1381,6 +1456,8 @@ function normalizeSingleFloorWork(raw: unknown): MistriFloorWork | null {
     plasterScope,
     flooringMaterial,
     includeFineFlooring,
+    assamRoofType,
+    foundationDepthFt,
   };
 }
 
@@ -1822,6 +1899,20 @@ export function getMistriWorkRequirementBlocks(details: MistriDetails): {
       value: formatMistriArea(details.approximateAreaSqft),
     });
 
+    const assamWork = details.floorWork.find((fw) => isAssamMistriFloor(fw.floorId));
+    if (assamWork?.assamRoofType) {
+      blocks.push({
+        label: 'Roof Option',
+        value: optionLabel(MISTRI_ASSAM_ROOF_OPTIONS, assamWork.assamRoofType),
+      });
+    }
+    if (assamWork?.foundationDepthFt != null && assamWork.foundationDepthFt > 0) {
+      blocks.push({
+        label: 'Foundation Depth',
+        value: `${assamWork.foundationDepthFt} ft`,
+      });
+    }
+
     if (mistriFoundationProvisionRequired(details.floorWork) && details.futureFloorPlan) {
       blocks.push({
         label: 'Future Foundation Expansion',
@@ -2055,6 +2146,37 @@ export function validateMistriFloorWorkInput(input: {
     if (fw.workTypes.length === 0) {
       return { error: `Select work type for ${label}.` };
     }
+
+    if (isAssamMistriFloor(fw.floorId)) {
+      if (!fw.workTypes.includes('full_finished') || fw.workTypes.length !== 1) {
+        return {
+          error: 'Assam Type is full finished up to plastering. Complete the Assam work requirements.',
+        };
+      }
+      if (!fw.assamRoofType || !ASSAM_ROOF_SET.has(fw.assamRoofType)) {
+        return { error: 'Select roof option: Steel Truss or Wood Truss.' };
+      }
+      if (fw.foundationDepthFt == null || fw.foundationDepthFt <= 0) {
+        return { error: 'Enter foundation depth in feet for Assam Type.' };
+      }
+      if (fw.includeFineFlooring !== true && fw.includeFineFlooring !== false) {
+        return {
+          error: 'Choose whether you want flooring (Tile / Marble) for Assam Type.',
+        };
+      }
+      if (fw.includeFineFlooring && !fw.flooringMaterial) {
+        return { error: 'Select flooring material (Tile or Marble) for Assam Type.' };
+      }
+      if (
+        fw.includeFineFlooring &&
+        fw.flooringMaterial &&
+        !ASSAM_FLOORING_MATERIAL_SET.has(fw.flooringMaterial)
+      ) {
+        return { error: 'Select flooring material (Tile or Marble) for Assam Type.' };
+      }
+      continue;
+    }
+
     if (fw.workTypes.includes('brick_aac') && !fw.brickMaterial) {
       return { error: `Select Red Brick or AAC Block for ${label}.` };
     }
