@@ -25,6 +25,7 @@ import {
   getProjectWorkRequirementBlocks,
   isWideRequirementLabel,
 } from '@/lib/project/workRequirements';
+import { getLiveAuctionDisplayTitle } from '@/lib/generateProjectTitle';
 import type { Project, ServiceType, UserRole } from '@/lib/types';
 
 interface PageProps {
@@ -240,7 +241,9 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                       </Badge>
                       <Badge>{serviceLabel}</Badge>
                     </div>
-                    <h1 className="text-xl font-bold text-foreground leading-snug mb-1">{project.title}</h1>
+                    <h1 className="text-xl font-bold text-foreground leading-snug mb-1">
+                      {getLiveAuctionDisplayTitle(project)}
+                    </h1>
                     {project.description && (
                       <p className="text-sm text-muted-foreground leading-relaxed">{project.description}</p>
                     )}

@@ -21,6 +21,7 @@ import {
   getProjectWorkRequirementBlocks,
   isWideRequirementLabel,
 } from '@/lib/project/workRequirements';
+import { getLiveAuctionDisplayTitle } from '@/lib/generateProjectTitle';
 import { useTranslation } from '@/lib/context/LanguageProvider';
 import type { Project, ProjectStatus } from '@/lib/types';
 
@@ -105,7 +106,7 @@ export function ProjectCard({
               'font-semibold text-foreground leading-snug line-clamp-2 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors',
               compact ? 'text-base' : 'text-base',
             )}>
-              {project.title}
+              {getLiveAuctionDisplayTitle(project)}
             </h3>
             {postedAt && (isActive || isFrozen) && (
               <p className="text-[11px] text-muted-foreground mt-1 inline-flex items-center gap-1">

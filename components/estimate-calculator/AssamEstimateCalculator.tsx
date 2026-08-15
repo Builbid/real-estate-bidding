@@ -362,6 +362,7 @@ export function AssamEstimateCalculator({ onChangeType }: { onChangeType: () => 
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="rcc_king_post">RCC King Post truss</SelectItem>
+                      <SelectItem value="steel">Steel roof truss</SelectItem>
                       <SelectItem value="timber">Timber truss</SelectItem>
                     </SelectContent>
                   </Select>
@@ -679,6 +680,14 @@ export function AssamEstimateCalculator({ onChangeType }: { onChangeType: () => 
                     onChange={(n) => updateRate('timberPerCft', Math.max(0, n))}
                   />
                 )}
+                {inputs.trussType === 'steel' && (
+                  <NumField
+                    label="Steel roof truss (fabricated)"
+                    value={inputs.rates.steelTrussPerKg}
+                    suffix="₹/kg"
+                    onChange={(n) => updateRate('steelTrussPerKg', Math.max(0, n))}
+                  />
+                )}
                 <div className="flex flex-col gap-1.5 w-full">
                   <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Flooring finish
@@ -769,8 +778,16 @@ export function AssamEstimateCalculator({ onChangeType }: { onChangeType: () => 
                       </p>
                       <p>
                         Tin roof {results.tinRoofAreaSqft} sqft · {results.meta.trussCount}{' '}
-                        {inputs.trussType === 'rcc_king_post' ? 'RCC king-post' : 'timber'} trusses
+                        {inputs.trussType === 'rcc_king_post'
+                          ? 'RCC king-post'
+                          : inputs.trussType === 'steel'
+                            ? 'steel roof'
+                            : 'timber'}{' '}
+                        trusses
                         {results.timberCft > 0 ? ` · timber ${results.timberCft} cft` : ''}
+                        {results.steelTrussKg > 0
+                          ? ` · steel truss ${results.steelTrussKg} kg`
+                          : ''}
                       </p>
                       <p>No slab · no floor beams</p>
                     </div>

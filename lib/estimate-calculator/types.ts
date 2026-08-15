@@ -14,7 +14,7 @@ export type FlooringFinish = 'tile' | 'granite';
 export type HouseConstructionType = 'rcc' | 'assam_type';
 
 /** Assam Type roof truss. */
-export type AssamTrussType = 'rcc_king_post' | 'timber';
+export type AssamTrussType = 'rcc_king_post' | 'timber' | 'steel';
 
 /** Above-plinth Assam walls — 5″ (≈ 125 mm). Plinth band remains 9″. */
 export const ASSAM_WALL_THICKNESS_M = 0.125;
@@ -292,6 +292,8 @@ export interface AssamItemRates {
   tinRoofPerSqft: number;
   /** Timber truss — ₹ / cft (used when truss = timber). */
   timberPerCft: number;
+  /** Fabricated steel roof truss — ₹ / kg (used when truss = steel). */
+  steelTrussPerKg: number;
   flooringFinish: FlooringFinish;
 }
 
@@ -313,6 +315,7 @@ export const DEFAULT_ASSAM_ITEM_RATES: AssamItemRates = {
   },
   tinRoofPerSqft: 95,
   timberPerCft: 1000,
+  steelTrussPerKg: 110,
   flooringFinish: 'tile',
 };
 
@@ -417,7 +420,7 @@ export interface AssamEstimateResults {
     plinthBeams: number;
     lintels: number;
     footings: number;
-    /** RCC king-post trusses only; 0 for timber. */
+    /** RCC king-post trusses only; 0 for timber / steel. */
     trusses: number;
     total: number;
   };
@@ -428,6 +431,8 @@ export interface AssamEstimateResults {
   steelByDiameter: SteelByDiameter[];
   totalSteelQuintals: number;
   timberCft: number;
+  /** Fabricated steel roof truss weight (0 unless trussType = steel). */
+  steelTrussKg: number;
   tinRoofAreaSqft: number;
   plasterAreaSqft: number;
   wastagePercent: WastagePercent;

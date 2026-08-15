@@ -2,6 +2,7 @@
 
 import {
   formatBuildingTypesSummary,
+  getConstructionDisplayShortLabel,
   getSectionHeaderStyle,
   sortBuildingTypes,
   type BuildingType,
@@ -72,7 +73,9 @@ export function BuildingConfigSummary({
             {types
               .map((t) => {
                 const ct = constructionTypes[t];
-                return ct ? `${t.replace('RCC ', '')}: ${ct}` : t;
+                return ct
+                  ? `${t.replace('RCC ', '')}: ${getConstructionDisplayShortLabel(ct)}`
+                  : t;
               })
               .join(' · ')}
           </p>
@@ -110,7 +113,9 @@ export function BuildingConfigSummary({
             </div>
             {!hideConstructionTypes && ct && (
               <div className="flex items-center gap-1.5 border-t border-border/50 px-3.5 py-2.5">
-                <span className="text-sm text-foreground/90">{ct}</span>
+                <span className="text-sm text-foreground/90">
+                  {getConstructionDisplayShortLabel(ct)}
+                </span>
                 <ConstructionTypeInfoButton
                   buildingType={buildingType}
                   constructionType={ct}

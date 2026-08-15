@@ -78,6 +78,11 @@ export function isWideRequirementLabel(label: string): boolean {
     label === 'Target Space' ||
     label === 'Current Build Floors' ||
     label === 'Future Foundation Expansion' ||
+    label === 'Foundation Provision For' ||
+    label === 'Current Construction Scope (This Bid)' ||
+    label === 'Foundation Engineering Load Capacity' ||
+    label === 'Current Construction' ||
+    label === 'Future Planned Capacity' ||
     label.startsWith('Assam Type') ||
     label.startsWith('RCC ')
   );

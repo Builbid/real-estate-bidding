@@ -84,6 +84,7 @@ export function calculateAssamCostBreakdown(
   const brickAmt = results.bricks * rates.brickPerPiece;
   const tinAmt = results.tinRoofAreaSqft * rates.tinRoofPerSqft;
   const timberAmt = results.timberCft * rates.timberPerCft;
+  const steelTrussAmt = results.steelTrussKg * rates.steelTrussPerKg;
 
   const materialLines: CostLineItem[] = [
     {
@@ -148,8 +149,18 @@ export function calculateAssamCostBreakdown(
     });
   }
 
+  if (results.steelTrussKg > 0) {
+    materialLines.push({
+      key: 'steel-truss',
+      label: 'Steel roof truss (fabricated)',
+      quantityLabel: `${fmtQty(results.steelTrussKg, 0)} kg`,
+      rateLabel: rsRate(rates.steelTrussPerKg, 'kg'),
+      amount: inr(steelTrussAmt),
+    });
+  }
+
   const materialTotal = inr(
-    cementAmt + sandAmt + aggAmt + brickAmt + steelTotal + tinAmt + timberAmt,
+    cementAmt + sandAmt + aggAmt + brickAmt + steelTotal + tinAmt + timberAmt + steelTrussAmt,
   );
 
   const mistriAmt = totalBuiltUpSqft * rates.mistriPerSqft;

@@ -35,6 +35,7 @@ import {
   getShowcaseCardAction,
   type ShowcaseProject,
 } from '@/lib/projectShowcase';
+import { getLiveAuctionDisplayTitle } from '@/lib/generateProjectTitle';
 import { useTranslation } from '@/lib/context/LanguageProvider';
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import type { ServiceType } from '@/lib/types';
@@ -441,7 +442,7 @@ export function ShowcaseProjectCard({
               {serviceCategory.label}
             </p>
             <h3 className="mt-0.5 line-clamp-2 text-sm font-semibold leading-snug text-foreground transition-colors group-hover:text-emerald-700 dark:group-hover:text-emerald-300">
-              {project.title}
+              {getLiveAuctionDisplayTitle(project)}
             </h3>
             <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
               <MapPin className="h-3 w-3 shrink-0 opacity-80" />
