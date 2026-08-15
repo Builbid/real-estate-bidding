@@ -104,7 +104,8 @@ export interface PlumberDetails extends TradeDetailsBase {
   kitchens: number;
   overheadTank: boolean;
   concealedPiping: boolean;
-  materialScope: PlumberMaterialScope;
+  /** Legacy field — no longer collected on new plumber submissions. */
+  materialScope?: PlumberMaterialScope | null;
 }
 
 export interface ElectricianDetails extends TradeDetailsBase {
@@ -149,10 +150,14 @@ export type TradeDetails =
 
 export const PLUMBER_SCOPE_OPTIONS: { value: PlumberScopeType; label: string }[] = [
   { value: 'full_house', label: 'Full House Plumbing (New Construction)' },
-  { value: 'bathroom_renovation', label: 'Bathroom Renovation' },
-  { value: 'tank_pipe_fitting', label: 'Water Tank / Pipe Fitting' },
-  { value: 'repair_leakage', label: 'Repair / Leakage Work' },
 ];
+
+const LEGACY_PLUMBER_SCOPE_LABELS: Record<PlumberScopeType, string> = {
+  full_house: 'Full House Plumbing (New Construction)',
+  bathroom_renovation: 'Bathroom Renovation',
+  tank_pipe_fitting: 'Water Tank / Pipe Fitting',
+  repair_leakage: 'Repair / Leakage Work',
+};
 
 export const PLUMBER_MATERIAL_OPTIONS: { value: PlumberMaterialScope; label: string }[] = [
   { value: 'labour_only', label: 'Labour Only (Client provides materials)' },
@@ -233,7 +238,12 @@ export const EARTHWORK_MACHINE_OPTIONS: { value: EarthworkMachine; label: string
   { value: 'manual_labour', label: 'Manual Labour Only' },
 ];
 
-const PLUMBER_SCOPE_SET = new Set(PLUMBER_SCOPE_OPTIONS.map((o) => o.value));
+const PLUMBER_SCOPE_SET = new Set<PlumberScopeType>([
+  'full_house',
+  'bathroom_renovation',
+  'tank_pipe_fitting',
+  'repair_leakage',
+]);
 const PLUMBER_MATERIAL_SET = new Set(PLUMBER_MATERIAL_OPTIONS.map((o) => o.value));
 const ELECTRICIAN_SCOPE_SET = new Set(ELECTRICIAN_SCOPE_OPTIONS.map((o) => o.value));
 const ELECTRICIAN_POINT_SET = new Set(ELECTRICIAN_POINT_OPTIONS.map((o) => o.value));
@@ -344,8 +354,6 @@ export function parseTradeDetails(value: unknown): TradeDetails | null {
     if (
       typeof v.scopeType !== 'string' ||
       !PLUMBER_SCOPE_SET.has(v.scopeType as PlumberScopeType) ||
-      typeof v.materialScope !== 'string' ||
-      !PLUMBER_MATERIAL_SET.has(v.materialScope as PlumberMaterialScope) ||
       typeof v.overheadTank !== 'boolean' ||
       typeof v.concealedPiping !== 'boolean'
     ) {
@@ -354,6 +362,11 @@ export function parseTradeDetails(value: unknown): TradeDetails | null {
     const bathrooms = parseCount(v.bathrooms, 1, 20);
     const kitchens = parseCount(v.kitchens, 1, 10);
     if (bathrooms == null || kitchens == null) return null;
+    const materialScope =
+      typeof v.materialScope === 'string' &&
+      PLUMBER_MATERIAL_SET.has(v.materialScope as PlumberMaterialScope)
+        ? (v.materialScope as PlumberMaterialScope)
+        : null;
     return {
       service: 'plumber',
       projectAddress: address,
@@ -364,7 +377,7 @@ export function parseTradeDetails(value: unknown): TradeDetails | null {
       kitchens,
       overheadTank: v.overheadTank,
       concealedPiping: v.concealedPiping,
-      materialScope: v.materialScope as PlumberMaterialScope,
+      materialScope,
     };
   }
 
@@ -483,13 +496,18 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
 
   if (details.service === 'plumber') {
     blocks.push(
-      { label: 'Scope Type', value: optionLabel(PLUMBER_SCOPE_OPTIONS, details.scopeType) },
+      { label: 'Scope Type', value: LEGACY_PLUMBER_SCOPE_LABELS[details.scopeType] },
       { label: 'Bathrooms', value: formatStepperCount(details.bathrooms, 3) },
       { label: 'Kitchens', value: formatStepperCount(details.kitchens, 3) },
       { label: 'Overhead Water Tank', value: yesNo(details.overheadTank) },
       { label: 'Concealed CPVC/uPVC Piping', value: yesNo(details.concealedPiping) },
-      { label: 'Material Scope', value: optionLabel(PLUMBER_MATERIAL_OPTIONS, details.materialScope) },
     );
+    if (details.materialScope) {
+      blocks.push({
+        label: 'Material Scope',
+        value: optionLabel(PLUMBER_MATERIAL_OPTIONS, details.materialScope),
+      });
+    }
   } else if (details.service === 'electrician') {
     blocks.push(
       { label: 'Scope Type', value: optionLabel(ELECTRICIAN_SCOPE_OPTIONS, details.scopeType) },
@@ -571,7 +589,7 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
 
 export function getTradeScopeLabel(details: TradeDetails): string {
   if (details.service === 'plumber') {
-    return optionLabel(PLUMBER_SCOPE_OPTIONS, details.scopeType);
+    return LEGACY_PLUMBER_SCOPE_LABELS[details.scopeType];
   }
   if (details.service === 'electrician') {
     return optionLabel(ELECTRICIAN_SCOPE_OPTIONS, details.scopeType);
@@ -590,12 +608,11 @@ export interface TradeDetailsFormInput {
   projectStartTimeType: ProjectStartTimeType | null;
   projectStartTimeSpecificDate: string;
   additionalRequirements: string;
-  plumberScope: PlumberScopeType | null;
+  plumberScope?: PlumberScopeType | null;
   bathrooms: number;
   kitchens: number;
   overheadTank: boolean | null;
   concealedPiping: boolean | null;
-  plumberMaterial: PlumberMaterialScope | null;
   electricianScope: ElectricianScopeType | null;
   pointEstimate: ElectricianPointEstimate | null;
   heavyAppliances: ElectricianHeavyAppliance[];
@@ -630,28 +647,21 @@ export function validateTradeDetailsInput(
   };
 
   if (input.service === 'plumber') {
-    if (!input.plumberScope || !PLUMBER_SCOPE_SET.has(input.plumberScope)) {
-      return { error: 'Select a plumbing scope type.' };
-    }
     if (input.overheadTank == null) {
       return { error: 'Select whether overhead water tank installation is required.' };
     }
     if (input.concealedPiping == null) {
       return { error: 'Select whether concealed CPVC/uPVC piping is required.' };
     }
-    if (!input.plumberMaterial || !PLUMBER_MATERIAL_SET.has(input.plumberMaterial)) {
-      return { error: 'Select a material scope.' };
-    }
     return {
       details: {
         ...base,
         service: 'plumber',
-        scopeType: input.plumberScope,
+        scopeType: 'full_house',
         bathrooms: Math.min(20, Math.max(1, input.bathrooms)),
         kitchens: Math.min(10, Math.max(1, input.kitchens)),
         overheadTank: input.overheadTank,
         concealedPiping: input.concealedPiping,
-        materialScope: input.plumberMaterial,
       },
     };
   }

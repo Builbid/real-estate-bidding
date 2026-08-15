@@ -9,6 +9,7 @@ export function OptionSelectCard({
   label,
   description,
   multi,
+  disabled,
   className,
 }: {
   selected: boolean;
@@ -16,18 +17,22 @@ export function OptionSelectCard({
   label: string;
   description?: string;
   multi?: boolean;
+  disabled?: boolean;
   className?: string;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
       aria-pressed={selected}
+      aria-disabled={disabled || undefined}
       className={cn(
         'relative w-full rounded-xl border-2 p-4 pr-10 text-left transition-all duration-200',
         selected
           ? 'border-emerald-500/70 bg-emerald-500/10 shadow-md shadow-emerald-500/15 scale-[1.01]'
           : 'border-border bg-secondary/30 hover:border-muted-foreground/40',
+        disabled && 'cursor-default disabled:opacity-100',
         className,
       )}
     >

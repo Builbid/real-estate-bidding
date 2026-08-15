@@ -1,7 +1,7 @@
 'use client';
 
 import { Input } from '@/components/ui/input';
-import { OptionSelectGrid } from '@/components/owner/wizard/OptionSelectCard';
+import { OptionSelectCard, OptionSelectGrid } from '@/components/owner/wizard/OptionSelectCard';
 import { StartTimeAndNotes, WIZARD_SECTION_LABEL } from '@/components/owner/wizard/StartTimeAndNotes';
 import { StepperInput } from '@/components/owner/wizard/StepperInput';
 import {
@@ -15,7 +15,6 @@ import {
   ELECTRICIAN_SCOPE_OPTIONS,
   INTERIOR_SCOPE_OPTIONS,
   INTERIOR_SPACE_OPTIONS,
-  PLUMBER_MATERIAL_OPTIONS,
   PLUMBER_SCOPE_OPTIONS,
   type CarpenterScopeType,
   type CarpenterWoodType,
@@ -27,19 +26,17 @@ import {
   type ElectricianScopeType,
   type InteriorScopeType,
   type InteriorTargetSpace,
-  type PlumberMaterialScope,
   type PlumberScopeType,
   type ProjectStartTimeType,
   type TradeWorkService,
 } from '@/lib/tradeWorkDetails';
 
 export interface TradeWorkFormFields {
-  plumberScope: PlumberScopeType | null;
+  plumberScope: PlumberScopeType;
   bathrooms: number;
   kitchens: number;
   overheadTank: boolean | null;
   concealedPiping: boolean | null;
-  plumberMaterial: PlumberMaterialScope | null;
   electricianScope: ElectricianScopeType | null;
   pointEstimate: ElectricianPointEstimate | null;
   heavyAppliances: ElectricianHeavyAppliance[];
@@ -83,10 +80,11 @@ export function TradeWorkRequirementsFields({
       {trade === 'plumber' && (
         <>
           <FieldGroup label="Scope Type">
-            <OptionSelectGrid
-              options={PLUMBER_SCOPE_OPTIONS}
-              value={form.plumberScope}
-              onSelect={(v) => onChange('plumberScope', v)}
+            <OptionSelectCard
+              selected
+              disabled
+              label={PLUMBER_SCOPE_OPTIONS[0].label}
+              onClick={() => {}}
             />
           </FieldGroup>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -119,13 +117,6 @@ export function TradeWorkRequirementsFields({
               value={form.concealedPiping == null ? null : form.concealedPiping ? 'yes' : 'no'}
               onSelect={(v) => onChange('concealedPiping', v === 'yes')}
               columns={2}
-            />
-          </FieldGroup>
-          <FieldGroup label="Material Scope">
-            <OptionSelectGrid
-              options={PLUMBER_MATERIAL_OPTIONS}
-              value={form.plumberMaterial}
-              onSelect={(v) => onChange('plumberMaterial', v)}
             />
           </FieldGroup>
         </>
