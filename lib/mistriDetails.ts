@@ -444,12 +444,12 @@ export const MISTRI_ACTIVITY_CATEGORY_OPTIONS: {
   {
     value: 'major',
     label: 'Major activities',
-    description: 'Full finished structure or frame (slab) only — pick one.',
+    description: '1. Full Finished Structure  ·  2. Frame (Slab) only',
   },
   {
     value: 'minor',
     label: 'Minor activities',
-    description: 'Brick wall, plastering, or flooring work.',
+    description: '1. Brick wall work  ·  2. Plastering  ·  3. Flooring',
   },
 ];
 
