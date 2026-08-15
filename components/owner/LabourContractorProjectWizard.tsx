@@ -175,10 +175,30 @@ const PROGRESS_LABELS = [
   'Review & Launch',
 ] as const;
 
+type MistriHouseType = 'assam' | 'rcc';
+
+const MISTRI_HOUSE_TYPE_OPTIONS: {
+  value: MistriHouseType;
+  label: string;
+  note: string;
+}[] = [
+  {
+    value: 'assam',
+    label: 'Assam Type',
+    note: 'Single-storey Assam Type house — roof truss, roofing sheet, and foundation depth on the next step.',
+  },
+  {
+    value: 'rcc',
+    label: 'RCC Structure',
+    note: 'RCC multi-storey construction — select floors after Major or Minor activities.',
+  },
+];
+
 interface FormState {
   location: string;
   pincode: string;
   bidding_minutes: string;
+  houseType: MistriHouseType | null;
   activityCategory: MistriActivityCategory | null;
   buildingTypes: BuildingType[];
   customFloorSelected: boolean;
@@ -197,6 +217,7 @@ const EMPTY_FORM: FormState = {
   location: '',
   pincode: '',
   bidding_minutes: String(BIDDING_MINUTES),
+  houseType: null,
   activityCategory: null,
   buildingTypes: [],
   customFloorSelected: false,
@@ -265,6 +286,7 @@ export function LabourContractorProjectWizard() {
   const [step1Errors, setStep1Errors] = useState<{
     location?: string;
     pincode?: string;
+    houseType?: string;
     activityCategory?: string;
     floors?: string;
     customFloor?: string;
@@ -355,17 +377,62 @@ export function LabourContractorProjectWizard() {
     }
   }
 
+  function setHouseType(next: MistriHouseType) {
+    setForm((f) => {
+      if (f.houseType === next) return f;
+      if (next === 'assam') {
+        return {
+          ...f,
+          houseType: 'assam',
+          activityCategory: null,
+          buildingTypes: [ASSAM_BUILDING_TYPE],
+          customFloorSelected: false,
+          customFloorNumber: '',
+          floorWorkById: {
+            [ASSAM_BUILDING_TYPE]: { ...ASSAM_FULL_FINISHED_WORK },
+          },
+          futureFloorCustom: '',
+          contractType: null,
+        };
+      }
+      return {
+        ...f,
+        houseType: 'rcc',
+        activityCategory: null,
+        buildingTypes: [],
+        customFloorSelected: false,
+        customFloorNumber: '',
+        floorWorkById: {},
+        futureFloorCustom: '',
+        contractType: null,
+      };
+    });
+    setStep1Errors((errors) => {
+      const nextErrors = { ...errors };
+      delete nextErrors.houseType;
+      delete nextErrors.activityCategory;
+      delete nextErrors.floors;
+      delete nextErrors.customFloor;
+      return nextErrors;
+    });
+  }
+
   function setBuildingTypes(nextTypes: BuildingType[]) {
     setForm((f) => {
-      const selectingAssam = nextTypes.includes(ASSAM_BUILDING_TYPE);
+      // House type Assam is fixed; RCC mode never includes Assam.
+      const cleaned =
+        f.houseType === 'rcc'
+          ? nextTypes.filter((t) => t !== ASSAM_BUILDING_TYPE)
+          : f.houseType === 'assam'
+            ? [ASSAM_BUILDING_TYPE]
+            : nextTypes;
       const draft: FormState = {
         ...f,
-        buildingTypes: nextTypes,
-        ...(selectingAssam ? { activityCategory: 'major' as MistriActivityCategory } : {}),
+        buildingTypes: cleaned,
       };
       const entries = selectedFloorEntries(draft);
       let floorWorkById = pruneFloorWorkById(f.floorWorkById, entries);
-      if (selectingAssam) {
+      if (f.houseType === 'assam') {
         const key = floorWorkKey(ASSAM_BUILDING_TYPE, null);
         floorWorkById = {
           ...floorWorkById,
@@ -377,27 +444,24 @@ export function LabourContractorProjectWizard() {
       }
       const droppedGround =
         f.buildingTypes.includes('RCC Ground Floor') &&
-        !nextTypes.includes('RCC Ground Floor');
-      const droppedAssam =
-        f.buildingTypes.includes(ASSAM_BUILDING_TYPE) &&
-        !nextTypes.includes(ASSAM_BUILDING_TYPE);
+        !cleaned.includes('RCC Ground Floor');
       return {
         ...draft,
         floorWorkById,
-        ...(droppedGround || droppedAssam ? { futureFloorCustom: '' } : {}),
+        ...(droppedGround ? { futureFloorCustom: '' } : {}),
       };
     });
     setStep1Errors((errors) => {
       const next = { ...errors };
       delete next.floors;
       delete next.customFloor;
-      if (nextTypes.includes(ASSAM_BUILDING_TYPE)) delete next.activityCategory;
       return next;
     });
   }
 
   function setCustomFloor(selected: boolean, number: string) {
     setForm((f) => {
+      if (f.houseType === 'assam') return f;
       const draft: FormState = {
         ...f,
         customFloorSelected: selected,
@@ -419,10 +483,24 @@ export function LabourContractorProjectWizard() {
   function setActivityCategory(category: MistriActivityCategory) {
     setForm((f) => {
       if (f.activityCategory === category) return f;
+      if (f.houseType === 'assam') {
+        return {
+          ...f,
+          activityCategory: category,
+          buildingTypes: [ASSAM_BUILDING_TYPE],
+          customFloorSelected: false,
+          customFloorNumber: '',
+          floorWorkById: {
+            [ASSAM_BUILDING_TYPE]: { ...ASSAM_FULL_FINISHED_WORK },
+          },
+          futureFloorCustom: '',
+          contractType: null,
+        };
+      }
       return {
         ...f,
         activityCategory: category,
-        // Switching Major ↔ Minor clears floor-wise picks so options stay valid.
+        // Switching Major ↔ Minor clears floor-wise work picks; keep floor selection.
         floorWorkById: {},
         futureFloorCustom: '',
         contractType: null,
@@ -513,23 +591,33 @@ export function LabourContractorProjectWizard() {
       errors.pincode = pincodeError;
     }
 
+    if (!form.houseType) {
+      errors.houseType = 'Select Assam Type or RCC Structure.';
+    }
+
     if (!form.activityCategory) {
-      errors.activityCategory = 'Select Major activities or Minor activities first.';
+      errors.activityCategory = 'Select Major activities or Minor activities.';
     }
 
-    if (form.buildingTypes.length === 0 && !form.customFloorSelected) {
-      errors.floors = 'Select Assam Type or at least one RCC floor.';
+    if (form.houseType === 'rcc') {
+      if (form.buildingTypes.length === 0 && !form.customFloorSelected) {
+        errors.floors = 'Select at least one RCC floor.';
+      }
+    } else if (form.houseType === 'assam') {
+      if (!form.buildingTypes.includes(ASSAM_BUILDING_TYPE)) {
+        errors.floors = 'Assam Type house must stay selected.';
+      }
     }
 
-    if (form.customFloorSelected) {
+    if (form.houseType === 'rcc' && form.customFloorSelected) {
       if (!parsedCustomSequence || parsedCustomSequence.length === 0) {
         errors.customFloor = getCustomFloorSequenceInvalidMessage(requireCustomStartAt5);
       }
     }
 
     if (
+      form.houseType === 'rcc' &&
       form.activityCategory === 'major' &&
-      !form.buildingTypes.includes(ASSAM_BUILDING_TYPE) &&
       !errors.floors &&
       !errors.customFloor
     ) {
@@ -709,46 +797,90 @@ export function LabourContractorProjectWizard() {
               />
 
               <div className="flex flex-col gap-1.5">
-                <label className={SECTION_LABEL}>Activity type</label>
+                <label className={SECTION_LABEL}>House type</label>
                 <p className={HELPER_TEXT}>
-                  Choose Major or Minor activities first. Floor selection appears next.
+                  Choose Assam Type or RCC Structure first. Activity type appears next.
                 </p>
                 <div className="grid grid-cols-1 gap-2 mt-1">
-                  {MISTRI_ACTIVITY_CATEGORY_OPTIONS.map((cat) => (
+                  {MISTRI_HOUSE_TYPE_OPTIONS.map((opt) => (
                     <OptionCardButton
-                      key={cat.value}
-                      selected={form.activityCategory === cat.value}
-                      onClick={() => setActivityCategory(cat.value)}
+                      key={opt.value}
+                      selected={form.houseType === opt.value}
+                      onClick={() => setHouseType(opt.value)}
                     >
                       <span className="block">
-                        <span className="block">{cat.label}</span>
-                        <span className="mt-0.5 block text-[10px] font-medium text-muted-foreground normal-case tracking-normal">
-                          {cat.description}
-                        </span>
+                        <span className="block">{opt.label}</span>
                         <span className="mt-1 block text-[10px] font-medium leading-snug text-muted-foreground/90 normal-case tracking-normal">
-                          {cat.note}
+                          {opt.note}
                         </span>
                       </span>
                     </OptionCardButton>
                   ))}
                 </div>
-                {step1ValidationAttempted && step1Errors.activityCategory && (
+                {step1ValidationAttempted && step1Errors.houseType && (
                   <p className="text-xs text-destructive flex items-center gap-1 mt-1">
                     <AlertCircle className="h-3 w-3 shrink-0" />
-                    {step1Errors.activityCategory}
+                    {step1Errors.houseType}
                   </p>
                 )}
               </div>
 
-              {form.activityCategory && (
+              {form.houseType && (
+                <div className="flex flex-col gap-1.5">
+                  <label className={SECTION_LABEL}>Activity type</label>
+                  <p className={HELPER_TEXT}>
+                    {form.houseType === 'rcc'
+                      ? 'Choose Major or Minor activities. Floor selection appears next.'
+                      : 'Choose Major or Minor activities for this Assam Type house.'}
+                  </p>
+                  <div className="grid grid-cols-1 gap-2 mt-1">
+                    {MISTRI_ACTIVITY_CATEGORY_OPTIONS.map((cat) => (
+                      <OptionCardButton
+                        key={cat.value}
+                        selected={form.activityCategory === cat.value}
+                        onClick={() => setActivityCategory(cat.value)}
+                      >
+                        <span className="block">
+                          <span className="block">{cat.label}</span>
+                          <span className="mt-0.5 block text-[10px] font-medium text-muted-foreground normal-case tracking-normal">
+                            {cat.description}
+                          </span>
+                          <span className="mt-1 block text-[10px] font-medium leading-snug text-muted-foreground/90 normal-case tracking-normal">
+                            {cat.note}
+                          </span>
+                        </span>
+                      </OptionCardButton>
+                    ))}
+                  </div>
+                  {step1ValidationAttempted && step1Errors.activityCategory && (
+                    <p className="text-xs text-destructive flex items-center gap-1 mt-1">
+                      <AlertCircle className="h-3 w-3 shrink-0" />
+                      {step1Errors.activityCategory}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {form.houseType === 'assam' && form.activityCategory && (
+                <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-3 py-2.5 space-y-1">
+                  <p className="text-xs font-semibold text-foreground">Building type</p>
+                  <p className={HELPER_TEXT}>
+                    Assam Type is already selected as the house type. No RCC floor selection is
+                    needed.
+                  </p>
+                </div>
+              )}
+
+              {form.houseType === 'rcc' && form.activityCategory && (
                 <div className="flex flex-col gap-1.5">
                   <label className={SECTION_LABEL}>Building / Floor Type</label>
                   <p className={HELPER_TEXT}>
-                    Select the floors included in this{' '}
+                    Select the RCC floors included in this{' '}
                     {form.activityCategory === 'major' ? 'major' : 'minor'} activities project.
                   </p>
                   <BuildingTypeSelector
                     purpose="mistri"
+                    rccOnly
                     value={form.buildingTypes}
                     onChange={setBuildingTypes}
                     showCustomFloor

@@ -35,6 +35,10 @@ interface BuildingTypeSelectorProps {
    * Upper-only runs like 3rd + 4th remain allowed.
    */
   enforceContiguousFloors?: boolean;
+  /**
+   * Mistri Project Info when house type is already RCC — hide Assam Type option.
+   */
+  rccOnly?: boolean;
 }
 
 export function BuildingTypeSelector({
@@ -48,8 +52,9 @@ export function BuildingTypeSelector({
   onCustomChange,
   customError,
   enforceContiguousFloors = false,
+  rccOnly = false,
 }: BuildingTypeSelectorProps) {
-  const hasAssam = value.includes(ASSAM_BUILDING_TYPE);
+  const hasAssam = !rccOnly && value.includes(ASSAM_BUILDING_TYPE);
   const customFloorVisible = showCustomFloor && !hasAssam;
   const rccFloorsSelected = value.filter((t) => RCC_BUILDING_TYPES.includes(t));
   const has4thFloor = value.includes(RCC_4TH_FLOOR);
@@ -80,6 +85,7 @@ export function BuildingTypeSelector({
   }
 
   function toggle(type: BuildingType) {
+    if (rccOnly && type === ASSAM_BUILDING_TYPE) return;
     if (type === ASSAM_BUILDING_TYPE) {
       if (value.includes(ASSAM_BUILDING_TYPE)) {
         onChange([]);
@@ -185,8 +191,16 @@ export function BuildingTypeSelector({
           </>
         ) : purpose === 'mistri' ? (
           <p className="text-sm text-muted-foreground">
-            Select Assam Type <span className="font-semibold">or</span> RCC floor(s) for this project.
-            Assam Type and RCC cannot be mixed.
+            {rccOnly ? (
+              <>
+                Select the RCC floor(s) included in this project. You can select multiple floors.
+              </>
+            ) : (
+              <>
+                Select Assam Type <span className="font-semibold">or</span> RCC floor(s) for this
+                project. Assam Type and RCC cannot be mixed.
+              </>
+            )}
           </p>
         ) : (
           <>
@@ -207,14 +221,16 @@ export function BuildingTypeSelector({
           Assam Type cannot be combined with RCC floors
         </p>
       )}
-      {hasRcc && !hasAssam && (
+      {hasRcc && !hasAssam && !rccOnly && (
         <p className="text-xs text-blue-600 dark:text-blue-400 bg-blue-500/10 border border-blue-500/20 rounded-lg px-3 py-2">
           Deselect all RCC floors to choose Assam Type
         </p>
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {BUILDING_TYPE_OPTIONS.map((type) => {
+        {BUILDING_TYPE_OPTIONS.filter(
+          (type) => !(rccOnly && type === ASSAM_BUILDING_TYPE),
+        ).map((type) => {
           const selected = value.includes(type);
           const isAssamOption = type === ASSAM_BUILDING_TYPE;
           const contiguousBlocked =
