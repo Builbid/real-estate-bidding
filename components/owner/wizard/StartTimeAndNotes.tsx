@@ -10,39 +10,45 @@ import {
 export const WIZARD_SECTION_LABEL =
   'text-xs font-semibold text-gray-800 dark:text-zinc-100 uppercase tracking-wider';
 
-export function StartTimeAndNotes({
+export function StartTimeAndNotes<T extends string = ProjectStartTimeType>({
   startTimeType,
-  specificDate,
+  specificDate = '',
   additionalRequirements,
   onStartTimeChange,
   onSpecificDateChange,
   onNotesChange,
   notesPlaceholder,
+  title = 'Project Starting Time',
+  options = PROJECT_START_TIME_OPTIONS as unknown as { value: T; label: string }[],
+  allowSpecificDate = true,
 }: {
-  startTimeType: ProjectStartTimeType | null;
-  specificDate: string;
+  startTimeType: T | null;
+  specificDate?: string;
   additionalRequirements: string;
-  onStartTimeChange: (value: ProjectStartTimeType) => void;
-  onSpecificDateChange: (value: string) => void;
+  onStartTimeChange: (value: T) => void;
+  onSpecificDateChange?: (value: string) => void;
   onNotesChange: (value: string) => void;
   notesPlaceholder?: string;
+  title?: string;
+  options?: { value: T; label: string }[];
+  allowSpecificDate?: boolean;
 }) {
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-1.5">
-        <label className={WIZARD_SECTION_LABEL}>Project Starting Time</label>
+        <label className={WIZARD_SECTION_LABEL}>{title}</label>
         <OptionSelectGrid
-          options={PROJECT_START_TIME_OPTIONS}
+          options={options}
           value={startTimeType}
           onSelect={onStartTimeChange}
           columns={2}
         />
-        {startTimeType === 'specific' && (
+        {allowSpecificDate && startTimeType === 'specific' && (
           <Input
             label="Specific Start Date"
             type="date"
             value={specificDate}
-            onChange={(e) => onSpecificDateChange(e.target.value)}
+            onChange={(e) => onSpecificDateChange?.(e.target.value)}
             className="mt-2"
           />
         )}

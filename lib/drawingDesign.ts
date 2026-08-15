@@ -7,7 +7,6 @@ import { RCC_BUILDING_TYPES } from './buildingConfig';
 import {
   formatProjectStartTime,
   isProjectStartTimeType,
-  validateProjectStartTime,
   type ProjectStartTimeType,
 } from './projectStartTime';
 import type { DrawingDesignType, ServiceType } from './types';
@@ -18,10 +17,10 @@ export type DrawingDesignPackage =
   | '2d_floor_plan_only'
   | '3d_front_elevation'
   | 'structural_drawings'
+  | 'municipal_approval'
+  /** Legacy options — no longer offered on new submissions. */
   | 'electrical_drawing'
   | 'plumbing_drawing'
-  | 'municipal_approval'
-  /** Legacy single-select option — no longer offered on new submissions. */
   | 'full_architectural';
 
 export type DrawingFloorPlan = 'G' | 'G+1' | 'G+2' | 'G+3' | 'G+4' | 'custom';
@@ -31,6 +30,32 @@ export type DrawingDeliverable =
   | 'printed_blueprints'
   | '3d_rendering_images'
   | 'autocad_dwg_revit';
+
+export type DrawingSubmissionTimeType = '3days' | '1week' | '2week' | '1month';
+
+export const DRAWING_SUBMISSION_TIME_OPTIONS: {
+  value: DrawingSubmissionTimeType;
+  label: string;
+}[] = [
+  { value: '3days', label: 'within 3 days' },
+  { value: '1week', label: 'within 1 week' },
+  { value: '2week', label: 'within 2 week' },
+  { value: '1month', label: 'within one month' },
+];
+
+const SUBMISSION_TIME_SET = new Set<DrawingSubmissionTimeType>(
+  DRAWING_SUBMISSION_TIME_OPTIONS.map((o) => o.value),
+);
+
+export function isDrawingSubmissionTimeType(
+  value: unknown,
+): value is DrawingSubmissionTimeType {
+  return typeof value === 'string' && SUBMISSION_TIME_SET.has(value as DrawingSubmissionTimeType);
+}
+
+export function formatDrawingSubmissionTime(type: DrawingSubmissionTimeType): string {
+  return DRAWING_SUBMISSION_TIME_OPTIONS.find((o) => o.value === type)?.label ?? type;
+}
 
 export interface DrawingDetails {
   /** Selected drawing packages (one or more). */
@@ -44,7 +69,9 @@ export interface DrawingDetails {
   deliverables: DrawingDeliverable[];
   /** Legacy field — no longer collected on new submissions. */
   projectAddress?: string | null;
-  projectStartTimeType: ProjectStartTimeType;
+  projectSubmissionTimeType?: DrawingSubmissionTimeType | null;
+  /** Legacy start-time field from older drawing submissions. */
+  projectStartTimeType?: ProjectStartTimeType | DrawingSubmissionTimeType;
   projectStartTimeSpecificDate?: string | null;
   additionalRequirements?: string | null;
 }
@@ -72,18 +99,6 @@ export const DRAWING_PACKAGE_OPTIONS: {
     label: 'Structural Drawings (Beam/Column)',
     emoji: '🏗️',
     description: 'Column, beam, footing and slab drawings',
-  },
-  {
-    value: 'electrical_drawing',
-    label: 'Electrical Drawing',
-    emoji: '⚡',
-    description: 'Wiring, points, DB and switchboard layout',
-  },
-  {
-    value: 'plumbing_drawing',
-    label: 'Plumbing Drawing',
-    emoji: '🔧',
-    description: 'Water supply, drainage and sanitary layout',
   },
   {
     value: 'municipal_approval',
@@ -122,6 +137,8 @@ export const DRAWING_PACKAGE_TO_TYPES: Record<DrawingDesignPackage, DrawingDesig
 const SELECTABLE_PACKAGE_SET = new Set(DRAWING_PACKAGE_OPTIONS.map((o) => o.value));
 const PACKAGE_SET = new Set<DrawingDesignPackage>([
   ...SELECTABLE_PACKAGE_SET,
+  'electrical_drawing',
+  'plumbing_drawing',
   'full_architectural',
 ]);
 const DELIVERABLE_SET = new Set(DRAWING_DELIVERABLE_OPTIONS.map((o) => o.value));
@@ -235,14 +252,22 @@ export function parseDrawingDetails(value: unknown): DrawingDetails | null {
   if (!floors || dimensions.length < 2 || deliverables.length === 0) {
     return null;
   }
-  if (!isProjectStartTimeType(v.projectStartTimeType)) return null;
+  const submissionTime =
+    (isDrawingSubmissionTimeType(v.projectSubmissionTimeType)
+      ? v.projectSubmissionTimeType
+      : null) ??
+    (isDrawingSubmissionTimeType(v.projectStartTimeType) ? v.projectStartTimeType : null);
+  const legacyStart = isProjectStartTimeType(v.projectStartTimeType)
+    ? v.projectStartTimeType
+    : null;
+  if (!submissionTime && !legacyStart) return null;
   const specific =
-    v.projectStartTimeType === 'specific' &&
+    legacyStart === 'specific' &&
     typeof v.projectStartTimeSpecificDate === 'string' &&
     /^\d{4}-\d{2}-\d{2}$/.test(v.projectStartTimeSpecificDate)
       ? v.projectStartTimeSpecificDate
       : null;
-  if (v.projectStartTimeType === 'specific' && !specific) return null;
+  if (legacyStart === 'specific' && !specific) return null;
   const additional =
     typeof v.additionalRequirements === 'string' && v.additionalRequirements.trim()
       ? v.additionalRequirements.trim()
@@ -256,7 +281,8 @@ export function parseDrawingDetails(value: unknown): DrawingDetails | null {
     plotAreaSqft: area,
     deliverables,
     projectAddress: address,
-    projectStartTimeType: v.projectStartTimeType,
+    projectSubmissionTimeType: submissionTime,
+    projectStartTimeType: submissionTime ?? legacyStart ?? undefined,
     projectStartTimeSpecificDate: specific,
     additionalRequirements: additional,
   };
@@ -288,11 +314,15 @@ export function getDrawingWorkRequirementBlocks(details: DrawingDetails): {
       .join(', '),
   });
   blocks.push({
-    label: 'Start Time',
-    value: formatProjectStartTime(
-      details.projectStartTimeType,
-      details.projectStartTimeSpecificDate,
-    ),
+    label: 'Project Submission Time',
+    value: details.projectSubmissionTimeType
+      ? formatDrawingSubmissionTime(details.projectSubmissionTimeType)
+      : details.projectStartTimeType && isProjectStartTimeType(details.projectStartTimeType)
+        ? formatProjectStartTime(
+            details.projectStartTimeType,
+            details.projectStartTimeSpecificDate,
+          )
+        : '—',
   });
   if (details.additionalRequirements) {
     blocks.push({
@@ -309,8 +339,7 @@ export function validateDrawingDetailsInput(input: {
   customFloors: string;
   plotDimensions: string;
   deliverables: DrawingDeliverable[];
-  projectStartTimeType: ProjectStartTimeType | null;
-  projectStartTimeSpecificDate: string;
+  projectSubmissionTimeType: DrawingSubmissionTimeType | null;
   additionalRequirements: string;
 }): { error: string } | { details: DrawingDetails } {
   const packages = parsePackages(input.packages).filter((value) =>
@@ -337,11 +366,9 @@ export function validateDrawingDetailsInput(input: {
   if (deliverables.length === 0) {
     return { error: 'Select at least one deliverable.' };
   }
-  const start = validateProjectStartTime({
-    projectStartTimeType: input.projectStartTimeType,
-    projectStartTimeSpecificDate: input.projectStartTimeSpecificDate,
-  });
-  if ('error' in start) return start;
+  if (!isDrawingSubmissionTimeType(input.projectSubmissionTimeType)) {
+    return { error: 'Select a project submission time.' };
+  }
 
   return {
     details: {
@@ -350,8 +377,9 @@ export function validateDrawingDetailsInput(input: {
       numberOfFloors: floors,
       plotDimensions: dimensions,
       deliverables,
-      projectStartTimeType: start.type,
-      projectStartTimeSpecificDate: start.specificDate,
+      projectSubmissionTimeType: input.projectSubmissionTimeType,
+      projectStartTimeType: input.projectSubmissionTimeType,
+      projectStartTimeSpecificDate: null,
       additionalRequirements: input.additionalRequirements.trim() || null,
     },
   };

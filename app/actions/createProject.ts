@@ -180,9 +180,10 @@ export async function createProjectAction(
     }
     if (
       drawing.drawing_details.projectStartTimeType === 'specific' &&
-      !drawing.drawing_details.projectStartTimeSpecificDate
+      !drawing.drawing_details.projectStartTimeSpecificDate &&
+      !drawing.drawing_details.projectSubmissionTimeType
     ) {
-      return { error: 'Select a specific project start date.' }
+      return { error: 'Select a project submission time.' }
     }
     insertPayload.drawing_details = drawing.drawing_details
   } else if (isTrade) {
