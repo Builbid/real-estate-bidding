@@ -616,6 +616,9 @@ export function LabourContractorProjectWizard() {
                         <span className="mt-0.5 block text-[10px] font-medium text-muted-foreground normal-case tracking-normal">
                           {cat.description}
                         </span>
+                        <span className="mt-1 block text-[10px] font-medium leading-snug text-muted-foreground/90 normal-case tracking-normal">
+                          {cat.note}
+                        </span>
                       </span>
                     </OptionCardButton>
                   ))}

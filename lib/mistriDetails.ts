@@ -440,16 +440,19 @@ export const MISTRI_ACTIVITY_CATEGORY_OPTIONS: {
   value: MistriActivityCategory;
   label: string;
   description: string;
+  note: string;
 }[] = [
   {
     value: 'major',
     label: 'Major activities',
     description: '1. Full Finished Structure  ·  2. Frame (Slab) only',
+    note: 'Structural work such as foundation, frame, and slab — the load-bearing core of the building.',
   },
   {
     value: 'minor',
     label: 'Minor activities',
     description: '1. Brick wall work  ·  2. Plastering  ·  3. Flooring',
+    note: 'Add-on finishing work such as walls, plaster, and tiles — not the building\'s structural frame.',
   },
 ];
 
