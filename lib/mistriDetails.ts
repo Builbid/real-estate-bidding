@@ -133,7 +133,13 @@ export type MistriPlasterScope = 'both' | 'exterior' | 'interior';
 export type MistriFlooringMaterial = 'tile' | 'marble' | 'granite';
 
 /** Assam Type roof structure choice on Work Requirements. */
-export type MistriAssamRoofType = 'steel_truss' | 'wood_truss';
+export type MistriAssamRoofType = 'steel_truss' | 'rcc_truss' | 'wood_truss';
+
+/** Assam Type roofing sheet material. */
+export type MistriAssamRoofingSheet =
+  | 'basic_gi_tin'
+  | 'colour_coated_metal'
+  | 'upvc';
 
 /** Per-floor work captured on new Mistri posts. */
 export interface MistriFloorWork {
@@ -149,8 +155,10 @@ export interface MistriFloorWork {
    * Tile / Marble / Granite flooring (beyond rough flooring in the package).
    */
   includeFineFlooring?: boolean | null;
-  /** Assam Type only — Steel Truss or Wood Truss. */
+  /** Assam Type only — Steel / RCC / Wood Truss. */
   assamRoofType?: MistriAssamRoofType | null;
+  /** Assam Type only — roofing sheet material. */
+  assamRoofingSheet?: MistriAssamRoofingSheet | null;
   /** Assam Type only — foundation depth in feet. */
   foundationDepthFt?: number | null;
 }
@@ -478,7 +486,20 @@ export const MISTRI_ASSAM_ROOF_OPTIONS: {
   label: string;
 }[] = [
   { value: 'steel_truss', label: 'Steel Truss' },
+  { value: 'rcc_truss', label: 'RCC Truss' },
   { value: 'wood_truss', label: 'Wood Truss' },
+];
+
+export const MISTRI_ASSAM_ROOFING_SHEET_OPTIONS: {
+  value: MistriAssamRoofingSheet;
+  label: string;
+}[] = [
+  { value: 'basic_gi_tin', label: 'Basic GI Tin sheet' },
+  {
+    value: 'colour_coated_metal',
+    label: 'Colour Coated Metal Profile Sheet (e.g. Tata Durashine, Jindal, JSW)',
+  },
+  { value: 'upvc', label: 'UPVC Roof Sheet' },
 ];
 
 export const MISTRI_ASSAM_FLOORING_MATERIAL_OPTIONS: {
@@ -604,6 +625,9 @@ const FLOORING_MATERIAL_SET = new Set<string>(
   MISTRI_FLOORING_MATERIAL_OPTIONS.map((o) => o.value),
 );
 const ASSAM_ROOF_SET = new Set<string>(MISTRI_ASSAM_ROOF_OPTIONS.map((o) => o.value));
+const ASSAM_ROOFING_SHEET_SET = new Set<string>(
+  MISTRI_ASSAM_ROOFING_SHEET_OPTIONS.map((o) => o.value),
+);
 const ASSAM_FLOORING_MATERIAL_SET = new Set<string>(
   MISTRI_ASSAM_FLOORING_MATERIAL_OPTIONS.map((o) => o.value),
 );
@@ -1268,6 +1292,7 @@ export function formatMistriFloorWorkTypes(
     flooringMaterial?: MistriFlooringMaterial | null;
     includeFineFlooring?: boolean | null;
     assamRoofType?: MistriAssamRoofType | null;
+    assamRoofingSheet?: MistriAssamRoofingSheet | null;
     foundationDepthFt?: number | null;
   },
 ): string {
@@ -1385,6 +1410,12 @@ function normalizeAssamRoofType(value: unknown): MistriAssamRoofType | null {
   return null;
 }
 
+function normalizeAssamRoofingSheet(value: unknown): MistriAssamRoofingSheet | null {
+  if (typeof value !== 'string') return null;
+  if (ASSAM_ROOFING_SHEET_SET.has(value)) return value as MistriAssamRoofingSheet;
+  return null;
+}
+
 function normalizeAssamFlooringMaterial(value: unknown): MistriFlooringMaterial | null {
   if (typeof value !== 'string') return null;
   if (ASSAM_FLOORING_MATERIAL_SET.has(value)) return value as MistriFlooringMaterial;
@@ -1464,9 +1495,11 @@ function normalizeSingleFloorWork(raw: unknown): MistriFloorWork | null {
   }
 
   let assamRoofType: MistriAssamRoofType | null = null;
+  let assamRoofingSheet: MistriAssamRoofingSheet | null = null;
   let foundationDepthFt: number | null = null;
   if (isAssamMistriFloor(floorId)) {
     assamRoofType = normalizeAssamRoofType(v.assamRoofType);
+    assamRoofingSheet = normalizeAssamRoofingSheet(v.assamRoofingSheet);
     foundationDepthFt = parseFoundationDepthFt(v.foundationDepthFt);
   }
 
@@ -1479,6 +1512,7 @@ function normalizeSingleFloorWork(raw: unknown): MistriFloorWork | null {
     flooringMaterial,
     includeFineFlooring,
     assamRoofType,
+    assamRoofingSheet,
     foundationDepthFt,
   };
 }
@@ -1924,8 +1958,14 @@ export function getMistriWorkRequirementBlocks(details: MistriDetails): {
     const assamWork = details.floorWork.find((fw) => isAssamMistriFloor(fw.floorId));
     if (assamWork?.assamRoofType) {
       blocks.push({
-        label: 'Roof Option',
+        label: 'Roof Truss Type',
         value: optionLabel(MISTRI_ASSAM_ROOF_OPTIONS, assamWork.assamRoofType),
+      });
+    }
+    if (assamWork?.assamRoofingSheet) {
+      blocks.push({
+        label: 'Roofing Sheet Material',
+        value: optionLabel(MISTRI_ASSAM_ROOFING_SHEET_OPTIONS, assamWork.assamRoofingSheet),
       });
     }
     if (assamWork?.foundationDepthFt != null && assamWork.foundationDepthFt > 0) {
@@ -2176,7 +2216,10 @@ export function validateMistriFloorWorkInput(input: {
         };
       }
       if (!fw.assamRoofType || !ASSAM_ROOF_SET.has(fw.assamRoofType)) {
-        return { error: 'Select roof option: Steel Truss or Wood Truss.' };
+        return { error: 'Select roof truss type: Steel Truss, RCC Truss, or Wood Truss.' };
+      }
+      if (!fw.assamRoofingSheet || !ASSAM_ROOFING_SHEET_SET.has(fw.assamRoofingSheet)) {
+        return { error: 'Select roofing sheet material for Assam Type.' };
       }
       if (fw.foundationDepthFt == null || fw.foundationDepthFt <= 0) {
         return { error: 'Enter foundation depth in feet for Assam Type.' };

@@ -27,6 +27,7 @@ import {
   MISTRI_ACTIVITY_CATEGORY_OPTIONS,
   MISTRI_ASSAM_FLOORING_MATERIAL_OPTIONS,
   MISTRI_ASSAM_ROOF_OPTIONS,
+  MISTRI_ASSAM_ROOFING_SHEET_OPTIONS,
   MISTRI_BRICKWORK_MATERIAL_OPTIONS,
   MISTRI_CONTRACT_TYPE_OPTIONS,
   MISTRI_CUSTOM_FLOOR_ID,
@@ -54,6 +55,7 @@ import {
   floorWorkOptionsForCategory,
   type MistriActivityCategory,
   type MistriAssamRoofType,
+  type MistriAssamRoofingSheet,
   type MistriBrickworkMaterial,
   type MistriContractType,
   type MistriFloorId,
@@ -82,6 +84,7 @@ interface FloorWorkForm {
   flooringMaterial: MistriFlooringMaterial | null;
   includeFineFlooring: boolean | null;
   assamRoofType: MistriAssamRoofType | null;
+  assamRoofingSheet: MistriAssamRoofingSheet | null;
   foundationDepthFt: string;
 }
 
@@ -92,6 +95,7 @@ const EMPTY_FLOOR_WORK: FloorWorkForm = {
   flooringMaterial: null,
   includeFineFlooring: null,
   assamRoofType: null,
+  assamRoofingSheet: null,
   foundationDepthFt: '',
 };
 
@@ -290,6 +294,7 @@ export function LabourContractorProjectWizard() {
           flooringMaterial: work.flooringMaterial,
           includeFineFlooring: work.includeFineFlooring,
           assamRoofType: isAssam ? work.assamRoofType : null,
+          assamRoofingSheet: isAssam ? work.assamRoofingSheet : null,
           foundationDepthFt: isAssam ? parseFoundationDepthFt(work.foundationDepthFt) : null,
         };
       }),
@@ -474,6 +479,7 @@ export function LabourContractorProjectWizard() {
                 : null,
             includeFineFlooring: hasFullFinished ? current.includeFineFlooring : null,
             assamRoofType: current.assamRoofType,
+            assamRoofingSheet: current.assamRoofingSheet,
             foundationDepthFt: current.foundationDepthFt,
           },
         },
@@ -786,7 +792,7 @@ export function LabourContractorProjectWizard() {
                 <h2 className="text-base font-semibold text-foreground">Work Requirements</h2>
                 <p className="text-xs font-medium text-gray-700 dark:text-zinc-300 mt-1">
                   {form.buildingTypes.includes(ASSAM_BUILDING_TYPE)
-                    ? 'Assam Type — full finished up to plastering is included. Choose roof type, flooring, and foundation depth.'
+                    ? 'Assam Type — full finished up to plastering is included. Choose roof truss, roofing sheet, flooring, and foundation depth.'
                     : form.activityCategory === 'major'
                       ? 'Major activities — for each floor pick Full Finished or Frame (Slab) only.'
                       : 'Minor activities — for each floor you can select brick wall, plastering, and flooring together.'}
@@ -836,7 +842,7 @@ export function LabourContractorProjectWizard() {
                       <p className="text-sm font-semibold text-foreground">{title}</p>
                       <p className={HELPER_TEXT}>
                         {isAssam
-                          ? 'Full finished up to plastering is included. Select roof, flooring, and foundation depth.'
+                          ? 'Full finished up to plastering is included. Select roof truss, roofing sheet, flooring, and foundation depth.'
                           : activityCategory === 'major'
                             ? 'Select one major activity for this floor.'
                             : 'Select one or more minor works for this floor. Brick, plastering, and flooring can all be combined.'}
@@ -855,11 +861,24 @@ export function LabourContractorProjectWizard() {
                         </div>
 
                         <NestedChoiceButtons
-                          question="Roof Option"
+                          question="Roof Truss Type"
                           options={MISTRI_ASSAM_ROOF_OPTIONS}
                           value={entry.assamRoofType}
                           onChange={(v) =>
                             patchFloorWork(fw.floorId, { assamRoofType: v }, fw.customFloorNumber)
+                          }
+                        />
+
+                        <NestedChoiceButtons
+                          question="Roofing Sheet Material"
+                          options={MISTRI_ASSAM_ROOFING_SHEET_OPTIONS}
+                          value={entry.assamRoofingSheet}
+                          onChange={(v) =>
+                            patchFloorWork(
+                              fw.floorId,
+                              { assamRoofingSheet: v },
+                              fw.customFloorNumber,
+                            )
                           }
                         />
 
