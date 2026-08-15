@@ -121,7 +121,8 @@ export interface ElectricianDetails extends TradeDetailsBase {
 export interface CarpenterDetails extends TradeDetailsBase {
   service: 'carpenter';
   scopeType: CarpenterScopeType;
-  woodType: CarpenterWoodType;
+  /** Legacy fields — no longer collected on new carpenter submissions. */
+  woodType?: CarpenterWoodType | null;
   approxAreaSqft?: number | null;
   doorWindowCount?: number | null;
 }
@@ -206,10 +207,15 @@ export const ELECTRICIAN_MATERIAL_OPTIONS: {
 export const CARPENTER_SCOPE_OPTIONS: { value: CarpenterScopeType; label: string }[] = [
   { value: 'door_window_frames', label: 'Door & Window Frames (Chowkhat)' },
   { value: 'modular_kitchen', label: 'Modular Kitchen' },
-  { value: 'wardrobes', label: 'Wardrobes & Cupboards' },
-  { value: 'roof_shuttering', label: 'Roof Shuttering (Concrete Formwork)' },
-  { value: 'furniture', label: 'Furniture Work' },
 ];
+
+const LEGACY_CARPENTER_SCOPE_LABELS: Record<CarpenterScopeType, string> = {
+  door_window_frames: 'Door & Window Frames (Chowkhat)',
+  modular_kitchen: 'Modular Kitchen',
+  wardrobes: 'Wardrobes & Cupboards',
+  roof_shuttering: 'Roof Shuttering (Concrete Formwork)',
+  furniture: 'Furniture Work',
+};
 
 export const CARPENTER_WOOD_OPTIONS: { value: CarpenterWoodType; label: string }[] = [
   { value: 'teak_sal', label: 'Teak / Sal Wood' },
@@ -261,7 +267,14 @@ const ELECTRICIAN_SCOPE_SET = new Set<ElectricianScopeType>([
 const ELECTRICIAN_POINT_SET = new Set(ELECTRICIAN_POINT_OPTIONS.map((o) => o.value));
 const ELECTRICIAN_APPLIANCE_SET = new Set(ELECTRICIAN_APPLIANCE_OPTIONS.map((o) => o.value));
 const ELECTRICIAN_MATERIAL_SET = new Set(ELECTRICIAN_MATERIAL_OPTIONS.map((o) => o.value));
-const CARPENTER_SCOPE_SET = new Set(CARPENTER_SCOPE_OPTIONS.map((o) => o.value));
+const CARPENTER_SCOPE_SET = new Set<CarpenterScopeType>([
+  'door_window_frames',
+  'modular_kitchen',
+  'wardrobes',
+  'roof_shuttering',
+  'furniture',
+]);
+const SELECTABLE_CARPENTER_SCOPE_SET = new Set(CARPENTER_SCOPE_OPTIONS.map((o) => o.value));
 const CARPENTER_WOOD_SET = new Set(CARPENTER_WOOD_OPTIONS.map((o) => o.value));
 const INTERIOR_SCOPE_SET = new Set(INTERIOR_SCOPE_OPTIONS.map((o) => o.value));
 const INTERIOR_SPACE_SET = new Set(INTERIOR_SPACE_OPTIONS.map((o) => o.value));
@@ -424,22 +437,23 @@ export function parseTradeDetails(value: unknown): TradeDetails | null {
   if (v.service === 'carpenter') {
     if (
       typeof v.scopeType !== 'string' ||
-      !CARPENTER_SCOPE_SET.has(v.scopeType as CarpenterScopeType) ||
-      typeof v.woodType !== 'string' ||
-      !CARPENTER_WOOD_SET.has(v.woodType as CarpenterWoodType)
+      !CARPENTER_SCOPE_SET.has(v.scopeType as CarpenterScopeType)
     ) {
       return null;
     }
+    const woodType =
+      typeof v.woodType === 'string' && CARPENTER_WOOD_SET.has(v.woodType as CarpenterWoodType)
+        ? (v.woodType as CarpenterWoodType)
+        : null;
     const area = v.approxAreaSqft == null ? null : parsePositiveNumber(v.approxAreaSqft);
     const count = v.doorWindowCount == null ? null : parseCount(v.doorWindowCount, 1, 200);
-    if (area == null && count == null) return null;
     return {
       service: 'carpenter',
       projectAddress: address,
       ...start,
       additionalRequirements: additional,
       scopeType: v.scopeType as CarpenterScopeType,
-      woodType: v.woodType as CarpenterWoodType,
+      woodType,
       approxAreaSqft: area,
       doorWindowCount: count,
     };
@@ -549,22 +563,10 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
       });
     }
   } else if (details.service === 'carpenter') {
-    blocks.push(
-      { label: 'Scope Type', value: optionLabel(CARPENTER_SCOPE_OPTIONS, details.scopeType) },
-      { label: 'Material / Wood Type', value: optionLabel(CARPENTER_WOOD_OPTIONS, details.woodType) },
-    );
-    if (details.approxAreaSqft != null) {
-      blocks.push({
-        label: 'Approx. Area',
-        value: `${details.approxAreaSqft.toLocaleString('en-IN')} Sq. Ft.`,
-      });
-    }
-    if (details.doorWindowCount != null) {
-      blocks.push({
-        label: 'Doors / Windows',
-        value: String(details.doorWindowCount),
-      });
-    }
+    blocks.push({
+      label: 'Scope Type',
+      value: LEGACY_CARPENTER_SCOPE_LABELS[details.scopeType],
+    });
   } else if (details.service === 'false_ceiling_work') {
     blocks.push(
       { label: 'Scope Type', value: optionLabel(INTERIOR_SCOPE_OPTIONS, details.scopeType) },
@@ -617,7 +619,7 @@ export function getTradeScopeLabel(details: TradeDetails): string {
     return LEGACY_ELECTRICIAN_SCOPE_LABELS[details.scopeType];
   }
   if (details.service === 'carpenter') {
-    return optionLabel(CARPENTER_SCOPE_OPTIONS, details.scopeType);
+    return LEGACY_CARPENTER_SCOPE_LABELS[details.scopeType];
   }
   if (details.service === 'false_ceiling_work') {
     return optionLabel(INTERIOR_SCOPE_OPTIONS, details.scopeType);
@@ -640,9 +642,6 @@ export interface TradeDetailsFormInput {
   heavyAppliances: ElectricianHeavyAppliance[];
   concealedWiring: boolean | null;
   carpenterScope: CarpenterScopeType | null;
-  woodType: CarpenterWoodType | null;
-  approxArea: string;
-  doorWindowCount: string;
   interiorScope: InteriorScopeType | null;
   targetSpaces: InteriorTargetSpace[];
   interiorArea: string;
@@ -708,25 +707,14 @@ export function validateTradeDetailsInput(
   }
 
   if (input.service === 'carpenter') {
-    if (!input.carpenterScope || !CARPENTER_SCOPE_SET.has(input.carpenterScope)) {
+    if (!input.carpenterScope || !SELECTABLE_CARPENTER_SCOPE_SET.has(input.carpenterScope)) {
       return { error: 'Select a carpentry scope type.' };
-    }
-    if (!input.woodType || !CARPENTER_WOOD_SET.has(input.woodType)) {
-      return { error: 'Select a material / wood type.' };
-    }
-    const area = parsePositiveNumber(input.approxArea);
-    const count = parseCount(input.doorWindowCount, 1, 200);
-    if (area == null && count == null) {
-      return { error: 'Enter an approximate area (Sq. Ft.) or the number of doors/windows.' };
     }
     return {
       details: {
         ...base,
         service: 'carpenter',
         scopeType: input.carpenterScope,
-        woodType: input.woodType,
-        approxAreaSqft: area,
-        doorWindowCount: count,
       },
     };
   }

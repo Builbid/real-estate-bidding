@@ -6,7 +6,6 @@ import { StartTimeAndNotes, WIZARD_SECTION_LABEL } from '@/components/owner/wiza
 import { StepperInput } from '@/components/owner/wizard/StepperInput';
 import {
   CARPENTER_SCOPE_OPTIONS,
-  CARPENTER_WOOD_OPTIONS,
   EARTHWORK_MACHINE_OPTIONS,
   EARTHWORK_TYPE_OPTIONS,
   ELECTRICIAN_APPLIANCE_OPTIONS,
@@ -16,7 +15,6 @@ import {
   INTERIOR_SPACE_OPTIONS,
   PLUMBER_SCOPE_OPTIONS,
   type CarpenterScopeType,
-  type CarpenterWoodType,
   type EarthworkMachine,
   type EarthworkType,
   type ElectricianHeavyAppliance,
@@ -40,9 +38,6 @@ export interface TradeWorkFormFields {
   heavyAppliances: ElectricianHeavyAppliance[];
   concealedWiring: boolean | null;
   carpenterScope: CarpenterScopeType | null;
-  woodType: CarpenterWoodType | null;
-  approxArea: string;
-  doorWindowCount: string;
   interiorScope: InteriorScopeType | null;
   targetSpaces: InteriorTargetSpace[];
   interiorArea: string;
@@ -158,43 +153,13 @@ export function TradeWorkRequirementsFields({
       )}
 
       {trade === 'carpenter' && (
-        <>
-          <FieldGroup label="Scope Type">
-            <OptionSelectGrid
-              options={CARPENTER_SCOPE_OPTIONS}
-              value={form.carpenterScope}
-              onSelect={(v) => onChange('carpenterScope', v)}
-            />
-          </FieldGroup>
-          <FieldGroup label="Material / Wood Type">
-            <OptionSelectGrid
-              options={CARPENTER_WOOD_OPTIONS}
-              value={form.woodType}
-              onSelect={(v) => onChange('woodType', v)}
-            />
-          </FieldGroup>
-          <Input
-            label="Approx. Area (Sq. Ft.)"
-            type="number"
-            inputMode="decimal"
-            min={1}
-            placeholder="e.g. 250"
-            value={form.approxArea}
-            onChange={(e) => onChange('approxArea', e.target.value)}
+        <FieldGroup label="Scope Type">
+          <OptionSelectGrid
+            options={CARPENTER_SCOPE_OPTIONS}
+            value={form.carpenterScope}
+            onSelect={(v) => onChange('carpenterScope', v)}
           />
-          <Input
-            label="Number of Doors / Windows"
-            type="number"
-            inputMode="numeric"
-            min={1}
-            placeholder="e.g. 8"
-            value={form.doorWindowCount}
-            onChange={(e) => onChange('doorWindowCount', e.target.value)}
-          />
-          <p className="text-[11px] font-medium text-gray-700 dark:text-zinc-300 -mt-3">
-            Enter area, quantity, or both so carpenters can bid accurately.
-          </p>
-        </>
+        </FieldGroup>
       )}
 
       {trade === 'false_ceiling_work' && (
