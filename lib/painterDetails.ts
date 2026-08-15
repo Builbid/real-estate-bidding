@@ -36,11 +36,14 @@ export interface PainterDetails {
   additionalRequirements?: string | null;
 }
 
-export const PAINTER_PRIMER_OPTIONS: PainterPrimerRequirement[] = [
-  'None',
-  '1 Coat',
-  '2 Coats',
-  '3 Coats',
+export const PAINTER_PRIMER_OPTIONS: {
+  value: PainterPrimerRequirement;
+  label: string;
+}[] = [
+  { value: 'None', label: 'No Primer' },
+  { value: '1 Coat', label: '1 Coat' },
+  { value: '2 Coats', label: '2 Coats' },
+  { value: '3 Coats', label: '3 Coats' },
 ];
 
 export const PAINTER_SCOPE_OPTIONS: {
@@ -97,7 +100,7 @@ const LEGACY_START_TIME_MAP: Record<LegacyPainterStartTimeType, PainterStartTime
   immediately: '1week',
 };
 
-const PRIMER_SET = new Set<string>(PAINTER_PRIMER_OPTIONS);
+const PRIMER_SET = new Set<string>(PAINTER_PRIMER_OPTIONS.map((o) => o.value));
 const SCOPE_SET = new Set<string>(PAINTER_SCOPE_OPTIONS.map((o) => o.value));
 const FINISH_SET = new Set<string>(PAINTER_FINISH_OPTIONS.map((o) => o.value));
 const SURFACE_SET = new Set<string>(PAINTER_SURFACE_OPTIONS.map((o) => o.value));
@@ -201,11 +204,11 @@ export function parsePainterDetails(value: unknown): PainterDetails | null {
 }
 
 export function formatPainterProjectArea(area: number): string {
-  return `${area.toLocaleString('en-IN')} SQ.FT.`;
+  return `Approx. ${area.toLocaleString('en-IN')} Sq. Ft.`;
 }
 
 export function formatPainterPrimer(primer: PainterPrimerRequirement): string {
-  return primer.toUpperCase();
+  return optionLabel(PAINTER_PRIMER_OPTIONS, primer);
 }
 
 export function formatPainterMaterials(materialsIncludeClient: boolean): string {
@@ -232,7 +235,7 @@ export function getPainterWorkRequirementBlocks(details: PainterDetails): {
   value: string;
 }[] {
   const blocks: { label: string; value: string }[] = [
-    { label: 'Project Area', value: formatPainterProjectArea(details.projectArea) },
+    { label: 'Approximate Paint Area', value: formatPainterProjectArea(details.projectArea) },
   ];
 
   if (details.paintingScope) {

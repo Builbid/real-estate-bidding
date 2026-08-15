@@ -489,12 +489,12 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
               {isPainter && (
                 <div className="space-y-4 rounded-xl border border-border/70 bg-secondary/20 p-4">
                   <Input
-                    label="Project Area (sq.ft.)"
+                    label="Approximate Paint Area"
                     type="number"
                     inputMode="decimal"
                     min={1}
                     step="1"
-                    placeholder="e.g. 1200"
+                    placeholder="e.g. Approx. 1500 Sq. Ft."
                     value={form.projectArea}
                     onChange={(e) => {
                       update('projectArea', e.target.value);
@@ -533,27 +533,16 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                     }}
                   />
 
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-semibold text-gray-800 dark:text-zinc-100 uppercase tracking-wider">
-                      Primer Requirement
-                    </label>
-                    <Select
-                      value={form.primerRequirement || undefined}
-                      onValueChange={(v) => {
-                        update('primerRequirement', v as PainterPrimerRequirement);
-                        setStep2Error(null);
-                      }}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select primer coats" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {PAINTER_PRIMER_OPTIONS.map((opt) => (
-                          <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <PainterChoice
+                    label="Primer Requirement"
+                    options={PAINTER_PRIMER_OPTIONS}
+                    value={form.primerRequirement || null}
+                    onChange={(v) => {
+                      update('primerRequirement', v);
+                      setStep2Error(null);
+                    }}
+                    columns={3}
+                  />
 
                   <PainterChoice
                     label="Paint Topcoats"
