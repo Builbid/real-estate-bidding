@@ -371,7 +371,7 @@ export const MISTRI_FUTURE_FLOOR_OPTIONS: {
   value: MistriFutureFloorOption;
   label: string;
 }[] = [
-  { value: 'same', label: 'Same as current project' },
+  { value: 'same', label: 'Same as current build (minimum required)' },
   { value: 'G+1', label: 'G+1 (Ground + 1 Floor)' },
   { value: 'G+2', label: 'G+2 (Ground + 2 Floors)' },
   { value: 'G+3', label: 'G+3 (Ground + 3 Floors)' },
@@ -554,7 +554,7 @@ export const CUSTOM_FLOOR_PLAN_INVALID_MESSAGE =
   'Please enter an accurate floor plan value.';
 
 export const FOUNDATION_CAPACITY_INVALID_MESSAGE =
-  'Future foundation plan must be equal to or greater than current build floors.';
+  'Foundation provision must be for the highest floor you are building, or above (e.g. up to 4th floor → 4th floor capacity or higher).';
 
 export const MAJOR_FLOOR_SEQUENCE_INVALID_MESSAGE =
   'For major activities, selected floors must be consecutive with no gaps. Ground + 3rd is invalid without 1st and 2nd. Selecting only 3rd + 4th is fine for an existing building.';
@@ -1207,19 +1207,19 @@ export function getMistriFrameSkeletonIncludes(floorId: MistriFloorId): string {
   return 'Includes column, beam and slab (frame / slab only).';
 }
 
+/**
+ * RCC major work needs an explicit foundation capacity (highest build floor or above).
+ * Assam Type uses foundationDepthFt instead.
+ */
 export function mistriFoundationProvisionRequired(
   floorWork: readonly MistriFloorWork[],
 ): boolean {
   return floorWork.some((fw) => {
-    // Assam uses foundationDepthFt instead of future RCC floor capacity.
-    if (fw.floorId === ASSAM_BUILDING_TYPE) return false;
-    if (fw.floorId === 'RCC Ground Floor') {
-      return (
-        fw.workTypes.includes('full_finished') ||
-        fw.workTypes.includes('frame_skeleton')
-      );
-    }
-    return false;
+    if (isAssamMistriFloor(fw.floorId)) return false;
+    return (
+      fw.workTypes.includes('full_finished') ||
+      fw.workTypes.includes('frame_skeleton')
+    );
   });
 }
 
@@ -1915,7 +1915,7 @@ export function getMistriWorkRequirementBlocks(details: MistriDetails): {
 
     if (mistriFoundationProvisionRequired(details.floorWork) && details.futureFloorPlan) {
       blocks.push({
-        label: 'Future Foundation Expansion',
+        label: 'Foundation Provision For',
         value: formatMistriFloorPlan(details.futureFloorPlan),
       });
     }
@@ -2008,7 +2008,7 @@ export function getMistriWorkRequirementBlocks(details: MistriDetails): {
       value: formatMistriFloorPlan(details.currentFloorPlan),
     });
     blocks.push({
-      label: 'Future Foundation Expansion',
+      label: 'Foundation Provision For',
       value: formatMistriFloorPlan(details.futureFloorPlan),
     });
   } else if (details.floorLevel) {
@@ -2226,7 +2226,7 @@ export function validateMistriFloorWorkInput(input: {
       ) {
         return { error: CUSTOM_FLOOR_PLAN_INVALID_MESSAGE };
       }
-      return { error: 'Select your future expansion plan for the foundation.' };
+      return { error: 'Select foundation provision for (highest floor capacity or above).' };
     }
     futureFloorPlan = futureResolved.value;
     const currentN = floorPlanUpperCount(currentFloorPlan);
@@ -2401,7 +2401,7 @@ export function validateMistriDetailsInput(input: {
       ) {
         return { error: CUSTOM_FLOOR_PLAN_INVALID_MESSAGE };
       }
-      return { error: 'Select your future expansion plan for the foundation.' };
+      return { error: 'Select foundation provision for (highest floor capacity or above).' };
     }
 
     currentFloorPlan = currentResolved.value;

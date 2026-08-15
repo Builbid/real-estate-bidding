@@ -275,6 +275,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                     'rounded-lg border border-border/70 bg-muted/20 px-3 py-2.5',
                     (block.label === 'Current Build Floors' ||
                       block.label === 'Future Foundation Expansion' ||
+                      block.label === 'Foundation Provision For' ||
                       block.label === 'Current Construction Scope (This Bid)' ||
                       block.label === 'Foundation Engineering Load Capacity' ||
                       block.label === 'Current Construction' ||

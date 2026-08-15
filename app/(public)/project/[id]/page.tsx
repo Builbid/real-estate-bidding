@@ -291,6 +291,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                           block.label === 'Civil Work Type' ||
                           block.label === 'Current Build Floors' ||
                           block.label === 'Future Foundation Expansion' ||
+                          block.label === 'Foundation Provision For' ||
                           block.label === 'Current Construction Scope (This Bid)' ||
                           block.label === 'Foundation Engineering Load Capacity' ||
                           block.label === 'Current Construction' ||

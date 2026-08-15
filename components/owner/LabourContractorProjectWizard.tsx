@@ -339,6 +339,7 @@ export function LabourContractorProjectWizard() {
     district: districtSelection?.district ?? form.location,
     activityCategory: form.activityCategory,
     floorWork: assembledFloorWork,
+    buildingTypes: form.buildingTypes,
   });
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
@@ -594,6 +595,7 @@ export function LabourContractorProjectWizard() {
       district: districtSelection.district,
       activityCategory: form.activityCategory,
       floorWork: validated.details.floorWork,
+      buildingTypes: form.buildingTypes,
     });
 
     const result = await createProjectAction({
@@ -1072,11 +1074,11 @@ export function LabourContractorProjectWizard() {
                   <div className="rounded-lg border border-border/80 bg-muted/20 p-3 space-y-2">
                     <div className="space-y-1">
                       <p className="text-xs font-semibold text-gray-900 dark:text-zinc-100">
-                        What is your future expansion plan for the foundation?
+                        Foundation provision for
                       </p>
                       <p className={HELPER_TEXT}>
-                        Select the total floor capacity the foundation and columns must be engineered
-                        to support for future building additions.
+                        Choose the floor capacity the foundation and columns must support. If you are
+                        constructing up to the 4th floor, provision must be for 4th floor or above.
                       </p>
                     </div>
                     <Select
@@ -1088,7 +1090,7 @@ export function LabourContractorProjectWizard() {
                       }}
                     >
                       <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select future foundation capacity" />
+                        <SelectValue placeholder="Select foundation provision (floor capacity)" />
                       </SelectTrigger>
                       <SelectContent>
                         {MISTRI_FUTURE_FLOOR_OPTIONS.map((opt) => {
@@ -1141,9 +1143,8 @@ export function LabourContractorProjectWizard() {
                   )}
 
                   <p className={cn(HELPER_TEXT, 'border-l-2 border-amber-500/50 pl-2.5')}>
-                    * Note: Designing for higher future floor capacity requires stronger foundations,
-                    thicker columns, and more steel reinforcement today, directly affecting labor and
-                    material costs.
+                    * Note: Higher foundation provision needs stronger foundations, thicker columns,
+                    and more steel today — this affects labor and material costs.
                   </p>
                 </div>
               )}

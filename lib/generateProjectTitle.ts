@@ -4,8 +4,10 @@
 // ============================================================
 
 import type { BuildingType } from '@/lib/buildingConfig';
+import { ASSAM_BUILDING_TYPE } from '@/lib/buildingConfig';
 import {
   getMistriActivityCategory,
+  isAssamMistriFloor,
   type MistriActivityCategory,
   type MistriCivilWorkType,
   type MistriFloorWork,
@@ -61,14 +63,36 @@ function inferActivityCategoryFromCivilWork(
   return null;
 }
 
-function mistriActivityPhrase(category: MistriActivityCategory): string {
-  return category === 'major'
-    ? 'major construction activities'
-    : 'minor finishing activities';
+function isAssamMistriTitle(input: GenerateProjectTitleInput): boolean {
+  if (input.floorWork?.some((fw) => isAssamMistriFloor(fw.floorId))) return true;
+  if (input.buildingTypes?.includes(ASSAM_BUILDING_TYPE)) return true;
+  return false;
+}
+
+function mistriConstructionPhrase(input: GenerateProjectTitleInput): string | null {
+  const isAssam = isAssamMistriTitle(input);
+  const category =
+    input.activityCategory ??
+    inferActivityCategoryFromFloorWork(input.floorWork) ??
+    inferActivityCategoryFromCivilWork(input.civilWorkTypes);
+
+  if (isAssam) {
+    return 'Assam type House construction';
+  }
+
+  if (category === 'minor') {
+    return 'RCC minor finishing activities';
+  }
+
+  if (category === 'major' || input.floorWork?.length || input.buildingTypes?.length) {
+    return 'RCC House construction';
+  }
+
+  return null;
 }
 
 /**
- * Build auction title: profession + activity type + location (sentence form).
+ * Build auction title: profession + construction type + location (sentence form).
  * Does not include floor-wise work detail.
  */
 export function generateProjectTitle(input: GenerateProjectTitleInput): string {
@@ -76,13 +100,9 @@ export function generateProjectTitle(input: GenerateProjectTitleInput): string {
   const profession = getServiceCategoryLabel(input.serviceType);
 
   if (input.serviceType === 'labour_contractor') {
-    const category =
-      input.activityCategory ??
-      inferActivityCategoryFromFloorWork(input.floorWork) ??
-      inferActivityCategoryFromCivilWork(input.civilWorkTypes);
-
-    if (category) {
-      return `${profession} needed for ${mistriActivityPhrase(category)} in ${district}`;
+    const phrase = mistriConstructionPhrase(input);
+    if (phrase) {
+      return `${profession} needed for ${phrase} in ${district}`;
     }
     return `${profession} needed in ${district}`;
   }
