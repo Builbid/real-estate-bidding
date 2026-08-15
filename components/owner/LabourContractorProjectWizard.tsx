@@ -861,16 +861,6 @@ export function LabourContractorProjectWizard() {
                 </div>
               )}
 
-              {form.houseType === 'assam' && form.activityCategory && (
-                <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-3 py-2.5 space-y-1">
-                  <p className="text-xs font-semibold text-foreground">Building type</p>
-                  <p className={HELPER_TEXT}>
-                    Assam Type is already selected as the house type. No RCC floor selection is
-                    needed.
-                  </p>
-                </div>
-              )}
-
               {form.houseType === 'rcc' && form.activityCategory && (
                 <div className="flex flex-col gap-1.5">
                   <label className={SECTION_LABEL}>Building / Floor Type</label>
