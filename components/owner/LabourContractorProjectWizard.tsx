@@ -24,6 +24,7 @@ import {
   CUSTOM_FLOOR_NUMBER_INVALID_MESSAGE,
   CUSTOM_FLOOR_PLAN_INVALID_MESSAGE,
   FOUNDATION_CAPACITY_INVALID_MESSAGE,
+  MISTRI_ACTIVITY_CATEGORY_OPTIONS,
   MISTRI_BRICKWORK_MATERIAL_OPTIONS,
   MISTRI_CONTRACT_TYPE_OPTIONS,
   MISTRI_CUSTOM_FLOOR_ID,
@@ -35,6 +36,7 @@ import {
   currentFloorPlanFromFloorWork,
   floorPlanUpperCount,
   formatMistriFloorWorkLabel,
+  getMistriActivityCategory,
   getMistriFrameSkeletonIncludes,
   getMistriFullFinishedIncludes,
   getMistriWorkRequirementBlocks,
@@ -46,7 +48,8 @@ import {
   sortMistriFloorWork,
   validateMistriFloorWorkInput,
   visibleMistriFloorWorkTypes,
-  floorWorkOptionsForFloor,
+  floorWorkOptionsForCategory,
+  type MistriActivityCategory,
   type MistriBrickworkMaterial,
   type MistriContractType,
   type MistriFloorId,
@@ -70,6 +73,7 @@ const HELPER_TEXT =
   'text-[11px] font-medium text-gray-700 dark:text-zinc-300 leading-relaxed';
 
 interface FloorWorkForm {
+  activityCategory: MistriActivityCategory | null;
   workTypes: MistriFloorWorkType[];
   brickMaterial: MistriBrickworkMaterial | null;
   plasterScope: MistriPlasterScope | null;
@@ -77,6 +81,7 @@ interface FloorWorkForm {
 }
 
 const EMPTY_FLOOR_WORK: FloorWorkForm = {
+  activityCategory: null,
   workTypes: [],
   brickMaterial: null,
   plasterScope: null,
@@ -324,16 +329,46 @@ export function LabourContractorProjectWizard() {
     setStep2Error(null);
   }
 
-  function toggleFloorWorkType(floorId: MistriFloorId, workType: MistriFloorWorkType) {
+  function setFloorActivityCategory(
+    floorId: MistriFloorId,
+    category: MistriActivityCategory,
+  ) {
     setForm((f) => {
       const key = floorWorkKey(floorId);
       const current = f.floorWorkById[key] ?? EMPTY_FLOOR_WORK;
-      const workTypes = applyMistriFloorWorkSelection(current.workTypes, workType);
+      if (current.activityCategory === category) {
+        return f;
+      }
       return {
         ...f,
         floorWorkById: {
           ...f.floorWorkById,
           [key]: {
+            activityCategory: category,
+            workTypes: [],
+            brickMaterial: null,
+            plasterScope: null,
+            flooringMaterial: null,
+          },
+        },
+      };
+    });
+    setStep2Error(null);
+  }
+
+  function toggleFloorWorkType(floorId: MistriFloorId, workType: MistriFloorWorkType) {
+    setForm((f) => {
+      const key = floorWorkKey(floorId);
+      const current = f.floorWorkById[key] ?? EMPTY_FLOOR_WORK;
+      const workTypes = applyMistriFloorWorkSelection(current.workTypes, workType);
+      const activityCategory =
+        current.activityCategory ?? getMistriActivityCategory(workTypes);
+      return {
+        ...f,
+        floorWorkById: {
+          ...f.floorWorkById,
+          [key]: {
+            activityCategory,
             workTypes,
             brickMaterial: workTypes.includes('brick_aac') ? current.brickMaterial : null,
             plasterScope: workTypes.includes('plastering') ? current.plasterScope : null,
@@ -598,7 +633,8 @@ export function LabourContractorProjectWizard() {
               <div>
                 <h2 className="text-base font-semibold text-foreground">Work Requirements</h2>
                 <p className="text-xs font-medium text-gray-700 dark:text-zinc-300 mt-1">
-                  Choose the work type for each selected floor. Options that cannot be combined are removed after you pick one.
+                  For each floor, choose Major or Minor activities, then pick the specific work
+                  type.
                 </p>
               </div>
 
@@ -612,10 +648,17 @@ export function LabourContractorProjectWizard() {
               {assembledFloorWork.map((fw) => {
                 const key = floorWorkKey(fw.floorId);
                 const entry = form.floorWorkById[key] ?? EMPTY_FLOOR_WORK;
-                const visible = visibleMistriFloorWorkTypes(entry.workTypes, fw.floorId);
-                const options = floorWorkOptionsForFloor(fw.floorId).filter((opt) =>
-                  visible.includes(opt.value),
-                );
+                const activityCategory =
+                  entry.activityCategory ?? getMistriActivityCategory(entry.workTypes);
+                const options = activityCategory
+                  ? floorWorkOptionsForCategory(fw.floorId, activityCategory).filter((opt) =>
+                      visibleMistriFloorWorkTypes(
+                        entry.workTypes,
+                        fw.floorId,
+                        activityCategory,
+                      ).includes(opt.value),
+                    )
+                  : [];
                 const title = formatMistriFloorWorkLabel(fw);
 
                 return (
@@ -626,66 +669,97 @@ export function LabourContractorProjectWizard() {
                     <div className="space-y-1">
                       <p className="text-sm font-semibold text-foreground">{title}</p>
                       <p className={HELPER_TEXT}>
-                        Select one work type for this floor. Brick / AAC can be combined with plastering.
+                        Start with Major or Minor activities for this floor.
                       </p>
                     </div>
+
                     <div className="grid grid-cols-1 gap-2">
-                      {options.map((opt) => {
-                        const selected = entry.workTypes.includes(opt.value);
-                        return (
-                          <div key={opt.value} className="space-y-2">
-                            <OptionCardButton
-                              selected={selected}
-                              onClick={() => toggleFloorWorkType(fw.floorId, opt.value)}
-                            >
-                              {opt.label}
-                            </OptionCardButton>
-                            {opt.value === 'full_finished' && selected && (
-                              <p className={cn('px-1', HELPER_TEXT)}>
-                                {getMistriFullFinishedIncludes(fw.floorId)}
-                              </p>
-                            )}
-                            {opt.value === 'frame_skeleton' && selected && (
-                              <p className={cn('px-1', HELPER_TEXT)}>
-                                {getMistriFrameSkeletonIncludes(fw.floorId)}
-                              </p>
-                            )}
-                            {opt.value === 'brick_aac' && selected && (
-                              <div className="ml-2 space-y-3 rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-2.5">
-                                <NestedChoiceButtons
-                                  question="What type of wall material will be used?"
-                                  options={MISTRI_BRICKWORK_MATERIAL_OPTIONS}
-                                  value={entry.brickMaterial}
-                                  onChange={(v) => patchFloorWork(fw.floorId, { brickMaterial: v })}
-                                />
-                              </div>
-                            )}
-                            {opt.value === 'plastering' && selected && (
-                              <div className="ml-2 space-y-3 rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-2.5">
-                                <NestedChoiceButtons
-                                  question="Which plastering do you need?"
-                                  options={MISTRI_PLASTER_SCOPE_OPTIONS}
-                                  value={entry.plasterScope}
-                                  onChange={(v) => patchFloorWork(fw.floorId, { plasterScope: v })}
-                                />
-                              </div>
-                            )}
-                            {opt.value === 'flooring' && selected && (
-                              <div className="ml-2 space-y-3 rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-2.5">
-                                <NestedChoiceButtons
-                                  question="What flooring material will be used?"
-                                  options={MISTRI_FLOORING_MATERIAL_OPTIONS}
-                                  value={entry.flooringMaterial}
-                                  onChange={(v) =>
-                                    patchFloorWork(fw.floorId, { flooringMaterial: v })
-                                  }
-                                />
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
+                      {MISTRI_ACTIVITY_CATEGORY_OPTIONS.map((cat) => (
+                        <OptionCardButton
+                          key={cat.value}
+                          selected={activityCategory === cat.value}
+                          onClick={() => setFloorActivityCategory(fw.floorId, cat.value)}
+                        >
+                          <span className="block">
+                            <span className="block">{cat.label}</span>
+                            <span className="mt-0.5 block text-[10px] font-medium text-muted-foreground normal-case tracking-normal">
+                              {cat.description}
+                            </span>
+                          </span>
+                        </OptionCardButton>
+                      ))}
                     </div>
+
+                    {activityCategory && (
+                      <div className="space-y-2 rounded-lg border border-border/60 bg-card/40 p-2.5">
+                        <p className={HELPER_TEXT}>
+                          {activityCategory === 'major'
+                            ? 'Select one major activity (Full finished or Frame only).'
+                            : 'Select minor work. Brick and plastering can be combined; flooring is separate.'}
+                        </p>
+                        <div className="grid grid-cols-1 gap-2">
+                          {options.map((opt) => {
+                            const selected = entry.workTypes.includes(opt.value);
+                            return (
+                              <div key={opt.value} className="space-y-2">
+                                <OptionCardButton
+                                  selected={selected}
+                                  onClick={() => toggleFloorWorkType(fw.floorId, opt.value)}
+                                >
+                                  {opt.label}
+                                </OptionCardButton>
+                                {opt.value === 'full_finished' && selected && (
+                                  <p className={cn('px-1', HELPER_TEXT)}>
+                                    {getMistriFullFinishedIncludes(fw.floorId)}
+                                  </p>
+                                )}
+                                {opt.value === 'frame_skeleton' && selected && (
+                                  <p className={cn('px-1', HELPER_TEXT)}>
+                                    {getMistriFrameSkeletonIncludes(fw.floorId)}
+                                  </p>
+                                )}
+                                {opt.value === 'brick_aac' && selected && (
+                                  <div className="ml-2 space-y-3 rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-2.5">
+                                    <NestedChoiceButtons
+                                      question="What type of wall material will be used?"
+                                      options={MISTRI_BRICKWORK_MATERIAL_OPTIONS}
+                                      value={entry.brickMaterial}
+                                      onChange={(v) =>
+                                        patchFloorWork(fw.floorId, { brickMaterial: v })
+                                      }
+                                    />
+                                  </div>
+                                )}
+                                {opt.value === 'plastering' && selected && (
+                                  <div className="ml-2 space-y-3 rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-2.5">
+                                    <NestedChoiceButtons
+                                      question="Which plastering do you need?"
+                                      options={MISTRI_PLASTER_SCOPE_OPTIONS}
+                                      value={entry.plasterScope}
+                                      onChange={(v) =>
+                                        patchFloorWork(fw.floorId, { plasterScope: v })
+                                      }
+                                    />
+                                  </div>
+                                )}
+                                {opt.value === 'flooring' && selected && (
+                                  <div className="ml-2 space-y-3 rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-2.5">
+                                    <NestedChoiceButtons
+                                      question="What flooring material will be used?"
+                                      options={MISTRI_FLOORING_MATERIAL_OPTIONS}
+                                      value={entry.flooringMaterial}
+                                      onChange={(v) =>
+                                        patchFloorWork(fw.floorId, { flooringMaterial: v })
+                                      }
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })}

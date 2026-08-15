@@ -96,6 +96,37 @@ export type MistriFloorWorkType =
   | 'plastering'
   | 'flooring';
 
+/** Top-level activity bucket on the Work Requirements step. */
+export type MistriActivityCategory = 'major' | 'minor';
+
+const MAJOR_FLOOR_WORK_TYPES: readonly MistriFloorWorkType[] = [
+  'full_finished',
+  'frame_skeleton',
+];
+
+const MINOR_FLOOR_WORK_TYPES: readonly MistriFloorWorkType[] = [
+  'brick_aac',
+  'plastering',
+  'flooring',
+];
+
+export function isMajorFloorWorkType(value: MistriFloorWorkType): boolean {
+  return (MAJOR_FLOOR_WORK_TYPES as readonly string[]).includes(value);
+}
+
+export function isMinorFloorWorkType(value: MistriFloorWorkType): boolean {
+  return (MINOR_FLOOR_WORK_TYPES as readonly string[]).includes(value);
+}
+
+/** Infer category from current work types (null when nothing selected yet). */
+export function getMistriActivityCategory(
+  workTypes: readonly MistriFloorWorkType[],
+): MistriActivityCategory | null {
+  if (workTypes.some(isMajorFloorWorkType)) return 'major';
+  if (workTypes.some(isMinorFloorWorkType)) return 'minor';
+  return null;
+}
+
 /** Plaster scope nested under Brick/AAC or standalone plastering. */
 export type MistriPlasterScope = 'both' | 'exterior' | 'interior';
 
@@ -405,25 +436,53 @@ export const MISTRI_CUSTOM_FLOOR_ID = 'custom' as const;
 export const MIN_CUSTOM_RCC_FLOOR = 5;
 export const MAX_CUSTOM_RCC_FLOOR = 50;
 
+export const MISTRI_ACTIVITY_CATEGORY_OPTIONS: {
+  value: MistriActivityCategory;
+  label: string;
+  description: string;
+}[] = [
+  {
+    value: 'major',
+    label: 'Major activities',
+    description: 'Full finished structure or frame (slab) only — pick one.',
+  },
+  {
+    value: 'minor',
+    label: 'Minor activities',
+    description: 'Brick wall, plastering, or flooring work.',
+  },
+];
+
 export const MISTRI_RCC_FLOOR_WORK_OPTIONS: {
   value: MistriFloorWorkType;
   label: string;
+  category: MistriActivityCategory;
 }[] = [
-  { value: 'full_finished', label: 'Full Finished Structure' },
-  { value: 'frame_skeleton', label: 'Frame (Skeleton) only' },
-  { value: 'brick_aac', label: 'Brick / AAC wall' },
-  { value: 'plastering', label: 'Plastering work' },
-  { value: 'flooring', label: 'Flooring work (Tile / Marble / Granite)' },
+  { value: 'full_finished', label: 'Full Finished Structure', category: 'major' },
+  { value: 'frame_skeleton', label: 'Frame (Slab) only', category: 'major' },
+  { value: 'brick_aac', label: 'Brick / AAC wall', category: 'minor' },
+  { value: 'plastering', label: 'Plastering work', category: 'minor' },
+  {
+    value: 'flooring',
+    label: 'Flooring work (Tile / Marble / Granite)',
+    category: 'minor',
+  },
 ];
 
 export const MISTRI_ASSAM_FLOOR_WORK_OPTIONS: {
   value: MistriFloorWorkType;
   label: string;
+  category: MistriActivityCategory;
 }[] = [
-  { value: 'full_finished', label: 'Full finished work' },
-  { value: 'brick_aac', label: 'Brick / AAC wall' },
-  { value: 'plastering', label: 'Plastering work' },
-  { value: 'flooring', label: 'Flooring work (Tile / Marble / Granite)' },
+  { value: 'full_finished', label: 'Full Finished Structure', category: 'major' },
+  { value: 'frame_skeleton', label: 'Frame (Slab) only', category: 'major' },
+  { value: 'brick_aac', label: 'Brick / AAC wall', category: 'minor' },
+  { value: 'plastering', label: 'Plastering work', category: 'minor' },
+  {
+    value: 'flooring',
+    label: 'Flooring work (Tile / Marble / Granite)',
+    category: 'minor',
+  },
 ];
 
 export const MISTRI_PLASTER_SCOPE_OPTIONS: {
@@ -927,12 +986,23 @@ export function sortMistriFloorWork<T extends Pick<MistriFloorWork, 'floorId' | 
 
 export function floorWorkOptionsForFloor(
   floorId: MistriFloorId,
-): { value: MistriFloorWorkType; label: string }[] {
+): { value: MistriFloorWorkType; label: string; category: MistriActivityCategory }[] {
   return isAssamMistriFloor(floorId)
     ? MISTRI_ASSAM_FLOOR_WORK_OPTIONS
     : MISTRI_RCC_FLOOR_WORK_OPTIONS;
 }
 
+export function floorWorkOptionsForCategory(
+  floorId: MistriFloorId,
+  category: MistriActivityCategory,
+): { value: MistriFloorWorkType; label: string; category: MistriActivityCategory }[] {
+  return floorWorkOptionsForFloor(floorId).filter((o) => o.category === category);
+}
+
+/**
+ * Major: Full finished ↔ Frame (slab) are mutually exclusive (single select).
+ * Minor: flooring is exclusive; brick + plastering may be combined.
+ */
 export function applyMistriFloorWorkSelection(
   current: readonly MistriFloorWorkType[],
   next: MistriFloorWorkType,
@@ -940,8 +1010,11 @@ export function applyMistriFloorWorkSelection(
   if (current.includes(next)) {
     return current.filter((t) => t !== next);
   }
-  if (next === 'full_finished' || next === 'frame_skeleton' || next === 'flooring') {
+  if (next === 'full_finished' || next === 'frame_skeleton') {
     return [next];
+  }
+  if (next === 'flooring') {
+    return ['flooring'];
   }
   if (next === 'brick_aac') {
     return [...current.filter((t) => t === 'plastering'), 'brick_aac'];
@@ -952,16 +1025,18 @@ export function applyMistriFloorWorkSelection(
   return [next];
 }
 
+/**
+ * Work-type cards shown after Major/Minor is chosen.
+ * Always lists the full category set; mutex is enforced on select.
+ */
 export function visibleMistriFloorWorkTypes(
   current: readonly MistriFloorWorkType[],
   floorId: MistriFloorId,
+  category?: MistriActivityCategory | null,
 ): MistriFloorWorkType[] {
-  const all = floorWorkOptionsForFloor(floorId).map((o) => o.value);
-  if (current.length === 0) return all;
-  if (current.includes('full_finished')) return ['full_finished'];
-  if (current.includes('frame_skeleton')) return ['frame_skeleton'];
-  if (current.includes('flooring')) return ['flooring'];
-  return all.filter((t) => t === 'brick_aac' || t === 'plastering');
+  const active = category ?? getMistriActivityCategory(current);
+  if (!active) return [];
+  return floorWorkOptionsForCategory(floorId, active).map((o) => o.value);
 }
 
 export function getMistriFullFinishedIncludes(floorId: MistriFloorId): string {
@@ -972,20 +1047,17 @@ export function getMistriFullFinishedIncludes(floorId: MistriFloorId): string {
 }
 
 export function getMistriFrameSkeletonIncludes(floorId: MistriFloorId): string {
-  if (floorId === 'RCC Ground Floor') {
-    return 'Includes Foundation work, column, beam and slab (skeleton frame only).';
+  if (floorId === 'RCC Ground Floor' || floorId === ASSAM_BUILDING_TYPE) {
+    return 'Includes Foundation work, column, beam and slab (frame / slab only).';
   }
-  return 'Includes column, beam and slab (skeleton frame only).';
+  return 'Includes column, beam and slab (frame / slab only).';
 }
 
 export function mistriFoundationProvisionRequired(
   floorWork: readonly MistriFloorWork[],
 ): boolean {
   return floorWork.some((fw) => {
-    if (fw.floorId === ASSAM_BUILDING_TYPE) {
-      return fw.workTypes.includes('full_finished');
-    }
-    if (fw.floorId === 'RCC Ground Floor') {
+    if (fw.floorId === ASSAM_BUILDING_TYPE || fw.floorId === 'RCC Ground Floor') {
       return (
         fw.workTypes.includes('full_finished') ||
         fw.workTypes.includes('frame_skeleton')
@@ -1015,7 +1087,7 @@ export function formatMistriFloorWorkTypes(
 ): string {
   const labels = workTypes.map((t) => {
     if (t === 'full_finished') return 'Full Finished Structure';
-    if (t === 'frame_skeleton') return 'Frame (Skeleton) only';
+    if (t === 'frame_skeleton') return 'Frame (Slab) only';
     if (t === 'brick_aac') {
       const material = extras?.brickMaterial
         ? optionLabel(MISTRI_BRICKWORK_MATERIAL_OPTIONS, extras.brickMaterial)
@@ -1118,7 +1190,6 @@ function normalizeSingleFloorWork(raw: unknown): MistriFloorWork | null {
     if (next && !workTypes.includes(next)) workTypes.push(next);
   }
   if (workTypes.length === 0) return null;
-  if (isAssamMistriFloor(floorId) && workTypes.includes('frame_skeleton')) return null;
 
   const exclusiveCount = [
     workTypes.includes('full_finished'),
