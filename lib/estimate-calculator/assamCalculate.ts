@@ -196,6 +196,23 @@ function timberTrussCft(spanFt: number, pitchFactor: number, trussCount: number)
   return oneCum * Math.max(0, trussCount) * CUM_TO_CFT;
 }
 
+/** Fabricated steel king-post / gable truss weight (angles + purlins), kg. */
+function steelTrussKg(spanFt: number, pitchFactor: number, trussCount: number): number {
+  const { tieM, rafterM, kingM } = trussMemberLengthsM(spanFt, pitchFactor);
+  // Typical light Assam steel truss — angle / tube unit weights (kg/m)
+  const KG_PER_M_TIE = 7.5;
+  const KG_PER_M_RAFTER = 6.5;
+  const KG_PER_M_KING = 5;
+  const KG_PER_M_PURLIN = 4.5;
+  const purlinM = spanFt * FT_TO_M * 6;
+  const one =
+    tieM * KG_PER_M_TIE +
+    2 * rafterM * KG_PER_M_RAFTER +
+    kingM * KG_PER_M_KING +
+    purlinM * KG_PER_M_PURLIN;
+  return one * Math.max(0, trussCount);
+}
+
 export function calculateAssamEstimate(inputs: AssamEstimateInputs): AssamEstimateResults {
   const builtUp = Math.max(0, inputs.builtUpAreaSqft);
   const columns = Math.max(0, Math.floor(inputs.columnCount));
@@ -424,6 +441,11 @@ export function calculateAssamEstimate(inputs: AssamEstimateInputs): AssamEstima
       ? round1(applyWastage(timberTrussCft(trussSpanFt, pitch, trussCount), wastage))
       : 0;
 
+  const steelTrussKgQty =
+    inputs.trussType === 'steel'
+      ? round1(applyWastage(steelTrussKg(trussSpanFt, pitch, trussCount), wastage))
+      : 0;
+
   return {
     concreteVolumeCum: {
       columns: round2(columnConcrete),
@@ -440,6 +462,7 @@ export function calculateAssamEstimate(inputs: AssamEstimateInputs): AssamEstima
     steelByDiameter,
     totalSteelQuintals: round2(totalSteelKg / 100),
     timberCft,
+    steelTrussKg: steelTrussKgQty,
     tinRoofAreaSqft,
     plasterAreaSqft,
     wastagePercent: wastage,

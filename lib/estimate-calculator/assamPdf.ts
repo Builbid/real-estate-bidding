@@ -148,7 +148,11 @@ export function downloadAssamEstimatePdf(
   let y = 18;
   const m = results.meta;
   const trussLabel =
-    inputs.trussType === 'rcc_king_post' ? 'RCC King Post truss' : 'Timber truss';
+    inputs.trussType === 'rcc_king_post'
+      ? 'RCC King Post truss'
+      : inputs.trussType === 'steel'
+        ? 'Steel roof truss'
+        : 'Timber truss';
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(16);
@@ -194,6 +198,9 @@ export function downloadAssamEstimatePdf(
       ...(results.timberCft > 0
         ? [['Timber truss', String(results.timberCft), 'cft'] as Row3]
         : []),
+      ...(results.steelTrussKg > 0
+        ? [['Steel roof truss', String(results.steelTrussKg), 'kg'] as Row3]
+        : []),
     ],
     margin,
   );
@@ -219,7 +226,9 @@ export function downloadAssamEstimatePdf(
       [
         inputs.trussType === 'rcc_king_post'
           ? `RCC king-post trusses (${m.trussCount} nos)`
-          : 'Trusses (timber — see timber qty)',
+          : inputs.trussType === 'steel'
+            ? `Steel roof trusses (${m.trussCount} nos — see steel truss kg)`
+            : 'Trusses (timber — see timber qty)',
         String(results.concreteVolumeCum.trusses),
         'cum',
       ],
@@ -299,7 +308,7 @@ export function downloadAssamEstimatePdf(
   doc.setTextColor(100);
   doc.setFont('helvetica', 'normal');
   doc.text(
-    'Disclaimer: Approximate budgeting estimate for modern Assam Type (RCC columns/footing/plinth/lintel, 5" brick walls, tin roof on king-post or timber truss — no RCC slab or floor beams). Not a structural design. Consult a licensed engineer for final design and quotations.',
+    'Disclaimer: Approximate budgeting estimate for modern Assam Type (RCC columns/footing/plinth/lintel, 5" brick walls, tin roof on RCC king-post, steel, or timber truss — no RCC slab or floor beams). Not a structural design. Consult a licensed engineer for final design and quotations.',
     margin,
     y,
     { maxWidth: doc.internal.pageSize.getWidth() - margin * 2 },
