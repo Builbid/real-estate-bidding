@@ -15,6 +15,7 @@ import {
   getProjectServiceType,
   getServiceCategoryOption,
 } from '@/lib/project/display';
+import { getLiveAuctionDisplayTitle } from '@/lib/generateProjectTitle';
 import { isConstructionFirmEnabled } from '@/lib/features';
 import type { ServiceType } from '@/lib/types';
 import { useTranslation } from '@/lib/context/LanguageProvider';
@@ -70,9 +71,13 @@ function matchesProjectSearch(project: ShowcaseProject, query: string): boolean 
       ? (project as ShowcaseProject & { city?: string | null }).city
       : null;
 
-  const fields = [project.title, city, project.district, project.state].filter(
-    (value): value is string => Boolean(value && value.trim()),
-  );
+  const fields = [
+    getLiveAuctionDisplayTitle(project),
+    project.title,
+    city,
+    project.district,
+    project.state,
+  ].filter((value): value is string => Boolean(value && value.trim()));
 
   if (fields.some((field) => field.toLowerCase().includes(q))) return true;
 

@@ -249,6 +249,7 @@ export function LabourContractorProjectWizard() {
   const previewTitle = generateProjectTitle({
     serviceType: 'labour_contractor',
     district: districtSelection?.district ?? form.location,
+    activityCategory: form.activityCategory,
     floorWork: assembledFloorWork,
   });
 
@@ -472,6 +473,7 @@ export function LabourContractorProjectWizard() {
     const autoTitle = generateProjectTitle({
       serviceType: 'labour_contractor',
       district: districtSelection.district,
+      activityCategory: form.activityCategory,
       floorWork: validated.details.floorWork,
     });
 

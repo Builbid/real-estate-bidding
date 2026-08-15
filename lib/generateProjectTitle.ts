@@ -1,24 +1,26 @@
 // ============================================================
 // Auto-generated project titles for owner new-project wizards
-// Format: `${categoryName} Requirement in ${district}`
-// Labour: includes cohesive civil-work scope when provided
+// and live auction card display (sentence form, no floor lists).
 // ============================================================
 
 import type { BuildingType } from '@/lib/buildingConfig';
 import {
-  summarizeMistriCivilWorkScope,
-  summarizeMistriFloorWorkScope,
+  getMistriActivityCategory,
+  type MistriActivityCategory,
   type MistriCivilWorkType,
   type MistriFloorWork,
   type MistriPlasterSide,
+  parseMistriDetails,
 } from '@/lib/mistriDetails';
 import type { PainterPaintingScope } from '@/lib/painterDetails';
-import { getServiceCategoryLabel } from '@/lib/project/display';
+import { getServiceCategoryLabel, getProjectServiceType } from '@/lib/project/display';
 import type { ServiceType, TrackType } from '@/lib/types';
 
 export interface GenerateProjectTitleInput {
   serviceType: ServiceType;
   district: string;
+  /** Project-level major/minor choice for Mistri posts. */
+  activityCategory?: MistriActivityCategory | null;
   /** Kept for call-site compatibility; not used in the canonical title format. */
   paintingScope?: PainterPaintingScope | null;
   trackType?: TrackType | null;
@@ -28,32 +30,100 @@ export interface GenerateProjectTitleInput {
   buildingTypes?: BuildingType[];
 }
 
+function inferActivityCategoryFromFloorWork(
+  floorWork?: MistriFloorWork[] | null,
+): MistriActivityCategory | null {
+  if (!floorWork?.length) return null;
+  for (const fw of floorWork) {
+    const cat = getMistriActivityCategory(fw.workTypes);
+    if (cat) return cat;
+  }
+  return null;
+}
+
+function inferActivityCategoryFromCivilWork(
+  civilWorkTypes?: MistriCivilWorkType[] | null,
+): MistriActivityCategory | null {
+  if (!civilWorkTypes?.length) return null;
+  const major = civilWorkTypes.some(
+    (t) => t === 'complete_full_structure' || t === 'foundation_concrete_structure',
+  );
+  const minor = civilWorkTypes.some(
+    (t) =>
+      t === 'brickwork_aac' ||
+      t === 'plastering' ||
+      t === 'tile_marble_flooring' ||
+      t === 'boundary_wall_fencing',
+  );
+  if (major && !minor) return 'major';
+  if (minor && !major) return 'minor';
+  if (major) return 'major';
+  return null;
+}
+
+function mistriActivityPhrase(category: MistriActivityCategory): string {
+  return category === 'major'
+    ? 'major construction activities'
+    : 'minor finishing activities';
+}
+
 /**
- * Build auction title from service category + district.
- * Owners no longer enter title manually.
- * Labour contractor titles incorporate a normalized civil-work scope when present.
+ * Build auction title: profession + activity type + location (sentence form).
+ * Does not include floor-wise work detail.
  */
 export function generateProjectTitle(input: GenerateProjectTitleInput): string {
   const district = input.district.trim() || 'Assam';
-  const categoryName = getServiceCategoryLabel(input.serviceType);
+  const profession = getServiceCategoryLabel(input.serviceType);
 
   if (input.serviceType === 'labour_contractor') {
-    if (input.floorWork && input.floorWork.length > 0) {
-      const scope = summarizeMistriFloorWorkScope(input.floorWork);
-      if (scope) {
-        return `${categoryName} — ${scope} in ${district}`;
-      }
+    const category =
+      input.activityCategory ??
+      inferActivityCategoryFromFloorWork(input.floorWork) ??
+      inferActivityCategoryFromCivilWork(input.civilWorkTypes);
+
+    if (category) {
+      return `${profession} needed for ${mistriActivityPhrase(category)} in ${district}`;
     }
-    if (input.civilWorkTypes && input.civilWorkTypes.length > 0) {
-      const scope = summarizeMistriCivilWorkScope(
-        input.civilWorkTypes,
-        input.plasterSide,
-      );
-      if (scope) {
-        return `${categoryName} — ${scope} in ${district}`;
-      }
+    return `${profession} needed in ${district}`;
+  }
+
+  return `${profession} needed in ${district}`;
+}
+
+/**
+ * Live auction / public card title — prefers a clean sentence from project data
+ * so older posts with floor-wise titles still display cleanly.
+ */
+export function getLiveAuctionDisplayTitle(project: {
+  title?: string | null;
+  district?: string | null;
+  service_type?: ServiceType | null;
+  mistri_details?: unknown;
+}): string {
+  const serviceType = getProjectServiceType(project);
+  const district = (project.district ?? '').trim() || 'Assam';
+
+  if (serviceType === 'labour_contractor') {
+    const details = parseMistriDetails(project.mistri_details);
+    if (details) {
+      return generateProjectTitle({
+        serviceType,
+        district,
+        floorWork: details.floorWork,
+        civilWorkTypes: details.civilWorkTypes,
+        plasterSide: details.plasterSide,
+      });
     }
   }
 
-  return `${categoryName} Requirement in ${district}`;
+  const stored = (project.title ?? '').trim();
+  if (stored) {
+    // Strip legacy floor-wise suffixes after an em dash when present.
+    if (serviceType === 'labour_contractor' && stored.includes(' — ')) {
+      return generateProjectTitle({ serviceType, district });
+    }
+    return stored;
+  }
+
+  return generateProjectTitle({ serviceType, district });
 }
