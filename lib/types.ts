@@ -214,10 +214,16 @@ export interface Project {
   updated_at: string;
 }
 
+export type BidUnit = 'per_sqft' | 'per_hour' | 'per_trip';
+
 export interface BidRates {
   ground_rate: number;
   first_rate?: number;
   second_rate?: number;
+  /** Earthwork: hourly JCB vs per-trip soil filling. */
+  bid_unit?: BidUnit;
+  /** Earthwork soil filling — vehicle trip capacity in cubic metres. */
+  vehicleCapacityCum?: number;
 }
 
 /**

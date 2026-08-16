@@ -69,6 +69,10 @@ export function buildBidRatesPayload(
     ground_rate: rates.ground_rate ?? 0,
     first_rate: floorCount >= 2 ? (rates.first_rate ?? 0) : undefined,
     second_rate: floorCount >= 3 ? (rates.second_rate ?? 0) : undefined,
+    ...(rates.bid_unit ? { bid_unit: rates.bid_unit } : {}),
+    ...(rates.vehicleCapacityCum != null && rates.vehicleCapacityCum > 0
+      ? { vehicleCapacityCum: rates.vehicleCapacityCum }
+      : {}),
   };
 }
 

@@ -2,6 +2,11 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
+import {
+  bidUnitForEarthworkMode,
+  parseVehicleCapacity,
+  resolveEarthworkBidMode,
+} from '@/lib/bid/earthworkBid';
 import { resolveProjectBidFloors } from '@/lib/bid/floorRateDisplay';
 import { isDrawingDesignServiceType } from '@/lib/drawingDesign';
 import { isTradeServiceType } from '@/lib/trades';
@@ -76,7 +81,27 @@ export async function submitBidAction(
     return { error: validation.message ?? 'Invalid bid rates.', success: false };
   }
 
-  const ratesPayload = buildBidRatesPayload(rates, floorCount);
+  const earthworkMode = resolveEarthworkBidMode({
+    service_type: project.service_type,
+    sub_configuration: project.sub_configuration,
+  });
+  const isTripBid = earthworkMode === 'trip' || rates.bid_unit === 'per_trip';
+  if (isTripBid) {
+    const capacity = parseVehicleCapacity(String(rates.vehicleCapacityCum ?? ''));
+    if (capacity == null) {
+      return { error: 'Enter the vehicle trip capacity in cu.m.', success: false };
+    }
+    rates.vehicleCapacityCum = capacity;
+  }
+
+  const ratesPayload = buildBidRatesPayload(
+    {
+      ...rates,
+      bid_unit: earthworkMode ? bidUnitForEarthworkMode(earthworkMode) : rates.bid_unit,
+      vehicleCapacityCum: isTripBid ? rates.vehicleCapacityCum : undefined,
+    },
+    floorCount,
+  );
 
   if (bidId) {
     const { error: updateError } = await supabase

@@ -15,6 +15,7 @@ import {
   getProjectServiceBadgeLabel,
 } from '@/lib/project/display';
 import { isDrawingDesignServiceType } from '@/lib/drawingDesign';
+import { formatBidUnitSuffix } from '@/lib/bid/earthworkBid';
 import type { Project, Bid } from '@/lib/types';
 
 interface AuctionRowProps {
@@ -58,7 +59,7 @@ export function AuctionRow({ project, myBid, bidHrefOverride }: AuctionRowProps)
           )}
           {hasBid && (
             <Badge variant="indigo">
-              Your Bid: ₹{myBid!.total_sum_metric.toLocaleString('en-IN')}/sqft
+              Your Bid: ₹{myBid!.total_sum_metric.toLocaleString('en-IN')}{formatBidUnitSuffix(myBid!.rates)}
             </Badge>
           )}
         </div>

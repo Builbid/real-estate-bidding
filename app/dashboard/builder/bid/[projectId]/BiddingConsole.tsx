@@ -38,6 +38,14 @@ import {
 import { submitBidAction } from '@/app/actions/bid';
 import { UserAvatar } from '@/components/shared/UserAvatar';
 import { BidFloorRatesBreakdown } from '@/components/shared/BidFloorRatesBreakdown';
+import {
+  formatBidUnitSuffix,
+  formatTripCapacityLabel,
+  getVehicleCapacityError,
+  parseVehicleCapacity,
+  resolveEarthworkBidMode,
+  sanitizeCapacityInput,
+} from '@/lib/bid/earthworkBid';
 import { shouldShowBidFloorBreakdown, resolveProjectBidFloors } from '@/lib/bid/floorRateDisplay';
 import { createClient } from '@/lib/supabase/client';
 import { isTradeServiceType } from '@/lib/trades';
@@ -86,6 +94,8 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
   const floorCount = isSingleRateBid ? 1 : bidFloors.count;
   const floorLabels = isSingleRateBid ? ['Your'] : bidFloors.labels;
   const rateKeys = getRateKeys(floorCount);
+  const earthworkMode = resolveEarthworkBidMode(project);
+  const rateUnitSuffix = formatBidUnitSuffix(undefined, earthworkMode);
 
   const [rateInputs, setRateInputs] = useState<Partial<Record<keyof BidRates, string>>>(() =>
     existingBid ? ratesToInputStrings(existingBid.rates) : {},
@@ -98,6 +108,12 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
   const [loading, setLoading]   = useState(false);
   const [success, setSuccess]   = useState(false);
   const [error, setError]       = useState<string | null>(null);
+  const [capacityInput, setCapacityInput] = useState(() =>
+    existingBid?.rates?.vehicleCapacityCum != null
+      ? String(existingBid.rates.vehicleCapacityCum)
+      : '',
+  );
+  const [capacityError, setCapacityError] = useState<string | null>(null);
 
   const countdown     = useCountdown(project.bidding_ends_at);
   const biddingClosed = project.status !== 'active_24h' || countdown.isExpired;
@@ -138,7 +154,9 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
 
   const allFilled = rateKeys.every((k) => isValidBidRate(rates[k]));
   const hasRateErrors = rateKeys.some((k) => !!rateErrors[k]);
-  const canSubmit = allFilled && !hasRateErrors;
+  const capacityValue = parseVehicleCapacity(capacityInput);
+  const capacityOk = earthworkMode !== 'trip' || capacityValue != null;
+  const canSubmit = allFilled && !hasRateErrors && capacityOk && !capacityError;
 
   function validateRateField(key: keyof BidRates, value: number | undefined) {
     const fieldError = getBidRateFieldError(value);
@@ -195,6 +213,17 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
       return;
     }
 
+    let tripCapacity: number | undefined;
+    if (earthworkMode === 'trip') {
+      const capError = getVehicleCapacityError(capacityInput);
+      setCapacityError(capError);
+      if (capError) {
+        setError(capError);
+        return;
+      }
+      tripCapacity = parseVehicleCapacity(capacityInput);
+    }
+
     setLoading(true);
     setError(null);
     setSuccess(false);
@@ -204,6 +233,10 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
       ground_rate: rates.ground_rate ?? 0,
       first_rate: rates.first_rate,
       second_rate: rates.second_rate,
+      ...(earthworkMode === 'hourly' ? { bid_unit: 'per_hour' as const } : {}),
+      ...(earthworkMode === 'trip'
+        ? { bid_unit: 'per_trip' as const, vehicleCapacityCum: tripCapacity }
+        : {}),
     }, bidId);
 
     if (result.error) {
@@ -333,12 +366,24 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                   <div className="space-y-3">
                     <div className="flex items-center justify-between p-2.5 rounded-xl border bg-secondary/50 border-border">
                       <div>
-                        <p className="text-xs text-muted-foreground">Your Final Rate Metric</p>
+                        <p className="text-xs text-muted-foreground">
+                          {earthworkMode === 'hourly'
+                            ? 'Hourly Rate Metric'
+                            : earthworkMode === 'trip'
+                              ? 'Trip Rate Metric'
+                              : 'Your Final Rate Metric'}
+                        </p>
                         <p className="text-lg font-bold tabular-nums text-foreground">
                           ₹{displayBidAverage(myCurrentBid.total_sum_metric)}
+                          {earthworkMode ? ` ${rateUnitSuffix}` : ''}
                         </p>
+                        {earthworkMode === 'trip' && formatTripCapacityLabel(myCurrentBid.rates?.vehicleCapacityCum) && (
+                          <p className="text-[11px] text-muted-foreground">
+                            {formatTripCapacityLabel(myCurrentBid.rates?.vehicleCapacityCum)}
+                          </p>
+                        )}
                       </div>
-                      {!isAssamTypeHouse && (
+                      {!isAssamTypeHouse && !earthworkMode && (
                         <p className="text-xs text-muted-foreground/80 text-right">
                           {isSingleRateBid ? (
                             <>Single rate<br />bid</>
@@ -348,6 +393,9 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                             <>Average of {floorCount} floors</>
                           )}
                         </p>
+                      )}
+                      {earthworkMode === 'hourly' && (
+                        <p className="text-xs text-muted-foreground/80 text-right">/hour</p>
                       )}
                     </div>
                     {myRank > 0 && (
@@ -392,10 +440,18 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                 <div className="flex items-center gap-2 p-2.5 rounded-lg bg-blue-500/5 border border-blue-500/15 mb-2">
                   <Info className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
                   <p className="text-xs text-blue-300">
-                    Enter your rate in <strong>₹ per sqft</strong>
-                    {isSingleRateBid ? '' : ' for each floor'}. Rates must be whole numbers ending in{' '}
-                    <strong>0 or 5</strong>. Lower{' '}
-                    {isSingleRateBid ? 'rates rank' : 'average rates rank'} higher.
+                    {earthworkMode === 'hourly' ? (
+                      <>Enter your rate in ₹ per hour. Rates must be whole numbers ending in 0 or 5.</>
+                    ) : earthworkMode === 'trip' ? (
+                      <>Enter your rate in ₹ per trip and specify vehicle capacity in cu.m (cum).</>
+                    ) : (
+                      <>
+                        Enter your rate in <strong>₹ per sqft</strong>
+                        {isSingleRateBid ? '' : ' for each floor'}. Rates must be whole numbers ending in{' '}
+                        <strong>0 or 5</strong>. Lower{' '}
+                        {isSingleRateBid ? 'rates rank' : 'average rates rank'} higher.
+                      </>
+                    )}
                   </p>
                 </div>
 
@@ -420,7 +476,13 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                         transition={{ delay: i * 0.08 }}
                       >
                         <Input
-                          label={`${label} Rate`}
+                          label={
+                            earthworkMode === 'hourly'
+                              ? 'Your Hourly Rate'
+                              : earthworkMode === 'trip'
+                                ? 'Your Rate Per Trip'
+                                : `${label} Rate`
+                          }
                           type="text"
                           inputMode="numeric"
                           pattern="[0-9]*"
@@ -429,7 +491,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                           onChange={(e) => handleRateChange(key, e.target.value)}
                           onBlur={() => handleRateBlur(key)}
                           prefix={<span className="text-muted-foreground text-xs">₹</span>}
-                          suffix={<span className="text-muted-foreground/80 text-xs">/sqft</span>}
+                          suffix={<span className="text-muted-foreground/80 text-xs">{rateUnitSuffix}</span>}
                           error={fieldError}
                           required
                         />
@@ -447,6 +509,25 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                   })}
                 </AnimatePresence>
 
+                {earthworkMode === 'trip' && (
+                  <Input
+                    label="Vehicle Trip Capacity (cu.m / cum)"
+                    type="text"
+                    inputMode="decimal"
+                    placeholder="e.g. 3.5"
+                    value={capacityInput}
+                    onChange={(e) => {
+                      const next = sanitizeCapacityInput(e.target.value);
+                      setCapacityInput(next);
+                      if (capacityError) setCapacityError(getVehicleCapacityError(next));
+                    }}
+                    onBlur={() => setCapacityError(getVehicleCapacityError(capacityInput))}
+                    suffix={<span className="text-muted-foreground/80 text-xs">cu.m</span>}
+                    error={capacityError ?? undefined}
+                    required
+                  />
+                )}
+
                 {/* Average metric preview */}
                 <div className={cn(
                   'flex items-center justify-between p-2.5 rounded-xl border',
@@ -455,12 +536,23 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                     : 'bg-secondary/50 border-border'
                 )}>
                   <div>
-                    <p className="text-xs text-muted-foreground">Your Average Rate Metric</p>
+                    <p className="text-xs text-muted-foreground">
+                      {earthworkMode === 'hourly'
+                        ? 'Hourly Rate Metric'
+                        : earthworkMode === 'trip'
+                          ? 'Trip Rate Metric'
+                          : 'Your Average Rate Metric'}
+                    </p>
                     <p className={cn('text-lg font-bold tabular-nums', averageMetric > 0 ? 'text-emerald-400' : 'text-muted-foreground/80')}>
-                      ₹{formatBidMetric(averageMetric)}
+                      {earthworkMode === 'trip' && averageMetric > 0
+                        ? `₹${formatBidMetric(averageMetric)} / trip${capacityValue != null ? ` (Capacity: ${capacityValue} cum)` : ''}`
+                        : `₹${formatBidMetric(averageMetric)}`}
                     </p>
                   </div>
-                  {!isAssamTypeHouse && (
+                  {earthworkMode === 'hourly' && (
+                    <p className="text-xs text-muted-foreground/80 text-right">/hour</p>
+                  )}
+                  {!isAssamTypeHouse && !earthworkMode && (
                     <p className="text-xs text-muted-foreground/80 text-right">
                       {isSingleRateBid ? (
                         <>Single rate<br />bid</>
@@ -605,7 +697,13 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                             )}>
                               ₹{displayBidAverage(bid.total_sum_metric)}
                             </p>
-                            <p className="text-[10px] text-muted-foreground/80">/sqft avg</p>
+                            <p className="text-[10px] text-muted-foreground/80">
+                              {earthworkMode === 'hourly'
+                                ? '/hour'
+                                : earthworkMode === 'trip'
+                                  ? formatTripCapacityLabel(bid.rates?.vehicleCapacityCum) ?? '/trip'
+                                  : '/sqft avg'}
+                            </p>
                           </div>
 
                           {shouldShowBidFloorBreakdown(bid.rates, floorCount) && (
@@ -624,7 +722,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                   {lowestBid && !bids.some((b) => b.builder_id === builderId) && (
                     <div className="pt-3 px-2">
                       <p className="text-xs text-muted-foreground">
-                        💡 Current lowest: <strong className="text-emerald-400">₹{displayBidAverage(lowestBid.total_sum_metric)}/sqft</strong> — Beat it to lead.
+                        💡 Current lowest: <strong className="text-emerald-400">₹{displayBidAverage(lowestBid.total_sum_metric)}{rateUnitSuffix}</strong> — Beat it to lead.
                       </p>
                     </div>
                   )}

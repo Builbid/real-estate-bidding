@@ -15,6 +15,7 @@ import { BuilderRatingBreakdown, BuilderReviewsFeed } from '@/components/shared/
 import { BuilderPortfolioGrid } from '@/components/shared/BuilderPortfolioGrid';
 import { createClient } from '@/lib/supabase/client';
 import { EMPTY_RATING_STATS, type BuilderRatingStats } from '@/lib/builderRatings';
+import { formatBidUnitSuffix, formatTripCapacityLabel } from '@/lib/bid/earthworkBid';
 import { getBidFloorRateEntries } from '@/lib/bid/floorRateDisplay';
 import type { Bid, BuilderPortfolioItem } from '@/lib/types';
 
@@ -257,7 +258,7 @@ export function BuilderPortfolioModal({
                 {rateEntries.map(([key, val, label]) => (
                   <div key={key} className="flex items-center justify-between px-3 py-2 rounded-lg bg-secondary/40 border border-border">
                     <span className="text-xs text-muted-foreground">{label}</span>
-                    <span className="text-xs font-bold text-foreground tabular-nums">₹{val.toLocaleString('en-IN')}/sqft</span>
+                    <span className="text-xs font-bold text-foreground tabular-nums">₹{val.toLocaleString('en-IN')}{formatBidUnitSuffix(bid.rates)}</span>
                   </div>
                 ))}
                 <div className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-indigo-500/5 border border-indigo-500/20 mt-1">
@@ -266,7 +267,10 @@ export function BuilderPortfolioModal({
                     <span className="text-sm font-semibold text-foreground">Total Rate Metric</span>
                   </div>
                   <span className="text-sm font-bold text-indigo-300 tabular-nums">
-                    ₹{bid.total_sum_metric.toLocaleString('en-IN')}/sqft
+                    ₹{bid.total_sum_metric.toLocaleString('en-IN')}{formatBidUnitSuffix(bid.rates)}
+                    {formatTripCapacityLabel(bid.rates?.vehicleCapacityCum)
+                      ? ` (${formatTripCapacityLabel(bid.rates?.vehicleCapacityCum)})`
+                      : ''}
                   </span>
                 </div>
               </div>

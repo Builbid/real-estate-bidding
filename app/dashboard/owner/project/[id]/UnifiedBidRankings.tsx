@@ -13,6 +13,7 @@ import { computeRatingStats } from '@/lib/builderRatings';
 import { BuilderPortfolioModal } from './BuilderPortfolioModal';
 import { SelectBuilderButton } from './SelectBuilderButton';
 import { BidFloorRatesBreakdown } from '@/components/shared/BidFloorRatesBreakdown';
+import { formatBidUnitSuffix, formatTripCapacityLabel } from '@/lib/bid/earthworkBid';
 import { resolveProjectFloorCount, shouldShowBidFloorBreakdown } from '@/lib/bid/floorRateDisplay';
 import { useOwnerProjectPhaseContext } from '@/lib/context/OwnerProjectPhaseContext';
 import type { Project, Bid } from '@/lib/types';
@@ -237,7 +238,10 @@ export function UnifiedBidRankings({
                 }`}>
                   ₹{bid.total_sum_metric.toLocaleString('en-IN')}
                 </p>
-                <p className="text-[10px] text-muted-foreground">total /sqft</p>
+                <p className="text-[10px] text-muted-foreground">
+                  {formatTripCapacityLabel(bid.rates?.vehicleCapacityCum)
+                    ?? `total ${formatBidUnitSuffix(bid.rates)}`}
+                </p>
               </div>
 
               {shouldShowBidFloorBreakdown(bid.rates, projectFloorCount) && (
