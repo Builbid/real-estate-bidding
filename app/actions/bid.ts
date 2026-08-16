@@ -2,10 +2,10 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
-import { getFloorInputCount } from '@/lib/utils';
+import { resolveProjectBidFloors } from '@/lib/bid/floorRateDisplay';
 import { isDrawingDesignServiceType } from '@/lib/drawingDesign';
 import { isTradeServiceType } from '@/lib/trades';
-import type { BidRates, SubConfiguration, TrackType } from '@/lib/types';
+import type { BidRates, TrackType } from '@/lib/types';
 import {
   buildBidRatesPayload,
   parseBidDbError,
@@ -26,7 +26,7 @@ export async function submitBidAction(
 
   const { data: project, error: projectError } = await supabase
     .from('projects')
-    .select('track_type, sub_configuration, service_type')
+    .select('track_type, sub_configuration, service_type, building_types, mistri_details, total_floors')
     .eq('id', projectId)
     .single();
 
@@ -63,10 +63,13 @@ export async function submitBidAction(
   const floorCount =
     isTradeServiceType(project.service_type) || isDrawingDesignServiceType(project.service_type)
       ? 1
-      : getFloorInputCount(
-          project.track_type as TrackType,
-          (project.sub_configuration ?? {}) as SubConfiguration,
-        );
+      : resolveProjectBidFloors({
+          track_type: project.track_type as TrackType,
+          sub_configuration: project.sub_configuration,
+          building_types: project.building_types,
+          mistri_details: project.mistri_details,
+          total_floors: project.total_floors,
+        }).count;
 
   const validation = validateBidRatesForFloorCount(rates, floorCount);
   if (!validation.valid) {

@@ -16,8 +16,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import {
-  getFloorLabels, getRateKeys,
-  computeTotalMetric, formatRelativeTime, TRACK_LABELS, cn
+  getRateKeys,
+  computeAverageMetric,
+  averageFromSumMetric,
+  formatBidMetric,
+  formatRelativeTime,
+  TRACK_LABELS,
+  cn,
 } from '@/lib/utils';
 import {
   BID_RATE_ERROR,
@@ -33,8 +38,7 @@ import {
 import { submitBidAction } from '@/app/actions/bid';
 import { UserAvatar } from '@/components/shared/UserAvatar';
 import { BidFloorRatesBreakdown } from '@/components/shared/BidFloorRatesBreakdown';
-import { shouldShowBidFloorBreakdown, resolveProjectFloorCount } from '@/lib/bid/floorRateDisplay';
-import { ASSAM_BUILDING_TYPE } from '@/lib/buildingConfig';
+import { shouldShowBidFloorBreakdown, resolveProjectBidFloors } from '@/lib/bid/floorRateDisplay';
 import { createClient } from '@/lib/supabase/client';
 import { isTradeServiceType } from '@/lib/trades';
 import { isDrawingDesignServiceType } from '@/lib/drawingDesign';
@@ -77,15 +81,10 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
   const requirementBlocks = workRequirements?.blocks ?? null;
 
   // Trade / Drawing & Design bid a single ₹/sqft rate (not per floor).
-  const isAssamTypeHouse =
-    project.track_type === 'AssamType' ||
-    (project.building_types?.includes(ASSAM_BUILDING_TYPE) ?? false);
-  const floorCount = isSingleRateBid ? 1 : resolveProjectFloorCount(project);
-  const floorLabels = isSingleRateBid
-    ? ['Your']
-    : isAssamTypeHouse
-      ? ['Assam Type House Construction']
-      : getFloorLabels(floorCount);
+  const bidFloors = resolveProjectBidFloors(project);
+  const isAssamTypeHouse = bidFloors.isAssamType;
+  const floorCount = isSingleRateBid ? 1 : bidFloors.count;
+  const floorLabels = isSingleRateBid ? ['Your'] : bidFloors.labels;
   const rateKeys = getRateKeys(floorCount);
 
   const [rateInputs, setRateInputs] = useState<Partial<Record<keyof BidRates, string>>>(() =>
@@ -102,7 +101,9 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
 
   const countdown     = useCountdown(project.bidding_ends_at);
   const biddingClosed = project.status !== 'active_24h' || countdown.isExpired;
-  const totalMetric   = computeTotalMetric(rates);
+  const averageMetric = computeAverageMetric(rates, floorCount);
+  const displayBidAverage = (sumMetric: number) =>
+    formatBidMetric(averageFromSumMetric(sumMetric, floorCount));
 
   const myCurrentBid = bids.find((b) => b.builder_id === builderId);
   const myRank       = bids.findIndex((b) => b.builder_id === builderId) + 1;
@@ -334,15 +335,17 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                       <div>
                         <p className="text-xs text-muted-foreground">Your Final Rate Metric</p>
                         <p className="text-lg font-bold tabular-nums text-foreground">
-                          ₹{myCurrentBid.total_sum_metric.toLocaleString('en-IN')}
+                          ₹{displayBidAverage(myCurrentBid.total_sum_metric)}
                         </p>
                       </div>
                       {!isAssamTypeHouse && (
                         <p className="text-xs text-muted-foreground/80 text-right">
                           {isSingleRateBid ? (
                             <>Single rate<br />bid</>
+                          ) : floorCount === 1 ? (
+                            <>1 floor<br />avg</>
                           ) : (
-                            <>{floorCount} floor{floorCount > 1 ? 's' : ''}<br />combined</>
+                            <>Average of {floorCount} floors</>
                           )}
                         </p>
                       )}
@@ -392,7 +395,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                     Enter your rate in <strong>₹ per sqft</strong>
                     {isSingleRateBid ? '' : ' for each floor'}. Rates must be whole numbers ending in{' '}
                     <strong>0 or 5</strong>. Lower{' '}
-                    {isSingleRateBid ? 'rates rank' : 'total rates rank'} higher.
+                    {isSingleRateBid ? 'rates rank' : 'average rates rank'} higher.
                   </p>
                 </div>
 
@@ -444,25 +447,27 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                   })}
                 </AnimatePresence>
 
-                {/* Total metric preview */}
+                {/* Average metric preview */}
                 <div className={cn(
                   'flex items-center justify-between p-2.5 rounded-xl border',
-                  totalMetric > 0
+                  averageMetric > 0
                     ? 'bg-emerald-500/5 border-emerald-500/20'
                     : 'bg-secondary/50 border-border'
                 )}>
                   <div>
-                    <p className="text-xs text-muted-foreground">Your Total Rate Metric</p>
-                    <p className={cn('text-lg font-bold tabular-nums', totalMetric > 0 ? 'text-emerald-400' : 'text-muted-foreground/80')}>
-                      ₹{totalMetric.toLocaleString('en-IN')}
+                    <p className="text-xs text-muted-foreground">Your Average Rate Metric</p>
+                    <p className={cn('text-lg font-bold tabular-nums', averageMetric > 0 ? 'text-emerald-400' : 'text-muted-foreground/80')}>
+                      ₹{formatBidMetric(averageMetric)}
                     </p>
                   </div>
                   {!isAssamTypeHouse && (
                     <p className="text-xs text-muted-foreground/80 text-right">
                       {isSingleRateBid ? (
                         <>Single rate<br />bid</>
+                      ) : floorCount === 1 ? (
+                        <>1 floor<br />avg</>
                       ) : (
-                        <>{floorCount} floor{floorCount > 1 ? 's' : ''}<br />combined</>
+                        <>Average of {floorCount} floors</>
                       )}
                     </p>
                   )}
@@ -598,14 +603,17 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                               'text-sm font-bold tabular-nums',
                               isLowest ? 'text-emerald-400' : isMe ? 'text-indigo-300' : 'text-foreground'
                             )}>
-                              ₹{bid.total_sum_metric.toLocaleString('en-IN')}
+                              ₹{displayBidAverage(bid.total_sum_metric)}
                             </p>
-                            <p className="text-[10px] text-muted-foreground/80">/sqft total</p>
+                            <p className="text-[10px] text-muted-foreground/80">/sqft avg</p>
                           </div>
 
                           {shouldShowBidFloorBreakdown(bid.rates, floorCount) && (
                             <div className="w-full basis-full">
-                              <BidFloorRatesBreakdown rates={bid.rates} />
+                              <BidFloorRatesBreakdown
+                                rates={bid.rates}
+                                floorLabels={isSingleRateBid ? undefined : floorLabels}
+                              />
                             </div>
                           )}
                         </motion.div>
@@ -616,7 +624,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                   {lowestBid && !bids.some((b) => b.builder_id === builderId) && (
                     <div className="pt-3 px-2">
                       <p className="text-xs text-muted-foreground">
-                        💡 Current lowest: <strong className="text-emerald-400">₹{lowestBid.total_sum_metric.toLocaleString('en-IN')}/sqft</strong> — Beat it to lead.
+                        💡 Current lowest: <strong className="text-emerald-400">₹{displayBidAverage(lowestBid.total_sum_metric)}/sqft</strong> — Beat it to lead.
                       </p>
                     </div>
                   )}

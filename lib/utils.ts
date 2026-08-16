@@ -55,6 +55,29 @@ export function computeTotalMetric(rates: Partial<BidRates>): number {
   );
 }
 
+/** Average of the selected floor rates (sum / number of selected floors). */
+export function computeAverageMetric(rates: Partial<BidRates>, floorCount: number): number {
+  if (floorCount <= 0) return 0;
+  const keys = getRateKeys(floorCount);
+  const sum = keys.reduce((acc, key) => acc + (rates[key] ?? 0), 0);
+  if (sum <= 0) return 0;
+  return sum / floorCount;
+}
+
+/** Convert a stored sum metric into the displayed average for `floorCount` floors. */
+export function averageFromSumMetric(totalSumMetric: number, floorCount: number): number {
+  if (floorCount <= 0) return totalSumMetric;
+  return totalSumMetric / floorCount;
+}
+
+export function formatBidMetric(value: number): string {
+  if (!Number.isFinite(value) || value <= 0) return '0';
+  return value.toLocaleString('en-IN', {
+    maximumFractionDigits: 2,
+    minimumFractionDigits: 0,
+  });
+}
+
 // ─── Project floor inputs resolver ──────────────────────────
 export function getFloorInputCount(
   trackType: TrackType,

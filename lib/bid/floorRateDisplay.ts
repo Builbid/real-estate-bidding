@@ -1,5 +1,16 @@
+import {
+  ASSAM_BUILDING_TYPE,
+  getFloorDisplayName,
+  sortBuildingTypes,
+  type BuildingType,
+} from '@/lib/buildingConfig';
+import {
+  formatMistriFloorWorkLabel,
+  parseMistriDetails,
+  sortMistriFloorWork,
+} from '@/lib/mistriDetails';
 import type { BidRates, SubConfiguration, TrackType } from '@/lib/types';
-import { getFloorInputCount } from '@/lib/utils';
+import { getFloorInputCount, getFloorLabels } from '@/lib/utils';
 
 export const FLOOR_RATE_LABELS: Record<keyof BidRates, string> = {
   ground_rate: 'Ground Floor',
@@ -31,17 +42,19 @@ export function normalizeBidRates(rates: unknown): Partial<BidRates> {
 
 export function getBidFloorRateEntries(
   rates: Partial<BidRates> | null | undefined | unknown,
+  floorLabels?: string[],
 ): BidFloorRateEntry[] {
   const normalized = normalizeBidRates(rates);
 
-  return FLOOR_RATE_KEYS.filter((key) => {
+  return FLOOR_RATE_KEYS.flatMap((key, index) => {
     const value = normalized[key];
-    return value !== undefined && value !== null && value > 0;
-  }).map((key) => ({
-    key,
-    label: FLOOR_RATE_LABELS[key],
-    value: normalized[key] as number,
-  }));
+    if (value === undefined || value === null || value <= 0) return [];
+    return [{
+      key,
+      label: floorLabels?.[index] || FLOOR_RATE_LABELS[key],
+      value,
+    }];
+  });
 }
 
 export function hasMultiFloorBidRates(rates: Partial<BidRates> | null | undefined | unknown): boolean {
@@ -77,4 +90,64 @@ export function resolveProjectFloorCount(project: {
   }
 
   return getFloorInputCount(project.track_type, sub);
+}
+
+function toRateInputLabel(raw: string): string {
+  return raw.replace(/^RCC\s+/i, '').trim() || raw;
+}
+
+export interface ProjectBidFloors {
+  labels: string[];
+  count: number;
+  isAssamType: boolean;
+}
+
+/**
+ * Floor rate inputs must match the owner's selected floors
+ * (e.g. RCC 2nd + RCC 3rd → "2nd Floor", "3rd Floor"), not a
+ * positional Ground / First / Second sequence.
+ */
+export function resolveProjectBidFloors(project: {
+  track_type: TrackType;
+  total_floors?: number | null;
+  sub_configuration?: SubConfiguration | null;
+  building_types?: string[] | null;
+  mistri_details?: unknown;
+}): ProjectBidFloors {
+  const isAssamType =
+    project.track_type === 'AssamType' ||
+    (project.building_types?.includes(ASSAM_BUILDING_TYPE) ?? false);
+
+  if (isAssamType) {
+    return {
+      labels: ['Assam Type House Construction'],
+      count: 1,
+      isAssamType: true,
+    };
+  }
+
+  const mistri = parseMistriDetails(project.mistri_details);
+  if (mistri?.floorWork && mistri.floorWork.length > 0) {
+    const labels = sortMistriFloorWork(mistri.floorWork)
+      .slice(0, 3)
+      .map((fw) => toRateInputLabel(formatMistriFloorWorkLabel(fw)));
+    if (labels.length > 0) {
+      return { labels, count: labels.length, isAssamType: false };
+    }
+  }
+
+  const rccTypes = sortBuildingTypes(
+    (project.building_types ?? []).filter(
+      (type): type is BuildingType =>
+        typeof type === 'string' && type.startsWith('RCC'),
+    ),
+  ).slice(0, 3);
+
+  if (rccTypes.length > 0) {
+    const labels = rccTypes.map((type) => getFloorDisplayName(type));
+    return { labels, count: labels.length, isAssamType: false };
+  }
+
+  const count = resolveProjectFloorCount(project);
+  return { labels: getFloorLabels(count), count, isAssamType: false };
 }

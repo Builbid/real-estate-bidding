@@ -7,6 +7,8 @@ interface BidFloorRatesBreakdownProps {
   total?: number;
   /** When true, includes a total row (use when floor rows are shown without a separate total). */
   showTotal?: boolean;
+  /** Project-selected floor names, aligned to ground/first/second rate keys. */
+  floorLabels?: string[];
   className?: string;
 }
 
@@ -14,9 +16,10 @@ export function BidFloorRatesBreakdown({
   rates,
   total,
   showTotal = false,
+  floorLabels,
   className,
 }: BidFloorRatesBreakdownProps) {
-  const entries = getBidFloorRateEntries(rates);
+  const entries = getBidFloorRateEntries(rates, floorLabels);
 
   if (entries.length === 0) return null;
 
