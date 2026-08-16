@@ -512,7 +512,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                 <div className="flex items-center gap-2 p-2.5 rounded-lg bg-blue-500/5 border border-blue-500/15 mb-2">
                   <Info className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
                   <p className="text-xs text-blue-300">
-                    {isPainter ? (
+                    {isPainter || isDrawing ? (
                       <>Enter your rate in ₹ per sqft. Rates must be whole numbers. Lower rates rank higher.</>
                     ) : isCarpenter ? (
                       <>Enter your rate in ₹ per sqft for each item. Rates must be whole numbers. Lower rates rank higher.</>

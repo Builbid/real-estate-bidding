@@ -12,7 +12,12 @@ export const MULTIPLE_OF_FIVE_SERVICES = [
   'construction_firm',
 ] as const;
 
-export const FLEXIBLE_WHOLE_NUMBER_SERVICES = ['painter', 'electrician', 'carpenter'] as const;
+export const FLEXIBLE_WHOLE_NUMBER_SERVICES = [
+  'painter',
+  'electrician',
+  'carpenter',
+  'drawing_design',
+] as const;
 
 export interface BidRateRules {
   /** When false, any positive whole number is accepted. Default true for mistri/plumber/earthwork. */
