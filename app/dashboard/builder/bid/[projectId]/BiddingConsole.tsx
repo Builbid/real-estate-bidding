@@ -36,7 +36,6 @@ import { BidFloorRatesBreakdown } from '@/components/shared/BidFloorRatesBreakdo
 import { shouldShowBidFloorBreakdown, resolveProjectFloorCount } from '@/lib/bid/floorRateDisplay';
 import { ASSAM_BUILDING_TYPE } from '@/lib/buildingConfig';
 import { createClient } from '@/lib/supabase/client';
-import { ConstructionMatrixSummary } from '@/components/construction/ConstructionMatrixSummary';
 import { isTradeServiceType } from '@/lib/trades';
 import { isDrawingDesignServiceType } from '@/lib/drawingDesign';
 import {
@@ -250,17 +249,6 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
           </p>
         </div>
       </div>
-
-      {!isTrade && !isDrawing && (
-        <Card>
-          <CardContent className="pt-4 pb-4">
-            <ConstructionMatrixSummary
-              trackType={project.track_type}
-              subConfiguration={project.sub_configuration}
-            />
-          </CardContent>
-        </Card>
-      )}
 
       {requirementBlocks && requirementBlocks.length > 0 && (
         <Card className="border-emerald-500/20">
