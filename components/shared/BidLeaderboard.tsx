@@ -280,9 +280,11 @@ export function BidLeaderboard({
                   'text-sm font-bold tabular-nums',
                   isLowest ? 'text-emerald-400' : 'text-foreground'
                 )}>
-                  ₹{bid.total_sum_metric.toLocaleString('en-IN')}
+                  {serviceType === 'plumber' ? 'Rs. ' : '₹'}{bid.total_sum_metric.toLocaleString('en-IN')}
                 </p>
-                <p className="text-[10px] text-muted-foreground">total rate/sqft</p>
+                <p className="text-[10px] text-muted-foreground">
+                  {serviceType === 'plumber' ? 'Rs.' : 'total rate/sqft'}
+                </p>
               </div>
 
               {showFloorBreakdown && shouldShowBidFloorBreakdown(bid.rates, projectFloorCount) && (

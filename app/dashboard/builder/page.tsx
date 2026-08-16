@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { STAT_ICON_STYLES, type StatIconColor } from '@/lib/dashboard/statIconStyles';
 import { STATUS_CONFIG, cn } from '@/lib/utils';
+import { formatBidUnitSuffix } from '@/lib/bid/earthworkBid';
 import { AuctionRow } from './AuctionRow';
 import { PortfolioManager } from './PortfolioManager';
 import { BuilderProfileSettings } from './BuilderProfileSettings';
@@ -147,7 +148,7 @@ export default async function BuilderDashboard() {
                     <p className="text-xs text-muted-foreground">{project?.district ?? ''}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-bold text-foreground">₹{bid.total_sum_metric.toLocaleString('en-IN')}/sqft</p>
+                    <p className="text-sm font-bold text-foreground">₹{bid.total_sum_metric.toLocaleString('en-IN')}{formatBidUnitSuffix(bid.rates, undefined, project?.service_type ?? bid.service_type)}</p>
                     <p className="text-[10px] text-muted-foreground/80">{new Date(bid.created_at).toLocaleDateString('en-IN')}</p>
                   </div>
                   {project && (

@@ -64,7 +64,7 @@ export async function submitBidAction(
     return { error: 'You are not authorized to bid on this project type.', success: false };
   }
 
-  // Trades + Drawing & Design use one package ₹/sqft rate (ground_rate only).
+  // Trades + Drawing & Design use one package rate (ground_rate only).
   const floorCount =
     isTradeServiceType(project.service_type) || isDrawingDesignServiceType(project.service_type)
       ? 1
@@ -99,7 +99,11 @@ export async function submitBidAction(
   const ratesPayload = buildBidRatesPayload(
     {
       ...rates,
-      bid_unit: earthworkMode ? bidUnitForEarthworkMode(earthworkMode) : rates.bid_unit,
+      bid_unit: earthworkMode
+        ? bidUnitForEarthworkMode(earthworkMode)
+        : project.service_type === 'plumber'
+          ? 'flat'
+          : rates.bid_unit,
       vehicleCapacityCum: isTripBid ? rates.vehicleCapacityCum : undefined,
     },
     floorCount,

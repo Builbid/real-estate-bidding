@@ -151,7 +151,7 @@ export default async function ProviderDashboard() {
                     <p className="text-xs text-muted-foreground">{project?.district ?? ''}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-bold text-foreground">₹{bid.total_sum_metric.toLocaleString('en-IN')}{formatBidUnitSuffix(bid.rates)}</p>
+                    <p className="text-sm font-bold text-foreground">₹{bid.total_sum_metric.toLocaleString('en-IN')}{formatBidUnitSuffix(bid.rates, undefined, project?.service_type ?? bid.service_type)}</p>
                     <p className="text-[10px] text-muted-foreground/80">{new Date(bid.created_at).toLocaleDateString('en-IN')}</p>
                   </div>
                   {project && (

@@ -13,7 +13,7 @@ import { computeRatingStats } from '@/lib/builderRatings';
 import { BuilderPortfolioModal } from './BuilderPortfolioModal';
 import { SelectBuilderButton } from './SelectBuilderButton';
 import { BidFloorRatesBreakdown } from '@/components/shared/BidFloorRatesBreakdown';
-import { formatBidUnitSuffix, formatTripCapacityLabel } from '@/lib/bid/earthworkBid';
+import { formatBidUnitCaption, formatBidUnitSuffix, formatTripCapacityLabel } from '@/lib/bid/earthworkBid';
 import { resolveProjectFloorCount, shouldShowBidFloorBreakdown } from '@/lib/bid/floorRateDisplay';
 import { useOwnerProjectPhaseContext } from '@/lib/context/OwnerProjectPhaseContext';
 import type { Project, Bid } from '@/lib/types';
@@ -236,11 +236,13 @@ export function UnifiedBidRankings({
                 <p className={`text-base font-bold tabular-nums ${
                   isSelected ? 'text-emerald-400' : isLowest ? 'text-emerald-400' : 'text-foreground'
                 }`}>
-                  ₹{bid.total_sum_metric.toLocaleString('en-IN')}
+                  {project.service_type === 'plumber' ? 'Rs. ' : '₹'}{bid.total_sum_metric.toLocaleString('en-IN')}
                 </p>
                 <p className="text-[10px] text-muted-foreground">
                   {formatTripCapacityLabel(bid.rates?.vehicleCapacityCum)
-                    ?? `total ${formatBidUnitSuffix(bid.rates)}`}
+                    ?? (formatBidUnitCaption(bid.rates, undefined, project.service_type) === 'Rs.'
+                      ? 'Rs.'
+                      : `total ${formatBidUnitSuffix(bid.rates, undefined, project.service_type)}`)}
                 </p>
               </div>
 

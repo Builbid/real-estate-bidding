@@ -1,9 +1,13 @@
 import { parseTradeDetails } from '@/lib/tradeWorkDetails';
 import { readNestedProjectDetail } from '@/lib/project/storedDetails';
-import type { BidRates, ServiceType } from '@/lib/types';
+import type { BidRates, BidUnit, ServiceType } from '@/lib/types';
 
 export type EarthworkBidMode = 'hourly' | 'trip';
-export type BidUnit = 'per_sqft' | 'per_hour' | 'per_trip';
+export type BidDisplayUnit = 'hour' | 'trip' | 'sqft' | 'flat';
+
+export function isFlatRupeeService(serviceType?: ServiceType | null): boolean {
+  return serviceType === 'plumber';
+}
 
 export function resolveEarthworkBidMode(project: {
   service_type?: ServiceType | null;
@@ -27,19 +31,36 @@ export function bidUnitForEarthworkMode(mode: EarthworkBidMode | null): BidUnit 
 export function getBidDisplayUnit(
   rates?: Partial<BidRates> | null,
   mode?: EarthworkBidMode | null,
-): 'hour' | 'trip' | 'sqft' {
+  serviceType?: ServiceType | null,
+): BidDisplayUnit {
   const unit = rates?.bid_unit ?? bidUnitForEarthworkMode(mode ?? null);
   if (unit === 'per_hour') return 'hour';
   if (unit === 'per_trip') return 'trip';
+  if (unit === 'flat' || isFlatRupeeService(serviceType)) return 'flat';
   return 'sqft';
 }
 
 export function formatBidUnitSuffix(
   rates?: Partial<BidRates> | null,
   mode?: EarthworkBidMode | null,
+  serviceType?: ServiceType | null,
 ): string {
-  const unit = getBidDisplayUnit(rates, mode);
+  const unit = getBidDisplayUnit(rates, mode, serviceType);
+  if (unit === 'flat') return '';
   return unit === 'sqft' ? '/sqft' : `/${unit}`;
+}
+
+/** Small caption under a bid amount — "Rs." for plumber, "/sqft" otherwise. */
+export function formatBidUnitCaption(
+  rates?: Partial<BidRates> | null,
+  mode?: EarthworkBidMode | null,
+  serviceType?: ServiceType | null,
+): string {
+  const unit = getBidDisplayUnit(rates, mode, serviceType);
+  if (unit === 'flat') return 'Rs.';
+  if (unit === 'hour') return '/hour';
+  if (unit === 'trip') return '/trip';
+  return '/sqft';
 }
 
 export function sanitizeCapacityInput(raw: string): string {

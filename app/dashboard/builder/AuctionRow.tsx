@@ -59,7 +59,7 @@ export function AuctionRow({ project, myBid, bidHrefOverride }: AuctionRowProps)
           )}
           {hasBid && (
             <Badge variant="indigo">
-              Your Bid: ₹{myBid!.total_sum_metric.toLocaleString('en-IN')}{formatBidUnitSuffix(myBid!.rates)}
+              Your Bid: ₹{myBid!.total_sum_metric.toLocaleString('en-IN')}{formatBidUnitSuffix(myBid!.rates, undefined, project.service_type)}
             </Badge>
           )}
         </div>

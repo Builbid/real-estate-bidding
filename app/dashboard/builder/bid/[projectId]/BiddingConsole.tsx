@@ -42,6 +42,7 @@ import {
   formatBidUnitSuffix,
   formatTripCapacityLabel,
   getVehicleCapacityError,
+  isFlatRupeeService,
   parseVehicleCapacity,
   resolveEarthworkBidMode,
   sanitizeCapacityInput,
@@ -88,14 +89,15 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
   const workRequirements = getProjectWorkRequirementBlocks(project);
   const requirementBlocks = workRequirements?.blocks ?? null;
 
-  // Trade / Drawing & Design bid a single ₹/sqft rate (not per floor).
+  // Trade / Drawing & Design bid a single package rate (not per floor).
   const bidFloors = resolveProjectBidFloors(project);
   const isAssamTypeHouse = bidFloors.isAssamType;
   const floorCount = isSingleRateBid ? 1 : bidFloors.count;
   const floorLabels = isSingleRateBid ? ['Your'] : bidFloors.labels;
   const rateKeys = getRateKeys(floorCount);
   const earthworkMode = resolveEarthworkBidMode(project);
-  const rateUnitSuffix = formatBidUnitSuffix(undefined, earthworkMode);
+  const isPlumber = isFlatRupeeService(project.service_type);
+  const rateUnitSuffix = formatBidUnitSuffix(undefined, earthworkMode, project.service_type);
   const isPainter = project.service_type === 'painter';
   const rateRules = { requireMultipleOfFive: !isPainter };
 
@@ -239,6 +241,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
       ...(earthworkMode === 'trip'
         ? { bid_unit: 'per_trip' as const, vehicleCapacityCum: tripCapacity }
         : {}),
+      ...(isPlumber ? { bid_unit: 'flat' as const } : {}),
     }, bidId);
 
     if (result.error) {
@@ -373,10 +376,12 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                             ? 'Hourly Rate Metric'
                             : earthworkMode === 'trip'
                               ? 'Trip Rate Metric'
-                              : 'Your Final Rate Metric'}
+                              : isPlumber
+                                ? 'Your Rate'
+                                : 'Your Final Rate Metric'}
                         </p>
                         <p className="text-lg font-bold tabular-nums text-foreground">
-                          ₹{displayBidAverage(myCurrentBid.total_sum_metric)}
+                          {isPlumber ? 'Rs. ' : '₹'}{displayBidAverage(myCurrentBid.total_sum_metric)}
                           {earthworkMode ? ` ${rateUnitSuffix}` : ''}
                         </p>
                         {earthworkMode === 'trip' && formatTripCapacityLabel(myCurrentBid.rates?.vehicleCapacityCum) && (
@@ -385,7 +390,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                           </p>
                         )}
                       </div>
-                      {!isAssamTypeHouse && !earthworkMode && (
+                      {!isAssamTypeHouse && !earthworkMode && !isPlumber && (
                         <p className="text-xs text-muted-foreground/80 text-right">
                           {isSingleRateBid ? (
                             <>Single rate<br />bid</>
@@ -395,6 +400,9 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                             <>Average of {floorCount} floors</>
                           )}
                         </p>
+                      )}
+                      {isPlumber && (
+                        <p className="text-xs text-muted-foreground/80 text-right">Rs.</p>
                       )}
                       {earthworkMode === 'hourly' && (
                         <p className="text-xs text-muted-foreground/80 text-right">/hour</p>
@@ -444,6 +452,8 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                   <p className="text-xs text-blue-300">
                     {isPainter ? (
                       <>Enter your rate in ₹ per sqft. Rates must be whole numbers. Lower rates rank higher.</>
+                    ) : isPlumber ? (
+                      <>Enter your rate in <strong>Rs.</strong> Rates must be whole numbers ending in 0 or 5. Lower rates rank higher.</>
                     ) : earthworkMode === 'hourly' ? (
                       <>Enter your rate in ₹ per hour. Rates must be whole numbers ending in 0 or 5.</>
                     ) : earthworkMode === 'trip' ? (
@@ -486,17 +496,19 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                               ? 'Your Hourly Rate'
                               : earthworkMode === 'trip'
                                 ? 'Your Rate Per Trip'
-                                : `${label} Rate`
+                                : isPlumber
+                                  ? 'Your Rate'
+                                  : `${label} Rate`
                           }
                           type="text"
                           inputMode="numeric"
                           pattern="[0-9]*"
-                          placeholder="e.g. 1800"
+                          placeholder={isPlumber ? 'e.g. 25000' : 'e.g. 1800'}
                           value={inputValue}
                           onChange={(e) => handleRateChange(key, e.target.value)}
                           onBlur={() => handleRateBlur(key)}
-                          prefix={<span className="text-muted-foreground text-xs">₹</span>}
-                          suffix={<span className="text-muted-foreground/80 text-xs">{rateUnitSuffix}</span>}
+                          prefix={<span className="text-muted-foreground text-xs">{isPlumber ? 'Rs.' : '₹'}</span>}
+                          suffix={rateUnitSuffix ? <span className="text-muted-foreground/80 text-xs">{rateUnitSuffix}</span> : undefined}
                           error={fieldError}
                           required
                         />
@@ -546,18 +558,23 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                         ? 'Hourly Rate Metric'
                         : earthworkMode === 'trip'
                           ? 'Trip Rate Metric'
-                          : 'Your Average Rate Metric'}
+                          : isPlumber
+                            ? 'Your Rate'
+                            : 'Your Average Rate Metric'}
                     </p>
                     <p className={cn('text-lg font-bold tabular-nums', averageMetric > 0 ? 'text-emerald-400' : 'text-muted-foreground/80')}>
                       {earthworkMode === 'trip' && averageMetric > 0
                         ? `₹${formatBidMetric(averageMetric)} / trip${capacityValue != null ? ` (Capacity: ${capacityValue} cum)` : ''}`
-                        : `₹${formatBidMetric(averageMetric)}`}
+                        : `${isPlumber ? 'Rs. ' : '₹'}${formatBidMetric(averageMetric)}`}
                     </p>
                   </div>
                   {earthworkMode === 'hourly' && (
                     <p className="text-xs text-muted-foreground/80 text-right">/hour</p>
                   )}
-                  {!isAssamTypeHouse && !earthworkMode && (
+                  {isPlumber && (
+                    <p className="text-xs text-muted-foreground/80 text-right">lump sum</p>
+                  )}
+                  {!isAssamTypeHouse && !earthworkMode && !isPlumber && (
                     <p className="text-xs text-muted-foreground/80 text-right">
                       {isSingleRateBid ? (
                         <>Single rate<br />bid</>
@@ -700,14 +717,16 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                               'text-sm font-bold tabular-nums',
                               isLowest ? 'text-emerald-400' : isMe ? 'text-indigo-300' : 'text-foreground'
                             )}>
-                              ₹{displayBidAverage(bid.total_sum_metric)}
+                              {isPlumber ? 'Rs. ' : '₹'}{displayBidAverage(bid.total_sum_metric)}
                             </p>
                             <p className="text-[10px] text-muted-foreground/80">
                               {earthworkMode === 'hourly'
                                 ? '/hour'
                                 : earthworkMode === 'trip'
                                   ? formatTripCapacityLabel(bid.rates?.vehicleCapacityCum) ?? '/trip'
-                                  : '/sqft avg'}
+                                  : isPlumber
+                                    ? 'Rs.'
+                                    : '/sqft avg'}
                             </p>
                           </div>
 
@@ -727,7 +746,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                   {lowestBid && !bids.some((b) => b.builder_id === builderId) && (
                     <div className="pt-3 px-2">
                       <p className="text-xs text-muted-foreground">
-                        💡 Current lowest: <strong className="text-emerald-400">₹{displayBidAverage(lowestBid.total_sum_metric)}{rateUnitSuffix}</strong> — Beat it to lead.
+                        💡 Current lowest: <strong className="text-emerald-400">{isPlumber ? 'Rs. ' : '₹'}{displayBidAverage(lowestBid.total_sum_metric)}{rateUnitSuffix}</strong> — Beat it to lead.
                       </p>
                     </div>
                   )}
