@@ -16,7 +16,9 @@ import { BuilderPortfolioGrid } from '@/components/shared/BuilderPortfolioGrid';
 import { createClient } from '@/lib/supabase/client';
 import { EMPTY_RATING_STATS, type BuilderRatingStats } from '@/lib/builderRatings';
 import { formatBidUnitSuffix, formatTripCapacityLabel } from '@/lib/bid/earthworkBid';
+import { resolveCarpenterBidScopes } from '@/lib/bid/carpenterBid';
 import { getBidFloorRateEntries } from '@/lib/bid/floorRateDisplay';
+import { useOwnerProjectPhaseContext } from '@/lib/context/OwnerProjectPhaseContext';
 import type { Bid, BuilderPortfolioItem } from '@/lib/types';
 
 interface BuilderInfo {
@@ -56,6 +58,8 @@ export function BuilderPortfolioModal({
   builder, bid, rank, currentProjectId, isProjectCompleted, isSelectedBuilder, ownerId,
 }: PortfolioProps) {
   const supabase = createClient();
+  const { project } = useOwnerProjectPhaseContext();
+  const carpenterLabels = resolveCarpenterBidScopes(project)?.labels;
   const [open, setOpen] = useState(false);
 
   const [wonProjects, setWonProjects]       = useState<WonProject[]>([]);
@@ -140,7 +144,7 @@ export function BuilderPortfolioModal({
     setSaving(false);
   }
 
-  const rateEntries = getBidFloorRateEntries(bid.rates).map(({ key, label, value }) => [key, value, label] as const);
+  const rateEntries = getBidFloorRateEntries(bid.rates, carpenterLabels).map(({ key, label, value }) => [key, value, label] as const);
 
   const memberSince = new Date(builder.created_at).toLocaleDateString('en-IN', {
     year: 'numeric', month: 'long',

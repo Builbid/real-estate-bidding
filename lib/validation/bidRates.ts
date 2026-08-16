@@ -5,10 +5,10 @@ export const BID_RATE_ERROR =
   'Rate must end in 0 or 5 (e.g., 1230, 1235).';
 
 /** Services that accept any positive whole number (ones digit 0–9). */
-export const FLEXIBLE_WHOLE_NUMBER_SERVICES = ['painter', 'electrician'] as const;
+export const FLEXIBLE_WHOLE_NUMBER_SERVICES = ['painter', 'electrician', 'carpenter'] as const;
 
 export interface BidRateRules {
-  /** When false, any positive whole number is accepted (painter / electrician). Default true. */
+  /** When false, any positive whole number is accepted (painter / electrician / carpenter). Default true. */
   requireMultipleOfFive?: boolean;
 }
 

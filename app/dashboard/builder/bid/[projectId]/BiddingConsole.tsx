@@ -50,6 +50,7 @@ import {
   resolveEarthworkBidMode,
   sanitizeCapacityInput,
 } from '@/lib/bid/earthworkBid';
+import { resolveCarpenterBidScopes } from '@/lib/bid/carpenterBid';
 import { shouldShowBidFloorBreakdown, resolveProjectBidFloors } from '@/lib/bid/floorRateDisplay';
 import { createClient } from '@/lib/supabase/client';
 import { isTradeServiceType } from '@/lib/trades';
@@ -92,11 +93,14 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
   const workRequirements = getProjectWorkRequirementBlocks(project);
   const requirementBlocks = workRequirements?.blocks ?? null;
 
-  // Trade / Drawing & Design bid a single package rate (not per floor).
+  // Trade / Drawing & Design bid a single package rate (not per floor),
+  // except carpenter which bids one ₹/sqft rate per selected scope item.
   const bidFloors = resolveProjectBidFloors(project);
-  const isAssamTypeHouse = bidFloors.isAssamType;
-  const floorCount = isSingleRateBid ? 1 : bidFloors.count;
-  const floorLabels = isSingleRateBid ? ['Your'] : bidFloors.labels;
+  const carpenterScopes = resolveCarpenterBidScopes(project);
+  const isCarpenter = carpenterScopes != null;
+  const isAssamTypeHouse = bidFloors.isAssamType && !isCarpenter;
+  const floorCount = isCarpenter ? carpenterScopes.count : isSingleRateBid ? 1 : bidFloors.count;
+  const floorLabels = isCarpenter ? carpenterScopes.labels : isSingleRateBid ? ['Your'] : bidFloors.labels;
   const rateKeys = getRateKeys(floorCount);
   const earthworkMode = resolveEarthworkBidMode(project);
   const isPlumber = isFlatRupeeService(project.service_type);
@@ -421,7 +425,9 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                               ? 'Trip Rate Metric'
                               : isPlumber
                                 ? 'Your Rate'
-                                : 'Your Final Rate Metric'}
+                                : isCarpenter
+                                  ? 'Your Average Rate Metric'
+                                  : 'Your Final Rate Metric'}
                         </p>
                         <p className="text-lg font-bold tabular-nums text-foreground">
                           {isPlumber ? 'Rs. ' : '₹'}{displayBidAverage(myCurrentBid.total_sum_metric)}
@@ -433,7 +439,16 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                           </p>
                         )}
                       </div>
-                      {!isAssamTypeHouse && !earthworkMode && !isPlumber && !isElectrician && (
+                      {isCarpenter && (
+                        <p className="text-xs text-muted-foreground/80 text-right">
+                          {floorCount === 1 ? (
+                            <>Single rate<br />bid</>
+                          ) : (
+                            <>Average of {floorCount} items</>
+                          )}
+                        </p>
+                      )}
+                      {!isAssamTypeHouse && !earthworkMode && !isPlumber && !isElectrician && !isCarpenter && (
                         <p className="text-xs text-muted-foreground/80 text-right">
                           {isSingleRateBid ? (
                             <>Single rate<br />bid</>
@@ -498,6 +513,8 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                   <p className="text-xs text-blue-300">
                     {isPainter ? (
                       <>Enter your rate in ₹ per sqft. Rates must be whole numbers. Lower rates rank higher.</>
+                    ) : isCarpenter ? (
+                      <>Enter your rate in ₹ per sqft for each item. Rates must be whole numbers. Lower rates rank higher.</>
                     ) : isElectrician ? (
                       <>Enter your rate in ₹ per point. Rates must be whole numbers. Lower rates rank higher.</>
                     ) : isPlumber ? (
@@ -629,7 +646,16 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                   {isPlumber && (
                     <p className="text-xs text-muted-foreground/80 text-right">lump sum</p>
                   )}
-                  {!isAssamTypeHouse && !earthworkMode && !isPlumber && !isElectrician && (
+                  {isCarpenter && (
+                    <p className="text-xs text-muted-foreground/80 text-right">
+                      {floorCount === 1 ? (
+                        <>Single rate<br />bid</>
+                      ) : (
+                        <>Average of {floorCount} items</>
+                      )}
+                    </p>
+                  )}
+                  {!isAssamTypeHouse && !earthworkMode && !isPlumber && !isElectrician && !isCarpenter && (
                     <p className="text-xs text-muted-foreground/80 text-right">
                       {isSingleRateBid ? (
                         <>Single rate<br />bid</>
@@ -783,7 +809,9 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                                     ? 'Rs.'
                                     : isElectrician
                                       ? '/point'
-                                      : '/sqft avg'}
+                                      : isCarpenter && floorCount > 1
+                                        ? '/sqft avg'
+                                        : '/sqft avg'}
                             </p>
                           </div>
 
@@ -791,7 +819,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                             <div className="w-full basis-full">
                               <BidFloorRatesBreakdown
                                 rates={bid.rates}
-                                floorLabels={isSingleRateBid ? undefined : floorLabels}
+                                floorLabels={isSingleRateBid && !isCarpenter ? undefined : floorLabels}
                               />
                             </div>
                           )}

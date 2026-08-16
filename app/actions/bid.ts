@@ -7,7 +7,9 @@ import {
   parseVehicleCapacity,
   resolveEarthworkBidMode,
 } from '@/lib/bid/earthworkBid';
+import { resolveCarpenterBidScopes } from '@/lib/bid/carpenterBid';
 import { resolveProjectBidFloors } from '@/lib/bid/floorRateDisplay';
+import { missingProjectsColumn } from '@/lib/project/storedDetails';
 import { isDrawingDesignServiceType } from '@/lib/drawingDesign';
 import { isTradeServiceType } from '@/lib/trades';
 import type { BidRates, TrackType } from '@/lib/types';
@@ -30,11 +32,21 @@ export async function submitBidAction(
   } = await supabase.auth.getUser();
   if (!user) return { error: 'You must be signed in to submit a bid.', success: false };
 
-  const { data: project, error: projectError } = await supabase
+  let { data: project, error: projectError } = await supabase
     .from('projects')
-    .select('track_type, sub_configuration, service_type, building_types, mistri_details, total_floors')
+    .select('track_type, sub_configuration, service_type, building_types, mistri_details, trade_details, total_floors')
     .eq('id', projectId)
     .single();
+
+  if (projectError && missingProjectsColumn(projectError.message) === 'trade_details') {
+    const retry = await supabase
+      .from('projects')
+      .select('track_type, sub_configuration, service_type, building_types, mistri_details, total_floors')
+      .eq('id', projectId)
+      .single();
+    project = retry.data;
+    projectError = retry.error;
+  }
 
   if (projectError || !project) {
     return { error: 'Project not found.', success: false };
@@ -65,17 +77,24 @@ export async function submitBidAction(
     return { error: 'You are not authorized to bid on this project type.', success: false };
   }
 
-  // Trades + Drawing & Design use one package rate (ground_rate only).
+  const carpenterScopes = resolveCarpenterBidScopes({
+    service_type: project.service_type,
+    trade_details: project.trade_details,
+    sub_configuration: project.sub_configuration,
+  });
+
+  // Trades + Drawing & Design use one package rate, except carpenter (one rate per scope).
   const floorCount =
-    isTradeServiceType(project.service_type) || isDrawingDesignServiceType(project.service_type)
-      ? 1
-      : resolveProjectBidFloors({
-          track_type: project.track_type as TrackType,
-          sub_configuration: project.sub_configuration,
-          building_types: project.building_types,
-          mistri_details: project.mistri_details,
-          total_floors: project.total_floors,
-        }).count;
+    carpenterScopes?.count
+      ?? (isTradeServiceType(project.service_type) || isDrawingDesignServiceType(project.service_type)
+        ? 1
+        : resolveProjectBidFloors({
+            track_type: project.track_type as TrackType,
+            sub_configuration: project.sub_configuration,
+            building_types: project.building_types,
+            mistri_details: project.mistri_details,
+            total_floors: project.total_floors,
+          }).count);
 
   const validation = validateBidRatesForFloorCount(
     rates,

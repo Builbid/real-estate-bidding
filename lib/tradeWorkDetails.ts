@@ -433,11 +433,15 @@ function parseCarpenterScopes(raw: unknown): CarpenterScopeType[] {
   return next;
 }
 
+export function getCarpenterScopeLabel(value: CarpenterScopeType): string {
+  return LEGACY_CARPENTER_SCOPE_LABELS[value] ?? value;
+}
+
 export function formatCarpenterScopesSummary(
   scopes: CarpenterScopeType[] | null | undefined,
 ): string {
   if (!scopes?.length) return 'No scope selected';
-  return scopes.map((value) => LEGACY_CARPENTER_SCOPE_LABELS[value] ?? value).join(', ');
+  return scopes.map((value) => getCarpenterScopeLabel(value)).join(', ');
 }
 
 export function isTradeDetails(value: unknown): value is TradeDetails {

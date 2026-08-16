@@ -14,6 +14,7 @@ import { BuilderPortfolioModal } from './BuilderPortfolioModal';
 import { SelectBuilderButton } from './SelectBuilderButton';
 import { BidFloorRatesBreakdown } from '@/components/shared/BidFloorRatesBreakdown';
 import { formatBidUnitCaption, formatBidUnitSuffix, formatTripCapacityLabel } from '@/lib/bid/earthworkBid';
+import { resolveCarpenterBidScopes } from '@/lib/bid/carpenterBid';
 import { resolveProjectFloorCount, shouldShowBidFloorBreakdown } from '@/lib/bid/floorRateDisplay';
 import { useOwnerProjectPhaseContext } from '@/lib/context/OwnerProjectPhaseContext';
 import type { Project, Bid } from '@/lib/types';
@@ -120,7 +121,9 @@ export function UnifiedBidRankings({
   }
 
   const isCompleted = project.status === 'completed';
-  const projectFloorCount = resolveProjectFloorCount(project);
+  const carpenterScopes = resolveCarpenterBidScopes(project);
+  const projectFloorCount = carpenterScopes?.count ?? resolveProjectFloorCount(project);
+  const carpenterFloorLabels = carpenterScopes?.labels;
 
   return (
     <div className="space-y-2">
@@ -248,7 +251,7 @@ export function UnifiedBidRankings({
 
               {shouldShowBidFloorBreakdown(bid.rates, projectFloorCount) && (
                 <div className="w-full basis-full">
-                  <BidFloorRatesBreakdown rates={bid.rates} />
+                  <BidFloorRatesBreakdown rates={bid.rates} floorLabels={carpenterFloorLabels} />
                 </div>
               )}
 
