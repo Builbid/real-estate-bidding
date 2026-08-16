@@ -353,7 +353,7 @@ export async function createProjectAction(
     error = retry.error
   }
 
-  if (error) return { error: error.message }
+  if (error || !project) return { error: error?.message ?? 'Failed to create project.' }
 
   try {
     await sendNewProjectAnnouncementEmails({
