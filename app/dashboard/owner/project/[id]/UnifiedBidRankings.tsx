@@ -240,8 +240,8 @@ export function UnifiedBidRankings({
                 </p>
                 <p className="text-[10px] text-muted-foreground">
                   {formatTripCapacityLabel(bid.rates?.vehicleCapacityCum)
-                    ?? (formatBidUnitCaption(bid.rates, undefined, project.service_type) === 'Rs.'
-                      ? 'Rs.'
+                    ?? (['Rs.', '/point'].includes(formatBidUnitCaption(bid.rates, undefined, project.service_type))
+                      ? formatBidUnitCaption(bid.rates, undefined, project.service_type)
                       : `total ${formatBidUnitSuffix(bid.rates, undefined, project.service_type)}`)}
                 </p>
               </div>

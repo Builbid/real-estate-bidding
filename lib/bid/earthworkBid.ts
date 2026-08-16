@@ -3,10 +3,19 @@ import { readNestedProjectDetail } from '@/lib/project/storedDetails';
 import type { BidRates, BidUnit, ServiceType } from '@/lib/types';
 
 export type EarthworkBidMode = 'hourly' | 'trip';
-export type BidDisplayUnit = 'hour' | 'trip' | 'sqft' | 'flat';
+export type BidDisplayUnit = 'hour' | 'trip' | 'sqft' | 'flat' | 'point';
 
 export function isFlatRupeeService(serviceType?: ServiceType | null): boolean {
   return serviceType === 'plumber';
+}
+
+export function isPerPointService(serviceType?: ServiceType | null): boolean {
+  return serviceType === 'electrician';
+}
+
+/** Painter and electrician accept any positive whole number (not only 0 or 5). */
+export function allowsAnyWholeNumberRate(serviceType?: ServiceType | null): boolean {
+  return serviceType === 'painter' || serviceType === 'electrician';
 }
 
 export function resolveEarthworkBidMode(project: {
@@ -37,6 +46,7 @@ export function getBidDisplayUnit(
   if (unit === 'per_hour') return 'hour';
   if (unit === 'per_trip') return 'trip';
   if (unit === 'flat' || isFlatRupeeService(serviceType)) return 'flat';
+  if (unit === 'per_point' || isPerPointService(serviceType)) return 'point';
   return 'sqft';
 }
 
@@ -60,6 +70,7 @@ export function formatBidUnitCaption(
   if (unit === 'flat') return 'Rs.';
   if (unit === 'hour') return '/hour';
   if (unit === 'trip') return '/trip';
+  if (unit === 'point') return '/point';
   return '/sqft';
 }
 

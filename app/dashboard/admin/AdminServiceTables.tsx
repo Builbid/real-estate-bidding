@@ -141,7 +141,9 @@ export function AdminServiceTables({ projects, profiles, recentBids }: AdminServ
                   ? formatPackageRateRange(bid.package_rates) ?? '—'
                   : bid.service_type === 'plumber'
                     ? `Rs. ${getBidDisplayRate(bid).toLocaleString('en-IN')}`
-                    : `₹${getBidDisplayRate(bid).toLocaleString('en-IN')}/sqft`}
+                    : bid.service_type === 'electrician'
+                      ? `₹${getBidDisplayRate(bid).toLocaleString('en-IN')}/point`
+                      : `₹${getBidDisplayRate(bid).toLocaleString('en-IN')}/sqft`}
               </p>
             </div>
           ))}

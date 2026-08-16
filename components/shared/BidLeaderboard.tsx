@@ -283,7 +283,7 @@ export function BidLeaderboard({
                   {serviceType === 'plumber' ? 'Rs. ' : '₹'}{bid.total_sum_metric.toLocaleString('en-IN')}
                 </p>
                 <p className="text-[10px] text-muted-foreground">
-                  {serviceType === 'plumber' ? 'Rs.' : 'total rate/sqft'}
+                  {serviceType === 'plumber' ? 'Rs.' : serviceType === 'electrician' ? '/point' : 'total rate/sqft'}
                 </p>
               </div>
 

@@ -5,7 +5,7 @@ export const BID_RATE_ERROR =
   'Rate must end in 0 or 5 (e.g., 1230, 1235).';
 
 export interface BidRateRules {
-  /** When false, any positive whole number is accepted (painter bids). Default true. */
+  /** When false, any positive whole number is accepted (painter / electrician). Default true. */
   requireMultipleOfFive?: boolean;
 }
 

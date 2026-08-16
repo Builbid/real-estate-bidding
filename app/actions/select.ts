@@ -81,7 +81,9 @@ export async function selectBuilderAction(
     : legacyRateValue
       ? existing.service_type === 'plumber'
         ? `Rs. ${legacyRateValue.toLocaleString('en-IN')}`
-        : `₹${legacyRateValue.toLocaleString('en-IN')}/sqft`
+        : existing.service_type === 'electrician'
+          ? `₹${legacyRateValue.toLocaleString('en-IN')}/point`
+          : `₹${legacyRateValue.toLocaleString('en-IN')}/sqft`
       : ''
 
   const { data: ownerProfile } = await supabase

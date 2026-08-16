@@ -77,7 +77,8 @@ export async function submitBidAction(
         }).count;
 
   const validation = validateBidRatesForFloorCount(rates, floorCount, {
-    requireMultipleOfFive: project.service_type !== 'painter',
+    requireMultipleOfFive:
+      project.service_type !== 'painter' && project.service_type !== 'electrician',
   });
   if (!validation.valid) {
     return { error: validation.message ?? 'Invalid bid rates.', success: false };
@@ -103,7 +104,9 @@ export async function submitBidAction(
         ? bidUnitForEarthworkMode(earthworkMode)
         : project.service_type === 'plumber'
           ? 'flat'
-          : rates.bid_unit,
+          : project.service_type === 'electrician'
+            ? 'per_point'
+            : rates.bid_unit,
       vehicleCapacityCum: isTripBid ? rates.vehicleCapacityCum : undefined,
     },
     floorCount,

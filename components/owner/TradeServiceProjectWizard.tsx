@@ -365,7 +365,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
         </h1>
         <p className="text-sm text-gray-700 dark:text-zinc-300 mt-1">
           Registered {tradeLabel.toLowerCase()}s will bid their rate{' '}
-          {trade === 'plumber' ? 'in Rs.' : 'per sqft'} on your project.
+          {trade === 'plumber' ? 'in Rs.' : trade === 'electrician' ? 'per point' : 'per sqft'} on your project.
         </p>
       </div>
 
