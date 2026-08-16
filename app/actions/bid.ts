@@ -12,7 +12,7 @@ import { resolveProjectBidFloors } from '@/lib/bid/floorRateDisplay';
 import { missingProjectsColumn } from '@/lib/project/storedDetails';
 import { isDrawingDesignServiceType } from '@/lib/drawingDesign';
 import { isTradeServiceType } from '@/lib/trades';
-import type { BidRates, TrackType } from '@/lib/types';
+import type { BidRates, ServiceType, SubConfiguration, TrackType } from '@/lib/types';
 import {
   buildBidRatesPayload,
   getBidRateRules,
@@ -32,11 +32,24 @@ export async function submitBidAction(
   } = await supabase.auth.getUser();
   if (!user) return { error: 'You must be signed in to submit a bid.', success: false };
 
-  let { data: project, error: projectError } = await supabase
+  type BidProjectRow = {
+    track_type: TrackType;
+    sub_configuration: SubConfiguration | null;
+    service_type: ServiceType | null;
+    building_types: string[] | null;
+    mistri_details: unknown;
+    trade_details?: unknown;
+    total_floors: number | null;
+  };
+
+  const firstLookup = await supabase
     .from('projects')
     .select('track_type, sub_configuration, service_type, building_types, mistri_details, trade_details, total_floors')
     .eq('id', projectId)
     .single();
+
+  let project: BidProjectRow | null = firstLookup.data as BidProjectRow | null;
+  let projectError = firstLookup.error;
 
   if (projectError && missingProjectsColumn(projectError.message) === 'trade_details') {
     const retry = await supabase
@@ -44,7 +57,9 @@ export async function submitBidAction(
       .select('track_type, sub_configuration, service_type, building_types, mistri_details, total_floors')
       .eq('id', projectId)
       .single();
-    project = retry.data;
+    project = retry.data
+      ? ({ ...retry.data, trade_details: undefined } as BidProjectRow)
+      : null;
     projectError = retry.error;
   }
 
