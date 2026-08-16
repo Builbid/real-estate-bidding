@@ -9,20 +9,20 @@ import {
   parseMistriDetails,
   sortMistriFloorWork,
 } from '@/lib/mistriDetails';
-import type { BidRates, SubConfiguration, TrackType } from '@/lib/types';
+import type { BidFloorRateKey, BidRates, SubConfiguration, TrackType } from '@/lib/types';
 import { readNestedProjectDetail } from '@/lib/project/storedDetails';
 import { getFloorInputCount, getFloorLabels } from '@/lib/utils';
 
-export const FLOOR_RATE_LABELS: Record<keyof BidRates, string> = {
+export const FLOOR_RATE_LABELS: Record<BidFloorRateKey, string> = {
   ground_rate: 'Ground Floor',
   first_rate: 'First Floor',
   second_rate: 'Second Floor',
 };
 
-const FLOOR_RATE_KEYS: Array<keyof BidRates> = ['ground_rate', 'first_rate', 'second_rate'];
+const FLOOR_RATE_KEYS: BidFloorRateKey[] = ['ground_rate', 'first_rate', 'second_rate'];
 
 export interface BidFloorRateEntry {
-  key: keyof BidRates;
+  key: BidFloorRateKey;
   label: string;
   value: number;
 }

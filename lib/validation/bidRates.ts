@@ -1,4 +1,4 @@
-import type { BidRates } from '@/lib/types';
+import type { BidFloorRateKey, BidRates } from '@/lib/types';
 import { getRateKeys } from '@/lib/utils';
 
 export const BID_RATE_ERROR =
@@ -39,9 +39,9 @@ export function getBidRateFieldError(value: number | undefined): string | null {
 export function validateBidRatesForFloorCount(
   rates: Partial<BidRates>,
   floorCount: number,
-): { valid: boolean; errors: Partial<Record<keyof BidRates, string>>; message: string | null } {
+): { valid: boolean; errors: Partial<Record<BidFloorRateKey, string>>; message: string | null } {
   const keys = getRateKeys(floorCount);
-  const errors: Partial<Record<keyof BidRates, string>> = {};
+  const errors: Partial<Record<BidFloorRateKey, string>> = {};
 
   for (const key of keys) {
     const value = rates[key];
@@ -76,8 +76,8 @@ export function buildBidRatesPayload(
   };
 }
 
-export function ratesToInputStrings(rates: Partial<BidRates>): Partial<Record<keyof BidRates, string>> {
-  const result: Partial<Record<keyof BidRates, string>> = {};
+export function ratesToInputStrings(rates: Partial<BidRates>): Partial<Record<BidFloorRateKey, string>> {
+  const result: Partial<Record<BidFloorRateKey, string>> = {};
   for (const key of ['ground_rate', 'first_rate', 'second_rate'] as const) {
     const value = rates[key];
     if (value !== undefined && value > 0) {

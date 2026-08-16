@@ -1,7 +1,7 @@
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import type {
-  CountdownTime, BidRates, TrackType, SubConfiguration,
+  CountdownTime, BidRates, BidFloorRateKey, TrackType, SubConfiguration,
 } from './types';
 import { getMatrixOptionLabel, getFloorCountForRCC } from './constructionMatrix';
 
@@ -94,8 +94,8 @@ export function getFloorLabels(count: number): string[] {
   return labels.slice(0, count);
 }
 
-export function getRateKeys(count: number): Array<keyof BidRates> {
-  const keys: Array<keyof BidRates> = ['ground_rate', 'first_rate', 'second_rate'];
+export function getRateKeys(count: number): BidFloorRateKey[] {
+  const keys: BidFloorRateKey[] = ['ground_rate', 'first_rate', 'second_rate'];
   return keys.slice(0, count);
 }
 

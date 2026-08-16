@@ -216,6 +216,8 @@ export interface Project {
 
 export type BidUnit = 'per_sqft' | 'per_hour' | 'per_trip';
 
+export type BidFloorRateKey = 'ground_rate' | 'first_rate' | 'second_rate';
+
 export interface BidRates {
   ground_rate: number;
   first_rate?: number;

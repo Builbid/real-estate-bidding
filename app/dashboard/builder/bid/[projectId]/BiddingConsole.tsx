@@ -58,7 +58,7 @@ import {
   getProjectWorkRequirementBlocks,
   isWideRequirementLabel,
 } from '@/lib/project/workRequirements';
-import type { Project, Bid, BidRates } from '@/lib/types';
+import type { Project, Bid, BidFloorRateKey, BidRates } from '@/lib/types';
 
 interface Props {
   project: Project;
@@ -69,7 +69,7 @@ interface Props {
   backHref?: string;
 }
 
-const FLOOR_RATE_KEYS: Array<keyof BidRates> = ['ground_rate', 'first_rate', 'second_rate'];
+const FLOOR_RATE_KEYS: BidFloorRateKey[] = ['ground_rate', 'first_rate', 'second_rate'];
 
 interface BuilderInfo {
   full_name: string;
@@ -97,14 +97,14 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
   const earthworkMode = resolveEarthworkBidMode(project);
   const rateUnitSuffix = formatBidUnitSuffix(undefined, earthworkMode);
 
-  const [rateInputs, setRateInputs] = useState<Partial<Record<keyof BidRates, string>>>(() =>
+  const [rateInputs, setRateInputs] = useState<Partial<Record<BidFloorRateKey, string>>>(() =>
     existingBid ? ratesToInputStrings(existingBid.rates) : {},
   );
   const [rates, setRates] = useState<Partial<BidRates>>(() => {
     if (existingBid) return existingBid.rates;
     return {};
   });
-  const [rateErrors, setRateErrors] = useState<Partial<Record<keyof BidRates, string>>>({});
+  const [rateErrors, setRateErrors] = useState<Partial<Record<BidFloorRateKey, string>>>({});
   const [loading, setLoading]   = useState(false);
   const [success, setSuccess]   = useState(false);
   const [error, setError]       = useState<string | null>(null);
@@ -158,7 +158,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
   const capacityOk = earthworkMode !== 'trip' || capacityValue != null;
   const canSubmit = allFilled && !hasRateErrors && capacityOk && !capacityError;
 
-  function validateRateField(key: keyof BidRates, value: number | undefined) {
+  function validateRateField(key: BidFloorRateKey, value: number | undefined) {
     const fieldError = getBidRateFieldError(value);
     setRateErrors((prev) => {
       const next = { ...prev };
@@ -168,7 +168,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
     });
   }
 
-  function handleRateChange(key: keyof BidRates, raw: string) {
+  function handleRateChange(key: BidFloorRateKey, raw: string) {
     const sanitized = sanitizeBidRateInput(raw);
     setRateInputs((prev) => ({ ...prev, [key]: sanitized }));
     const value = parseBidRateValue(sanitized);
@@ -186,12 +186,12 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
     validateRateField(key, value);
   }
 
-  function handleRateBlur(key: keyof BidRates) {
+  function handleRateBlur(key: BidFloorRateKey) {
     const value = parseBidRateValue(rateInputs[key] ?? '');
     validateRateField(key, value);
   }
 
-  function handleRoundToNearestFive(key: keyof BidRates) {
+  function handleRoundToNearestFive(key: BidFloorRateKey) {
     const current = parseBidRateValue(rateInputs[key] ?? '') ?? rates[key] ?? 0;
     if (current <= 0) return;
 
