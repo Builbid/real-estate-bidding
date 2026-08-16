@@ -759,7 +759,7 @@ export interface TradeDetailsFormInput {
   interiorScope: InteriorScopeType | null;
   targetSpaces: InteriorTargetSpace[];
   interiorArea: string;
-  villageTownName: string;
+  villageTownName?: string;
   earthworkType: EarthworkType | null;
   machineRequirement: EarthworkMachine | null;
 }
@@ -775,14 +775,14 @@ export function validateTradeDetailsInput(
 
   const additional = input.additionalRequirements.trim() || null;
   const villageTownName = normalizeVillageTownName(input.villageTownName);
-  if (!villageTownName) {
+  if (input.service === 'earthwork' && !villageTownName) {
     return { error: 'Enter the village or town name.' };
   }
   const base = {
     projectStartTimeType: start.type,
     projectStartTimeSpecificDate: start.specificDate,
     additionalRequirements: additional,
-    villageTownName,
+    villageTownName: input.service === 'earthwork' ? villageTownName : null,
   };
 
   if (input.service === 'plumber') {

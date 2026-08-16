@@ -129,6 +129,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
   const tradeLabel = getTradeLabel(trade);
   const tradeEmoji = getTradeEmoji(trade);
   const isPainter = trade === 'painter';
+  const isEarthwork = trade === 'earthwork';
   const isCustomTrade = isCustomTradeWorkService(trade);
 
   const districtSelection = parseAssamDistrictSelection(form.location);
@@ -172,13 +173,15 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
       errors.location = 'Please select a district from the list.';
     }
 
-    const villageTownName = form.villageTownName.trim();
-    if (!villageTownName) {
-      errors.villageTownName = 'Enter the village or town name.';
-    } else if (villageTownName.length < 2) {
-      errors.villageTownName = 'Village / town name must be at least 2 characters.';
-    } else if (hasContactInfo(villageTownName)) {
-      errors.villageTownName = 'Village / town name cannot include contact details.';
+    if (isEarthwork) {
+      const villageTownName = form.villageTownName.trim();
+      if (!villageTownName) {
+        errors.villageTownName = 'Enter the village or town name.';
+      } else if (villageTownName.length < 2) {
+        errors.villageTownName = 'Village / town name must be at least 2 characters.';
+      } else if (hasContactInfo(villageTownName)) {
+        errors.villageTownName = 'Village / town name cannot include contact details.';
+      }
     }
 
     const pincodeError = validatePincode(form.pincode);
@@ -217,7 +220,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
       interiorScope: form.interiorScope,
       targetSpaces: form.targetSpaces,
       interiorArea: form.interiorArea,
-      villageTownName: form.villageTownName,
+      villageTownName: isEarthwork ? form.villageTownName : '',
       earthworkType: form.earthworkType,
       machineRequirement: form.machineRequirement,
     });
@@ -323,7 +326,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
 
     const result = await createProjectAction({
       title: autoTitle,
-      description: form.villageTownName.trim(),
+      description: isEarthwork ? form.villageTownName.trim() : undefined,
       track_type: form.track_type ?? 'RCC',
       district: districtSelection.district,
       state: districtSelection.state,
@@ -412,14 +415,16 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                 error={step1ValidationAttempted ? step1Errors.location : undefined}
               />
 
-              <Input
-                label="Village / Town Name"
-                type="text"
-                placeholder="e.g. Rampur, Nalbari"
-                value={form.villageTownName}
-                onChange={(e) => update('villageTownName', e.target.value)}
-                error={step1ValidationAttempted ? step1Errors.villageTownName : undefined}
-              />
+              {isEarthwork && (
+                <Input
+                  label="Village / Town Name"
+                  type="text"
+                  placeholder="e.g. Rampur, Nalbari"
+                  value={form.villageTownName}
+                  onChange={(e) => update('villageTownName', e.target.value)}
+                  error={step1ValidationAttempted ? step1Errors.villageTownName : undefined}
+                />
+              )}
 
               <Input
                 label="Pincode"
@@ -644,7 +649,9 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                   { label: 'Service', value: `${tradeEmoji} ${tradeLabel}` },
                   { label: 'Project Title', value: previewTitle },
                   { label: 'District', value: form.location },
-                  { label: 'Village / Town Name', value: form.villageTownName.trim() },
+                  ...(isEarthwork
+                    ? [{ label: 'Village / Town Name', value: form.villageTownName.trim() }]
+                    : []),
                   { label: 'Pincode', value: form.pincode.trim() || 'Not specified' },
                   ...(isPainter
                     ? [
