@@ -125,6 +125,13 @@ export function getVisibleServiceCategories(): ServiceCategoryOption[] {
   return ALL_SERVICE_CATEGORIES.filter((c) => c.value !== 'construction_firm');
 }
 
+/** Provider signup grid — Construction Firm is never offered here. */
+export function getProviderSignupCategories(): ServiceCategoryOption[] {
+  return ALL_SERVICE_CATEGORIES.filter((c) => c.value !== 'construction_firm');
+}
+
+export const PRIMARY_PROVIDER_SIGNUP_SERVICE = 'labour_contractor' as const;
+
 export function getProviderSpecialtyEmoji(value: string | null | undefined): string {
   const cat = ALL_SERVICE_CATEGORIES.find((c) => c.value === value);
   if (cat) return cat.emoji;

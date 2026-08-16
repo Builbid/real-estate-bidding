@@ -126,8 +126,8 @@ function parseRoleParam(value: string | null): RoleParam {
   ) {
     return value;
   }
-  // Firm signup deep-link while service is hidden → show other bidder roles
-  if (value === 'construction_firm') return 'bidder';
+  // Firm signup deep-link while service is hidden → primary provider option
+  if (value === 'construction_firm') return 'labour_contractor';
   return null;
 }
 

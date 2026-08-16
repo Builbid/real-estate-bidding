@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { BuilBidLogo } from '@/components/shared/BuilBidLogo';
-import { ALL_SERVICE_CATEGORIES } from '@/lib/trades';
+import { getProviderSignupCategories } from '@/lib/trades';
 import { cn } from '@/lib/utils';
 
 export function SignupProviderTradeSelection() {
@@ -43,7 +43,7 @@ export function SignupProviderTradeSelection() {
             Bid your rate/sqft on live client projects
           </p>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 auto-rows-fr items-stretch">
-            {ALL_SERVICE_CATEGORIES.map((service) => (
+            {getProviderSignupCategories().map((service) => (
               <Link
                 key={service.value}
                 href={`/register?role=${service.value}`}
