@@ -10,6 +10,7 @@ import {
   sortMistriFloorWork,
 } from '@/lib/mistriDetails';
 import type { BidRates, SubConfiguration, TrackType } from '@/lib/types';
+import { readNestedProjectDetail } from '@/lib/project/storedDetails';
 import { getFloorInputCount, getFloorLabels } from '@/lib/utils';
 
 export const FLOOR_RATE_LABELS: Record<keyof BidRates, string> = {
@@ -126,7 +127,9 @@ export function resolveProjectBidFloors(project: {
     };
   }
 
-  const mistri = parseMistriDetails(project.mistri_details);
+  const mistri = parseMistriDetails(
+    readNestedProjectDetail(project, 'mistri_details'),
+  );
   if (mistri?.floorWork && mistri.floorWork.length > 0) {
     const labels = sortMistriFloorWork(mistri.floorWork)
       .slice(0, 3)

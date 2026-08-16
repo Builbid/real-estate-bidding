@@ -38,6 +38,10 @@ import {
   type MistriDetails,
 } from '@/lib/mistriDetails'
 import { sendNewProjectAnnouncementEmails } from '@/lib/email/newProjectAnnouncement'
+import {
+  embedDetailsInSubConfiguration,
+  missingProjectsColumn,
+} from '@/lib/project/storedDetails'
 
 interface CreateProjectBase {
   title: string
@@ -325,11 +329,29 @@ export async function createProjectAction(
     }
   }
 
-  const { data: project, error } = await supabase
+  let payload = embedDetailsInSubConfiguration(insertPayload)
+  let { data: project, error } = await supabase
     .from('projects')
-    .insert(insertPayload)
+    .insert(payload)
     .select('id, title, district, state, track_type, sub_configuration, building_types, construction_types, bidding_ends_at')
     .single()
+
+  // Older production DBs may not have drawing_details / trade_details yet.
+  // Retry without the missing column; details stay in sub_configuration.
+  while (error) {
+    const missing = missingProjectsColumn(error.message)
+    if (!missing || !(missing in payload)) break
+    const next = { ...payload }
+    delete next[missing]
+    payload = next
+    const retry = await supabase
+      .from('projects')
+      .insert(payload)
+      .select('id, title, district, state, track_type, sub_configuration, building_types, construction_types, bidding_ends_at')
+      .single()
+    project = retry.data
+    error = retry.error
+  }
 
   if (error) return { error: error.message }
 

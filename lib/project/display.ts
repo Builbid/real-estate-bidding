@@ -14,6 +14,7 @@ import {
   type ServiceCategoryOption,
 } from '@/lib/trades';
 import { getConstructionLabel } from '@/lib/utils';
+import { readNestedProjectDetail } from '@/lib/project/storedDetails';
 
 export function getProjectServiceType(project: { service_type?: ServiceType | null }): ServiceType {
   return project.service_type ?? 'labour_contractor';
@@ -102,7 +103,7 @@ export function getProjectConfigOrDrawingMeta(project: {
   sub_configuration?: Project['sub_configuration'];
 }): string {
   if (isDrawingDesignServiceType(project.service_type)) {
-    const details = parseDrawingDetails(project.drawing_details);
+    const details = parseDrawingDetails(readNestedProjectDetail(project, 'drawing_details'));
     if (details) {
       return formatDrawingPackagesSummary(details.packages);
     }

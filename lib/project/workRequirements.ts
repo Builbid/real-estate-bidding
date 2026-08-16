@@ -11,6 +11,7 @@ import {
   parsePainterDetails,
 } from '@/lib/painterDetails';
 import { getProjectServiceType } from '@/lib/project/display';
+import { readNestedProjectDetail } from '@/lib/project/storedDetails';
 import {
   getTradeWorkRequirementBlocks,
   isCustomTradeWorkService,
@@ -22,6 +23,7 @@ export type WorkRequirementBlock = { label: string; value: string };
 
 export function getProjectWorkRequirementBlocks(project: {
   service_type?: ServiceType | null;
+  sub_configuration?: Project['sub_configuration'];
   painter_details?: Project['painter_details'];
   mistri_details?: Project['mistri_details'];
   trade_details?: Project['trade_details'];
@@ -30,19 +32,19 @@ export function getProjectWorkRequirementBlocks(project: {
   const serviceType = getProjectServiceType(project);
 
   if (serviceType === 'painter') {
-    const details = parsePainterDetails(project.painter_details);
+    const details = parsePainterDetails(readNestedProjectDetail(project, 'painter_details'));
     if (!details) return null;
     return { title: 'Painter Work Requirements', blocks: getPainterWorkRequirementBlocks(details) };
   }
 
   if (serviceType === 'labour_contractor') {
-    const details = parseMistriDetails(project.mistri_details);
+    const details = parseMistriDetails(readNestedProjectDetail(project, 'mistri_details'));
     if (!details) return null;
     return { title: 'Mistri Work Requirements', blocks: getMistriWorkRequirementBlocks(details) };
   }
 
   if (serviceType === 'drawing_design') {
-    const details = parseDrawingDetails(project.drawing_details);
+    const details = parseDrawingDetails(readNestedProjectDetail(project, 'drawing_details'));
     if (!details) return null;
     return {
       title: 'Drawing & Design Requirements',
@@ -51,7 +53,7 @@ export function getProjectWorkRequirementBlocks(project: {
   }
 
   if (isCustomTradeWorkService(serviceType)) {
-    const details = parseTradeDetails(project.trade_details);
+    const details = parseTradeDetails(readNestedProjectDetail(project, 'trade_details'));
     if (!details || details.service !== serviceType) return null;
     const titles: Record<typeof serviceType, string> = {
       plumber: 'Plumber Work Requirements',
