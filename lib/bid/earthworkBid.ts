@@ -13,10 +13,7 @@ export function isPerPointService(serviceType?: ServiceType | null): boolean {
   return serviceType === 'electrician';
 }
 
-/** Painter and electrician accept any positive whole number (not only 0 or 5). */
-export function allowsAnyWholeNumberRate(serviceType?: ServiceType | null): boolean {
-  return serviceType === 'painter' || serviceType === 'electrician';
-}
+export { allowsAnyWholeNumberRate } from '@/lib/validation/bidRates';
 
 export function resolveEarthworkBidMode(project: {
   service_type?: ServiceType | null;

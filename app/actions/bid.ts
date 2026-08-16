@@ -13,6 +13,7 @@ import { isTradeServiceType } from '@/lib/trades';
 import type { BidRates, TrackType } from '@/lib/types';
 import {
   buildBidRatesPayload,
+  getBidRateRules,
   parseBidDbError,
   validateBidRatesForFloorCount,
 } from '@/lib/validation/bidRates';
@@ -76,10 +77,11 @@ export async function submitBidAction(
           total_floors: project.total_floors,
         }).count;
 
-  const validation = validateBidRatesForFloorCount(rates, floorCount, {
-    requireMultipleOfFive:
-      project.service_type !== 'painter' && project.service_type !== 'electrician',
-  });
+  const validation = validateBidRatesForFloorCount(
+    rates,
+    floorCount,
+    getBidRateRules(project.service_type),
+  );
   if (!validation.valid) {
     return { error: validation.message ?? 'Invalid bid rates.', success: false };
   }
@@ -124,7 +126,7 @@ export async function submitBidAction(
       .eq('builder_id', user.id);
 
     if (updateError) {
-      return { error: parseBidDbError(updateError.message), success: false };
+      return { error: parseBidDbError(updateError.message, project.service_type), success: false };
     }
   } else {
     const { error: insertError } = await supabase.from('bids').insert({
@@ -136,7 +138,7 @@ export async function submitBidAction(
     });
 
     if (insertError) {
-      return { error: parseBidDbError(insertError.message), success: false };
+      return { error: parseBidDbError(insertError.message, project.service_type), success: false };
     }
   }
 

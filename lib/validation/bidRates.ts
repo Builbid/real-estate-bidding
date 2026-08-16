@@ -1,12 +1,28 @@
-import type { BidFloorRateKey, BidRates } from '@/lib/types';
+import type { BidFloorRateKey, BidRates, ServiceType } from '@/lib/types';
 import { getRateKeys } from '@/lib/utils';
 
 export const BID_RATE_ERROR =
   'Rate must end in 0 or 5 (e.g., 1230, 1235).';
 
+/** Services that accept any positive whole number (ones digit 0–9). */
+export const FLEXIBLE_WHOLE_NUMBER_SERVICES = ['painter', 'electrician'] as const;
+
 export interface BidRateRules {
   /** When false, any positive whole number is accepted (painter / electrician). Default true. */
   requireMultipleOfFive?: boolean;
+}
+
+export function normalizeServiceType(serviceType?: string | null): string {
+  return String(serviceType ?? '').trim().toLowerCase();
+}
+
+export function allowsAnyWholeNumberRate(serviceType?: string | null): boolean {
+  const normalized = normalizeServiceType(serviceType);
+  return (FLEXIBLE_WHOLE_NUMBER_SERVICES as readonly string[]).includes(normalized);
+}
+
+export function getBidRateRules(serviceType?: ServiceType | string | null): BidRateRules {
+  return { requireMultipleOfFive: !allowsAnyWholeNumberRate(serviceType) };
 }
 
 function requiresMultipleOfFive(rules?: BidRateRules): boolean {
@@ -99,8 +115,13 @@ export function ratesToInputStrings(rates: Partial<BidRates>): Partial<Record<Bi
 }
 
 /** Map Postgres trigger / RLS errors to user-friendly bid messages. */
-export function parseBidDbError(message: string): string {
-  if (message.includes('bid_rate_must_end_in_0_or_5')) return BID_RATE_ERROR;
+export function parseBidDbError(message: string, serviceType?: string | null): string {
+  if (message.includes('bid_rate_must_end_in_0_or_5')) {
+    if (allowsAnyWholeNumberRate(serviceType)) {
+      return 'Unable to save this bid. Please try again.';
+    }
+    return BID_RATE_ERROR;
+  }
   if (message.includes('bid_rate_must_be_whole_number')) {
     return 'Rate must be a whole number with no decimals.';
   }

@@ -26,7 +26,9 @@ import {
 } from '@/lib/utils';
 import {
   BID_RATE_ERROR,
+  allowsAnyWholeNumberRate,
   getBidRateFieldError,
+  getBidRateRules,
   isValidBidRate,
   parseBidRateValue,
   parseBidDbError,
@@ -42,7 +44,6 @@ import {
   formatBidUnitSuffix,
   formatTripCapacityLabel,
   getVehicleCapacityError,
-  allowsAnyWholeNumberRate,
   isFlatRupeeService,
   isPerPointService,
   parseVehicleCapacity,
@@ -102,7 +103,8 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
   const isElectrician = isPerPointService(project.service_type);
   const rateUnitSuffix = formatBidUnitSuffix(undefined, earthworkMode, project.service_type);
   const isPainter = project.service_type === 'painter';
-  const rateRules = { requireMultipleOfFive: !allowsAnyWholeNumberRate(project.service_type) };
+  const isFlexibleRate = allowsAnyWholeNumberRate(project.service_type);
+  const rateRules = getBidRateRules(project.service_type);
 
   const [rateInputs, setRateInputs] = useState<Partial<Record<BidFloorRateKey, string>>>(() =>
     existingBid ? ratesToInputStrings(existingBid.rates) : {},
@@ -159,14 +161,36 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bids, builderId]);
 
+  useEffect(() => {
+    if (!isFlexibleRate) return;
+    setRateErrors((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      for (const key of Object.keys(next) as BidFloorRateKey[]) {
+        if (next[key] === BID_RATE_ERROR) {
+          delete next[key];
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+    setError((prev) => (prev === BID_RATE_ERROR ? null : prev));
+  }, [isFlexibleRate]);
+
   const allFilled = rateKeys.every((k) => isValidBidRate(rates[k], rateRules));
-  const hasRateErrors = rateKeys.some((k) => !!rateErrors[k]);
+  const hasRateErrors = rateKeys.some((k) => {
+    const fieldError = rateErrors[k];
+    if (!fieldError) return false;
+    if (isFlexibleRate && fieldError === BID_RATE_ERROR) return false;
+    return true;
+  });
   const capacityValue = parseVehicleCapacity(capacityInput);
   const capacityOk = earthworkMode !== 'trip' || capacityValue != null;
   const canSubmit = allFilled && !hasRateErrors && capacityOk && !capacityError;
 
   function validateRateField(key: BidFloorRateKey, value: number | undefined) {
-    const fieldError = getBidRateFieldError(value, rateRules);
+    let fieldError = getBidRateFieldError(value, rateRules);
+    if (isFlexibleRate && fieldError === BID_RATE_ERROR) fieldError = null;
     setRateErrors((prev) => {
       const next = { ...prev };
       if (fieldError) next[key] = fieldError;
@@ -180,6 +204,13 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
     setRateInputs((prev) => ({ ...prev, [key]: sanitized }));
     const value = parseBidRateValue(sanitized);
     setRates((prev) => ({ ...prev, [key]: value ?? 0 }));
+
+    if (isFlexibleRate || (value != null && isValidBidRate(value, rateRules))) {
+      setError((prev) => (prev === BID_RATE_ERROR ? null : prev));
+    }
+    if (isFlexibleRate && value != null && value > 0) {
+      setError(null);
+    }
 
     if (!sanitized) {
       setRateErrors((prev) => {
@@ -214,11 +245,19 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
     e.preventDefault();
 
     const validation = validateBidRatesForFloorCount(rates, floorCount, rateRules);
-    setRateErrors(validation.errors);
-    if (!validation.valid) {
-      setError(validation.message);
+    const submitErrors = { ...validation.errors };
+    if (isFlexibleRate) {
+      for (const key of rateKeys) {
+        if (submitErrors[key] === BID_RATE_ERROR) delete submitErrors[key];
+      }
+    }
+    const submitBlocked = Object.keys(submitErrors).length > 0;
+    setRateErrors(submitErrors);
+    if (submitBlocked) {
+      setError(Object.values(submitErrors)[0] ?? validation.message);
       return;
     }
+    setError(null);
 
     let tripCapacity: number | undefined;
     if (earthworkMode === 'trip') {
@@ -249,7 +288,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
     }, bidId);
 
     if (result.error) {
-      setError(parseBidDbError(result.error));
+      setError(parseBidDbError(result.error, project.service_type));
       setLoading(false);
       return;
     }
@@ -486,7 +525,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                     const numericValue = parseBidRateValue(inputValue);
                     const fieldError = rateErrors[key];
                     const showRoundHelper =
-                      !allowsAnyWholeNumberRate(project.service_type) &&
+                      !isFlexibleRate &&
                       !!fieldError &&
                       fieldError === BID_RATE_ERROR &&
                       numericValue !== undefined &&
