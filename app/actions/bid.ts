@@ -108,7 +108,11 @@ export async function submitBidAction(
   if (bidId) {
     const { error: updateError } = await supabase
       .from('bids')
-      .update({ rates: ratesPayload, updated_at: new Date().toISOString() })
+      .update({
+        rates: ratesPayload,
+        service_type: project.service_type,
+        updated_at: new Date().toISOString(),
+      })
       .eq('id', bidId)
       .eq('builder_id', user.id);
 
