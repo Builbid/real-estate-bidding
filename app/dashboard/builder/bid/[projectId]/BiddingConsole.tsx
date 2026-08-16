@@ -71,6 +71,7 @@ interface Props {
   builderId: string;
   builderName: string;
   builderAvatarUrl?: string | null;
+  bidderServiceType?: string | null;
   backHref?: string;
 }
 
@@ -81,7 +82,7 @@ interface BuilderInfo {
   avatar_url?: string | null;
 }
 
-export function BiddingConsole({ project, existingBid, builderId, builderName, builderAvatarUrl, backHref = '/dashboard/builder' }: Props) {
+export function BiddingConsole({ project, existingBid, builderId, builderName, builderAvatarUrl, bidderServiceType, backHref = '/dashboard/builder' }: Props) {
   const { bids, loading: bidsLoading } = useRealtimeBids(project.id);
   const supabase = createClient();
   const [builders, setBuilders] = useState<Record<string, BuilderInfo>>({});
@@ -96,7 +97,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
   // Trade / Drawing & Design bid a single package rate (not per floor),
   // except carpenter which bids one ₹/sqft rate per selected scope item.
   const bidFloors = resolveProjectBidFloors(project);
-  const carpenterScopes = resolveCarpenterBidScopes(project);
+  const carpenterScopes = resolveCarpenterBidScopes(project, bidderServiceType);
   const isCarpenter = carpenterScopes != null;
   const isAssamTypeHouse = bidFloors.isAssamType && !isCarpenter;
   const floorCount = isCarpenter ? carpenterScopes.count : isSingleRateBid ? 1 : bidFloors.count;
@@ -107,8 +108,8 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
   const isElectrician = isPerPointService(project.service_type);
   const rateUnitSuffix = formatBidUnitSuffix(undefined, earthworkMode, project.service_type);
   const isPainter = project.service_type === 'painter';
-  const isFlexibleRate = allowsAnyWholeNumberRate(project.service_type);
-  const rateRules = getBidRateRules(project.service_type);
+  const isFlexibleRate = allowsAnyWholeNumberRate(project.service_type, bidderServiceType);
+  const rateRules = getBidRateRules(project.service_type, bidderServiceType);
 
   const [rateInputs, setRateInputs] = useState<Partial<Record<BidFloorRateKey, string>>>(() =>
     existingBid ? ratesToInputStrings(existingBid.rates) : {},
@@ -526,8 +527,8 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                     ) : (
                       <>
                         Enter your rate in <strong>₹ per sqft</strong>
-                        {isSingleRateBid ? '' : ' for each floor'}. Rates must be whole numbers ending in{' '}
-                        <strong>0 or 5</strong>. Lower{' '}
+                        {isSingleRateBid ? '' : ' for each floor'}. Rates must be whole numbers
+                        {isFlexibleRate ? '' : <> ending in <strong>0 or 5</strong></>}. Lower{' '}
                         {isSingleRateBid ? 'rates rank' : 'average rates rank'} higher.
                       </>
                     )}

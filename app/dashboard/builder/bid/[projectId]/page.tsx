@@ -66,6 +66,7 @@ export default async function BidPage({ params }: PageProps) {
       builderId={userId}
       builderName={profile.full_name}
       builderAvatarUrl={profile.avatar_url}
+      bidderServiceType={profile.service_type}
       backHref={backHref}
     />
   );

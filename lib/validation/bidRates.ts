@@ -4,11 +4,18 @@ import { getRateKeys } from '@/lib/utils';
 export const BID_RATE_ERROR =
   'Rate must end in 0 or 5 (e.g., 1230, 1235).';
 
-/** Services that accept any positive whole number (ones digit 0–9). */
+/** Only these services still require rates ending in 0 or 5. All others accept 0–9. */
+export const MULTIPLE_OF_FIVE_SERVICES = [
+  'labour_contractor',
+  'plumber',
+  'earthwork',
+  'construction_firm',
+] as const;
+
 export const FLEXIBLE_WHOLE_NUMBER_SERVICES = ['painter', 'electrician', 'carpenter'] as const;
 
 export interface BidRateRules {
-  /** When false, any positive whole number is accepted (painter / electrician / carpenter). Default true. */
+  /** When false, any positive whole number is accepted. Default true for mistri/plumber/earthwork. */
   requireMultipleOfFive?: boolean;
 }
 
@@ -16,17 +23,23 @@ export function normalizeServiceType(serviceType?: string | null): string {
   return String(serviceType ?? '').trim().toLowerCase();
 }
 
-export function allowsAnyWholeNumberRate(serviceType?: string | null): boolean {
-  const normalized = normalizeServiceType(serviceType);
-  return (FLEXIBLE_WHOLE_NUMBER_SERVICES as readonly string[]).includes(normalized);
+export function allowsAnyWholeNumberRate(...serviceTypes: Array<string | null | undefined>): boolean {
+  const normalized = serviceTypes.map(normalizeServiceType).filter(Boolean);
+  if (normalized.some((value) => (FLEXIBLE_WHOLE_NUMBER_SERVICES as readonly string[]).includes(value))) {
+    return true;
+  }
+  if (normalized.length === 0) return true;
+  return normalized.every(
+    (value) => !(MULTIPLE_OF_FIVE_SERVICES as readonly string[]).includes(value),
+  );
 }
 
-export function getBidRateRules(serviceType?: ServiceType | string | null): BidRateRules {
-  return { requireMultipleOfFive: !allowsAnyWholeNumberRate(serviceType) };
+export function getBidRateRules(...serviceTypes: Array<ServiceType | string | null | undefined>): BidRateRules {
+  return { requireMultipleOfFive: !allowsAnyWholeNumberRate(...serviceTypes) };
 }
 
 function requiresMultipleOfFive(rules?: BidRateRules): boolean {
-  return rules?.requireMultipleOfFive !== false;
+  return rules?.requireMultipleOfFive === true;
 }
 
 /** Strip non-digit characters so only whole numbers can be entered. */

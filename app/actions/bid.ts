@@ -96,7 +96,7 @@ export async function submitBidAction(
     service_type: project.service_type,
     trade_details: project.trade_details,
     sub_configuration: project.sub_configuration,
-  });
+  }, profile?.service_type);
 
   // Trades + Drawing & Design use one package rate, except carpenter (one rate per scope).
   const floorCount =
@@ -114,7 +114,7 @@ export async function submitBidAction(
   const validation = validateBidRatesForFloorCount(
     rates,
     floorCount,
-    getBidRateRules(project.service_type),
+    getBidRateRules(project.service_type, profile?.service_type),
   );
   if (!validation.valid) {
     return { error: validation.message ?? 'Invalid bid rates.', success: false };
