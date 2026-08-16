@@ -76,7 +76,9 @@ export async function submitBidAction(
           total_floors: project.total_floors,
         }).count;
 
-  const validation = validateBidRatesForFloorCount(rates, floorCount);
+  const validation = validateBidRatesForFloorCount(rates, floorCount, {
+    requireMultipleOfFive: project.service_type !== 'painter',
+  });
   if (!validation.valid) {
     return { error: validation.message ?? 'Invalid bid rates.', success: false };
   }

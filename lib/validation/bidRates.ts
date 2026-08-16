@@ -4,6 +4,15 @@ import { getRateKeys } from '@/lib/utils';
 export const BID_RATE_ERROR =
   'Rate must end in 0 or 5 (e.g., 1230, 1235).';
 
+export interface BidRateRules {
+  /** When false, any positive whole number is accepted (painter bids). Default true. */
+  requireMultipleOfFive?: boolean;
+}
+
+function requiresMultipleOfFive(rules?: BidRateRules): boolean {
+  return rules?.requireMultipleOfFive !== false;
+}
+
 /** Strip non-digit characters so only whole numbers can be entered. */
 export function sanitizeBidRateInput(raw: string): string {
   return raw.replace(/\D/g, '');
@@ -15,9 +24,10 @@ export function parseBidRateValue(sanitized: string): number | undefined {
   return Number.isNaN(value) ? undefined : value;
 }
 
-export function isValidBidRate(value: number | undefined): boolean {
+export function isValidBidRate(value: number | undefined, rules?: BidRateRules): boolean {
   if (value === undefined || value <= 0) return false;
   if (!Number.isInteger(value)) return false;
+  if (!requiresMultipleOfFive(rules)) return true;
   return value % 5 === 0;
 }
 
@@ -27,18 +37,19 @@ export function roundBidRateToNearestFive(value: number): number {
   return rounded <= 0 ? 5 : rounded;
 }
 
-export function getBidRateFieldError(value: number | undefined): string | null {
+export function getBidRateFieldError(value: number | undefined, rules?: BidRateRules): string | null {
   if (value === undefined || value <= 0) return null;
   if (!Number.isInteger(value)) {
     return 'Rate must be a whole number with no decimals.';
   }
-  if (value % 5 !== 0) return BID_RATE_ERROR;
+  if (requiresMultipleOfFive(rules) && value % 5 !== 0) return BID_RATE_ERROR;
   return null;
 }
 
 export function validateBidRatesForFloorCount(
   rates: Partial<BidRates>,
   floorCount: number,
+  rules?: BidRateRules,
 ): { valid: boolean; errors: Partial<Record<BidFloorRateKey, string>>; message: string | null } {
   const keys = getRateKeys(floorCount);
   const errors: Partial<Record<BidFloorRateKey, string>> = {};
@@ -49,7 +60,7 @@ export function validateBidRatesForFloorCount(
       errors[key] = 'Enter a rate greater than zero.';
       continue;
     }
-    const fieldError = getBidRateFieldError(value);
+    const fieldError = getBidRateFieldError(value, rules);
     if (fieldError) errors[key] = fieldError;
   }
 

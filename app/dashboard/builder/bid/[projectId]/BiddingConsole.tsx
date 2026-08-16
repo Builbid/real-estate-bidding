@@ -96,6 +96,8 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
   const rateKeys = getRateKeys(floorCount);
   const earthworkMode = resolveEarthworkBidMode(project);
   const rateUnitSuffix = formatBidUnitSuffix(undefined, earthworkMode);
+  const isPainter = project.service_type === 'painter';
+  const rateRules = { requireMultipleOfFive: !isPainter };
 
   const [rateInputs, setRateInputs] = useState<Partial<Record<BidFloorRateKey, string>>>(() =>
     existingBid ? ratesToInputStrings(existingBid.rates) : {},
@@ -152,14 +154,14 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bids, builderId]);
 
-  const allFilled = rateKeys.every((k) => isValidBidRate(rates[k]));
+  const allFilled = rateKeys.every((k) => isValidBidRate(rates[k], rateRules));
   const hasRateErrors = rateKeys.some((k) => !!rateErrors[k]);
   const capacityValue = parseVehicleCapacity(capacityInput);
   const capacityOk = earthworkMode !== 'trip' || capacityValue != null;
   const canSubmit = allFilled && !hasRateErrors && capacityOk && !capacityError;
 
   function validateRateField(key: BidFloorRateKey, value: number | undefined) {
-    const fieldError = getBidRateFieldError(value);
+    const fieldError = getBidRateFieldError(value, rateRules);
     setRateErrors((prev) => {
       const next = { ...prev };
       if (fieldError) next[key] = fieldError;
@@ -206,7 +208,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
-    const validation = validateBidRatesForFloorCount(rates, floorCount);
+    const validation = validateBidRatesForFloorCount(rates, floorCount, rateRules);
     setRateErrors(validation.errors);
     if (!validation.valid) {
       setError(validation.message);
@@ -440,7 +442,9 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                 <div className="flex items-center gap-2 p-2.5 rounded-lg bg-blue-500/5 border border-blue-500/15 mb-2">
                   <Info className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
                   <p className="text-xs text-blue-300">
-                    {earthworkMode === 'hourly' ? (
+                    {isPainter ? (
+                      <>Enter your rate in ₹ per sqft. Rates must be whole numbers. Lower rates rank higher.</>
+                    ) : earthworkMode === 'hourly' ? (
                       <>Enter your rate in ₹ per hour. Rates must be whole numbers ending in 0 or 5.</>
                     ) : earthworkMode === 'trip' ? (
                       <>Enter your rate in ₹ per trip and specify vehicle capacity in cu.m (cum).</>
@@ -463,6 +467,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                     const numericValue = parseBidRateValue(inputValue);
                     const fieldError = rateErrors[key];
                     const showRoundHelper =
+                      !isPainter &&
                       !!fieldError &&
                       fieldError === BID_RATE_ERROR &&
                       numericValue !== undefined &&
