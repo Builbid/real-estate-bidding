@@ -34,6 +34,7 @@ import { submitBidAction } from '@/app/actions/bid';
 import { UserAvatar } from '@/components/shared/UserAvatar';
 import { BidFloorRatesBreakdown } from '@/components/shared/BidFloorRatesBreakdown';
 import { shouldShowBidFloorBreakdown, resolveProjectFloorCount } from '@/lib/bid/floorRateDisplay';
+import { ASSAM_BUILDING_TYPE } from '@/lib/buildingConfig';
 import { createClient } from '@/lib/supabase/client';
 import { ConstructionMatrixSummary } from '@/components/construction/ConstructionMatrixSummary';
 import { isTradeServiceType } from '@/lib/trades';
@@ -77,8 +78,15 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
   const requirementBlocks = workRequirements?.blocks ?? null;
 
   // Trade / Drawing & Design bid a single ₹/sqft rate (not per floor).
+  const isAssamTypeHouse =
+    project.track_type === 'AssamType' ||
+    (project.building_types?.includes(ASSAM_BUILDING_TYPE) ?? false);
   const floorCount = isSingleRateBid ? 1 : resolveProjectFloorCount(project);
-  const floorLabels = isSingleRateBid ? ['Your'] : getFloorLabels(floorCount);
+  const floorLabels = isSingleRateBid
+    ? ['Your']
+    : isAssamTypeHouse
+      ? ['Assam Type House Construction']
+      : getFloorLabels(floorCount);
   const rateKeys = getRateKeys(floorCount);
 
   const [rateInputs, setRateInputs] = useState<Partial<Record<keyof BidRates, string>>>(() =>
@@ -341,13 +349,15 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                           ₹{myCurrentBid.total_sum_metric.toLocaleString('en-IN')}
                         </p>
                       </div>
-                      <p className="text-xs text-muted-foreground/80 text-right">
-                        {isSingleRateBid ? (
-                          <>Single rate<br />bid</>
-                        ) : (
-                          <>{floorCount} floor{floorCount > 1 ? 's' : ''}<br />combined</>
-                        )}
-                      </p>
+                      {!isAssamTypeHouse && (
+                        <p className="text-xs text-muted-foreground/80 text-right">
+                          {isSingleRateBid ? (
+                            <>Single rate<br />bid</>
+                          ) : (
+                            <>{floorCount} floor{floorCount > 1 ? 's' : ''}<br />combined</>
+                          )}
+                        </p>
+                      )}
                     </div>
                     {myRank > 0 && (
                       <div className={cn(
@@ -459,13 +469,15 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                       ₹{totalMetric.toLocaleString('en-IN')}
                     </p>
                   </div>
-                  <p className="text-xs text-muted-foreground/80 text-right">
-                    {isSingleRateBid ? (
-                      <>Single rate<br />bid</>
-                    ) : (
-                      <>{floorCount} floor{floorCount > 1 ? 's' : ''}<br />combined</>
-                    )}
-                  </p>
+                  {!isAssamTypeHouse && (
+                    <p className="text-xs text-muted-foreground/80 text-right">
+                      {isSingleRateBid ? (
+                        <>Single rate<br />bid</>
+                      ) : (
+                        <>{floorCount} floor{floorCount > 1 ? 's' : ''}<br />combined</>
+                      )}
+                    </p>
+                  )}
                 </div>
 
                 {/* Rank preview */}
