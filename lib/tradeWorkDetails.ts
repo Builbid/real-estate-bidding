@@ -129,6 +129,12 @@ export interface CarpenterDetails extends TradeDetailsBase {
   scopeTypes: CarpenterScopeType[];
   /** First selected scope — kept for older stored records and readers. */
   scopeType: CarpenterScopeType;
+  /** Required when Door & Window Frames (Chowkhat) is selected. */
+  doorWindowFramesQuantity?: string | null;
+  /** Required when Modular Kitchen is selected. */
+  kitchenSizeLayout?: string | null;
+  kitchenMaterialType?: string | null;
+  kitchenFittingsHardware?: string | null;
   /** Legacy fields — no longer collected on new carpenter submissions. */
   woodType?: CarpenterWoodType | null;
   approxAreaSqft?: number | null;
@@ -379,6 +385,10 @@ function normalizeAdditional(raw: unknown): string | null {
   return trimmed || null;
 }
 
+function normalizeOptionalText(raw: unknown): string | null {
+  return normalizeAdditional(raw);
+}
+
 function parseStartFields(v: Record<string, unknown>): {
   projectStartTimeType: ProjectStartTimeType;
   projectStartTimeSpecificDate: string | null;
@@ -542,6 +552,10 @@ export function parseTradeDetails(value: unknown): TradeDetails | null {
       additionalRequirements: additional,
       scopeTypes,
       scopeType: scopeTypes[0],
+      doorWindowFramesQuantity: normalizeOptionalText(v.doorWindowFramesQuantity),
+      kitchenSizeLayout: normalizeOptionalText(v.kitchenSizeLayout),
+      kitchenMaterialType: normalizeOptionalText(v.kitchenMaterialType),
+      kitchenFittingsHardware: normalizeOptionalText(v.kitchenFittingsHardware),
       woodType,
       approxAreaSqft: area,
       doorWindowCount: count,
@@ -671,6 +685,28 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
       label: 'Scope Type',
       value: formatCarpenterScopesSummary(details.scopeTypes),
     });
+    if (details.scopeTypes.includes('door_window_frames')) {
+      const quantity =
+        details.doorWindowFramesQuantity ??
+        (details.doorWindowCount != null ? String(details.doorWindowCount) : null);
+      if (quantity) {
+        blocks.push({
+          label: 'Quantity / Count (Door & Window Frames)',
+          value: quantity,
+        });
+      }
+    }
+    if (details.scopeTypes.includes('modular_kitchen')) {
+      if (details.kitchenSizeLayout) {
+        blocks.push({ label: 'Kitchen Size / Layout', value: details.kitchenSizeLayout });
+      }
+      if (details.kitchenMaterialType) {
+        blocks.push({ label: 'Material Type', value: details.kitchenMaterialType });
+      }
+      if (details.kitchenFittingsHardware) {
+        blocks.push({ label: 'Fittings & Hardware', value: details.kitchenFittingsHardware });
+      }
+    }
   } else if (details.service === 'false_ceiling_work') {
     blocks.push(
       { label: 'Scope Type', value: optionLabel(INTERIOR_SCOPE_OPTIONS, details.scopeType) },
@@ -760,6 +796,10 @@ export interface TradeDetailsFormInput {
   heavyAppliances: ElectricianHeavyAppliance[];
   concealedWiring: boolean | null;
   carpenterScopes: CarpenterScopeType[];
+  doorWindowFramesQuantity: string;
+  kitchenSizeLayout: string;
+  kitchenMaterialType: string;
+  kitchenFittingsHardware: string;
   interiorScope: InteriorScopeType | null;
   targetSpaces: InteriorTargetSpace[];
   interiorArea: string;
@@ -835,12 +875,42 @@ export function validateTradeDetailsInput(
     if (scopeTypes.length === 0) {
       return { error: 'Select at least one carpentry scope type.' };
     }
+    const hasChowkhat = scopeTypes.includes('door_window_frames');
+    const hasModularKitchen = scopeTypes.includes('modular_kitchen');
+    const doorWindowFramesQuantity = hasChowkhat
+      ? normalizeOptionalText(input.doorWindowFramesQuantity)
+      : null;
+    if (hasChowkhat && !doorWindowFramesQuantity) {
+      return { error: 'Enter the quantity / count for door and window frames.' };
+    }
+    const kitchenSizeLayout = hasModularKitchen
+      ? normalizeOptionalText(input.kitchenSizeLayout)
+      : null;
+    const kitchenMaterialType = hasModularKitchen
+      ? normalizeOptionalText(input.kitchenMaterialType)
+      : null;
+    const kitchenFittingsHardware = hasModularKitchen
+      ? normalizeOptionalText(input.kitchenFittingsHardware)
+      : null;
+    if (hasModularKitchen && !kitchenSizeLayout) {
+      return { error: 'Enter the kitchen size / layout.' };
+    }
+    if (hasModularKitchen && !kitchenMaterialType) {
+      return { error: 'Enter the modular kitchen material type.' };
+    }
+    if (hasModularKitchen && !kitchenFittingsHardware) {
+      return { error: 'Enter the fittings & hardware for the modular kitchen.' };
+    }
     return {
       details: {
         ...base,
         service: 'carpenter',
         scopeTypes,
         scopeType: scopeTypes[0],
+        doorWindowFramesQuantity,
+        kitchenSizeLayout,
+        kitchenMaterialType,
+        kitchenFittingsHardware,
       },
     };
   }
