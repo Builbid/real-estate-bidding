@@ -48,11 +48,12 @@ interface NavbarProps {
 
 export function Navbar({ overlay = false, authHint }: NavbarProps) {
   const router      = useRouter();
-  const { profile, clearProfile, refreshProfile } = useProfile();
+  const { profile, loading, clearProfile, refreshProfile } = useProfile();
   const { t }       = useTranslation();
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [signOutOpen, setSignOutOpen] = useState(false);
+  const [signedOut, setSignedOut] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -60,10 +61,11 @@ export function Navbar({ overlay = false, authHint }: NavbarProps) {
   }, []);
 
   useEffect(() => {
+    if (signedOut) return;
     if (authHint?.isAuthenticated && !profile) {
       void refreshProfile();
     }
-  }, [authHint, profile, refreshProfile]);
+  }, [authHint, profile, refreshProfile, signedOut]);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -84,10 +86,12 @@ export function Navbar({ overlay = false, authHint }: NavbarProps) {
     }
   }, [menuOpen]);
 
-  const isLoggedIn = Boolean(profile) || Boolean(authHint?.isAuthenticated);
+  const isLoggedIn = !signedOut && (
+    Boolean(profile) || (Boolean(authHint?.isAuthenticated) && loading)
+  );
   const normalizedRole = profile
     ? normalizeRole(profile.role)
-    : authHint?.role
+    : !signedOut && authHint?.role
       ? normalizeRole(authHint.role)
       : null;
   const roleLabel = profile
@@ -97,8 +101,10 @@ export function Navbar({ overlay = false, authHint }: NavbarProps) {
       : '';
 
   async function handleSignOut() {
+    setSignedOut(true);
     setProfileOpen(false);
     setMenuOpen(false);
+    clearProfile();
     await clientSignOut(router, { onClear: clearProfile });
   }
 

@@ -61,9 +61,15 @@ export function ProfileProvider({
 
   const refreshProfile = useCallback(async () => {
     const supabase = supabaseRef.current;
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      setProfile(null);
+      setLoading(false);
+      return;
+    }
+
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      // Keep the current profile on transient misses — SIGNED_OUT clears explicitly.
       setLoading(false);
       return;
     }
@@ -92,6 +98,15 @@ export function ProfileProvider({
   useEffect(() => {
     void refreshProfile();
   }, [pathname, refreshProfile]);
+
+  useEffect(() => {
+    function onAppSignOut() {
+      setProfile(null);
+      setLoading(false);
+    }
+    window.addEventListener('builbid:sign-out', onAppSignOut);
+    return () => window.removeEventListener('builbid:sign-out', onAppSignOut);
+  }, []);
 
   useEffect(() => {
     const supabase = supabaseRef.current;

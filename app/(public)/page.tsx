@@ -6,6 +6,8 @@ import { isProjectBiddingLive } from '@/lib/projectShowcase';
 import { normalizeRole } from '@/lib/auth/roles';
 import { getFeaturedPartners } from '@/lib/featured/getFeaturedPartners';
 
+export const dynamic = 'force-dynamic';
+
 type ProjectRow = Project & {
   owner: { id: string; full_name: string } | null;
   bids: [{ count: number }] | null;
