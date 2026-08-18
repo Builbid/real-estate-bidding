@@ -10,6 +10,7 @@ interface StaticPageShellProps {
   lastUpdated?: string;
   children: React.ReactNode;
   className?: string;
+  headerClassName?: string;
 }
 
 export function StaticPageShell({
@@ -18,6 +19,7 @@ export function StaticPageShell({
   lastUpdated,
   children,
   className,
+  headerClassName,
 }: StaticPageShellProps) {
   return (
     <>
@@ -28,10 +30,15 @@ export function StaticPageShell({
           Back to Home
         </NavLink>
 
-        <header className="mb-10 rounded-2xl border border-border/70 bg-card/50 p-6 sm:p-8 shadow-sm backdrop-blur-sm">
+        <header
+          className={cn(
+            'mb-10 rounded-2xl border border-border/70 bg-card/50 p-6 sm:p-8 shadow-sm backdrop-blur-sm',
+            headerClassName,
+          )}
+        >
           <h1 className="text-3xl sm:text-4xl font-bold text-foreground tracking-tight">{title}</h1>
           {subtitle && (
-            <p className="mt-3 text-base text-muted-foreground leading-relaxed">{subtitle}</p>
+            <p className="mt-3 text-base sm:text-lg text-muted-foreground leading-relaxed">{subtitle}</p>
           )}
           {lastUpdated && (
             <p className="mt-4 text-xs text-muted-foreground/80">Last updated: {lastUpdated}</p>
