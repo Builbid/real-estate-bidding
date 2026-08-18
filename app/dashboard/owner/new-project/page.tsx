@@ -1,7 +1,7 @@
 'use client';
 
-import { Suspense, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { Suspense, useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ServiceTypeSelector } from '@/components/owner/ServiceTypeSelector';
@@ -11,12 +11,13 @@ import { TradeServiceProjectWizard } from '@/components/owner/TradeServiceProjec
 import { DrawingDesignProjectWizard } from '@/components/owner/DrawingDesignProjectWizard';
 import { isDrawingDesignServiceType } from '@/lib/drawingDesign';
 import { isConstructionFirmEnabled } from '@/lib/features';
-import { isTradeServiceType } from '@/lib/trades';
+import { isLegacyCarpenterService, isTradeServiceType } from '@/lib/trades';
 import type { ServiceType } from '@/lib/types';
 
 type Phase = 'service' | 'wizard';
 
 function parseServiceParam(value: string | null): ServiceType | null {
+  if (isLegacyCarpenterService(value)) return null;
   if (value === 'labour_contractor') return value;
   if (value === 'construction_firm' && isConstructionFirmEnabled()) return value;
   if (isDrawingDesignServiceType(value)) return value;
@@ -26,7 +27,15 @@ function parseServiceParam(value: string | null): ServiceType | null {
 }
 
 function NewProjectPageContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
+
+  useEffect(() => {
+    if (isLegacyCarpenterService(searchParams.get('service'))) {
+      router.replace('/dashboard/owner');
+    }
+  }, [router, searchParams]);
+
   const preselected = parseServiceParam(searchParams.get('service'));
 
   const [phase, setPhase] = useState<Phase>(preselected ? 'wizard' : 'service');

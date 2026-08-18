@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useState, useMemo } from 'react';
+import { Suspense, useEffect, useState, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -11,6 +11,7 @@ import { BuilBidLogo } from '@/components/shared/BuilBidLogo';
 import { signUpAction } from '@/app/actions/auth';
 import {
   TRADE_SERVICE_OPTIONS,
+  isLegacyCarpenterService,
   isProviderSpecialtyType,
   getProviderSpecialtyLabel,
 } from '@/lib/trades';
@@ -143,7 +144,8 @@ function isDirectRegisterRole(param: RoleParam): param is UiRole {
 function RegisterPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const roleParam = parseRoleParam(searchParams.get('role'));
+  const rawRole = searchParams.get('role');
+  const roleParam = isLegacyCarpenterService(rawRole) ? null : parseRoleParam(rawRole);
 
   const [step, setStep] = useState<Step>(() => (isDirectRegisterRole(roleParam) ? 2 : 1));
   const [role, setRole] = useState<RegisterRole>(() =>
@@ -356,6 +358,16 @@ function RegisterPageContent() {
     if (roleParam === 'bidder') return withoutFirm(ROLE_CARDS.filter((c) => c.role !== 'owner'));
     return withoutFirm(ROLE_CARDS);
   }, [roleParam]);
+
+  useEffect(() => {
+    if (isLegacyCarpenterService(rawRole)) {
+      router.replace('/signup/provider');
+    }
+  }, [rawRole, router]);
+
+  if (isLegacyCarpenterService(rawRole)) {
+    return null;
+  }
 
   const pageSubtitle =
     roleParam === 'owner'

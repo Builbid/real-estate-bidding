@@ -1,5 +1,5 @@
 // ============================================================
-// Trade Service Bidding — shared config for the six trades that
+// Trade Service Bidding — shared config for the trades that
 // replaced the old "Hire Services" callback flow. Single source
 // of truth for labels/emojis used across signup, project posting,
 // and provider dashboards.
@@ -36,16 +36,10 @@ export const TRADE_SERVICE_OPTIONS: TradeServiceOption[] = [
     description: 'Wiring & electrical fittings',
   },
   {
-    value: 'carpenter',
-    label: 'Carpenter',
-    emoji: '🪚',
-    description: 'Woodwork, furniture & fittings',
-  },
-  {
     value: 'false_ceiling_work',
     label: 'Interior Work',
     emoji: '🛋️',
-    description: 'Interior finishing & false ceiling work',
+    description: 'Interior finishing, false ceiling & modular kitchen',
   },
   {
     value: 'earthwork',
@@ -74,6 +68,7 @@ export function getTradeOption(value: string | null | undefined): TradeServiceOp
 }
 
 export function getTradeLabel(value: ServiceType | string | null | undefined): string {
+  if (isLegacyCarpenterService(value)) return 'Mistri Worker';
   return getTradeOption(value)?.label ?? 'Service Provider';
 }
 
@@ -100,7 +95,7 @@ export const ALL_SERVICE_CATEGORIES: ServiceCategoryOption[] = [
     value: 'labour_contractor',
     label: 'Mistri Worker',
     emoji: '👷',
-    description: 'Labour-only ₹/sqft bidding',
+    description: 'Labour-only ₹/sqft bidding, including door & window frames',
   },
   {
     value: 'construction_firm',
@@ -131,6 +126,13 @@ export function getProviderSignupCategories(): ServiceCategoryOption[] {
 }
 
 export const PRIMARY_PROVIDER_SIGNUP_SERVICE = 'labour_contractor' as const;
+
+/** Standalone Carpenter was removed; existing DB rows may still use this value. */
+export const LEGACY_CARPENTER_SERVICE = 'carpenter' as const;
+
+export function isLegacyCarpenterService(value: string | null | undefined): boolean {
+  return value === LEGACY_CARPENTER_SERVICE;
+}
 
 export function getProviderSpecialtyEmoji(value: string | null | undefined): string {
   const cat = ALL_SERVICE_CATEGORIES.find((c) => c.value === value);

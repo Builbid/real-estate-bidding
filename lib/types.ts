@@ -14,6 +14,7 @@ export type TradeServiceType =
   | 'painter'
   | 'plumber'
   | 'electrician'
+  /** @deprecated Removed as a standalone service. Existing rows may still use this value. */
   | 'carpenter'
   | 'false_ceiling_work'
   | 'earthwork';
@@ -202,7 +203,7 @@ export interface Project {
   drawing_types?: DrawingDesignType[] | null;
   /** Painter projects only — area, primer, materials, flexible start time. */
   painter_details?: PainterDetails | null;
-  /** Plumber / electrician / carpenter / interior / earthwork work requirements. */
+  /** Plumber / electrician / interior / earthwork work requirements. Legacy carpenter rows still parse here. */
   trade_details?: TradeDetails | null;
   /** Drawing & Design package, plot details, deliverables, and start time. */
   drawing_details?: DrawingDetails | null;

@@ -58,7 +58,7 @@ export function getProjectWorkRequirementBlocks(project: {
     const titles: Record<typeof serviceType, string> = {
       plumber: 'Plumber Work Requirements',
       electrician: 'Electrician Work Requirements',
-      carpenter: 'Carpenter Work Requirements',
+      carpenter: 'Work Requirements',
       false_ceiling_work: 'Interior Work Requirements',
       earthwork: 'Earthwork Requirements',
     };

@@ -14,7 +14,7 @@ import { BuilderPortfolioModal } from './BuilderPortfolioModal';
 import { SelectBuilderButton } from './SelectBuilderButton';
 import { BidFloorRatesBreakdown } from '@/components/shared/BidFloorRatesBreakdown';
 import { formatBidUnitCaption, formatBidUnitSuffix, formatTripCapacityLabel } from '@/lib/bid/earthworkBid';
-import { resolveCarpenterBidScopes } from '@/lib/bid/carpenterBid';
+import { resolveScopeRateBidItems } from '@/lib/bid/scopeRateBid';
 import { resolveProjectFloorCount, shouldShowBidFloorBreakdown } from '@/lib/bid/floorRateDisplay';
 import { useOwnerProjectPhaseContext } from '@/lib/context/OwnerProjectPhaseContext';
 import type { Project, Bid } from '@/lib/types';
@@ -121,9 +121,9 @@ export function UnifiedBidRankings({
   }
 
   const isCompleted = project.status === 'completed';
-  const carpenterScopes = resolveCarpenterBidScopes(project);
-  const projectFloorCount = carpenterScopes?.count ?? resolveProjectFloorCount(project);
-  const carpenterFloorLabels = carpenterScopes?.labels;
+  const scopeBid = resolveScopeRateBidItems(project);
+  const projectFloorCount = scopeBid?.count ?? resolveProjectFloorCount(project);
+  const carpenterFloorLabels = scopeBid?.labels;
 
   return (
     <div className="space-y-2">

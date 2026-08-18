@@ -10,6 +10,7 @@ import {
 import {
   ALL_SERVICE_CATEGORIES,
   getProviderSpecialtyLabel,
+  isLegacyCarpenterService,
   isTradeServiceType,
   type ServiceCategoryOption,
 } from '@/lib/trades';
@@ -30,6 +31,12 @@ export function isTradeProject(project: { service_type?: ServiceType | null }): 
 
 /** Canonical service label + emoji (Mistri Worker, Construction Firm, Painter, …). */
 export function getServiceCategoryOption(serviceType: ServiceType): ServiceCategoryOption {
+  if (isLegacyCarpenterService(serviceType)) {
+    return (
+      ALL_SERVICE_CATEGORIES.find((c) => c.value === 'labour_contractor') ??
+      ALL_SERVICE_CATEGORIES[0]
+    );
+  }
   return (
     ALL_SERVICE_CATEGORIES.find((c) => c.value === serviceType) ??
     ALL_SERVICE_CATEGORIES[0]

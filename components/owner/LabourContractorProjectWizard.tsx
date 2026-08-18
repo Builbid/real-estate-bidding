@@ -29,6 +29,7 @@ import {
   MISTRI_ASSAM_ROOF_OPTIONS,
   MISTRI_ASSAM_ROOFING_SHEET_OPTIONS,
   MISTRI_BRICKWORK_MATERIAL_OPTIONS,
+  MISTRI_CHOWKHAT_LABEL,
   MISTRI_CONTRACT_TYPE_OPTIONS,
   MISTRI_CUSTOM_FLOOR_ID,
   MISTRI_FLOORING_MATERIAL_OPTIONS,
@@ -211,6 +212,8 @@ interface FormState {
   projectStartTimeType: MistriStartTimeType | null;
   projectStartTimeSpecificDate: string;
   additionalRequirements: string;
+  includeDoorWindowFrames: boolean;
+  doorWindowFramesQuantity: string;
 }
 
 const EMPTY_FORM: FormState = {
@@ -229,6 +232,8 @@ const EMPTY_FORM: FormState = {
   projectStartTimeType: null,
   projectStartTimeSpecificDate: '',
   additionalRequirements: '',
+  includeDoorWindowFrames: false,
+  doorWindowFramesQuantity: '',
 };
 
 function selectedFloorEntries(form: FormState): Array<{
@@ -576,6 +581,8 @@ export function LabourContractorProjectWizard() {
       projectStartTimeType: form.projectStartTimeType,
       projectStartTimeSpecificDate: form.projectStartTimeSpecificDate,
       additionalRequirements: form.additionalRequirements,
+      includeDoorWindowFrames: form.includeDoorWindowFrames,
+      doorWindowFramesQuantity: form.doorWindowFramesQuantity,
     };
   }
 
@@ -1191,6 +1198,42 @@ export function LabourContractorProjectWizard() {
                   </div>
                 );
               })}
+
+              <div className="flex flex-col gap-1.5">
+                <label className={SECTION_LABEL}>
+                  Scope Type
+                  <span className="ml-1.5 normal-case tracking-normal font-medium text-gray-600 dark:text-zinc-400">
+                    (Bidding will be based on rate/sqft)
+                  </span>
+                </label>
+                <OptionCardButton
+                  selected={form.includeDoorWindowFrames}
+                  onClick={() => {
+                    const next = !form.includeDoorWindowFrames;
+                    update('includeDoorWindowFrames', next);
+                    if (!next) update('doorWindowFramesQuantity', '');
+                    setStep2Error(null);
+                  }}
+                >
+                  {MISTRI_CHOWKHAT_LABEL}
+                </OptionCardButton>
+                {form.includeDoorWindowFrames && (
+                  <div className="ml-1 space-y-3 rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-2.5">
+                    <Input
+                      label="Quantity / Count (Door & Window Frames)"
+                      type="text"
+                      inputMode="text"
+                      required
+                      placeholder="e.g., 6 Door Frames, 4 Window Frames"
+                      value={form.doorWindowFramesQuantity}
+                      onChange={(e) => {
+                        update('doorWindowFramesQuantity', e.target.value);
+                        setStep2Error(null);
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
 
               {showFoundationProvision && (
                 <div className="flex flex-col gap-3">

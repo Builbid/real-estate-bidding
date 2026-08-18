@@ -208,6 +208,10 @@ export interface MistriDetails {
   /** ISO date YYYY-MM-DD when projectStartTimeType === 'specific' */
   projectStartTimeSpecificDate?: string | null;
   additionalRequirements?: string | null;
+  /** Optional extra scope moved from the retired Carpenter service. */
+  includeDoorWindowFrames?: boolean | null;
+  /** Required when includeDoorWindowFrames is true. */
+  doorWindowFramesQuantity?: string | null;
 }
 
 export const MISTRI_CIVIL_WORK_OPTIONS: {
@@ -230,6 +234,16 @@ export const MISTRI_CIVIL_WORK_OPTIONS: {
   },
   { value: 'boundary_wall_fencing', label: 'Boundary Wall Work' },
 ];
+
+export const MISTRI_CHOWKHAT_LABEL = 'Door & Window Frames (Chowkhat)';
+
+export function hasMistriChowkhat(
+  details: Pick<MistriDetails, 'includeDoorWindowFrames' | 'doorWindowFramesQuantity'> | null | undefined,
+): boolean {
+  if (!details) return false;
+  if (details.includeDoorWindowFrames === true) return true;
+  return Boolean(details.doorWindowFramesQuantity?.trim());
+}
 
 /**
  * Structural options historically grouped with Complete Full Structure.
@@ -1729,6 +1743,23 @@ export function isMistriDetails(value: unknown): value is MistriDetails {
   return true;
 }
 
+function parseChowkhatFields(raw: Record<string, unknown>): {
+  includeDoorWindowFrames: boolean;
+  doorWindowFramesQuantity: string | null;
+} {
+  const quantity =
+    typeof raw.doorWindowFramesQuantity === 'string' && raw.doorWindowFramesQuantity.trim()
+      ? raw.doorWindowFramesQuantity.trim()
+      : null;
+  const include =
+    raw.includeDoorWindowFrames === true ||
+    (raw.includeDoorWindowFrames !== false && quantity != null);
+  return {
+    includeDoorWindowFrames: include,
+    doorWindowFramesQuantity: include ? quantity : null,
+  };
+}
+
 export function parseMistriDetails(value: unknown): MistriDetails | null {
   if (!value || typeof value !== 'object') return null;
   if (!isMistriDetails(value)) return null;
@@ -1755,6 +1786,8 @@ export function parseMistriDetails(value: unknown): MistriDetails | null {
   const approximateAreaSqft =
     typeof raw.approximateAreaSqft === 'number' ? raw.approximateAreaSqft : NaN;
   if (!Number.isFinite(approximateAreaSqft) || approximateAreaSqft <= 0) return null;
+
+  const chowkhat = parseChowkhatFields(raw);
 
   if (floorWork && floorWork.length > 0) {
     const derivedCivil = civilWorkTypesFromFloorWork(floorWork);
@@ -1784,6 +1817,8 @@ export function parseMistriDetails(value: unknown): MistriDetails | null {
       projectStartTimeType,
       projectStartTimeSpecificDate: specific,
       additionalRequirements,
+      includeDoorWindowFrames: chowkhat.includeDoorWindowFrames,
+      doorWindowFramesQuantity: chowkhat.doorWindowFramesQuantity,
     };
   }
 
@@ -1834,6 +1869,8 @@ export function parseMistriDetails(value: unknown): MistriDetails | null {
     projectStartTimeType,
     projectStartTimeSpecificDate: specific,
     additionalRequirements,
+    includeDoorWindowFrames: chowkhat.includeDoorWindowFrames,
+    doorWindowFramesQuantity: chowkhat.doorWindowFramesQuantity,
   };
 }
 
@@ -1997,6 +2034,19 @@ export function getMistriWorkRequirementBlocks(details: MistriDetails): {
       value: formatMistriStartTime(details),
     });
 
+    if (hasMistriChowkhat(details)) {
+      blocks.push({
+        label: 'Scope Type',
+        value: MISTRI_CHOWKHAT_LABEL,
+      });
+      if (details.doorWindowFramesQuantity) {
+        blocks.push({
+          label: 'Quantity / Count (Door & Window Frames)',
+          value: details.doorWindowFramesQuantity,
+        });
+      }
+    }
+
     if (details.additionalRequirements) {
       blocks.push({
         label: 'Additional Notes',
@@ -2102,6 +2152,19 @@ export function getMistriWorkRequirementBlocks(details: MistriDetails): {
     value: formatMistriStartTime(details),
   });
 
+  if (hasMistriChowkhat(details)) {
+    blocks.push({
+      label: 'Scope Type',
+      value: MISTRI_CHOWKHAT_LABEL,
+    });
+    if (details.doorWindowFramesQuantity) {
+      blocks.push({
+        label: 'Quantity / Count (Door & Window Frames)',
+        value: details.doorWindowFramesQuantity,
+      });
+    }
+  }
+
   if (details.additionalRequirements) {
     blocks.push({
       label: 'Additional Notes',
@@ -2198,6 +2261,8 @@ export function validateMistriFloorWorkInput(input: {
   projectStartTimeType: MistriStartTimeType | null;
   projectStartTimeSpecificDate: string;
   additionalRequirements: string;
+  includeDoorWindowFrames?: boolean;
+  doorWindowFramesQuantity?: string;
 }): { error: string } | { details: MistriDetails } {
   if (!input.floorWork.length) {
     return { error: 'Select Assam Type or at least one RCC floor.' };
@@ -2312,6 +2377,13 @@ export function validateMistriFloorWorkInput(input: {
   }
 
   const additional = input.additionalRequirements.trim() || null;
+  const includeDoorWindowFrames = input.includeDoorWindowFrames === true;
+  const doorWindowFramesQuantity = includeDoorWindowFrames
+    ? (input.doorWindowFramesQuantity ?? '').trim() || null
+    : null;
+  if (includeDoorWindowFrames && !doorWindowFramesQuantity) {
+    return { error: 'Enter the quantity / count for door and window frames.' };
+  }
   const civilWorkTypes = civilWorkTypesFromFloorWork(floorWork);
   const plasterSide = plasterSideFromScope(
     floorWork.find((fw) => fw.plasterScope)?.plasterScope,
@@ -2333,6 +2405,8 @@ export function validateMistriFloorWorkInput(input: {
     customFloorCount: null,
     contractType,
     additionalRequirements: additional,
+    includeDoorWindowFrames,
+    doorWindowFramesQuantity,
   };
 
   if (input.projectStartTimeType === 'specific') {

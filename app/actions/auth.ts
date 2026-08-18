@@ -10,7 +10,7 @@ import {
   validateConstructionPackages,
 } from '@/lib/firm/constructionClass'
 import { isConstructionFirmEnabled } from '@/lib/features'
-import { isProviderSpecialtyType } from '@/lib/trades'
+import { isLegacyCarpenterService, isProviderSpecialtyType } from '@/lib/trades'
 import type { UserRole } from '@/lib/types'
 
 export type SignUpRole = 'owner' | 'labour_contractor' | 'construction_firm' | 'service_provider'
@@ -126,7 +126,7 @@ export async function signUpAction(
     }
   }
 
-  if (role === 'service_provider' && !isProviderSpecialtyType(tradeRaw)) {
+  if (role === 'service_provider' && (isLegacyCarpenterService(tradeRaw) || !isProviderSpecialtyType(tradeRaw))) {
     return { error: 'Please select which service you provide.', success: false }
   }
 

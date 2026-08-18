@@ -17,6 +17,7 @@ export const FLEXIBLE_WHOLE_NUMBER_SERVICES = [
   'electrician',
   'carpenter',
   'drawing_design',
+  'false_ceiling_work',
 ] as const;
 
 export interface BidRateRules {

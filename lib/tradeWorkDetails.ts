@@ -73,7 +73,8 @@ export type InteriorScopeType =
   | 'false_ceiling'
   | 'tv_wall_panelling'
   | 'full_home_interior'
-  | 'painting_wallpaper';
+  | 'painting_wallpaper'
+  | 'modular_kitchen';
 
 export type InteriorTargetSpace = 'living_room' | 'bedrooms' | 'kitchen' | 'full_house';
 
@@ -146,6 +147,10 @@ export interface InteriorDetails extends TradeDetailsBase {
   scopeType: InteriorScopeType;
   targetSpaces: InteriorTargetSpace[];
   interiorAreaSqft: number;
+  /** Required when Modular Kitchen is selected. */
+  kitchenSizeLayout?: string | null;
+  kitchenMaterialType?: string | null;
+  kitchenFittingsHardware?: string | null;
 }
 
 export interface EarthworkDetails extends TradeDetailsBase {
@@ -244,6 +249,7 @@ export const INTERIOR_SCOPE_OPTIONS: { value: InteriorScopeType; label: string }
   { value: 'tv_wall_panelling', label: 'TV Unit & Wall Panelling' },
   { value: 'full_home_interior', label: 'Full Home Interior Design & Execution' },
   { value: 'painting_wallpaper', label: 'Painting & Wallpaper accent' },
+  { value: 'modular_kitchen', label: 'Modular Kitchen' },
 ];
 
 export const INTERIOR_SPACE_OPTIONS: { value: InteriorTargetSpace; label: string }[] = [
@@ -581,6 +587,9 @@ export function parseTradeDetails(value: unknown): TradeDetails | null {
       scopeType: v.scopeType as InteriorScopeType,
       targetSpaces: spaces,
       interiorAreaSqft: area,
+      kitchenSizeLayout: normalizeOptionalText(v.kitchenSizeLayout),
+      kitchenMaterialType: normalizeOptionalText(v.kitchenMaterialType),
+      kitchenFittingsHardware: normalizeOptionalText(v.kitchenFittingsHardware),
     };
   }
 
@@ -721,6 +730,17 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
         value: `${details.interiorAreaSqft.toLocaleString('en-IN')} Sq. Ft.`,
       },
     );
+    if (details.scopeType === 'modular_kitchen') {
+      if (details.kitchenSizeLayout) {
+        blocks.push({ label: 'Kitchen Size / Layout', value: details.kitchenSizeLayout });
+      }
+      if (details.kitchenMaterialType) {
+        blocks.push({ label: 'Material Type', value: details.kitchenMaterialType });
+      }
+      if (details.kitchenFittingsHardware) {
+        blocks.push({ label: 'Fittings & Hardware', value: details.kitchenFittingsHardware });
+      }
+    }
   } else {
     blocks.push({ label: 'Work Type', value: earthworkTypeLabel(details.workType) });
     if (details.workType === 'soil_filling') {
@@ -927,6 +947,25 @@ export function validateTradeDetailsInput(
     if (area == null) {
       return { error: 'Enter the approximate interior area in Sq. Ft.' };
     }
+    const hasModularKitchen = input.interiorScope === 'modular_kitchen';
+    const kitchenSizeLayout = hasModularKitchen
+      ? normalizeOptionalText(input.kitchenSizeLayout)
+      : null;
+    const kitchenMaterialType = hasModularKitchen
+      ? normalizeOptionalText(input.kitchenMaterialType)
+      : null;
+    const kitchenFittingsHardware = hasModularKitchen
+      ? normalizeOptionalText(input.kitchenFittingsHardware)
+      : null;
+    if (hasModularKitchen && !kitchenSizeLayout) {
+      return { error: 'Enter the kitchen size / layout.' };
+    }
+    if (hasModularKitchen && !kitchenMaterialType) {
+      return { error: 'Enter the modular kitchen material type.' };
+    }
+    if (hasModularKitchen && !kitchenFittingsHardware) {
+      return { error: 'Enter the fittings & hardware for the modular kitchen.' };
+    }
     return {
       details: {
         ...base,
@@ -934,6 +973,9 @@ export function validateTradeDetailsInput(
         scopeType: input.interiorScope,
         targetSpaces: spaces,
         interiorAreaSqft: area,
+        kitchenSizeLayout,
+        kitchenMaterialType,
+        kitchenFittingsHardware,
       },
     };
   }

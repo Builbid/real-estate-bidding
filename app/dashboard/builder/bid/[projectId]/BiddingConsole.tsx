@@ -50,7 +50,7 @@ import {
   resolveEarthworkBidMode,
   sanitizeCapacityInput,
 } from '@/lib/bid/earthworkBid';
-import { resolveCarpenterBidScopes } from '@/lib/bid/carpenterBid';
+import { resolveScopeRateBidItems } from '@/lib/bid/scopeRateBid';
 import { shouldShowBidFloorBreakdown, resolveProjectBidFloors } from '@/lib/bid/floorRateDisplay';
 import { createClient } from '@/lib/supabase/client';
 import { isTradeServiceType } from '@/lib/trades';
@@ -95,21 +95,25 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
   const requirementBlocks = workRequirements?.blocks ?? null;
 
   // Trade / Drawing & Design bid a single package rate (not per floor),
-  // except carpenter which bids one ₹/sqft rate per selected scope item.
+  // except scoped /sqft items (Chowkhat, Modular Kitchen, legacy carpenter).
   const bidFloors = resolveProjectBidFloors(project);
-  const carpenterScopes = resolveCarpenterBidScopes(project, bidderServiceType);
-  const isCarpenter = carpenterScopes != null;
-  const isAssamTypeHouse = bidFloors.isAssamType && !isCarpenter;
-  const floorCount = isCarpenter ? carpenterScopes.count : isSingleRateBid ? 1 : bidFloors.count;
-  const floorLabels = isCarpenter ? carpenterScopes.labels : isSingleRateBid ? ['Your'] : bidFloors.labels;
+  const scopeBid = resolveScopeRateBidItems(project, bidderServiceType);
+  const isScopeRateBid = scopeBid != null;
+  const isAssamTypeHouse = bidFloors.isAssamType && !isScopeRateBid;
+  const floorCount = isScopeRateBid ? scopeBid.count : isSingleRateBid ? 1 : bidFloors.count;
+  const floorLabels = isScopeRateBid ? scopeBid.labels : isSingleRateBid ? ['Your'] : bidFloors.labels;
   const rateKeys = getRateKeys(floorCount);
   const earthworkMode = resolveEarthworkBidMode(project);
   const isPlumber = isFlatRupeeService(project.service_type);
   const isElectrician = isPerPointService(project.service_type);
   const rateUnitSuffix = formatBidUnitSuffix(undefined, earthworkMode, project.service_type);
   const isPainter = project.service_type === 'painter';
-  const isFlexibleRate = allowsAnyWholeNumberRate(project.service_type, bidderServiceType);
-  const rateRules = getBidRateRules(project.service_type, bidderServiceType);
+  const isFlexibleRate =
+    allowsAnyWholeNumberRate(project.service_type, bidderServiceType) ||
+    scopeBid?.flexibleRates === true;
+  const rateRules = scopeBid?.flexibleRates
+    ? { requireMultipleOfFive: false }
+    : getBidRateRules(project.service_type, bidderServiceType);
 
   const [rateInputs, setRateInputs] = useState<Partial<Record<BidFloorRateKey, string>>>(() =>
     existingBid ? ratesToInputStrings(existingBid.rates) : {},
@@ -426,7 +430,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                               ? 'Trip Rate Metric'
                               : isPlumber
                                 ? 'Your Rate'
-                                : isCarpenter
+                                : isScopeRateBid
                                   ? 'Your Average Rate Metric'
                                   : 'Your Final Rate Metric'}
                         </p>
@@ -440,7 +444,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                           </p>
                         )}
                       </div>
-                      {isCarpenter && (
+                      {isScopeRateBid && (
                         <p className="text-xs text-muted-foreground/80 text-right">
                           {floorCount === 1 ? (
                             <>Single rate<br />bid</>
@@ -449,7 +453,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                           )}
                         </p>
                       )}
-                      {!isAssamTypeHouse && !earthworkMode && !isPlumber && !isElectrician && !isCarpenter && (
+                      {!isAssamTypeHouse && !earthworkMode && !isPlumber && !isElectrician && !isScopeRateBid && (
                         <p className="text-xs text-muted-foreground/80 text-right">
                           {isSingleRateBid ? (
                             <>Single rate<br />bid</>
@@ -514,7 +518,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                   <p className="text-xs text-blue-300">
                     {isPainter || isDrawing ? (
                       <>Enter your rate in ₹ per sqft. Rates must be whole numbers. Lower rates rank higher.</>
-                    ) : isCarpenter ? (
+                    ) : isScopeRateBid ? (
                       <>Enter your rate in ₹ per sqft for each item. Rates must be whole numbers. Lower rates rank higher.</>
                     ) : isElectrician ? (
                       <>Enter your rate in ₹ per point. Rates must be whole numbers. Lower rates rank higher.</>
@@ -647,7 +651,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                   {isPlumber && (
                     <p className="text-xs text-muted-foreground/80 text-right">lump sum</p>
                   )}
-                  {isCarpenter && (
+                  {isScopeRateBid && (
                     <p className="text-xs text-muted-foreground/80 text-right">
                       {floorCount === 1 ? (
                         <>Single rate<br />bid</>
@@ -656,7 +660,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                       )}
                     </p>
                   )}
-                  {!isAssamTypeHouse && !earthworkMode && !isPlumber && !isElectrician && !isCarpenter && (
+                  {!isAssamTypeHouse && !earthworkMode && !isPlumber && !isElectrician && !isScopeRateBid && (
                     <p className="text-xs text-muted-foreground/80 text-right">
                       {isSingleRateBid ? (
                         <>Single rate<br />bid</>
@@ -810,7 +814,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                                     ? 'Rs.'
                                     : isElectrician
                                       ? '/point'
-                                      : isCarpenter && floorCount > 1
+                                      : isScopeRateBid && floorCount > 1
                                         ? '/sqft avg'
                                         : '/sqft avg'}
                             </p>
@@ -820,7 +824,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                             <div className="w-full basis-full">
                               <BidFloorRatesBreakdown
                                 rates={bid.rates}
-                                floorLabels={isSingleRateBid && !isCarpenter ? undefined : floorLabels}
+                                floorLabels={isSingleRateBid && !isScopeRateBid ? undefined : floorLabels}
                               />
                             </div>
                           )}

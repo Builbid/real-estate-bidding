@@ -80,7 +80,7 @@ export interface CreateTradeProjectInput extends CreateProjectBase {
   track_type: TrackType
   /** Required when service_type === 'painter'. Ignored for other trades. */
   painter_details?: PainterDetails
-  /** Required for plumber, electrician, carpenter, interior, and earthwork. */
+  /** Required for plumber, electrician, interior, and earthwork. */
   trade_details?: TradeDetails
 }
 
@@ -302,6 +302,11 @@ export async function createProjectAction(
               : null,
           additionalRequirements:
             labour.mistri_details.additionalRequirements?.trim() || null,
+          includeDoorWindowFrames: labour.mistri_details.includeDoorWindowFrames === true,
+          doorWindowFramesQuantity:
+            labour.mistri_details.includeDoorWindowFrames === true
+              ? labour.mistri_details.doorWindowFramesQuantity?.trim() || null
+              : null,
         }
         insertPayload.plot_area_sqft = labour.mistri_details.approximateAreaSqft
       }

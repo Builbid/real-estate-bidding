@@ -7,7 +7,7 @@ import {
   parseVehicleCapacity,
   resolveEarthworkBidMode,
 } from '@/lib/bid/earthworkBid';
-import { resolveCarpenterBidScopes } from '@/lib/bid/carpenterBid';
+import { resolveScopeRateBidItems } from '@/lib/bid/scopeRateBid';
 import { resolveProjectBidFloors } from '@/lib/bid/floorRateDisplay';
 import { missingProjectsColumn } from '@/lib/project/storedDetails';
 import { isDrawingDesignServiceType } from '@/lib/drawingDesign';
@@ -92,15 +92,20 @@ export async function submitBidAction(
     return { error: 'You are not authorized to bid on this project type.', success: false };
   }
 
-  const carpenterScopes = resolveCarpenterBidScopes({
+  const scopeBid = resolveScopeRateBidItems({
     service_type: project.service_type,
     trade_details: project.trade_details,
+    mistri_details: project.mistri_details,
     sub_configuration: project.sub_configuration,
+    track_type: project.track_type,
+    building_types: project.building_types,
+    total_floors: project.total_floors,
   }, profile?.service_type);
 
-  // Trades + Drawing & Design use one package rate, except carpenter (one rate per scope).
+  // Trades + Drawing & Design use one package rate, except scoped /sqft items
+  // (Chowkhat, Modular Kitchen, and legacy carpenter).
   const floorCount =
-    carpenterScopes?.count
+    scopeBid?.count
       ?? (isTradeServiceType(project.service_type) || isDrawingDesignServiceType(project.service_type)
         ? 1
         : resolveProjectBidFloors({
@@ -114,7 +119,9 @@ export async function submitBidAction(
   const validation = validateBidRatesForFloorCount(
     rates,
     floorCount,
-    getBidRateRules(project.service_type, profile?.service_type),
+    scopeBid?.flexibleRates
+      ? { requireMultipleOfFive: false }
+      : getBidRateRules(project.service_type, profile?.service_type),
   );
   if (!validation.valid) {
     return { error: validation.message ?? 'Invalid bid rates.', success: false };

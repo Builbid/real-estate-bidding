@@ -40,14 +40,13 @@ const FILTER_OPTIONS: { id: ServiceFilter; label: string }[] = [
 
 /** Extra tokens so short searches like "mistri" / "firm" match the right category. */
 const CATEGORY_SEARCH_ALIASES: Partial<Record<ServiceType, string[]>> = {
-  labour_contractor: ['mistri', 'mistri worker', 'mistri contractor', 'labour', 'labor', 'labour contractor'],
+  labour_contractor: ['mistri', 'mistri worker', 'mistri contractor', 'labour', 'labor', 'labour contractor', 'chowkhat', 'door frame', 'window frame'],
   construction_firm: ['firm', 'construction firm', 'turnkey'],
   drawing_design: ['drawing', 'design', 'drawings', 'drawing and design'],
   painter: ['painter', 'paint', 'painting'],
   plumber: ['plumber', 'plumbing'],
   electrician: ['electrician', 'electric', 'electrical'],
-  carpenter: ['carpenter', 'carpentry', 'woodwork'],
-  false_ceiling_work: ['interior', 'interior work', 'false ceiling'],
+  false_ceiling_work: ['interior', 'interior work', 'false ceiling', 'modular kitchen', 'kitchen'],
   earthwork: ['earthwork', 'excavation'],
 };
 

@@ -6,7 +6,6 @@ import { StartTimeAndNotes, WIZARD_SECTION_LABEL } from '@/components/owner/wiza
 import { StepperInput } from '@/components/owner/wizard/StepperInput';
 import { cn } from '@/lib/utils';
 import {
-  CARPENTER_SCOPE_OPTIONS,
   EARTHWORK_SOIL_VEHICLE_OPTIONS,
   EARTHWORK_TYPE_OPTIONS,
   ELECTRICIAN_APPLIANCE_OPTIONS,
@@ -15,7 +14,6 @@ import {
   INTERIOR_SCOPE_OPTIONS,
   INTERIOR_SPACE_OPTIONS,
   PLUMBER_SCOPE_OPTIONS,
-  type CarpenterScopeType,
   type EarthworkMachine,
   type EarthworkType,
   type ElectricianHeavyAppliance,
@@ -38,7 +36,6 @@ export interface TradeWorkFormFields {
   pointEstimate: ElectricianPointEstimate | null;
   heavyAppliances: ElectricianHeavyAppliance[];
   concealedWiring: boolean | null;
-  carpenterScopes: CarpenterScopeType[];
   doorWindowFramesQuantity: string;
   kitchenSizeLayout: string;
   kitchenMaterialType: string;
@@ -155,72 +152,6 @@ export function TradeWorkRequirementsFields({
         </>
       )}
 
-      {trade === 'carpenter' && (
-        <FieldGroup
-          label="Scope Type"
-          hint="(Bidding will be based on rate/sqft)"
-        >
-          <div className="grid grid-cols-1 gap-3">
-            {CARPENTER_SCOPE_OPTIONS.map((opt) => {
-              const selected = form.carpenterScopes.includes(opt.value);
-              return (
-                <div key={opt.value}>
-                  <OptionSelectCard
-                    selected={selected}
-                    multi
-                    label={opt.label}
-                    onClick={() =>
-                      onChange('carpenterScopes', toggleUnique(form.carpenterScopes, opt.value))
-                    }
-                  />
-                  {opt.value === 'door_window_frames' && (
-                    <ExpandablePanel open={selected}>
-                      <Input
-                        label="Quantity / Count (Door & Window Frames)"
-                        type="text"
-                        inputMode="text"
-                        required={selected}
-                        placeholder="e.g., 6 Door Frames, 4 Window Frames"
-                        value={form.doorWindowFramesQuantity}
-                        onChange={(e) => onChange('doorWindowFramesQuantity', e.target.value)}
-                      />
-                    </ExpandablePanel>
-                  )}
-                  {opt.value === 'modular_kitchen' && (
-                    <ExpandablePanel open={selected}>
-                      <Input
-                        label="Kitchen Size / Layout"
-                        type="text"
-                        required={selected}
-                        placeholder="e.g., L-shaped, 12 ft running length / 25 sqft"
-                        value={form.kitchenSizeLayout}
-                        onChange={(e) => onChange('kitchenSizeLayout', e.target.value)}
-                      />
-                      <Input
-                        label="Material Type"
-                        type="text"
-                        required={selected}
-                        placeholder="e.g., HDMR Board, Marine Plywood, Pre-laminated"
-                        value={form.kitchenMaterialType}
-                        onChange={(e) => onChange('kitchenMaterialType', e.target.value)}
-                      />
-                      <Input
-                        label="Fittings & Hardware"
-                        type="text"
-                        required={selected}
-                        placeholder="e.g., Soft-close hinges, tandem boxes, basket fittings"
-                        value={form.kitchenFittingsHardware}
-                        onChange={(e) => onChange('kitchenFittingsHardware', e.target.value)}
-                      />
-                    </ExpandablePanel>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </FieldGroup>
-      )}
-
       {trade === 'false_ceiling_work' && (
         <>
           <FieldGroup label="Scope Type">
@@ -230,6 +161,34 @@ export function TradeWorkRequirementsFields({
               onSelect={(v) => onChange('interiorScope', v)}
             />
           </FieldGroup>
+          {form.interiorScope === 'modular_kitchen' && (
+            <ExpandablePanel open>
+              <Input
+                label="Kitchen Size / Layout"
+                type="text"
+                required
+                placeholder="e.g., L-shaped, 12 ft running length / 25 sqft"
+                value={form.kitchenSizeLayout}
+                onChange={(e) => onChange('kitchenSizeLayout', e.target.value)}
+              />
+              <Input
+                label="Material Type"
+                type="text"
+                required
+                placeholder="e.g., HDMR Board, Marine Plywood, Pre-laminated"
+                value={form.kitchenMaterialType}
+                onChange={(e) => onChange('kitchenMaterialType', e.target.value)}
+              />
+              <Input
+                label="Fittings & Hardware"
+                type="text"
+                required
+                placeholder="e.g., Soft-close hinges, tandem boxes, basket fittings"
+                value={form.kitchenFittingsHardware}
+                onChange={(e) => onChange('kitchenFittingsHardware', e.target.value)}
+              />
+            </ExpandablePanel>
+          )}
           <FieldGroup label="Target Space">
             <OptionSelectGrid
               options={INTERIOR_SPACE_OPTIONS}
