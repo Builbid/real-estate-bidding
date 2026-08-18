@@ -135,11 +135,11 @@ export default function AboutPage() {
         <ul className="grid gap-3 sm:grid-cols-2 list-none pl-0">
           <li>
             <strong className="text-foreground">Transparency</strong>
-            <span className="block mt-1">Open live rankings, explicit specs, and no hidden margins.</span>
+            <span className="block mt-1">Open live rankings, explicit specs, and standardized unit pricing.</span>
           </li>
           <li>
             <strong className="text-foreground">Privacy</strong>
-            <span className="block mt-1">Contact details stay protected until both parties connect.</span>
+            <span className="block mt-1">Contact information is managed securely to maintain professional communication standards.</span>
           </li>
           <li>
             <strong className="text-foreground">Fair competition</strong>
@@ -147,7 +147,7 @@ export default function AboutPage() {
           </li>
           <li>
             <strong className="text-foreground">Trust</strong>
-            <span className="block mt-1">Vetted trade networks so owners can award work with confidence.</span>
+            <span className="block mt-1">Verified trade networks so owners can award work with confidence.</span>
           </li>
         </ul>
       </GlassSection>
