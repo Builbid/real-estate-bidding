@@ -18,7 +18,7 @@ const PILLARS = [
   {
     icon: Activity,
     title: 'Real-Time Bidding Engine',
-    body: 'Transparent live leaderboards surface the most competitive rates as they land — driving optimal procurement costs without back-channel deals.',
+    body: 'Transparent live leaderboards surface the most competitive rates as they land — driving optimal sourcing costs without back-channel deals.',
   },
   {
     icon: BadgeCheck,
@@ -74,12 +74,12 @@ export default function AboutPage() {
     <StaticPageShell
       className="max-w-4xl"
       headerClassName="border-black/10 bg-black/[0.03] backdrop-blur-md dark:border-white/10 dark:bg-white/5 p-8 sm:p-10"
-      title="Empowering Modern Construction Procurement"
-      subtitle="BuilBid is a next-generation bidding ecosystem transforming real estate development through algorithmic transparency, real-time rate discovery, and verified trade networks."
+      title="Empowering Modern Construction Bidding"
+      subtitle="BuilBid is a next-generation bidding ecosystem transforming real estate construction bidding through algorithmic transparency, real-time rate discovery, and verified trade networks."
     >
       <GlassSection eyebrow="Mission" title="Open markets. Clear rates. No middlemen.">
         <p>
-          BuilBid replaces opaque, relationship-driven construction deals with competitive live
+          BuilBid replaces hidden, relationship-driven construction deals with competitive live
           auctions — where every qualified professional competes in the open. Property owners
           get market-clear pricing. Trade specialists get a fair shot at winning work on merit,
           not on who they know.
@@ -88,7 +88,7 @@ export default function AboutPage() {
           Standardized unit-rate benchmarking (₹/sqft, ₹/point, and scoped add-on rates) makes
           bids comparable in real time. Algorithmic leaderboards remove guesswork. Direct
           owner-to-contractor matching eliminates middleman markups that quietly inflate
-          project cost across modern urban developments.
+          project costs across all modern developments.
         </p>
       </GlassSection>
 
@@ -127,8 +127,7 @@ export default function AboutPage() {
         </p>
         <p>
           When bidding closes, owners review the leaderboard, compare rates against profiles,
-          and select the partner that fits the project. Contact details stay private until a
-          match is made — protecting both sides inside a next-generation construction ecosystem.
+          and select the partner that fits the project inside a next-generation construction ecosystem.
         </p>
       </GlassSection>
 
@@ -155,7 +154,7 @@ export default function AboutPage() {
 
       <section className={cn(GLASS_CARD, 'p-6 sm:p-8 text-center')}>
         <Sparkles className="mx-auto mb-3 h-5 w-5 text-emerald-500 dark:text-emerald-400" />
-        <h2 className="text-xl font-semibold tracking-tight text-foreground">Ready to procure smarter?</h2>
+        <h2 className="text-xl font-semibold tracking-tight text-foreground">Ready to hire smarter?</h2>
         <p className="mx-auto mt-3 max-w-xl text-[15px] leading-relaxed text-muted-foreground">
           Whether you are building your next property or scaling a verified trade practice,
           BuilBid is live nationwide.
