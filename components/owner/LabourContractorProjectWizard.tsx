@@ -602,7 +602,7 @@ export function LabourContractorProjectWizard() {
       errors.houseType = 'Select Assam Type or RCC Structure.';
     }
 
-    if (!form.activityCategory) {
+    if (form.houseType === 'rcc' && !form.activityCategory) {
       errors.activityCategory = 'Select Major activities or Minor activities.';
     }
 
@@ -806,7 +806,7 @@ export function LabourContractorProjectWizard() {
               <div className="flex flex-col gap-1.5">
                 <label className={SECTION_LABEL}>House type</label>
                 <p className={HELPER_TEXT}>
-                  Choose Assam Type or RCC Structure first. Activity type appears next.
+                  Choose Assam Type or RCC Structure. For RCC, activity type and floors appear next.
                 </p>
                 <div className="grid grid-cols-1 gap-2 mt-1">
                   {MISTRI_HOUSE_TYPE_OPTIONS.map((opt) => (
@@ -832,13 +832,11 @@ export function LabourContractorProjectWizard() {
                 )}
               </div>
 
-              {form.houseType && (
+              {form.houseType === 'rcc' && (
                 <div className="flex flex-col gap-1.5">
                   <label className={SECTION_LABEL}>Activity type</label>
                   <p className={HELPER_TEXT}>
-                    {form.houseType === 'rcc'
-                      ? 'Choose Major or Minor activities. Floor selection appears next.'
-                      : 'Choose Major or Minor activities for this Assam Type house.'}
+                    Choose Major or Minor activities. Floor selection appears next.
                   </p>
                   <div className="grid grid-cols-1 gap-2 mt-1">
                     {MISTRI_ACTIVITY_CATEGORY_OPTIONS.map((cat) => (
