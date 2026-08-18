@@ -235,7 +235,15 @@ export const MISTRI_CIVIL_WORK_OPTIONS: {
   { value: 'boundary_wall_fencing', label: 'Boundary Wall Work' },
 ];
 
-export const MISTRI_CHOWKHAT_LABEL = 'Door & Window Frames (Chowkhat)';
+export const MISTRI_CHOWKHAT_SECTION_LABEL = 'Door & Window Frames Work (Carpentry Add-on)';
+export const MISTRI_CHOWKHAT_LABEL = 'Door & Window Frames Fitting (Chowkhat Work)';
+export const MISTRI_CHOWKHAT_HINT =
+  'Check this if you want the Mistri contractor to include carpenter work for door and window frame fitting.';
+
+export const ASSAM_CIVIL_BID_LABEL = 'Civil Work';
+export const ASSAM_ROOF_BID_LABEL = 'Roof Work';
+export const ASSAM_TILE_BID_LABEL = 'Tile / Flooring Work';
+export const ASSAM_CHOWKHAT_BID_LABEL = 'Door & Window Frames';
 
 export function hasMistriChowkhat(
   details: Pick<MistriDetails, 'includeDoorWindowFrames' | 'doorWindowFramesQuantity'> | null | undefined,
@@ -243,6 +251,44 @@ export function hasMistriChowkhat(
   if (!details) return false;
   if (details.includeDoorWindowFrames === true) return true;
   return Boolean(details.doorWindowFramesQuantity?.trim());
+}
+
+export function hasAssamMistriFloorWork(
+  details: Pick<MistriDetails, 'floorWork'> | null | undefined,
+): boolean {
+  return !!details?.floorWork?.some((fw) => isAssamMistriFloor(fw.floorId));
+}
+
+export function isAssamOnlyFloorWork(floorWork: readonly MistriFloorWork[]): boolean {
+  return floorWork.length > 0 && floorWork.every((fw) => isAssamMistriFloor(fw.floorId));
+}
+
+export function hasAssamRoofWork(
+  details: Pick<MistriDetails, 'floorWork'> | null | undefined,
+): boolean {
+  return !!details?.floorWork?.some(
+    (fw) =>
+      isAssamMistriFloor(fw.floorId) &&
+      (fw.assamRoofType != null || fw.assamRoofingSheet != null),
+  );
+}
+
+export function hasAssamTileFlooringWork(
+  details: Pick<MistriDetails, 'floorWork'> | null | undefined,
+): boolean {
+  return !!details?.floorWork?.some(
+    (fw) => isAssamMistriFloor(fw.floorId) && fw.includeFineFlooring === true,
+  );
+}
+
+export function getAssamMistriBidLabels(
+  details: Pick<MistriDetails, 'floorWork' | 'includeDoorWindowFrames' | 'doorWindowFramesQuantity'> | null | undefined,
+): string[] {
+  const labels = [ASSAM_CIVIL_BID_LABEL];
+  if (hasAssamRoofWork(details)) labels.push(ASSAM_ROOF_BID_LABEL);
+  if (hasAssamTileFlooringWork(details)) labels.push(ASSAM_TILE_BID_LABEL);
+  if (hasMistriChowkhat(details)) labels.push(ASSAM_CHOWKHAT_BID_LABEL);
+  return labels;
 }
 
 /**
@@ -1292,8 +1338,9 @@ export function mistriContractTypeRequiredForFloorWork(
 ): boolean {
   return floorWork.some(
     (fw) =>
-      fw.workTypes.includes('full_finished') ||
-      fw.workTypes.includes('frame_skeleton'),
+      !isAssamMistriFloor(fw.floorId) &&
+      (fw.workTypes.includes('full_finished') ||
+        fw.workTypes.includes('frame_skeleton')),
   );
 }
 
@@ -1793,6 +1840,7 @@ export function parseMistriDetails(value: unknown): MistriDetails | null {
     const derivedCivil = civilWorkTypesFromFloorWork(floorWork);
     const foundationRequired = mistriFoundationProvisionRequired(floorWork);
     const contractRequired = mistriContractTypeRequiredForFloorWork(floorWork);
+    const assamOnly = isAssamOnlyFloorWork(floorWork);
     if (contractRequired && !contractType) return null;
     const resolvedCurrent =
       currentFloorPlan ?? currentFloorPlanFromFloorWork(floorWork);
@@ -1813,7 +1861,11 @@ export function parseMistriDetails(value: unknown): MistriDetails | null {
       workAreaCustomFloors: null,
       floorLevel: null,
       customFloorCount: null,
-      contractType: contractRequired ? contractType : null,
+      contractType: assamOnly
+        ? (contractType ?? 'labor_only')
+        : contractRequired
+          ? contractType
+          : null,
       projectStartTimeType,
       projectStartTimeSpecificDate: specific,
       additionalRequirements,
@@ -2036,7 +2088,7 @@ export function getMistriWorkRequirementBlocks(details: MistriDetails): {
 
     if (hasMistriChowkhat(details)) {
       blocks.push({
-        label: 'Scope Type',
+        label: MISTRI_CHOWKHAT_SECTION_LABEL,
         value: MISTRI_CHOWKHAT_LABEL,
       });
       if (details.doorWindowFramesQuantity) {
@@ -2154,7 +2206,7 @@ export function getMistriWorkRequirementBlocks(details: MistriDetails): {
 
   if (hasMistriChowkhat(details)) {
     blocks.push({
-      label: 'Scope Type',
+      label: MISTRI_CHOWKHAT_SECTION_LABEL,
       value: MISTRI_CHOWKHAT_LABEL,
     });
     if (details.doorWindowFramesQuantity) {
@@ -2365,7 +2417,9 @@ export function validateMistriFloorWorkInput(input: {
   }
 
   let contractType: MistriContractType | null = null;
-  if (mistriContractTypeRequiredForFloorWork(floorWork)) {
+  if (isAssamOnlyFloorWork(floorWork)) {
+    contractType = 'labor_only';
+  } else if (mistriContractTypeRequiredForFloorWork(floorWork)) {
     if (!input.contractType || !CONTRACT_SET.has(input.contractType)) {
       return { error: 'Select a contract type.' };
     }

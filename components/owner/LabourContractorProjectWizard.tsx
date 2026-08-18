@@ -29,7 +29,9 @@ import {
   MISTRI_ASSAM_ROOF_OPTIONS,
   MISTRI_ASSAM_ROOFING_SHEET_OPTIONS,
   MISTRI_BRICKWORK_MATERIAL_OPTIONS,
+  MISTRI_CHOWKHAT_HINT,
   MISTRI_CHOWKHAT_LABEL,
+  MISTRI_CHOWKHAT_SECTION_LABEL,
   MISTRI_CONTRACT_TYPE_OPTIONS,
   MISTRI_CUSTOM_FLOOR_ID,
   MISTRI_FLOORING_MATERIAL_OPTIONS,
@@ -397,7 +399,7 @@ export function LabourContractorProjectWizard() {
             [ASSAM_BUILDING_TYPE]: { ...ASSAM_FULL_FINISHED_WORK },
           },
           futureFloorCustom: '',
-          contractType: null,
+          contractType: 'labor_only',
         };
       }
       return {
@@ -499,7 +501,7 @@ export function LabourContractorProjectWizard() {
             [ASSAM_BUILDING_TYPE]: { ...ASSAM_FULL_FINISHED_WORK },
           },
           futureFloorCustom: '',
-          contractType: null,
+          contractType: 'labor_only',
         };
       }
       return {
@@ -577,7 +579,7 @@ export function LabourContractorProjectWizard() {
       approximateArea: form.approximateArea,
       futureFloorOption: 'custom' as const,
       futureFloorCustom: form.futureFloorCustom,
-      contractType: form.contractType,
+      contractType: form.houseType === 'assam' ? 'labor_only' : form.contractType,
       projectStartTimeType: form.projectStartTimeType,
       projectStartTimeSpecificDate: form.projectStartTimeSpecificDate,
       additionalRequirements: form.additionalRequirements,
@@ -718,7 +720,8 @@ export function LabourContractorProjectWizard() {
   })();
 
   const showFoundationProvision = mistriFoundationProvisionRequired(assembledFloorWork);
-  const showContractType = mistriContractTypeRequiredForFloorWork(assembledFloorWork);
+  const showContractType =
+    form.houseType === 'rcc' && mistriContractTypeRequiredForFloorWork(assembledFloorWork);
   const currentFloorPlan = currentFloorPlanFromFloorWork(assembledFloorWork);
   const currentUpper = floorPlanUpperCount(currentFloorPlan);
 
@@ -1199,12 +1202,10 @@ export function LabourContractorProjectWizard() {
 
               <div className="flex flex-col gap-1.5">
                 <label className={SECTION_LABEL}>
-                  Scope Type
-                  <span className="ml-1.5 normal-case tracking-normal font-medium text-gray-600 dark:text-zinc-400">
-                    (Bidding will be based on rate/sqft)
-                  </span>
+                  {MISTRI_CHOWKHAT_SECTION_LABEL}
                 </label>
                 <OptionCardButton
+                  className="items-start"
                   selected={form.includeDoorWindowFrames}
                   onClick={() => {
                     const next = !form.includeDoorWindowFrames;
@@ -1213,7 +1214,10 @@ export function LabourContractorProjectWizard() {
                     setStep2Error(null);
                   }}
                 >
-                  {MISTRI_CHOWKHAT_LABEL}
+                  <span className="block">{MISTRI_CHOWKHAT_LABEL}</span>
+                  <span className="mt-1 block text-[10px] font-medium normal-case tracking-normal text-gray-600 dark:text-zinc-400">
+                    {MISTRI_CHOWKHAT_HINT}
+                  </span>
                 </OptionCardButton>
                 {form.includeDoorWindowFrames && (
                   <div className="ml-1 space-y-3 rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-2.5">

@@ -115,6 +115,7 @@ export function buildBidRatesPayload(
     ground_rate: rates.ground_rate ?? 0,
     first_rate: floorCount >= 2 ? (rates.first_rate ?? 0) : undefined,
     second_rate: floorCount >= 3 ? (rates.second_rate ?? 0) : undefined,
+    third_rate: floorCount >= 4 ? (rates.third_rate ?? 0) : undefined,
     ...(rates.bid_unit ? { bid_unit: rates.bid_unit } : {}),
     ...(rates.vehicleCapacityCum != null && rates.vehicleCapacityCum > 0
       ? { vehicleCapacityCum: rates.vehicleCapacityCum }
@@ -124,7 +125,7 @@ export function buildBidRatesPayload(
 
 export function ratesToInputStrings(rates: Partial<BidRates>): Partial<Record<BidFloorRateKey, string>> {
   const result: Partial<Record<BidFloorRateKey, string>> = {};
-  for (const key of ['ground_rate', 'first_rate', 'second_rate'] as const) {
+  for (const key of ['ground_rate', 'first_rate', 'second_rate', 'third_rate'] as const) {
     const value = rates[key];
     if (value !== undefined && value > 0) {
       result[key] = String(Math.trunc(value));

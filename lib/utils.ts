@@ -51,7 +51,8 @@ export function computeTotalMetric(rates: Partial<BidRates>): number {
   return (
     (rates.ground_rate ?? 0) +
     (rates.first_rate ?? 0) +
-    (rates.second_rate ?? 0)
+    (rates.second_rate ?? 0) +
+    (rates.third_rate ?? 0)
   );
 }
 
@@ -95,8 +96,8 @@ export function getFloorLabels(count: number): string[] {
 }
 
 export function getRateKeys(count: number): BidFloorRateKey[] {
-  const keys: BidFloorRateKey[] = ['ground_rate', 'first_rate', 'second_rate'];
-  return keys.slice(0, count);
+  const keys: BidFloorRateKey[] = ['ground_rate', 'first_rate', 'second_rate', 'third_rate'];
+  return keys.slice(0, Math.min(Math.max(count, 0), keys.length));
 }
 
 import type { ProjectStatus } from './types';

@@ -422,6 +422,9 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                   trackType={project.track_type}
                   subConfiguration={project.sub_configuration}
                   serviceType={serviceType}
+                  mistriDetails={project.mistri_details}
+                  buildingTypes={project.building_types}
+                  totalFloors={project.total_floors}
                 />
               </CardContent>
             </Card>

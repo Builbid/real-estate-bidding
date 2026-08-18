@@ -17,9 +17,10 @@ export const FLOOR_RATE_LABELS: Record<BidFloorRateKey, string> = {
   ground_rate: 'Ground Floor',
   first_rate: 'First Floor',
   second_rate: 'Second Floor',
+  third_rate: 'Add-on Work',
 };
 
-const FLOOR_RATE_KEYS: BidFloorRateKey[] = ['ground_rate', 'first_rate', 'second_rate'];
+const FLOOR_RATE_KEYS: BidFloorRateKey[] = ['ground_rate', 'first_rate', 'second_rate', 'third_rate'];
 
 export interface BidFloorRateEntry {
   key: BidFloorRateKey;

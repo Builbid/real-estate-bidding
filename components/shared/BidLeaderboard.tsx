@@ -9,11 +9,12 @@ import { useProfile } from '@/lib/hooks/useProfile';
 import { BuilderRatingBadge } from '@/components/shared/BuilderRatingBadge';
 import { UserAvatar } from '@/components/shared/UserAvatar';
 import { computeRatingStats } from '@/lib/builderRatings';
-import { cn, formatRelativeTime, getFloorInputCount } from '@/lib/utils';
+import { cn, formatRelativeTime, getFloorInputCount, averageFromSumMetric, formatBidMetric } from '@/lib/utils';
 import { useTranslation } from '@/lib/context/LanguageProvider';
 import { ConstructionMatrixSummary } from '@/components/construction/ConstructionMatrixSummary';
 import { BidFloorRatesBreakdown } from '@/components/shared/BidFloorRatesBreakdown';
 import { shouldShowBidFloorBreakdown } from '@/lib/bid/floorRateDisplay';
+import { resolveScopeRateBidItems } from '@/lib/bid/scopeRateBid';
 import { getServiceBidderLabels } from '@/lib/project/display';
 import type { ProjectStatus, ServiceType, TrackType, SubConfiguration } from '@/lib/types';
 
@@ -29,6 +30,9 @@ interface BidLeaderboardProps {
   trackType?: TrackType;
   subConfiguration?: SubConfiguration;
   serviceType?: ServiceType | null;
+  mistriDetails?: unknown;
+  buildingTypes?: string[] | null;
+  totalFloors?: number | null;
   initialBuilders?: Record<string, BuilderInfo>;
 }
 
@@ -52,6 +56,9 @@ export function BidLeaderboard({
   trackType,
   subConfiguration,
   serviceType = 'labour_contractor',
+  mistriDetails,
+  buildingTypes,
+  totalFloors,
   initialBuilders,
 }: BidLeaderboardProps) {
   const { t } = useTranslation();
@@ -64,10 +71,19 @@ export function BidLeaderboard({
 
   const isActive   = projectStatus === 'active_24h';
   const isLoggedIn = !!profile;
+  const scopeBid = resolveScopeRateBidItems({
+    service_type: serviceType,
+    mistri_details: mistriDetails,
+    track_type: trackType,
+    sub_configuration: subConfiguration,
+    building_types: buildingTypes,
+    total_floors: totalFloors,
+  });
   const projectFloorCount =
-    trackType && subConfiguration
+    scopeBid?.count
+    ?? (trackType && subConfiguration
       ? getFloorInputCount(trackType, subConfiguration)
-      : 1;
+      : 1);
   const showFloorBreakdown = !isActive;
 
   useEffect(() => {
@@ -280,16 +296,17 @@ export function BidLeaderboard({
                   'text-sm font-bold tabular-nums',
                   isLowest ? 'text-emerald-400' : 'text-foreground'
                 )}>
-                  {serviceType === 'plumber' ? 'Rs. ' : '₹'}{bid.total_sum_metric.toLocaleString('en-IN')}
+                  {serviceType === 'plumber' ? 'Rs. ' : '₹'}
+                  {formatBidMetric(averageFromSumMetric(bid.total_sum_metric, projectFloorCount))}
                 </p>
                 <p className="text-[10px] text-muted-foreground">
-                  {serviceType === 'plumber' ? 'Rs.' : serviceType === 'electrician' ? '/point' : 'total rate/sqft'}
+                  {serviceType === 'plumber' ? 'Rs.' : serviceType === 'electrician' ? '/point' : projectFloorCount > 1 ? '/sqft avg' : '/sqft'}
                 </p>
               </div>
 
               {showFloorBreakdown && shouldShowBidFloorBreakdown(bid.rates, projectFloorCount) && (
                 <div className="w-full basis-full">
-                  <BidFloorRatesBreakdown rates={bid.rates} />
+                  <BidFloorRatesBreakdown rates={bid.rates} floorLabels={scopeBid?.labels} />
                 </div>
               )}
 

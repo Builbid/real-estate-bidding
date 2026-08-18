@@ -151,6 +151,7 @@ export function sanitizeFirmBid(raw: Record<string, unknown> | null): Bid | null
       ground_rate: groundRate ?? singleRate ?? 0,
       first_rate: toNumber(ratesRaw.first_rate) ?? undefined,
       second_rate: toNumber(ratesRaw.second_rate) ?? undefined,
+      third_rate: toNumber(ratesRaw.third_rate) ?? undefined,
     },
     total_sum_metric: totalMetric ?? singleRate ?? groundRate ?? 0,
     single_rate: singleRate,

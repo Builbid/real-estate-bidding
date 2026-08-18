@@ -78,6 +78,7 @@ export function isWideRequirementLabel(label: string): boolean {
     label === 'Package' ||
     label === 'Packages' ||
     label === 'Scope Type' ||
+    label === 'Door & Window Frames Work (Carpentry Add-on)' ||
     label === 'Deliverables' ||
     label === 'Project Submission Time' ||
     label === 'Approximate Paint Area' ||

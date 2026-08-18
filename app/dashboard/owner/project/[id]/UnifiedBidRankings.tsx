@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, UserCheck, Trophy, TrendingDown, Loader2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useRealtimeBids } from '@/lib/hooks/useRealtimeBids';
-import { formatRelativeTime } from '@/lib/utils';
+import { averageFromSumMetric, formatBidMetric, formatRelativeTime } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { BuilderRatingBadge } from '@/components/shared/BuilderRatingBadge';
 import { UserAvatar } from '@/components/shared/UserAvatar';
@@ -239,13 +239,16 @@ export function UnifiedBidRankings({
                 <p className={`text-base font-bold tabular-nums ${
                   isSelected ? 'text-emerald-400' : isLowest ? 'text-emerald-400' : 'text-foreground'
                 }`}>
-                  {project.service_type === 'plumber' ? 'Rs. ' : '₹'}{bid.total_sum_metric.toLocaleString('en-IN')}
+                  {project.service_type === 'plumber' ? 'Rs. ' : '₹'}
+                  {formatBidMetric(averageFromSumMetric(bid.total_sum_metric, projectFloorCount))}
                 </p>
                 <p className="text-[10px] text-muted-foreground">
                   {formatTripCapacityLabel(bid.rates?.vehicleCapacityCum)
                     ?? (['Rs.', '/point'].includes(formatBidUnitCaption(bid.rates, undefined, project.service_type))
                       ? formatBidUnitCaption(bid.rates, undefined, project.service_type)
-                      : `total ${formatBidUnitSuffix(bid.rates, undefined, project.service_type)}`)}
+                      : projectFloorCount > 1
+                        ? '/sqft avg'
+                        : formatBidUnitSuffix(bid.rates, undefined, project.service_type))}
                 </p>
               </div>
 

@@ -75,7 +75,7 @@ interface Props {
   backHref?: string;
 }
 
-const FLOOR_RATE_KEYS: BidFloorRateKey[] = ['ground_rate', 'first_rate', 'second_rate'];
+const FLOOR_RATE_KEYS: BidFloorRateKey[] = ['ground_rate', 'first_rate', 'second_rate', 'third_rate'];
 
 interface BuilderInfo {
   full_name: string;
@@ -288,6 +288,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
       ground_rate: rates.ground_rate ?? 0,
       first_rate: rates.first_rate,
       second_rate: rates.second_rate,
+      third_rate: rates.third_rate,
       ...(earthworkMode === 'hourly' ? { bid_unit: 'per_hour' as const } : {}),
       ...(earthworkMode === 'trip'
         ? { bid_unit: 'per_trip' as const, vehicleCapacityCum: tripCapacity }
@@ -518,6 +519,10 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                   <p className="text-xs text-blue-300">
                     {isPainter || isDrawing ? (
                       <>Enter your rate in ₹ per sqft. Rates must be whole numbers. Lower rates rank higher.</>
+                    ) : scopeBid?.kind === 'assam-addons' ? (
+                      <>
+                        Mistri contractors submit add-on rates on behalf of specialized roofers, tile workers, and carpenters. Negotiate carefully—your overall average rate determines leaderboard rank.
+                      </>
                     ) : isScopeRateBid ? (
                       <>Enter your rate in ₹ per sqft for each item. Rates must be whole numbers. Lower rates rank higher.</>
                     ) : isElectrician ? (
@@ -570,7 +575,9 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                                   ? 'Your Rate'
                                   : isElectrician
                                     ? 'Your Rate Per Point'
-                                    : `${label} Rate`
+                                    : scopeBid?.kind === 'assam-addons'
+                                      ? `${label} Rate (₹/sqft)`
+                                      : `${label} Rate`
                           }
                           type="text"
                           inputMode="numeric"

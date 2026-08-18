@@ -1,9 +1,14 @@
 import { resolveProjectBidFloors } from '@/lib/bid/floorRateDisplay';
 import {
+  ASSAM_CIVIL_BID_LABEL,
+  ASSAM_ROOF_BID_LABEL,
   MISTRI_CHOWKHAT_LABEL,
+  getAssamMistriBidLabels,
+  hasAssamMistriFloorWork,
   hasMistriChowkhat,
   parseMistriDetails,
 } from '@/lib/mistriDetails';
+import { ASSAM_BUILDING_TYPE } from '@/lib/buildingConfig';
 import { readNestedProjectDetail } from '@/lib/project/storedDetails';
 import {
   getCarpenterScopeLabel,
@@ -19,7 +24,7 @@ export const MODULAR_KITCHEN_BID_LABEL = 'Modular Kitchen';
 export interface ScopeRateBidItems {
   labels: string[];
   count: number;
-  kind: 'scope' | 'floors';
+  kind: 'scope' | 'floors' | 'assam-addons';
   flexibleRates: boolean;
 }
 
@@ -44,9 +49,20 @@ function hasInteriorModularKitchen(raw: unknown): boolean {
   return details?.service === 'false_ceiling_work' && details.scopeType === 'modular_kitchen';
 }
 
+function isAssamTypeProject(project: {
+  track_type?: string | null;
+  building_types?: string[] | null;
+}): boolean {
+  return (
+    project.track_type === 'AssamType' ||
+    (project.building_types?.includes(ASSAM_BUILDING_TYPE) ?? false)
+  );
+}
+
 /**
  * Extra /sqft rate inputs beyond the default single-package or per-floor layout:
- * - Mistri Worker + Chowkhat
+ * - Assam Type Mistri: Civil + Roof / Tile / Chowkhat add-ons
+ * - RCC Mistri Worker + Chowkhat
  * - Interior Work + Modular Kitchen
  * - Legacy Carpenter projects
  */
@@ -76,7 +92,7 @@ export function resolveScopeRateBidItems(
     const ordered = [
       ...LEGACY_CARPENTER_SCOPE_ORDER.filter((value) => selected.includes(value)),
       ...selected.filter((value) => !LEGACY_CARPENTER_SCOPE_ORDER.includes(value)),
-    ].slice(0, 3);
+    ].slice(0, 4);
     const scopes = ordered.length > 0 ? ordered : LEGACY_CARPENTER_SCOPE_ORDER;
     return {
       labels: scopes.map((value) => getCarpenterScopeLabel(value)),
@@ -99,6 +115,18 @@ export function resolveScopeRateBidItems(
   }
 
   if (service === 'labour_contractor' || bidder === 'labour_contractor') {
+    if (hasAssamMistriFloorWork(mistriDetails) || isAssamTypeProject(project)) {
+      const labels = mistriDetails
+        ? getAssamMistriBidLabels(mistriDetails)
+        : [ASSAM_CIVIL_BID_LABEL, ASSAM_ROOF_BID_LABEL];
+      return {
+        labels,
+        count: labels.length,
+        kind: 'assam-addons',
+        flexibleRates: true,
+      };
+    }
+
     if (!hasMistriChowkhat(mistriDetails)) return null;
     const floors = resolveProjectBidFloors({
       track_type: (project.track_type as 'RCC' | 'AssamType') ?? 'RCC',
@@ -107,7 +135,7 @@ export function resolveScopeRateBidItems(
       building_types: project.building_types,
       mistri_details: project.mistri_details,
     });
-    const floorLabels = floors.labels.slice(0, 2);
+    const floorLabels = floors.labels.slice(0, 3);
     const labels =
       floorLabels.length > 0 ? [...floorLabels, MISTRI_CHOWKHAT_LABEL] : [MISTRI_CHOWKHAT_LABEL];
     return {
