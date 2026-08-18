@@ -31,6 +31,7 @@ import {
   MISTRI_BRICKWORK_MATERIAL_OPTIONS,
   MISTRI_CHOWKHAT_HINT,
   MISTRI_CHOWKHAT_LABEL,
+  MISTRI_CHOWKHAT_RATE_NOTE,
   MISTRI_CHOWKHAT_SECTION_LABEL,
   MISTRI_CONTRACT_TYPE_OPTIONS,
   MISTRI_CUSTOM_FLOOR_ID,
@@ -215,7 +216,6 @@ interface FormState {
   projectStartTimeSpecificDate: string;
   additionalRequirements: string;
   includeDoorWindowFrames: boolean;
-  doorWindowFramesQuantity: string;
 }
 
 const EMPTY_FORM: FormState = {
@@ -235,7 +235,6 @@ const EMPTY_FORM: FormState = {
   projectStartTimeSpecificDate: '',
   additionalRequirements: '',
   includeDoorWindowFrames: false,
-  doorWindowFramesQuantity: '',
 };
 
 function selectedFloorEntries(form: FormState): Array<{
@@ -584,7 +583,6 @@ export function LabourContractorProjectWizard() {
       projectStartTimeSpecificDate: form.projectStartTimeSpecificDate,
       additionalRequirements: form.additionalRequirements,
       includeDoorWindowFrames: form.includeDoorWindowFrames,
-      doorWindowFramesQuantity: form.doorWindowFramesQuantity,
     };
   }
 
@@ -1208,9 +1206,7 @@ export function LabourContractorProjectWizard() {
                   className="items-start"
                   selected={form.includeDoorWindowFrames}
                   onClick={() => {
-                    const next = !form.includeDoorWindowFrames;
-                    update('includeDoorWindowFrames', next);
-                    if (!next) update('doorWindowFramesQuantity', '');
+                    update('includeDoorWindowFrames', !form.includeDoorWindowFrames);
                     setStep2Error(null);
                   }}
                 >
@@ -1219,22 +1215,13 @@ export function LabourContractorProjectWizard() {
                     {MISTRI_CHOWKHAT_HINT}
                   </span>
                 </OptionCardButton>
-                {form.includeDoorWindowFrames && (
-                  <div className="ml-1 space-y-3 rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-2.5">
-                    <Input
-                      label="Quantity / Count (Door & Window Frames)"
-                      type="text"
-                      inputMode="text"
-                      required
-                      placeholder="e.g., 6 Door Frames, 4 Window Frames"
-                      value={form.doorWindowFramesQuantity}
-                      onChange={(e) => {
-                        update('doorWindowFramesQuantity', e.target.value);
-                        setStep2Error(null);
-                      }}
-                    />
-                  </div>
-                )}
+                <div className="rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2">
+                  <p className={cn(HELPER_TEXT, 'text-amber-800 dark:text-amber-200')}>
+                    💡{' '}
+                    <span className="font-semibold">Note:</span>{' '}
+                    {MISTRI_CHOWKHAT_RATE_NOTE}
+                  </p>
+                </div>
               </div>
 
               {showFoundationProvision && (

@@ -210,7 +210,7 @@ export interface MistriDetails {
   additionalRequirements?: string | null;
   /** Optional extra scope moved from the retired Carpenter service. */
   includeDoorWindowFrames?: boolean | null;
-  /** Required when includeDoorWindowFrames is true. */
+  /** Legacy only — new posts no longer collect a door/window count. */
   doorWindowFramesQuantity?: string | null;
 }
 
@@ -239,6 +239,8 @@ export const MISTRI_CHOWKHAT_SECTION_LABEL = 'Door & Window Frames Work (Carpent
 export const MISTRI_CHOWKHAT_LABEL = 'Door & Window Frames Fitting (Chowkhat Work)';
 export const MISTRI_CHOWKHAT_HINT =
   'Check this if you want the Mistri contractor to include carpenter work for door and window frame fitting.';
+export const MISTRI_CHOWKHAT_RATE_NOTE =
+  'Carpentry rates are calculated based on the total sqft frame area (not per unit door/window count).';
 
 export const ASSAM_CIVIL_BID_LABEL = 'Civil Work';
 export const ASSAM_ROOF_BID_LABEL = 'Roof Work';
@@ -2314,7 +2316,6 @@ export function validateMistriFloorWorkInput(input: {
   projectStartTimeSpecificDate: string;
   additionalRequirements: string;
   includeDoorWindowFrames?: boolean;
-  doorWindowFramesQuantity?: string;
 }): { error: string } | { details: MistriDetails } {
   if (!input.floorWork.length) {
     return { error: 'Select Assam Type or at least one RCC floor.' };
@@ -2432,12 +2433,7 @@ export function validateMistriFloorWorkInput(input: {
 
   const additional = input.additionalRequirements.trim() || null;
   const includeDoorWindowFrames = input.includeDoorWindowFrames === true;
-  const doorWindowFramesQuantity = includeDoorWindowFrames
-    ? (input.doorWindowFramesQuantity ?? '').trim() || null
-    : null;
-  if (includeDoorWindowFrames && !doorWindowFramesQuantity) {
-    return { error: 'Enter the quantity / count for door and window frames.' };
-  }
+  const doorWindowFramesQuantity = null;
   const civilWorkTypes = civilWorkTypesFromFloorWork(floorWork);
   const plasterSide = plasterSideFromScope(
     floorWork.find((fw) => fw.plasterScope)?.plasterScope,
