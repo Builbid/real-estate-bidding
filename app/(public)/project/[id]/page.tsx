@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowLeft, Building, MapPin, Layers, Calendar,
-  Info, Lock, AlertTriangle
+  Info, Lock
 } from 'lucide-react';
 import { Navbar } from '@/components/shared/Navbar';
 import { CountdownTicker } from '@/components/shared/CountdownTicker';
@@ -337,19 +337,6 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                 )}
               </CardContent>
             </Card>
-
-            {isActive && (
-              <div className="flex items-start gap-3 p-4 rounded-xl bg-amber-500/5 border border-amber-500/20">
-                <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-sm font-semibold text-amber-300 mb-1">Active Bidding Phase</p>
-                  <p className="text-xs text-amber-400/70">
-                    Bidding is open. {bidder.singular} names and profile photos appear on the live leaderboard.
-                    Contact details (phone, email, address) are never shown publicly.
-                  </p>
-                </div>
-              </div>
-            )}
 
             {isFrozen && (
               <div className="flex items-start gap-3 p-4 rounded-xl bg-indigo-500/5 border border-indigo-500/20">
