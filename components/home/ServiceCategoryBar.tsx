@@ -83,13 +83,20 @@ export function ServiceCategoryBar({ isAuthenticated, role }: ServiceCategoryBar
             Post your project and receive competitive ₹/sqft bids from verified professionals.
           </p>
 
-          <div className="mt-4 grid grid-cols-4 gap-2 auto-rows-fr items-stretch sm:mt-5 md:grid-cols-8 md:gap-1 lg:gap-2">
+          <div
+            className={cn(
+              'mt-4 mx-auto grid w-full max-w-6xl auto-rows-fr items-stretch justify-items-center gap-2 sm:mt-5 lg:gap-2',
+              categories.length >= 8
+                ? 'grid-cols-4 md:grid-cols-8 md:gap-1'
+                : 'grid-cols-2 sm:grid-cols-4 md:grid-cols-7 md:gap-1',
+            )}
+          >
             {categories.map((cat, index) => (
               <button
                 key={cat.value}
                 type="button"
                 onClick={() => handleSelect(cat.value)}
-                className="group flex h-full min-w-0 flex-col items-center gap-1 text-center"
+                className="group flex h-full w-full min-w-0 flex-col items-center gap-1 text-center"
               >
                 <span
                   className={cn(

@@ -55,7 +55,7 @@ function ServiceCard({
       type="button"
       onClick={onSelect}
       className={cn(
-        'relative flex h-full min-h-0 cursor-pointer flex-col justify-between rounded-xl border-2 p-3.5 text-left transition-all duration-200',
+        'relative flex h-full min-h-0 w-full cursor-pointer flex-col justify-between rounded-xl border-2 p-3.5 text-left transition-all duration-200',
         selected
           ? 'scale-[1.02] border-emerald-500/70 bg-emerald-500/8 shadow-md shadow-emerald-500/15'
           : 'border-border bg-secondary/30 hover:border-emerald-500/50',
@@ -95,7 +95,14 @@ export function ServiceTypeSelector({ value, onChange, onContinue }: ServiceType
         </p>
       </div>
 
-      <div className="grid grid-cols-2 items-stretch gap-3 auto-rows-fr sm:grid-cols-3">
+      <div
+        className={cn(
+          'grid w-full auto-rows-fr items-stretch justify-items-center gap-3',
+          options.length >= 8
+            ? 'grid-cols-2 sm:grid-cols-4'
+            : 'grid-cols-2 sm:grid-cols-4 md:grid-cols-7',
+        )}
+      >
         {options.map((option) => (
           <ServiceCard
             key={option.value}
@@ -108,7 +115,7 @@ export function ServiceTypeSelector({ value, onChange, onContinue }: ServiceType
 
       {value && (
         <div className="fixed inset-x-0 bottom-0 z-50 border-t border-border/70 bg-background/95 px-4 py-3 shadow-[0_-8px_30px_rgba(0,0,0,0.14)] backdrop-blur-md pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-          <div className="mx-auto max-w-2xl space-y-1.5">
+          <div className="mx-auto max-w-6xl space-y-1.5">
             <p className="text-center text-[11px] text-muted-foreground">
               Selected: <span className="font-semibold text-foreground">{selectedLabel}</span>
             </p>

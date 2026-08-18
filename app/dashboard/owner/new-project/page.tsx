@@ -86,7 +86,7 @@ function NewProjectPageContent() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="mx-auto w-full max-w-6xl space-y-6">
       <div>
         <h1 className="text-xl font-bold text-foreground">Post New Project</h1>
         <p className="text-sm text-muted-foreground mt-1">
