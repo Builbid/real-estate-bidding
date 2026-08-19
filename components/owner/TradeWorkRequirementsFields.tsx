@@ -1,6 +1,6 @@
 'use client';
 
-import { PlumbingProgressiveForm } from '@/components/owner/plumber/PlumbingProgressiveForm';
+import { PlumbingPackageForm } from '@/components/owner/plumber/PlumbingPackageForm';
 import { Input } from '@/components/ui/input';
 import { OptionSelectCard, OptionSelectGrid } from '@/components/owner/wizard/OptionSelectCard';
 import { StartTimeAndNotes, WIZARD_SECTION_LABEL } from '@/components/owner/wizard/StartTimeAndNotes';
@@ -14,6 +14,7 @@ import {
   INTERIOR_SCOPE_OPTIONS,
   INTERIOR_SPACE_OPTIONS,
   type BathroomPackage,
+  type BathroomPackageSelection,
   type BathroomRoomSize,
   type DrainageInstallMethod,
   type EarthworkMachine,
@@ -23,7 +24,10 @@ import {
   type ElectricianScopeType,
   type InteriorScopeType,
   type InteriorTargetSpace,
+  type PipingPackageKind,
   type PlumbingFloorLevel,
+  type PlumbingHouseStructure,
+  type PlumbingTargetFloor,
   type PlumberScopeType,
   type ProjectStartTimeType,
   type TankDistance,
@@ -43,6 +47,10 @@ export interface TradeWorkFormFields {
   plumbingFloorLevel: PlumbingFloorLevel;
   fittingType: WaterInstallMethod;
   tankDistance: TankDistance | null;
+  houseStructure: PlumbingHouseStructure | null;
+  targetFloors: PlumbingTargetFloor[];
+  bathroomPackages: BathroomPackageSelection[];
+  pipingPackage: PipingPackageKind | null;
   cpvcPipeSizes: CpvcPipeSize[];
   waterInstallMethods: WaterInstallMethod[];
   includeToiletWastePipe: boolean;
@@ -86,17 +94,11 @@ export function TradeWorkRequirementsFields({
   return (
     <div className="space-y-5">
       {trade === 'plumber' && (
-        <PlumbingProgressiveForm
-          bathroomPackage={form.bathroomPackage}
-          bathroomSize={form.bathroomSize}
-          plumbingFloorLevel={form.plumbingFloorLevel}
-          fittingType={form.fittingType}
-          tankDistance={form.tankDistance}
-          onChangePackage={(v) => onChange('bathroomPackage', v)}
-          onChangeSize={(v) => onChange('bathroomSize', v)}
-          onChangeFloor={(v) => onChange('plumbingFloorLevel', v)}
-          onChangeFitting={(v) => onChange('fittingType', v)}
-          onChangeDistance={(v) => onChange('tankDistance', v)}
+        <PlumbingPackageForm
+          bathroomPackages={form.bathroomPackages}
+          pipingPackage={form.pipingPackage}
+          onChangeBathroomPackages={(v) => onChange('bathroomPackages', v)}
+          onChangePipingPackage={(v) => onChange('pipingPackage', v)}
         />
       )}
 

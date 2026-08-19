@@ -49,7 +49,19 @@ export type BathroomRoomSize = 'standard' | 'large' | 'extra_large';
 
 export type PlumbingFloorLevel = 'ground' | 'first' | 'second_plus';
 
+export type PlumbingHouseStructure = 'assam_type' | 'rcc';
+
+export type PlumbingTargetFloor = 'ground' | 'first' | 'second' | 'third_plus';
+
+export type PipingPackageKind = 'non_concealing' | 'concealing';
+
 export type TankDistance = 'under_50' | '50_100' | '100_plus';
+
+export interface BathroomPackageSelection {
+  package: BathroomPackage;
+  quantity: number;
+  size: BathroomRoomSize | null;
+}
 
 export type CpvcPipeSize =
   | 'three_quarter'
@@ -145,6 +157,14 @@ export interface PlumberDetails extends TradeDetailsBase {
   plumbingFloorLevel?: PlumbingFloorLevel | null;
   /** Approximate distance from the bathroom to the overhead tank. */
   tankDistance?: TankDistance | null;
+  /** Assam Type vs RCC — drives whether floor multi-select is shown. */
+  houseStructure?: PlumbingHouseStructure | null;
+  /** Target floors for RCC; Assam Type is always ground. */
+  targetFloors?: PlumbingTargetFloor[];
+  /** Quantities and sizes per bathroom package category. */
+  bathroomPackages?: BathroomPackageSelection[];
+  /** Concealing vs open fitting package for tap supply lines. */
+  pipingPackage?: PipingPackageKind | null;
   /** Legacy field — no longer collected on new plumber submissions. */
   materialScope?: PlumberMaterialScope | null;
 }
@@ -229,6 +249,7 @@ export const BATHROOM_PACKAGE_OPTIONS: {
   label: string;
   description: string;
   included: string[];
+  pipeDefaults: string[];
 }[] = [
   {
     value: 'common',
@@ -241,6 +262,7 @@ export const BATHROOM_PACKAGE_OPTIONS: {
       '1 Overhead Shower',
       'Wall-mounted Flush Tank',
     ],
+    pipeDefaults: ['¾ inch CPVC tap supply line', 'Toilet drainage via piping package'],
   },
   {
     value: 'master',
@@ -253,6 +275,7 @@ export const BATHROOM_PACKAGE_OPTIONS: {
       'Concealed Flush Tank / Metropole System',
       'Hand & Overhead Shower',
     ],
+    pipeDefaults: ['¾ inch CPVC tap supply line', 'Toilet drainage via piping package'],
   },
   {
     value: 'luxury',
@@ -265,6 +288,7 @@ export const BATHROOM_PACKAGE_OPTIONS: {
       'Multi-outlet Thermostatic Diverter',
       'Premium Brass/Gold Finish Fittings',
     ],
+    pipeDefaults: ['¾ inch CPVC tap supply line', 'Toilet drainage via piping package'],
   },
 ];
 
@@ -290,6 +314,64 @@ export const BATHROOM_ROOM_SIZE_OPTIONS: {
   },
 ];
 
+export const PLUMBING_HOUSE_STRUCTURE_OPTIONS: {
+  value: PlumbingHouseStructure;
+  trackType: 'AssamType' | 'RCC';
+  label: string;
+  description: string;
+}[] = [
+  {
+    value: 'assam_type',
+    trackType: 'AssamType',
+    label: 'Assam Type House',
+    description: 'Single-storey layout. Floor selection is skipped and defaults to Ground Floor.',
+  },
+  {
+    value: 'rcc',
+    trackType: 'RCC',
+    label: 'RCC Building',
+    description: 'Select every floor that needs plumbing work.',
+  },
+];
+
+export const PLUMBING_TARGET_FLOOR_OPTIONS: {
+  value: PlumbingTargetFloor;
+  label: string;
+}[] = [
+  { value: 'ground', label: 'Ground' },
+  { value: 'first', label: '1st Floor' },
+  { value: 'second', label: '2nd Floor' },
+  { value: 'third_plus', label: '3rd Floor+' },
+];
+
+export const PIPING_PACKAGE_OPTIONS: {
+  value: PipingPackageKind;
+  label: string;
+  description: string;
+  included: string[];
+}[] = [
+  {
+    value: 'non_concealing',
+    label: 'Non-Concealing Package (Open Fitting)',
+    description: 'Pipes run on the outer surface without wall cutting.',
+    included: [
+      'Water Tank Fittings',
+      'Toilet Drainage Pipe Work (Non-Concealing / Open)',
+      'Tap Supply Line — ¾ inch CPVC (Open Outer Fitting)',
+    ],
+  },
+  {
+    value: 'concealing',
+    label: 'Concealing Package (Wall-Cut Fitting)',
+    description: 'Tap supply lines chase into walls. Toilet waste stays non-concealing.',
+    included: [
+      'Water Tank Fittings',
+      'Toilet Drainage Pipe Work (Non-Concealing, including RCC)',
+      'Tap Supply Line — ¾ inch CPVC (Concealed / Wall Cut)',
+    ],
+  },
+];
+
 export const PLUMBING_FLOOR_LEVEL_OPTIONS: {
   value: PlumbingFloorLevel;
   label: string;
@@ -308,8 +390,8 @@ export const TANK_DISTANCE_OPTIONS: {
   { value: '100_plus', label: '100+ ft' },
 ];
 
-/** Standard supply + waste lines auto-included so owners skip pipe-diameter choices. */
-export const SMART_CPVC_PIPE_SIZES: CpvcPipeSize[] = ['three_quarter', 'one'];
+/** Tap supply line auto-included so owners skip pipe-diameter choices. */
+export const SMART_CPVC_PIPE_SIZES: CpvcPipeSize[] = ['three_quarter'];
 
 export const CPVC_PIPE_SIZE_OPTIONS: { value: CpvcPipeSize; label: string }[] = [
   { value: 'three_quarter', label: '¾ inch' },
@@ -480,6 +562,9 @@ const PLUMBER_MATERIAL_SET = new Set(PLUMBER_MATERIAL_OPTIONS.map((o) => o.value
 const BATHROOM_PACKAGE_SET = new Set(BATHROOM_PACKAGE_OPTIONS.map((o) => o.value));
 const BATHROOM_ROOM_SIZE_SET = new Set(BATHROOM_ROOM_SIZE_OPTIONS.map((o) => o.value));
 const PLUMBING_FLOOR_LEVEL_SET = new Set(PLUMBING_FLOOR_LEVEL_OPTIONS.map((o) => o.value));
+const PLUMBING_HOUSE_STRUCTURE_SET = new Set(PLUMBING_HOUSE_STRUCTURE_OPTIONS.map((o) => o.value));
+const PLUMBING_TARGET_FLOOR_SET = new Set(PLUMBING_TARGET_FLOOR_OPTIONS.map((o) => o.value));
+const PIPING_PACKAGE_SET = new Set(PIPING_PACKAGE_OPTIONS.map((o) => o.value));
 const TANK_DISTANCE_SET = new Set(TANK_DISTANCE_OPTIONS.map((o) => o.value));
 const CPVC_PIPE_SIZE_SET = new Set(CPVC_PIPE_SIZE_OPTIONS.map((o) => o.value));
 const WATER_INSTALL_METHOD_SET = new Set(WATER_INSTALL_METHOD_OPTIONS.map((o) => o.value));
@@ -650,6 +735,34 @@ export function parseDrainageInstallMethods(raw: unknown): DrainageInstallMethod
   return parseUniqueEnumList(raw, DRAINAGE_INSTALL_METHOD_SET);
 }
 
+export function parsePlumbingTargetFloors(raw: unknown): PlumbingTargetFloor[] {
+  return parseUniqueEnumList(raw, PLUMBING_TARGET_FLOOR_SET);
+}
+
+export function parseBathroomPackageSelections(raw: unknown): BathroomPackageSelection[] {
+  if (!Array.isArray(raw)) return [];
+  const byPackage = new Map<BathroomPackage, BathroomPackageSelection>();
+  for (const item of raw) {
+    if (!item || typeof item !== 'object') continue;
+    const row = item as Record<string, unknown>;
+    if (typeof row.package !== 'string' || !BATHROOM_PACKAGE_SET.has(row.package as BathroomPackage)) {
+      continue;
+    }
+    const pkg = row.package as BathroomPackage;
+    const quantity = parseCount(row.quantity, 0, 10) ?? 0;
+    const size =
+      typeof row.size === 'string' && BATHROOM_ROOM_SIZE_SET.has(row.size as BathroomRoomSize)
+        ? (row.size as BathroomRoomSize)
+        : null;
+    byPackage.set(pkg, { package: pkg, quantity, size });
+  }
+  return BATHROOM_PACKAGE_OPTIONS.map((opt) => byPackage.get(opt.value) ?? {
+    package: opt.value,
+    quantity: 0,
+    size: null,
+  });
+}
+
 export function getBathroomPackageLabel(value: BathroomPackage | null | undefined): string {
   if (!value) return '';
   return BATHROOM_PACKAGE_OPTIONS.find((o) => o.value === value)?.label ?? value;
@@ -680,9 +793,94 @@ export function getTankDistanceLabel(value: TankDistance | null | undefined): st
   return TANK_DISTANCE_OPTIONS.find((o) => o.value === value)?.label ?? value;
 }
 
+export function getPlumbingHouseStructureLabel(
+  value: PlumbingHouseStructure | null | undefined,
+): string {
+  if (!value) return '';
+  return PLUMBING_HOUSE_STRUCTURE_OPTIONS.find((o) => o.value === value)?.label ?? value;
+}
+
+export function getPlumbingTargetFloorLabel(value: PlumbingTargetFloor): string {
+  return PLUMBING_TARGET_FLOOR_OPTIONS.find((o) => o.value === value)?.label ?? value;
+}
+
+export function getPipingPackageLabel(value: PipingPackageKind | null | undefined): string {
+  if (!value) return '';
+  return PIPING_PACKAGE_OPTIONS.find((o) => o.value === value)?.label ?? value;
+}
+
+export function houseStructureToTrackType(
+  value: PlumbingHouseStructure,
+): 'AssamType' | 'RCC' {
+  return value === 'assam_type' ? 'AssamType' : 'RCC';
+}
+
+export function trackTypeToHouseStructure(
+  value: string | null | undefined,
+): PlumbingHouseStructure | null {
+  if (value === 'AssamType') return 'assam_type';
+  if (value === 'RCC') return 'rcc';
+  return null;
+}
+
+export function targetFloorToPlumbingFloorLevel(
+  floors: PlumbingTargetFloor[] | null | undefined,
+): PlumbingFloorLevel {
+  if (!floors?.length) return 'ground';
+  if (floors.includes('second') || floors.includes('third_plus')) return 'second_plus';
+  if (floors.includes('first')) return 'first';
+  return 'ground';
+}
+
+export function emptyBathroomPackageSelections(): BathroomPackageSelection[] {
+  return BATHROOM_PACKAGE_OPTIONS.map((pkg) => ({
+    package: pkg.value,
+    quantity: 0,
+    size: null,
+  }));
+}
+
+export function activeBathroomPackageSelections(
+  selections: BathroomPackageSelection[] | null | undefined,
+): BathroomPackageSelection[] {
+  return (selections ?? []).filter((item) => item.quantity > 0);
+}
+
+export function formatBathroomPackageSelections(
+  selections: BathroomPackageSelection[] | null | undefined,
+): string {
+  const active = activeBathroomPackageSelections(selections);
+  if (active.length === 0) return '';
+  return active
+    .map((item) => {
+      const name = getBathroomPackageShortLabel(item.package);
+      const size = item.size ? ` · ${getBathroomRoomSizeLabel(item.size)}` : '';
+      return `${item.quantity}× ${name}${size}`;
+    })
+    .join(' + ');
+}
+
+export function resolvePlumbingPackageDefaults(pipingPackage: PipingPackageKind): {
+  cpvcPipeSizes: CpvcPipeSize[];
+  waterInstallMethods: WaterInstallMethod[];
+  includeToiletWastePipe: true;
+  drainageInstallMethods: DrainageInstallMethod[];
+  concealedPiping: boolean;
+} {
+  const fitting: WaterInstallMethod =
+    pipingPackage === 'concealing' ? 'concealed_wall_cutting' : 'open_outer_fitting';
+  return {
+    cpvcPipeSizes: [...SMART_CPVC_PIPE_SIZES],
+    waterInstallMethods: [fitting],
+    includeToiletWastePipe: true,
+    drainageInstallMethods: ['open_outer_hanging'],
+    concealedPiping: pipingPackage === 'concealing',
+  };
+}
+
 export function resolvePlumbingSmartDefaults(
   fittingType: WaterInstallMethod,
-  floorLevel: PlumbingFloorLevel,
+  _floorLevel: PlumbingFloorLevel,
 ): {
   cpvcPipeSizes: CpvcPipeSize[];
   waterInstallMethods: WaterInstallMethod[];
@@ -690,17 +888,9 @@ export function resolvePlumbingSmartDefaults(
   drainageInstallMethods: DrainageInstallMethod[];
   concealedPiping: boolean;
 } {
-  const drainage: DrainageInstallMethod =
-    fittingType === 'open_outer_fitting' || floorLevel !== 'ground'
-      ? 'open_outer_hanging'
-      : 'ground_digging_concrete';
-  return {
-    cpvcPipeSizes: [...SMART_CPVC_PIPE_SIZES],
-    waterInstallMethods: [fittingType],
-    includeToiletWastePipe: true,
-    drainageInstallMethods: [drainage],
-    concealedPiping: fittingType === 'concealed_wall_cutting',
-  };
+  return resolvePlumbingPackageDefaults(
+    fittingType === 'concealed_wall_cutting' ? 'concealing' : 'non_concealing',
+  );
 }
 
 export function getCarpenterScopeLabel(value: CarpenterScopeType): string {
@@ -738,7 +928,14 @@ export function parseTradeDetails(value: unknown): TradeDetails | null {
     }
     const bathrooms = parseCount(v.bathrooms, 1, 20);
     const kitchens = parseCount(v.kitchens, 1, 10);
-    if (bathrooms == null || kitchens == null) return null;
+    const bathroomPackages = parseBathroomPackageSelections(v.bathroomPackages);
+    const activePackages = activeBathroomPackageSelections(bathroomPackages);
+    const bathroomTotal =
+      bathrooms ??
+      (activePackages.length > 0
+        ? Math.min(20, Math.max(1, activePackages.reduce((sum, item) => sum + item.quantity, 0)))
+        : null);
+    if (bathroomTotal == null || kitchens == null) return null;
     const materialScope =
       typeof v.materialScope === 'string' &&
       PLUMBER_MATERIAL_SET.has(v.materialScope as PlumberMaterialScope)
@@ -764,6 +961,17 @@ export function parseTradeDetails(value: unknown): TradeDetails | null {
       TANK_DISTANCE_SET.has(v.tankDistance as TankDistance)
         ? (v.tankDistance as TankDistance)
         : null;
+    const houseStructure =
+      typeof v.houseStructure === 'string' &&
+      PLUMBING_HOUSE_STRUCTURE_SET.has(v.houseStructure as PlumbingHouseStructure)
+        ? (v.houseStructure as PlumbingHouseStructure)
+        : null;
+    const targetFloors = parsePlumbingTargetFloors(v.targetFloors);
+    const pipingPackage =
+      typeof v.pipingPackage === 'string' &&
+      PIPING_PACKAGE_SET.has(v.pipingPackage as PipingPackageKind)
+        ? (v.pipingPackage as PipingPackageKind)
+        : null;
     const cpvcPipeSizes = parseCpvcPipeSizes(v.cpvcPipeSizes);
     const waterInstallMethods = parseWaterInstallMethods(v.waterInstallMethods);
     const includeToiletWastePipe = v.includeToiletWastePipe === true;
@@ -777,14 +985,25 @@ export function parseTradeDetails(value: unknown): TradeDetails | null {
       ...start,
       additionalRequirements: additional,
       scopeType: v.scopeType as PlumberScopeType,
-      bathrooms,
+      bathrooms: bathroomTotal,
       kitchens,
       overheadTank: v.overheadTank,
       concealedPiping: v.concealedPiping,
-      bathroomPackage,
-      bathroomSize,
+      bathroomPackage:
+        bathroomPackage ??
+        (activePackages[0]?.package ?? null),
+      bathroomSize:
+        bathroomSize ??
+        (activePackages[0]?.size ?? null),
       plumbingFloorLevel,
       tankDistance,
+      houseStructure,
+      targetFloors:
+        houseStructure === 'assam_type'
+          ? (['ground'] as PlumbingTargetFloor[])
+          : targetFloors,
+      bathroomPackages,
+      pipingPackage,
       cpvcPipeSizes,
       waterInstallMethods,
       includeToiletWastePipe,
@@ -943,11 +1162,58 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
   if (details.service === 'plumber') {
     const pipeSizes = details.cpvcPipeSizes ?? [];
     const waterMethods = details.waterInstallMethods ?? [];
+    const activePackages = activeBathroomPackageSelections(details.bathroomPackages);
+    const hasPackageSystem = activePackages.length > 0 || Boolean(details.pipingPackage);
     const hasSimplifiedScope = Boolean(
       details.bathroomSize || details.plumbingFloorLevel || details.tankDistance,
     );
 
-    if (hasSimplifiedScope) {
+    if (hasPackageSystem) {
+      if (details.houseStructure) {
+        blocks.push({
+          label: 'House Structure',
+          value: getPlumbingHouseStructureLabel(details.houseStructure),
+        });
+      }
+      const floors =
+        details.houseStructure === 'assam_type'
+          ? (['ground'] as PlumbingTargetFloor[])
+          : (details.targetFloors ?? []);
+      if (floors.length > 0) {
+        blocks.push({
+          label: 'Target Floors',
+          value: floors.map(getPlumbingTargetFloorLabel).join(', '),
+        });
+      }
+      if (activePackages.length > 0) {
+        blocks.push({
+          label: 'Bathroom Packages',
+          value: formatBathroomPackageSelections(activePackages),
+        });
+        for (const item of activePackages) {
+          const included = getBathroomPackageIncluded(item.package);
+          if (included.length > 0) {
+            blocks.push({
+              label: `${getBathroomPackageShortLabel(item.package)} included scope`,
+              value: included.join(' · '),
+            });
+          }
+        }
+      }
+      if (details.pipingPackage) {
+        const piping = PIPING_PACKAGE_OPTIONS.find((o) => o.value === details.pipingPackage);
+        blocks.push({
+          label: 'Piping Package',
+          value: getPipingPackageLabel(details.pipingPackage),
+        });
+        if (piping) {
+          blocks.push({
+            label: 'Piping Package Includes',
+            value: piping.included.join('\n'),
+          });
+        }
+      }
+    } else if (hasSimplifiedScope) {
       blocks.push({
         label: 'Package Level',
         value: getBathroomPackageLabel(details.bathroomPackage) || 'Not specified',
@@ -1034,7 +1300,7 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
       }
     }
 
-    if (hasSimplifiedScope && (details.includeToiletWastePipe || pipeSizes.length > 0)) {
+    if (!hasPackageSystem && hasSimplifiedScope && (details.includeToiletWastePipe || pipeSizes.length > 0)) {
       const drainageMethods = details.drainageInstallMethods ?? [];
       const supplyLabel =
         pipeSizes.length > 0
@@ -1056,7 +1322,7 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
       });
     }
 
-    if (!hasSimplifiedScope && details.includeToiletWastePipe) {
+    if (!hasPackageSystem && !hasSimplifiedScope && details.includeToiletWastePipe) {
       const drainageMethods = details.drainageInstallMethods ?? [];
       blocks.push({
         label: 'Soil & Waste Drainage (SWR/PVC)',
@@ -1074,27 +1340,37 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
     }
 
     const plumbingBidLabels: string[] = [];
-    if (details.bathroomPackage) {
-      plumbingBidLabels.push(
-        `Bathroom Package Rate — ${getBathroomPackageLabel(details.bathroomPackage)}`,
-      );
-    }
-    for (const size of pipeSizes) {
-      for (const method of waterMethods) {
+    if (hasPackageSystem) {
+      for (const item of activePackages) {
         plumbingBidLabels.push(
-          `CPVC ${optionLabel(CPVC_PIPE_SIZE_OPTIONS, size)} — ${
-            WATER_INSTALL_METHOD_OPTIONS.find((o) => o.value === method)?.shortLabel ?? method
-          }`,
+          `${getBathroomPackageShortLabel(item.package)} Bathroom Package Rate × ${item.quantity}`,
         );
       }
-    }
-    if (details.includeToiletWastePipe) {
-      for (const method of details.drainageInstallMethods ?? []) {
+      plumbingBidLabels.push('Tap Water Pipe — ¾ inch CPVC (₹ / Running Foot)');
+      plumbingBidLabels.push('Toilet Drainage Pipe — 4-inch SWR, Non-Concealing (₹ / Running Foot)');
+    } else {
+      if (details.bathroomPackage) {
         plumbingBidLabels.push(
-          `4-inch Toilet Waste Pipe (SWR) — ${
-            DRAINAGE_INSTALL_METHOD_OPTIONS.find((o) => o.value === method)?.shortLabel ?? method
-          }`,
+          `Bathroom Package Rate — ${getBathroomPackageLabel(details.bathroomPackage)}`,
         );
+      }
+      for (const size of pipeSizes) {
+        for (const method of waterMethods) {
+          plumbingBidLabels.push(
+            `CPVC ${optionLabel(CPVC_PIPE_SIZE_OPTIONS, size)} — ${
+              WATER_INSTALL_METHOD_OPTIONS.find((o) => o.value === method)?.shortLabel ?? method
+            }`,
+          );
+        }
+      }
+      if (details.includeToiletWastePipe) {
+        for (const method of details.drainageInstallMethods ?? []) {
+          plumbingBidLabels.push(
+            `4-inch Toilet Waste Pipe (SWR) — ${
+              DRAINAGE_INSTALL_METHOD_OPTIONS.find((o) => o.value === method)?.shortLabel ?? method
+            }`,
+          );
+        }
       }
     }
     if (plumbingBidLabels.length > 0) {
@@ -1238,6 +1514,8 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
 
 export function getTradeScopeLabel(details: TradeDetails): string {
   if (details.service === 'plumber') {
+    const packageSummary = formatBathroomPackageSelections(details.bathroomPackages);
+    if (packageSummary) return packageSummary;
     if (details.bathroomPackage) {
       return getBathroomPackageLabel(details.bathroomPackage);
     }
@@ -1270,6 +1548,10 @@ export interface TradeDetailsFormInput {
   plumbingFloorLevel?: PlumbingFloorLevel | null;
   tankDistance?: TankDistance | null;
   fittingType?: WaterInstallMethod | null;
+  houseStructure?: PlumbingHouseStructure | null;
+  targetFloors?: PlumbingTargetFloor[];
+  bathroomPackages?: BathroomPackageSelection[];
+  pipingPackage?: PipingPackageKind | null;
   cpvcPipeSizes?: CpvcPipeSize[];
   waterInstallMethods?: WaterInstallMethod[];
   includeToiletWastePipe?: boolean;
@@ -1313,37 +1595,57 @@ export function validateTradeDetailsInput(
   };
 
   if (input.service === 'plumber') {
-    if (!input.bathroomPackage || !BATHROOM_PACKAGE_SET.has(input.bathroomPackage)) {
-      return { error: 'Select a bathroom package.' };
+    const houseStructure =
+      input.houseStructure && PLUMBING_HOUSE_STRUCTURE_SET.has(input.houseStructure)
+        ? input.houseStructure
+        : null;
+    if (!houseStructure) {
+      return { error: 'Select the house structure.' };
     }
-    if (!input.bathroomSize || !BATHROOM_ROOM_SIZE_SET.has(input.bathroomSize)) {
-      return { error: 'Select the bathroom size.' };
+    const targetFloors =
+      houseStructure === 'assam_type'
+        ? (['ground'] as PlumbingTargetFloor[])
+        : parsePlumbingTargetFloors(input.targetFloors);
+    if (houseStructure === 'rcc' && targetFloors.length === 0) {
+      return { error: 'Select at least one target floor.' };
     }
-    const plumbingFloorLevel =
-      input.plumbingFloorLevel && PLUMBING_FLOOR_LEVEL_SET.has(input.plumbingFloorLevel)
-        ? input.plumbingFloorLevel
-        : 'ground';
-    const fittingType =
-      input.fittingType && WATER_INSTALL_METHOD_SET.has(input.fittingType)
-        ? input.fittingType
-        : parseWaterInstallMethods(input.waterInstallMethods)[0] ?? 'concealed_wall_cutting';
-    if (!input.tankDistance || !TANK_DISTANCE_SET.has(input.tankDistance)) {
-      return { error: 'Select the approximate distance to the tank.' };
+    const bathroomPackages = parseBathroomPackageSelections(input.bathroomPackages);
+    const activePackages = activeBathroomPackageSelections(bathroomPackages);
+    if (activePackages.length === 0) {
+      return { error: 'Set quantity for at least one bathroom package.' };
     }
-    const smart = resolvePlumbingSmartDefaults(fittingType, plumbingFloorLevel);
+    for (const item of activePackages) {
+      if (!item.size || !BATHROOM_ROOM_SIZE_SET.has(item.size)) {
+        return {
+          error: `Select the approximate size for the ${getBathroomPackageShortLabel(item.package)} bathroom package.`,
+        };
+      }
+    }
+    if (!input.pipingPackage || !PIPING_PACKAGE_SET.has(input.pipingPackage)) {
+      return { error: 'Select a piping package.' };
+    }
+    const smart = resolvePlumbingPackageDefaults(input.pipingPackage);
+    const bathroomTotal = Math.min(
+      20,
+      Math.max(1, activePackages.reduce((sum, item) => sum + item.quantity, 0)),
+    );
     return {
       details: {
         ...base,
         service: 'plumber',
         scopeType: 'full_house',
-        bathrooms: 1,
+        bathrooms: bathroomTotal,
         kitchens: 1,
         overheadTank: true,
         concealedPiping: smart.concealedPiping,
-        bathroomPackage: input.bathroomPackage,
-        bathroomSize: input.bathroomSize,
-        plumbingFloorLevel,
-        tankDistance: input.tankDistance,
+        bathroomPackage: activePackages[0]?.package ?? null,
+        bathroomSize: activePackages[0]?.size ?? null,
+        plumbingFloorLevel: targetFloorToPlumbingFloorLevel(targetFloors),
+        tankDistance: null,
+        houseStructure,
+        targetFloors,
+        bathroomPackages,
+        pipingPackage: input.pipingPackage,
         cpvcPipeSizes: smart.cpvcPipeSizes,
         waterInstallMethods: smart.waterInstallMethods,
         includeToiletWastePipe: smart.includeToiletWastePipe,

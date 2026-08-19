@@ -539,12 +539,12 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                       </>
                     ) : isPlumbingBid ? (
                       <>
-                        Enter your <strong>Bathroom Package Rate</strong> and{' '}
-                        <strong>per-foot piping unit rates</strong> for the specified floor, room
-                        size, installation method, and tank distance. Rates must be whole numbers
-                        ending in <strong>0 or 5</strong>. The plumber with the{' '}
-                        <strong>lowest overall average unit rate</strong> ranks as the winning
-                        bidder.
+                        Enter a <strong>Bathroom Package Rate</strong> (₹ / unit) for each selected
+                        bathroom type, then <strong>per running foot</strong> rates for{' '}
+                        <strong>Tap Water Pipe</strong> and <strong>Toilet Drainage Pipe</strong>.
+                        Rates must be whole numbers ending in <strong>0 or 5</strong>. The plumber
+                        with the <strong>lowest overall average unit rate</strong> ranks as the
+                        winning bidder.
                       </>
                     ) : isScopeRateBid ? (
                       <>Enter your rate in ₹ per sqft for each item. Rates must be whole numbers. Lower rates rank higher.</>
@@ -589,7 +589,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                       numericValue > 0;
 
                     const plumbingUnit = isPlumbingBid ? (plumbingRateUnits[i] ?? '/Rft') : undefined;
-                    const isPackageRate = plumbingUnit === 'pkg';
+                    const isPackageRate = plumbingUnit === '/unit' || plumbingUnit === 'pkg';
 
                     return (
                       <motion.div
@@ -635,7 +635,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                           suffix={
                             isPlumbingBid ? (
                               <span className="text-muted-foreground/80 text-xs">
-                                {isPackageRate ? 'pkg' : '/Rft'}
+                                {isPackageRate ? '/unit' : '/Rft'}
                               </span>
                             ) : rateUnitSuffix ? (
                               <span className="text-muted-foreground/80 text-xs">{rateUnitSuffix}</span>

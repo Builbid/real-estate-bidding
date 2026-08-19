@@ -1,13 +1,15 @@
 import { readNestedProjectDetail } from '@/lib/project/storedDetails';
 import {
-  CPVC_PIPE_SIZE_OPTIONS,
-  DRAINAGE_INSTALL_METHOD_OPTIONS,
-  WATER_INSTALL_METHOD_OPTIONS,
+  activeBathroomPackageSelections,
   getBathroomPackageLabel,
+  getBathroomPackageShortLabel,
+  getPipingPackageLabel,
   parseTradeDetails,
   type BathroomPackage,
+  type BathroomPackageSelection,
   type CpvcPipeSize,
   type DrainageInstallMethod,
+  type PipingPackageKind,
   type PlumberDetails,
   type WaterInstallMethod,
 } from '@/lib/tradeWorkDetails';
@@ -23,6 +25,8 @@ export type PlumbingRateUnit = 'package' | 'per_running_foot';
 
 export interface PlumbingBidOptionInput {
   bathroomPackage?: BathroomPackage | null;
+  bathroomPackages?: BathroomPackageSelection[];
+  pipingPackage?: PipingPackageKind | null;
   cpvcPipeSizes: CpvcPipeSize[];
   waterInstallMethods: WaterInstallMethod[];
   includeToiletWastePipe: boolean;
@@ -37,32 +41,87 @@ export interface PlumbingBidOption {
   unitSuffix: string;
 }
 
-function pipeSizeLabel(size: CpvcPipeSize): string {
-  return CPVC_PIPE_SIZE_OPTIONS.find((o) => o.value === size)?.label ?? size;
-}
-
-function waterMethodLabel(method: WaterInstallMethod): string {
-  return WATER_INSTALL_METHOD_OPTIONS.find((o) => o.value === method)?.shortLabel ?? method;
-}
-
-function drainageMethodLabel(method: DrainageInstallMethod): string {
-  return DRAINAGE_INSTALL_METHOD_OPTIONS.find((o) => o.value === method)?.shortLabel ?? method;
-}
-
 function optionLetter(index: number): string {
   return `Option ${String.fromCharCode(65 + index)}`;
 }
 
+function withLetters(options: Omit<PlumbingBidOption, 'label'>[]): PlumbingBidOption[] {
+  return options.slice(0, MAX_PLUMBING_BID_OPTIONS).map((option, index) => ({
+    ...option,
+    label: `${optionLetter(index)}: ${option.shortLabel}`,
+  }));
+}
+
+function tapWaterOption(pipingPackage: PipingPackageKind | null): Omit<PlumbingBidOption, 'label'> {
+  const fitting =
+    pipingPackage === 'concealing'
+      ? 'Concealing / Wall-Cut'
+      : pipingPackage === 'non_concealing'
+        ? 'Non-Concealing / Open Fitting'
+        : '¾ inch CPVC';
+  return {
+    id: 'pipe:tap:three_quarter',
+    shortLabel: `Tap Water Pipe — ¾ inch CPVC (${fitting})`,
+    unit: 'per_running_foot',
+    unitSuffix: '/Rft',
+  };
+}
+
+function toiletDrainOption(): Omit<PlumbingBidOption, 'label'> {
+  return {
+    id: 'pipe:toilet:swr',
+    shortLabel: 'Toilet Drainage Pipe — 4-inch SWR (Non-Concealing)',
+    unit: 'per_running_foot',
+    unitSuffix: '/Rft',
+  };
+}
+
+function bathroomRateOption(
+  item: BathroomPackageSelection,
+): Omit<PlumbingBidOption, 'label'> {
+  const name = getBathroomPackageShortLabel(item.package);
+  return {
+    id: `package:${item.package}`,
+    shortLabel: `${name} Bathroom Package Rate × ${item.quantity}`,
+    unit: 'package',
+    unitSuffix: '/unit',
+  };
+}
+
 export function countPlumbingBidOptions(input: PlumbingBidOptionInput): number {
-  const packageCount = input.bathroomPackage ? 1 : 0;
-  const waterCount = input.cpvcPipeSizes.length * input.waterInstallMethods.length;
-  const drainCount = input.includeToiletWastePipe ? input.drainageInstallMethods.length : 0;
-  return packageCount + waterCount + drainCount;
+  return buildPlumbingBidOptions(input).length;
 }
 
 export function buildPlumbingBidOptions(input: PlumbingBidOptionInput): PlumbingBidOption[] {
-  const options: Omit<PlumbingBidOption, 'label'>[] = [];
+  const active = activeBathroomPackageSelections(input.bathroomPackages);
+  const hasPackageSystem = active.length > 0 || Boolean(input.pipingPackage);
 
+  if (hasPackageSystem) {
+    const piping = input.pipingPackage ?? null;
+    const tap = tapWaterOption(piping);
+    const drain = toiletDrainOption();
+    if (active.length === 0) {
+      return withLetters([tap, drain]);
+    }
+    if (active.length > 2) {
+      const summary = active
+        .map((item) => `${item.quantity}× ${getBathroomPackageShortLabel(item.package)}`)
+        .join(' + ');
+      return withLetters([
+        {
+          id: 'package:mixed',
+          shortLabel: `Bathroom Package Rate — ${summary}`,
+          unit: 'package',
+          unitSuffix: '/unit',
+        },
+        tap,
+        drain,
+      ]);
+    }
+    return withLetters([...active.map(bathroomRateOption), tap, drain]);
+  }
+
+  const options: Omit<PlumbingBidOption, 'label'>[] = [];
   if (input.bathroomPackage) {
     const packageName = getBathroomPackageLabel(input.bathroomPackage);
     options.push({
@@ -71,7 +130,7 @@ export function buildPlumbingBidOptions(input: PlumbingBidOptionInput): Plumbing
         ? `Bathroom Package Rate — ${packageName}`
         : 'Bathroom Package Rate',
       unit: 'package',
-      unitSuffix: 'pkg',
+      unitSuffix: '/unit',
     });
   }
 
@@ -79,7 +138,7 @@ export function buildPlumbingBidOptions(input: PlumbingBidOptionInput): Plumbing
     for (const method of input.waterInstallMethods) {
       options.push({
         id: `cpvc:${size}:${method}`,
-        shortLabel: `CPVC ${pipeSizeLabel(size)} — ${waterMethodLabel(method)}`,
+        shortLabel: `Tap Water Pipe — ${size} / ${method}`,
         unit: 'per_running_foot',
         unitSuffix: '/Rft',
       });
@@ -90,22 +149,21 @@ export function buildPlumbingBidOptions(input: PlumbingBidOptionInput): Plumbing
     for (const method of input.drainageInstallMethods) {
       options.push({
         id: `swr:4inch:${method}`,
-        shortLabel: `4-inch Toilet Waste Pipe (SWR) — ${drainageMethodLabel(method)}`,
+        shortLabel: `Toilet Drainage Pipe — ${method}`,
         unit: 'per_running_foot',
         unitSuffix: '/Rft',
       });
     }
   }
 
-  return options.slice(0, MAX_PLUMBING_BID_OPTIONS).map((option, index) => ({
-    ...option,
-    label: `${optionLetter(index)}: ${option.shortLabel}`,
-  }));
+  return withLetters(options);
 }
 
 export function plumbingInputFromDetails(details: PlumberDetails): PlumbingBidOptionInput {
   return {
     bathroomPackage: details.bathroomPackage ?? null,
+    bathroomPackages: details.bathroomPackages,
+    pipingPackage: details.pipingPackage ?? null,
     cpvcPipeSizes: details.cpvcPipeSizes ?? [],
     waterInstallMethods: details.waterInstallMethods ?? [],
     includeToiletWastePipe: details.includeToiletWastePipe === true,
@@ -130,4 +188,8 @@ export function readProjectPlumbingBidOptions(project: {
   sub_configuration?: unknown;
 }): PlumbingBidOption[] {
   return resolvePlumbingBidOptions(readNestedProjectDetail(project, 'trade_details'));
+}
+
+export function getPipingPackageBidCaption(kind: PipingPackageKind | null | undefined): string {
+  return getPipingPackageLabel(kind);
 }

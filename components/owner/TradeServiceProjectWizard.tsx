@@ -13,10 +13,8 @@ import {
   AssamDistrictAutocomplete,
   parseAssamDistrictSelection,
 } from '@/components/shared/AssamDistrictAutocomplete';
-import {
-  TradeWorkRequirementsFields,
-  type TradeWorkFormFields,
-} from '@/components/owner/TradeWorkRequirementsFields';
+import { TradeWorkRequirementsFields, type TradeWorkFormFields } from '@/components/owner/TradeWorkRequirementsFields';
+import { OptionSelectGrid } from '@/components/owner/wizard/OptionSelectCard';
 import { generateProjectTitle } from '@/lib/generateProjectTitle';
 import { hasContactInfo } from '@/lib/validation/projectContactInfo';
 import { formatPincodeInput, validatePincode } from '@/lib/validation/pincode';
@@ -38,6 +36,10 @@ import {
   type PainterSurfaceCondition,
 } from '@/lib/painterDetails';
 import {
+  PLUMBING_HOUSE_STRUCTURE_OPTIONS,
+  PLUMBING_TARGET_FLOOR_OPTIONS,
+  emptyBathroomPackageSelections,
+  houseStructureToTrackType,
   getTradeScopeLabel,
   getTradeWorkRequirementBlocks,
   isCustomTradeWorkService,
@@ -94,10 +96,14 @@ const EMPTY_FORM: FormState = {
   plumbingFloorLevel: 'ground',
   fittingType: 'concealed_wall_cutting',
   tankDistance: null,
-  cpvcPipeSizes: ['three_quarter', 'one'],
-  waterInstallMethods: ['concealed_wall_cutting'],
+  houseStructure: null,
+  targetFloors: [],
+  bathroomPackages: emptyBathroomPackageSelections(),
+  pipingPackage: null,
+  cpvcPipeSizes: ['three_quarter'],
+  waterInstallMethods: ['open_outer_fitting'],
   includeToiletWastePipe: true,
-  drainageInstallMethods: ['ground_digging_concrete'],
+  drainageInstallMethods: ['open_outer_hanging'],
   electricianScope: 'full_house_wiring',
   pointEstimate: null,
   heavyAppliances: [],
@@ -135,6 +141,8 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
     location?: string;
     villageTownName?: string;
     pincode?: string;
+    houseStructure?: string;
+    targetFloors?: string;
   }>({});
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
 
@@ -201,6 +209,14 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
       errors.pincode = pincodeError;
     }
 
+    if (trade === 'plumber') {
+      if (!form.houseStructure) {
+        errors.houseStructure = 'Select Assam Type House or RCC Building.';
+      } else if (form.houseStructure === 'rcc' && form.targetFloors.length === 0) {
+        errors.targetFloors = 'Select at least one target floor.';
+      }
+    }
+
     if (Object.keys(errors).length > 0) {
       setStep1ValidationAttempted(true);
       setStep1Errors(errors);
@@ -229,6 +245,10 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
       plumbingFloorLevel: form.plumbingFloorLevel,
       tankDistance: form.tankDistance,
       fittingType: form.fittingType,
+      houseStructure: form.houseStructure,
+      targetFloors: form.targetFloors,
+      bathroomPackages: form.bathroomPackages,
+      pipingPackage: form.pipingPackage,
       cpvcPipeSizes: form.cpvcPipeSizes,
       waterInstallMethods: form.waterInstallMethods,
       includeToiletWastePipe: form.includeToiletWastePipe,
@@ -391,7 +411,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
         <p className="text-sm text-gray-700 dark:text-zinc-300 mt-1">
           Registered {tradeLabel.toLowerCase()}s will bid their rate{' '}
           {trade === 'plumber'
-            ? 'as a bathroom package rate plus ₹ / running foot piping rates'
+            ? 'as bathroom package unit rates plus ₹ / running foot piping rates'
             : trade === 'electrician'
               ? 'per point'
               : 'per sqft'}{' '}
@@ -467,6 +487,86 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                 error={step1ValidationAttempted ? step1Errors.pincode : undefined}
               />
 
+              {trade === 'plumber' && (
+                <div className="space-y-4">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold text-gray-800 dark:text-zinc-100 uppercase tracking-wider">
+                      House Structure
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {PLUMBING_HOUSE_STRUCTURE_OPTIONS.map((opt) => {
+                        const selected = form.houseStructure === opt.value;
+                        return (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => {
+                              setForm((current) => ({
+                                ...current,
+                                houseStructure: opt.value,
+                                track_type: houseStructureToTrackType(opt.value),
+                                targetFloors: opt.value === 'assam_type' ? ['ground'] : current.houseStructure === 'rcc' ? current.targetFloors : [],
+                                plumbingFloorLevel: opt.value === 'assam_type' ? 'ground' : current.plumbingFloorLevel,
+                              }));
+                              setStep1Errors((errors) => {
+                                const next = { ...errors };
+                                delete next.houseStructure;
+                                if (opt.value === 'assam_type') delete next.targetFloors;
+                                return next;
+                              });
+                            }}
+                            className={cn(
+                              'relative text-left rounded-xl border-2 p-4 pr-10 transition-all duration-200',
+                              selected
+                                ? 'border-emerald-500/70 bg-emerald-500/8 shadow-md shadow-emerald-500/15'
+                                : 'border-border bg-secondary/30 hover:border-muted-foreground/40',
+                            )}
+                          >
+                            {selected && (
+                              <CheckCircle2 className="absolute top-2.5 right-2.5 w-5 h-5 text-emerald-500 dark:text-emerald-400 flex-shrink-0" />
+                            )}
+                            <span className="text-sm font-bold text-gray-900 dark:text-white">{opt.label}</span>
+                            <p className="text-xs font-medium text-gray-700 dark:text-zinc-300 mt-1">{opt.description}</p>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {step1ValidationAttempted && step1Errors.houseStructure ? (
+                      <p className="text-xs font-medium text-red-400">{step1Errors.houseStructure}</p>
+                    ) : null}
+                  </div>
+
+                  {form.houseStructure === 'rcc' && (
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-semibold text-gray-800 dark:text-zinc-100 uppercase tracking-wider">
+                        Target Floors
+                      </label>
+                      <OptionSelectGrid
+                        options={PLUMBING_TARGET_FLOOR_OPTIONS}
+                        values={form.targetFloors}
+                        onToggle={(floor) => {
+                          setForm((current) => {
+                            const next = current.targetFloors.includes(floor)
+                              ? current.targetFloors.filter((item) => item !== floor)
+                              : [...current.targetFloors, floor];
+                            return { ...current, targetFloors: next };
+                          });
+                          setStep1Errors((errors) => {
+                            const next = { ...errors };
+                            delete next.targetFloors;
+                            return next;
+                          });
+                        }}
+                        columns={2}
+                      />
+                      {step1ValidationAttempted && step1Errors.targetFloors ? (
+                        <p className="text-xs font-medium text-red-400">{step1Errors.targetFloors}</p>
+                      ) : null}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-semibold text-gray-800 dark:text-zinc-100 uppercase tracking-wider">
                   Bidding Duration
@@ -500,7 +600,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                 {isPainter
                   ? 'Tell painters the building type, area, primer, materials, and when work should start.'
                   : trade === 'plumber'
-                    ? 'Answer a few simple questions. Pipe sizes are included automatically for plumber bidding.'
+                    ? 'Open a service card and set bathroom quantities plus one piping package. Pipe sizes are included automatically.'
                     : `Describe the ${tradeLabel.toLowerCase()} work so bidders can quote without scope conflicts.`}
               </p>
 

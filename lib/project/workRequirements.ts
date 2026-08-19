@@ -79,7 +79,13 @@ export function isWideRequirementLabel(label: string): boolean {
     label === 'Water Supply Lines (CPVC)' ||
     label === 'Water Installation Method' ||
     label === 'Soil & Waste Drainage (SWR/PVC)' ||
+    label.endsWith(' included scope') ||
     label === 'Bathroom Package' ||
+    label === 'Bathroom Packages' ||
+    label === 'Piping Package' ||
+    label === 'Piping Package Includes' ||
+    label === 'House Structure' ||
+    label === 'Target Floors' ||
     label === 'Package Level' ||
     label === 'Room Size' ||
     label === 'Floor' ||
