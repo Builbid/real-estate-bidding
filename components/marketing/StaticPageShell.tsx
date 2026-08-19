@@ -8,6 +8,7 @@ interface StaticPageShellProps {
   title: string;
   subtitle?: string;
   eyebrow?: string;
+  backgroundImage?: string;
   lastUpdated?: string;
   children: React.ReactNode;
   className?: string;
@@ -18,19 +19,26 @@ export function StaticPageShell({
   title,
   subtitle,
   eyebrow,
+  backgroundImage,
   lastUpdated,
   children,
   className,
   headerClassName,
 }: StaticPageShellProps) {
-  return (
+  const content = (
     <>
       <Navbar />
-      <main className={cn('max-w-3xl mx-auto px-4 sm:px-6 py-10 pb-16', className)}>
+      <main className={cn('relative z-10 max-w-3xl mx-auto px-4 sm:px-6 py-10 pb-16', className)}>
         <NavLink href="/" prefetch className={cn(NAV_BACK_LINK, 'mb-8')}>
           <ArrowLeft className="w-4 h-4" />
           Back to Home
         </NavLink>
+
+        {eyebrow && (
+          <p className="mb-6 text-2xl sm:text-4xl font-bold uppercase tracking-[0.18em] text-emerald-600 dark:text-emerald-400">
+            {eyebrow}
+          </p>
+        )}
 
         <header
           className={cn(
@@ -38,11 +46,6 @@ export function StaticPageShell({
             headerClassName,
           )}
         >
-          {eyebrow && (
-            <p className="mb-3 text-sm font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-              {eyebrow}
-            </p>
-          )}
           <h1 className="text-3xl sm:text-4xl font-bold text-foreground tracking-tight">{title}</h1>
           {subtitle && (
             <p className="mt-3 text-base sm:text-lg text-muted-foreground leading-relaxed">{subtitle}</p>
@@ -57,6 +60,22 @@ export function StaticPageShell({
         </article>
       </main>
     </>
+  );
+
+  if (!backgroundImage) {
+    return content;
+  }
+
+  return (
+    <div className="relative min-h-screen dark">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: `url(${backgroundImage})` }}
+      />
+      <div aria-hidden className="pointer-events-none absolute inset-0 bg-slate-950/85 backdrop-blur-sm" />
+      <div className="relative z-10">{content}</div>
+    </div>
   );
 }
 
