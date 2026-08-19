@@ -71,14 +71,16 @@ export function OptionSelectGrid<T extends string>({
   values?: readonly T[];
   onSelect?: (value: T) => void;
   onToggle?: (value: T) => void;
-  columns?: 1 | 2;
+  columns?: 1 | 2 | 3;
 }) {
   const multi = Boolean(onToggle);
   return (
     <div
       className={cn(
         'grid gap-3',
-        columns === 2 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1',
+        columns === 3 && 'grid-cols-1 sm:grid-cols-3',
+        columns === 2 && 'grid-cols-1 sm:grid-cols-2',
+        columns === 1 && 'grid-cols-1',
       )}
     >
       {options.map((opt) => {

@@ -305,7 +305,7 @@ export function BidLeaderboard({
                 </p>
                 <p className="text-[10px] text-muted-foreground">
                   {isPlumbingBid
-                    ? projectFloorCount > 1 ? '/Rft avg' : '/Rft'
+                    ? 'overall avg'
                     : serviceType === 'plumber' ? 'Rs.' : serviceType === 'electrician' ? '/point' : projectFloorCount > 1 ? '/sqft avg' : '/sqft'}
                 </p>
               </div>
@@ -316,6 +316,7 @@ export function BidLeaderboard({
                     rates={bid.rates}
                     floorLabels={scopeBid?.labels}
                     unitSuffix={isPlumbingBid ? '/Rft' : '/sqft'}
+                    unitSuffixes={isPlumbingBid ? scopeBid?.rateUnits : undefined}
                   />
                 </div>
               )}

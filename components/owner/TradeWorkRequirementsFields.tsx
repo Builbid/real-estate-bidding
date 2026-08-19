@@ -1,11 +1,9 @@
 'use client';
 
-import { BathroomPackageSelector } from '@/components/owner/plumber/BathroomPackageSelector';
-import { PipingOptionSelector } from '@/components/owner/plumber/PipingOptionSelector';
+import { PlumbingProgressiveForm } from '@/components/owner/plumber/PlumbingProgressiveForm';
 import { Input } from '@/components/ui/input';
 import { OptionSelectCard, OptionSelectGrid } from '@/components/owner/wizard/OptionSelectCard';
 import { StartTimeAndNotes, WIZARD_SECTION_LABEL } from '@/components/owner/wizard/StartTimeAndNotes';
-import { StepperInput } from '@/components/owner/wizard/StepperInput';
 import { cn } from '@/lib/utils';
 import {
   EARTHWORK_SOIL_VEHICLE_OPTIONS,
@@ -15,9 +13,8 @@ import {
   ELECTRICIAN_SCOPE_OPTIONS,
   INTERIOR_SCOPE_OPTIONS,
   INTERIOR_SPACE_OPTIONS,
-  PLUMBER_SCOPE_OPTIONS,
   type BathroomPackage,
-  type CpvcPipeSize,
+  type BathroomRoomSize,
   type DrainageInstallMethod,
   type EarthworkMachine,
   type EarthworkType,
@@ -26,10 +23,13 @@ import {
   type ElectricianScopeType,
   type InteriorScopeType,
   type InteriorTargetSpace,
+  type PlumbingFloorLevel,
   type PlumberScopeType,
   type ProjectStartTimeType,
+  type TankDistance,
   type TradeWorkService,
   type WaterInstallMethod,
+  type CpvcPipeSize,
 } from '@/lib/tradeWorkDetails';
 
 export interface TradeWorkFormFields {
@@ -39,6 +39,10 @@ export interface TradeWorkFormFields {
   overheadTank: boolean | null;
   concealedPiping: boolean | null;
   bathroomPackage: BathroomPackage | null;
+  bathroomSize: BathroomRoomSize | null;
+  plumbingFloorLevel: PlumbingFloorLevel;
+  fittingType: WaterInstallMethod;
+  tankDistance: TankDistance | null;
   cpvcPipeSizes: CpvcPipeSize[];
   waterInstallMethods: WaterInstallMethod[];
   includeToiletWastePipe: boolean;
@@ -82,54 +86,18 @@ export function TradeWorkRequirementsFields({
   return (
     <div className="space-y-5">
       {trade === 'plumber' && (
-        <>
-          <FieldGroup label="Scope Type">
-            <OptionSelectCard
-              selected
-              disabled
-              label={PLUMBER_SCOPE_OPTIONS[0].label}
-              onClick={() => {}}
-            />
-          </FieldGroup>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <StepperInput
-              label="Number of Bathrooms"
-              value={form.bathrooms}
-              onChange={(v) => onChange('bathrooms', v)}
-              min={1}
-              max={3}
-            />
-            <StepperInput
-              label="Number of Kitchens"
-              value={form.kitchens}
-              onChange={(v) => onChange('kitchens', v)}
-              min={1}
-              max={3}
-            />
-          </div>
-          <FieldGroup label="Overhead Water Tank Installation">
-            <OptionSelectGrid
-              options={YES_NO}
-              value={form.overheadTank == null ? null : form.overheadTank ? 'yes' : 'no'}
-              onSelect={(v) => onChange('overheadTank', v === 'yes')}
-              columns={2}
-            />
-          </FieldGroup>
-          <BathroomPackageSelector
-            value={form.bathroomPackage}
-            onChange={(v) => onChange('bathroomPackage', v)}
-          />
-          <PipingOptionSelector
-            cpvcPipeSizes={form.cpvcPipeSizes}
-            waterInstallMethods={form.waterInstallMethods}
-            includeToiletWastePipe={form.includeToiletWastePipe}
-            drainageInstallMethods={form.drainageInstallMethods}
-            onChangeSizes={(v) => onChange('cpvcPipeSizes', v)}
-            onChangeWaterMethods={(v) => onChange('waterInstallMethods', v)}
-            onChangeIncludeWaste={(v) => onChange('includeToiletWastePipe', v)}
-            onChangeDrainageMethods={(v) => onChange('drainageInstallMethods', v)}
-          />
-        </>
+        <PlumbingProgressiveForm
+          bathroomPackage={form.bathroomPackage}
+          bathroomSize={form.bathroomSize}
+          plumbingFloorLevel={form.plumbingFloorLevel}
+          fittingType={form.fittingType}
+          tankDistance={form.tankDistance}
+          onChangePackage={(v) => onChange('bathroomPackage', v)}
+          onChangeSize={(v) => onChange('bathroomSize', v)}
+          onChangeFloor={(v) => onChange('plumbingFloorLevel', v)}
+          onChangeFitting={(v) => onChange('fittingType', v)}
+          onChangeDistance={(v) => onChange('tankDistance', v)}
+        />
       )}
 
       {trade === 'electrician' && (

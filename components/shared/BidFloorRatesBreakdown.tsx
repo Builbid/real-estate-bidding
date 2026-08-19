@@ -11,8 +11,12 @@ interface BidFloorRatesBreakdownProps {
   floorLabels?: string[];
   /** Unit shown after each rate. Defaults to /sqft. */
   unitSuffix?: string;
+  /** Per-rate unit suffixes aligned with ground/first/second/third rate keys. */
+  unitSuffixes?: Array<string | undefined>;
   className?: string;
 }
+
+const RATE_KEY_ORDER = ['ground_rate', 'first_rate', 'second_rate', 'third_rate'] as const;
 
 export function BidFloorRatesBreakdown({
   rates,
@@ -20,6 +24,7 @@ export function BidFloorRatesBreakdown({
   showTotal = false,
   floorLabels,
   unitSuffix = '/sqft',
+  unitSuffixes,
   className,
 }: BidFloorRatesBreakdownProps) {
   const entries = getBidFloorRateEntries(rates, floorLabels);
@@ -29,14 +34,17 @@ export function BidFloorRatesBreakdown({
   return (
     <div className={cn('rounded-lg border border-border/60 bg-muted/15 px-2.5 py-2', className)}>
       <div className="space-y-1">
-        {entries.map(({ key, label, value }) => (
-          <div key={key} className="flex items-center justify-between gap-3 text-[11px]">
-            <span className="text-muted-foreground">{label}</span>
-            <span className="font-semibold tabular-nums text-foreground">
-              ₹{value.toLocaleString('en-IN')}{unitSuffix}
-            </span>
-          </div>
-        ))}
+        {entries.map(({ key, label, value }) => {
+          const suffix = unitSuffixes?.[RATE_KEY_ORDER.indexOf(key)] ?? unitSuffix;
+          return (
+            <div key={key} className="flex items-center justify-between gap-3 text-[11px]">
+              <span className="text-muted-foreground">{label}</span>
+              <span className="font-semibold tabular-nums text-foreground">
+                ₹{value.toLocaleString('en-IN')}{suffix}
+              </span>
+            </div>
+          );
+        })}
       </div>
       {showTotal && total != null && (
         <div className="mt-1.5 flex items-center justify-between gap-3 border-t border-border/50 pt-1.5 text-[11px]">

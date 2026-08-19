@@ -87,13 +87,17 @@ const EMPTY_FORM: FormState = {
   plumberScope: 'full_house',
   bathrooms: 1,
   kitchens: 1,
-  overheadTank: null,
-  concealedPiping: null,
+  overheadTank: true,
+  concealedPiping: true,
   bathroomPackage: null,
-  cpvcPipeSizes: [],
-  waterInstallMethods: [],
-  includeToiletWastePipe: false,
-  drainageInstallMethods: [],
+  bathroomSize: null,
+  plumbingFloorLevel: 'ground',
+  fittingType: 'concealed_wall_cutting',
+  tankDistance: null,
+  cpvcPipeSizes: ['three_quarter', 'one'],
+  waterInstallMethods: ['concealed_wall_cutting'],
+  includeToiletWastePipe: true,
+  drainageInstallMethods: ['ground_digging_concrete'],
   electricianScope: 'full_house_wiring',
   pointEstimate: null,
   heavyAppliances: [],
@@ -221,6 +225,10 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
       overheadTank: form.overheadTank,
       concealedPiping: form.concealedPiping,
       bathroomPackage: form.bathroomPackage,
+      bathroomSize: form.bathroomSize,
+      plumbingFloorLevel: form.plumbingFloorLevel,
+      tankDistance: form.tankDistance,
+      fittingType: form.fittingType,
       cpvcPipeSizes: form.cpvcPipeSizes,
       waterInstallMethods: form.waterInstallMethods,
       includeToiletWastePipe: form.includeToiletWastePipe,
@@ -382,7 +390,12 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
         </h1>
         <p className="text-sm text-gray-700 dark:text-zinc-300 mt-1">
           Registered {tradeLabel.toLowerCase()}s will bid their rate{' '}
-          {trade === 'plumber' ? 'in ₹ / Running Foot' : trade === 'electrician' ? 'per point' : 'per sqft'} on your project.
+          {trade === 'plumber'
+            ? 'as a bathroom package rate plus ₹ / running foot piping rates'
+            : trade === 'electrician'
+              ? 'per point'
+              : 'per sqft'}{' '}
+          on your project.
         </p>
       </div>
 
@@ -486,7 +499,9 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
               <p className="text-xs font-medium text-gray-700 dark:text-zinc-300 -mt-3">
                 {isPainter
                   ? 'Tell painters the building type, area, primer, materials, and when work should start.'
-                  : `Describe the ${tradeLabel.toLowerCase()} work so bidders can quote without scope conflicts.`}
+                  : trade === 'plumber'
+                    ? 'Answer a few simple questions. Pipe sizes are included automatically for plumber bidding.'
+                    : `Describe the ${tradeLabel.toLowerCase()} work so bidders can quote without scope conflicts.`}
               </p>
 
               {step2Error && (

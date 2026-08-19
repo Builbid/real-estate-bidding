@@ -107,10 +107,11 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
   const earthworkMode = resolveEarthworkBidMode(project);
   const isPlumber = isFlatRupeeService(project.service_type);
   const isPlumbingBid = scopeBid?.kind === 'plumbing';
+  const plumbingRateUnits = isPlumbingBid ? (scopeBid.rateUnits ?? []) : [];
   const isPlumberFlat = isPlumber && !isPlumbingBid;
   const isElectrician = isPerPointService(project.service_type);
   const rateUnitSuffix = isPlumbingBid
-    ? (scopeBid.unitSuffix ?? '/Rft')
+    ? 'avg'
     : formatBidUnitSuffix(undefined, earthworkMode, project.service_type);
   const isPainter = project.service_type === 'painter';
   const isFlexibleRate =
@@ -476,7 +477,9 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                       )}
                       {isPlumbingBid && (
                         <p className="text-xs text-muted-foreground/80 text-right">
-                          {floorCount > 1 ? '/Rft avg' : '/Rft'}
+                          overall avg
+                          <br />
+                          lowest avg wins
                         </p>
                       )}
                       {earthworkMode === 'hourly' && (
@@ -536,10 +539,12 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                       </>
                     ) : isPlumbingBid ? (
                       <>
-                        Enter your rate in <strong>₹ / Running Foot</strong> for each selected piping
-                        option. Rates must be whole numbers ending in <strong>0 or 5</strong>. The
-                        plumber with the <strong>lowest overall average rate</strong> ranks as the
-                        winning bidder.
+                        Enter your <strong>Bathroom Package Rate</strong> and{' '}
+                        <strong>per-foot piping unit rates</strong> for the specified floor, room
+                        size, installation method, and tank distance. Rates must be whole numbers
+                        ending in <strong>0 or 5</strong>. The plumber with the{' '}
+                        <strong>lowest overall average unit rate</strong> ranks as the winning
+                        bidder.
                       </>
                     ) : isScopeRateBid ? (
                       <>Enter your rate in ₹ per sqft for each item. Rates must be whole numbers. Lower rates rank higher.</>
@@ -583,6 +588,9 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                       numericValue !== undefined &&
                       numericValue > 0;
 
+                    const plumbingUnit = isPlumbingBid ? (plumbingRateUnits[i] ?? '/Rft') : undefined;
+                    const isPackageRate = plumbingUnit === 'pkg';
+
                     return (
                       <motion.div
                         key={key}
@@ -597,7 +605,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                               : earthworkMode === 'trip'
                                 ? 'Your Rate Per Trip'
                                 : isPlumbingBid
-                                  ? `${label} (₹/Rft)`
+                                  ? label
                                   : isPlumberFlat
                                   ? 'Your Rate'
                                   : isElectrician
@@ -609,12 +617,30 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                           type="text"
                           inputMode="numeric"
                           pattern="[0-9]*"
-                          placeholder={isPlumberFlat ? 'e.g. 25000' : isPlumbingBid ? 'e.g. 85' : isElectrician ? 'e.g. 250' : 'e.g. 1800'}
+                          placeholder={
+                            isPlumberFlat
+                              ? 'e.g. 25000'
+                              : isPackageRate
+                                ? 'e.g. 18000'
+                                : isPlumbingBid
+                                  ? 'e.g. 85'
+                                  : isElectrician
+                                    ? 'e.g. 250'
+                                    : 'e.g. 1800'
+                          }
                           value={inputValue}
                           onChange={(e) => handleRateChange(key, e.target.value)}
                           onBlur={() => handleRateBlur(key)}
                           prefix={<span className="text-muted-foreground text-xs">{isPlumberFlat ? 'Rs.' : '₹'}</span>}
-                          suffix={rateUnitSuffix ? <span className="text-muted-foreground/80 text-xs">{rateUnitSuffix}</span> : undefined}
+                          suffix={
+                            isPlumbingBid ? (
+                              <span className="text-muted-foreground/80 text-xs">
+                                {isPackageRate ? 'pkg' : '/Rft'}
+                              </span>
+                            ) : rateUnitSuffix ? (
+                              <span className="text-muted-foreground/80 text-xs">{rateUnitSuffix}</span>
+                            ) : undefined
+                          }
                           error={fieldError}
                           required
                         />
@@ -689,15 +715,9 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                   )}
                   {isPlumbingBid && (
                     <p className="text-xs text-muted-foreground/80 text-right">
-                      {floorCount === 1 ? (
-                        <>₹ / Running Foot</>
-                      ) : (
-                        <>
-                          Average of {floorCount} options
-                          <br />
-                          lowest avg wins
-                        </>
-                      )}
+                      Overall average unit rate
+                      <br />
+                      lowest avg wins
                     </p>
                   )}
                   {isScopeRateBid && !isPlumbingBid && (
@@ -860,7 +880,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                                 : earthworkMode === 'trip'
                                   ? formatTripCapacityLabel(bid.rates?.vehicleCapacityCum) ?? '/trip'
                                   : isPlumbingBid
-                                    ? floorCount > 1 ? '/Rft avg' : '/Rft'
+                                    ? 'overall avg'
                                   : isPlumberFlat
                                     ? 'Rs.'
                                     : isElectrician
@@ -877,6 +897,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                                 rates={bid.rates}
                                 floorLabels={isSingleRateBid && !isScopeRateBid ? undefined : floorLabels}
                                 unitSuffix={isPlumbingBid ? '/Rft' : '/sqft'}
+                                unitSuffixes={isPlumbingBid ? plumbingRateUnits : undefined}
                               />
                             </div>
                           )}

@@ -28,6 +28,8 @@ export interface ScopeRateBidItems {
   kind: 'scope' | 'floors' | 'assam-addons' | 'plumbing';
   flexibleRates: boolean;
   unitSuffix?: string;
+  /** Per-item unit suffix aligned with labels (e.g. plumbing package vs ₹/Rft). */
+  rateUnits?: string[];
 }
 
 const LEGACY_CARPENTER_SCOPE_ORDER: CarpenterScopeType[] = [
@@ -95,6 +97,7 @@ export function resolveScopeRateBidItems(
         kind: 'plumbing',
         flexibleRates: false,
         unitSuffix: '/Rft',
+        rateUnits: options.map((option) => option.unitSuffix),
       };
     }
   }

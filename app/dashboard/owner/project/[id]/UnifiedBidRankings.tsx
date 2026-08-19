@@ -246,7 +246,7 @@ export function UnifiedBidRankings({
                 <p className="text-[10px] text-muted-foreground">
                   {formatTripCapacityLabel(bid.rates?.vehicleCapacityCum)
                     ?? (isPlumbingBid
-                      ? (projectFloorCount > 1 ? '/Rft avg' : '/Rft')
+                      ? 'overall avg'
                       : ['Rs.', '/point'].includes(formatBidUnitCaption(bid.rates, undefined, project.service_type))
                       ? formatBidUnitCaption(bid.rates, undefined, project.service_type)
                       : projectFloorCount > 1
@@ -261,6 +261,7 @@ export function UnifiedBidRankings({
                     rates={bid.rates}
                     floorLabels={carpenterFloorLabels}
                     unitSuffix={isPlumbingBid ? '/Rft' : '/sqft'}
+                    unitSuffixes={isPlumbingBid ? scopeBid?.rateUnits : undefined}
                   />
                 </div>
               )}

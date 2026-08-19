@@ -80,6 +80,13 @@ export function isWideRequirementLabel(label: string): boolean {
     label === 'Water Installation Method' ||
     label === 'Soil & Waste Drainage (SWR/PVC)' ||
     label === 'Bathroom Package' ||
+    label === 'Package Level' ||
+    label === 'Room Size' ||
+    label === 'Floor' ||
+    label === 'Installation Method' ||
+    label === 'Distance to Tank' ||
+    label === 'Smart Piping Defaults' ||
+    label === 'Bidding Options' ||
     label === 'Bidding Options (₹ / Running Foot)' ||
     label === 'Billing Notice' ||
     label === 'Scope Type' ||
