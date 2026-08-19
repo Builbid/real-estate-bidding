@@ -73,7 +73,7 @@ export default function AboutPage() {
   return (
     <StaticPageShell
       className="max-w-4xl"
-      headerClassName="border-white/10 bg-white/5 backdrop-blur-md p-8 sm:p-10"
+      headerClassName="border-slate-200/80 bg-white/80 backdrop-blur-md p-8 sm:p-10 dark:border-white/10 dark:bg-white/5"
       eyebrow="About Us"
       backgroundImage="https://images.unsplash.com/photo-1541888946425-d0fbb18f2f82?q=80&w=2000&auto=format&fit=crop"
       title="Empowering Modern Construction Bidding"
@@ -110,7 +110,7 @@ export default function AboutPage() {
         <div className="grid gap-4 not-prose sm:grid-cols-2">
           {AUDIENCES.map(({ icon: Icon, title, body }) => (
             <div key={title} className={cn(GLASS_CARD, 'p-5')}>
-              <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/5">
+              <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-white/5">
                 <Icon className="h-4 w-4 text-emerald-500 dark:text-emerald-400" />
               </div>
               <h3 className="text-sm font-semibold text-foreground">{title}</h3>
