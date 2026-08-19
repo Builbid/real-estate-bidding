@@ -75,8 +75,13 @@ export function isWideRequirementLabel(label: string): boolean {
     label === 'Civil Work Type' ||
     label === 'Project Address' ||
     label === 'Village / Town Name' ||
-    label === 'Package' ||
-    label === 'Packages' ||
+    label === 'Included Work Scope' ||
+    label === 'Water Supply Lines (CPVC)' ||
+    label === 'Water Installation Method' ||
+    label === 'Soil & Waste Drainage (SWR/PVC)' ||
+    label === 'Bathroom Package' ||
+    label === 'Bidding Options (₹ / Running Foot)' ||
+    label === 'Billing Notice' ||
     label === 'Scope Type' ||
     label === 'Door & Window Frames Work (Carpentry Add-on)' ||
     label === 'Deliverables' ||

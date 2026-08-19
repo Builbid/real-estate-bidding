@@ -215,7 +215,7 @@ export interface Project {
   updated_at: string;
 }
 
-export type BidUnit = 'per_sqft' | 'per_hour' | 'per_trip' | 'flat' | 'per_point';
+export type BidUnit = 'per_sqft' | 'per_hour' | 'per_trip' | 'flat' | 'per_point' | 'per_running_foot';
 
 export type BidFloorRateKey = 'ground_rate' | 'first_rate' | 'second_rate' | 'third_rate';
 
@@ -224,7 +224,7 @@ export interface BidRates {
   first_rate?: number;
   second_rate?: number;
   third_rate?: number;
-  /** Earthwork: hourly / per-trip. Plumber: flat Rs. Electrician: per point. */
+  /** Earthwork: hourly / per-trip. Plumber: flat Rs. or ₹/running foot. Electrician: per point. */
   bid_unit?: BidUnit;
   /** Earthwork soil filling — vehicle trip capacity in cubic metres. */
   vehicleCapacityCum?: number;

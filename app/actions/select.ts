@@ -37,7 +37,7 @@ export async function selectBuilderAction(
 
   const { data: winningBid } = await supabase
     .from('bids')
-    .select('total_sum_metric, single_rate, package_rates')
+    .select('total_sum_metric, single_rate, package_rates, rates')
     .eq('project_id', projectId)
     .eq('builder_id', builderId)
     .limit(1)
@@ -74,13 +74,30 @@ export async function selectBuilderAction(
   // hidden ranking average).
   const packageRange = isFirmProject ? formatPackageRateRange(bidPackages) : null
   const legacyRateValue = winningBid?.single_rate ?? winningBid?.total_sum_metric
+  const plumberRates = winningBid?.rates as {
+    bid_unit?: string
+    ground_rate?: number
+    first_rate?: number
+    second_rate?: number
+    third_rate?: number
+  } | null
+  const plumberOptionCount = plumberRates
+    ? [plumberRates.ground_rate, plumberRates.first_rate, plumberRates.second_rate, plumberRates.third_rate]
+        .filter((value): value is number => typeof value === 'number' && value > 0).length
+    : 1
+  const plumberAvg =
+    plumberOptionCount > 1 && typeof legacyRateValue === 'number'
+      ? legacyRateValue / plumberOptionCount
+      : legacyRateValue
   const bidAmt = isFirmProject
     ? selectedPackage
       ? `₹${selectedPackage.rate.toLocaleString('en-IN')}/sqft (${selectedPackage.package.name})`
       : packageRange ?? ''
     : legacyRateValue
       ? existing.service_type === 'plumber'
-        ? `Rs. ${legacyRateValue.toLocaleString('en-IN')}`
+        ? plumberRates?.bid_unit === 'per_running_foot'
+          ? `₹${Number(plumberAvg).toLocaleString('en-IN')}/Rft avg`
+          : `Rs. ${legacyRateValue.toLocaleString('en-IN')}`
         : existing.service_type === 'electrician'
           ? `₹${legacyRateValue.toLocaleString('en-IN')}/point`
           : `₹${legacyRateValue.toLocaleString('en-IN')}/sqft`

@@ -151,8 +151,11 @@ export function ProjectCard({
                     'mt-0.5 text-sm font-semibold leading-snug text-foreground break-words',
                     (block.label === 'Additional Requirements' || block.label === 'Additional Notes')
                       ? 'line-clamp-3 font-medium'
-                      : block.label === 'Civil Work Type'
-                        ? 'line-clamp-3'
+                      : block.label === 'Civil Work Type' ||
+                          block.label === 'Billing Notice' ||
+                          block.label === 'Bidding Options (₹ / Running Foot)' ||
+                          block.label === 'Included Work Scope'
+                        ? 'line-clamp-4'
                         : 'line-clamp-2',
                   )}>
                     {block.value}

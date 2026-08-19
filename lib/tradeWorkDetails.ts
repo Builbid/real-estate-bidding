@@ -43,6 +43,19 @@ export type PlumberScopeType =
 
 export type PlumberMaterialScope = 'labour_only' | 'labour_plus_pipes';
 
+export type BathroomPackage = 'common' | 'master' | 'luxury';
+
+export type CpvcPipeSize =
+  | 'three_quarter'
+  | 'one'
+  | 'one_and_quarter'
+  | 'one_and_half'
+  | 'two';
+
+export type WaterInstallMethod = 'concealed_wall_cutting' | 'open_outer_fitting';
+
+export type DrainageInstallMethod = 'ground_digging_concrete' | 'open_outer_hanging';
+
 export type ElectricianScopeType =
   | 'full_house_wiring'
   | 'db_mcb'
@@ -110,6 +123,16 @@ export interface PlumberDetails extends TradeDetailsBase {
   kitchens: number;
   overheadTank: boolean;
   concealedPiping: boolean;
+  /** Bathroom fitting package selected by the owner for bidding scope. */
+  bathroomPackage?: BathroomPackage | null;
+  /** Water supply CPVC pipe sizes opened for multi-option bidding. */
+  cpvcPipeSizes?: CpvcPipeSize[];
+  /** Water-line install methods opened for bidding (concealed vs open). */
+  waterInstallMethods?: WaterInstallMethod[];
+  /** When true, plumbers also quote the 4-inch SWR toilet waste line. */
+  includeToiletWastePipe?: boolean;
+  /** Drainage install methods opened for bidding when the SWR line is included. */
+  drainageInstallMethods?: DrainageInstallMethod[];
   /** Legacy field — no longer collected on new plumber submissions. */
   materialScope?: PlumberMaterialScope | null;
 }
@@ -186,6 +209,95 @@ const LEGACY_PLUMBER_SCOPE_LABELS: Record<PlumberScopeType, string> = {
 export const PLUMBER_MATERIAL_OPTIONS: { value: PlumberMaterialScope; label: string }[] = [
   { value: 'labour_only', label: 'Labour Only (Client provides materials)' },
   { value: 'labour_plus_pipes', label: 'Labour + Pipes & Fittings' },
+];
+
+export const BATHROOM_PACKAGE_OPTIONS: {
+  value: BathroomPackage;
+  label: string;
+  description: string;
+  included: string[];
+}[] = [
+  {
+    value: 'common',
+    label: 'Common Bathroom Package',
+    description: 'Standard fittings for everyday bathrooms.',
+    included: [
+      '3 Normal Taps',
+      '1 Indian Orissa Pan or Standard EWC',
+      '1 Overhead Shower',
+      'Wall-mounted Flush Tank',
+    ],
+  },
+  {
+    value: 'master',
+    label: 'Master Bathroom Package',
+    description: 'Upgraded concealed fittings for the primary bathroom.',
+    included: [
+      '2/3-Inlet Diverter or Thermostatic Diverter',
+      'Wall-Hung WC',
+      'Concealed Flush Tank / Metropole System',
+      'Hand & Overhead Shower',
+    ],
+  },
+  {
+    value: 'luxury',
+    label: 'Luxury Bathroom Package',
+    description: 'Premium multi-outlet fittings and smart sanitaryware.',
+    included: [
+      'Multi-functional Ceiling/Rain Shower',
+      'Smart Wall-Hung WC',
+      'Multi-outlet Thermostatic Diverter',
+      'Premium Brass/Gold Finish Fittings',
+    ],
+  },
+];
+
+export const CPVC_PIPE_SIZE_OPTIONS: { value: CpvcPipeSize; label: string }[] = [
+  { value: 'three_quarter', label: '¾ inch' },
+  { value: 'one', label: '1 inch' },
+  { value: 'one_and_quarter', label: '1¼ inch' },
+  { value: 'one_and_half', label: '1½ inch' },
+  { value: 'two', label: '2 inch' },
+];
+
+export const WATER_INSTALL_METHOD_OPTIONS: {
+  value: WaterInstallMethod;
+  label: string;
+  description: string;
+  shortLabel: string;
+}[] = [
+  {
+    value: 'concealed_wall_cutting',
+    label: 'Concealed / Wall Cutting',
+    shortLabel: 'Concealed / Wall Cutting',
+    description: 'Higher rate — pipes chase into walls and are covered after fitting.',
+  },
+  {
+    value: 'open_outer_fitting',
+    label: 'Open Outer Fitting',
+    shortLabel: 'Open Outer Fitting',
+    description: 'Lower rate — pipes run on the outer surface without wall cutting.',
+  },
+];
+
+export const DRAINAGE_INSTALL_METHOD_OPTIONS: {
+  value: DrainageInstallMethod;
+  label: string;
+  description: string;
+  shortLabel: string;
+}[] = [
+  {
+    value: 'ground_digging_concrete',
+    label: 'Ground Digging & Concrete Protection',
+    shortLabel: 'Ground Digging & Concrete',
+    description: 'Waste line buried and protected with concrete around the pipe.',
+  },
+  {
+    value: 'open_outer_hanging',
+    label: 'Open Outer Hanging',
+    shortLabel: 'Open Outer Hanging',
+    description: 'Waste line hung externally without ground excavation.',
+  },
 ];
 
 export const ELECTRICIAN_SCOPE_OPTIONS: { value: ElectricianScopeType; label: string }[] = [
@@ -306,6 +418,10 @@ const PLUMBER_SCOPE_SET = new Set<PlumberScopeType>([
   'repair_leakage',
 ]);
 const PLUMBER_MATERIAL_SET = new Set(PLUMBER_MATERIAL_OPTIONS.map((o) => o.value));
+const BATHROOM_PACKAGE_SET = new Set(BATHROOM_PACKAGE_OPTIONS.map((o) => o.value));
+const CPVC_PIPE_SIZE_SET = new Set(CPVC_PIPE_SIZE_OPTIONS.map((o) => o.value));
+const WATER_INSTALL_METHOD_SET = new Set(WATER_INSTALL_METHOD_OPTIONS.map((o) => o.value));
+const DRAINAGE_INSTALL_METHOD_SET = new Set(DRAINAGE_INSTALL_METHOD_OPTIONS.map((o) => o.value));
 const ELECTRICIAN_SCOPE_SET = new Set<ElectricianScopeType>([
   'full_house_wiring',
   'db_mcb',
@@ -449,6 +565,39 @@ function parseCarpenterScopes(raw: unknown): CarpenterScopeType[] {
   return next;
 }
 
+function parseUniqueEnumList<T extends string>(raw: unknown, allowed: Set<T>): T[] {
+  if (!Array.isArray(raw)) return [];
+  const next: T[] = [];
+  for (const item of raw) {
+    if (typeof item === 'string' && allowed.has(item as T) && !next.includes(item as T)) {
+      next.push(item as T);
+    }
+  }
+  return next;
+}
+
+export function parseCpvcPipeSizes(raw: unknown): CpvcPipeSize[] {
+  return parseUniqueEnumList(raw, CPVC_PIPE_SIZE_SET);
+}
+
+export function parseWaterInstallMethods(raw: unknown): WaterInstallMethod[] {
+  return parseUniqueEnumList(raw, WATER_INSTALL_METHOD_SET);
+}
+
+export function parseDrainageInstallMethods(raw: unknown): DrainageInstallMethod[] {
+  return parseUniqueEnumList(raw, DRAINAGE_INSTALL_METHOD_SET);
+}
+
+export function getBathroomPackageLabel(value: BathroomPackage | null | undefined): string {
+  if (!value) return '';
+  return BATHROOM_PACKAGE_OPTIONS.find((o) => o.value === value)?.label ?? value;
+}
+
+export function getBathroomPackageIncluded(value: BathroomPackage | null | undefined): string[] {
+  if (!value) return [];
+  return BATHROOM_PACKAGE_OPTIONS.find((o) => o.value === value)?.included ?? [];
+}
+
 export function getCarpenterScopeLabel(value: CarpenterScopeType): string {
   return LEGACY_CARPENTER_SCOPE_LABELS[value] ?? value;
 }
@@ -490,6 +639,17 @@ export function parseTradeDetails(value: unknown): TradeDetails | null {
       PLUMBER_MATERIAL_SET.has(v.materialScope as PlumberMaterialScope)
         ? (v.materialScope as PlumberMaterialScope)
         : null;
+    const bathroomPackage =
+      typeof v.bathroomPackage === 'string' &&
+      BATHROOM_PACKAGE_SET.has(v.bathroomPackage as BathroomPackage)
+        ? (v.bathroomPackage as BathroomPackage)
+        : null;
+    const cpvcPipeSizes = parseCpvcPipeSizes(v.cpvcPipeSizes);
+    const waterInstallMethods = parseWaterInstallMethods(v.waterInstallMethods);
+    const includeToiletWastePipe = v.includeToiletWastePipe === true;
+    const drainageInstallMethods = includeToiletWastePipe
+      ? parseDrainageInstallMethods(v.drainageInstallMethods)
+      : [];
     return {
       service: 'plumber',
       projectAddress: address,
@@ -501,6 +661,11 @@ export function parseTradeDetails(value: unknown): TradeDetails | null {
       kitchens,
       overheadTank: v.overheadTank,
       concealedPiping: v.concealedPiping,
+      bathroomPackage,
+      cpvcPipeSizes,
+      waterInstallMethods,
+      includeToiletWastePipe,
+      drainageInstallMethods,
       materialScope,
     };
   }
@@ -658,8 +823,92 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
       { label: 'Bathrooms', value: formatStepperCount(details.bathrooms, 3) },
       { label: 'Kitchens', value: formatStepperCount(details.kitchens, 3) },
       { label: 'Overhead Water Tank', value: yesNo(details.overheadTank) },
-      { label: 'Concealed CPVC/uPVC Piping', value: yesNo(details.concealedPiping) },
     );
+    if (details.bathroomPackage) {
+      const included = getBathroomPackageIncluded(details.bathroomPackage);
+      blocks.push({
+        label: 'Bathroom Package',
+        value: getBathroomPackageLabel(details.bathroomPackage),
+      });
+      if (included.length > 0) {
+        blocks.push({
+          label: 'Included Work Scope',
+          value: included.join(' · '),
+        });
+      }
+    }
+    const pipeSizes = details.cpvcPipeSizes ?? [];
+    const waterMethods = details.waterInstallMethods ?? [];
+    if (pipeSizes.length > 0) {
+      blocks.push({
+        label: 'Water Supply Lines (CPVC)',
+        value: pipeSizes
+          .map((size) => optionLabel(CPVC_PIPE_SIZE_OPTIONS, size))
+          .join(', '),
+      });
+    }
+    if (waterMethods.length > 0) {
+      blocks.push({
+        label: 'Water Installation Method',
+        value: waterMethods
+          .map(
+            (method) =>
+              WATER_INSTALL_METHOD_OPTIONS.find((o) => o.value === method)?.label ?? method,
+          )
+          .join(', '),
+      });
+    } else {
+      blocks.push({ label: 'Concealed CPVC/uPVC Piping', value: yesNo(details.concealedPiping) });
+    }
+    if (details.includeToiletWastePipe) {
+      const drainageMethods = details.drainageInstallMethods ?? [];
+      blocks.push({
+        label: 'Soil & Waste Drainage (SWR/PVC)',
+        value:
+          drainageMethods.length > 0
+            ? `4-inch Toilet Waste Pipe · ${drainageMethods
+                .map(
+                  (method) =>
+                    DRAINAGE_INSTALL_METHOD_OPTIONS.find((o) => o.value === method)?.label ??
+                    method,
+                )
+                .join(', ')}`
+            : 'Include 4-inch Toilet Waste Pipe (SWR)',
+      });
+    }
+    const plumbingBidLabels: string[] = [];
+    for (const size of pipeSizes) {
+      for (const method of waterMethods) {
+        plumbingBidLabels.push(
+          `CPVC ${optionLabel(CPVC_PIPE_SIZE_OPTIONS, size)} — ${
+            WATER_INSTALL_METHOD_OPTIONS.find((o) => o.value === method)?.shortLabel ?? method
+          }`,
+        );
+      }
+    }
+    if (details.includeToiletWastePipe) {
+      for (const method of details.drainageInstallMethods ?? []) {
+        plumbingBidLabels.push(
+          `4-inch Toilet Waste Pipe (SWR) — ${
+            DRAINAGE_INSTALL_METHOD_OPTIONS.find((o) => o.value === method)?.shortLabel ?? method
+          }`,
+        );
+      }
+    }
+    if (plumbingBidLabels.length > 0) {
+      blocks.push({
+        label: 'Bidding Options (₹ / Running Foot)',
+        value: plumbingBidLabels
+          .slice(0, 4)
+          .map((label, index) => `Option ${String.fromCharCode(65 + index)}: ${label}`)
+          .join(' · '),
+      });
+      blocks.push({
+        label: 'Billing Notice',
+        value:
+          'Final billing will be calculated based on the actual tape measurement at the site using these pre-agreed unit rates.',
+      });
+    }
     if (details.materialScope) {
       blocks.push({
         label: 'Material Scope',
@@ -787,6 +1036,9 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
 
 export function getTradeScopeLabel(details: TradeDetails): string {
   if (details.service === 'plumber') {
+    if (details.bathroomPackage) {
+      return getBathroomPackageLabel(details.bathroomPackage);
+    }
     return LEGACY_PLUMBER_SCOPE_LABELS[details.scopeType];
   }
   if (details.service === 'electrician') {
@@ -811,6 +1063,11 @@ export interface TradeDetailsFormInput {
   kitchens: number;
   overheadTank: boolean | null;
   concealedPiping: boolean | null;
+  bathroomPackage?: BathroomPackage | null;
+  cpvcPipeSizes?: CpvcPipeSize[];
+  waterInstallMethods?: WaterInstallMethod[];
+  includeToiletWastePipe?: boolean;
+  drainageInstallMethods?: DrainageInstallMethod[];
   electricianScope?: ElectricianScopeType | null;
   pointEstimate: ElectricianPointEstimate | null;
   heavyAppliances: ElectricianHeavyAppliance[];
@@ -853,8 +1110,35 @@ export function validateTradeDetailsInput(
     if (input.overheadTank == null) {
       return { error: 'Select whether overhead water tank installation is required.' };
     }
-    if (input.concealedPiping == null) {
-      return { error: 'Select whether concealed CPVC/uPVC piping is required.' };
+    if (!input.bathroomPackage || !BATHROOM_PACKAGE_SET.has(input.bathroomPackage)) {
+      return { error: 'Select a bathroom package.' };
+    }
+    const cpvcPipeSizes = parseCpvcPipeSizes(input.cpvcPipeSizes);
+    const waterInstallMethods = parseWaterInstallMethods(input.waterInstallMethods);
+    if (cpvcPipeSizes.length === 0) {
+      return { error: 'Select at least one CPVC water supply pipe size for bidding.' };
+    }
+    if (waterInstallMethods.length === 0) {
+      return { error: 'Select at least one water supply installation method.' };
+    }
+    const includeToiletWastePipe = input.includeToiletWastePipe === true;
+    const drainageInstallMethods = includeToiletWastePipe
+      ? parseDrainageInstallMethods(input.drainageInstallMethods)
+      : [];
+    if (includeToiletWastePipe && drainageInstallMethods.length === 0) {
+      return { error: 'Select a soil & waste drainage installation method.' };
+    }
+    const optionCount =
+      cpvcPipeSizes.length * waterInstallMethods.length +
+      (includeToiletWastePipe ? drainageInstallMethods.length : 0);
+    if (optionCount < 1) {
+      return { error: 'Select at least one piping option for bidding.' };
+    }
+    if (optionCount > 4) {
+      return {
+        error:
+          'Select at most 4 piping options for bidding (pipe size × installation method, plus drainage).',
+      };
     }
     return {
       details: {
@@ -864,7 +1148,12 @@ export function validateTradeDetailsInput(
         bathrooms: Math.min(20, Math.max(1, input.bathrooms)),
         kitchens: Math.min(10, Math.max(1, input.kitchens)),
         overheadTank: input.overheadTank,
-        concealedPiping: input.concealedPiping,
+        concealedPiping: waterInstallMethods.includes('concealed_wall_cutting'),
+        bathroomPackage: input.bathroomPackage,
+        cpvcPipeSizes,
+        waterInstallMethods,
+        includeToiletWastePipe,
+        drainageInstallMethods,
       },
     };
   }

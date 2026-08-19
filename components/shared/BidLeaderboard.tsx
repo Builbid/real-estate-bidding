@@ -31,6 +31,7 @@ interface BidLeaderboardProps {
   subConfiguration?: SubConfiguration;
   serviceType?: ServiceType | null;
   mistriDetails?: unknown;
+  tradeDetails?: unknown;
   buildingTypes?: string[] | null;
   totalFloors?: number | null;
   initialBuilders?: Record<string, BuilderInfo>;
@@ -57,6 +58,7 @@ export function BidLeaderboard({
   subConfiguration,
   serviceType = 'labour_contractor',
   mistriDetails,
+  tradeDetails,
   buildingTypes,
   totalFloors,
   initialBuilders,
@@ -74,11 +76,13 @@ export function BidLeaderboard({
   const scopeBid = resolveScopeRateBidItems({
     service_type: serviceType,
     mistri_details: mistriDetails,
+    trade_details: tradeDetails,
     track_type: trackType,
     sub_configuration: subConfiguration,
     building_types: buildingTypes,
     total_floors: totalFloors,
   });
+  const isPlumbingBid = scopeBid?.kind === 'plumbing';
   const projectFloorCount =
     scopeBid?.count
     ?? (trackType && subConfiguration
@@ -296,17 +300,23 @@ export function BidLeaderboard({
                   'text-sm font-bold tabular-nums',
                   isLowest ? 'text-emerald-400' : 'text-foreground'
                 )}>
-                  {serviceType === 'plumber' ? 'Rs. ' : '₹'}
+                  {serviceType === 'plumber' && !isPlumbingBid ? 'Rs. ' : '₹'}
                   {formatBidMetric(averageFromSumMetric(bid.total_sum_metric, projectFloorCount))}
                 </p>
                 <p className="text-[10px] text-muted-foreground">
-                  {serviceType === 'plumber' ? 'Rs.' : serviceType === 'electrician' ? '/point' : projectFloorCount > 1 ? '/sqft avg' : '/sqft'}
+                  {isPlumbingBid
+                    ? projectFloorCount > 1 ? '/Rft avg' : '/Rft'
+                    : serviceType === 'plumber' ? 'Rs.' : serviceType === 'electrician' ? '/point' : projectFloorCount > 1 ? '/sqft avg' : '/sqft'}
                 </p>
               </div>
 
               {showFloorBreakdown && shouldShowBidFloorBreakdown(bid.rates, projectFloorCount) && (
                 <div className="w-full basis-full">
-                  <BidFloorRatesBreakdown rates={bid.rates} floorLabels={scopeBid?.labels} />
+                  <BidFloorRatesBreakdown
+                    rates={bid.rates}
+                    floorLabels={scopeBid?.labels}
+                    unitSuffix={isPlumbingBid ? '/Rft' : '/sqft'}
+                  />
                 </div>
               )}
 

@@ -89,6 +89,11 @@ const EMPTY_FORM: FormState = {
   kitchens: 1,
   overheadTank: null,
   concealedPiping: null,
+  bathroomPackage: null,
+  cpvcPipeSizes: [],
+  waterInstallMethods: [],
+  includeToiletWastePipe: false,
+  drainageInstallMethods: [],
   electricianScope: 'full_house_wiring',
   pointEstimate: null,
   heavyAppliances: [],
@@ -215,6 +220,11 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
       kitchens: form.kitchens,
       overheadTank: form.overheadTank,
       concealedPiping: form.concealedPiping,
+      bathroomPackage: form.bathroomPackage,
+      cpvcPipeSizes: form.cpvcPipeSizes,
+      waterInstallMethods: form.waterInstallMethods,
+      includeToiletWastePipe: form.includeToiletWastePipe,
+      drainageInstallMethods: form.drainageInstallMethods,
       electricianScope: form.electricianScope,
       pointEstimate: form.pointEstimate,
       heavyAppliances: form.heavyAppliances,
@@ -372,7 +382,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
         </h1>
         <p className="text-sm text-gray-700 dark:text-zinc-300 mt-1">
           Registered {tradeLabel.toLowerCase()}s will bid their rate{' '}
-          {trade === 'plumber' ? 'in Rs.' : trade === 'electrician' ? 'per point' : 'per sqft'} on your project.
+          {trade === 'plumber' ? 'in ₹ / Running Foot' : trade === 'electrician' ? 'per point' : 'per sqft'} on your project.
         </p>
       </div>
 
@@ -696,7 +706,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                   <div key={label} className="flex items-start justify-between gap-3 px-4 py-3">
                     <span className="text-xs font-medium text-gray-600 dark:text-zinc-400 flex-1 min-w-0">{label}</span>
                     <div className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white text-right flex-shrink-0 max-w-[55%]">
-                      <div className="min-w-0">{value}</div>
+                    <div className="min-w-0 whitespace-pre-line text-right">{value}</div>
                     </div>
                   </div>
                 ))}

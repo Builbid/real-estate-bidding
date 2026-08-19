@@ -146,7 +146,7 @@ export async function submitBidAction(
       bid_unit: earthworkMode
         ? bidUnitForEarthworkMode(earthworkMode)
         : project.service_type === 'plumber'
-          ? 'flat'
+          ? (scopeBid?.kind === 'plumbing' ? 'per_running_foot' : 'flat')
           : project.service_type === 'electrician'
             ? 'per_point'
             : rates.bid_unit,

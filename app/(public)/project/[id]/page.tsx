@@ -410,6 +410,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                   subConfiguration={project.sub_configuration}
                   serviceType={serviceType}
                   mistriDetails={project.mistri_details}
+                  tradeDetails={project.trade_details}
                   buildingTypes={project.building_types}
                   totalFloors={project.total_floors}
                 />
@@ -430,7 +431,7 @@ function SpecItem({ icon: Icon, label, value }: { icon: React.ElementType; label
       </div>
       <div>
         <p className="text-[10px] text-muted-foreground/80 uppercase tracking-wider">{label}</p>
-        <p className="text-sm font-medium text-foreground/90 leading-snug">{value}</p>
+        <p className="text-sm font-medium text-foreground/90 leading-snug whitespace-pre-line">{value}</p>
       </div>
     </div>
   );

@@ -3,7 +3,7 @@ import { readNestedProjectDetail } from '@/lib/project/storedDetails';
 import type { BidRates, BidUnit, ServiceType } from '@/lib/types';
 
 export type EarthworkBidMode = 'hourly' | 'trip';
-export type BidDisplayUnit = 'hour' | 'trip' | 'sqft' | 'flat' | 'point';
+export type BidDisplayUnit = 'hour' | 'trip' | 'sqft' | 'flat' | 'point' | 'rft';
 
 export function isFlatRupeeService(serviceType?: ServiceType | null): boolean {
   return serviceType === 'plumber';
@@ -42,6 +42,7 @@ export function getBidDisplayUnit(
   const unit = rates?.bid_unit ?? bidUnitForEarthworkMode(mode ?? null);
   if (unit === 'per_hour') return 'hour';
   if (unit === 'per_trip') return 'trip';
+  if (unit === 'per_running_foot') return 'rft';
   if (unit === 'flat' || isFlatRupeeService(serviceType)) return 'flat';
   if (unit === 'per_point' || isPerPointService(serviceType)) return 'point';
   return 'sqft';
@@ -54,6 +55,7 @@ export function formatBidUnitSuffix(
 ): string {
   const unit = getBidDisplayUnit(rates, mode, serviceType);
   if (unit === 'flat') return '';
+  if (unit === 'rft') return '/Rft';
   return unit === 'sqft' ? '/sqft' : `/${unit}`;
 }
 
@@ -68,6 +70,7 @@ export function formatBidUnitCaption(
   if (unit === 'hour') return '/hour';
   if (unit === 'trip') return '/trip';
   if (unit === 'point') return '/point';
+  if (unit === 'rft') return '/Rft avg';
   return '/sqft';
 }
 

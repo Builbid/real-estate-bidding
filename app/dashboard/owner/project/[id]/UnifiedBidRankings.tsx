@@ -122,6 +122,7 @@ export function UnifiedBidRankings({
 
   const isCompleted = project.status === 'completed';
   const scopeBid = resolveScopeRateBidItems(project);
+  const isPlumbingBid = scopeBid?.kind === 'plumbing';
   const projectFloorCount = scopeBid?.count ?? resolveProjectFloorCount(project);
   const carpenterFloorLabels = scopeBid?.labels;
 
@@ -239,12 +240,14 @@ export function UnifiedBidRankings({
                 <p className={`text-base font-bold tabular-nums ${
                   isSelected ? 'text-emerald-400' : isLowest ? 'text-emerald-400' : 'text-foreground'
                 }`}>
-                  {project.service_type === 'plumber' ? 'Rs. ' : '₹'}
+                  {project.service_type === 'plumber' && !isPlumbingBid ? 'Rs. ' : '₹'}
                   {formatBidMetric(averageFromSumMetric(bid.total_sum_metric, projectFloorCount))}
                 </p>
                 <p className="text-[10px] text-muted-foreground">
                   {formatTripCapacityLabel(bid.rates?.vehicleCapacityCum)
-                    ?? (['Rs.', '/point'].includes(formatBidUnitCaption(bid.rates, undefined, project.service_type))
+                    ?? (isPlumbingBid
+                      ? (projectFloorCount > 1 ? '/Rft avg' : '/Rft')
+                      : ['Rs.', '/point'].includes(formatBidUnitCaption(bid.rates, undefined, project.service_type))
                       ? formatBidUnitCaption(bid.rates, undefined, project.service_type)
                       : projectFloorCount > 1
                         ? '/sqft avg'
@@ -254,7 +257,11 @@ export function UnifiedBidRankings({
 
               {shouldShowBidFloorBreakdown(bid.rates, projectFloorCount) && (
                 <div className="w-full basis-full">
-                  <BidFloorRatesBreakdown rates={bid.rates} floorLabels={carpenterFloorLabels} />
+                  <BidFloorRatesBreakdown
+                    rates={bid.rates}
+                    floorLabels={carpenterFloorLabels}
+                    unitSuffix={isPlumbingBid ? '/Rft' : '/sqft'}
+                  />
                 </div>
               )}
 

@@ -18,14 +18,16 @@ import {
 import { isLegacyCarpenterService } from '@/lib/trades';
 import type { ServiceType, SubConfiguration } from '@/lib/types';
 import { normalizeServiceType } from '@/lib/validation/bidRates';
+import { readProjectPlumbingBidOptions } from '@/lib/plumberBid';
 
 export const MODULAR_KITCHEN_BID_LABEL = 'Modular Kitchen';
 
 export interface ScopeRateBidItems {
   labels: string[];
   count: number;
-  kind: 'scope' | 'floors' | 'assam-addons';
+  kind: 'scope' | 'floors' | 'assam-addons' | 'plumbing';
   flexibleRates: boolean;
+  unitSuffix?: string;
 }
 
 const LEGACY_CARPENTER_SCOPE_ORDER: CarpenterScopeType[] = [
@@ -65,6 +67,7 @@ function isAssamTypeProject(project: {
  * - RCC Mistri Worker + Chowkhat
  * - Interior Work + Modular Kitchen
  * - Legacy Carpenter projects
+ * - Plumber: bathroom package + multi-option CPVC / SWR piping (₹ / Running Foot)
  */
 export function resolveScopeRateBidItems(
   project: {
@@ -82,6 +85,19 @@ export function resolveScopeRateBidItems(
   const bidder = normalizeServiceType(bidderServiceType);
   const tradeDetails = parseTradeDetails(readNestedProjectDetail(project, 'trade_details'));
   const mistriDetails = parseMistriDetails(readNestedProjectDetail(project, 'mistri_details'));
+
+  if (service === 'plumber' || tradeDetails?.service === 'plumber') {
+    const options = readProjectPlumbingBidOptions(project);
+    if (options.length > 0) {
+      return {
+        labels: options.map((option) => option.label),
+        count: options.length,
+        kind: 'plumbing',
+        flexibleRates: false,
+        unitSuffix: '/Rft',
+      };
+    }
+  }
 
   if (
     isLegacyCarpenterService(service) ||

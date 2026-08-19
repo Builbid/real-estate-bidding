@@ -1,5 +1,7 @@
 'use client';
 
+import { BathroomPackageSelector } from '@/components/owner/plumber/BathroomPackageSelector';
+import { PipingOptionSelector } from '@/components/owner/plumber/PipingOptionSelector';
 import { Input } from '@/components/ui/input';
 import { OptionSelectCard, OptionSelectGrid } from '@/components/owner/wizard/OptionSelectCard';
 import { StartTimeAndNotes, WIZARD_SECTION_LABEL } from '@/components/owner/wizard/StartTimeAndNotes';
@@ -14,6 +16,9 @@ import {
   INTERIOR_SCOPE_OPTIONS,
   INTERIOR_SPACE_OPTIONS,
   PLUMBER_SCOPE_OPTIONS,
+  type BathroomPackage,
+  type CpvcPipeSize,
+  type DrainageInstallMethod,
   type EarthworkMachine,
   type EarthworkType,
   type ElectricianHeavyAppliance,
@@ -24,6 +29,7 @@ import {
   type PlumberScopeType,
   type ProjectStartTimeType,
   type TradeWorkService,
+  type WaterInstallMethod,
 } from '@/lib/tradeWorkDetails';
 
 export interface TradeWorkFormFields {
@@ -32,6 +38,11 @@ export interface TradeWorkFormFields {
   kitchens: number;
   overheadTank: boolean | null;
   concealedPiping: boolean | null;
+  bathroomPackage: BathroomPackage | null;
+  cpvcPipeSizes: CpvcPipeSize[];
+  waterInstallMethods: WaterInstallMethod[];
+  includeToiletWastePipe: boolean;
+  drainageInstallMethods: DrainageInstallMethod[];
   electricianScope: ElectricianScopeType;
   pointEstimate: ElectricianPointEstimate | null;
   heavyAppliances: ElectricianHeavyAppliance[];
@@ -104,14 +115,20 @@ export function TradeWorkRequirementsFields({
               columns={2}
             />
           </FieldGroup>
-          <FieldGroup label="Concealed CPVC/uPVC Piping">
-            <OptionSelectGrid
-              options={YES_NO}
-              value={form.concealedPiping == null ? null : form.concealedPiping ? 'yes' : 'no'}
-              onSelect={(v) => onChange('concealedPiping', v === 'yes')}
-              columns={2}
-            />
-          </FieldGroup>
+          <BathroomPackageSelector
+            value={form.bathroomPackage}
+            onChange={(v) => onChange('bathroomPackage', v)}
+          />
+          <PipingOptionSelector
+            cpvcPipeSizes={form.cpvcPipeSizes}
+            waterInstallMethods={form.waterInstallMethods}
+            includeToiletWastePipe={form.includeToiletWastePipe}
+            drainageInstallMethods={form.drainageInstallMethods}
+            onChangeSizes={(v) => onChange('cpvcPipeSizes', v)}
+            onChangeWaterMethods={(v) => onChange('waterInstallMethods', v)}
+            onChangeIncludeWaste={(v) => onChange('includeToiletWastePipe', v)}
+            onChangeDrainageMethods={(v) => onChange('drainageInstallMethods', v)}
+          />
         </>
       )}
 
