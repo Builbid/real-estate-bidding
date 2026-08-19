@@ -1012,7 +1012,7 @@ export function LabourContractorProjectWizard() {
 
                         <div className="space-y-3 rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-2.5">
                           <NestedChoiceButtons
-                            question="Do you also want flooring (Tile / Marble)?"
+                            question="Do you also want flooring (Tile / Marble / Smooth Cement Finish)?"
                             options={MISTRI_YES_NO_OPTIONS}
                             value={
                               entry.includeFineFlooring === true

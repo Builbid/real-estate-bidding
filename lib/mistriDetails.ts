@@ -130,7 +130,11 @@ export function getMistriActivityCategory(
 /** Plaster scope nested under Brick/AAC or standalone plastering. */
 export type MistriPlasterScope = 'both' | 'exterior' | 'interior';
 
-export type MistriFlooringMaterial = 'tile' | 'marble' | 'granite';
+export type MistriFlooringMaterial =
+  | 'tile'
+  | 'marble'
+  | 'granite'
+  | 'smooth_cement_finish';
 
 /** Assam Type roof structure choice on Work Requirements. */
 export type MistriAssamRoofType = 'steel_truss' | 'rcc_truss' | 'wood_truss';
@@ -570,6 +574,7 @@ export const MISTRI_ASSAM_FLOORING_MATERIAL_OPTIONS: {
 }[] = [
   { value: 'tile', label: 'Tile' },
   { value: 'marble', label: 'Marble' },
+  { value: 'smooth_cement_finish', label: 'Smooth Cement Finish' },
 ];
 
 export const MISTRI_RCC_FLOOR_WORK_OPTIONS: {
@@ -1481,6 +1486,7 @@ function normalizeAssamRoofingSheet(value: unknown): MistriAssamRoofingSheet | n
 
 function normalizeAssamFlooringMaterial(value: unknown): MistriFlooringMaterial | null {
   if (typeof value !== 'string') return null;
+  if (value === 'cement_finish') return 'smooth_cement_finish';
   if (ASSAM_FLOORING_MATERIAL_SET.has(value)) return value as MistriFlooringMaterial;
   return null;
 }
@@ -2344,18 +2350,22 @@ export function validateMistriFloorWorkInput(input: {
       }
       if (fw.includeFineFlooring !== true && fw.includeFineFlooring !== false) {
         return {
-          error: 'Choose whether you want flooring (Tile / Marble) for Assam Type.',
+          error: 'Choose whether you want flooring (Tile / Marble / Smooth Cement Finish) for Assam Type.',
         };
       }
       if (fw.includeFineFlooring && !fw.flooringMaterial) {
-        return { error: 'Select flooring material (Tile or Marble) for Assam Type.' };
+        return {
+          error: 'Select flooring material (Tile, Marble, or Smooth Cement Finish) for Assam Type.',
+        };
       }
       if (
         fw.includeFineFlooring &&
         fw.flooringMaterial &&
         !ASSAM_FLOORING_MATERIAL_SET.has(fw.flooringMaterial)
       ) {
-        return { error: 'Select flooring material (Tile or Marble) for Assam Type.' };
+        return {
+          error: 'Select flooring material (Tile, Marble, or Smooth Cement Finish) for Assam Type.',
+        };
       }
       continue;
     }
