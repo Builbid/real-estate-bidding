@@ -35,7 +35,7 @@ export function StaticPageShell({
         </NavLink>
 
         {eyebrow && (
-          <p className="mb-6 text-2xl sm:text-4xl font-bold uppercase tracking-[0.18em] text-emerald-600 dark:text-emerald-400">
+          <p className="mb-4 text-xl font-semibold uppercase tracking-wider text-emerald-400">
             {eyebrow}
           </p>
         )}
@@ -67,13 +67,15 @@ export function StaticPageShell({
   }
 
   return (
-    <div className="relative min-h-screen dark">
+    <div
+      data-page-background
+      className="relative min-h-screen bg-transparent bg-fixed bg-cover bg-center text-slate-100 dark"
+      style={{ backgroundImage: `url(${backgroundImage})` }}
+    >
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: `url(${backgroundImage})` }}
+        className="pointer-events-none absolute inset-0 bg-slate-950/80 backdrop-blur-sm"
       />
-      <div aria-hidden className="pointer-events-none absolute inset-0 bg-slate-950/85 backdrop-blur-sm" />
       <div className="relative z-10">{content}</div>
     </div>
   );
