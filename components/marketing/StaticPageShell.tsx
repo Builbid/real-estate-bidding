@@ -7,6 +7,7 @@ import { NAV_BACK_LINK } from '@/lib/navStyles';
 interface StaticPageShellProps {
   title: string;
   subtitle?: string;
+  eyebrow?: string;
   lastUpdated?: string;
   children: React.ReactNode;
   className?: string;
@@ -16,6 +17,7 @@ interface StaticPageShellProps {
 export function StaticPageShell({
   title,
   subtitle,
+  eyebrow,
   lastUpdated,
   children,
   className,
@@ -36,6 +38,11 @@ export function StaticPageShell({
             headerClassName,
           )}
         >
+          {eyebrow && (
+            <p className="mb-3 text-sm font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+              {eyebrow}
+            </p>
+          )}
           <h1 className="text-3xl sm:text-4xl font-bold text-foreground tracking-tight">{title}</h1>
           {subtitle && (
             <p className="mt-3 text-base sm:text-lg text-muted-foreground leading-relaxed">{subtitle}</p>

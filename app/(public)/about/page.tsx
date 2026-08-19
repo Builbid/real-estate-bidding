@@ -74,6 +74,7 @@ export default function AboutPage() {
     <StaticPageShell
       className="max-w-4xl"
       headerClassName="border-black/10 bg-black/[0.03] backdrop-blur-md dark:border-white/10 dark:bg-white/5 p-8 sm:p-10"
+      eyebrow="About Us"
       title="Empowering Modern Construction Bidding"
       subtitle="BuilBid is a next-generation bidding ecosystem transforming real estate construction bidding through algorithmic transparency, real-time rate discovery, and verified trade networks."
     >
