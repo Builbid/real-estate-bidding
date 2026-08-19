@@ -124,7 +124,7 @@ export function isInteractiveProjectPhase(phase: ProjectPhase): boolean {
 
 // ─── Status helpers ─────────────────────────────────────────
 export const STATUS_CONFIG = {
-  active_24h:  { label: 'Live Bidding',  color: 'emerald', badge: 'bg-emerald-500/15 text-emerald-700 border-emerald-500/30 dark:text-emerald-400' },
+  active_24h:  { label: 'Live Bidding',  color: 'emerald', badge: 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/80 dark:text-emerald-300 dark:border-emerald-700/60' },
   frozen_24h:  { label: 'Frozen',        color: 'indigo',  badge: 'bg-indigo-500/15 text-indigo-700 border-indigo-500/30 dark:text-indigo-400' },
   completed:   { label: 'Completed',     color: 'slate',   badge: 'bg-secondary text-secondary-foreground border-border' },
   cancelled:   { label: 'Cancelled',     color: 'red',     badge: 'bg-red-500/15 text-red-700 border-red-500/30 dark:text-red-400' },

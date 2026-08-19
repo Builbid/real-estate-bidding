@@ -61,8 +61,8 @@ export function CountdownTicker({ targetDateISO, label, className, compact = fal
     const isUrgent = hours === 0 && minutes < 30;
     return (
       <div className={cn('flex items-center gap-1.5', className)}>
-        <Clock className={cn('w-3.5 h-3.5', isUrgent ? 'text-red-400 animate-pulse' : 'text-emerald-400')} />
-        <span className={cn('font-mono text-sm font-semibold tabular-nums', isUrgent ? 'text-red-400' : 'text-emerald-400')}>
+        <Clock className={cn('w-3.5 h-3.5', isUrgent ? 'text-red-600 animate-pulse dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400')} />
+        <span className={cn('font-mono text-sm font-bold tabular-nums', isUrgent ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400')}>
           {formatted}
         </span>
       </div>
@@ -75,7 +75,7 @@ export function CountdownTicker({ targetDateISO, label, className, compact = fal
     <div className={cn('flex flex-col gap-2', className)}>
       {label && (
         <div className="flex items-center gap-1.5">
-          <Clock className={cn('w-3.5 h-3.5', isUrgent ? 'text-red-400 animate-pulse' : 'text-emerald-400')} />
+          <Clock className={cn('w-3.5 h-3.5', isUrgent ? 'text-red-600 animate-pulse dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400')} />
           <span className="text-xs text-muted-foreground font-medium">{label}</span>
         </div>
       )}

@@ -1,8 +1,8 @@
 /** Explicit Tailwind classes for dashboard stat icons (dynamic `bg-${color}` does not compile). */
 export const STAT_ICON_STYLES = {
   emerald: {
-    box: 'bg-emerald-500/10 border-emerald-500/20',
-    icon: 'text-emerald-500 dark:text-emerald-400',
+    box: 'bg-emerald-100 border-emerald-300 dark:bg-emerald-950/80 dark:border-emerald-700/60',
+    icon: 'text-emerald-600 dark:text-emerald-400',
   },
   indigo: {
     box: 'bg-indigo-500/10 border-indigo-500/20',

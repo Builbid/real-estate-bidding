@@ -212,8 +212,8 @@ export default async function OwnerDashboard() {
       {liveAuctions.length > 0 && (
         <div>
           <div className="flex items-center gap-2 mb-4">
-            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <h2 className="text-base font-semibold text-foreground">Live Auctions</h2>
+            <div className="w-2 h-2 rounded-full bg-emerald-600 dark:bg-emerald-400 animate-pulse" />
+            <h2 className="text-base font-bold text-emerald-600 dark:text-emerald-400">Live Auctions</h2>
           </div>
           <div className="space-y-4">
             {liveAuctions.map((bundle) => (

@@ -59,8 +59,8 @@ function OwnerLiveProjectCardBody({
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2 mb-1">
             {phase === 'live' && (
-              <Badge variant="emerald">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <Badge variant="emerald" className="bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/80 dark:text-emerald-300 dark:border-emerald-700/60">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 dark:bg-emerald-400 animate-pulse" />
                 Live Bidding
               </Badge>
             )}
@@ -97,7 +97,7 @@ function OwnerLiveProjectCardBody({
         <div className="flex items-center gap-3 flex-shrink-0">
           {phase === 'live' && (
             <div className="flex flex-col items-end gap-0.5">
-              <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Closes in</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Closes in</span>
               <AuctionCountdown targetDateISO={project.bidding_ends_at} projectId={project.id} compact />
             </div>
           )}
@@ -117,9 +117,9 @@ function OwnerLiveProjectCardBody({
         {(phase === 'live' || canSelect) && (
           <div className="flex flex-wrap items-start gap-4">
             {phase === 'live' && (
-              <Card className="border-emerald-500/20 flex-shrink-0">
+              <Card className="flex-shrink-0 border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800">
                 <CardHeader className="pb-1 pt-3 px-4">
-                  <CardTitle className="text-[10px] text-emerald-400 uppercase tracking-wider">
+                  <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
                     Bidding Closes In
                   </CardTitle>
                 </CardHeader>
@@ -161,9 +161,9 @@ function OwnerLiveProjectCardBody({
         )}
 
         {phase === 'live' && (
-          <div className="p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/15 flex items-start gap-3">
-            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse mt-1.5 flex-shrink-0" />
-            <p className="text-xs text-emerald-300">
+          <div className="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-800/60 dark:bg-emerald-950/50">
+            <div className="mt-1.5 h-2 w-2 flex-shrink-0 rounded-full bg-emerald-600 animate-pulse dark:bg-emerald-400" />
+            <p className="text-xs text-slate-700 dark:text-slate-200">
               Live auction in progress. {isFirm ? 'Firm' : 'Builder'} names and profile photos are visible on the
               leaderboard; contact details stay private. Rankings update in real-time.
             </p>
