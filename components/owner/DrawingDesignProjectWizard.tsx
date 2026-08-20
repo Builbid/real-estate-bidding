@@ -24,7 +24,6 @@ import {
   DRAWING_SUBMISSION_TIME_OPTIONS,
   buildingTypesFromDrawingFloors,
   drawingTypesFromPackages,
-  formatDrawingPackagesSummary,
   getDrawingWorkRequirementBlocks,
   validateDrawingDetailsInput,
   type DrawingDeliverable,
@@ -161,8 +160,6 @@ export function DrawingDesignProjectWizard() {
     const autoTitle = generateProjectTitle({
       serviceType: 'drawing_design',
       district: districtSelection.district,
-      buildingTypes: buildingTypesFromDrawingFloors(validated.details.numberOfFloors),
-      scopeLabel: formatDrawingPackagesSummary(validated.details.packages),
     });
 
     const result = await createProjectAction({
@@ -189,8 +186,6 @@ export function DrawingDesignProjectWizard() {
   const previewTitle = generateProjectTitle({
     serviceType: 'drawing_design',
     district: districtSelection?.district ?? form.location,
-    scopeLabel:
-      form.packages.length > 0 ? formatDrawingPackagesSummary(form.packages) : null,
   });
   const reviewDetails = validatedDetails();
   const reviewBlocks =

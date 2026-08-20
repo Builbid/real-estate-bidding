@@ -40,7 +40,6 @@ import {
   PLUMBING_TARGET_FLOOR_OPTIONS,
   emptyBathroomPackageSelections,
   houseStructureToTrackType,
-  getTradeScopeLabel,
   getTradeWorkRequirementBlocks,
   isCustomTradeWorkService,
   validateTradeDetailsInput,
@@ -163,25 +162,10 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
   const isCustomTrade = isCustomTradeWorkService(trade);
 
   const districtSelection = parseAssamDistrictSelection(form.location);
-  const previewTradeDetails = isCustomTrade ? validatedTradeDetails() : null;
-  const previewScope =
-    previewTradeDetails && !('error' in previewTradeDetails)
-      ? getTradeScopeLabel(previewTradeDetails.details)
-      : null;
-  const previewTitle = generateProjectTitle(
-    isPainter
-      ? {
-          serviceType: trade,
-          district: districtSelection?.district ?? form.location,
-          paintingScope: form.paintingScope,
-        }
-      : {
-          serviceType: trade,
-          district: districtSelection?.district ?? form.location,
-          trackType: form.track_type,
-          scopeLabel: previewScope,
-        },
-  );
+  const previewTitle = generateProjectTitle({
+    serviceType: trade,
+    district: districtSelection?.district ?? form.location,
+  });
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -393,20 +377,10 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
       tradeDetails = validated.details;
     }
 
-    const autoTitle = generateProjectTitle(
-      isPainter
-        ? {
-            serviceType: trade,
-            district: districtSelection.district,
-            paintingScope: form.paintingScope,
-          }
-        : {
-            serviceType: trade,
-            district: districtSelection.district,
-            trackType: form.track_type,
-            scopeLabel: tradeDetails ? getTradeScopeLabel(tradeDetails) : null,
-          },
-    );
+    const autoTitle = generateProjectTitle({
+      serviceType: trade,
+      district: districtSelection.district,
+    });
 
     const result = await createProjectAction({
       title: autoTitle,

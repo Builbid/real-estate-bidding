@@ -95,7 +95,6 @@ export function ConstructionFirmProjectWizard() {
   const previewTitle = generateProjectTitle({
     serviceType: 'construction_firm',
     district: districtSelection?.district ?? form.location,
-    buildingTypes: form.building_types,
   });
 
   function tryGoStep2() {
@@ -148,7 +147,6 @@ export function ConstructionFirmProjectWizard() {
     const autoTitle = generateProjectTitle({
       serviceType: 'construction_firm',
       district: districtSelection.district,
-      buildingTypes: form.building_types,
     });
 
     const result = await createProjectAction({

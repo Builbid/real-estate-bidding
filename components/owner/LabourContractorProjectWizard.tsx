@@ -366,9 +366,6 @@ export function LabourContractorProjectWizard() {
   const previewTitle = generateProjectTitle({
     serviceType: 'labour_contractor',
     district: districtSelection?.district ?? form.location,
-    activityCategory: form.activityCategory,
-    floorWork: assembledFloorWork,
-    buildingTypes: form.buildingTypes,
   });
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
@@ -687,9 +684,6 @@ export function LabourContractorProjectWizard() {
     const autoTitle = generateProjectTitle({
       serviceType: 'labour_contractor',
       district: districtSelection.district,
-      activityCategory: form.activityCategory,
-      floorWork: validated.details.floorWork,
-      buildingTypes: form.buildingTypes,
     });
 
     const result = await createProjectAction({
