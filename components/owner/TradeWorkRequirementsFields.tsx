@@ -54,6 +54,7 @@ export interface TradeWorkFormFields {
   houseStructure: PlumbingHouseStructure | null;
   targetFloors: PlumbingTargetFloor[];
   targetWorkFloor: PlumbingTargetFloor | null;
+  customTargetFloors: string;
   buildingStoreys: PlumbingBuildingStoreys | null;
   approxBuiltUpAreaSqft: string;
   selectedPackages: PlumbingPackageKind[];

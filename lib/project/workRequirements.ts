@@ -87,6 +87,7 @@ export function isWideRequirementLabel(label: string): boolean {
     label === 'House Structure' ||
     label === 'Building Structure Type' ||
     label === 'Target Work Floor' ||
+    label === 'Custom / Higher Floors' ||
     label === 'Total Floors in Building' ||
     label === 'Approx Built-Up Area' ||
     label === 'Bathroom Fittings Rate' ||

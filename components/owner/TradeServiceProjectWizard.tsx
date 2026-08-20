@@ -36,7 +36,6 @@ import {
   type PainterSurfaceCondition,
 } from '@/lib/painterDetails';
 import {
-  PLUMBING_BUILDING_STOREYS_OPTIONS,
   PLUMBING_HOUSE_STRUCTURE_OPTIONS,
   PLUMBING_TARGET_FLOOR_OPTIONS,
   emptyBathroomPackageSelections,
@@ -100,6 +99,7 @@ const EMPTY_FORM: FormState = {
   houseStructure: null,
   targetFloors: [],
   targetWorkFloor: null,
+  customTargetFloors: '',
   buildingStoreys: null,
   approxBuiltUpAreaSqft: '',
   selectedPackages: [],
@@ -150,7 +150,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
     pincode?: string;
     houseStructure?: string;
     targetWorkFloor?: string;
-    buildingStoreys?: string;
+    customTargetFloors?: string;
     approxBuiltUpAreaSqft?: string;
   }>({});
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
@@ -189,8 +189,9 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
       key === 'villageTownName' ||
       key === 'pincode' ||
       key === 'houseStructure' ||
+      key === 'targetFloors' ||
       key === 'targetWorkFloor' ||
-      key === 'buildingStoreys' ||
+      key === 'customTargetFloors' ||
       key === 'approxBuiltUpAreaSqft'
     )) {
       setStep1Errors((errors) => {
@@ -199,8 +200,8 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
         if (key === 'villageTownName') delete next.villageTownName;
         if (key === 'pincode') delete next.pincode;
         if (key === 'houseStructure') delete next.houseStructure;
-        if (key === 'targetWorkFloor') delete next.targetWorkFloor;
-        if (key === 'buildingStoreys') delete next.buildingStoreys;
+        if (key === 'targetFloors' || key === 'targetWorkFloor') delete next.targetWorkFloor;
+        if (key === 'customTargetFloors') delete next.customTargetFloors;
         if (key === 'approxBuiltUpAreaSqft') delete next.approxBuiltUpAreaSqft;
         return next;
       });
@@ -234,11 +235,11 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
       if (!form.houseStructure) {
         errors.houseStructure = 'Select RCC Building or Assam Type.';
       }
-      if (!form.targetWorkFloor) {
-        errors.targetWorkFloor = 'Select the target work floor.';
+      if (form.targetFloors.length === 0) {
+        errors.targetWorkFloor = 'Select at least one target work floor.';
       }
-      if (!form.buildingStoreys) {
-        errors.buildingStoreys = 'Select the total floors in the building.';
+      if (form.targetFloors.includes('custom') && !form.customTargetFloors.trim()) {
+        errors.customTargetFloors = 'Enter the custom / higher floor numbers.';
       }
       const area = parseFloat(form.approxBuiltUpAreaSqft.replace(/,/g, '').trim());
       if (!Number.isFinite(area) || area <= 0) {
@@ -275,8 +276,9 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
       tankDistance: form.tankDistance,
       fittingType: form.fittingType,
       houseStructure: form.houseStructure,
-      targetFloors: form.targetWorkFloor ? [form.targetWorkFloor] : form.targetFloors,
-      targetWorkFloor: form.targetWorkFloor,
+      targetFloors: form.targetFloors,
+      targetWorkFloor: form.targetFloors[0] ?? form.targetWorkFloor,
+      customTargetFloors: form.customTargetFloors,
       buildingStoreys: form.buildingStoreys,
       approxBuiltUpAreaSqft: form.approxBuiltUpAreaSqft,
       selectedPackages: form.selectedPackages,
@@ -540,9 +542,6 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                                 ...current,
                                 houseStructure: opt.value,
                                 track_type: houseStructureToTrackType(opt.value),
-                                targetWorkFloor: opt.value === 'assam_type' ? current.targetWorkFloor ?? 'ground' : current.targetWorkFloor,
-                                targetFloors: opt.value === 'assam_type' ? ['ground'] : current.targetWorkFloor ? [current.targetWorkFloor] : [],
-                                buildingStoreys: opt.value === 'assam_type' ? current.buildingStoreys ?? 'single' : current.buildingStoreys,
                                 plumbingFloorLevel: opt.value === 'assam_type' ? 'ground' : current.plumbingFloorLevel,
                                 waterTankFloor: opt.value === 'assam_type' ? null : current.waterTankFloor,
                               }));
@@ -579,30 +578,44 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                     </label>
                     <OptionSelectGrid
                       options={PLUMBING_TARGET_FLOOR_OPTIONS}
-                      value={form.targetWorkFloor}
-                      onSelect={(floor) => {
-                        update('targetWorkFloor', floor);
-                        update('targetFloors', [floor]);
+                      values={form.targetFloors}
+                      onToggle={(floor) => {
+                        setForm((current) => {
+                          const next = current.targetFloors.includes(floor)
+                            ? current.targetFloors.filter((item) => item !== floor)
+                            : [...current.targetFloors, floor];
+                          return {
+                            ...current,
+                            targetFloors: next,
+                            targetWorkFloor: next[0] ?? null,
+                            customTargetFloors: next.includes('custom') ? current.customTargetFloors : '',
+                          };
+                        });
+                        if (step1ValidationAttempted) {
+                          setStep1Errors((errors) => {
+                            const nextErrors = { ...errors };
+                            delete nextErrors.targetWorkFloor;
+                            if (floor === 'custom' && form.targetFloors.includes('custom')) {
+                              delete nextErrors.customTargetFloors;
+                            }
+                            return nextErrors;
+                          });
+                        }
                       }}
                       columns={2}
                     />
+                    {form.targetFloors.includes('custom') ? (
+                      <Input
+                        label="Specify Custom Floors"
+                        type="text"
+                        placeholder="e.g. 3rd, 4th & Terrace"
+                        value={form.customTargetFloors}
+                        onChange={(e) => update('customTargetFloors', e.target.value)}
+                        error={step1ValidationAttempted ? step1Errors.customTargetFloors : undefined}
+                      />
+                    ) : null}
                     {step1ValidationAttempted && step1Errors.targetWorkFloor ? (
                       <p className="text-xs font-medium text-red-400">{step1Errors.targetWorkFloor}</p>
-                    ) : null}
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-semibold text-gray-800 dark:text-zinc-100 uppercase tracking-wider">
-                      Total Floors in Building
-                    </label>
-                    <OptionSelectGrid
-                      options={PLUMBING_BUILDING_STOREYS_OPTIONS}
-                      value={form.buildingStoreys}
-                      onSelect={(value) => update('buildingStoreys', value)}
-                      columns={2}
-                    />
-                    {step1ValidationAttempted && step1Errors.buildingStoreys ? (
-                      <p className="text-xs font-medium text-red-400">{step1Errors.buildingStoreys}</p>
                     ) : null}
                   </div>
 

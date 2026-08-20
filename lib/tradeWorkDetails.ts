@@ -51,7 +51,7 @@ export type PlumbingFloorLevel = 'ground' | 'first' | 'second_plus';
 
 export type PlumbingHouseStructure = 'assam_type' | 'rcc';
 
-export type PlumbingTargetFloor = 'ground' | 'first' | 'second' | 'third_plus';
+export type PlumbingTargetFloor = 'ground' | 'first' | 'second' | 'custom';
 
 export type PlumbingBuildingStoreys = 'single' | 'g_plus_1' | 'g_plus_2' | 'g_plus_3_plus';
 
@@ -199,9 +199,11 @@ export interface PlumberDetails extends TradeDetailsBase {
   bathroomPackages?: BathroomPackageSelection[];
   /** Concealing vs open fitting package for tap supply lines. */
   pipingPackage?: PipingPackageKind | null;
-  /** Single target work floor collected on Step 1. */
+  /** Primary / first selected target work floor (legacy single-select). */
   targetWorkFloor?: PlumbingTargetFloor | null;
-  /** Total storeys in the building. */
+  /** Free-text floors when `custom` is among the selected target floors. */
+  customTargetFloors?: string | null;
+  /** Total storeys in the building (optional; no longer collected on Step 1). */
   buildingStoreys?: PlumbingBuildingStoreys | null;
   /** Approximate built-up area in square feet. */
   approxBuiltUpAreaSqft?: number | null;
@@ -391,7 +393,7 @@ export const PLUMBING_TARGET_FLOOR_OPTIONS: {
   { value: 'ground', label: 'Ground Floor' },
   { value: 'first', label: '1st Floor' },
   { value: 'second', label: '2nd Floor' },
-  { value: 'third_plus', label: '3rd Floor+' },
+  { value: 'custom', label: 'Custom / Higher Floors' },
 ];
 
 export const PLUMBING_BUILDING_STOREYS_OPTIONS: {
@@ -691,7 +693,6 @@ const BATHROOM_PACKAGE_SET = new Set(BATHROOM_PACKAGE_OPTIONS.map((o) => o.value
 const BATHROOM_ROOM_SIZE_SET = new Set(BATHROOM_ROOM_SIZE_OPTIONS.map((o) => o.value));
 const PLUMBING_FLOOR_LEVEL_SET = new Set(PLUMBING_FLOOR_LEVEL_OPTIONS.map((o) => o.value));
 const PLUMBING_HOUSE_STRUCTURE_SET = new Set(PLUMBING_HOUSE_STRUCTURE_OPTIONS.map((o) => o.value));
-const PLUMBING_TARGET_FLOOR_SET = new Set(PLUMBING_TARGET_FLOOR_OPTIONS.map((o) => o.value));
 const PLUMBING_BUILDING_STOREYS_SET = new Set(PLUMBING_BUILDING_STOREYS_OPTIONS.map((o) => o.value));
 const PLUMBING_PACKAGE_KIND_SET = new Set(PLUMBING_SCOPE_PACKAGES.map((o) => o.id));
 const PLUMBING_SUB_OPTION_SET = new Set(ALL_PLUMBING_SUB_OPTIONS.map((o) => o.id));
@@ -867,8 +868,29 @@ export function parseDrainageInstallMethods(raw: unknown): DrainageInstallMethod
   return parseUniqueEnumList(raw, DRAINAGE_INSTALL_METHOD_SET);
 }
 
+export function normalizePlumbingTargetFloor(raw: unknown): PlumbingTargetFloor | null {
+  if (raw === 'third_plus' || raw === 'custom') return 'custom';
+  if (raw === 'ground' || raw === 'first' || raw === 'second') return raw;
+  return null;
+}
+
 export function parsePlumbingTargetFloors(raw: unknown): PlumbingTargetFloor[] {
-  return parseUniqueEnumList(raw, PLUMBING_TARGET_FLOOR_SET);
+  if (!Array.isArray(raw)) {
+    const single = normalizePlumbingTargetFloor(raw);
+    return single ? [single] : [];
+  }
+  const next: PlumbingTargetFloor[] = [];
+  for (const item of raw) {
+    const floor = normalizePlumbingTargetFloor(item);
+    if (floor && !next.includes(floor)) next.push(floor);
+  }
+  return next;
+}
+
+export function parseCustomTargetFloors(raw: unknown): string | null {
+  if (typeof raw !== 'string') return null;
+  const trimmed = raw.trim();
+  return trimmed || null;
 }
 
 export function parsePlumbingPackageKinds(raw: unknown): PlumbingPackageKind[] {
@@ -924,6 +946,15 @@ export function buildingStoreysToTotalFloors(
   return PLUMBING_BUILDING_STOREYS_OPTIONS.find((o) => o.value === value)?.totalFloors ?? 1;
 }
 
+export function targetFloorsToTotalFloors(
+  floors: PlumbingTargetFloor[] | null | undefined,
+): 1 | 2 | 3 {
+  if (!floors?.length) return 1;
+  if (floors.includes('custom') || floors.includes('second')) return 3;
+  if (floors.includes('first')) return 2;
+  return 1;
+}
+
 export function subOptionsForPackages(
   packages: PlumbingPackageKind[],
   selected: PlumbingSubOptionId[],
@@ -954,10 +985,7 @@ export function formatPlumbingSubOptionSummary(
 }
 
 export function parseBathroomPackageTargetFloor(raw: unknown): PlumbingTargetFloor | null {
-  if (typeof raw !== 'string' || !PLUMBING_TARGET_FLOOR_SET.has(raw as PlumbingTargetFloor)) {
-    return null;
-  }
-  return raw as PlumbingTargetFloor;
+  return normalizePlumbingTargetFloor(raw);
 }
 
 export function parseBathroomPackageSelections(raw: unknown): BathroomPackageSelection[] {
@@ -1035,6 +1063,20 @@ export function getPlumbingTargetFloorLabel(value: PlumbingTargetFloor): string 
   return PLUMBING_TARGET_FLOOR_OPTIONS.find((o) => o.value === value)?.label ?? value;
 }
 
+export function formatPlumbingTargetWorkFloors(
+  floors: PlumbingTargetFloor[] | null | undefined,
+  customText?: string | null,
+): string {
+  if (!floors?.length) return '';
+  return floors
+    .map((floor) =>
+      floor === 'custom' && customText?.trim()
+        ? customText.trim()
+        : getPlumbingTargetFloorLabel(floor),
+    )
+    .join(', ');
+}
+
 export function getPipingPackageLabel(value: PipingPackageKind | null | undefined): string {
   if (!value) return '';
   return PIPING_PACKAGE_OPTIONS.find((o) => o.value === value)?.label ?? value;
@@ -1058,7 +1100,7 @@ export function targetFloorToPlumbingFloorLevel(
   floors: PlumbingTargetFloor[] | null | undefined,
 ): PlumbingFloorLevel {
   if (!floors?.length) return 'ground';
-  if (floors.includes('second') || floors.includes('third_plus')) return 'second_plus';
+  if (floors.includes('second') || floors.includes('custom')) return 'second_plus';
   if (floors.includes('first')) return 'first';
   return 'ground';
 }
@@ -1245,11 +1287,9 @@ export function parseTradeDetails(value: unknown): TradeDetails | null {
       selectedPackages,
       parsePlumbingSubOptionIds(v.selectedSubOptions),
     );
-    const targetWorkFloor =
-      typeof v.targetWorkFloor === 'string' &&
-      PLUMBING_TARGET_FLOOR_SET.has(v.targetWorkFloor as PlumbingTargetFloor)
-        ? (v.targetWorkFloor as PlumbingTargetFloor)
-        : parsePlumbingTargetFloors(v.targetFloors)[0] ?? null;
+    const parsedTargetFloors = parsePlumbingTargetFloors(v.targetFloors);
+    const parsedWorkFloor = normalizePlumbingTargetFloor(v.targetWorkFloor);
+    const customTargetFloors = parseCustomTargetFloors(v.customTargetFloors);
     const buildingStoreys =
       typeof v.buildingStoreys === 'string' &&
       PLUMBING_BUILDING_STOREYS_SET.has(v.buildingStoreys as PlumbingBuildingStoreys)
@@ -1259,13 +1299,14 @@ export function parseTradeDetails(value: unknown): TradeDetails | null {
     const waterTankFloor = parsePlumbingWaterTankFloor(v.waterTankFloor);
     const packageFloors = floorsFromBathroomPackages(bathroomPackages);
     const targetFloors =
-      targetWorkFloor
-        ? ([targetWorkFloor] as PlumbingTargetFloor[])
-        : houseStructure === 'assam_type'
-          ? (['ground'] as PlumbingTargetFloor[])
-          : packageFloors.length > 0
-            ? packageFloors
-            : parsePlumbingTargetFloors(v.targetFloors);
+      parsedTargetFloors.length > 0
+        ? parsedTargetFloors
+        : parsedWorkFloor
+          ? ([parsedWorkFloor] as PlumbingTargetFloor[])
+          : houseStructure === 'assam_type'
+            ? (['ground'] as PlumbingTargetFloor[])
+            : packageFloors;
+    const targetWorkFloor = parsedWorkFloor ?? targetFloors[0] ?? null;
     const pipingPackage =
       typeof v.pipingPackage === 'string' &&
       PIPING_PACKAGE_SET.has(v.pipingPackage as PipingPackageKind)
@@ -1300,6 +1341,7 @@ export function parseTradeDetails(value: unknown): TradeDetails | null {
       houseStructure,
       targetFloors,
       targetWorkFloor: targetWorkFloor ?? targetFloors[0] ?? null,
+      customTargetFloors: targetFloors.includes('custom') ? customTargetFloors : null,
       buildingStoreys,
       approxBuiltUpAreaSqft,
       selectedPackages,
@@ -1484,17 +1526,16 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
           value: getPlumbingHouseStructureLabel(details.houseStructure),
         });
       }
-      const workFloor = details.targetWorkFloor ?? details.targetFloors?.[0];
-      if (workFloor) {
+      const workFloors =
+        details.targetFloors && details.targetFloors.length > 0
+          ? details.targetFloors
+          : details.targetWorkFloor
+            ? [details.targetWorkFloor]
+            : [];
+      if (workFloors.length > 0) {
         blocks.push({
           label: 'Target Work Floor',
-          value: getPlumbingTargetFloorLabel(workFloor),
-        });
-      }
-      if (details.buildingStoreys) {
-        blocks.push({
-          label: 'Total Floors in Building',
-          value: getPlumbingBuildingStoreysLabel(details.buildingStoreys),
+          value: formatPlumbingTargetWorkFloors(workFloors, details.customTargetFloors),
         });
       }
       if (details.approxBuiltUpAreaSqft != null) {
@@ -1906,6 +1947,7 @@ export interface TradeDetailsFormInput {
   houseStructure?: PlumbingHouseStructure | null;
   targetFloors?: PlumbingTargetFloor[];
   targetWorkFloor?: PlumbingTargetFloor | null;
+  customTargetFloors?: string | null;
   buildingStoreys?: PlumbingBuildingStoreys | null;
   approxBuiltUpAreaSqft?: string | number | null;
   selectedPackages?: PlumbingPackageKind[];
@@ -1963,20 +2005,27 @@ export function validateTradeDetailsInput(
     if (!houseStructure) {
       return { error: 'Select the building structure type.' };
     }
-    const targetWorkFloor =
-      input.targetWorkFloor && PLUMBING_TARGET_FLOOR_SET.has(input.targetWorkFloor)
-        ? input.targetWorkFloor
-        : parsePlumbingTargetFloors(input.targetFloors)[0] ?? null;
-    if (!targetWorkFloor) {
-      return { error: 'Select the target work floor.' };
+    const targetFloors = parsePlumbingTargetFloors(
+      input.targetFloors?.length
+        ? input.targetFloors
+        : input.targetWorkFloor
+          ? [input.targetWorkFloor]
+          : [],
+    );
+    if (targetFloors.length === 0) {
+      return { error: 'Select at least one target work floor.' };
     }
+    const customTargetFloors = targetFloors.includes('custom')
+      ? parseCustomTargetFloors(input.customTargetFloors)
+      : null;
+    if (targetFloors.includes('custom') && !customTargetFloors) {
+      return { error: 'Enter the custom / higher floor numbers.' };
+    }
+    const targetWorkFloor = targetFloors[0];
     const buildingStoreys =
       input.buildingStoreys && PLUMBING_BUILDING_STOREYS_SET.has(input.buildingStoreys)
         ? input.buildingStoreys
         : null;
-    if (!buildingStoreys) {
-      return { error: 'Select the total floors in the building.' };
-    }
     const approxBuiltUpAreaSqft = parsePositiveNumber(input.approxBuiltUpAreaSqft);
     if (approxBuiltUpAreaSqft == null) {
       return { error: 'Enter the approximate built-up area in Sq Ft.' };
@@ -2013,7 +2062,6 @@ export function validateTradeDetailsInput(
       ? 'concealing'
       : 'non_concealing';
     const smart = resolvePlumbingPackageDefaults(pipingPackage);
-    const targetFloors = [targetWorkFloor] as PlumbingTargetFloor[];
     return {
       details: {
         ...base,
@@ -2030,6 +2078,7 @@ export function validateTradeDetailsInput(
         houseStructure,
         targetFloors,
         targetWorkFloor,
+        customTargetFloors,
         buildingStoreys,
         approxBuiltUpAreaSqft,
         selectedPackages,
