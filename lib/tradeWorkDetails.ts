@@ -61,6 +61,8 @@ export interface BathroomPackageSelection {
   package: BathroomPackage;
   quantity: number;
   size: BathroomRoomSize | null;
+  /** Storey for this package. Assam Type is always `ground`. */
+  targetFloor: PlumbingTargetFloor | null;
 }
 
 export type CpvcPipeSize =
@@ -295,21 +297,25 @@ export const BATHROOM_PACKAGE_OPTIONS: {
 export const BATHROOM_ROOM_SIZE_OPTIONS: {
   value: BathroomRoomSize;
   label: string;
+  compactLabel: string;
   description: string;
 }[] = [
   {
     value: 'standard',
     label: 'Standard (up to 5x7 ft)',
+    compactLabel: '5x7 ft',
     description: 'Compact bathroom typical of common WCs.',
   },
   {
     value: 'large',
     label: 'Large (5x8 ft to 8x10 ft)',
+    compactLabel: '6x8 ft',
     description: 'Primary bathroom with extra fixture spacing.',
   },
   {
     value: 'extra_large',
     label: 'Extra Large (10x12 ft+)',
+    compactLabel: '10x12 ft+',
     description: 'Wide luxury layout with extra piping runs.',
   },
 ];
@@ -330,7 +336,7 @@ export const PLUMBING_HOUSE_STRUCTURE_OPTIONS: {
     value: 'rcc',
     trackType: 'RCC',
     label: 'RCC Building',
-    description: 'Select every floor that needs plumbing work.',
+    description: 'Choose the target floor for each bathroom package in Work Requirements.',
   },
 ];
 
@@ -338,7 +344,7 @@ export const PLUMBING_TARGET_FLOOR_OPTIONS: {
   value: PlumbingTargetFloor;
   label: string;
 }[] = [
-  { value: 'ground', label: 'Ground' },
+  { value: 'ground', label: 'Ground Floor' },
   { value: 'first', label: '1st Floor' },
   { value: 'second', label: '2nd Floor' },
   { value: 'third_plus', label: '3rd Floor+' },
@@ -739,6 +745,13 @@ export function parsePlumbingTargetFloors(raw: unknown): PlumbingTargetFloor[] {
   return parseUniqueEnumList(raw, PLUMBING_TARGET_FLOOR_SET);
 }
 
+export function parseBathroomPackageTargetFloor(raw: unknown): PlumbingTargetFloor | null {
+  if (typeof raw !== 'string' || !PLUMBING_TARGET_FLOOR_SET.has(raw as PlumbingTargetFloor)) {
+    return null;
+  }
+  return raw as PlumbingTargetFloor;
+}
+
 export function parseBathroomPackageSelections(raw: unknown): BathroomPackageSelection[] {
   if (!Array.isArray(raw)) return [];
   const byPackage = new Map<BathroomPackage, BathroomPackageSelection>();
@@ -754,12 +767,15 @@ export function parseBathroomPackageSelections(raw: unknown): BathroomPackageSel
       typeof row.size === 'string' && BATHROOM_ROOM_SIZE_SET.has(row.size as BathroomRoomSize)
         ? (row.size as BathroomRoomSize)
         : null;
-    byPackage.set(pkg, { package: pkg, quantity, size });
+    const targetFloor =
+      quantity > 0 ? parseBathroomPackageTargetFloor(row.targetFloor) : null;
+    byPackage.set(pkg, { package: pkg, quantity, size, targetFloor });
   }
   return BATHROOM_PACKAGE_OPTIONS.map((opt) => byPackage.get(opt.value) ?? {
     package: opt.value,
     quantity: 0,
     size: null,
+    targetFloor: null,
   });
 }
 
@@ -781,6 +797,13 @@ export function getBathroomPackageShortLabel(value: BathroomPackage | null | und
 export function getBathroomRoomSizeLabel(value: BathroomRoomSize | null | undefined): string {
   if (!value) return '';
   return BATHROOM_ROOM_SIZE_OPTIONS.find((o) => o.value === value)?.label ?? value;
+}
+
+export function getBathroomRoomSizeCompactLabel(
+  value: BathroomRoomSize | null | undefined,
+): string {
+  if (!value) return '';
+  return BATHROOM_ROOM_SIZE_OPTIONS.find((o) => o.value === value)?.compactLabel ?? value;
 }
 
 export function getPlumbingFloorLevelLabel(value: PlumbingFloorLevel | null | undefined): string {
@@ -837,7 +860,35 @@ export function emptyBathroomPackageSelections(): BathroomPackageSelection[] {
     package: pkg.value,
     quantity: 0,
     size: null,
+    targetFloor: null,
   }));
+}
+
+export function applyBathroomPackageHouseStructure(
+  selections: BathroomPackageSelection[],
+  houseStructure: PlumbingHouseStructure | null,
+): BathroomPackageSelection[] {
+  return selections.map((item) => {
+    if (item.quantity <= 0) {
+      return { ...item, targetFloor: null };
+    }
+    if (houseStructure === 'assam_type') {
+      return { ...item, targetFloor: 'ground' };
+    }
+    return item;
+  });
+}
+
+export function floorsFromBathroomPackages(
+  selections: BathroomPackageSelection[] | null | undefined,
+): PlumbingTargetFloor[] {
+  const floors: PlumbingTargetFloor[] = [];
+  for (const item of activeBathroomPackageSelections(selections)) {
+    if (item.targetFloor && !floors.includes(item.targetFloor)) {
+      floors.push(item.targetFloor);
+    }
+  }
+  return floors;
 }
 
 export function activeBathroomPackageSelections(
@@ -846,18 +897,30 @@ export function activeBathroomPackageSelections(
   return (selections ?? []).filter((item) => item.quantity > 0);
 }
 
+export function formatBathroomPackageItem(item: BathroomPackageSelection): string {
+  const name = getBathroomPackageShortLabel(item.package);
+  const floor = item.targetFloor
+    ? ` - ${getPlumbingTargetFloorLabel(item.targetFloor)}`
+    : '';
+  const size = item.size ? ` (${getBathroomRoomSizeCompactLabel(item.size)})` : '';
+  return `${item.quantity}x ${name} Bathroom${floor}${size}`;
+}
+
+export function formatBathroomPackageBidLabel(item: BathroomPackageSelection): string {
+  const name = getBathroomPackageShortLabel(item.package);
+  const floor = item.targetFloor
+    ? ` — ${getPlumbingTargetFloorLabel(item.targetFloor)}`
+    : '';
+  const size = item.size ? ` (${getBathroomRoomSizeCompactLabel(item.size)})` : '';
+  return `${name} Bathroom Package Rate × ${item.quantity}${floor}${size}`;
+}
+
 export function formatBathroomPackageSelections(
   selections: BathroomPackageSelection[] | null | undefined,
 ): string {
   const active = activeBathroomPackageSelections(selections);
   if (active.length === 0) return '';
-  return active
-    .map((item) => {
-      const name = getBathroomPackageShortLabel(item.package);
-      const size = item.size ? ` · ${getBathroomRoomSizeLabel(item.size)}` : '';
-      return `${item.quantity}× ${name}${size}`;
-    })
-    .join(' + ');
+  return active.map(formatBathroomPackageItem).join(' + ');
 }
 
 export function resolvePlumbingPackageDefaults(pipingPackage: PipingPackageKind): {
@@ -928,7 +991,15 @@ export function parseTradeDetails(value: unknown): TradeDetails | null {
     }
     const bathrooms = parseCount(v.bathrooms, 1, 20);
     const kitchens = parseCount(v.kitchens, 1, 10);
-    const bathroomPackages = parseBathroomPackageSelections(v.bathroomPackages);
+    const houseStructure =
+      typeof v.houseStructure === 'string' &&
+      PLUMBING_HOUSE_STRUCTURE_SET.has(v.houseStructure as PlumbingHouseStructure)
+        ? (v.houseStructure as PlumbingHouseStructure)
+        : null;
+    const bathroomPackages = applyBathroomPackageHouseStructure(
+      parseBathroomPackageSelections(v.bathroomPackages),
+      houseStructure,
+    );
     const activePackages = activeBathroomPackageSelections(bathroomPackages);
     const bathroomTotal =
       bathrooms ??
@@ -961,12 +1032,13 @@ export function parseTradeDetails(value: unknown): TradeDetails | null {
       TANK_DISTANCE_SET.has(v.tankDistance as TankDistance)
         ? (v.tankDistance as TankDistance)
         : null;
-    const houseStructure =
-      typeof v.houseStructure === 'string' &&
-      PLUMBING_HOUSE_STRUCTURE_SET.has(v.houseStructure as PlumbingHouseStructure)
-        ? (v.houseStructure as PlumbingHouseStructure)
-        : null;
-    const targetFloors = parsePlumbingTargetFloors(v.targetFloors);
+    const packageFloors = floorsFromBathroomPackages(bathroomPackages);
+    const targetFloors =
+      houseStructure === 'assam_type'
+        ? (['ground'] as PlumbingTargetFloor[])
+        : packageFloors.length > 0
+          ? packageFloors
+          : parsePlumbingTargetFloors(v.targetFloors);
     const pipingPackage =
       typeof v.pipingPackage === 'string' &&
       PIPING_PACKAGE_SET.has(v.pipingPackage as PipingPackageKind)
@@ -995,13 +1067,11 @@ export function parseTradeDetails(value: unknown): TradeDetails | null {
       bathroomSize:
         bathroomSize ??
         (activePackages[0]?.size ?? null),
-      plumbingFloorLevel,
+      plumbingFloorLevel:
+        plumbingFloorLevel ?? targetFloorToPlumbingFloorLevel(targetFloors),
       tankDistance,
       houseStructure,
-      targetFloors:
-        houseStructure === 'assam_type'
-          ? (['ground'] as PlumbingTargetFloor[])
-          : targetFloors,
+      targetFloors,
       bathroomPackages,
       pipingPackage,
       cpvcPipeSizes,
@@ -1175,16 +1245,6 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
           value: getPlumbingHouseStructureLabel(details.houseStructure),
         });
       }
-      const floors =
-        details.houseStructure === 'assam_type'
-          ? (['ground'] as PlumbingTargetFloor[])
-          : (details.targetFloors ?? []);
-      if (floors.length > 0) {
-        blocks.push({
-          label: 'Target Floors',
-          value: floors.map(getPlumbingTargetFloorLabel).join(', '),
-        });
-      }
       if (activePackages.length > 0) {
         blocks.push({
           label: 'Bathroom Packages',
@@ -1342,9 +1402,7 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
     const plumbingBidLabels: string[] = [];
     if (hasPackageSystem) {
       for (const item of activePackages) {
-        plumbingBidLabels.push(
-          `${getBathroomPackageShortLabel(item.package)} Bathroom Package Rate × ${item.quantity}`,
-        );
+        plumbingBidLabels.push(formatBathroomPackageBidLabel(item));
       }
       plumbingBidLabels.push('Tap Water Pipe — ¾ inch CPVC (₹ / Running Foot)');
       plumbingBidLabels.push('Toilet Drainage Pipe — 4-inch SWR, Non-Concealing (₹ / Running Foot)');
@@ -1602,14 +1660,10 @@ export function validateTradeDetailsInput(
     if (!houseStructure) {
       return { error: 'Select the house structure.' };
     }
-    const targetFloors =
-      houseStructure === 'assam_type'
-        ? (['ground'] as PlumbingTargetFloor[])
-        : parsePlumbingTargetFloors(input.targetFloors);
-    if (houseStructure === 'rcc' && targetFloors.length === 0) {
-      return { error: 'Select at least one target floor.' };
-    }
-    const bathroomPackages = parseBathroomPackageSelections(input.bathroomPackages);
+    const bathroomPackages = applyBathroomPackageHouseStructure(
+      parseBathroomPackageSelections(input.bathroomPackages),
+      houseStructure,
+    );
     const activePackages = activeBathroomPackageSelections(bathroomPackages);
     if (activePackages.length === 0) {
       return { error: 'Set quantity for at least one bathroom package.' };
@@ -1620,6 +1674,18 @@ export function validateTradeDetailsInput(
           error: `Select the approximate size for the ${getBathroomPackageShortLabel(item.package)} bathroom package.`,
         };
       }
+      if (houseStructure === 'rcc' && !item.targetFloor) {
+        return {
+          error: `Select the target floor for the ${getBathroomPackageShortLabel(item.package)} bathroom package.`,
+        };
+      }
+    }
+    const targetFloors =
+      houseStructure === 'assam_type'
+        ? (['ground'] as PlumbingTargetFloor[])
+        : floorsFromBathroomPackages(bathroomPackages);
+    if (houseStructure === 'rcc' && targetFloors.length === 0) {
+      return { error: 'Select a target floor for each bathroom package.' };
     }
     if (!input.pipingPackage || !PIPING_PACKAGE_SET.has(input.pipingPackage)) {
       return { error: 'Select a piping package.' };

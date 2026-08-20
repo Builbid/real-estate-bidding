@@ -97,6 +97,7 @@ export function TradeWorkRequirementsFields({
         <PlumbingPackageForm
           bathroomPackages={form.bathroomPackages}
           pipingPackage={form.pipingPackage}
+          houseStructure={form.houseStructure}
           onChangeBathroomPackages={(v) => onChange('bathroomPackages', v)}
           onChangePipingPackage={(v) => onChange('pipingPackage', v)}
         />

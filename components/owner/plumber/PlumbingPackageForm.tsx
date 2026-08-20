@@ -9,59 +9,74 @@ import {
   BATHROOM_PACKAGE_OPTIONS,
   BATHROOM_ROOM_SIZE_OPTIONS,
   PIPING_PACKAGE_OPTIONS,
+  PLUMBING_TARGET_FLOOR_OPTIONS,
+  formatBathroomPackageSelections,
   type BathroomPackage,
   type BathroomPackageSelection,
   type BathroomRoomSize,
   type PipingPackageKind,
+  type PlumbingHouseStructure,
+  type PlumbingTargetFloor,
 } from '@/lib/tradeWorkDetails';
 import { cn } from '@/lib/utils';
 
 export function PlumbingPackageForm({
   bathroomPackages,
   pipingPackage,
+  houseStructure,
   onChangeBathroomPackages,
   onChangePipingPackage,
 }: {
   bathroomPackages: BathroomPackageSelection[];
   pipingPackage: PipingPackageKind | null;
+  houseStructure: PlumbingHouseStructure | null;
   onChangeBathroomPackages: (value: BathroomPackageSelection[]) => void;
   onChangePipingPackage: (value: PipingPackageKind) => void;
 }) {
   const [openCard, setOpenCard] = useState<'bathroom' | 'piping' | null>(null);
+  const showFloorSelector = houseStructure === 'rcc';
 
   function updatePackage(pkg: BathroomPackage, patch: Partial<BathroomPackageSelection>) {
     onChangeBathroomPackages(
-      bathroomPackages.map((item) =>
-        item.package === pkg
-          ? {
-              ...item,
-              ...patch,
-              size: patch.quantity === 0 ? null : (patch.size ?? item.size),
-            }
-          : item,
-      ),
+      bathroomPackages.map((item) => {
+        if (item.package !== pkg) return item;
+        const quantity = patch.quantity ?? item.quantity;
+        const next: BathroomPackageSelection = {
+          ...item,
+          ...patch,
+          quantity,
+          size: quantity === 0 ? null : (patch.size ?? item.size),
+        };
+        if (quantity === 0) {
+          next.targetFloor = null;
+        } else if (houseStructure === 'assam_type') {
+          next.targetFloor = 'ground';
+        } else if (patch.targetFloor !== undefined) {
+          next.targetFloor = patch.targetFloor;
+        }
+        return next;
+      }),
     );
   }
 
-  const bathroomSummary = bathroomPackages
-    .filter((item) => item.quantity > 0)
-    .map((item) => {
-      const name = BATHROOM_PACKAGE_OPTIONS.find((o) => o.value === item.package)?.shortLabel;
-      return `${item.quantity}× ${name}`;
-    })
-    .join(' + ');
+  const bathroomSummary = formatBathroomPackageSelections(bathroomPackages);
 
   const pipingSummary = PIPING_PACKAGE_OPTIONS.find((o) => o.value === pipingPackage)?.label;
 
   return (
     <div className="space-y-4">
       <p className="text-xs font-medium text-gray-700 dark:text-zinc-300">
-        Open a service card to set quantities. Pipe diameters are included automatically.
+        Select one or more bathroom packages. Pipe diameters are included automatically.
+        {showFloorSelector
+          ? ' RCC buildings require a target floor on each package.'
+          : houseStructure === 'assam_type'
+            ? ' Assam Type houses default to Ground Floor.'
+            : ''}
       </p>
 
       <ExpandableServiceCard
         title="Bathroom Package"
-        subtitle={bathroomSummary || 'Tap to choose Common, Master, and Luxury quantities'}
+        subtitle={bathroomSummary || 'Tap to choose Common, Master, and Luxury packages'}
         open={openCard === 'bathroom'}
         onToggle={() => setOpenCard((current) => (current === 'bathroom' ? null : 'bathroom'))}
         selected={Boolean(bathroomSummary)}
@@ -73,6 +88,7 @@ export function PlumbingPackageForm({
                 package: pkg.value,
                 quantity: 0,
                 size: null,
+                targetFloor: null,
               };
             const active = selection.quantity > 0;
             return (
@@ -108,14 +124,29 @@ export function PlumbingPackageForm({
                   plusAtMax={false}
                 />
                 {active && (
-                  <div className="flex flex-col gap-1.5">
-                    <label className={WIZARD_SECTION_LABEL}>Approximate Size</label>
-                    <OptionSelectGrid
-                      options={BATHROOM_ROOM_SIZE_OPTIONS}
-                      value={selection.size}
-                      onSelect={(size: BathroomRoomSize) => updatePackage(pkg.value, { size })}
-                    />
-                  </div>
+                  <>
+                    <div className="flex flex-col gap-1.5">
+                      <label className={WIZARD_SECTION_LABEL}>Approximate Size (Sq. Ft.)</label>
+                      <OptionSelectGrid
+                        options={BATHROOM_ROOM_SIZE_OPTIONS}
+                        value={selection.size}
+                        onSelect={(size: BathroomRoomSize) => updatePackage(pkg.value, { size })}
+                      />
+                    </div>
+                    {showFloorSelector && (
+                      <div className="flex flex-col gap-1.5">
+                        <label className={WIZARD_SECTION_LABEL}>Target Floor</label>
+                        <OptionSelectGrid
+                          options={PLUMBING_TARGET_FLOOR_OPTIONS}
+                          value={selection.targetFloor}
+                          onSelect={(targetFloor: PlumbingTargetFloor) =>
+                            updatePackage(pkg.value, { targetFloor })
+                          }
+                          columns={2}
+                        />
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             );

@@ -14,7 +14,6 @@ import {
   parseAssamDistrictSelection,
 } from '@/components/shared/AssamDistrictAutocomplete';
 import { TradeWorkRequirementsFields, type TradeWorkFormFields } from '@/components/owner/TradeWorkRequirementsFields';
-import { OptionSelectGrid } from '@/components/owner/wizard/OptionSelectCard';
 import { generateProjectTitle } from '@/lib/generateProjectTitle';
 import { hasContactInfo } from '@/lib/validation/projectContactInfo';
 import { formatPincodeInput, validatePincode } from '@/lib/validation/pincode';
@@ -37,7 +36,7 @@ import {
 } from '@/lib/painterDetails';
 import {
   PLUMBING_HOUSE_STRUCTURE_OPTIONS,
-  PLUMBING_TARGET_FLOOR_OPTIONS,
+  applyBathroomPackageHouseStructure,
   emptyBathroomPackageSelections,
   houseStructureToTrackType,
   getTradeScopeLabel,
@@ -142,7 +141,6 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
     villageTownName?: string;
     pincode?: string;
     houseStructure?: string;
-    targetFloors?: string;
   }>({});
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
 
@@ -212,8 +210,6 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
     if (trade === 'plumber') {
       if (!form.houseStructure) {
         errors.houseStructure = 'Select Assam Type House or RCC Building.';
-      } else if (form.houseStructure === 'rcc' && form.targetFloors.length === 0) {
-        errors.targetFloors = 'Select at least one target floor.';
       }
     }
 
@@ -505,13 +501,16 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                                 ...current,
                                 houseStructure: opt.value,
                                 track_type: houseStructureToTrackType(opt.value),
-                                targetFloors: opt.value === 'assam_type' ? ['ground'] : current.houseStructure === 'rcc' ? current.targetFloors : [],
+                                targetFloors: opt.value === 'assam_type' ? ['ground'] : [],
                                 plumbingFloorLevel: opt.value === 'assam_type' ? 'ground' : current.plumbingFloorLevel,
+                                bathroomPackages: applyBathroomPackageHouseStructure(
+                                  current.bathroomPackages,
+                                  opt.value,
+                                ),
                               }));
                               setStep1Errors((errors) => {
                                 const next = { ...errors };
                                 delete next.houseStructure;
-                                if (opt.value === 'assam_type') delete next.targetFloors;
                                 return next;
                               });
                             }}
@@ -535,35 +534,6 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                       <p className="text-xs font-medium text-red-400">{step1Errors.houseStructure}</p>
                     ) : null}
                   </div>
-
-                  {form.houseStructure === 'rcc' && (
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-semibold text-gray-800 dark:text-zinc-100 uppercase tracking-wider">
-                        Target Floors
-                      </label>
-                      <OptionSelectGrid
-                        options={PLUMBING_TARGET_FLOOR_OPTIONS}
-                        values={form.targetFloors}
-                        onToggle={(floor) => {
-                          setForm((current) => {
-                            const next = current.targetFloors.includes(floor)
-                              ? current.targetFloors.filter((item) => item !== floor)
-                              : [...current.targetFloors, floor];
-                            return { ...current, targetFloors: next };
-                          });
-                          setStep1Errors((errors) => {
-                            const next = { ...errors };
-                            delete next.targetFloors;
-                            return next;
-                          });
-                        }}
-                        columns={2}
-                      />
-                      {step1ValidationAttempted && step1Errors.targetFloors ? (
-                        <p className="text-xs font-medium text-red-400">{step1Errors.targetFloors}</p>
-                      ) : null}
-                    </div>
-                  )}
                 </div>
               )}
 
@@ -600,7 +570,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                 {isPainter
                   ? 'Tell painters the building type, area, primer, materials, and when work should start.'
                   : trade === 'plumber'
-                    ? 'Open a service card and set bathroom quantities plus one piping package. Pipe sizes are included automatically.'
+                    ? 'Open a service card and set bathroom quantities, sizes, and floors (RCC), plus one piping package. Pipe sizes are included automatically.'
                     : `Describe the ${tradeLabel.toLowerCase()} work so bidders can quote without scope conflicts.`}
               </p>
 

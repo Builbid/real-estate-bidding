@@ -1,8 +1,9 @@
 import { readNestedProjectDetail } from '@/lib/project/storedDetails';
 import {
   activeBathroomPackageSelections,
+  formatBathroomPackageBidLabel,
+  formatBathroomPackageItem,
   getBathroomPackageLabel,
-  getBathroomPackageShortLabel,
   getPipingPackageLabel,
   parseTradeDetails,
   type BathroomPackage,
@@ -79,10 +80,9 @@ function toiletDrainOption(): Omit<PlumbingBidOption, 'label'> {
 function bathroomRateOption(
   item: BathroomPackageSelection,
 ): Omit<PlumbingBidOption, 'label'> {
-  const name = getBathroomPackageShortLabel(item.package);
   return {
     id: `package:${item.package}`,
-    shortLabel: `${name} Bathroom Package Rate × ${item.quantity}`,
+    shortLabel: formatBathroomPackageBidLabel(item),
     unit: 'package',
     unitSuffix: '/unit',
   };
@@ -104,9 +104,7 @@ export function buildPlumbingBidOptions(input: PlumbingBidOptionInput): Plumbing
       return withLetters([tap, drain]);
     }
     if (active.length > 2) {
-      const summary = active
-        .map((item) => `${item.quantity}× ${getBathroomPackageShortLabel(item.package)}`)
-        .join(' + ');
+      const summary = active.map(formatBathroomPackageItem).join(' + ');
       return withLetters([
         {
           id: 'package:mixed',
