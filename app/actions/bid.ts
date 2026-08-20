@@ -7,7 +7,7 @@ import {
   parseVehicleCapacity,
   resolveEarthworkBidMode,
 } from '@/lib/bid/earthworkBid';
-import { resolveScopeRateBidItems } from '@/lib/bid/scopeRateBid';
+import { resolveScopeRateBidItems, type ScopeRateBidItems } from '@/lib/bid/scopeRateBid';
 import { resolveProjectBidFloors } from '@/lib/bid/floorRateDisplay';
 import { missingProjectsColumn } from '@/lib/project/storedDetails';
 import { isDrawingDesignServiceType } from '@/lib/drawingDesign';
@@ -19,6 +19,30 @@ import {
   parseBidDbError,
   validateBidRatesForFloorCount,
 } from '@/lib/validation/bidRates';
+import {
+  buildPlumbingUnitRatePayload,
+  parsePlumbingUnitRates,
+  validatePlumbingUnitRateInputs,
+} from '@/lib/plumberBid';
+
+function validatePlumbingUnitRates(
+  rates: BidRates,
+  scopeBid: ScopeRateBidItems,
+) {
+  const options = (scopeBid.optionIds ?? []).map((id, index) => ({
+    id,
+    shortLabel: scopeBid.labels[index] ?? id,
+    label: scopeBid.labels[index] ?? id,
+    unit: 'per_unit' as const,
+    unitSuffix: scopeBid.rateUnits?.[index] ?? '/unit',
+    weight: 1,
+  }));
+  return validatePlumbingUnitRateInputs(
+    parsePlumbingUnitRates(rates.unit_rates),
+    options,
+    getBidRateRules('plumber'),
+  );
+}
 
 export async function submitBidAction(
   projectId: string,
@@ -116,13 +140,15 @@ export async function submitBidAction(
             total_floors: project.total_floors,
           }).count);
 
-  const validation = validateBidRatesForFloorCount(
-    rates,
-    floorCount,
-    scopeBid?.flexibleRates
-      ? { requireMultipleOfFive: false }
-      : getBidRateRules(project.service_type, profile?.service_type),
-  );
+  const validation = scopeBid?.unitRateBid
+    ? validatePlumbingUnitRates(rates, scopeBid)
+    : validateBidRatesForFloorCount(
+        rates,
+        floorCount,
+        scopeBid?.flexibleRates
+          ? { requireMultipleOfFive: false }
+          : getBidRateRules(project.service_type, profile?.service_type),
+      );
   if (!validation.valid) {
     return { error: validation.message ?? 'Invalid bid rates.', success: false };
   }
@@ -140,19 +166,36 @@ export async function submitBidAction(
     rates.vehicleCapacityCum = capacity;
   }
 
+  const plumbingUnitPayload = scopeBid?.unitRateBid
+    ? buildPlumbingUnitRatePayload(
+        parsePlumbingUnitRates(rates.unit_rates),
+        (scopeBid.optionIds ?? []).map((id, index) => ({
+          id,
+          shortLabel: scopeBid.labels[index] ?? id,
+          label: scopeBid.labels[index] ?? id,
+          unit: 'per_unit' as const,
+          unitSuffix: scopeBid.rateUnits?.[index] ?? '/unit',
+          weight: 1,
+        })),
+      )
+    : null;
+
   const ratesPayload = buildBidRatesPayload(
     {
       ...rates,
+      ...(plumbingUnitPayload ?? {}),
       bid_unit: earthworkMode
         ? bidUnitForEarthworkMode(earthworkMode)
-        : project.service_type === 'plumber'
-          ? (scopeBid?.kind === 'plumbing' ? 'per_running_foot' : 'flat')
-          : project.service_type === 'electrician'
-            ? 'per_point'
-            : rates.bid_unit,
+        : plumbingUnitPayload
+          ? 'per_point'
+          : project.service_type === 'plumber'
+            ? (scopeBid?.kind === 'plumbing' ? 'per_running_foot' : 'flat')
+            : project.service_type === 'electrician'
+              ? 'per_point'
+              : rates.bid_unit,
       vehicleCapacityCum: isTripBid ? rates.vehicleCapacityCum : undefined,
     },
-    floorCount,
+    plumbingUnitPayload ? 1 : floorCount,
   );
 
   if (bidId) {

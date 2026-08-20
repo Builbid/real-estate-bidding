@@ -1,10 +1,16 @@
+import { getBidRateFieldError } from '@/lib/validation/bidRates';
 import { readNestedProjectDetail } from '@/lib/project/storedDetails';
 import {
+  ALL_PLUMBING_SUB_OPTIONS,
+  PLUMBING_LABOUR_ONLY_DISCLAIMER,
+  PLUMBING_SCOPE_PACKAGES,
   activeBathroomPackageSelections,
   formatBathroomPackageBidLabel,
   formatBathroomPackageItem,
   getBathroomPackageLabel,
   getPipingPackageLabel,
+  getPlumbingSubOption,
+  hasPlumbingUnitRateScope,
   parseTradeDetails,
   type BathroomPackage,
   type BathroomPackageSelection,
@@ -12,22 +18,26 @@ import {
   type DrainageInstallMethod,
   type PipingPackageKind,
   type PlumberDetails,
+  type PlumbingSubOptionId,
   type WaterInstallMethod,
 } from '@/lib/tradeWorkDetails';
 
 export const MAX_PLUMBING_BID_OPTIONS = 4;
 
-export const PLUMBING_RATE_UNIT_LABEL = '₹ / Running Foot';
+export const PLUMBING_RATE_UNIT_LABEL = '₹ / unit';
 
 export const PLUMBING_TAPE_MEASURE_DISCLAIMER =
   'Final settlement will be based on actual site measurement at agreed unit rates.';
 
-export type PlumbingRateUnit = 'package' | 'per_running_foot';
+export { PLUMBING_LABOUR_ONLY_DISCLAIMER };
+
+export type PlumbingRateUnit = 'package' | 'per_running_foot' | 'per_unit';
 
 export interface PlumbingBidOptionInput {
   bathroomPackage?: BathroomPackage | null;
   bathroomPackages?: BathroomPackageSelection[];
   pipingPackage?: PipingPackageKind | null;
+  selectedSubOptions?: PlumbingSubOptionId[];
   cpvcPipeSizes: CpvcPipeSize[];
   waterInstallMethods: WaterInstallMethod[];
   includeToiletWastePipe: boolean;
@@ -40,6 +50,7 @@ export interface PlumbingBidOption {
   label: string;
   unit: PlumbingRateUnit;
   unitSuffix: string;
+  weight: number;
 }
 
 function optionLetter(index: number): string {
@@ -65,6 +76,7 @@ function tapWaterOption(pipingPackage: PipingPackageKind | null): Omit<PlumbingB
     shortLabel: `Tap Water Pipe — ¾ inch CPVC (${fitting})`,
     unit: 'per_running_foot',
     unitSuffix: '/Rft',
+    weight: 1,
   };
 }
 
@@ -74,6 +86,7 @@ function toiletDrainOption(): Omit<PlumbingBidOption, 'label'> {
     shortLabel: 'Toilet Drainage Pipe — 4-inch SWR (Non-Concealing)',
     unit: 'per_running_foot',
     unitSuffix: '/Rft',
+    weight: 1,
   };
 }
 
@@ -85,7 +98,52 @@ function bathroomRateOption(
     shortLabel: formatBathroomPackageBidLabel(item),
     unit: 'package',
     unitSuffix: '/unit',
+    weight: 1,
   };
+}
+
+export function resolvePlumbingSubOptionIds(
+  details: PlumberDetails | null | undefined,
+): PlumbingSubOptionId[] {
+  if (!details) return [];
+  return details.selectedSubOptions ?? [];
+}
+
+export function buildPlumbingUnitRateOptions(
+  subOptionIds: PlumbingSubOptionId[],
+): PlumbingBidOption[] {
+  return subOptionIds.flatMap((id, index) => {
+    const option = getPlumbingSubOption(id);
+    if (!option) return [];
+    return [{
+      id: option.id,
+      shortLabel: option.label,
+      label: `${optionLetter(index)}: ${option.label}`,
+      unit: 'per_unit' as const,
+      unitSuffix: option.unitSuffix,
+      weight: option.weight,
+    }];
+  });
+}
+
+export function plumbingPackageGroupsForOptions(options: PlumbingBidOption[]): Array<{
+  id: string;
+  label: string;
+  options: PlumbingBidOption[];
+}> {
+  const byId = new Map(options.map((option) => [option.id, option]));
+  const grouped = PLUMBING_SCOPE_PACKAGES.flatMap((pkg) => {
+    const groupOptions = pkg.options.flatMap((item) => {
+      const match = byId.get(item.id);
+      return match ? [match] : [];
+    });
+    if (groupOptions.length === 0) return [];
+    return [{ id: pkg.id, label: pkg.label, options: groupOptions }];
+  });
+  const groupedIds = new Set(grouped.flatMap((group) => group.options.map((option) => option.id)));
+  const leftover = options.filter((option) => !groupedIds.has(option.id));
+  if (leftover.length === 0) return grouped;
+  return [...grouped, { id: 'other', label: 'Other Scope', options: leftover }];
 }
 
 export function countPlumbingBidOptions(input: PlumbingBidOptionInput): number {
@@ -93,6 +151,11 @@ export function countPlumbingBidOptions(input: PlumbingBidOptionInput): number {
 }
 
 export function buildPlumbingBidOptions(input: PlumbingBidOptionInput): PlumbingBidOption[] {
+  const selectedSubOptions = input.selectedSubOptions ?? [];
+  if (selectedSubOptions.length > 0) {
+    return buildPlumbingUnitRateOptions(selectedSubOptions);
+  }
+
   const active = activeBathroomPackageSelections(input.bathroomPackages);
   const hasPackageSystem = active.length > 0 || Boolean(input.pipingPackage);
 
@@ -111,6 +174,7 @@ export function buildPlumbingBidOptions(input: PlumbingBidOptionInput): Plumbing
           shortLabel: `Bathroom Package Rate — ${summary}`,
           unit: 'package',
           unitSuffix: '/unit',
+          weight: 1,
         },
         tap,
         drain,
@@ -129,6 +193,7 @@ export function buildPlumbingBidOptions(input: PlumbingBidOptionInput): Plumbing
         : 'Bathroom Package Rate',
       unit: 'package',
       unitSuffix: '/unit',
+      weight: 1,
     });
   }
 
@@ -139,6 +204,7 @@ export function buildPlumbingBidOptions(input: PlumbingBidOptionInput): Plumbing
         shortLabel: `Tap Water Pipe — ${size} / ${method}`,
         unit: 'per_running_foot',
         unitSuffix: '/Rft',
+        weight: 1,
       });
     }
   }
@@ -150,6 +216,7 @@ export function buildPlumbingBidOptions(input: PlumbingBidOptionInput): Plumbing
         shortLabel: `Toilet Drainage Pipe — ${method}`,
         unit: 'per_running_foot',
         unitSuffix: '/Rft',
+        weight: 1,
       });
     }
   }
@@ -162,6 +229,7 @@ export function plumbingInputFromDetails(details: PlumberDetails): PlumbingBidOp
     bathroomPackage: details.bathroomPackage ?? null,
     bathroomPackages: details.bathroomPackages,
     pipingPackage: details.pipingPackage ?? null,
+    selectedSubOptions: details.selectedSubOptions,
     cpvcPipeSizes: details.cpvcPipeSizes ?? [],
     waterInstallMethods: details.waterInstallMethods ?? [],
     includeToiletWastePipe: details.includeToiletWastePipe === true,
@@ -181,6 +249,11 @@ export function hasPlumbingMultiOptionBid(raw: unknown): boolean {
   return resolvePlumbingBidOptions(raw).length > 0;
 }
 
+export function isPlumbingUnitRateProject(raw: unknown): boolean {
+  const details = parseTradeDetails(raw);
+  return Boolean(details && details.service === 'plumber' && hasPlumbingUnitRateScope(details));
+}
+
 export function readProjectPlumbingBidOptions(project: {
   trade_details?: unknown;
   sub_configuration?: unknown;
@@ -190,4 +263,97 @@ export function readProjectPlumbingBidOptions(project: {
 
 export function getPipingPackageBidCaption(kind: PipingPackageKind | null | undefined): string {
   return getPipingPackageLabel(kind);
+}
+
+export function parsePlumbingUnitRates(raw: unknown): Record<string, number> {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+  const next: Record<string, number> = {};
+  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+    const amount = typeof value === 'number' ? value : typeof value === 'string' ? Number(value) : NaN;
+    if (Number.isFinite(amount) && amount > 0) next[key] = amount;
+  }
+  return next;
+}
+
+export function computePlumbingWeightedIndex(
+  unitRates: Record<string, number>,
+  options: Array<Pick<PlumbingBidOption, 'id' | 'weight'>>,
+): number {
+  let weightedSum = 0;
+  let weightTotal = 0;
+  for (const option of options) {
+    const rate = unitRates[option.id];
+    if (rate == null || rate <= 0) continue;
+    const weight = option.weight > 0 ? option.weight : 1;
+    weightedSum += rate * weight;
+    weightTotal += weight;
+  }
+  if (weightTotal <= 0) return 0;
+  return Math.round((weightedSum / weightTotal) * 100) / 100;
+}
+
+export function computePlumbingUnitRateSum(
+  unitRates: Record<string, number>,
+  optionIds: string[],
+): number {
+  return optionIds.reduce((sum, id) => sum + (unitRates[id] ?? 0), 0);
+}
+
+export function getPlumbingUnitRateDisplayEntries(
+  rates: { unit_rates?: Record<string, number> } | null | undefined,
+  options: PlumbingBidOption[],
+): Array<{ label: string; value: number; suffix: string }> {
+  const unitRates = parsePlumbingUnitRates(rates?.unit_rates);
+  return options.flatMap((option) => {
+    const value = unitRates[option.id];
+    if (value == null || value <= 0) return [];
+    return [{ label: option.shortLabel, value, suffix: option.unitSuffix }];
+  });
+}
+
+export function validatePlumbingUnitRateInputs(
+  unitRates: Record<string, number>,
+  options: PlumbingBidOption[],
+  rules?: { requireMultipleOfFive?: boolean },
+): { valid: boolean; errors: Record<string, string>; message: string | null } {
+  const errors: Record<string, string> = {};
+  for (const option of options) {
+    const value = unitRates[option.id];
+    if (value === undefined || value <= 0) {
+      errors[option.id] = 'Enter a rate greater than zero.';
+      continue;
+    }
+    const fieldError = getBidRateFieldError(value, rules);
+    if (fieldError) errors[option.id] = fieldError;
+  }
+  const firstError = options.map((option) => errors[option.id]).find(Boolean) ?? null;
+  return {
+    valid: Object.keys(errors).length === 0,
+    errors,
+    message: firstError,
+  };
+}
+
+export function buildPlumbingUnitRatePayload(
+  unitRates: Record<string, number>,
+  options: PlumbingBidOption[],
+): {
+  ground_rate: number;
+  unit_rates: Record<string, number>;
+  weighted_index: number;
+  bid_unit: 'per_point';
+} {
+  const cleaned: Record<string, number> = {};
+  for (const option of options) {
+    const value = unitRates[option.id];
+    if (value != null && value > 0) cleaned[option.id] = value;
+  }
+  const weightedIndex = computePlumbingWeightedIndex(cleaned, options);
+  const sum = computePlumbingUnitRateSum(cleaned, options.map((option) => option.id));
+  return {
+    ground_rate: sum > 0 ? sum : 5,
+    unit_rates: cleaned,
+    weighted_index: weightedIndex,
+    bid_unit: 'per_point',
+  };
 }

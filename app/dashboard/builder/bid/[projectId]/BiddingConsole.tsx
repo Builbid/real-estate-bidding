@@ -51,7 +51,15 @@ import {
   sanitizeCapacityInput,
 } from '@/lib/bid/earthworkBid';
 import { resolveScopeRateBidItems } from '@/lib/bid/scopeRateBid';
-import { PLUMBING_TAPE_MEASURE_DISCLAIMER } from '@/lib/plumberBid';
+import {
+  PLUMBING_LABOUR_ONLY_DISCLAIMER,
+  PLUMBING_TAPE_MEASURE_DISCLAIMER,
+  computePlumbingWeightedIndex,
+  getPlumbingUnitRateDisplayEntries,
+  parsePlumbingUnitRates,
+  plumbingPackageGroupsForOptions,
+  readProjectPlumbingBidOptions,
+} from '@/lib/plumberBid';
 import { shouldShowBidFloorBreakdown, resolveProjectBidFloors } from '@/lib/bid/floorRateDisplay';
 import { createClient } from '@/lib/supabase/client';
 import { isTradeServiceType } from '@/lib/trades';
@@ -107,10 +115,14 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
   const earthworkMode = resolveEarthworkBidMode(project);
   const isPlumber = isFlatRupeeService(project.service_type);
   const isPlumbingBid = scopeBid?.kind === 'plumbing';
+  const plumbingBidOptions = isPlumbingBid ? readProjectPlumbingBidOptions(project) : [];
+  const isPlumbingUnitRateBid = Boolean(isPlumbingBid && scopeBid?.unitRateBid);
   const plumbingRateUnits = isPlumbingBid ? (scopeBid.rateUnits ?? []) : [];
   const isPlumberFlat = isPlumber && !isPlumbingBid;
   const isElectrician = isPerPointService(project.service_type);
-  const rateUnitSuffix = isPlumbingBid
+  const rateUnitSuffix = isPlumbingUnitRateBid
+    ? ''
+    : isPlumbingBid
     ? 'avg'
     : formatBidUnitSuffix(undefined, earthworkMode, project.service_type);
   const isPainter = project.service_type === 'painter';
@@ -128,6 +140,14 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
     if (existingBid) return existingBid.rates;
     return {};
   });
+  const [unitRateInputs, setUnitRateInputs] = useState<Record<string, string>>(() => {
+    const stored = existingBid ? parsePlumbingUnitRates(existingBid.rates?.unit_rates) : {};
+    return Object.fromEntries(Object.entries(stored).map(([key, value]) => [key, String(value)]));
+  });
+  const [unitRateValues, setUnitRateValues] = useState<Record<string, number>>(() =>
+    existingBid ? parsePlumbingUnitRates(existingBid.rates?.unit_rates) : {},
+  );
+  const [unitRateErrors, setUnitRateErrors] = useState<Record<string, string>>({});
   const [rateErrors, setRateErrors] = useState<Partial<Record<BidFloorRateKey, string>>>({});
   const [loading, setLoading]   = useState(false);
   const [success, setSuccess]   = useState(false);
@@ -141,9 +161,21 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
 
   const countdown     = useCountdown(project.bidding_ends_at);
   const biddingClosed = project.status !== 'active_24h' || countdown.isExpired;
-  const averageMetric = computeAverageMetric(rates, floorCount);
-  const displayBidAverage = (sumMetric: number) =>
-    formatBidMetric(averageFromSumMetric(sumMetric, floorCount));
+  const plumbingWeightedIndex = isPlumbingUnitRateBid
+    ? computePlumbingWeightedIndex(unitRateValues, plumbingBidOptions)
+    : 0;
+  const averageMetric = isPlumbingUnitRateBid
+    ? plumbingWeightedIndex
+    : computeAverageMetric(rates, floorCount);
+  const displayBidAverage = (bid: { total_sum_metric: number; rates?: BidRates | null }) => {
+    if (isPlumbingUnitRateBid) {
+      const stored = bid.rates?.weighted_index;
+      if (stored != null && stored > 0) return formatBidMetric(stored);
+      const count = Math.max(plumbingBidOptions.length, 1);
+      return formatBidMetric(averageFromSumMetric(bid.total_sum_metric, count));
+    }
+    return formatBidMetric(averageFromSumMetric(bid.total_sum_metric, floorCount));
+  };
 
   const myCurrentBid = bids.find((b) => b.builder_id === builderId);
   const myRank       = bids.findIndex((b) => b.builder_id === builderId) + 1;
@@ -192,13 +224,22 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
     setError((prev) => (prev === BID_RATE_ERROR ? null : prev));
   }, [isFlexibleRate]);
 
-  const allFilled = rateKeys.every((k) => isValidBidRate(rates[k], rateRules));
-  const hasRateErrors = rateKeys.some((k) => {
-    const fieldError = rateErrors[k];
-    if (!fieldError) return false;
-    if (isFlexibleRate && fieldError === BID_RATE_ERROR) return false;
-    return true;
-  });
+  const allFilled = isPlumbingUnitRateBid
+    ? plumbingBidOptions.every((option) => isValidBidRate(unitRateValues[option.id], rateRules))
+    : rateKeys.every((k) => isValidBidRate(rates[k], rateRules));
+  const hasRateErrors = isPlumbingUnitRateBid
+    ? plumbingBidOptions.some((option) => {
+        const fieldError = unitRateErrors[option.id];
+        if (!fieldError) return false;
+        if (isFlexibleRate && fieldError === BID_RATE_ERROR) return false;
+        return true;
+      })
+    : rateKeys.some((k) => {
+        const fieldError = rateErrors[k];
+        if (!fieldError) return false;
+        if (isFlexibleRate && fieldError === BID_RATE_ERROR) return false;
+        return true;
+      });
   const capacityValue = parseVehicleCapacity(capacityInput);
   const capacityOk = earthworkMode !== 'trip' || capacityValue != null;
   const canSubmit = allFilled && !hasRateErrors && capacityOk && !capacityError;
@@ -244,6 +285,34 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
     validateRateField(key, value);
   }
 
+  function handleUnitRateChange(optionId: string, raw: string) {
+    const sanitized = sanitizeBidRateInput(raw);
+    setUnitRateInputs((prev) => ({ ...prev, [optionId]: sanitized }));
+    const value = parseBidRateValue(sanitized);
+    setUnitRateValues((prev) => {
+      const next = { ...prev };
+      if (value == null) delete next[optionId];
+      else next[optionId] = value;
+      return next;
+    });
+    if (!sanitized) {
+      setUnitRateErrors((prev) => {
+        const next = { ...prev };
+        delete next[optionId];
+        return next;
+      });
+      return;
+    }
+    let fieldError = getBidRateFieldError(value, rateRules);
+    if (isFlexibleRate && fieldError === BID_RATE_ERROR) fieldError = null;
+    setUnitRateErrors((prev) => {
+      const next = { ...prev };
+      if (fieldError) next[optionId] = fieldError;
+      else delete next[optionId];
+      return next;
+    });
+  }
+
   function handleRoundToNearestFive(key: BidFloorRateKey) {
     const current = parseBidRateValue(rateInputs[key] ?? '') ?? rates[key] ?? 0;
     if (current <= 0) return;
@@ -259,18 +328,34 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
-    const validation = validateBidRatesForFloorCount(rates, floorCount, rateRules);
-    const submitErrors = { ...validation.errors };
-    if (isFlexibleRate) {
-      for (const key of rateKeys) {
-        if (submitErrors[key] === BID_RATE_ERROR) delete submitErrors[key];
+    if (isPlumbingUnitRateBid) {
+      const submitErrors: Record<string, string> = {};
+      for (const option of plumbingBidOptions) {
+        const value = unitRateValues[option.id];
+        let fieldError = getBidRateFieldError(value, rateRules);
+        if (isFlexibleRate && fieldError === BID_RATE_ERROR) fieldError = null;
+        if (value == null || value <= 0) submitErrors[option.id] = 'Enter a rate greater than zero.';
+        else if (fieldError) submitErrors[option.id] = fieldError;
       }
-    }
-    const submitBlocked = Object.keys(submitErrors).length > 0;
-    setRateErrors(submitErrors);
-    if (submitBlocked) {
-      setError(Object.values(submitErrors)[0] ?? validation.message);
-      return;
+      setUnitRateErrors(submitErrors);
+      if (Object.keys(submitErrors).length > 0) {
+        setError(Object.values(submitErrors)[0]);
+        return;
+      }
+    } else {
+      const validation = validateBidRatesForFloorCount(rates, floorCount, rateRules);
+      const submitErrors = { ...validation.errors };
+      if (isFlexibleRate) {
+        for (const key of rateKeys) {
+          if (submitErrors[key] === BID_RATE_ERROR) delete submitErrors[key];
+        }
+      }
+      const submitBlocked = Object.keys(submitErrors).length > 0;
+      setRateErrors(submitErrors);
+      if (submitBlocked) {
+        setError(Object.values(submitErrors)[0] ?? validation.message);
+        return;
+      }
     }
     setError(null);
 
@@ -299,7 +384,11 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
       ...(earthworkMode === 'trip'
         ? { bid_unit: 'per_trip' as const, vehicleCapacityCum: tripCapacity }
         : {}),
-      ...(isPlumbingBid ? { bid_unit: 'per_running_foot' as const } : {}),
+      ...(isPlumbingUnitRateBid
+        ? { bid_unit: 'per_point' as const, unit_rates: unitRateValues }
+        : isPlumbingBid
+          ? { bid_unit: 'per_running_foot' as const }
+          : {}),
       ...(isPlumberFlat ? { bid_unit: 'flat' as const } : {}),
       ...(isElectrician ? { bid_unit: 'per_point' as const } : {}),
     }, bidId);
@@ -348,6 +437,15 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
           </p>
         </div>
       </div>
+
+      {isPlumbingBid && (
+        <div className="flex items-start gap-2 rounded-xl border border-amber-500/25 bg-amber-500/10 px-3.5 py-3">
+          <Info className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-400" />
+          <p className="text-sm font-medium leading-relaxed text-amber-100">
+            {PLUMBING_LABOUR_ONLY_DISCLAIMER}
+          </p>
+        </div>
+      )}
 
       {requirementBlocks && requirementBlocks.length > 0 && (
         <Card className="border-emerald-500/20">
@@ -443,7 +541,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                                   : 'Your Final Rate Metric'}
                         </p>
                         <p className="text-lg font-bold tabular-nums text-foreground">
-                          {isPlumberFlat ? 'Rs. ' : '₹'}{displayBidAverage(myCurrentBid.total_sum_metric)}
+                          {isPlumberFlat ? 'Rs. ' : '₹'}{displayBidAverage(myCurrentBid)}
                           {earthworkMode || isElectrician || isPlumbingBid ? ` ${rateUnitSuffix}` : ''}
                         </p>
                         {earthworkMode === 'trip' && formatTripCapacityLabel(myCurrentBid.rates?.vehicleCapacityCum) && (
@@ -477,7 +575,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                       )}
                       {isPlumbingBid && (
                         <p className="text-xs text-muted-foreground/80 text-right">
-                          overall avg
+                          {isPlumbingUnitRateBid ? 'weighted index' : 'overall avg'}
                           <br />
                           lowest avg wins
                         </p>
@@ -537,6 +635,13 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                       <>
                         Mistri contractors submit add-on rates on behalf of specialized roofers, tile workers, and carpenters. Negotiate carefully—your overall average rate determines leaderboard rank.
                       </>
+                    ) : isPlumbingUnitRateBid ? (
+                      <>
+                        Enter a <strong>per unit / per point labour rate</strong> only for the
+                        sub-options selected by the owner. Rates must be whole numbers ending in{' '}
+                        <strong>0 or 5</strong>. Rank is the <strong>lowest Weighted Index</strong>{' '}
+                        (equal-weight average of your unit rates).
+                      </>
                     ) : isPlumbingBid ? (
                       <>
                         Enter a <strong>Bathroom Package Rate</strong> (₹ / unit) for each selected
@@ -571,13 +676,77 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                   <div className="flex items-start gap-2 p-2.5 rounded-lg bg-amber-500/5 border border-amber-500/20 mb-1">
                     <Info className="w-3.5 h-3.5 text-amber-400 flex-shrink-0 mt-0.5" />
                     <p className="text-xs text-amber-200/90 leading-relaxed">
-                      {PLUMBING_TAPE_MEASURE_DISCLAIMER}
+                      {isPlumbingUnitRateBid
+                        ? PLUMBING_LABOUR_ONLY_DISCLAIMER
+                        : PLUMBING_TAPE_MEASURE_DISCLAIMER}
                     </p>
                   </div>
                 )}
+                {isPlumbingUnitRateBid && (
+                  <div className="space-y-4">
+                    {plumbingPackageGroupsForOptions(plumbingBidOptions).map((group) => (
+                      <div key={group.id} className="space-y-2">
+                        <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-500">
+                          {group.label}
+                        </p>
+                        {group.options.map((option, i) => {
+                          const inputValue = unitRateInputs[option.id] ?? '';
+                          const numericValue = parseBidRateValue(inputValue);
+                          const fieldError = unitRateErrors[option.id];
+                          const showRoundHelper =
+                            !isFlexibleRate &&
+                            fieldError === BID_RATE_ERROR &&
+                            numericValue !== undefined &&
+                            numericValue > 0;
+                          return (
+                            <motion.div
+                              key={option.id}
+                              initial={{ opacity: 0, y: 8 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: i * 0.04 }}
+                            >
+                              <Input
+                                label={option.shortLabel}
+                                type="text"
+                                inputMode="numeric"
+                                pattern="[0-9]*"
+                                placeholder="e.g. 350"
+                                value={inputValue}
+                                onChange={(e) => handleUnitRateChange(option.id, e.target.value)}
+                                prefix={<span className="text-muted-foreground text-xs">₹</span>}
+                                suffix={
+                                  <span className="text-muted-foreground/80 text-xs">
+                                    {option.unitSuffix}
+                                  </span>
+                                }
+                                error={fieldError && fieldError !== BID_RATE_ERROR ? fieldError : undefined}
+                              />
+                              {showRoundHelper && numericValue != null && (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleUnitRateChange(
+                                      option.id,
+                                      String(roundBidRateToNearestFive(numericValue)),
+                                    )
+                                  }
+                                  className="mt-1 text-xs text-amber-400 hover:text-amber-300 underline underline-offset-2 transition-colors"
+                                >
+                                  Round to nearest 5 (→ ₹{roundBidRateToNearestFive(numericValue).toLocaleString('en-IN')})
+                                </button>
+                              )}
+                            </motion.div>
+                          );
+                        })}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {!isPlumbingUnitRateBid && (
                 <AnimatePresence>
                   {floorLabels.map((label, i) => {
                     const key = FLOOR_RATE_KEYS[i];
+                    if (!key) return null;
                     const inputValue = rateInputs[key] ?? '';
                     const numericValue = parseBidRateValue(inputValue);
                     const fieldError = rateErrors[key];
@@ -656,7 +825,8 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                       </motion.div>
                     );
                   })}
-                </AnimatePresence>
+                  </AnimatePresence>
+                )}
 
                 {earthworkMode === 'trip' && (
                   <Input
@@ -694,7 +864,9 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                             ? 'Your Rate'
                             : isElectrician
                               ? 'Your Rate Per Point'
-                              : isPlumbingBid
+                              : isPlumbingUnitRateBid
+                                ? 'Weighted Index'
+                                : isPlumbingBid
                                 ? 'Overall Average Rate'
                                 : 'Your Average Rate Metric'}
                     </p>
@@ -715,7 +887,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                   )}
                   {isPlumbingBid && (
                     <p className="text-xs text-muted-foreground/80 text-right">
-                      Overall average unit rate
+                      {isPlumbingUnitRateBid ? 'Weighted index' : 'Overall average unit rate'}
                       <br />
                       lowest avg wins
                     </p>
@@ -872,7 +1044,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                               'text-sm font-bold tabular-nums',
                               isLowest ? 'text-emerald-400' : isMe ? 'text-indigo-300' : 'text-foreground'
                             )}>
-                              {isPlumberFlat ? 'Rs. ' : '₹'}{displayBidAverage(bid.total_sum_metric)}
+                              {isPlumberFlat ? 'Rs. ' : '₹'}{displayBidAverage(bid)}
                             </p>
                             <p className="text-[10px] text-muted-foreground/80">
                               {earthworkMode === 'hourly'
@@ -891,13 +1063,21 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                             </p>
                           </div>
 
-                          {shouldShowBidFloorBreakdown(bid.rates, floorCount) && (
+                          {(shouldShowBidFloorBreakdown(bid.rates, floorCount) ||
+                            (isPlumbingUnitRateBid && Object.keys(bid.rates?.unit_rates ?? {}).length > 0)) && (
                             <div className="w-full basis-full">
                               <BidFloorRatesBreakdown
                                 rates={bid.rates}
                                 floorLabels={isSingleRateBid && !isScopeRateBid ? undefined : floorLabels}
                                 unitSuffix={isPlumbingBid ? '/Rft' : '/sqft'}
                                 unitSuffixes={isPlumbingBid ? plumbingRateUnits : undefined}
+                                extraEntries={
+                                  isPlumbingUnitRateBid
+                                    ? getPlumbingUnitRateDisplayEntries(bid.rates, plumbingBidOptions)
+                                    : undefined
+                                }
+                                indexLabel="Weighted Index"
+                                indexValue={isPlumbingUnitRateBid ? bid.rates?.weighted_index : undefined}
                               />
                             </div>
                           )}
@@ -909,7 +1089,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                   {lowestBid && !bids.some((b) => b.builder_id === builderId) && (
                     <div className="pt-3 px-2">
                       <p className="text-xs text-muted-foreground">
-                        💡 Current lowest: <strong className="text-emerald-400">{isPlumberFlat ? 'Rs. ' : '₹'}{displayBidAverage(lowestBid.total_sum_metric)}{rateUnitSuffix}</strong> — Beat it to lead.
+                        💡 Current lowest: <strong className="text-emerald-400">{isPlumberFlat ? 'Rs. ' : '₹'}{displayBidAverage(lowestBid)}{rateUnitSuffix}</strong> — Beat it to lead.
                       </p>
                     </div>
                   )}

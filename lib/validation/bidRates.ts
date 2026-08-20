@@ -120,6 +120,12 @@ export function buildBidRatesPayload(
     ...(rates.vehicleCapacityCum != null && rates.vehicleCapacityCum > 0
       ? { vehicleCapacityCum: rates.vehicleCapacityCum }
       : {}),
+    ...(rates.unit_rates && Object.keys(rates.unit_rates).length > 0
+      ? { unit_rates: rates.unit_rates }
+      : {}),
+    ...(rates.weighted_index != null && rates.weighted_index > 0
+      ? { weighted_index: rates.weighted_index }
+      : {}),
   };
 }
 

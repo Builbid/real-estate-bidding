@@ -30,6 +30,8 @@ export interface ScopeRateBidItems {
   unitSuffix?: string;
   /** Per-item unit suffix aligned with labels (e.g. plumbing package vs ₹/Rft). */
   rateUnits?: string[];
+  optionIds?: string[];
+  unitRateBid?: boolean;
 }
 
 const LEGACY_CARPENTER_SCOPE_ORDER: CarpenterScopeType[] = [
@@ -91,13 +93,16 @@ export function resolveScopeRateBidItems(
   if (service === 'plumber' || tradeDetails?.service === 'plumber') {
     const options = readProjectPlumbingBidOptions(project);
     if (options.length > 0) {
+      const unitRateBid = options.every((option) => option.unit === 'per_unit');
       return {
         labels: options.map((option) => option.label),
         count: options.length,
         kind: 'plumbing',
         flexibleRates: false,
-        unitSuffix: '/Rft',
+        unitSuffix: unitRateBid ? '/unit' : '/Rft',
         rateUnits: options.map((option) => option.unitSuffix),
+        optionIds: options.map((option) => option.id),
+        unitRateBid,
       };
     }
   }

@@ -25,6 +25,7 @@ import {
   type PainterDetails,
 } from '@/lib/painterDetails'
 import {
+  buildingStoreysToTotalFloors,
   isCustomTradeWorkService,
   isTradeDetails,
   tradeDetailsMatchesService,
@@ -237,6 +238,10 @@ export async function createProjectAction(
         return { error: 'Select a specific project start date.' }
       }
       insertPayload.trade_details = trade.trade_details
+      if (trade.trade_details.service === 'plumber') {
+        insertPayload.floor_area_sqft = trade.trade_details.approxBuiltUpAreaSqft ?? null
+        insertPayload.total_floors = buildingStoreysToTotalFloors(trade.trade_details.buildingStoreys)
+      }
     }
   } else {
     if (isFirm) {

@@ -16,6 +16,7 @@ import { BidFloorRatesBreakdown } from '@/components/shared/BidFloorRatesBreakdo
 import { shouldShowBidFloorBreakdown } from '@/lib/bid/floorRateDisplay';
 import { resolveScopeRateBidItems } from '@/lib/bid/scopeRateBid';
 import { getServiceBidderLabels } from '@/lib/project/display';
+import { getPlumbingUnitRateDisplayEntries, readProjectPlumbingBidOptions } from '@/lib/plumberBid';
 import type { ProjectStatus, ServiceType, TrackType, SubConfiguration } from '@/lib/types';
 
 interface BuilderInfo {
@@ -83,11 +84,16 @@ export function BidLeaderboard({
     total_floors: totalFloors,
   });
   const isPlumbingBid = scopeBid?.kind === 'plumbing';
-  const projectFloorCount =
-    scopeBid?.count
+  const isPlumbingUnitRateBid = Boolean(scopeBid?.unitRateBid);
+  const plumbingOptions = isPlumbingBid
+    ? readProjectPlumbingBidOptions({ trade_details: tradeDetails, sub_configuration: subConfiguration })
+    : [];
+  const projectFloorCount = isPlumbingUnitRateBid
+    ? Math.max(plumbingOptions.length, 1)
+    : (scopeBid?.count
     ?? (trackType && subConfiguration
       ? getFloorInputCount(trackType, subConfiguration)
-      : 1);
+      : 1));
   const showFloorBreakdown = !isActive;
 
   useEffect(() => {
@@ -185,6 +191,11 @@ export function BidLeaderboard({
 
   return (
     <div className="space-y-1.5">
+      {isPlumbingUnitRateBid && (
+        <p className="px-2 pb-1 text-[11px] font-medium text-muted-foreground">
+          Ranked by lowest Weighted Index (equal-weight average of labour unit rates).
+        </p>
+      )}
       {trackType && subConfiguration && (
         <div className="px-2 pb-3 mb-1 border-b border-border">
           <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
@@ -301,22 +312,37 @@ export function BidLeaderboard({
                   isLowest ? 'text-emerald-400' : 'text-foreground'
                 )}>
                   {serviceType === 'plumber' && !isPlumbingBid ? 'Rs. ' : '₹'}
-                  {formatBidMetric(averageFromSumMetric(bid.total_sum_metric, projectFloorCount))}
+                  {formatBidMetric(
+                    isPlumbingUnitRateBid && bid.rates?.weighted_index
+                      ? bid.rates.weighted_index
+                      : averageFromSumMetric(bid.total_sum_metric, projectFloorCount),
+                  )}
                 </p>
                 <p className="text-[10px] text-muted-foreground">
-                  {isPlumbingBid
+                  {isPlumbingUnitRateBid
+                    ? 'weighted index'
+                    : isPlumbingBid
                     ? 'overall avg'
                     : serviceType === 'plumber' ? 'Rs.' : serviceType === 'electrician' ? '/point' : projectFloorCount > 1 ? '/sqft avg' : '/sqft'}
                 </p>
               </div>
 
-              {showFloorBreakdown && shouldShowBidFloorBreakdown(bid.rates, projectFloorCount) && (
+              {showFloorBreakdown &&
+                (shouldShowBidFloorBreakdown(bid.rates, projectFloorCount) ||
+                  (isPlumbingUnitRateBid && Object.keys(bid.rates?.unit_rates ?? {}).length > 0)) && (
                 <div className="w-full basis-full">
                   <BidFloorRatesBreakdown
                     rates={bid.rates}
                     floorLabels={scopeBid?.labels}
                     unitSuffix={isPlumbingBid ? '/Rft' : '/sqft'}
                     unitSuffixes={isPlumbingBid ? scopeBid?.rateUnits : undefined}
+                    extraEntries={
+                      isPlumbingUnitRateBid
+                        ? getPlumbingUnitRateDisplayEntries(bid.rates, plumbingOptions)
+                        : undefined
+                    }
+                    indexLabel="Weighted Index"
+                    indexValue={isPlumbingUnitRateBid ? bid.rates?.weighted_index : undefined}
                   />
                 </div>
               )}

@@ -228,6 +228,10 @@ export interface BidRates {
   bid_unit?: BidUnit;
   /** Earthwork soil filling — vehicle trip capacity in cubic metres. */
   vehicleCapacityCum?: number;
+  /** Plumber unit-rate bids — labour rate keyed by selected sub-option id. */
+  unit_rates?: Record<string, number>;
+  /** Equal-weight average of plumber unit rates (lowest index ranks first). */
+  weighted_index?: number;
 }
 
 /**

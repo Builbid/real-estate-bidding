@@ -85,6 +85,14 @@ export function isWideRequirementLabel(label: string): boolean {
     label === 'Piping Package' ||
     label === 'Piping Package Includes' ||
     label === 'House Structure' ||
+    label === 'Building Structure Type' ||
+    label === 'Target Work Floor' ||
+    label === 'Total Floors in Building' ||
+    label === 'Approx Built-Up Area' ||
+    label === 'Bathroom Fittings Package' ||
+    label === 'Water Piping Package' ||
+    label === 'Waste Line Package' ||
+    label === 'Water Tank Fitting Package' ||
     label === 'Target Floors' ||
     label === 'Package Level' ||
     label === 'Room Size' ||
@@ -95,6 +103,7 @@ export function isWideRequirementLabel(label: string): boolean {
     label === 'Bidding Options' ||
     label === 'Bidding Options (₹ / Running Foot)' ||
     label === 'Billing Notice' ||
+    label === 'Material Scope' ||
     label === 'Scope Type' ||
     label === 'Door & Window Frames Work (Carpentry Add-on)' ||
     label === 'Deliverables' ||

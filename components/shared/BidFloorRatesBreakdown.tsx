@@ -13,6 +13,9 @@ interface BidFloorRatesBreakdownProps {
   unitSuffix?: string;
   /** Per-rate unit suffixes aligned with ground/first/second/third rate keys. */
   unitSuffixes?: Array<string | undefined>;
+  extraEntries?: Array<{ label: string; value: number; suffix?: string }>;
+  indexLabel?: string;
+  indexValue?: number;
   className?: string;
 }
 
@@ -25,27 +28,45 @@ export function BidFloorRatesBreakdown({
   floorLabels,
   unitSuffix = '/sqft',
   unitSuffixes,
+  extraEntries,
+  indexLabel,
+  indexValue,
   className,
 }: BidFloorRatesBreakdownProps) {
-  const entries = getBidFloorRateEntries(rates, floorLabels);
+  const floorEntries = extraEntries?.length
+    ? extraEntries.map((entry, index) => ({
+        key: `extra-${index}`,
+        label: entry.label,
+        value: entry.value,
+        suffix: entry.suffix ?? unitSuffix,
+      }))
+    : getBidFloorRateEntries(rates, floorLabels).map((entry) => ({
+        ...entry,
+        suffix: unitSuffixes?.[RATE_KEY_ORDER.indexOf(entry.key)] ?? unitSuffix,
+      }));
 
-  if (entries.length === 0) return null;
+  if (floorEntries.length === 0 && indexValue == null) return null;
 
   return (
     <div className={cn('rounded-lg border border-border/60 bg-muted/15 px-2.5 py-2', className)}>
       <div className="space-y-1">
-        {entries.map(({ key, label, value }) => {
-          const suffix = unitSuffixes?.[RATE_KEY_ORDER.indexOf(key)] ?? unitSuffix;
-          return (
-            <div key={key} className="flex items-center justify-between gap-3 text-[11px]">
-              <span className="text-muted-foreground">{label}</span>
+        {floorEntries.map((entry) => (
+            <div key={entry.key} className="flex items-center justify-between gap-3 text-[11px]">
+              <span className="text-muted-foreground">{entry.label}</span>
               <span className="font-semibold tabular-nums text-foreground">
-                ₹{value.toLocaleString('en-IN')}{suffix}
+                ₹{entry.value.toLocaleString('en-IN')}{entry.suffix}
               </span>
             </div>
-          );
-        })}
+        ))}
       </div>
+      {indexValue != null && (
+        <div className="mt-1.5 flex items-center justify-between gap-3 border-t border-border/50 pt-1.5 text-[11px]">
+          <span className="font-medium text-foreground">{indexLabel ?? 'Weighted Index'}</span>
+          <span className="font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
+            ₹{indexValue.toLocaleString('en-IN')}
+          </span>
+        </div>
+      )}
       {showTotal && total != null && (
         <div className="mt-1.5 flex items-center justify-between gap-3 border-t border-border/50 pt-1.5 text-[11px]">
           <span className="font-medium text-foreground">Total</span>

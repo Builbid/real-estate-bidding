@@ -25,8 +25,11 @@ import {
   type InteriorScopeType,
   type InteriorTargetSpace,
   type PipingPackageKind,
+  type PlumbingBuildingStoreys,
   type PlumbingFloorLevel,
   type PlumbingHouseStructure,
+  type PlumbingPackageKind,
+  type PlumbingSubOptionId,
   type PlumbingTargetFloor,
   type PlumberScopeType,
   type ProjectStartTimeType,
@@ -49,6 +52,11 @@ export interface TradeWorkFormFields {
   tankDistance: TankDistance | null;
   houseStructure: PlumbingHouseStructure | null;
   targetFloors: PlumbingTargetFloor[];
+  targetWorkFloor: PlumbingTargetFloor | null;
+  buildingStoreys: PlumbingBuildingStoreys | null;
+  approxBuiltUpAreaSqft: string;
+  selectedPackages: PlumbingPackageKind[];
+  selectedSubOptions: PlumbingSubOptionId[];
   bathroomPackages: BathroomPackageSelection[];
   pipingPackage: PipingPackageKind | null;
   cpvcPipeSizes: CpvcPipeSize[];
@@ -94,13 +102,17 @@ export function TradeWorkRequirementsFields({
   return (
     <div className="space-y-5">
       {trade === 'plumber' && (
+        <>
+          <p className="text-xs font-medium leading-relaxed rounded-xl border border-amber-500/25 bg-amber-500/5 px-3 py-2.5 text-gray-800 dark:text-zinc-200">
+            All bids are strictly for LABOUR CHARGES. Materials must be supplied by the Property Owner.
+          </p>
         <PlumbingPackageForm
-          bathroomPackages={form.bathroomPackages}
-          pipingPackage={form.pipingPackage}
-          houseStructure={form.houseStructure}
-          onChangeBathroomPackages={(v) => onChange('bathroomPackages', v)}
-          onChangePipingPackage={(v) => onChange('pipingPackage', v)}
+          selectedPackages={form.selectedPackages}
+          selectedSubOptions={form.selectedSubOptions}
+          onChangePackages={(v) => onChange('selectedPackages', v)}
+          onChangeSubOptions={(v) => onChange('selectedSubOptions', v)}
         />
+        </>
       )}
 
       {trade === 'electrician' && (

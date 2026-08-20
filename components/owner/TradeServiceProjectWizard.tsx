@@ -14,6 +14,7 @@ import {
   parseAssamDistrictSelection,
 } from '@/components/shared/AssamDistrictAutocomplete';
 import { TradeWorkRequirementsFields, type TradeWorkFormFields } from '@/components/owner/TradeWorkRequirementsFields';
+import { OptionSelectGrid } from '@/components/owner/wizard/OptionSelectCard';
 import { generateProjectTitle } from '@/lib/generateProjectTitle';
 import { hasContactInfo } from '@/lib/validation/projectContactInfo';
 import { formatPincodeInput, validatePincode } from '@/lib/validation/pincode';
@@ -35,8 +36,9 @@ import {
   type PainterSurfaceCondition,
 } from '@/lib/painterDetails';
 import {
+  PLUMBING_BUILDING_STOREYS_OPTIONS,
   PLUMBING_HOUSE_STRUCTURE_OPTIONS,
-  applyBathroomPackageHouseStructure,
+  PLUMBING_TARGET_FLOOR_OPTIONS,
   emptyBathroomPackageSelections,
   houseStructureToTrackType,
   getTradeScopeLabel,
@@ -97,6 +99,11 @@ const EMPTY_FORM: FormState = {
   tankDistance: null,
   houseStructure: null,
   targetFloors: [],
+  targetWorkFloor: null,
+  buildingStoreys: null,
+  approxBuiltUpAreaSqft: '',
+  selectedPackages: [],
+  selectedSubOptions: [],
   bathroomPackages: emptyBathroomPackageSelections(),
   pipingPackage: null,
   cpvcPipeSizes: ['three_quarter'],
@@ -141,6 +148,9 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
     villageTownName?: string;
     pincode?: string;
     houseStructure?: string;
+    targetWorkFloor?: string;
+    buildingStoreys?: string;
+    approxBuiltUpAreaSqft?: string;
   }>({});
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
 
@@ -173,12 +183,24 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((f) => ({ ...f, [key]: value }));
-    if (step1ValidationAttempted && (key === 'location' || key === 'villageTownName' || key === 'pincode')) {
+    if (step1ValidationAttempted && (
+      key === 'location' ||
+      key === 'villageTownName' ||
+      key === 'pincode' ||
+      key === 'houseStructure' ||
+      key === 'targetWorkFloor' ||
+      key === 'buildingStoreys' ||
+      key === 'approxBuiltUpAreaSqft'
+    )) {
       setStep1Errors((errors) => {
         const next = { ...errors };
         if (key === 'location') delete next.location;
         if (key === 'villageTownName') delete next.villageTownName;
         if (key === 'pincode') delete next.pincode;
+        if (key === 'houseStructure') delete next.houseStructure;
+        if (key === 'targetWorkFloor') delete next.targetWorkFloor;
+        if (key === 'buildingStoreys') delete next.buildingStoreys;
+        if (key === 'approxBuiltUpAreaSqft') delete next.approxBuiltUpAreaSqft;
         return next;
       });
     }
@@ -209,7 +231,17 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
 
     if (trade === 'plumber') {
       if (!form.houseStructure) {
-        errors.houseStructure = 'Select Assam Type House or RCC Building.';
+        errors.houseStructure = 'Select RCC Building or Assam Type.';
+      }
+      if (!form.targetWorkFloor) {
+        errors.targetWorkFloor = 'Select the target work floor.';
+      }
+      if (!form.buildingStoreys) {
+        errors.buildingStoreys = 'Select the total floors in the building.';
+      }
+      const area = parseFloat(form.approxBuiltUpAreaSqft.replace(/,/g, '').trim());
+      if (!Number.isFinite(area) || area <= 0) {
+        errors.approxBuiltUpAreaSqft = 'Enter the approximate built-up area in Sq Ft.';
       }
     }
 
@@ -242,7 +274,12 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
       tankDistance: form.tankDistance,
       fittingType: form.fittingType,
       houseStructure: form.houseStructure,
-      targetFloors: form.targetFloors,
+      targetFloors: form.targetWorkFloor ? [form.targetWorkFloor] : form.targetFloors,
+      targetWorkFloor: form.targetWorkFloor,
+      buildingStoreys: form.buildingStoreys,
+      approxBuiltUpAreaSqft: form.approxBuiltUpAreaSqft,
+      selectedPackages: form.selectedPackages,
+      selectedSubOptions: form.selectedSubOptions,
       bathroomPackages: form.bathroomPackages,
       pipingPackage: form.pipingPackage,
       cpvcPipeSizes: form.cpvcPipeSizes,
@@ -407,7 +444,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
         <p className="text-sm text-gray-700 dark:text-zinc-300 mt-1">
           Registered {tradeLabel.toLowerCase()}s will bid their rate{' '}
           {trade === 'plumber'
-            ? 'as bathroom package unit rates plus ₹ / running foot piping rates'
+            ? 'as per-unit labour rates for the fittings and piping items you select'
             : trade === 'electrician'
               ? 'per point'
               : 'per sqft'}{' '}
@@ -487,7 +524,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                 <div className="space-y-4">
                   <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-semibold text-gray-800 dark:text-zinc-100 uppercase tracking-wider">
-                      House Structure
+                      Building Structure Type
                     </label>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {PLUMBING_HOUSE_STRUCTURE_OPTIONS.map((opt) => {
@@ -501,12 +538,10 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                                 ...current,
                                 houseStructure: opt.value,
                                 track_type: houseStructureToTrackType(opt.value),
-                                targetFloors: opt.value === 'assam_type' ? ['ground'] : [],
+                                targetWorkFloor: opt.value === 'assam_type' ? current.targetWorkFloor ?? 'ground' : current.targetWorkFloor,
+                                targetFloors: opt.value === 'assam_type' ? ['ground'] : current.targetWorkFloor ? [current.targetWorkFloor] : [],
+                                buildingStoreys: opt.value === 'assam_type' ? current.buildingStoreys ?? 'single' : current.buildingStoreys,
                                 plumbingFloorLevel: opt.value === 'assam_type' ? 'ground' : current.plumbingFloorLevel,
-                                bathroomPackages: applyBathroomPackageHouseStructure(
-                                  current.bathroomPackages,
-                                  opt.value,
-                                ),
                               }));
                               setStep1Errors((errors) => {
                                 const next = { ...errors };
@@ -534,6 +569,51 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                       <p className="text-xs font-medium text-red-400">{step1Errors.houseStructure}</p>
                     ) : null}
                   </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold text-gray-800 dark:text-zinc-100 uppercase tracking-wider">
+                      Target Work Floor
+                    </label>
+                    <OptionSelectGrid
+                      options={PLUMBING_TARGET_FLOOR_OPTIONS}
+                      value={form.targetWorkFloor}
+                      onSelect={(floor) => {
+                        update('targetWorkFloor', floor);
+                        update('targetFloors', [floor]);
+                      }}
+                      columns={2}
+                    />
+                    {step1ValidationAttempted && step1Errors.targetWorkFloor ? (
+                      <p className="text-xs font-medium text-red-400">{step1Errors.targetWorkFloor}</p>
+                    ) : null}
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold text-gray-800 dark:text-zinc-100 uppercase tracking-wider">
+                      Total Floors in Building
+                    </label>
+                    <OptionSelectGrid
+                      options={PLUMBING_BUILDING_STOREYS_OPTIONS}
+                      value={form.buildingStoreys}
+                      onSelect={(value) => update('buildingStoreys', value)}
+                      columns={2}
+                    />
+                    {step1ValidationAttempted && step1Errors.buildingStoreys ? (
+                      <p className="text-xs font-medium text-red-400">{step1Errors.buildingStoreys}</p>
+                    ) : null}
+                  </div>
+
+                  <Input
+                    label="Approx Built-Up Area"
+                    type="number"
+                    inputMode="decimal"
+                    min={1}
+                    placeholder="e.g. 1200"
+                    suffix={<span className="text-xs font-medium text-muted-foreground">Sq Ft</span>}
+                    value={form.approxBuiltUpAreaSqft}
+                    onChange={(e) => update('approxBuiltUpAreaSqft', e.target.value)}
+                    error={step1ValidationAttempted ? step1Errors.approxBuiltUpAreaSqft : undefined}
+                  />
                 </div>
               )}
 
@@ -570,7 +650,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                 {isPainter
                   ? 'Tell painters the building type, area, primer, materials, and when work should start.'
                   : trade === 'plumber'
-                    ? 'Open a service card and set bathroom quantities, sizes, and floors (RCC), plus one piping package. Pipe sizes are included automatically.'
+                    ? 'Check the plumbing packages you need, then pick the sub-options plumbers should quote as labour unit rates.'
                     : `Describe the ${tradeLabel.toLowerCase()} work so bidders can quote without scope conflicts.`}
               </p>
 
