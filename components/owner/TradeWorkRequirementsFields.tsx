@@ -31,6 +31,7 @@ import {
   type PlumbingPackageKind,
   type PlumbingSubOptionId,
   type PlumbingTargetFloor,
+  type PlumbingWaterTankFloor,
   type PlumberScopeType,
   type ProjectStartTimeType,
   type TankDistance,
@@ -57,6 +58,7 @@ export interface TradeWorkFormFields {
   approxBuiltUpAreaSqft: string;
   selectedPackages: PlumbingPackageKind[];
   selectedSubOptions: PlumbingSubOptionId[];
+  waterTankFloor: PlumbingWaterTankFloor | null;
   bathroomPackages: BathroomPackageSelection[];
   pipingPackage: PipingPackageKind | null;
   cpvcPipeSizes: CpvcPipeSize[];
@@ -109,8 +111,11 @@ export function TradeWorkRequirementsFields({
         <PlumbingPackageForm
           selectedPackages={form.selectedPackages}
           selectedSubOptions={form.selectedSubOptions}
+          houseStructure={form.houseStructure}
+          waterTankFloor={form.waterTankFloor}
           onChangePackages={(v) => onChange('selectedPackages', v)}
           onChangeSubOptions={(v) => onChange('selectedSubOptions', v)}
+          onChangeWaterTankFloor={(v) => onChange('waterTankFloor', v)}
         />
         </>
       )}

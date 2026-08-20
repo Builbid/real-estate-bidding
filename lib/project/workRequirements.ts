@@ -89,10 +89,11 @@ export function isWideRequirementLabel(label: string): boolean {
     label === 'Target Work Floor' ||
     label === 'Total Floors in Building' ||
     label === 'Approx Built-Up Area' ||
-    label === 'Bathroom Fittings Package' ||
-    label === 'Water Piping Package' ||
-    label === 'Waste Line Package' ||
-    label === 'Water Tank Fitting Package' ||
+    label === 'Bathroom Fittings Rate' ||
+    label === 'Water Piping Rate' ||
+    label === 'Waste Line Rate' ||
+    label === 'Water Tank Fitting Rate' ||
+    label === 'Water Tank Floor' ||
     label === 'Target Floors' ||
     label === 'Package Level' ||
     label === 'Room Size' ||

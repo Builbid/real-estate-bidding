@@ -62,7 +62,8 @@ export type PlumbingPackageKind =
   | 'water_tank';
 
 export type PlumbingSubOptionId =
-  | 'commode_toilet'
+  | 'western_commode'
+  | 'indian_toilet_pan'
   | 'overhead_shower'
   | 'geyser'
   | 'wash_basin'
@@ -74,8 +75,15 @@ export type PlumbingSubOptionId =
   | 'waste_four_inch_open'
   | 'floor_drain_jali'
   | 'tank_500_ltr'
-  | 'tank_1000_ltr'
-  | 'loft_tank';
+  | 'tank_1000_ltr';
+
+export type PlumbingWaterTankFloor =
+  | 'ground'
+  | 'first'
+  | 'second'
+  | 'third'
+  | 'fourth_plus'
+  | 'terrace';
 
 export type PipingPackageKind = 'non_concealing' | 'concealing';
 
@@ -197,10 +205,12 @@ export interface PlumberDetails extends TradeDetailsBase {
   buildingStoreys?: PlumbingBuildingStoreys | null;
   /** Approximate built-up area in square feet. */
   approxBuiltUpAreaSqft?: number | null;
-  /** Main plumbing packages checked by the owner. */
+  /** Main plumbing rate categories checked by the owner. */
   selectedPackages?: PlumbingPackageKind[];
   /** Sub-options opened for unit-rate bidding. */
   selectedSubOptions?: PlumbingSubOptionId[];
+  /** RCC-only: floor where the water tank will be fitted. */
+  waterTankFloor?: PlumbingWaterTankFloor | null;
   /** Legacy field — no longer collected on new plumber submissions. */
   materialScope?: PlumberMaterialScope | null;
 }
@@ -407,9 +417,10 @@ export const PLUMBING_SCOPE_PACKAGES: {
 }[] = [
   {
     id: 'bathroom_fittings',
-    label: 'Bathroom Fittings Package',
+    label: 'Bathroom Fittings Rate',
     options: [
-      { id: 'commode_toilet', label: 'Commode / Toilet Fitting', unitSuffix: '/unit', weight: 1 },
+      { id: 'western_commode', label: 'Western Commode Fitting', unitSuffix: '/unit', weight: 1 },
+      { id: 'indian_toilet_pan', label: 'Indian Toilet Pan Fitting', unitSuffix: '/unit', weight: 1 },
       { id: 'overhead_shower', label: 'Overhead Shower Fitting', unitSuffix: '/unit', weight: 1 },
       { id: 'geyser', label: 'Geyser Fitting', unitSuffix: '/unit', weight: 1 },
       { id: 'wash_basin', label: 'Wash Basin Fitting', unitSuffix: '/unit', weight: 1 },
@@ -418,7 +429,7 @@ export const PLUMBING_SCOPE_PACKAGES: {
   },
   {
     id: 'water_piping',
-    label: 'Water Piping Package',
+    label: 'Water Piping Rate',
     options: [
       { id: 'piping_three_quarter_concealed', label: '3/4" Concealed Piping', unitSuffix: '/point', weight: 1 },
       { id: 'piping_three_quarter_open', label: '3/4" Non-Concealed / Open Piping', unitSuffix: '/point', weight: 1 },
@@ -427,7 +438,7 @@ export const PLUMBING_SCOPE_PACKAGES: {
   },
   {
     id: 'waste_line',
-    label: 'Waste Line Package',
+    label: 'Waste Line Rate',
     options: [
       { id: 'waste_four_inch_concealed', label: '4" SWR Concealed Waste Line', unitSuffix: '/point', weight: 1 },
       { id: 'waste_four_inch_open', label: '4" SWR Non-Concealed Waste Line', unitSuffix: '/point', weight: 1 },
@@ -436,11 +447,10 @@ export const PLUMBING_SCOPE_PACKAGES: {
   },
   {
     id: 'water_tank',
-    label: 'Water Tank Fitting Package',
+    label: 'Water Tank Fitting Rate',
     options: [
       { id: 'tank_500_ltr', label: '500 Ltr Tank Fitting', unitSuffix: '/unit', weight: 1 },
       { id: 'tank_1000_ltr', label: '1000 Ltr Tank Fitting', unitSuffix: '/unit', weight: 1 },
-      { id: 'loft_tank', label: 'Loft Tank Fitting', unitSuffix: '/unit', weight: 1 },
     ],
   },
 ];
@@ -449,6 +459,18 @@ export const PLUMBING_LABOUR_ONLY_DISCLAIMER =
   'All bids are strictly for LABOUR CHARGES. Materials must be supplied by the Property Owner.';
 
 export const ALL_PLUMBING_SUB_OPTIONS = PLUMBING_SCOPE_PACKAGES.flatMap((pkg) => pkg.options);
+
+export const PLUMBING_WATER_TANK_FLOOR_OPTIONS: {
+  value: PlumbingWaterTankFloor;
+  label: string;
+}[] = [
+  { value: 'ground', label: 'Ground Floor' },
+  { value: 'first', label: '1st Floor' },
+  { value: 'second', label: '2nd Floor' },
+  { value: 'third', label: '3rd Floor' },
+  { value: 'fourth_plus', label: '4th Floor+' },
+  { value: 'terrace', label: 'Terrace / Roof' },
+];
 
 export const PIPING_PACKAGE_OPTIONS: {
   value: PipingPackageKind;
@@ -673,6 +695,7 @@ const PLUMBING_TARGET_FLOOR_SET = new Set(PLUMBING_TARGET_FLOOR_OPTIONS.map((o) 
 const PLUMBING_BUILDING_STOREYS_SET = new Set(PLUMBING_BUILDING_STOREYS_OPTIONS.map((o) => o.value));
 const PLUMBING_PACKAGE_KIND_SET = new Set(PLUMBING_SCOPE_PACKAGES.map((o) => o.id));
 const PLUMBING_SUB_OPTION_SET = new Set(ALL_PLUMBING_SUB_OPTIONS.map((o) => o.id));
+const PLUMBING_WATER_TANK_FLOOR_SET = new Set(PLUMBING_WATER_TANK_FLOOR_OPTIONS.map((o) => o.value));
 const PIPING_PACKAGE_SET = new Set(PIPING_PACKAGE_OPTIONS.map((o) => o.value));
 const TANK_DISTANCE_SET = new Set(TANK_DISTANCE_OPTIONS.map((o) => o.value));
 const CPVC_PIPE_SIZE_SET = new Set(CPVC_PIPE_SIZE_OPTIONS.map((o) => o.value));
@@ -853,7 +876,27 @@ export function parsePlumbingPackageKinds(raw: unknown): PlumbingPackageKind[] {
 }
 
 export function parsePlumbingSubOptionIds(raw: unknown): PlumbingSubOptionId[] {
-  return parseUniqueEnumList(raw, PLUMBING_SUB_OPTION_SET);
+  if (!Array.isArray(raw)) return [];
+  const remapped = raw.map((item) => {
+    if (item === 'commode_toilet') return 'western_commode';
+    if (item === 'loft_tank') return null;
+    return item;
+  }).filter((item): item is string => typeof item === 'string');
+  return parseUniqueEnumList(remapped, PLUMBING_SUB_OPTION_SET);
+}
+
+export function parsePlumbingWaterTankFloor(raw: unknown): PlumbingWaterTankFloor | null {
+  if (typeof raw !== 'string' || !PLUMBING_WATER_TANK_FLOOR_SET.has(raw as PlumbingWaterTankFloor)) {
+    return null;
+  }
+  return raw as PlumbingWaterTankFloor;
+}
+
+export function getPlumbingWaterTankFloorLabel(
+  value: PlumbingWaterTankFloor | null | undefined,
+): string {
+  if (!value) return '';
+  return PLUMBING_WATER_TANK_FLOOR_OPTIONS.find((o) => o.value === value)?.label ?? value;
 }
 
 export function getPlumbingSubOption(id: PlumbingSubOptionId) {
@@ -1213,6 +1256,7 @@ export function parseTradeDetails(value: unknown): TradeDetails | null {
         ? (v.buildingStoreys as PlumbingBuildingStoreys)
         : null;
     const approxBuiltUpAreaSqft = parsePositiveNumber(v.approxBuiltUpAreaSqft);
+    const waterTankFloor = parsePlumbingWaterTankFloor(v.waterTankFloor);
     const packageFloors = floorsFromBathroomPackages(bathroomPackages);
     const targetFloors =
       targetWorkFloor
@@ -1260,6 +1304,10 @@ export function parseTradeDetails(value: unknown): TradeDetails | null {
       approxBuiltUpAreaSqft,
       selectedPackages,
       selectedSubOptions,
+      waterTankFloor:
+        houseStructure === 'rcc' && selectedPackages.includes('water_tank')
+          ? waterTankFloor
+          : null,
       bathroomPackages,
       pipingPackage,
       cpvcPipeSizes,
@@ -1465,6 +1513,12 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
               ? picked.map((option) => option.label).join('\n')
               : 'No sub-options selected',
         });
+        if (pkg.id === 'water_tank' && details.houseStructure === 'rcc' && details.waterTankFloor) {
+          blocks.push({
+            label: 'Water Tank Floor',
+            value: getPlumbingWaterTankFloorLabel(details.waterTankFloor),
+          });
+        }
       }
       blocks.push({
         label: 'Material Scope',
@@ -1856,6 +1910,7 @@ export interface TradeDetailsFormInput {
   approxBuiltUpAreaSqft?: string | number | null;
   selectedPackages?: PlumbingPackageKind[];
   selectedSubOptions?: PlumbingSubOptionId[];
+  waterTankFloor?: PlumbingWaterTankFloor | null;
   bathroomPackages?: BathroomPackageSelection[];
   pipingPackage?: PipingPackageKind | null;
   cpvcPipeSizes?: CpvcPipeSize[];
@@ -1928,7 +1983,7 @@ export function validateTradeDetailsInput(
     }
     const selectedPackages = parsePlumbingPackageKinds(input.selectedPackages);
     if (selectedPackages.length === 0) {
-      return { error: 'Select at least one plumbing package.' };
+      return { error: 'Select at least one plumbing category.' };
     }
     const selectedSubOptions = subOptionsForPackages(
       selectedPackages,
@@ -1940,6 +1995,13 @@ export function validateTradeDetailsInput(
       if (picked.length === 0) {
         return { error: `Select at least one sub-option for ${getPlumbingPackageLabel(pkg)}.` };
       }
+    }
+    const requiresTankFloor = houseStructure === 'rcc' && selectedPackages.includes('water_tank');
+    const waterTankFloor = requiresTankFloor
+      ? parsePlumbingWaterTankFloor(input.waterTankFloor)
+      : null;
+    if (requiresTankFloor && !waterTankFloor) {
+      return { error: 'Select the floor where the water tank will be fitted.' };
     }
     const hasConcealedPiping = selectedSubOptions.some(
       (id) => id === 'piping_three_quarter_concealed' || id === 'waste_four_inch_concealed',
@@ -1972,6 +2034,7 @@ export function validateTradeDetailsInput(
         approxBuiltUpAreaSqft,
         selectedPackages,
         selectedSubOptions,
+        waterTankFloor,
         bathroomPackages: emptyBathroomPackageSelections(),
         pipingPackage,
         cpvcPipeSizes: smart.cpvcPipeSizes,

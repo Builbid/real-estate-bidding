@@ -2,22 +2,38 @@
 
 import { CheckCircle2, ChevronDown } from 'lucide-react';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   PLUMBING_SCOPE_PACKAGES,
+  PLUMBING_WATER_TANK_FLOOR_OPTIONS,
+  type PlumbingHouseStructure,
   type PlumbingPackageKind,
   type PlumbingSubOptionId,
+  type PlumbingWaterTankFloor,
 } from '@/lib/tradeWorkDetails';
 import { cn } from '@/lib/utils';
 
 export function PlumbingPackageForm({
   selectedPackages,
   selectedSubOptions,
+  houseStructure,
+  waterTankFloor,
   onChangePackages,
   onChangeSubOptions,
+  onChangeWaterTankFloor,
 }: {
   selectedPackages: PlumbingPackageKind[];
   selectedSubOptions: PlumbingSubOptionId[];
+  houseStructure: PlumbingHouseStructure | null;
+  waterTankFloor: PlumbingWaterTankFloor | null;
   onChangePackages: (value: PlumbingPackageKind[]) => void;
   onChangeSubOptions: (value: PlumbingSubOptionId[]) => void;
+  onChangeWaterTankFloor: (value: PlumbingWaterTankFloor | null) => void;
 }) {
   function togglePackage(id: PlumbingPackageKind) {
     const enabled = selectedPackages.includes(id);
@@ -26,6 +42,7 @@ export function PlumbingPackageForm({
     if (enabled) {
       onChangePackages(selectedPackages.filter((item) => item !== id));
       onChangeSubOptions(selectedSubOptions.filter((item) => !optionIds.includes(item)));
+      if (id === 'water_tank') onChangeWaterTankFloor(null);
       return;
     }
     onChangePackages([...selectedPackages, id]);
@@ -42,10 +59,12 @@ export function PlumbingPackageForm({
     );
   }
 
+  const showTankFloor = houseStructure === 'rcc';
+
   return (
     <div className="space-y-3">
       <p className="text-xs font-medium text-gray-700 dark:text-zinc-300">
-        Check a package to reveal its sub-options. Plumbers bid a labour rate only for the items you select.
+        Check a category to reveal its sub-options. Plumbers bid a labour rate only for the items you select.
       </p>
       {PLUMBING_SCOPE_PACKAGES.map((pkg) => {
         const open = selectedPackages.includes(pkg.id);
@@ -82,7 +101,7 @@ export function PlumbingPackageForm({
                     ? pickedCount > 0
                       ? `${pickedCount} sub-option${pickedCount === 1 ? '' : 's'} selected`
                       : 'Select the fittings plumbers should quote'
-                    : 'Tap to add this package'}
+                    : 'Tap to add this category'}
                 </span>
               </span>
             </label>
@@ -126,6 +145,30 @@ export function PlumbingPackageForm({
                       </label>
                     );
                   })}
+                  {pkg.id === 'water_tank' && showTankFloor && (
+                    <div className="pt-2">
+                      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-800 dark:text-zinc-100">
+                        In which floor will the water tank be fitted?
+                      </label>
+                      <Select
+                        value={waterTankFloor ?? undefined}
+                        onValueChange={(value) =>
+                          onChangeWaterTankFloor(value as PlumbingWaterTankFloor)
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select floor" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {PLUMBING_WATER_TANK_FLOOR_OPTIONS.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

@@ -104,6 +104,7 @@ const EMPTY_FORM: FormState = {
   approxBuiltUpAreaSqft: '',
   selectedPackages: [],
   selectedSubOptions: [],
+  waterTankFloor: null,
   bathroomPackages: emptyBathroomPackageSelections(),
   pipingPackage: null,
   cpvcPipeSizes: ['three_quarter'],
@@ -280,6 +281,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
       approxBuiltUpAreaSqft: form.approxBuiltUpAreaSqft,
       selectedPackages: form.selectedPackages,
       selectedSubOptions: form.selectedSubOptions,
+      waterTankFloor: form.waterTankFloor,
       bathroomPackages: form.bathroomPackages,
       pipingPackage: form.pipingPackage,
       cpvcPipeSizes: form.cpvcPipeSizes,
@@ -542,6 +544,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                                 targetFloors: opt.value === 'assam_type' ? ['ground'] : current.targetWorkFloor ? [current.targetWorkFloor] : [],
                                 buildingStoreys: opt.value === 'assam_type' ? current.buildingStoreys ?? 'single' : current.buildingStoreys,
                                 plumbingFloorLevel: opt.value === 'assam_type' ? 'ground' : current.plumbingFloorLevel,
+                                waterTankFloor: opt.value === 'assam_type' ? null : current.waterTankFloor,
                               }));
                               setStep1Errors((errors) => {
                                 const next = { ...errors };
@@ -650,7 +653,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                 {isPainter
                   ? 'Tell painters the building type, area, primer, materials, and when work should start.'
                   : trade === 'plumber'
-                    ? 'Check the plumbing packages you need, then pick the sub-options plumbers should quote as labour unit rates.'
+                    ? 'Check the plumbing categories you need, then pick the sub-options plumbers should quote as labour unit rates.'
                     : `Describe the ${tradeLabel.toLowerCase()} work so bidders can quote without scope conflicts.`}
               </p>
 
