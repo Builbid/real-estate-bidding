@@ -82,8 +82,9 @@ export type PlumbingWaterTankFloor =
   | 'first'
   | 'second'
   | 'third'
-  | 'fourth_plus'
-  | 'terrace';
+  | 'fourth'
+  | 'fifth'
+  | 'custom';
 
 export type PipingPackageKind = 'non_concealing' | 'concealing';
 
@@ -213,6 +214,8 @@ export interface PlumberDetails extends TradeDetailsBase {
   selectedSubOptions?: PlumbingSubOptionId[];
   /** RCC-only: floor where the water tank will be fitted. */
   waterTankFloor?: PlumbingWaterTankFloor | null;
+  /** Free-text location when the water tank floor is `custom`. */
+  customWaterTankFloor?: string | null;
   /** Legacy field — no longer collected on new plumber submissions. */
   materialScope?: PlumberMaterialScope | null;
 }
@@ -470,8 +473,9 @@ export const PLUMBING_WATER_TANK_FLOOR_OPTIONS: {
   { value: 'first', label: '1st Floor' },
   { value: 'second', label: '2nd Floor' },
   { value: 'third', label: '3rd Floor' },
-  { value: 'fourth_plus', label: '4th Floor+' },
-  { value: 'terrace', label: 'Terrace / Roof' },
+  { value: 'fourth', label: '4th Floor' },
+  { value: 'fifth', label: '5th Floor' },
+  { value: 'custom', label: 'Other / Custom Floor' },
 ];
 
 export const PIPING_PACKAGE_OPTIONS: {
@@ -696,7 +700,6 @@ const PLUMBING_HOUSE_STRUCTURE_SET = new Set(PLUMBING_HOUSE_STRUCTURE_OPTIONS.ma
 const PLUMBING_BUILDING_STOREYS_SET = new Set(PLUMBING_BUILDING_STOREYS_OPTIONS.map((o) => o.value));
 const PLUMBING_PACKAGE_KIND_SET = new Set(PLUMBING_SCOPE_PACKAGES.map((o) => o.id));
 const PLUMBING_SUB_OPTION_SET = new Set(ALL_PLUMBING_SUB_OPTIONS.map((o) => o.id));
-const PLUMBING_WATER_TANK_FLOOR_SET = new Set(PLUMBING_WATER_TANK_FLOOR_OPTIONS.map((o) => o.value));
 const PIPING_PACKAGE_SET = new Set(PIPING_PACKAGE_OPTIONS.map((o) => o.value));
 const TANK_DISTANCE_SET = new Set(TANK_DISTANCE_OPTIONS.map((o) => o.value));
 const CPVC_PIPE_SIZE_SET = new Set(CPVC_PIPE_SIZE_OPTIONS.map((o) => o.value));
@@ -908,16 +911,28 @@ export function parsePlumbingSubOptionIds(raw: unknown): PlumbingSubOptionId[] {
 }
 
 export function parsePlumbingWaterTankFloor(raw: unknown): PlumbingWaterTankFloor | null {
-  if (typeof raw !== 'string' || !PLUMBING_WATER_TANK_FLOOR_SET.has(raw as PlumbingWaterTankFloor)) {
-    return null;
+  if (raw === 'fourth_plus') return 'fourth';
+  if (raw === 'terrace') return 'custom';
+  if (
+    raw === 'ground' ||
+    raw === 'first' ||
+    raw === 'second' ||
+    raw === 'third' ||
+    raw === 'fourth' ||
+    raw === 'fifth' ||
+    raw === 'custom'
+  ) {
+    return raw;
   }
-  return raw as PlumbingWaterTankFloor;
+  return null;
 }
 
 export function getPlumbingWaterTankFloorLabel(
   value: PlumbingWaterTankFloor | null | undefined,
+  customText?: string | null,
 ): string {
   if (!value) return '';
+  if (value === 'custom' && customText?.trim()) return customText.trim();
   return PLUMBING_WATER_TANK_FLOOR_OPTIONS.find((o) => o.value === value)?.label ?? value;
 }
 
@@ -1297,6 +1312,11 @@ export function parseTradeDetails(value: unknown): TradeDetails | null {
         : null;
     const approxBuiltUpAreaSqft = parsePositiveNumber(v.approxBuiltUpAreaSqft);
     const waterTankFloor = parsePlumbingWaterTankFloor(v.waterTankFloor);
+    const customWaterTankFloor =
+      waterTankFloor === 'custom'
+        ? parseCustomTargetFloors(v.customWaterTankFloor) ??
+          (v.waterTankFloor === 'terrace' ? 'Terrace / Roof' : null)
+        : null;
     const packageFloors = floorsFromBathroomPackages(bathroomPackages);
     const targetFloors =
       parsedTargetFloors.length > 0
@@ -1349,6 +1369,10 @@ export function parseTradeDetails(value: unknown): TradeDetails | null {
       waterTankFloor:
         houseStructure === 'rcc' && selectedPackages.includes('water_tank')
           ? waterTankFloor
+          : null,
+      customWaterTankFloor:
+        houseStructure === 'rcc' && selectedPackages.includes('water_tank') && waterTankFloor === 'custom'
+          ? customWaterTankFloor
           : null,
       bathroomPackages,
       pipingPackage,
@@ -1557,7 +1581,10 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
         if (pkg.id === 'water_tank' && details.houseStructure === 'rcc' && details.waterTankFloor) {
           blocks.push({
             label: 'Water Tank Floor',
-            value: getPlumbingWaterTankFloorLabel(details.waterTankFloor),
+            value: getPlumbingWaterTankFloorLabel(
+              details.waterTankFloor,
+              details.customWaterTankFloor,
+            ),
           });
         }
       }
@@ -1953,6 +1980,7 @@ export interface TradeDetailsFormInput {
   selectedPackages?: PlumbingPackageKind[];
   selectedSubOptions?: PlumbingSubOptionId[];
   waterTankFloor?: PlumbingWaterTankFloor | null;
+  customWaterTankFloor?: string | null;
   bathroomPackages?: BathroomPackageSelection[];
   pipingPackage?: PipingPackageKind | null;
   cpvcPipeSizes?: CpvcPipeSize[];
@@ -2052,6 +2080,11 @@ export function validateTradeDetailsInput(
     if (requiresTankFloor && !waterTankFloor) {
       return { error: 'Select the floor where the water tank will be fitted.' };
     }
+    const customWaterTankFloor =
+      waterTankFloor === 'custom' ? parseCustomTargetFloors(input.customWaterTankFloor) : null;
+    if (requiresTankFloor && waterTankFloor === 'custom' && !customWaterTankFloor) {
+      return { error: 'Enter the custom water tank floor location.' };
+    }
     const hasConcealedPiping = selectedSubOptions.some(
       (id) => id === 'piping_three_quarter_concealed' || id === 'waste_four_inch_concealed',
     );
@@ -2084,6 +2117,7 @@ export function validateTradeDetailsInput(
         selectedPackages,
         selectedSubOptions,
         waterTankFloor,
+        customWaterTankFloor,
         bathroomPackages: emptyBathroomPackageSelections(),
         pipingPackage,
         cpvcPipeSizes: smart.cpvcPipeSizes,

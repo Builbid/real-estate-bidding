@@ -1,6 +1,7 @@
 'use client';
 
 import { CheckCircle2, ChevronDown } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -23,17 +24,21 @@ export function PlumbingPackageForm({
   selectedSubOptions,
   houseStructure,
   waterTankFloor,
+  customWaterTankFloor,
   onChangePackages,
   onChangeSubOptions,
   onChangeWaterTankFloor,
+  onChangeCustomWaterTankFloor,
 }: {
   selectedPackages: PlumbingPackageKind[];
   selectedSubOptions: PlumbingSubOptionId[];
   houseStructure: PlumbingHouseStructure | null;
   waterTankFloor: PlumbingWaterTankFloor | null;
+  customWaterTankFloor: string;
   onChangePackages: (value: PlumbingPackageKind[]) => void;
   onChangeSubOptions: (value: PlumbingSubOptionId[]) => void;
   onChangeWaterTankFloor: (value: PlumbingWaterTankFloor | null) => void;
+  onChangeCustomWaterTankFloor: (value: string) => void;
 }) {
   function togglePackage(id: PlumbingPackageKind) {
     const enabled = selectedPackages.includes(id);
@@ -42,7 +47,10 @@ export function PlumbingPackageForm({
     if (enabled) {
       onChangePackages(selectedPackages.filter((item) => item !== id));
       onChangeSubOptions(selectedSubOptions.filter((item) => !optionIds.includes(item)));
-      if (id === 'water_tank') onChangeWaterTankFloor(null);
+      if (id === 'water_tank') {
+        onChangeWaterTankFloor(null);
+        onChangeCustomWaterTankFloor('');
+      }
       return;
     }
     onChangePackages([...selectedPackages, id]);
@@ -146,15 +154,17 @@ export function PlumbingPackageForm({
                     );
                   })}
                   {pkg.id === 'water_tank' && showTankFloor && (
-                    <div className="pt-2">
+                    <div className="space-y-2 pt-2">
                       <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-800 dark:text-zinc-100">
                         In which floor will the water tank be fitted?
                       </label>
                       <Select
                         value={waterTankFloor ?? undefined}
-                        onValueChange={(value) =>
-                          onChangeWaterTankFloor(value as PlumbingWaterTankFloor)
-                        }
+                        onValueChange={(value) => {
+                          const next = value as PlumbingWaterTankFloor;
+                          onChangeWaterTankFloor(next);
+                          if (next !== 'custom') onChangeCustomWaterTankFloor('');
+                        }}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select floor" />
@@ -167,6 +177,15 @@ export function PlumbingPackageForm({
                           ))}
                         </SelectContent>
                       </Select>
+                      {waterTankFloor === 'custom' ? (
+                        <Input
+                          label="Specify Custom Floor"
+                          type="text"
+                          placeholder='e.g. 6th Floor Roof, Staircase Tower'
+                          value={customWaterTankFloor}
+                          onChange={(e) => onChangeCustomWaterTankFloor(e.target.value)}
+                        />
+                      ) : null}
                     </div>
                   )}
                 </div>

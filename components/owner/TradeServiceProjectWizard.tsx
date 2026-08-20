@@ -105,6 +105,7 @@ const EMPTY_FORM: FormState = {
   selectedPackages: [],
   selectedSubOptions: [],
   waterTankFloor: null,
+  customWaterTankFloor: '',
   bathroomPackages: emptyBathroomPackageSelections(),
   pipingPackage: null,
   cpvcPipeSizes: ['three_quarter'],
@@ -284,6 +285,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
       selectedPackages: form.selectedPackages,
       selectedSubOptions: form.selectedSubOptions,
       waterTankFloor: form.waterTankFloor,
+      customWaterTankFloor: form.customWaterTankFloor,
       bathroomPackages: form.bathroomPackages,
       pipingPackage: form.pipingPackage,
       cpvcPipeSizes: form.cpvcPipeSizes,
@@ -544,6 +546,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                                 track_type: houseStructureToTrackType(opt.value),
                                 plumbingFloorLevel: opt.value === 'assam_type' ? 'ground' : current.plumbingFloorLevel,
                                 waterTankFloor: opt.value === 'assam_type' ? null : current.waterTankFloor,
+                                customWaterTankFloor: opt.value === 'assam_type' ? '' : current.customWaterTankFloor,
                               }));
                               setStep1Errors((errors) => {
                                 const next = { ...errors };

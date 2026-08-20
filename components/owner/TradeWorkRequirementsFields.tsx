@@ -60,6 +60,7 @@ export interface TradeWorkFormFields {
   selectedPackages: PlumbingPackageKind[];
   selectedSubOptions: PlumbingSubOptionId[];
   waterTankFloor: PlumbingWaterTankFloor | null;
+  customWaterTankFloor: string;
   bathroomPackages: BathroomPackageSelection[];
   pipingPackage: PipingPackageKind | null;
   cpvcPipeSizes: CpvcPipeSize[];
@@ -114,9 +115,11 @@ export function TradeWorkRequirementsFields({
           selectedSubOptions={form.selectedSubOptions}
           houseStructure={form.houseStructure}
           waterTankFloor={form.waterTankFloor}
+          customWaterTankFloor={form.customWaterTankFloor}
           onChangePackages={(v) => onChange('selectedPackages', v)}
           onChangeSubOptions={(v) => onChange('selectedSubOptions', v)}
           onChangeWaterTankFloor={(v) => onChange('waterTankFloor', v)}
+          onChangeCustomWaterTankFloor={(v) => onChange('customWaterTankFloor', v)}
         />
         </>
       )}
