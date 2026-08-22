@@ -17,6 +17,7 @@ import { formatBidUnitCaption, formatBidUnitSuffix, formatTripCapacityLabel } fr
 import { resolveScopeRateBidItems } from '@/lib/bid/scopeRateBid';
 import { resolveProjectFloorCount, shouldShowBidFloorBreakdown } from '@/lib/bid/floorRateDisplay';
 import { getPlumbingUnitRateDisplayEntries, readProjectPlumbingBidOptions } from '@/lib/plumberBid';
+import { getElectricianUnitRateDisplayEntries, readProjectElectricianBidOptions } from '@/lib/electricianBid';
 import { useOwnerProjectPhaseContext } from '@/lib/context/OwnerProjectPhaseContext';
 import type { Project, Bid } from '@/lib/types';
 
@@ -124,10 +125,13 @@ export function UnifiedBidRankings({
   const isCompleted = project.status === 'completed';
   const scopeBid = resolveScopeRateBidItems(project);
   const isPlumbingBid = scopeBid?.kind === 'plumbing';
-  const isPlumbingUnitRateBid = Boolean(scopeBid?.unitRateBid);
+  const isElectricianBid = scopeBid?.kind === 'electrician';
+  const isTradeUnitRateBid = Boolean(scopeBid?.unitRateBid);
   const plumbingOptions = isPlumbingBid ? readProjectPlumbingBidOptions(project) : [];
-  const projectFloorCount = isPlumbingUnitRateBid
-    ? Math.max(plumbingOptions.length, 1)
+  const electricianOptions = isElectricianBid ? readProjectElectricianBidOptions(project) : [];
+  const tradeUnitRateOptions = isElectricianBid ? electricianOptions : plumbingOptions;
+  const projectFloorCount = isTradeUnitRateBid
+    ? Math.max(tradeUnitRateOptions.length, 1)
     : (scopeBid?.count ?? resolveProjectFloorCount(project));
   const carpenterFloorLabels = scopeBid?.labels;
 
@@ -139,7 +143,7 @@ export function UnifiedBidRankings({
           <TrendingDown className="w-4 h-4 text-emerald-400" />
           <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             Bid Rankings — {bids.length} bid{bids.length !== 1 ? 's' : ''}
-            {isPlumbingUnitRateBid ? ' · lowest Weighted Index first' : ''}
+            {isTradeUnitRateBid ? ' · lowest Baseline Score first' : ''}
           </span>
         </div>
         {!isCompleted && !isFrozen && (
@@ -248,14 +252,14 @@ export function UnifiedBidRankings({
                 }`}>
                   {project.service_type === 'plumber' && !isPlumbingBid ? 'Rs. ' : '₹'}
                   {formatBidMetric(
-                    isPlumbingUnitRateBid && bid.rates?.weighted_index
+                    isTradeUnitRateBid && bid.rates?.weighted_index
                       ? bid.rates.weighted_index
                       : averageFromSumMetric(bid.total_sum_metric, projectFloorCount),
                   )}
                 </p>
                 <p className="text-[10px] text-muted-foreground">
                   {formatTripCapacityLabel(bid.rates?.vehicleCapacityCum)
-                    ?? (isPlumbingUnitRateBid
+                    ?? (isTradeUnitRateBid
                       ? 'weighted index'
                       : isPlumbingBid
                       ? 'overall avg'
@@ -268,20 +272,22 @@ export function UnifiedBidRankings({
               </div>
 
               {(shouldShowBidFloorBreakdown(bid.rates, projectFloorCount) ||
-                (isPlumbingUnitRateBid && Object.keys(bid.rates?.unit_rates ?? {}).length > 0)) && (
+                (isTradeUnitRateBid && Object.keys(bid.rates?.unit_rates ?? {}).length > 0)) && (
                 <div className="w-full basis-full">
                   <BidFloorRatesBreakdown
                     rates={bid.rates}
                     floorLabels={carpenterFloorLabels}
-                    unitSuffix={isPlumbingBid ? '/Rft' : '/sqft'}
-                    unitSuffixes={isPlumbingBid ? scopeBid?.rateUnits : undefined}
+                    unitSuffix={isPlumbingBid ? '/Rft' : isElectricianBid ? '/unit' : '/sqft'}
+                    unitSuffixes={(isPlumbingBid || isElectricianBid) ? scopeBid?.rateUnits : undefined}
                     extraEntries={
-                      isPlumbingUnitRateBid
-                        ? getPlumbingUnitRateDisplayEntries(bid.rates, plumbingOptions)
+                      isTradeUnitRateBid
+                        ? isElectricianBid
+                          ? getElectricianUnitRateDisplayEntries(bid.rates, electricianOptions)
+                          : getPlumbingUnitRateDisplayEntries(bid.rates, plumbingOptions)
                         : undefined
                     }
                     indexLabel="Weighted Index"
-                    indexValue={isPlumbingUnitRateBid ? bid.rates?.weighted_index : undefined}
+                    indexValue={isTradeUnitRateBid ? bid.rates?.weighted_index : undefined}
                   />
                 </div>
               )}

@@ -245,6 +245,10 @@ export async function createProjectAction(
           ? buildingStoreysToTotalFloors(trade.trade_details.buildingStoreys)
           : targetFloorsToTotalFloors(trade.trade_details.targetFloors)
       }
+      if (trade.trade_details.service === 'electrician' && trade.trade_details.approxBuiltUpAreaSqft) {
+        insertPayload.floor_area_sqft = trade.trade_details.approxBuiltUpAreaSqft
+        insertPayload.total_floors = targetFloorsToTotalFloors(trade.trade_details.targetFloors)
+      }
     }
   } else {
     if (isFirm) {

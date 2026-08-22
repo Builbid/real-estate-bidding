@@ -142,6 +142,35 @@ export type ElectricianHeavyAppliance =
 
 export type ElectricianMaterialScope = 'labour_only' | 'labour_plus_wire';
 
+export type ElectricianPackageKind =
+  | 'wiring_piping'
+  | 'switchboards_sockets'
+  | 'appliances_fixtures';
+
+export type ElectricianSubOptionId =
+  | 'concealed_wall_slab_wiring'
+  | 'open_surface_wiring'
+  | 'main_db_service_line'
+  | 'modular_switchboard'
+  | 'non_modular_wooden_board'
+  | 'heavy_power_socket'
+  | 'ceiling_exhaust_fan'
+  | 'led_panel_concealed_light'
+  | 'fancy_chandelier_wall_light'
+  | 'mcb_db_setup'
+  | 'inverter_ups_connection';
+
+export interface ElectricianSubOptionDef {
+  id: ElectricianSubOptionId;
+  label: string;
+  /** Inline owner-facing note shown under the option label. */
+  note?: string;
+  unitSuffix: string;
+  unitType?: PlumbingSubOptionUnitType;
+  isWiringOrPiping?: boolean;
+  weight: number;
+}
+
 export type CarpenterScopeType =
   | 'door_window_frames'
   | 'modular_kitchen'
@@ -239,11 +268,26 @@ export interface PlumberDetails extends TradeDetailsBase {
 export interface ElectricianDetails extends TradeDetailsBase {
   service: 'electrician';
   scopeType: ElectricianScopeType;
-  pointEstimate: ElectricianPointEstimate;
-  heavyAppliances: ElectricianHeavyAppliance[];
+  /** Legacy field — no longer collected on new electrician submissions. */
+  pointEstimate?: ElectricianPointEstimate | null;
+  /** Legacy field — no longer collected on new electrician submissions. */
+  heavyAppliances?: ElectricianHeavyAppliance[];
+  /** Legacy field — no longer collected on new electrician submissions. */
   concealedWiring?: boolean | null;
   /** Legacy field — no longer collected on new electrician submissions. */
   materialScope?: ElectricianMaterialScope | null;
+  /** Assam Type vs RCC — drives track type and structural multiplier. */
+  houseStructure?: PlumbingHouseStructure | null;
+  /** Target floors for electrical work. */
+  targetFloors?: PlumbingTargetFloor[];
+  targetWorkFloor?: PlumbingTargetFloor | null;
+  customTargetFloors?: string | null;
+  /** Approximate built-up area in square feet. */
+  approxBuiltUpAreaSqft?: number | null;
+  /** Main electrical rate categories checked by the owner. */
+  selectedPackages?: ElectricianPackageKind[];
+  /** Sub-options opened for unit-rate bidding. */
+  selectedSubOptions?: ElectricianSubOptionId[];
 }
 
 export interface CarpenterDetails extends TradeDetailsBase {
@@ -671,6 +715,127 @@ export const ELECTRICIAN_MATERIAL_OPTIONS: {
   { value: 'labour_plus_wire', label: 'Labour + Wire/Conduits' },
 ];
 
+export const ELECTRICIAN_LABOUR_ONLY_DISCLAIMER =
+  'All bids are strictly for LABOUR CHARGES. Materials must be supplied by the Property Owner.';
+
+export const ELECTRICIAN_SCOPE_PACKAGES: {
+  id: ElectricianPackageKind;
+  label: string;
+  options: ElectricianSubOptionDef[];
+}[] = [
+  {
+    id: 'wiring_piping',
+    label: 'Wiring & Piping Rates',
+    options: [
+      {
+        id: 'concealed_wall_slab_wiring',
+        label: 'Concealed Wall & Slab Wiring',
+        note: 'Complete wiring & conduit pipe hidden inside wall/slab cutouts',
+        unitSuffix: '/sqft',
+        unitType: 'per_sqft',
+        isWiringOrPiping: true,
+        weight: 1,
+      },
+      {
+        id: 'open_surface_wiring',
+        label: 'Open / Surface Wiring',
+        note: 'Wiring inside PVC casing caping or conduit pipes mounted over walls',
+        unitSuffix: '/sqft',
+        unitType: 'per_sqft',
+        isWiringOrPiping: true,
+        weight: 1,
+      },
+      {
+        id: 'main_db_service_line',
+        label: 'Main DB & Service Line Wiring',
+        note: 'Heavy main line connection from meter pole to Distribution Board',
+        unitSuffix: '/sqft',
+        unitType: 'per_sqft',
+        isWiringOrPiping: true,
+        weight: 1,
+      },
+    ],
+  },
+  {
+    id: 'switchboards_sockets',
+    label: 'Switchboards & Socket Fitting Rates',
+    options: [
+      {
+        id: 'modular_switchboard',
+        label: 'Modular Switchboard Fitting',
+        note: 'Installation of modular board, switches, and internal connections',
+        unitSuffix: '/unit',
+        unitType: 'per_unit',
+        weight: 1,
+      },
+      {
+        id: 'non_modular_wooden_board',
+        label: 'Non-Modular / Wooden Box Board Fitting',
+        note: 'Installation of traditional surface/wooden switchboards',
+        unitSuffix: '/unit',
+        unitType: 'per_unit',
+        weight: 1,
+      },
+      {
+        id: 'heavy_power_socket',
+        label: 'Heavy Power Socket Fitting (16A/25A)',
+        note: 'Dedicated socket point for AC, Geyser, Fridge, Heavy Appliances',
+        unitSuffix: '/unit',
+        unitType: 'per_unit',
+        weight: 1,
+      },
+    ],
+  },
+  {
+    id: 'appliances_fixtures',
+    label: 'Electrical Appliance & Fixture Fitting Rates',
+    options: [
+      {
+        id: 'ceiling_exhaust_fan',
+        label: 'Ceiling Fan & Exhaust Fan Installation',
+        note: 'Mounting, regulator setup, and hook connection',
+        unitSuffix: '/unit',
+        unitType: 'per_unit',
+        weight: 1,
+      },
+      {
+        id: 'led_panel_concealed_light',
+        label: 'LED Panel Light / Concealed Light Fitting',
+        note: 'Fitting ceiling lights, spotlights, or panel lights',
+        unitSuffix: '/unit',
+        unitType: 'per_unit',
+        weight: 1,
+      },
+      {
+        id: 'fancy_chandelier_wall_light',
+        label: 'Fancy Light / Chandelier / Wall Light Fitting',
+        note: 'Installation of decorative indoor/outdoor lighting fixtures',
+        unitSuffix: '/unit',
+        unitType: 'per_unit',
+        weight: 1,
+      },
+      {
+        id: 'mcb_db_setup',
+        label: 'MCB & Distribution Board (DB) Setup',
+        note: 'Setting up main circuit breakers, RCCB, and panel box',
+        unitSuffix: '/unit',
+        unitType: 'per_unit',
+        weight: 1,
+      },
+      {
+        id: 'inverter_ups_connection',
+        label: 'Inverter / UPS Connection & Wiring',
+        note: 'Complete backup circuit setup and battery inverter installation',
+        unitSuffix: '/unit',
+        unitType: 'per_unit',
+        weight: 1,
+      },
+    ],
+  },
+];
+
+export const ALL_ELECTRICIAN_SUB_OPTIONS = ELECTRICIAN_SCOPE_PACKAGES.flatMap((pkg) => pkg.options);
+
 export const CARPENTER_SCOPE_OPTIONS: { value: CarpenterScopeType; label: string }[] = [
   { value: 'door_window_frames', label: 'Door & Window Frames (Chowkhat)' },
   { value: 'modular_kitchen', label: 'Modular Kitchen' },
@@ -774,6 +939,8 @@ const ELECTRICIAN_SCOPE_SET = new Set<ElectricianScopeType>([
 const ELECTRICIAN_POINT_SET = new Set(ELECTRICIAN_POINT_OPTIONS.map((o) => o.value));
 const ELECTRICIAN_APPLIANCE_SET = new Set(ELECTRICIAN_APPLIANCE_OPTIONS.map((o) => o.value));
 const ELECTRICIAN_MATERIAL_SET = new Set(ELECTRICIAN_MATERIAL_OPTIONS.map((o) => o.value));
+const ELECTRICIAN_PACKAGE_KIND_SET = new Set(ELECTRICIAN_SCOPE_PACKAGES.map((o) => o.id));
+const ELECTRICIAN_SUB_OPTION_SET = new Set(ALL_ELECTRICIAN_SUB_OPTIONS.map((o) => o.id));
 const CARPENTER_SCOPE_SET = new Set<CarpenterScopeType>([
   'door_window_frames',
   'modular_kitchen',
@@ -984,6 +1151,56 @@ const OPEN_PIPING_SUB_OPTION_IDS = new Set<PlumbingSubOptionId>([
 
 export function isPlumbingPipingSubOption(id: PlumbingSubOptionId): boolean {
   return getPlumbingSubOption(id)?.isPiping === true;
+}
+
+export function parseElectricianPackageKinds(raw: unknown): ElectricianPackageKind[] {
+  return parseUniqueEnumList(raw, ELECTRICIAN_PACKAGE_KIND_SET);
+}
+
+export function parseElectricianSubOptionIds(raw: unknown): ElectricianSubOptionId[] {
+  if (!Array.isArray(raw)) return [];
+  return parseUniqueEnumList(raw, ELECTRICIAN_SUB_OPTION_SET);
+}
+
+export function getElectricianSubOption(id: ElectricianSubOptionId) {
+  return ALL_ELECTRICIAN_SUB_OPTIONS.find((option) => option.id === id) ?? null;
+}
+
+export function getElectricianPackageLabel(id: ElectricianPackageKind): string {
+  return ELECTRICIAN_SCOPE_PACKAGES.find((pkg) => pkg.id === id)?.label ?? id;
+}
+
+export function getElectricianSubOptionLabel(id: ElectricianSubOptionId): string {
+  return getElectricianSubOption(id)?.label ?? id;
+}
+
+export function subOptionsForElectricianPackages(
+  packages: ElectricianPackageKind[],
+  selected: ElectricianSubOptionId[],
+): ElectricianSubOptionId[] {
+  const allowed = new Set(
+    ELECTRICIAN_SCOPE_PACKAGES.filter((pkg) => packages.includes(pkg.id)).flatMap((pkg) =>
+      pkg.options.map((option) => option.id),
+    ),
+  );
+  return selected.filter((id) => allowed.has(id));
+}
+
+export function hasElectricianUnitRateScope(
+  details: Pick<ElectricianDetails, 'selectedSubOptions' | 'selectedPackages'> | null | undefined,
+): boolean {
+  return (details?.selectedSubOptions?.length ?? 0) > 0 || (details?.selectedPackages?.length ?? 0) > 0;
+}
+
+export function formatElectricianSubOptionSummary(
+  packages: ElectricianPackageKind[] | null | undefined,
+  subOptions: ElectricianSubOptionId[] | null | undefined,
+): string {
+  const selected = subOptions ?? [];
+  if (selected.length === 0) {
+    return (packages ?? []).map(getElectricianPackageLabel).join(' + ');
+  }
+  return selected.map(getElectricianSubOptionLabel).join(' · ');
 }
 
 export function parsePlumbingWaterTankFloor(raw: unknown): PlumbingWaterTankFloor | null {
@@ -1461,12 +1678,7 @@ export function parseTradeDetails(value: unknown): TradeDetails | null {
   }
 
   if (v.service === 'electrician') {
-    if (
-      typeof v.scopeType !== 'string' ||
-      !ELECTRICIAN_SCOPE_SET.has(v.scopeType as ElectricianScopeType) ||
-      typeof v.pointEstimate !== 'string' ||
-      !ELECTRICIAN_POINT_SET.has(v.pointEstimate as ElectricianPointEstimate)
-    ) {
+    if (typeof v.scopeType !== 'string' || !ELECTRICIAN_SCOPE_SET.has(v.scopeType as ElectricianScopeType)) {
       return null;
     }
     const materialScope =
@@ -1474,6 +1686,56 @@ export function parseTradeDetails(value: unknown): TradeDetails | null {
       ELECTRICIAN_MATERIAL_SET.has(v.materialScope as ElectricianMaterialScope)
         ? (v.materialScope as ElectricianMaterialScope)
         : null;
+    const selectedPackages = parseElectricianPackageKinds(v.selectedPackages);
+    const selectedSubOptions = subOptionsForElectricianPackages(
+      selectedPackages,
+      parseElectricianSubOptionIds(v.selectedSubOptions),
+    );
+    const hasUnitRateScope = selectedPackages.length > 0 || selectedSubOptions.length > 0;
+    const houseStructure =
+      typeof v.houseStructure === 'string' &&
+      PLUMBING_HOUSE_STRUCTURE_SET.has(v.houseStructure as PlumbingHouseStructure)
+        ? (v.houseStructure as PlumbingHouseStructure)
+        : null;
+    const parsedTargetFloors = parsePlumbingTargetFloors(v.targetFloors);
+    const parsedWorkFloor = normalizePlumbingTargetFloor(v.targetWorkFloor);
+    const customTargetFloors = parseCustomTargetFloors(v.customTargetFloors);
+    const targetFloors =
+      parsedTargetFloors.length > 0
+        ? parsedTargetFloors
+        : parsedWorkFloor
+          ? ([parsedWorkFloor] as PlumbingTargetFloor[])
+          : houseStructure === 'assam_type'
+            ? (['ground'] as PlumbingTargetFloor[])
+            : [];
+    const targetWorkFloor = parsedWorkFloor ?? targetFloors[0] ?? null;
+    const approxBuiltUpAreaSqft = parsePositiveNumber(v.approxBuiltUpAreaSqft);
+
+    if (hasUnitRateScope) {
+      return {
+        service: 'electrician',
+        projectAddress: address,
+        villageTownName,
+        ...start,
+        additionalRequirements: additional,
+        scopeType: v.scopeType as ElectricianScopeType,
+        houseStructure,
+        targetFloors,
+        targetWorkFloor,
+        customTargetFloors: targetFloors.includes('custom') ? customTargetFloors : null,
+        approxBuiltUpAreaSqft,
+        selectedPackages,
+        selectedSubOptions,
+        materialScope,
+      };
+    }
+
+    if (
+      typeof v.pointEstimate !== 'string' ||
+      !ELECTRICIAN_POINT_SET.has(v.pointEstimate as ElectricianPointEstimate)
+    ) {
+      return null;
+    }
     const concealedWiring = typeof v.concealedWiring === 'boolean' ? v.concealedWiring : null;
     return {
       service: 'electrician',
@@ -1892,23 +2154,91 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
       });
     }
   } else if (details.service === 'electrician') {
-    blocks.push(
-      { label: 'Scope Type', value: LEGACY_ELECTRICIAN_SCOPE_LABELS[details.scopeType] },
-      { label: 'Approximate Points', value: optionLabel(ELECTRICIAN_POINT_OPTIONS, details.pointEstimate) },
-      {
-        label: 'Heavy Appliances',
-        value:
-          details.heavyAppliances.length > 0
-            ? details.heavyAppliances
-                .map((a) => optionLabel(ELECTRICIAN_APPLIANCE_OPTIONS, a))
-                .join(', ')
-            : 'None selected',
-      },
-    );
-    if (details.concealedWiring != null) {
-      blocks.push({ label: 'Concealed Wiring', value: yesNo(details.concealedWiring) });
+    const selectedPackages = details.selectedPackages ?? [];
+    const selectedSubOptions = details.selectedSubOptions ?? [];
+    const hasUnitRateScope = selectedPackages.length > 0 || selectedSubOptions.length > 0;
+
+    if (hasUnitRateScope) {
+      if (details.houseStructure) {
+        blocks.push({
+          label: 'Building Structure Type',
+          value: getPlumbingHouseStructureLabel(details.houseStructure),
+        });
+      }
+      const workFloors =
+        details.targetFloors && details.targetFloors.length > 0
+          ? details.targetFloors
+          : details.targetWorkFloor
+            ? [details.targetWorkFloor]
+            : [];
+      if (workFloors.length > 0) {
+        blocks.push({
+          label: 'Target Work Floor',
+          value: formatPlumbingTargetWorkFloors(workFloors, details.customTargetFloors),
+        });
+      }
+      if (details.approxBuiltUpAreaSqft != null) {
+        blocks.push({
+          label: 'Approx Built-Up Area',
+          value: `${details.approxBuiltUpAreaSqft.toLocaleString('en-IN')} Sq Ft`,
+        });
+      }
+      for (const pkg of ELECTRICIAN_SCOPE_PACKAGES) {
+        if (!selectedPackages.includes(pkg.id)) continue;
+        const picked = pkg.options.filter((option) => selectedSubOptions.includes(option.id));
+        blocks.push({
+          label: pkg.label,
+          value:
+            picked.length > 0
+              ? picked
+                  .map((option) =>
+                    option.note ? `${option.label} (${option.note})` : option.label,
+                  )
+                  .join('\n')
+              : 'No sub-options selected',
+        });
+      }
+      blocks.push({
+        label: 'Material Scope',
+        value: ELECTRICIAN_LABOUR_ONLY_DISCLAIMER,
+      });
+      const bidLabels: string[] = [];
+      for (const optionId of selectedSubOptions) {
+        const option = getElectricianSubOption(optionId);
+        const suffix = option?.unitSuffix ?? '/unit';
+        bidLabels.push(`${getElectricianSubOptionLabel(optionId)} (₹ ${suffix})`);
+      }
+      if (bidLabels.length > 0) {
+        blocks.push({
+          label: 'Bidding Options',
+          value: bidLabels
+            .map((label, index) => `Option ${String.fromCharCode(65 + index)}: ${label}`)
+            .join('\n'),
+        });
+      }
+    } else {
+      blocks.push(
+        { label: 'Scope Type', value: LEGACY_ELECTRICIAN_SCOPE_LABELS[details.scopeType] },
+        {
+          label: 'Approximate Points',
+          value: details.pointEstimate
+            ? optionLabel(ELECTRICIAN_POINT_OPTIONS, details.pointEstimate)
+            : 'Not specified',
+        },
+      );
+      if (details.concealedWiring != null) {
+        blocks.push({ label: 'Concealed Wiring', value: yesNo(details.concealedWiring) });
+      }
+      if ((details.heavyAppliances?.length ?? 0) > 0) {
+        blocks.push({
+          label: 'Heavy Appliances',
+          value: (details.heavyAppliances ?? [])
+            .map((a) => optionLabel(ELECTRICIAN_APPLIANCE_OPTIONS, a))
+            .join(', '),
+        });
+      }
     }
-    if (details.materialScope) {
+    if (details.materialScope && !hasUnitRateScope) {
       blocks.push({
         label: 'Material Scope',
         value: optionLabel(ELECTRICIAN_MATERIAL_OPTIONS, details.materialScope),
@@ -2025,6 +2355,14 @@ export function getTradeScopeLabel(details: TradeDetails): string {
     return LEGACY_PLUMBER_SCOPE_LABELS[details.scopeType];
   }
   if (details.service === 'electrician') {
+    const unitSummary = formatElectricianSubOptionSummary(
+      details.selectedPackages,
+      details.selectedSubOptions,
+    );
+    if (unitSummary) return unitSummary;
+    if (details.pointEstimate) {
+      return optionLabel(ELECTRICIAN_POINT_OPTIONS, details.pointEstimate);
+    }
     return LEGACY_ELECTRICIAN_SCOPE_LABELS[details.scopeType];
   }
   if (details.service === 'carpenter') {
@@ -2067,10 +2405,12 @@ export interface TradeDetailsFormInput {
   waterInstallMethods?: WaterInstallMethod[];
   includeToiletWastePipe?: boolean;
   drainageInstallMethods?: DrainageInstallMethod[];
+  electricianPackages?: ElectricianPackageKind[];
+  electricianSubOptions?: ElectricianSubOptionId[];
   electricianScope?: ElectricianScopeType | null;
-  pointEstimate: ElectricianPointEstimate | null;
-  heavyAppliances: ElectricianHeavyAppliance[];
-  concealedWiring: boolean | null;
+  pointEstimate?: ElectricianPointEstimate | null;
+  heavyAppliances?: ElectricianHeavyAppliance[];
+  concealedWiring?: boolean | null;
   carpenterScopes: CarpenterScopeType[];
   doorWindowFramesQuantity: string;
   kitchenSizeLayout: string;
@@ -2207,20 +2547,61 @@ export function validateTradeDetailsInput(
   }
 
   if (input.service === 'electrician') {
-    if (!input.pointEstimate || !ELECTRICIAN_POINT_SET.has(input.pointEstimate)) {
-      return { error: 'Select the approximate number of points.' };
+    const houseStructure =
+      input.houseStructure && PLUMBING_HOUSE_STRUCTURE_SET.has(input.houseStructure)
+        ? input.houseStructure
+        : null;
+    if (!houseStructure) {
+      return { error: 'Select the building structure type.' };
     }
-    if (input.concealedWiring == null) {
-      return { error: 'Select whether concealed wiring is required.' };
+    const targetFloors = parsePlumbingTargetFloors(
+      input.targetFloors?.length
+        ? input.targetFloors
+        : input.targetWorkFloor
+          ? [input.targetWorkFloor]
+          : [],
+    );
+    if (targetFloors.length === 0) {
+      return { error: 'Select at least one target work floor.' };
+    }
+    const customTargetFloors = targetFloors.includes('custom')
+      ? parseCustomTargetFloors(input.customTargetFloors)
+      : null;
+    if (targetFloors.includes('custom') && !customTargetFloors) {
+      return { error: 'Enter the custom / higher floor numbers.' };
+    }
+    const targetWorkFloor = targetFloors[0];
+    const approxBuiltUpAreaSqft = parsePositiveNumber(input.approxBuiltUpAreaSqft);
+    if (approxBuiltUpAreaSqft == null) {
+      return { error: 'Enter the approximate built-up area in Sq Ft.' };
+    }
+    const selectedPackages = parseElectricianPackageKinds(input.electricianPackages);
+    if (selectedPackages.length === 0) {
+      return { error: 'Select at least one electrical work category.' };
+    }
+    const selectedSubOptions = subOptionsForElectricianPackages(
+      selectedPackages,
+      parseElectricianSubOptionIds(input.electricianSubOptions),
+    );
+    for (const pkg of selectedPackages) {
+      const catalog = ELECTRICIAN_SCOPE_PACKAGES.find((item) => item.id === pkg);
+      const picked = catalog?.options.filter((option) => selectedSubOptions.includes(option.id)) ?? [];
+      if (picked.length === 0) {
+        return { error: `Select at least one sub-option for ${getElectricianPackageLabel(pkg)}.` };
+      }
     }
     return {
       details: {
         ...base,
         service: 'electrician',
         scopeType: 'full_house_wiring',
-        pointEstimate: input.pointEstimate,
-        heavyAppliances: parseAppliances(input.heavyAppliances),
-        concealedWiring: input.concealedWiring,
+        houseStructure,
+        targetFloors,
+        targetWorkFloor,
+        customTargetFloors,
+        approxBuiltUpAreaSqft,
+        selectedPackages,
+        selectedSubOptions,
       },
     };
   }

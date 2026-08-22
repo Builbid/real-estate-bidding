@@ -94,6 +94,9 @@ export function isWideRequirementLabel(label: string): boolean {
     label === 'Water Piping Rate' ||
     label === 'Waste Line Rate' ||
     label === 'Water Tank Fitting Rate' ||
+    label === 'Wiring & Piping Rates' ||
+    label === 'Switchboards & Socket Fitting Rates' ||
+    label === 'Electrical Appliance & Fixture Fitting Rates' ||
     label === 'Water Tank Floor' ||
     label === 'Target Floors' ||
     label === 'Package Level' ||

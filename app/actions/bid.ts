@@ -20,21 +20,71 @@ import {
   validateBidRatesForFloorCount,
 } from '@/lib/validation/bidRates';
 import {
+  buildElectricianUnitRatePayload,
+  parseElectricianUnitRates,
+  electricianWeightageContextFromProject,
+  readProjectElectricianBidOptions,
+  validateElectricianUnitRateInputs,
+  type ElectricianBidOption,
+} from '@/lib/electricianBid';
+import {
   buildPlumbingUnitRatePayload,
   parsePlumbingUnitRates,
   plumbingWeightageContextFromProject,
   readProjectPlumbingBidOptions,
   validatePlumbingUnitRateInputs,
+  type PlumbingBidOption,
 } from '@/lib/plumberBid';
 
-function validatePlumbingUnitRates(
+function readProjectUnitRateOptions(project: {
+  service_type?: ServiceType | string | null;
+  trade_details?: unknown;
+}): PlumbingBidOption[] | ElectricianBidOption[] {
+  if (project.service_type === 'electrician') {
+    return readProjectElectricianBidOptions(project);
+  }
+  return readProjectPlumbingBidOptions(project);
+}
+
+function parseProjectUnitRates(
+  project: { service_type?: ServiceType | string | null },
+  raw: unknown,
+): Record<string, number> {
+  if (project.service_type === 'electrician') {
+    return parseElectricianUnitRates(raw);
+  }
+  return parsePlumbingUnitRates(raw);
+}
+
+function validateProjectUnitRates(
+  project: { service_type?: ServiceType | string | null },
   rates: BidRates,
-  options: ReturnType<typeof readProjectPlumbingBidOptions>,
+  options: PlumbingBidOption[] | ElectricianBidOption[],
 ) {
-  return validatePlumbingUnitRateInputs(
-    parsePlumbingUnitRates(rates.unit_rates),
-    options,
-    getBidRateRules('plumber'),
+  const rules = getBidRateRules(project.service_type ?? 'plumber');
+  const unitRates = parseProjectUnitRates(project, rates.unit_rates);
+  if (project.service_type === 'electrician') {
+    return validateElectricianUnitRateInputs(unitRates, options as ElectricianBidOption[], rules);
+  }
+  return validatePlumbingUnitRateInputs(unitRates, options as PlumbingBidOption[], rules);
+}
+
+function buildProjectUnitRatePayload(
+  project: { service_type?: ServiceType | string | null; trade_details?: unknown },
+  unitRates: Record<string, number>,
+  options: PlumbingBidOption[] | ElectricianBidOption[],
+) {
+  if (project.service_type === 'electrician') {
+    return buildElectricianUnitRatePayload(
+      unitRates,
+      options as ElectricianBidOption[],
+      electricianWeightageContextFromProject(project),
+    );
+  }
+  return buildPlumbingUnitRatePayload(
+    unitRates,
+    options as PlumbingBidOption[],
+    plumbingWeightageContextFromProject(project),
   );
 }
 
@@ -120,8 +170,6 @@ export async function submitBidAction(
     total_floors: project.total_floors,
   }, profile?.service_type);
 
-  // Trades + Drawing & Design use one package rate, except scoped /sqft items
-  // (Chowkhat, Modular Kitchen, and legacy carpenter).
   const floorCount =
     scopeBid?.count
       ?? (isTradeServiceType(project.service_type) || isDrawingDesignServiceType(project.service_type)
@@ -134,12 +182,12 @@ export async function submitBidAction(
             total_floors: project.total_floors,
           }).count);
 
-  const plumbingOptions = scopeBid?.unitRateBid
-    ? readProjectPlumbingBidOptions(project)
+  const unitRateOptions = scopeBid?.unitRateBid
+    ? readProjectUnitRateOptions(project)
     : [];
 
   const validation = scopeBid?.unitRateBid
-    ? validatePlumbingUnitRates(rates, plumbingOptions)
+    ? validateProjectUnitRates(project, rates, unitRateOptions)
     : validateBidRatesForFloorCount(
         rates,
         floorCount,
@@ -164,21 +212,21 @@ export async function submitBidAction(
     rates.vehicleCapacityCum = capacity;
   }
 
-  const plumbingUnitPayload = scopeBid?.unitRateBid
-    ? buildPlumbingUnitRatePayload(
-        parsePlumbingUnitRates(rates.unit_rates),
-        plumbingOptions,
-        plumbingWeightageContextFromProject(project),
+  const unitRatePayload = scopeBid?.unitRateBid
+    ? buildProjectUnitRatePayload(
+        project,
+        parseProjectUnitRates(project, rates.unit_rates),
+        unitRateOptions,
       )
     : null;
 
   const ratesPayload = buildBidRatesPayload(
     {
       ...rates,
-      ...(plumbingUnitPayload ?? {}),
+      ...(unitRatePayload ?? {}),
       bid_unit: earthworkMode
         ? bidUnitForEarthworkMode(earthworkMode)
-        : plumbingUnitPayload
+        : unitRatePayload
           ? 'per_point'
           : project.service_type === 'plumber'
             ? (scopeBid?.kind === 'plumbing' ? 'per_running_foot' : 'flat')
@@ -187,7 +235,7 @@ export async function submitBidAction(
               : rates.bid_unit,
       vehicleCapacityCum: isTripBid ? rates.vehicleCapacityCum : undefined,
     },
-    plumbingUnitPayload ? 1 : floorCount,
+    unitRatePayload ? 1 : floorCount,
   );
 
   if (bidId) {

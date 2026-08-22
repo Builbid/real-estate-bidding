@@ -1,16 +1,14 @@
 'use client';
 
 import { PlumbingPackageForm } from '@/components/owner/plumber/PlumbingPackageForm';
+import { ElectricianPackageForm } from '@/components/owner/electrician/ElectricianPackageForm';
 import { Input } from '@/components/ui/input';
-import { OptionSelectCard, OptionSelectGrid } from '@/components/owner/wizard/OptionSelectCard';
+import { OptionSelectGrid } from '@/components/owner/wizard/OptionSelectCard';
 import { StartTimeAndNotes, WIZARD_SECTION_LABEL } from '@/components/owner/wizard/StartTimeAndNotes';
 import { cn } from '@/lib/utils';
 import {
   EARTHWORK_SOIL_VEHICLE_OPTIONS,
   EARTHWORK_TYPE_OPTIONS,
-  ELECTRICIAN_APPLIANCE_OPTIONS,
-  ELECTRICIAN_POINT_OPTIONS,
-  ELECTRICIAN_SCOPE_OPTIONS,
   INTERIOR_SCOPE_OPTIONS,
   INTERIOR_SPACE_OPTIONS,
   type BathroomPackage,
@@ -19,9 +17,8 @@ import {
   type DrainageInstallMethod,
   type EarthworkMachine,
   type EarthworkType,
-  type ElectricianHeavyAppliance,
-  type ElectricianPointEstimate,
-  type ElectricianScopeType,
+  type ElectricianPackageKind,
+  type ElectricianSubOptionId,
   type InteriorScopeType,
   type InteriorTargetSpace,
   type PipingPackageKind,
@@ -67,10 +64,8 @@ export interface TradeWorkFormFields {
   waterInstallMethods: WaterInstallMethod[];
   includeToiletWastePipe: boolean;
   drainageInstallMethods: DrainageInstallMethod[];
-  electricianScope: ElectricianScopeType;
-  pointEstimate: ElectricianPointEstimate | null;
-  heavyAppliances: ElectricianHeavyAppliance[];
-  concealedWiring: boolean | null;
+  electricianPackages: ElectricianPackageKind[];
+  electricianSubOptions: ElectricianSubOptionId[];
   doorWindowFramesQuantity: string;
   kitchenSizeLayout: string;
   kitchenMaterialType: string;
@@ -84,11 +79,6 @@ export interface TradeWorkFormFields {
   projectStartTimeSpecificDate: string;
   additionalRequirements: string;
 }
-
-const YES_NO = [
-  { value: 'yes' as const, label: 'Yes' },
-  { value: 'no' as const, label: 'No' },
-];
 
 function toggleUnique<T>(list: T[], value: T): T[] {
   return list.includes(value) ? list.filter((item) => item !== value) : [...list, value];
@@ -126,38 +116,15 @@ export function TradeWorkRequirementsFields({
 
       {trade === 'electrician' && (
         <>
-          <FieldGroup label="Scope Type">
-            <OptionSelectCard
-              selected
-              disabled
-              label={ELECTRICIAN_SCOPE_OPTIONS[0].label}
-              onClick={() => {}}
-            />
-          </FieldGroup>
-          <FieldGroup label="Approximate Number of Points">
-            <OptionSelectGrid
-              options={ELECTRICIAN_POINT_OPTIONS}
-              value={form.pointEstimate}
-              onSelect={(v) => onChange('pointEstimate', v)}
-              columns={2}
-            />
-          </FieldGroup>
-          <FieldGroup label="Concealed Wiring">
-            <OptionSelectGrid
-              options={YES_NO}
-              value={form.concealedWiring == null ? null : form.concealedWiring ? 'yes' : 'no'}
-              onSelect={(v) => onChange('concealedWiring', v === 'yes')}
-              columns={2}
-            />
-          </FieldGroup>
-          <FieldGroup label="Heavy Appliances">
-            <OptionSelectGrid
-              options={ELECTRICIAN_APPLIANCE_OPTIONS}
-              values={form.heavyAppliances}
-              onToggle={(v) => onChange('heavyAppliances', toggleUnique(form.heavyAppliances, v))}
-              columns={2}
-            />
-          </FieldGroup>
+          <p className="text-xs font-medium leading-relaxed rounded-xl border border-amber-500/25 bg-amber-500/5 px-3 py-2.5 text-gray-800 dark:text-zinc-200">
+            All bids are strictly for LABOUR CHARGES. Materials must be supplied by the Property Owner.
+          </p>
+          <ElectricianPackageForm
+            selectedPackages={form.electricianPackages}
+            selectedSubOptions={form.electricianSubOptions}
+            onChangePackages={(v) => onChange('electricianPackages', v)}
+            onChangeSubOptions={(v) => onChange('electricianSubOptions', v)}
+          />
         </>
       )}
 

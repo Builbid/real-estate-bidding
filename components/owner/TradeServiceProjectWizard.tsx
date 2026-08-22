@@ -111,10 +111,8 @@ const EMPTY_FORM: FormState = {
   waterInstallMethods: ['open_outer_fitting'],
   includeToiletWastePipe: true,
   drainageInstallMethods: ['open_outer_hanging'],
-  electricianScope: 'full_house_wiring',
-  pointEstimate: null,
-  heavyAppliances: [],
-  concealedWiring: null,
+  electricianPackages: [],
+  electricianSubOptions: [],
   doorWindowFramesQuantity: '',
   kitchenSizeLayout: '',
   kitchenMaterialType: '',
@@ -216,7 +214,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
       errors.pincode = pincodeError;
     }
 
-    if (trade === 'plumber') {
+    if (trade === 'plumber' || trade === 'electrician') {
       if (!form.houseStructure) {
         errors.houseStructure = 'Select RCC Building or Assam Type.';
       }
@@ -276,10 +274,8 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
       waterInstallMethods: form.waterInstallMethods,
       includeToiletWastePipe: form.includeToiletWastePipe,
       drainageInstallMethods: form.drainageInstallMethods,
-      electricianScope: form.electricianScope,
-      pointEstimate: form.pointEstimate,
-      heavyAppliances: form.heavyAppliances,
-      concealedWiring: form.concealedWiring,
+      electricianPackages: form.electricianPackages,
+      electricianSubOptions: form.electricianSubOptions,
       carpenterScopes: [],
       doorWindowFramesQuantity: form.doorWindowFramesQuantity,
       kitchenSizeLayout: form.kitchenSizeLayout,
@@ -426,7 +422,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
           {trade === 'plumber'
             ? 'as per-unit labour rates for the fittings and piping items you select'
             : trade === 'electrician'
-              ? 'per point'
+              ? 'as per-unit labour rates for the wiring and fixture items you select'
               : 'per sqft'}{' '}
           on your project.
         </p>
@@ -500,7 +496,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                 error={step1ValidationAttempted ? step1Errors.pincode : undefined}
               />
 
-              {trade === 'plumber' && (
+              {(trade === 'plumber' || trade === 'electrician') && (
                 <div className="space-y-4">
                   <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-semibold text-gray-800 dark:text-zinc-100 uppercase tracking-wider">
@@ -645,6 +641,8 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                   ? 'Tell painters the building type, area, primer, materials, and when work should start.'
                   : trade === 'plumber'
                     ? 'Check the plumbing categories you need, then pick the sub-options plumbers should quote as labour unit rates.'
+                    : trade === 'electrician'
+                      ? 'Check the electrical work categories you need, then pick the sub-options electricians should quote as labour unit rates.'
                     : `Describe the ${tradeLabel.toLowerCase()} work so bidders can quote without scope conflicts.`}
               </p>
 

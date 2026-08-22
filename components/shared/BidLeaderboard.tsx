@@ -17,6 +17,7 @@ import { shouldShowBidFloorBreakdown } from '@/lib/bid/floorRateDisplay';
 import { resolveScopeRateBidItems } from '@/lib/bid/scopeRateBid';
 import { getServiceBidderLabels } from '@/lib/project/display';
 import { getPlumbingUnitRateDisplayEntries, readProjectPlumbingBidOptions } from '@/lib/plumberBid';
+import { getElectricianUnitRateDisplayEntries, readProjectElectricianBidOptions } from '@/lib/electricianBid';
 import type { ProjectStatus, ServiceType, TrackType, SubConfiguration } from '@/lib/types';
 
 interface BuilderInfo {
@@ -84,12 +85,17 @@ export function BidLeaderboard({
     total_floors: totalFloors,
   });
   const isPlumbingBid = scopeBid?.kind === 'plumbing';
-  const isPlumbingUnitRateBid = Boolean(scopeBid?.unitRateBid);
+  const isElectricianBid = scopeBid?.kind === 'electrician';
+  const isTradeUnitRateBid = Boolean(scopeBid?.unitRateBid);
   const plumbingOptions = isPlumbingBid
     ? readProjectPlumbingBidOptions({ trade_details: tradeDetails, sub_configuration: subConfiguration })
     : [];
-  const projectFloorCount = isPlumbingUnitRateBid
-    ? Math.max(plumbingOptions.length, 1)
+  const electricianOptions = isElectricianBid
+    ? readProjectElectricianBidOptions({ trade_details: tradeDetails })
+    : [];
+  const tradeUnitRateOptions = isElectricianBid ? electricianOptions : plumbingOptions;
+  const projectFloorCount = isTradeUnitRateBid
+    ? Math.max(tradeUnitRateOptions.length, 1)
     : (scopeBid?.count
     ?? (trackType && subConfiguration
       ? getFloorInputCount(trackType, subConfiguration)
@@ -191,7 +197,7 @@ export function BidLeaderboard({
 
   return (
     <div className="space-y-1.5">
-      {isPlumbingUnitRateBid && (
+      {isTradeUnitRateBid && (
         <p className="px-2 pb-1 text-[11px] font-medium text-muted-foreground">
           Ranked by lowest Weighted Index (equal-weight average of labour unit rates).
         </p>
@@ -313,13 +319,13 @@ export function BidLeaderboard({
                 )}>
                   {serviceType === 'plumber' && !isPlumbingBid ? 'Rs. ' : '₹'}
                   {formatBidMetric(
-                    isPlumbingUnitRateBid && bid.rates?.weighted_index
+                    isTradeUnitRateBid && bid.rates?.weighted_index
                       ? bid.rates.weighted_index
                       : averageFromSumMetric(bid.total_sum_metric, projectFloorCount),
                   )}
                 </p>
                 <p className="text-[10px] text-muted-foreground">
-                  {isPlumbingUnitRateBid
+                  {isTradeUnitRateBid
                     ? 'weighted index'
                     : isPlumbingBid
                     ? 'overall avg'
@@ -329,7 +335,7 @@ export function BidLeaderboard({
 
               {showFloorBreakdown &&
                 (shouldShowBidFloorBreakdown(bid.rates, projectFloorCount) ||
-                  (isPlumbingUnitRateBid && Object.keys(bid.rates?.unit_rates ?? {}).length > 0)) && (
+                  (isTradeUnitRateBid && Object.keys(bid.rates?.unit_rates ?? {}).length > 0)) && (
                 <div className="w-full basis-full">
                   <BidFloorRatesBreakdown
                     rates={bid.rates}
@@ -337,12 +343,14 @@ export function BidLeaderboard({
                     unitSuffix={isPlumbingBid ? '/Rft' : '/sqft'}
                     unitSuffixes={isPlumbingBid ? scopeBid?.rateUnits : undefined}
                     extraEntries={
-                      isPlumbingUnitRateBid
-                        ? getPlumbingUnitRateDisplayEntries(bid.rates, plumbingOptions)
+                      isTradeUnitRateBid
+                        ? isElectricianBid
+                          ? getElectricianUnitRateDisplayEntries(bid.rates, electricianOptions)
+                          : getPlumbingUnitRateDisplayEntries(bid.rates, plumbingOptions)
                         : undefined
                     }
                     indexLabel="Weighted Index"
-                    indexValue={isPlumbingUnitRateBid ? bid.rates?.weighted_index : undefined}
+                    indexValue={isTradeUnitRateBid ? bid.rates?.weighted_index : undefined}
                   />
                 </div>
               )}

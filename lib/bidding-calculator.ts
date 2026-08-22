@@ -1,8 +1,8 @@
 /**
- * Standard Baseline Weightage engine for plumber unit-rate bids.
+ * Standard Baseline Weightage engine for plumber and electrician unit-rate bids.
  *
- * Piping / area-based items: rate × built-up area.
- * Per-piece items (commode, geyser, tank, taps, waste points): rate × 1.
+ * Wiring / piping / area-based items: rate × built-up area.
+ * Per-piece items (fittings, switchboards, fans, etc.): rate × 1.
  * RCC Building applies a 1.2 structural complexity multiplier; Assam Type is 1.0.
  */
 
@@ -21,9 +21,17 @@ export type BaselineStructureType =
 export type BaselineUnitType = 'per_sqft' | 'per_unit' | string;
 
 export interface BaselineWeightageOption {
+  /** Generic bid rate field. */
+  bidRate?: number | string | null;
+  /** @deprecated Use bidRate. Plumber alias. */
   plumberBidRate?: number | string | null;
+  /** @deprecated Use bidRate. Electrician alias. */
+  electricianBidRate?: number | string | null;
   unitType?: BaselineUnitType | null;
+  /** Plumber piping items. */
   isPiping?: boolean;
+  /** Electrician wiring / conduit items. */
+  isWiringOrPiping?: boolean;
 }
 
 export interface ComputeBaselineWeightageInput {
@@ -48,6 +56,13 @@ function toNumber(value: number | string | null | undefined, fallback = 0): numb
   return fallback;
 }
 
+function resolveBidRate(option: BaselineWeightageOption): number {
+  return toNumber(
+    option.bidRate ?? option.plumberBidRate ?? option.electricianBidRate,
+    0,
+  );
+}
+
 export function resolveBuiltUpAreaSqft(builtUpArea?: number | string | null): number {
   const area = toNumber(builtUpArea, 0);
   return area > 0 ? area : DEFAULT_BUILT_UP_AREA_SQFT;
@@ -61,7 +76,11 @@ export function getStructuralMultiplier(structureType?: string | null): number {
 }
 
 export function isAreaBasedWeightageOption(option: BaselineWeightageOption): boolean {
-  return option.isPiping === true || option.unitType === 'per_sqft';
+  return (
+    option.isPiping === true ||
+    option.isWiringOrPiping === true ||
+    option.unitType === 'per_sqft'
+  );
 }
 
 export function computeBaselineWeightedScore(
@@ -72,7 +91,7 @@ export function computeBaselineWeightedScore(
 
   let estimatedTotalScore = 0;
   for (const option of input.selectedSubOptions) {
-    const bidRate = toNumber(option.plumberBidRate, 0);
+    const bidRate = resolveBidRate(option);
     if (isAreaBasedWeightageOption(option)) {
       estimatedTotalScore += bidRate * area;
     } else {
@@ -91,7 +110,7 @@ export function computeBaselineWeightedScore(
   };
 }
 
-/** Whole-number ranking key that satisfies plumber bid rate constraints (ends in 0 or 5). */
+/** Whole-number ranking key for trades that require rates ending in 0 or 5. */
 export function rankingRateFromWeightedScore(score: number): number {
   if (!(score > 0) || !Number.isFinite(score)) return 5;
   const rounded = Math.round(score / 5) * 5;

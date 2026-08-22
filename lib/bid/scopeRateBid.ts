@@ -19,13 +19,14 @@ import { isLegacyCarpenterService } from '@/lib/trades';
 import type { ServiceType, SubConfiguration } from '@/lib/types';
 import { normalizeServiceType } from '@/lib/validation/bidRates';
 import { readProjectPlumbingBidOptions } from '@/lib/plumberBid';
+import { readProjectElectricianBidOptions } from '@/lib/electricianBid';
 
 export const MODULAR_KITCHEN_BID_LABEL = 'Modular Kitchen';
 
 export interface ScopeRateBidItems {
   labels: string[];
   count: number;
-  kind: 'scope' | 'floors' | 'assam-addons' | 'plumbing';
+  kind: 'scope' | 'floors' | 'assam-addons' | 'plumbing' | 'electrician';
   flexibleRates: boolean;
   unitSuffix?: string;
   /** Per-item unit suffix aligned with labels (e.g. plumbing package vs ₹/Rft). */
@@ -103,6 +104,22 @@ export function resolveScopeRateBidItems(
         rateUnits: options.map((option) => option.unitSuffix),
         optionIds: options.map((option) => option.id),
         unitRateBid,
+      };
+    }
+  }
+
+  if (service === 'electrician' || tradeDetails?.service === 'electrician') {
+    const options = readProjectElectricianBidOptions(project);
+    if (options.length > 0) {
+      return {
+        labels: options.map((option) => option.label),
+        count: options.length,
+        kind: 'electrician',
+        flexibleRates: false,
+        unitSuffix: '/unit',
+        rateUnits: options.map((option) => option.unitSuffix),
+        optionIds: options.map((option) => option.id),
+        unitRateBid: true,
       };
     }
   }
