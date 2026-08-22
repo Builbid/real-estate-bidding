@@ -61,6 +61,15 @@ import {
   readProjectElectricianBidOptions,
 } from '@/lib/electricianBid';
 import {
+  INTERIOR_DESIGNER_LABOUR_ONLY_DISCLAIMER,
+  computeInteriorWeightedIndex,
+  getInteriorUnitRateDisplayEntries,
+  interiorPackageGroupsForOptions,
+  interiorWeightageContextFromProject,
+  parseInteriorUnitRates,
+  readProjectInteriorBidOptions,
+} from '@/lib/interiorBid';
+import {
   PLUMBING_LABOUR_ONLY_DISCLAIMER,
   PLUMBING_TAPE_MEASURE_DISCLAIMER,
   computePlumbingWeightedIndex,
@@ -126,12 +135,19 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
   const isPlumber = isFlatRupeeService(project.service_type);
   const isPlumbingBid = scopeBid?.kind === 'plumbing';
   const isElectricianBid = scopeBid?.kind === 'electrician';
+  const isInteriorBid = scopeBid?.kind === 'interior';
   const isTradeUnitRateBid = Boolean(scopeBid?.unitRateBid);
   const plumbingBidOptions = isPlumbingBid ? readProjectPlumbingBidOptions(project) : [];
   const electricianBidOptions = isElectricianBid ? readProjectElectricianBidOptions(project) : [];
-  const tradeBidOptions = isElectricianBid ? electricianBidOptions : plumbingBidOptions;
+  const interiorBidOptions = isInteriorBid ? readProjectInteriorBidOptions(project) : [];
+  const tradeBidOptions = isInteriorBid
+    ? interiorBidOptions
+    : isElectricianBid
+      ? electricianBidOptions
+      : plumbingBidOptions;
   const plumbingWeightageContext = plumbingWeightageContextFromProject(project);
   const electricianWeightageContext = electricianWeightageContextFromProject(project);
+  const interiorWeightageContext = interiorWeightageContextFromProject(project);
   const plumbingRateUnits = isPlumbingBid ? (scopeBid.rateUnits ?? []) : [];
   const isPlumberFlat = isPlumber && !isPlumbingBid;
   const isElectrician = isPerPointService(project.service_type) && !isTradeUnitRateBid;
@@ -156,12 +172,22 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
     return {};
   });
   const [unitRateInputs, setUnitRateInputs] = useState<Record<string, string>>(() => {
-    const parseRates = project.service_type === 'electrician' ? parseElectricianUnitRates : parsePlumbingUnitRates;
+    const parseRates =
+      project.service_type === 'electrician'
+        ? parseElectricianUnitRates
+        : project.service_type === 'false_ceiling_work'
+          ? parseInteriorUnitRates
+          : parsePlumbingUnitRates;
     const stored = existingBid ? parseRates(existingBid.rates?.unit_rates) : {};
     return Object.fromEntries(Object.entries(stored).map(([key, value]) => [key, String(value)]));
   });
   const [unitRateValues, setUnitRateValues] = useState<Record<string, number>>(() => {
-    const parseRates = project.service_type === 'electrician' ? parseElectricianUnitRates : parsePlumbingUnitRates;
+    const parseRates =
+      project.service_type === 'electrician'
+        ? parseElectricianUnitRates
+        : project.service_type === 'false_ceiling_work'
+          ? parseInteriorUnitRates
+          : parsePlumbingUnitRates;
     return existingBid ? parseRates(existingBid.rates?.unit_rates) : {};
   });
   const [unitRateErrors, setUnitRateErrors] = useState<Record<string, string>>({});
@@ -179,9 +205,11 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
   const countdown     = useCountdown(project.bidding_ends_at);
   const biddingClosed = project.status !== 'active_24h' || countdown.isExpired;
   const tradeWeightedIndex = isTradeUnitRateBid
-    ? isElectricianBid
-      ? computeElectricianWeightedIndex(unitRateValues, electricianBidOptions, electricianWeightageContext)
-      : computePlumbingWeightedIndex(unitRateValues, plumbingBidOptions, plumbingWeightageContext)
+    ? isInteriorBid
+      ? computeInteriorWeightedIndex(unitRateValues, interiorBidOptions, interiorWeightageContext)
+      : isElectricianBid
+        ? computeElectricianWeightedIndex(unitRateValues, electricianBidOptions, electricianWeightageContext)
+        : computePlumbingWeightedIndex(unitRateValues, plumbingBidOptions, plumbingWeightageContext)
     : 0;
   const averageMetric = isTradeUnitRateBid
     ? tradeWeightedIndex
@@ -657,12 +685,28 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                     ) : isTradeUnitRateBid ? (
                       <>
                         Enter a <strong>labour rate</strong> only for the sub-options selected by
-                        the owner. {isElectricianBid ? 'Wiring' : 'Piping'} items are quoted{' '}
-                        <strong>per sqft</strong> and {isElectricianBid ? 'fixtures / boards' : 'fittings'}{' '}
+                        the owner.{' '}
+                        {isInteriorBid
+                          ? 'Ceiling, paneling, and woodwork items are quoted'
+                          : isElectricianBid
+                            ? 'Wiring items are quoted'
+                            : 'Piping items are quoted'}{' '}
+                        <strong>per sqft</strong> and{' '}
+                        {isInteriorBid
+                          ? 'hardware / fittings'
+                          : isElectricianBid
+                            ? 'fixtures / boards'
+                            : 'fittings'}{' '}
                         are quoted <strong>per unit</strong>. Rates must be whole numbers ending in{' '}
                         <strong>0 or 5</strong>. Rank is the <strong>lowest Baseline Score</strong>
-                        {' '}({isElectricianBid ? 'wiring' : 'piping'} rate × built-up area + unit rates × 1,
-                        then × 1.2 for RCC Building).
+                        {' '}(
+                        {isInteriorBid
+                          ? 'area-based'
+                          : isElectricianBid
+                            ? 'wiring'
+                            : 'piping'}{' '}
+                        rate × built-up area + unit rates × 1,
+                        then × {isInteriorBid ? '1.1' : '1.2'} for RCC Building).
                       </>
                     ) : isPlumbingBid ? (
                       <>
@@ -694,13 +738,15 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                   </p>
                 </div>
 
-                {(isPlumbingBid || isElectricianBid) && isTradeUnitRateBid && (
+                {(isPlumbingBid || isElectricianBid || isInteriorBid) && isTradeUnitRateBid && (
                   <div className="flex items-start gap-2 p-2.5 rounded-lg bg-amber-500/5 border border-amber-500/20 mb-1">
                     <Info className="w-3.5 h-3.5 text-amber-400 flex-shrink-0 mt-0.5" />
                     <p className="text-xs text-amber-200/90 leading-relaxed">
-                      {isElectricianBid
-                        ? ELECTRICIAN_LABOUR_ONLY_DISCLAIMER
-                        : PLUMBING_LABOUR_ONLY_DISCLAIMER}
+                      {isInteriorBid
+                        ? INTERIOR_DESIGNER_LABOUR_ONLY_DISCLAIMER
+                        : isElectricianBid
+                          ? ELECTRICIAN_LABOUR_ONLY_DISCLAIMER
+                          : PLUMBING_LABOUR_ONLY_DISCLAIMER}
                     </p>
                   </div>
                 )}
@@ -714,9 +760,11 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                 )}
                 {isTradeUnitRateBid && (
                   <div className="space-y-4">
-                    {(isElectricianBid
-                      ? electricianPackageGroupsForOptions(electricianBidOptions)
-                      : plumbingPackageGroupsForOptions(plumbingBidOptions)
+                    {(isInteriorBid
+                      ? interiorPackageGroupsForOptions(interiorBidOptions)
+                      : isElectricianBid
+                        ? electricianPackageGroupsForOptions(electricianBidOptions)
+                        : plumbingPackageGroupsForOptions(plumbingBidOptions)
                     ).map((group) => (
                       <div key={group.id} className="space-y-2">
                         <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-500">
@@ -1106,9 +1154,11 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                                 unitSuffixes={isPlumbingBid ? plumbingRateUnits : undefined}
                                 extraEntries={
                                   isTradeUnitRateBid
-                                    ? isElectricianBid
-                                      ? getElectricianUnitRateDisplayEntries(bid.rates, electricianBidOptions)
-                                      : getPlumbingUnitRateDisplayEntries(bid.rates, plumbingBidOptions)
+                                    ? isInteriorBid
+                                      ? getInteriorUnitRateDisplayEntries(bid.rates, interiorBidOptions)
+                                      : isElectricianBid
+                                        ? getElectricianUnitRateDisplayEntries(bid.rates, electricianBidOptions)
+                                        : getPlumbingUnitRateDisplayEntries(bid.rates, plumbingBidOptions)
                                     : undefined
                                 }
                                 indexLabel="Weighted Index"

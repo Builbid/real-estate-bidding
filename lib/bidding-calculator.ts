@@ -1,14 +1,17 @@
 /**
- * Standard Baseline Weightage engine for plumber and electrician unit-rate bids.
+ * Standard Baseline Weightage engine for plumber, electrician, and interior unit-rate bids.
  *
- * Wiring / piping / area-based items: rate × built-up area.
- * Per-piece items (fittings, switchboards, fans, etc.): rate × 1.
- * RCC Building applies a 1.2 structural complexity multiplier; Assam Type is 1.0.
+ * Area-based items (wiring, piping, ceiling, woodwork): rate × built-up area.
+ * Per-piece items (fittings, hardware, etc.): rate × 1.
+ * RCC Building: plumber/electrician ×1.2; interior design ×1.1. Assam Type is ×1.0.
  */
 
 export const DEFAULT_BUILT_UP_AREA_SQFT = 1000;
 export const RCC_STRUCTURAL_MULTIPLIER = 1.2;
+export const INTERIOR_RCC_STRUCTURAL_MULTIPLIER = 1.1;
 export const ASSAM_TYPE_STRUCTURAL_MULTIPLIER = 1.0;
+
+export type BaselineTradeKind = 'default' | 'interior';
 
 export type BaselineStructureType =
   | 'RCC Building'
@@ -27,17 +30,23 @@ export interface BaselineWeightageOption {
   plumberBidRate?: number | string | null;
   /** @deprecated Use bidRate. Electrician alias. */
   electricianBidRate?: number | string | null;
+  /** @deprecated Use bidRate. Interior designer alias. */
+  designerBidRate?: number | string | null;
   unitType?: BaselineUnitType | null;
   /** Plumber piping items. */
   isPiping?: boolean;
   /** Electrician wiring / conduit items. */
   isWiringOrPiping?: boolean;
+  /** Interior ceiling / paneling / woodwork items. */
+  isAreaBased?: boolean;
 }
 
 export interface ComputeBaselineWeightageInput {
   builtUpArea?: number | string | null;
   structureType?: string | null;
   selectedSubOptions: BaselineWeightageOption[];
+  /** Interior uses a 1.1 RCC multiplier instead of 1.2. */
+  trade?: BaselineTradeKind;
 }
 
 export interface BaselineWeightageResult {
@@ -58,7 +67,10 @@ function toNumber(value: number | string | null | undefined, fallback = 0): numb
 
 function resolveBidRate(option: BaselineWeightageOption): number {
   return toNumber(
-    option.bidRate ?? option.plumberBidRate ?? option.electricianBidRate,
+    option.bidRate ??
+      option.plumberBidRate ??
+      option.electricianBidRate ??
+      option.designerBidRate,
     0,
   );
 }
@@ -68,10 +80,17 @@ export function resolveBuiltUpAreaSqft(builtUpArea?: number | string | null): nu
   return area > 0 ? area : DEFAULT_BUILT_UP_AREA_SQFT;
 }
 
-/** RCC Building → 1.2; Assam Type and unknown → 1.0 */
-export function getStructuralMultiplier(structureType?: string | null): number {
+/** RCC Building → 1.2 (default) or 1.1 (interior); Assam Type and unknown → 1.0 */
+export function getStructuralMultiplier(
+  structureType?: string | null,
+  trade: BaselineTradeKind = 'default',
+): number {
   const normalized = String(structureType ?? '').trim().toLowerCase().replace(/[_-]+/g, ' ');
-  if (normalized === 'rcc' || normalized === 'rcc building') return RCC_STRUCTURAL_MULTIPLIER;
+  if (normalized === 'rcc' || normalized === 'rcc building') {
+    return trade === 'interior'
+      ? INTERIOR_RCC_STRUCTURAL_MULTIPLIER
+      : RCC_STRUCTURAL_MULTIPLIER;
+  }
   return ASSAM_TYPE_STRUCTURAL_MULTIPLIER;
 }
 
@@ -79,6 +98,7 @@ export function isAreaBasedWeightageOption(option: BaselineWeightageOption): boo
   return (
     option.isPiping === true ||
     option.isWiringOrPiping === true ||
+    option.isAreaBased === true ||
     option.unitType === 'per_sqft'
   );
 }
@@ -86,7 +106,10 @@ export function isAreaBasedWeightageOption(option: BaselineWeightageOption): boo
 export function computeBaselineWeightedScore(
   input: ComputeBaselineWeightageInput,
 ): BaselineWeightageResult {
-  const structuralMultiplier = getStructuralMultiplier(input.structureType);
+  const structuralMultiplier = getStructuralMultiplier(
+    input.structureType,
+    input.trade ?? 'default',
+  );
   const area = resolveBuiltUpAreaSqft(input.builtUpArea);
 
   let estimatedTotalScore = 0;

@@ -22,6 +22,7 @@ function parseServiceParam(value: string | null): ServiceType | null {
   if (value === 'construction_firm' && isConstructionFirmEnabled()) return value;
   if (isDrawingDesignServiceType(value)) return value;
   if (value === 'interior_work') return 'false_ceiling_work';
+  if (value === 'interior-designer') return 'false_ceiling_work';
   if (isTradeServiceType(value)) return value;
   return null;
 }

@@ -249,6 +249,13 @@ export async function createProjectAction(
         insertPayload.floor_area_sqft = trade.trade_details.approxBuiltUpAreaSqft
         insertPayload.total_floors = targetFloorsToTotalFloors(trade.trade_details.targetFloors)
       }
+      if (
+        trade.trade_details.service === 'false_ceiling_work' &&
+        trade.trade_details.approxBuiltUpAreaSqft
+      ) {
+        insertPayload.floor_area_sqft = trade.trade_details.approxBuiltUpAreaSqft
+        insertPayload.total_floors = targetFloorsToTotalFloors(trade.trade_details.targetFloors)
+      }
     }
   } else {
     if (isFirm) {

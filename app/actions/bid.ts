@@ -35,13 +35,26 @@ import {
   validatePlumbingUnitRateInputs,
   type PlumbingBidOption,
 } from '@/lib/plumberBid';
+import {
+  buildInteriorUnitRatePayload,
+  parseInteriorUnitRates,
+  interiorWeightageContextFromProject,
+  readProjectInteriorBidOptions,
+  validateInteriorUnitRateInputs,
+  type InteriorBidOption,
+} from '@/lib/interiorBid';
+
+type UnitRateBidOption = PlumbingBidOption | ElectricianBidOption | InteriorBidOption;
 
 function readProjectUnitRateOptions(project: {
   service_type?: ServiceType | string | null;
   trade_details?: unknown;
-}): PlumbingBidOption[] | ElectricianBidOption[] {
+}): UnitRateBidOption[] {
   if (project.service_type === 'electrician') {
     return readProjectElectricianBidOptions(project);
+  }
+  if (project.service_type === 'false_ceiling_work') {
+    return readProjectInteriorBidOptions(project);
   }
   return readProjectPlumbingBidOptions(project);
 }
@@ -53,18 +66,24 @@ function parseProjectUnitRates(
   if (project.service_type === 'electrician') {
     return parseElectricianUnitRates(raw);
   }
+  if (project.service_type === 'false_ceiling_work') {
+    return parseInteriorUnitRates(raw);
+  }
   return parsePlumbingUnitRates(raw);
 }
 
 function validateProjectUnitRates(
   project: { service_type?: ServiceType | string | null },
   rates: BidRates,
-  options: PlumbingBidOption[] | ElectricianBidOption[],
+  options: UnitRateBidOption[],
 ) {
   const rules = getBidRateRules(project.service_type ?? 'plumber');
   const unitRates = parseProjectUnitRates(project, rates.unit_rates);
   if (project.service_type === 'electrician') {
     return validateElectricianUnitRateInputs(unitRates, options as ElectricianBidOption[], rules);
+  }
+  if (project.service_type === 'false_ceiling_work') {
+    return validateInteriorUnitRateInputs(unitRates, options as InteriorBidOption[], rules);
   }
   return validatePlumbingUnitRateInputs(unitRates, options as PlumbingBidOption[], rules);
 }
@@ -72,13 +91,20 @@ function validateProjectUnitRates(
 function buildProjectUnitRatePayload(
   project: { service_type?: ServiceType | string | null; trade_details?: unknown },
   unitRates: Record<string, number>,
-  options: PlumbingBidOption[] | ElectricianBidOption[],
+  options: UnitRateBidOption[],
 ) {
   if (project.service_type === 'electrician') {
     return buildElectricianUnitRatePayload(
       unitRates,
       options as ElectricianBidOption[],
       electricianWeightageContextFromProject(project),
+    );
+  }
+  if (project.service_type === 'false_ceiling_work') {
+    return buildInteriorUnitRatePayload(
+      unitRates,
+      options as InteriorBidOption[],
+      interiorWeightageContextFromProject(project),
     );
   }
   return buildPlumbingUnitRatePayload(

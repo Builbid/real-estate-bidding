@@ -2,15 +2,13 @@
 
 import { PlumbingPackageForm } from '@/components/owner/plumber/PlumbingPackageForm';
 import { ElectricianPackageForm } from '@/components/owner/electrician/ElectricianPackageForm';
+import { InteriorPackageForm } from '@/components/owner/interior/InteriorPackageForm';
 import { Input } from '@/components/ui/input';
 import { OptionSelectGrid } from '@/components/owner/wizard/OptionSelectCard';
 import { StartTimeAndNotes, WIZARD_SECTION_LABEL } from '@/components/owner/wizard/StartTimeAndNotes';
-import { cn } from '@/lib/utils';
 import {
   EARTHWORK_SOIL_VEHICLE_OPTIONS,
   EARTHWORK_TYPE_OPTIONS,
-  INTERIOR_SCOPE_OPTIONS,
-  INTERIOR_SPACE_OPTIONS,
   type BathroomPackage,
   type BathroomPackageSelection,
   type BathroomRoomSize,
@@ -19,6 +17,8 @@ import {
   type EarthworkType,
   type ElectricianPackageKind,
   type ElectricianSubOptionId,
+  type InteriorDesignerPackageKind,
+  type InteriorDesignerSubOptionId,
   type InteriorScopeType,
   type InteriorTargetSpace,
   type PipingPackageKind,
@@ -66,6 +66,8 @@ export interface TradeWorkFormFields {
   drainageInstallMethods: DrainageInstallMethod[];
   electricianPackages: ElectricianPackageKind[];
   electricianSubOptions: ElectricianSubOptionId[];
+  interiorPackages: InteriorDesignerPackageKind[];
+  interiorSubOptions: InteriorDesignerSubOptionId[];
   doorWindowFramesQuantity: string;
   kitchenSizeLayout: string;
   kitchenMaterialType: string;
@@ -78,10 +80,6 @@ export interface TradeWorkFormFields {
   projectStartTimeType: ProjectStartTimeType | null;
   projectStartTimeSpecificDate: string;
   additionalRequirements: string;
-}
-
-function toggleUnique<T>(list: T[], value: T): T[] {
-  return list.includes(value) ? list.filter((item) => item !== value) : [...list, value];
 }
 
 export function TradeWorkRequirementsFields({
@@ -130,67 +128,14 @@ export function TradeWorkRequirementsFields({
 
       {trade === 'false_ceiling_work' && (
         <>
-          <FieldGroup label="Scope Type">
-            <OptionSelectGrid
-              options={INTERIOR_SCOPE_OPTIONS}
-              value={form.interiorScope}
-              onSelect={(v) => onChange('interiorScope', v)}
-            />
-          </FieldGroup>
-          {form.interiorScope === 'modular_kitchen' && (
-            <ExpandablePanel open>
-              <Input
-                label="Kitchen Size / Layout"
-                type="text"
-                required
-                placeholder="e.g., L-shaped, 12 ft running length / 25 sqft"
-                value={form.kitchenSizeLayout}
-                onChange={(e) => onChange('kitchenSizeLayout', e.target.value)}
-              />
-              <Input
-                label="Material Type"
-                type="text"
-                required
-                placeholder="e.g., HDMR Board, Marine Plywood, Pre-laminated"
-                value={form.kitchenMaterialType}
-                onChange={(e) => onChange('kitchenMaterialType', e.target.value)}
-              />
-              <Input
-                label="Fittings & Hardware"
-                type="text"
-                required
-                placeholder="e.g., Soft-close hinges, tandem boxes, basket fittings"
-                value={form.kitchenFittingsHardware}
-                onChange={(e) => onChange('kitchenFittingsHardware', e.target.value)}
-              />
-            </ExpandablePanel>
-          )}
-          <FieldGroup label="Target Space">
-            <OptionSelectGrid
-              options={INTERIOR_SPACE_OPTIONS}
-              values={form.targetSpaces}
-              onToggle={(space) => {
-                if (space === 'full_house') {
-                  onChange(
-                    'targetSpaces',
-                    form.targetSpaces.includes('full_house') ? [] : ['full_house'],
-                  );
-                  return;
-                }
-                const withoutFull = form.targetSpaces.filter((s) => s !== 'full_house');
-                onChange('targetSpaces', toggleUnique(withoutFull, space));
-              }}
-              columns={2}
-            />
-          </FieldGroup>
-          <Input
-            label="Approximate Interior Area (Sq. Ft.)"
-            type="number"
-            inputMode="decimal"
-            min={1}
-            placeholder="e.g. 1400"
-            value={form.interiorArea}
-            onChange={(e) => onChange('interiorArea', e.target.value)}
+          <p className="text-xs font-medium leading-relaxed rounded-xl border border-amber-500/25 bg-amber-500/5 px-3 py-2.5 text-gray-800 dark:text-zinc-200">
+            All bids are strictly for LABOUR CHARGES. Materials must be supplied by the Property Owner.
+          </p>
+          <InteriorPackageForm
+            selectedPackages={form.interiorPackages}
+            selectedSubOptions={form.interiorSubOptions}
+            onChangePackages={(v) => onChange('interiorPackages', v)}
+            onChangeSubOptions={(v) => onChange('interiorSubOptions', v)}
           />
         </>
       )}
@@ -241,35 +186,6 @@ export function TradeWorkRequirementsFields({
         onSpecificDateChange={(v) => onChange('projectStartTimeSpecificDate', v)}
         onNotesChange={(v) => onChange('additionalRequirements', v)}
       />
-    </div>
-  );
-}
-
-function ExpandablePanel({
-  open,
-  children,
-}: {
-  open: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <div
-      className={cn(
-        'grid transition-[grid-template-rows] duration-300 ease-in-out',
-        open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]',
-      )}
-      aria-hidden={!open}
-    >
-      <div className="overflow-hidden" inert={!open || undefined}>
-        <div
-          className={cn(
-            'mt-3 space-y-3 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3.5',
-            !open && 'pointer-events-none',
-          )}
-        >
-          {children}
-        </div>
-      </div>
     </div>
   );
 }

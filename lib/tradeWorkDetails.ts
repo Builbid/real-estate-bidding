@@ -171,6 +171,33 @@ export interface ElectricianSubOptionDef {
   weight: number;
 }
 
+export type InteriorDesignerPackageKind =
+  | 'ceiling_wall_paneling'
+  | 'modular_woodwork'
+  | 'fixtures_glass_hardware';
+
+export type InteriorDesignerSubOptionId =
+  | 'gypsum_pop_false_ceiling'
+  | 'grid_pvc_panel_ceiling'
+  | 'wpc_charcoal_fluted_paneling'
+  | 'wallpaper_texture_painting'
+  | 'modular_kitchen_cabinet'
+  | 'custom_wardrobe_storage'
+  | 'tv_unit_feature_backpanel'
+  | 'kitchen_hardware_baskets'
+  | 'wardrobe_handle_lock_profile_light'
+  | 'glass_mirror_door_fitting';
+
+export interface InteriorDesignerSubOptionDef {
+  id: InteriorDesignerSubOptionId;
+  label: string;
+  note?: string;
+  unitSuffix: string;
+  unitType?: PlumbingSubOptionUnitType;
+  isAreaBased?: boolean;
+  weight: number;
+}
+
 export type CarpenterScopeType =
   | 'door_window_frames'
   | 'modular_kitchen'
@@ -311,12 +338,26 @@ export interface CarpenterDetails extends TradeDetailsBase {
 export interface InteriorDetails extends TradeDetailsBase {
   service: 'false_ceiling_work';
   scopeType: InteriorScopeType;
-  targetSpaces: InteriorTargetSpace[];
-  interiorAreaSqft: number;
-  /** Required when Modular Kitchen is selected. */
+  /** Legacy — high-level target spaces (pre unit-rate flow). */
+  targetSpaces?: InteriorTargetSpace[];
+  /** Legacy — interior area in sq ft (pre unit-rate flow). */
+  interiorAreaSqft?: number;
+  /** Legacy modular kitchen detail fields. */
   kitchenSizeLayout?: string | null;
   kitchenMaterialType?: string | null;
   kitchenFittingsHardware?: string | null;
+  /** Assam Type vs RCC — drives track type and structural multiplier. */
+  houseStructure?: PlumbingHouseStructure | null;
+  /** Target floors for interior work. */
+  targetFloors?: PlumbingTargetFloor[];
+  targetWorkFloor?: PlumbingTargetFloor | null;
+  customTargetFloors?: string | null;
+  /** Approximate built-up area in square feet. */
+  approxBuiltUpAreaSqft?: number | null;
+  /** Main interior design rate categories checked by the owner. */
+  selectedPackages?: InteriorDesignerPackageKind[];
+  /** Sub-options opened for unit-rate bidding. */
+  selectedSubOptions?: InteriorDesignerSubOptionId[];
 }
 
 export interface EarthworkDetails extends TradeDetailsBase {
@@ -834,6 +875,125 @@ export const ELECTRICIAN_SCOPE_PACKAGES: {
   },
 ];
 
+export const INTERIOR_DESIGNER_LABOUR_ONLY_DISCLAIMER =
+  'All bids are strictly for LABOUR CHARGES. Materials must be supplied by the Property Owner.';
+
+export const INTERIOR_DESIGNER_SCOPE_PACKAGES: {
+  id: InteriorDesignerPackageKind;
+  label: string;
+  options: InteriorDesignerSubOptionDef[];
+}[] = [
+  {
+    id: 'ceiling_wall_paneling',
+    label: 'Ceiling & Wall Paneling Work',
+    options: [
+      {
+        id: 'gypsum_pop_false_ceiling',
+        label: 'Gypsum / POP False Ceiling Execution',
+        note: 'Framing, board fixing, taping, and jointing per sq ft',
+        unitSuffix: '/sqft',
+        unitType: 'per_sqft',
+        isAreaBased: true,
+        weight: 1,
+      },
+      {
+        id: 'grid_pvc_panel_ceiling',
+        label: 'Grid Ceiling / PVC Panel Ceiling Work',
+        note: 'Drop ceiling tiles or PVC panel fixing per sq ft',
+        unitSuffix: '/sqft',
+        unitType: 'per_sqft',
+        isAreaBased: true,
+        weight: 1,
+      },
+      {
+        id: 'wpc_charcoal_fluted_paneling',
+        label: 'WPC / Charcoal Fluted Wall Paneling',
+        note: 'Decorative wall paneling and louver installation per sq ft',
+        unitSuffix: '/sqft',
+        unitType: 'per_sqft',
+        isAreaBased: true,
+        weight: 1,
+      },
+      {
+        id: 'wallpaper_texture_painting',
+        label: 'Wallpaper & Texture Painting Application',
+        note: 'Wall surface prep, priming, and wallpaper/texture application per sq ft',
+        unitSuffix: '/sqft',
+        unitType: 'per_sqft',
+        isAreaBased: true,
+        weight: 1,
+      },
+    ],
+  },
+  {
+    id: 'modular_woodwork',
+    label: 'Modular Woodwork & Cabinetry',
+    options: [
+      {
+        id: 'modular_kitchen_cabinet',
+        label: 'Modular Kitchen Box & Cabinet Fabrication',
+        note: 'HDMR/BWP plywood carcass and shutter construction per sq ft',
+        unitSuffix: '/sqft',
+        unitType: 'per_sqft',
+        isAreaBased: true,
+        weight: 1,
+      },
+      {
+        id: 'custom_wardrobe_storage',
+        label: 'Custom Wardrobe & Storage Construction',
+        note: 'Hinged/sliding wardrobe framing and internal shelving per sq ft',
+        unitSuffix: '/sqft',
+        unitType: 'per_sqft',
+        isAreaBased: true,
+        weight: 1,
+      },
+      {
+        id: 'tv_unit_feature_backpanel',
+        label: 'TV Unit & Feature Back-Paneling',
+        note: 'Console board, back-paneling, and laminate finish per sq ft',
+        unitSuffix: '/sqft',
+        unitType: 'per_sqft',
+        isAreaBased: true,
+        weight: 1,
+      },
+    ],
+  },
+  {
+    id: 'fixtures_glass_hardware',
+    label: 'Fixtures, Glass & Hardware Fitting',
+    options: [
+      {
+        id: 'kitchen_hardware_baskets',
+        label: 'Kitchen Hardware & Baskets Fitting',
+        note: 'Tandem boxes, pull-out racks, hinges, and auto-close channels fitting per unit',
+        unitSuffix: '/unit',
+        unitType: 'per_unit',
+        weight: 1,
+      },
+      {
+        id: 'wardrobe_handle_lock_profile_light',
+        label: 'Wardrobe Handle, Lock & Profile Light Fitting',
+        note: 'Profile LED channel, handles, and lock mechanism fitting per unit',
+        unitSuffix: '/unit',
+        unitType: 'per_unit',
+        weight: 1,
+      },
+      {
+        id: 'glass_mirror_door_fitting',
+        label: 'Glass / Mirror & Door Fitting',
+        note: 'Toughened glass, lacquered glass paneling, or custom door installation per unit',
+        unitSuffix: '/unit',
+        unitType: 'per_unit',
+        weight: 1,
+      },
+    ],
+  },
+];
+
+export const ALL_INTERIOR_DESIGNER_SUB_OPTIONS = INTERIOR_DESIGNER_SCOPE_PACKAGES.flatMap(
+  (pkg) => pkg.options,
+);
+
 export const ALL_ELECTRICIAN_SUB_OPTIONS = ELECTRICIAN_SCOPE_PACKAGES.flatMap((pkg) => pkg.options);
 
 export const CARPENTER_SCOPE_OPTIONS: { value: CarpenterScopeType; label: string }[] = [
@@ -941,6 +1101,12 @@ const ELECTRICIAN_APPLIANCE_SET = new Set(ELECTRICIAN_APPLIANCE_OPTIONS.map((o) 
 const ELECTRICIAN_MATERIAL_SET = new Set(ELECTRICIAN_MATERIAL_OPTIONS.map((o) => o.value));
 const ELECTRICIAN_PACKAGE_KIND_SET = new Set(ELECTRICIAN_SCOPE_PACKAGES.map((o) => o.id));
 const ELECTRICIAN_SUB_OPTION_SET = new Set(ALL_ELECTRICIAN_SUB_OPTIONS.map((o) => o.id));
+const INTERIOR_DESIGNER_PACKAGE_KIND_SET = new Set(
+  INTERIOR_DESIGNER_SCOPE_PACKAGES.map((o) => o.id),
+);
+const INTERIOR_DESIGNER_SUB_OPTION_SET = new Set(
+  ALL_INTERIOR_DESIGNER_SUB_OPTIONS.map((o) => o.id),
+);
 const CARPENTER_SCOPE_SET = new Set<CarpenterScopeType>([
   'door_window_frames',
   'modular_kitchen',
@@ -1201,6 +1367,62 @@ export function formatElectricianSubOptionSummary(
     return (packages ?? []).map(getElectricianPackageLabel).join(' + ');
   }
   return selected.map(getElectricianSubOptionLabel).join(' · ');
+}
+
+export function parseInteriorDesignerPackageKinds(raw: unknown): InteriorDesignerPackageKind[] {
+  return parseUniqueEnumList(raw, INTERIOR_DESIGNER_PACKAGE_KIND_SET);
+}
+
+export function parseInteriorDesignerSubOptionIds(raw: unknown): InteriorDesignerSubOptionId[] {
+  if (!Array.isArray(raw)) return [];
+  return parseUniqueEnumList(raw, INTERIOR_DESIGNER_SUB_OPTION_SET);
+}
+
+export function getInteriorDesignerSubOption(id: InteriorDesignerSubOptionId) {
+  return ALL_INTERIOR_DESIGNER_SUB_OPTIONS.find((option) => option.id === id) ?? null;
+}
+
+export function getInteriorDesignerPackageLabel(id: InteriorDesignerPackageKind): string {
+  return INTERIOR_DESIGNER_SCOPE_PACKAGES.find((pkg) => pkg.id === id)?.label ?? id;
+}
+
+export function getInteriorDesignerSubOptionLabel(id: InteriorDesignerSubOptionId): string {
+  return getInteriorDesignerSubOption(id)?.label ?? id;
+}
+
+export function subOptionsForInteriorDesignerPackages(
+  packages: InteriorDesignerPackageKind[],
+  selected: InteriorDesignerSubOptionId[],
+): InteriorDesignerSubOptionId[] {
+  const allowed = new Set(
+    INTERIOR_DESIGNER_SCOPE_PACKAGES.filter((pkg) => packages.includes(pkg.id)).flatMap((pkg) =>
+      pkg.options.map((option) => option.id),
+    ),
+  );
+  return selected.filter((id) => allowed.has(id));
+}
+
+export function hasInteriorDesignerUnitRateScope(
+  details:
+    | Pick<InteriorDetails, 'selectedSubOptions' | 'selectedPackages'>
+    | null
+    | undefined,
+): boolean {
+  return (
+    (details?.selectedSubOptions?.length ?? 0) > 0 ||
+    (details?.selectedPackages?.length ?? 0) > 0
+  );
+}
+
+export function formatInteriorDesignerSubOptionSummary(
+  packages: InteriorDesignerPackageKind[] | null | undefined,
+  subOptions: InteriorDesignerSubOptionId[] | null | undefined,
+): string {
+  const selected = subOptions ?? [];
+  if (selected.length === 0) {
+    return (packages ?? []).map(getInteriorDesignerPackageLabel).join(' + ');
+  }
+  return selected.map(getInteriorDesignerSubOptionLabel).join(' · ');
 }
 
 export function parsePlumbingWaterTankFloor(raw: unknown): PlumbingWaterTankFloor | null {
@@ -1792,6 +2014,49 @@ export function parseTradeDetails(value: unknown): TradeDetails | null {
     ) {
       return null;
     }
+    const selectedPackages = parseInteriorDesignerPackageKinds(v.selectedPackages);
+    const selectedSubOptions = subOptionsForInteriorDesignerPackages(
+      selectedPackages,
+      parseInteriorDesignerSubOptionIds(v.selectedSubOptions),
+    );
+    const hasUnitRateScope = selectedPackages.length > 0 || selectedSubOptions.length > 0;
+    const houseStructure =
+      typeof v.houseStructure === 'string' &&
+      PLUMBING_HOUSE_STRUCTURE_SET.has(v.houseStructure as PlumbingHouseStructure)
+        ? (v.houseStructure as PlumbingHouseStructure)
+        : null;
+    const parsedTargetFloors = parsePlumbingTargetFloors(v.targetFloors);
+    const parsedWorkFloor = normalizePlumbingTargetFloor(v.targetWorkFloor);
+    const customTargetFloors = parseCustomTargetFloors(v.customTargetFloors);
+    const targetFloors =
+      parsedTargetFloors.length > 0
+        ? parsedTargetFloors
+        : parsedWorkFloor
+          ? ([parsedWorkFloor] as PlumbingTargetFloor[])
+          : houseStructure === 'assam_type'
+            ? (['ground'] as PlumbingTargetFloor[])
+            : [];
+    const targetWorkFloor = parsedWorkFloor ?? targetFloors[0] ?? null;
+    const approxBuiltUpAreaSqft = parsePositiveNumber(v.approxBuiltUpAreaSqft);
+
+    if (hasUnitRateScope) {
+      return {
+        service: 'false_ceiling_work',
+        projectAddress: address,
+        villageTownName,
+        ...start,
+        additionalRequirements: additional,
+        scopeType: v.scopeType as InteriorScopeType,
+        houseStructure,
+        targetFloors,
+        targetWorkFloor,
+        customTargetFloors: targetFloors.includes('custom') ? customTargetFloors : null,
+        approxBuiltUpAreaSqft,
+        selectedPackages,
+        selectedSubOptions,
+      };
+    }
+
     const spaces = parseSpaces(v.targetSpaces);
     const area = parsePositiveNumber(v.interiorAreaSqft);
     if (spaces.length === 0 || area == null) return null;
@@ -2272,28 +2537,98 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
       }
     }
   } else if (details.service === 'false_ceiling_work') {
-    blocks.push(
-      { label: 'Scope Type', value: optionLabel(INTERIOR_SCOPE_OPTIONS, details.scopeType) },
-      {
-        label: 'Target Space',
-        value: details.targetSpaces
-          .map((s) => optionLabel(INTERIOR_SPACE_OPTIONS, s))
-          .join(', '),
-      },
-      {
-        label: 'Interior Area',
-        value: `${details.interiorAreaSqft.toLocaleString('en-IN')} Sq. Ft.`,
-      },
-    );
-    if (details.scopeType === 'modular_kitchen') {
-      if (details.kitchenSizeLayout) {
-        blocks.push({ label: 'Kitchen Size / Layout', value: details.kitchenSizeLayout });
+    const selectedPackages = details.selectedPackages ?? [];
+    const selectedSubOptions = details.selectedSubOptions ?? [];
+    const hasUnitRateScope = hasInteriorDesignerUnitRateScope(details);
+
+    if (hasUnitRateScope) {
+      if (details.houseStructure) {
+        blocks.push({
+          label: 'Building Structure Type',
+          value: getPlumbingHouseStructureLabel(details.houseStructure),
+        });
       }
-      if (details.kitchenMaterialType) {
-        blocks.push({ label: 'Material Type', value: details.kitchenMaterialType });
+      const workFloors =
+        details.targetFloors && details.targetFloors.length > 0
+          ? details.targetFloors
+          : details.targetWorkFloor
+            ? [details.targetWorkFloor]
+            : [];
+      if (workFloors.length > 0) {
+        blocks.push({
+          label: 'Target Work Floor',
+          value: workFloors
+            .map((floor) =>
+              floor === 'custom' && details.customTargetFloors
+                ? details.customTargetFloors
+                : getPlumbingTargetFloorLabel(floor),
+            )
+            .join(', '),
+        });
       }
-      if (details.kitchenFittingsHardware) {
-        blocks.push({ label: 'Fittings & Hardware', value: details.kitchenFittingsHardware });
+      if (details.approxBuiltUpAreaSqft != null) {
+        blocks.push({
+          label: 'Approx Built-Up Area',
+          value: `${details.approxBuiltUpAreaSqft.toLocaleString('en-IN')} Sq Ft`,
+        });
+      }
+      for (const pkg of INTERIOR_DESIGNER_SCOPE_PACKAGES) {
+        if (!selectedPackages.includes(pkg.id)) continue;
+        const picked = pkg.options.filter((option) => selectedSubOptions.includes(option.id));
+        blocks.push({
+          label: pkg.label,
+          value:
+            picked.length > 0
+              ? picked
+                  .map((option) =>
+                    option.note ? `${option.label} (${option.note})` : option.label,
+                  )
+                  .join('\n')
+              : 'No sub-options selected',
+        });
+      }
+      blocks.push({
+        label: 'Material Scope',
+        value: INTERIOR_DESIGNER_LABOUR_ONLY_DISCLAIMER,
+      });
+      const bidLabels: string[] = [];
+      for (const optionId of selectedSubOptions) {
+        const option = getInteriorDesignerSubOption(optionId);
+        const suffix = option?.unitSuffix ?? '/unit';
+        bidLabels.push(`${getInteriorDesignerSubOptionLabel(optionId)} (₹ ${suffix})`);
+      }
+      if (bidLabels.length > 0) {
+        blocks.push({
+          label: 'Bidding Options',
+          value: bidLabels
+            .map((label, index) => `Option ${String.fromCharCode(65 + index)}: ${label}`)
+            .join('\n'),
+        });
+      }
+    } else {
+      blocks.push(
+        { label: 'Scope Type', value: optionLabel(INTERIOR_SCOPE_OPTIONS, details.scopeType) },
+        {
+          label: 'Target Space',
+          value: (details.targetSpaces ?? [])
+            .map((s) => optionLabel(INTERIOR_SPACE_OPTIONS, s))
+            .join(', '),
+        },
+        {
+          label: 'Interior Area',
+          value: `${(details.interiorAreaSqft ?? 0).toLocaleString('en-IN')} Sq. Ft.`,
+        },
+      );
+      if (details.scopeType === 'modular_kitchen') {
+        if (details.kitchenSizeLayout) {
+          blocks.push({ label: 'Kitchen Size / Layout', value: details.kitchenSizeLayout });
+        }
+        if (details.kitchenMaterialType) {
+          blocks.push({ label: 'Material Type', value: details.kitchenMaterialType });
+        }
+        if (details.kitchenFittingsHardware) {
+          blocks.push({ label: 'Fittings & Hardware', value: details.kitchenFittingsHardware });
+        }
       }
     }
   } else {
@@ -2369,6 +2704,11 @@ export function getTradeScopeLabel(details: TradeDetails): string {
     return formatCarpenterScopesSummary(details.scopeTypes);
   }
   if (details.service === 'false_ceiling_work') {
+    const unitSummary = formatInteriorDesignerSubOptionSummary(
+      details.selectedPackages,
+      details.selectedSubOptions,
+    );
+    if (unitSummary) return unitSummary;
     return optionLabel(INTERIOR_SCOPE_OPTIONS, details.scopeType);
   }
   return earthworkTypeLabel(details.workType);
@@ -2419,6 +2759,8 @@ export interface TradeDetailsFormInput {
   interiorScope: InteriorScopeType | null;
   targetSpaces: InteriorTargetSpace[];
   interiorArea: string;
+  interiorPackages?: InteriorDesignerPackageKind[];
+  interiorSubOptions?: InteriorDesignerSubOptionId[];
   villageTownName?: string;
   earthworkType: EarthworkType | null;
   machineRequirement: EarthworkMachine | null;
@@ -2654,46 +2996,62 @@ export function validateTradeDetailsInput(
   }
 
   if (input.service === 'false_ceiling_work') {
-    if (!input.interiorScope || !INTERIOR_SCOPE_SET.has(input.interiorScope)) {
-      return { error: 'Select an interior work scope type.' };
+    const houseStructure =
+      input.houseStructure && PLUMBING_HOUSE_STRUCTURE_SET.has(input.houseStructure)
+        ? input.houseStructure
+        : null;
+    if (!houseStructure) {
+      return { error: 'Select the building structure type.' };
     }
-    const spaces = parseSpaces(input.targetSpaces);
-    if (spaces.length === 0) {
-      return { error: 'Select at least one target space.' };
+    const targetFloors = parsePlumbingTargetFloors(
+      input.targetFloors?.length
+        ? input.targetFloors
+        : input.targetWorkFloor
+          ? [input.targetWorkFloor]
+          : [],
+    );
+    if (targetFloors.length === 0) {
+      return { error: 'Select at least one target work floor.' };
     }
-    const area = parsePositiveNumber(input.interiorArea);
-    if (area == null) {
-      return { error: 'Enter the approximate interior area in Sq. Ft.' };
-    }
-    const hasModularKitchen = input.interiorScope === 'modular_kitchen';
-    const kitchenSizeLayout = hasModularKitchen
-      ? normalizeOptionalText(input.kitchenSizeLayout)
+    const customTargetFloors = targetFloors.includes('custom')
+      ? parseCustomTargetFloors(input.customTargetFloors)
       : null;
-    const kitchenMaterialType = hasModularKitchen
-      ? normalizeOptionalText(input.kitchenMaterialType)
-      : null;
-    const kitchenFittingsHardware = hasModularKitchen
-      ? normalizeOptionalText(input.kitchenFittingsHardware)
-      : null;
-    if (hasModularKitchen && !kitchenSizeLayout) {
-      return { error: 'Enter the kitchen size / layout.' };
+    if (targetFloors.includes('custom') && !customTargetFloors) {
+      return { error: 'Enter the custom / higher floor numbers.' };
     }
-    if (hasModularKitchen && !kitchenMaterialType) {
-      return { error: 'Enter the modular kitchen material type.' };
+    const targetWorkFloor = targetFloors[0];
+    const approxBuiltUpAreaSqft = parsePositiveNumber(input.approxBuiltUpAreaSqft);
+    if (approxBuiltUpAreaSqft == null) {
+      return { error: 'Enter the approximate built-up area in Sq Ft.' };
     }
-    if (hasModularKitchen && !kitchenFittingsHardware) {
-      return { error: 'Enter the fittings & hardware for the modular kitchen.' };
+    const selectedPackages = parseInteriorDesignerPackageKinds(input.interiorPackages);
+    if (selectedPackages.length === 0) {
+      return { error: 'Select at least one interior design work category.' };
+    }
+    const selectedSubOptions = subOptionsForInteriorDesignerPackages(
+      selectedPackages,
+      parseInteriorDesignerSubOptionIds(input.interiorSubOptions),
+    );
+    for (const pkg of selectedPackages) {
+      const catalog = INTERIOR_DESIGNER_SCOPE_PACKAGES.find((item) => item.id === pkg);
+      const picked =
+        catalog?.options.filter((option) => selectedSubOptions.includes(option.id)) ?? [];
+      if (picked.length === 0) {
+        return { error: `Select at least one sub-option for ${getInteriorDesignerPackageLabel(pkg)}.` };
+      }
     }
     return {
       details: {
         ...base,
         service: 'false_ceiling_work',
-        scopeType: input.interiorScope,
-        targetSpaces: spaces,
-        interiorAreaSqft: area,
-        kitchenSizeLayout,
-        kitchenMaterialType,
-        kitchenFittingsHardware,
+        scopeType: 'full_home_interior',
+        houseStructure,
+        targetFloors,
+        targetWorkFloor,
+        customTargetFloors,
+        approxBuiltUpAreaSqft,
+        selectedPackages,
+        selectedSubOptions,
       },
     };
   }

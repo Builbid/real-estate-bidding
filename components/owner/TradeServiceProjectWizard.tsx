@@ -113,6 +113,8 @@ const EMPTY_FORM: FormState = {
   drainageInstallMethods: ['open_outer_hanging'],
   electricianPackages: [],
   electricianSubOptions: [],
+  interiorPackages: [],
+  interiorSubOptions: [],
   doorWindowFramesQuantity: '',
   kitchenSizeLayout: '',
   kitchenMaterialType: '',
@@ -214,7 +216,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
       errors.pincode = pincodeError;
     }
 
-    if (trade === 'plumber' || trade === 'electrician') {
+    if (trade === 'plumber' || trade === 'electrician' || trade === 'false_ceiling_work') {
       if (!form.houseStructure) {
         errors.houseStructure = 'Select RCC Building or Assam Type.';
       }
@@ -276,6 +278,8 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
       drainageInstallMethods: form.drainageInstallMethods,
       electricianPackages: form.electricianPackages,
       electricianSubOptions: form.electricianSubOptions,
+      interiorPackages: form.interiorPackages,
+      interiorSubOptions: form.interiorSubOptions,
       carpenterScopes: [],
       doorWindowFramesQuantity: form.doorWindowFramesQuantity,
       kitchenSizeLayout: form.kitchenSizeLayout,
@@ -496,7 +500,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                 error={step1ValidationAttempted ? step1Errors.pincode : undefined}
               />
 
-              {(trade === 'plumber' || trade === 'electrician') && (
+              {(trade === 'plumber' || trade === 'electrician' || trade === 'false_ceiling_work') && (
                 <div className="space-y-4">
                   <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-semibold text-gray-800 dark:text-zinc-100 uppercase tracking-wider">
@@ -643,6 +647,8 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                     ? 'Check the plumbing categories you need, then pick the sub-options plumbers should quote as labour unit rates.'
                     : trade === 'electrician'
                       ? 'Check the electrical work categories you need, then pick the sub-options electricians should quote as labour unit rates.'
+                      : trade === 'false_ceiling_work'
+                        ? 'Check the interior design categories you need, then pick the sub-options designers should quote as labour unit rates.'
                     : `Describe the ${tradeLabel.toLowerCase()} work so bidders can quote without scope conflicts.`}
               </p>
 

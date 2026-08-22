@@ -18,6 +18,7 @@ import { resolveScopeRateBidItems } from '@/lib/bid/scopeRateBid';
 import { getServiceBidderLabels } from '@/lib/project/display';
 import { getPlumbingUnitRateDisplayEntries, readProjectPlumbingBidOptions } from '@/lib/plumberBid';
 import { getElectricianUnitRateDisplayEntries, readProjectElectricianBidOptions } from '@/lib/electricianBid';
+import { getInteriorUnitRateDisplayEntries, readProjectInteriorBidOptions } from '@/lib/interiorBid';
 import type { ProjectStatus, ServiceType, TrackType, SubConfiguration } from '@/lib/types';
 
 interface BuilderInfo {
@@ -86,6 +87,7 @@ export function BidLeaderboard({
   });
   const isPlumbingBid = scopeBid?.kind === 'plumbing';
   const isElectricianBid = scopeBid?.kind === 'electrician';
+  const isInteriorBid = scopeBid?.kind === 'interior';
   const isTradeUnitRateBid = Boolean(scopeBid?.unitRateBid);
   const plumbingOptions = isPlumbingBid
     ? readProjectPlumbingBidOptions({ trade_details: tradeDetails, sub_configuration: subConfiguration })
@@ -93,7 +95,14 @@ export function BidLeaderboard({
   const electricianOptions = isElectricianBid
     ? readProjectElectricianBidOptions({ trade_details: tradeDetails })
     : [];
-  const tradeUnitRateOptions = isElectricianBid ? electricianOptions : plumbingOptions;
+  const interiorOptions = isInteriorBid
+    ? readProjectInteriorBidOptions({ trade_details: tradeDetails })
+    : [];
+  const tradeUnitRateOptions = isInteriorBid
+    ? interiorOptions
+    : isElectricianBid
+      ? electricianOptions
+      : plumbingOptions;
   const projectFloorCount = isTradeUnitRateBid
     ? Math.max(tradeUnitRateOptions.length, 1)
     : (scopeBid?.count
@@ -344,9 +353,11 @@ export function BidLeaderboard({
                     unitSuffixes={isPlumbingBid ? scopeBid?.rateUnits : undefined}
                     extraEntries={
                       isTradeUnitRateBid
-                        ? isElectricianBid
-                          ? getElectricianUnitRateDisplayEntries(bid.rates, electricianOptions)
-                          : getPlumbingUnitRateDisplayEntries(bid.rates, plumbingOptions)
+                        ? isInteriorBid
+                          ? getInteriorUnitRateDisplayEntries(bid.rates, interiorOptions)
+                          : isElectricianBid
+                            ? getElectricianUnitRateDisplayEntries(bid.rates, electricianOptions)
+                            : getPlumbingUnitRateDisplayEntries(bid.rates, plumbingOptions)
                         : undefined
                     }
                     indexLabel="Weighted Index"

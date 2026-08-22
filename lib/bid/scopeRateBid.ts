@@ -18,6 +18,7 @@ import {
 import { isLegacyCarpenterService } from '@/lib/trades';
 import type { ServiceType, SubConfiguration } from '@/lib/types';
 import { normalizeServiceType } from '@/lib/validation/bidRates';
+import { readProjectInteriorBidOptions } from '@/lib/interiorBid';
 import { readProjectPlumbingBidOptions } from '@/lib/plumberBid';
 import { readProjectElectricianBidOptions } from '@/lib/electricianBid';
 
@@ -26,7 +27,7 @@ export const MODULAR_KITCHEN_BID_LABEL = 'Modular Kitchen';
 export interface ScopeRateBidItems {
   labels: string[];
   count: number;
-  kind: 'scope' | 'floors' | 'assam-addons' | 'plumbing' | 'electrician';
+  kind: 'scope' | 'floors' | 'assam-addons' | 'plumbing' | 'electrician' | 'interior';
   flexibleRates: boolean;
   unitSuffix?: string;
   /** Per-item unit suffix aligned with labels (e.g. plumbing package vs ₹/Rft). */
@@ -124,6 +125,31 @@ export function resolveScopeRateBidItems(
     }
   }
 
+  if (service === 'false_ceiling_work' || tradeDetails?.service === 'false_ceiling_work') {
+    const interiorOptions = readProjectInteriorBidOptions(project);
+    if (interiorOptions.length > 0) {
+      return {
+        labels: interiorOptions.map((option) => option.label),
+        count: interiorOptions.length,
+        kind: 'interior',
+        flexibleRates: false,
+        unitSuffix: '/unit',
+        rateUnits: interiorOptions.map((option) => option.unitSuffix),
+        optionIds: interiorOptions.map((option) => option.id),
+        unitRateBid: true,
+      };
+    }
+    if (hasInteriorModularKitchen(readNestedProjectDetail(project, 'trade_details'))) {
+      return {
+        labels: [MODULAR_KITCHEN_BID_LABEL],
+        count: 1,
+        kind: 'scope',
+        flexibleRates: true,
+      };
+    }
+    return null;
+  }
+
   if (
     isLegacyCarpenterService(service) ||
     isLegacyCarpenterService(bidder) ||
@@ -141,18 +167,6 @@ export function resolveScopeRateBidItems(
       kind: 'scope',
       flexibleRates: true,
     };
-  }
-
-  if (service === 'false_ceiling_work' || tradeDetails?.service === 'false_ceiling_work') {
-    if (hasInteriorModularKitchen(readNestedProjectDetail(project, 'trade_details'))) {
-      return {
-        labels: [MODULAR_KITCHEN_BID_LABEL],
-        count: 1,
-        kind: 'scope',
-        flexibleRates: true,
-      };
-    }
-    return null;
   }
 
   if (service === 'labour_contractor' || bidder === 'labour_contractor') {

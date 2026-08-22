@@ -97,6 +97,9 @@ export function isWideRequirementLabel(label: string): boolean {
     label === 'Wiring & Piping Rates' ||
     label === 'Switchboards & Socket Fitting Rates' ||
     label === 'Electrical Appliance & Fixture Fitting Rates' ||
+    label === 'Ceiling & Wall Paneling Work' ||
+    label === 'Modular Woodwork & Cabinetry' ||
+    label === 'Fixtures, Glass & Hardware Fitting' ||
     label === 'Water Tank Floor' ||
     label === 'Target Floors' ||
     label === 'Package Level' ||

@@ -18,6 +18,7 @@ import { resolveScopeRateBidItems } from '@/lib/bid/scopeRateBid';
 import { resolveProjectFloorCount, shouldShowBidFloorBreakdown } from '@/lib/bid/floorRateDisplay';
 import { getPlumbingUnitRateDisplayEntries, readProjectPlumbingBidOptions } from '@/lib/plumberBid';
 import { getElectricianUnitRateDisplayEntries, readProjectElectricianBidOptions } from '@/lib/electricianBid';
+import { getInteriorUnitRateDisplayEntries, readProjectInteriorBidOptions } from '@/lib/interiorBid';
 import { useOwnerProjectPhaseContext } from '@/lib/context/OwnerProjectPhaseContext';
 import type { Project, Bid } from '@/lib/types';
 
@@ -126,10 +127,16 @@ export function UnifiedBidRankings({
   const scopeBid = resolveScopeRateBidItems(project);
   const isPlumbingBid = scopeBid?.kind === 'plumbing';
   const isElectricianBid = scopeBid?.kind === 'electrician';
+  const isInteriorBid = scopeBid?.kind === 'interior';
   const isTradeUnitRateBid = Boolean(scopeBid?.unitRateBid);
   const plumbingOptions = isPlumbingBid ? readProjectPlumbingBidOptions(project) : [];
   const electricianOptions = isElectricianBid ? readProjectElectricianBidOptions(project) : [];
-  const tradeUnitRateOptions = isElectricianBid ? electricianOptions : plumbingOptions;
+  const interiorOptions = isInteriorBid ? readProjectInteriorBidOptions(project) : [];
+  const tradeUnitRateOptions = isInteriorBid
+    ? interiorOptions
+    : isElectricianBid
+      ? electricianOptions
+      : plumbingOptions;
   const projectFloorCount = isTradeUnitRateBid
     ? Math.max(tradeUnitRateOptions.length, 1)
     : (scopeBid?.count ?? resolveProjectFloorCount(project));
@@ -277,13 +284,15 @@ export function UnifiedBidRankings({
                   <BidFloorRatesBreakdown
                     rates={bid.rates}
                     floorLabels={carpenterFloorLabels}
-                    unitSuffix={isPlumbingBid ? '/Rft' : isElectricianBid ? '/unit' : '/sqft'}
-                    unitSuffixes={(isPlumbingBid || isElectricianBid) ? scopeBid?.rateUnits : undefined}
+                    unitSuffix={isPlumbingBid ? '/Rft' : isInteriorBid || isElectricianBid ? '/unit' : '/sqft'}
+                    unitSuffixes={(isPlumbingBid || isElectricianBid || isInteriorBid) ? scopeBid?.rateUnits : undefined}
                     extraEntries={
                       isTradeUnitRateBid
-                        ? isElectricianBid
-                          ? getElectricianUnitRateDisplayEntries(bid.rates, electricianOptions)
-                          : getPlumbingUnitRateDisplayEntries(bid.rates, plumbingOptions)
+                        ? isInteriorBid
+                          ? getInteriorUnitRateDisplayEntries(bid.rates, interiorOptions)
+                          : isElectricianBid
+                            ? getElectricianUnitRateDisplayEntries(bid.rates, electricianOptions)
+                            : getPlumbingUnitRateDisplayEntries(bid.rates, plumbingOptions)
                         : undefined
                     }
                     indexLabel="Weighted Index"
