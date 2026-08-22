@@ -61,6 +61,8 @@ export type PlumbingPackageKind =
   | 'waste_line'
   | 'water_tank';
 
+export type PlumbingSubOptionUnitType = 'per_sqft' | 'per_unit';
+
 export type PlumbingSubOptionId =
   | 'western_commode'
   | 'indian_toilet_pan'
@@ -70,12 +72,26 @@ export type PlumbingSubOptionId =
   | 'taps_accessories'
   | 'piping_three_quarter_concealed'
   | 'piping_three_quarter_open'
+  | 'piping_one_inch_concealed'
+  | 'piping_one_inch_open'
+  /** @deprecated Replaced by concealed / open 1" main supply options. */
   | 'piping_one_inch_main'
   | 'waste_four_inch_concealed'
   | 'waste_four_inch_open'
   | 'floor_drain_jali'
   | 'tank_500_ltr'
   | 'tank_1000_ltr';
+
+export interface PlumbingSubOptionDef {
+  id: PlumbingSubOptionId;
+  label: string;
+  /** Inline owner-facing note shown under the option label. */
+  note?: string;
+  unitSuffix: string;
+  unitType?: PlumbingSubOptionUnitType;
+  isPiping?: boolean;
+  weight: number;
+}
 
 export type PlumbingWaterTankFloor =
   | 'ground'
@@ -413,57 +429,100 @@ export const PLUMBING_BUILDING_STOREYS_OPTIONS: {
 export const PLUMBING_SCOPE_PACKAGES: {
   id: PlumbingPackageKind;
   label: string;
-  options: {
-    id: PlumbingSubOptionId;
-    label: string;
-    unitSuffix: string;
-    weight: number;
-  }[];
+  options: PlumbingSubOptionDef[];
 }[] = [
   {
     id: 'bathroom_fittings',
     label: 'Bathroom Fittings Rate',
     options: [
-      { id: 'western_commode', label: 'Western Commode Fitting', unitSuffix: '/unit', weight: 1 },
-      { id: 'indian_toilet_pan', label: 'Indian Toilet Pan Fitting', unitSuffix: '/unit', weight: 1 },
-      { id: 'overhead_shower', label: 'Overhead Shower Fitting', unitSuffix: '/unit', weight: 1 },
-      { id: 'geyser', label: 'Geyser Fitting', unitSuffix: '/unit', weight: 1 },
-      { id: 'wash_basin', label: 'Wash Basin Fitting', unitSuffix: '/unit', weight: 1 },
-      { id: 'taps_accessories', label: 'Taps & Basic Accessories', unitSuffix: '/unit', weight: 1 },
+      { id: 'western_commode', label: 'Western Commode Fitting', unitSuffix: '/unit', unitType: 'per_unit', weight: 1 },
+      { id: 'indian_toilet_pan', label: 'Indian Toilet Pan Fitting', unitSuffix: '/unit', unitType: 'per_unit', weight: 1 },
+      { id: 'overhead_shower', label: 'Overhead Shower Fitting', unitSuffix: '/unit', unitType: 'per_unit', weight: 1 },
+      { id: 'geyser', label: 'Geyser Fitting', unitSuffix: '/unit', unitType: 'per_unit', weight: 1 },
+      { id: 'wash_basin', label: 'Wash Basin Fitting', unitSuffix: '/unit', unitType: 'per_unit', weight: 1 },
+      { id: 'taps_accessories', label: 'Taps & Basic Accessories', unitSuffix: '/unit', unitType: 'per_unit', weight: 1 },
     ],
   },
   {
     id: 'water_piping',
     label: 'Water Piping Rate',
     options: [
-      { id: 'piping_three_quarter_concealed', label: '3/4" Concealed Piping', unitSuffix: '/point', weight: 1 },
-      { id: 'piping_three_quarter_open', label: '3/4" Non-Concealed / Open Piping', unitSuffix: '/point', weight: 1 },
-      { id: 'piping_one_inch_main', label: '1" Main Supply Line Piping', unitSuffix: '/point', weight: 1 },
+      {
+        id: 'piping_three_quarter_concealed',
+        label: '3/4" Concealed Piping',
+        note: 'For inside bathroom taps & shower - hidden inside wall',
+        unitSuffix: '/sqft',
+        unitType: 'per_sqft',
+        isPiping: true,
+        weight: 1,
+      },
+      {
+        id: 'piping_three_quarter_open',
+        label: '3/4" Non-Concealed / Open Piping',
+        note: 'For inside bathroom taps & shower - outer open wall',
+        unitSuffix: '/sqft',
+        unitType: 'per_sqft',
+        isPiping: true,
+        weight: 1,
+      },
+      {
+        id: 'piping_one_inch_concealed',
+        label: '1" Concealed Main Supply Line Piping',
+        note: 'Main heavy line from tank to bathroom - hidden inside wall for high water pressure',
+        unitSuffix: '/sqft',
+        unitType: 'per_sqft',
+        isPiping: true,
+        weight: 1,
+      },
+      {
+        id: 'piping_one_inch_open',
+        label: '1" Non-Concealed / Open Main Supply Line Piping',
+        note: 'Main heavy line from tank to bathroom - outer open wall for high water pressure',
+        unitSuffix: '/sqft',
+        unitType: 'per_sqft',
+        isPiping: true,
+        weight: 1,
+      },
     ],
   },
   {
     id: 'waste_line',
     label: 'Waste Line Rate',
     options: [
-      { id: 'waste_four_inch_concealed', label: '4" SWR Concealed Waste Line', unitSuffix: '/point', weight: 1 },
-      { id: 'waste_four_inch_open', label: '4" SWR Non-Concealed Waste Line', unitSuffix: '/point', weight: 1 },
-      { id: 'floor_drain_jali', label: 'Floor Drain / Jali Outlet Point', unitSuffix: '/point', weight: 1 },
+      { id: 'waste_four_inch_concealed', label: '4" SWR Concealed Waste Line', unitSuffix: '/point', unitType: 'per_unit', weight: 1 },
+      { id: 'waste_four_inch_open', label: '4" SWR Non-Concealed Waste Line', unitSuffix: '/point', unitType: 'per_unit', weight: 1 },
+      { id: 'floor_drain_jali', label: 'Floor Drain / Jali Outlet Point', unitSuffix: '/point', unitType: 'per_unit', weight: 1 },
     ],
   },
   {
     id: 'water_tank',
     label: 'Water Tank Fitting Rate',
     options: [
-      { id: 'tank_500_ltr', label: '500 Ltr Tank Fitting', unitSuffix: '/unit', weight: 1 },
-      { id: 'tank_1000_ltr', label: '1000 Ltr Tank Fitting', unitSuffix: '/unit', weight: 1 },
+      { id: 'tank_500_ltr', label: '500 Ltr Tank Fitting', unitSuffix: '/unit', unitType: 'per_unit', weight: 1 },
+      { id: 'tank_1000_ltr', label: '1000 Ltr Tank Fitting', unitSuffix: '/unit', unitType: 'per_unit', weight: 1 },
     ],
+  },
+];
+
+/** Kept so stored projects that selected the old combined 1" line still parse. */
+export const LEGACY_PLUMBING_SUB_OPTIONS: PlumbingSubOptionDef[] = [
+  {
+    id: 'piping_one_inch_main',
+    label: '1" Main Supply Line Piping',
+    unitSuffix: '/sqft',
+    unitType: 'per_sqft',
+    isPiping: true,
+    weight: 1,
   },
 ];
 
 export const PLUMBING_LABOUR_ONLY_DISCLAIMER =
   'All bids are strictly for LABOUR CHARGES. Materials must be supplied by the Property Owner.';
 
-export const ALL_PLUMBING_SUB_OPTIONS = PLUMBING_SCOPE_PACKAGES.flatMap((pkg) => pkg.options);
+export const ALL_PLUMBING_SUB_OPTIONS = [
+  ...PLUMBING_SCOPE_PACKAGES.flatMap((pkg) => pkg.options),
+  ...LEGACY_PLUMBING_SUB_OPTIONS,
+];
 
 export const PLUMBING_WATER_TANK_FLOOR_OPTIONS: {
   value: PlumbingWaterTankFloor;
@@ -908,6 +967,23 @@ export function parsePlumbingSubOptionIds(raw: unknown): PlumbingSubOptionId[] {
     return item;
   }).filter((item): item is string => typeof item === 'string');
   return parseUniqueEnumList(remapped, PLUMBING_SUB_OPTION_SET);
+}
+
+const CONCEALED_PIPING_SUB_OPTION_IDS = new Set<PlumbingSubOptionId>([
+  'piping_three_quarter_concealed',
+  'piping_one_inch_concealed',
+  'waste_four_inch_concealed',
+]);
+
+const OPEN_PIPING_SUB_OPTION_IDS = new Set<PlumbingSubOptionId>([
+  'piping_three_quarter_open',
+  'piping_one_inch_open',
+  'piping_one_inch_main',
+  'waste_four_inch_open',
+]);
+
+export function isPlumbingPipingSubOption(id: PlumbingSubOptionId): boolean {
+  return getPlumbingSubOption(id)?.isPiping === true;
 }
 
 export function parsePlumbingWaterTankFloor(raw: unknown): PlumbingWaterTankFloor | null {
@@ -1575,7 +1651,11 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
           label: pkg.label,
           value:
             picked.length > 0
-              ? picked.map((option) => option.label).join('\n')
+              ? picked
+                  .map((option) =>
+                    option.note ? `${option.label} (${option.note})` : option.label,
+                  )
+                  .join('\n')
               : 'No sub-options selected',
         });
         if (pkg.id === 'water_tank' && details.houseStructure === 'rcc' && details.waterTankFloor) {
@@ -1756,9 +1836,9 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
     const plumbingBidLabels: string[] = [];
     if (hasUnitRateScope) {
       for (const optionId of selectedSubOptions) {
-        plumbingBidLabels.push(
-          `${getPlumbingSubOptionLabel(optionId)} (₹ / unit)`,
-        );
+        const option = getPlumbingSubOption(optionId);
+        const suffix = option?.unitSuffix ?? '/unit';
+        plumbingBidLabels.push(`${getPlumbingSubOptionLabel(optionId)} (₹ ${suffix})`);
       }
     } else if (hasPackageSystem) {
       for (const item of activePackages) {
@@ -2085,12 +2165,10 @@ export function validateTradeDetailsInput(
     if (requiresTankFloor && waterTankFloor === 'custom' && !customWaterTankFloor) {
       return { error: 'Enter the custom water tank floor location.' };
     }
-    const hasConcealedPiping = selectedSubOptions.some(
-      (id) => id === 'piping_three_quarter_concealed' || id === 'waste_four_inch_concealed',
+    const hasConcealedPiping = selectedSubOptions.some((id) =>
+      CONCEALED_PIPING_SUB_OPTION_IDS.has(id),
     );
-    const hasOpenPiping = selectedSubOptions.some(
-      (id) => id === 'piping_three_quarter_open' || id === 'waste_four_inch_open',
-    );
+    const hasOpenPiping = selectedSubOptions.some((id) => OPEN_PIPING_SUB_OPTION_IDS.has(id));
     const pipingPackage: PipingPackageKind = hasConcealedPiping && !hasOpenPiping
       ? 'concealing'
       : 'non_concealing';

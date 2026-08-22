@@ -1,7 +1,10 @@
+import {
+  computeBaselineWeightedScore,
+  rankingRateFromWeightedScore,
+} from '@/lib/bidding-calculator';
 import { getBidRateFieldError } from '@/lib/validation/bidRates';
 import { readNestedProjectDetail } from '@/lib/project/storedDetails';
 import {
-  ALL_PLUMBING_SUB_OPTIONS,
   PLUMBING_LABOUR_ONLY_DISCLAIMER,
   PLUMBING_SCOPE_PACKAGES,
   activeBathroomPackageSelections,
@@ -9,6 +12,7 @@ import {
   formatBathroomPackageItem,
   getBathroomPackageLabel,
   getPipingPackageLabel,
+  getPlumbingHouseStructureLabel,
   getPlumbingSubOption,
   hasPlumbingUnitRateScope,
   parseTradeDetails,
@@ -51,6 +55,14 @@ export interface PlumbingBidOption {
   unit: PlumbingRateUnit;
   unitSuffix: string;
   weight: number;
+  note?: string;
+  isPiping?: boolean;
+  unitType?: 'per_sqft' | 'per_unit';
+}
+
+export interface PlumbingWeightageContext {
+  builtUpArea?: number | string | null;
+  structureType?: string | null;
 }
 
 function optionLetter(index: number): string {
@@ -115,6 +127,7 @@ export function buildPlumbingUnitRateOptions(
   return subOptionIds.flatMap((id, index) => {
     const option = getPlumbingSubOption(id);
     if (!option) return [];
+    const isPiping = option.isPiping === true || option.unitType === 'per_sqft';
     return [{
       id: option.id,
       shortLabel: option.label,
@@ -122,6 +135,9 @@ export function buildPlumbingUnitRateOptions(
       unit: 'per_unit' as const,
       unitSuffix: option.unitSuffix,
       weight: option.weight,
+      note: option.note,
+      isPiping,
+      unitType: option.unitType ?? (isPiping ? 'per_sqft' : 'per_unit'),
     }];
   });
 }
@@ -275,21 +291,41 @@ export function parsePlumbingUnitRates(raw: unknown): Record<string, number> {
   return next;
 }
 
+export function plumbingWeightageContextFromDetails(
+  details: PlumberDetails | null | undefined,
+): PlumbingWeightageContext {
+  if (!details) return {};
+  return {
+    builtUpArea: details.approxBuiltUpAreaSqft ?? null,
+    structureType: details.houseStructure
+      ? getPlumbingHouseStructureLabel(details.houseStructure)
+      : null,
+  };
+}
+
+export function plumbingWeightageContextFromProject(project: {
+  trade_details?: unknown;
+}): PlumbingWeightageContext {
+  const details = parseTradeDetails(readNestedProjectDetail(project, 'trade_details'));
+  if (!details || details.service !== 'plumber') return {};
+  return plumbingWeightageContextFromDetails(details);
+}
+
 export function computePlumbingWeightedIndex(
   unitRates: Record<string, number>,
-  options: Array<Pick<PlumbingBidOption, 'id' | 'weight'>>,
+  options: Array<Pick<PlumbingBidOption, 'id' | 'weight' | 'isPiping' | 'unitType'>>,
+  context?: PlumbingWeightageContext,
 ): number {
-  let weightedSum = 0;
-  let weightTotal = 0;
-  for (const option of options) {
-    const rate = unitRates[option.id];
-    if (rate == null || rate <= 0) continue;
-    const weight = option.weight > 0 ? option.weight : 1;
-    weightedSum += rate * weight;
-    weightTotal += weight;
-  }
-  if (weightTotal <= 0) return 0;
-  return Math.round((weightedSum / weightTotal) * 100) / 100;
+  const result = computeBaselineWeightedScore({
+    builtUpArea: context?.builtUpArea,
+    structureType: context?.structureType,
+    selectedSubOptions: options.map((option) => ({
+      plumberBidRate: unitRates[option.id] ?? 0,
+      unitType: option.unitType,
+      isPiping: option.isPiping === true || option.unitType === 'per_sqft',
+    })),
+  });
+  return result.finalWeightedScore;
 }
 
 export function computePlumbingUnitRateSum(
@@ -337,6 +373,7 @@ export function validatePlumbingUnitRateInputs(
 export function buildPlumbingUnitRatePayload(
   unitRates: Record<string, number>,
   options: PlumbingBidOption[],
+  context?: PlumbingWeightageContext,
 ): {
   ground_rate: number;
   unit_rates: Record<string, number>;
@@ -348,10 +385,9 @@ export function buildPlumbingUnitRatePayload(
     const value = unitRates[option.id];
     if (value != null && value > 0) cleaned[option.id] = value;
   }
-  const weightedIndex = computePlumbingWeightedIndex(cleaned, options);
-  const sum = computePlumbingUnitRateSum(cleaned, options.map((option) => option.id));
+  const weightedIndex = computePlumbingWeightedIndex(cleaned, options, context);
   return {
-    ground_rate: sum > 0 ? sum : 5,
+    ground_rate: rankingRateFromWeightedScore(weightedIndex),
     unit_rates: cleaned,
     weighted_index: weightedIndex,
     bid_unit: 'per_point',

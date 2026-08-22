@@ -58,6 +58,7 @@ import {
   getPlumbingUnitRateDisplayEntries,
   parsePlumbingUnitRates,
   plumbingPackageGroupsForOptions,
+  plumbingWeightageContextFromProject,
   readProjectPlumbingBidOptions,
 } from '@/lib/plumberBid';
 import { shouldShowBidFloorBreakdown, resolveProjectBidFloors } from '@/lib/bid/floorRateDisplay';
@@ -116,6 +117,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
   const isPlumber = isFlatRupeeService(project.service_type);
   const isPlumbingBid = scopeBid?.kind === 'plumbing';
   const plumbingBidOptions = isPlumbingBid ? readProjectPlumbingBidOptions(project) : [];
+  const plumbingWeightageContext = plumbingWeightageContextFromProject(project);
   const isPlumbingUnitRateBid = Boolean(isPlumbingBid && scopeBid?.unitRateBid);
   const plumbingRateUnits = isPlumbingBid ? (scopeBid.rateUnits ?? []) : [];
   const isPlumberFlat = isPlumber && !isPlumbingBid;
@@ -162,7 +164,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
   const countdown     = useCountdown(project.bidding_ends_at);
   const biddingClosed = project.status !== 'active_24h' || countdown.isExpired;
   const plumbingWeightedIndex = isPlumbingUnitRateBid
-    ? computePlumbingWeightedIndex(unitRateValues, plumbingBidOptions)
+    ? computePlumbingWeightedIndex(unitRateValues, plumbingBidOptions, plumbingWeightageContext)
     : 0;
   const averageMetric = isPlumbingUnitRateBid
     ? plumbingWeightedIndex
@@ -575,7 +577,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                       )}
                       {isPlumbingBid && (
                         <p className="text-xs text-muted-foreground/80 text-right">
-                          {isPlumbingUnitRateBid ? 'weighted index' : 'overall avg'}
+                          {isPlumbingUnitRateBid ? 'baseline score' : 'overall avg'}
                           <br />
                           lowest avg wins
                         </p>
@@ -637,10 +639,12 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                       </>
                     ) : isPlumbingUnitRateBid ? (
                       <>
-                        Enter a <strong>per unit / per point labour rate</strong> only for the
-                        sub-options selected by the owner. Rates must be whole numbers ending in{' '}
-                        <strong>0 or 5</strong>. Rank is the <strong>lowest Weighted Index</strong>{' '}
-                        (equal-weight average of your unit rates).
+                        Enter a <strong>labour rate</strong> only for the sub-options selected by
+                        the owner. Piping items are quoted <strong>per sqft</strong> and fittings
+                        are quoted <strong>per unit</strong>. Rates must be whole numbers ending in{' '}
+                        <strong>0 or 5</strong>. Rank is the <strong>lowest Baseline Score</strong>
+                        {' '}(piping rate × built-up area + unit rates × 1, then × 1.2 for RCC
+                        Building).
                       </>
                     ) : isPlumbingBid ? (
                       <>

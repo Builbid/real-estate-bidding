@@ -504,7 +504,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                 <div className="space-y-4">
                   <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-semibold text-gray-800 dark:text-zinc-100 uppercase tracking-wider">
-                      Building Structure Type
+                      Building Structure Type <span className="text-red-500">*</span>
                     </label>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {PLUMBING_HOUSE_STRUCTURE_OPTIONS.map((opt) => {
@@ -597,11 +597,12 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                   </div>
 
                   <Input
-                    label="Approx Built-Up Area"
+                    label="Approx Built-Up Area (Sq Ft)"
                     type="number"
                     inputMode="decimal"
                     min={1}
                     placeholder="e.g. 1200"
+                    required
                     suffix={<span className="text-xs font-medium text-muted-foreground">Sq Ft</span>}
                     value={form.approxBuiltUpAreaSqft}
                     onChange={(e) => update('approxBuiltUpAreaSqft', e.target.value)}

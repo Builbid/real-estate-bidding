@@ -230,7 +230,7 @@ export interface BidRates {
   vehicleCapacityCum?: number;
   /** Plumber unit-rate bids — labour rate keyed by selected sub-option id. */
   unit_rates?: Record<string, number>;
-  /** Equal-weight average of plumber unit rates (lowest index ranks first). */
+  /** Baseline weighted score for plumber unit-rate bids (lowest score ranks first). */
   weighted_index?: number;
 }
 

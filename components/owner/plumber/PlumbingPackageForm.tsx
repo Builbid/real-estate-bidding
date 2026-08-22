@@ -146,9 +146,15 @@ export function PlumbingPackageForm({
                               <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" aria-hidden />
                             )}
                           </span>
-                          <span className="text-[11px] font-medium text-gray-600 dark:text-zinc-400">
-                            Labour rate {option.unitSuffix}
-                          </span>
+                          {option.note ? (
+                            <span className="mt-0.5 block text-[11px] font-medium italic text-gray-600 dark:text-zinc-400">
+                              ({option.note})
+                            </span>
+                          ) : (
+                            <span className="text-[11px] font-medium text-gray-600 dark:text-zinc-400">
+                              Labour rate {option.unitSuffix}
+                            </span>
+                          )}
                         </span>
                       </label>
                     );

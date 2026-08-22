@@ -7,7 +7,7 @@ import {
   parseVehicleCapacity,
   resolveEarthworkBidMode,
 } from '@/lib/bid/earthworkBid';
-import { resolveScopeRateBidItems, type ScopeRateBidItems } from '@/lib/bid/scopeRateBid';
+import { resolveScopeRateBidItems } from '@/lib/bid/scopeRateBid';
 import { resolveProjectBidFloors } from '@/lib/bid/floorRateDisplay';
 import { missingProjectsColumn } from '@/lib/project/storedDetails';
 import { isDrawingDesignServiceType } from '@/lib/drawingDesign';
@@ -22,21 +22,15 @@ import {
 import {
   buildPlumbingUnitRatePayload,
   parsePlumbingUnitRates,
+  plumbingWeightageContextFromProject,
+  readProjectPlumbingBidOptions,
   validatePlumbingUnitRateInputs,
 } from '@/lib/plumberBid';
 
 function validatePlumbingUnitRates(
   rates: BidRates,
-  scopeBid: ScopeRateBidItems,
+  options: ReturnType<typeof readProjectPlumbingBidOptions>,
 ) {
-  const options = (scopeBid.optionIds ?? []).map((id, index) => ({
-    id,
-    shortLabel: scopeBid.labels[index] ?? id,
-    label: scopeBid.labels[index] ?? id,
-    unit: 'per_unit' as const,
-    unitSuffix: scopeBid.rateUnits?.[index] ?? '/unit',
-    weight: 1,
-  }));
   return validatePlumbingUnitRateInputs(
     parsePlumbingUnitRates(rates.unit_rates),
     options,
@@ -140,8 +134,12 @@ export async function submitBidAction(
             total_floors: project.total_floors,
           }).count);
 
+  const plumbingOptions = scopeBid?.unitRateBid
+    ? readProjectPlumbingBidOptions(project)
+    : [];
+
   const validation = scopeBid?.unitRateBid
-    ? validatePlumbingUnitRates(rates, scopeBid)
+    ? validatePlumbingUnitRates(rates, plumbingOptions)
     : validateBidRatesForFloorCount(
         rates,
         floorCount,
@@ -169,14 +167,8 @@ export async function submitBidAction(
   const plumbingUnitPayload = scopeBid?.unitRateBid
     ? buildPlumbingUnitRatePayload(
         parsePlumbingUnitRates(rates.unit_rates),
-        (scopeBid.optionIds ?? []).map((id, index) => ({
-          id,
-          shortLabel: scopeBid.labels[index] ?? id,
-          label: scopeBid.labels[index] ?? id,
-          unit: 'per_unit' as const,
-          unitSuffix: scopeBid.rateUnits?.[index] ?? '/unit',
-          weight: 1,
-        })),
+        plumbingOptions,
+        plumbingWeightageContextFromProject(project),
       )
     : null;
 
