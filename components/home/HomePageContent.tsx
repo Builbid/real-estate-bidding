@@ -25,7 +25,6 @@ interface HomePageContentProps {
   statValues: Record<string, number>;
   isAuthenticated: boolean;
   role: string | null;
-  featuredLabour: DemoFirm[];
   featuredFirms: DemoFirm[];
 }
 
@@ -35,7 +34,6 @@ export function HomePageContent({
   statValues,
   isAuthenticated,
   role,
-  featuredLabour,
   featuredFirms,
 }: HomePageContentProps) {
   const { t } = useTranslation();
@@ -167,7 +165,7 @@ export function HomePageContent({
         )}
       </section>
 
-      <FeaturedFirmsSection labourFirms={featuredLabour} constructionFirms={featuredFirms} />
+      <FeaturedFirmsSection constructionFirms={featuredFirms} />
     </div>
   );
 }

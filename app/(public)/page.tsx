@@ -150,7 +150,6 @@ export default async function HomePage() {
       statValues={statValues}
       isAuthenticated={isAuthenticated}
       role={role}
-      featuredLabour={featured.labour}
       featuredFirms={featured.firms}
     />
   );

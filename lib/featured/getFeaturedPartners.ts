@@ -1,7 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import {
   DEMO_CONSTRUCTION_FIRMS,
-  DEMO_LABOUR_CONTRACTORS,
   type DemoFirm,
   type DemoPartnerType,
 } from '@/lib/data/demoFirms';
@@ -47,13 +46,10 @@ export async function getFeaturedPartners(): Promise<{
   labour: DemoFirm[];
   firms: DemoFirm[];
 }> {
-  const [labour, firms] = await Promise.all([
-    fetchPartners('labour_contractor'),
-    fetchPartners('construction_firm'),
-  ]);
+  const firms = await fetchPartners('construction_firm');
 
   return {
-    labour: labour.length > 0 ? labour : DEMO_LABOUR_CONTRACTORS,
+    labour: [],
     firms: firms.length > 0 ? firms : DEMO_CONSTRUCTION_FIRMS,
   };
 }

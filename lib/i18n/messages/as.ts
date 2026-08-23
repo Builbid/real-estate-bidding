@@ -60,6 +60,8 @@ export const as: Messages = {
     exploreProjects: 'Projects চাওক',
     activeBids: 'Active Bids',
     forBuilders: 'Builders ৰ বাবে',
+    mistriWorkers: 'Mistri Workers',
+    postAProject: 'Post a Project',
     aboutUs: 'About Us',
     contact: 'Contact',
     careers: 'Careers',
