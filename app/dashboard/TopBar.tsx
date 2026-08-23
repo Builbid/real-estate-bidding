@@ -3,11 +3,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
-  Menu, X, LayoutDashboard, Building,
-  Shield, LogOut, Home, User, ChevronRight, Settings,
-  CheckCheck, Trophy, Award, Bell,
+  X, CheckCheck, Trophy, Award, Bell,
 } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
 import { UserAvatar } from '@/components/shared/UserAvatar'
 import { FirmLogo } from '@/components/firm/FirmLogo'
 import { useNotifications, notificationText } from '@/lib/hooks/useNotifications'
@@ -20,10 +17,9 @@ import { NavLink } from '@/components/shared/NavLink'
 import { NavIconButton } from '@/components/shared/NavIconButton'
 import { useTranslation } from '@/lib/context/LanguageProvider'
 import { normalizeRole } from '@/lib/auth/roles'
-import { getProfileRoleLabel } from '@/lib/auth/profileRoleLabel'
 import { clientSignOut } from '@/lib/auth/clientSignOut'
 import { BuilBidLogo } from '@/components/shared/BuilBidLogo'
-import { NAV_LOGO_LINK, NAV_MENU_ITEM } from '@/lib/navStyles'
+import { NAV_LOGO_LINK } from '@/lib/navStyles'
 
 interface ProfileData {
   id: string
@@ -45,36 +41,6 @@ interface TopBarProps {
   avatarGradient: string
 }
 
-// Role badge colors aligned with the new palette
-const ROLE_BADGES: Record<string, 'amber' | 'teal' | 'indigo' | 'violet' | 'emerald'> = {
-  owner:              'amber',
-  labour_contractor:  'teal',
-  construction_firm:  'violet',
-  admin:              'indigo',
-  service_provider:   'emerald',
-}
-
-const NAV_ITEMS: Record<string, { href: string; icon: React.ComponentType<{ className?: string }>; labelKey: string }[]> = {
-  owner: [
-    { href: '/dashboard/owner',             icon: LayoutDashboard, labelKey: 'nav.overview' },
-    { href: '/dashboard/owner/new-project', icon: Building,        labelKey: 'nav.postProject' },
-  ],
-  labour_contractor: [
-    { href: '/dashboard/builder', icon: LayoutDashboard, labelKey: 'nav.overview' },
-  ],
-  construction_firm: [
-    { href: '/dashboard/firm', icon: LayoutDashboard, labelKey: 'nav.overview' },
-    { href: '/dashboard/firm/settings', icon: Settings, labelKey: 'nav.firmProfile' },
-  ],
-  admin: [
-    { href: '/dashboard/admin', icon: Shield,   labelKey: 'nav.controlCenter' },
-    { href: '/dashboard/owner', icon: Building, labelKey: 'nav.projectsAll' },
-  ],
-  service_provider: [
-    { href: '/dashboard/provider', icon: LayoutDashboard, labelKey: 'nav.overview' },
-  ],
-}
-
 const NOTIF_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   you_were_selected: Trophy,
   builder_selected:  Award,
@@ -83,7 +49,6 @@ const NOTIF_ICONS: Record<string, React.ComponentType<{ className?: string }>> =
 export function TopBar({ profile, roleColor, avatarGradient }: TopBarProps) {
   const { t } = useTranslation()
   const router = useRouter()
-  const [menuOpen, setMenuOpen]       = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   const [notifOpen, setNotifOpen]     = useState(false)
   const [signOutOpen, setSignOutOpen] = useState(false)
@@ -95,23 +60,11 @@ export function TopBar({ profile, roleColor, avatarGradient }: TopBarProps) {
   const normalizedRole = normalizeRole(displayProfile.role)
   const isFirm = normalizedRole === 'construction_firm'
   const firmDisplayName = displayProfile.company_name ?? displayProfile.full_name
-  const navItems   = NAV_ITEMS[normalizedRole] ?? NAV_ITEMS.labour_contractor
-  const badgeColor = ROLE_BADGES[normalizedRole] ?? roleColor
-  const roleLabel = getProfileRoleLabel(displayProfile, (key) => t(key))
 
   return (
     <>
       {/* ── Top header ─────────────────────────────────────────── */}
       <header className="sticky top-0 z-40 flex items-center h-14 px-4 sm:px-6 border-b border-border bg-background/95 backdrop-blur gap-3">
-        {/* Hamburger — visible on mobile */}
-        <NavIconButton
-          onClick={() => setMenuOpen(true)}
-          className="w-9 h-9 text-muted-foreground hover:text-foreground hover:bg-accent lg:hidden"
-          aria-label="Open menu"
-        >
-          <Menu className="w-5 h-5" />
-        </NavIconButton>
-
         {/* Mobile logo */}
         <NavLink
           href="/"
@@ -164,93 +117,6 @@ export function TopBar({ profile, roleColor, avatarGradient }: TopBarProps) {
           )}
         </NavIconButton>
       </header>
-
-      {/* ── Mobile sidebar drawer ─────────────────────────────── */}
-      {menuOpen && (
-        <div className="fixed inset-0 z-50 flex lg:hidden">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMenuOpen(false)} />
-
-          <aside className="relative flex flex-col w-72 h-full bg-card border-r border-border shadow-2xl animate-in slide-in-from-left duration-200">
-            {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-              <NavLink
-                href="/"
-                prefetch
-                aria-label="BuilBid Home"
-                onClick={() => setMenuOpen(false)}
-                className={cn(NAV_LOGO_LINK, 'hover:opacity-90')}
-              >
-                <BuilBidLogo
-                  size="sm"
-                  showTagline
-                  tagline="Platform"
-                />
-              </NavLink>
-              <NavIconButton onClick={() => setMenuOpen(false)}
-                className="w-8 h-8 text-muted-foreground hover:text-foreground hover:bg-accent"
-                aria-label="Close menu">
-                <X className="w-4 h-4" />
-              </NavIconButton>
-            </div>
-
-            {/* User chip */}
-            <div className="px-4 py-3 border-b border-border">
-              <div className="flex items-center gap-2.5 p-2.5 rounded-lg bg-secondary/60">
-                <UserAvatar
-                  name={displayProfile.full_name}
-                  avatarUrl={displayProfile.avatar_url}
-                  size="xs"
-                  gradient={avatarGradient}
-                  className="flex-shrink-0"
-                />
-                <div className="flex flex-col gap-0.5 min-w-0">
-                  <p className="text-xs font-semibold text-foreground truncate">{displayProfile.full_name}</p>
-                  <Badge variant={badgeColor} className="text-[9px] py-0 self-start">{roleLabel}</Badge>
-                </div>
-              </div>
-            </div>
-
-            {/* Nav links */}
-            <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-              <p className="px-3 mb-2 text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">{t('nav.navigation')}</p>
-              {navItems.map(({ href, icon: Icon, labelKey }) => (
-                <NavLink key={href} href={href} prefetch onClick={() => setMenuOpen(false)}
-                  className={cn(NAV_MENU_ITEM, 'flex items-center gap-2.5 px-3 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent group')}>
-                  <Icon className="w-4 h-4 flex-shrink-0 text-violet-400" />
-                  <span className="font-medium">{t(labelKey)}</span>
-                  <ChevronRight className="w-3.5 h-3.5 ml-auto opacity-0 group-hover:opacity-60 transition-opacity" />
-                </NavLink>
-              ))}
-
-              <div className="pt-3 mt-3 border-t border-border space-y-1">
-                <p className="px-3 mb-2 text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">{t('nav.more')}</p>
-                <NavLink href="/" prefetch onClick={() => setMenuOpen(false)}
-                  className={cn(NAV_MENU_ITEM, 'flex items-center gap-2.5 px-3 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent')}>
-                  <Home className="w-4 h-4 text-blue-400" />
-                  <span>{t('nav.homePublicFeed')}</span>
-                </NavLink>
-                <NavIconButton onClick={() => { setMenuOpen(false); setProfileOpen(true) }}
-                  className={cn(NAV_MENU_ITEM, 'w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent text-left')}>
-                  <User className="w-4 h-4 text-amber-400" />
-                  <span>{t('nav.myProfile')}</span>
-                </NavIconButton>
-              </div>
-            </nav>
-
-            {/* Sign out */}
-            <div className="px-3 py-4 border-t border-border">
-              <NavIconButton
-                type="button"
-                onClick={() => { setMenuOpen(false); setSignOutOpen(true) }}
-                className={cn(NAV_MENU_ITEM, 'flex items-center gap-2.5 px-3 py-2.5 text-sm text-muted-foreground hover:text-red-400 hover:bg-red-500/5 hover:border-red-500/20 border border-transparent w-full text-left')}
-              >
-                <LogOut className="w-4 h-4" />
-                <span>{t('common.signOut')}</span>
-              </NavIconButton>
-            </div>
-          </aside>
-        </div>
-      )}
 
       {/* ── Notifications panel ───────────────────────────────── */}
       {notifOpen && (
