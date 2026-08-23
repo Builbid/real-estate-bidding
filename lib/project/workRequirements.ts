@@ -21,6 +21,18 @@ import type { Project, ServiceType } from '@/lib/types';
 
 export type WorkRequirementBlock = { label: string; value: string };
 
+/** Redundant on project summary cards — hidden from all display grids. */
+const HIDDEN_DISPLAY_LABELS = new Set([
+  'Material Scope',
+  'Bidding Options',
+  'Bidding Options (₹ / Running Foot)',
+  'Billing Notice',
+]);
+
+function filterDisplayRequirementBlocks(blocks: WorkRequirementBlock[]): WorkRequirementBlock[] {
+  return blocks.filter((block) => !HIDDEN_DISPLAY_LABELS.has(block.label));
+}
+
 export function getProjectWorkRequirementBlocks(project: {
   service_type?: ServiceType | null;
   sub_configuration?: Project['sub_configuration'];
@@ -34,13 +46,19 @@ export function getProjectWorkRequirementBlocks(project: {
   if (serviceType === 'painter') {
     const details = parsePainterDetails(readNestedProjectDetail(project, 'painter_details'));
     if (!details) return null;
-    return { title: 'Painter Work Requirements', blocks: getPainterWorkRequirementBlocks(details) };
+    return {
+      title: 'Painter Work Requirements',
+      blocks: filterDisplayRequirementBlocks(getPainterWorkRequirementBlocks(details)),
+    };
   }
 
   if (serviceType === 'labour_contractor') {
     const details = parseMistriDetails(readNestedProjectDetail(project, 'mistri_details'));
     if (!details) return null;
-    return { title: 'Mistri Work Requirements', blocks: getMistriWorkRequirementBlocks(details) };
+    return {
+      title: 'Mistri Work Requirements',
+      blocks: filterDisplayRequirementBlocks(getMistriWorkRequirementBlocks(details)),
+    };
   }
 
   if (serviceType === 'drawing_design') {
@@ -48,7 +66,7 @@ export function getProjectWorkRequirementBlocks(project: {
     if (!details) return null;
     return {
       title: 'Drawing & Design Requirements',
-      blocks: getDrawingWorkRequirementBlocks(details),
+      blocks: filterDisplayRequirementBlocks(getDrawingWorkRequirementBlocks(details)),
     };
   }
 
@@ -62,7 +80,10 @@ export function getProjectWorkRequirementBlocks(project: {
       false_ceiling_work: 'Interior Work Requirements',
       earthwork: 'Earthwork Requirements',
     };
-    return { title: titles[serviceType], blocks: getTradeWorkRequirementBlocks(details) };
+    return {
+      title: titles[serviceType],
+      blocks: filterDisplayRequirementBlocks(getTradeWorkRequirementBlocks(details)),
+    };
   }
 
   return null;
@@ -108,10 +129,6 @@ export function isWideRequirementLabel(label: string): boolean {
     label === 'Installation Method' ||
     label === 'Distance to Tank' ||
     label === 'Smart Piping Defaults' ||
-    label === 'Bidding Options' ||
-    label === 'Bidding Options (₹ / Running Foot)' ||
-    label === 'Billing Notice' ||
-    label === 'Material Scope' ||
     label === 'Scope Type' ||
     label === 'Door & Window Frames Work (Carpentry Add-on)' ||
     label === 'Deliverables' ||

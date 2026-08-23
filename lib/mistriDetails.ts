@@ -2090,7 +2090,7 @@ export function getMistriWorkRequirementBlocks(details: MistriDetails): {
     }
 
     blocks.push({
-      label: 'Start Time',
+      label: 'Work Start Time',
       value: formatMistriStartTime(details),
     });
 
@@ -2208,7 +2208,7 @@ export function getMistriWorkRequirementBlocks(details: MistriDetails): {
   }
 
   blocks.push({
-    label: 'Start Time',
+    label: 'Work Start Time',
     value: formatMistriStartTime(details),
   });
 

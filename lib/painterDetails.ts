@@ -278,7 +278,7 @@ export function getPainterWorkRequirementBlocks(details: PainterDetails): {
   }
 
   blocks.push({
-    label: 'Start Time',
+    label: 'Work Start Time',
     value: formatPainterStartTime(details),
   });
 

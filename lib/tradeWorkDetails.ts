@@ -2658,7 +2658,7 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
   }
 
   blocks.push({
-    label: 'Start Time',
+    label: 'Work Start Time',
     value: formatProjectStartTime(
       details.projectStartTimeType,
       details.projectStartTimeSpecificDate,
