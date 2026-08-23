@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import {
   X, CheckCheck, Trophy, Award, Bell,
 } from 'lucide-react'
@@ -11,13 +10,9 @@ import { useNotifications, notificationText } from '@/lib/hooks/useNotifications
 import { useDashboardProfile } from '@/lib/context/ProfileProvider'
 import { formatRelativeTime, cn } from '@/lib/utils'
 import { ThemeToggle } from '@/components/shared/ThemeToggle'
-import { ProfileDrawer } from '@/components/shared/ProfileDrawer'
-import { SignOutConfirmDialog } from '@/components/shared/SignOutConfirmDialog'
 import { NavLink } from '@/components/shared/NavLink'
 import { NavIconButton } from '@/components/shared/NavIconButton'
-import { useTranslation } from '@/lib/context/LanguageProvider'
 import { normalizeRole } from '@/lib/auth/roles'
-import { clientSignOut } from '@/lib/auth/clientSignOut'
 import { BuilBidLogo } from '@/components/shared/BuilBidLogo'
 import { NAV_LOGO_LINK } from '@/lib/navStyles'
 
@@ -46,15 +41,11 @@ const NOTIF_ICONS: Record<string, React.ComponentType<{ className?: string }>> =
   builder_selected:  Award,
 }
 
-export function TopBar({ profile, roleColor, avatarGradient }: TopBarProps) {
-  const { t } = useTranslation()
-  const router = useRouter()
-  const [profileOpen, setProfileOpen] = useState(false)
-  const [notifOpen, setNotifOpen]     = useState(false)
-  const [signOutOpen, setSignOutOpen] = useState(false)
+export function TopBar({ profile, avatarGradient }: TopBarProps) {
+  const [notifOpen, setNotifOpen] = useState(false)
 
   const { notifications, unreadCount, markAllRead, markRead } = useNotifications()
-  const { profile: liveProfile, clearProfile } = useDashboardProfile()
+  const { profile: liveProfile } = useDashboardProfile()
 
   const displayProfile = liveProfile ?? profile
   const normalizedRole = normalizeRole(displayProfile.role)
@@ -95,8 +86,9 @@ export function TopBar({ profile, roleColor, avatarGradient }: TopBarProps) {
         </NavIconButton>
 
         {/* Avatar */}
-        <NavIconButton
-          onClick={() => setProfileOpen(true)}
+        <NavLink
+          href="/dashboard/profile"
+          prefetch
           className="rounded-full hover:ring-2 hover:ring-white/20 flex-shrink-0"
           aria-label="Open profile"
         >
@@ -115,7 +107,7 @@ export function TopBar({ profile, roleColor, avatarGradient }: TopBarProps) {
               gradient={avatarGradient}
             />
           )}
-        </NavIconButton>
+        </NavLink>
       </header>
 
       {/* ── Notifications panel ───────────────────────────────── */}
@@ -200,24 +192,6 @@ export function TopBar({ profile, roleColor, avatarGradient }: TopBarProps) {
           </aside>
         </div>
       )}
-
-      {/* ── Profile panel ─────────────────────────────────────── */}
-      <ProfileDrawer
-        open={profileOpen}
-        onOpenChange={setProfileOpen}
-        profile={displayProfile}
-        avatarGradient={avatarGradient}
-        onSignOut={() => {
-          setProfileOpen(false)
-          setSignOutOpen(true)
-        }}
-      />
-
-      <SignOutConfirmDialog
-        open={signOutOpen}
-        onOpenChange={setSignOutOpen}
-        onConfirm={() => clientSignOut(router, { onClear: clearProfile })}
-      />
     </>
   )
 }

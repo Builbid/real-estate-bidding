@@ -107,12 +107,6 @@
     background-attachment: fixed;
   }
 
-  html.profile-drawer-open,
-  body.profile-drawer-open {
-    overflow: hidden !important;
-    height: 100vh !important;
-  }
-
   .scrollbar-thin::-webkit-scrollbar {
     width: 4px;
     height: 4px;

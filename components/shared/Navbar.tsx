@@ -8,10 +8,8 @@ import { Calculator, LayoutDashboard, LogOut, Menu, User, X } from 'lucide-react
 import { BuilBidLogo } from '@/components/shared/BuilBidLogo';
 import { useProfile } from '@/lib/hooks/useProfile';
 import { UserAvatar } from '@/components/shared/UserAvatar';
-import { ProfileDrawer } from '@/components/shared/ProfileDrawer';
 import { SignOutConfirmDialog } from '@/components/shared/SignOutConfirmDialog';
 import { NavLink } from '@/components/shared/NavLink';
-import { NavIconButton } from '@/components/shared/NavIconButton';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ThemeToggle } from '@/components/shared/ThemeToggle';
@@ -51,7 +49,6 @@ export function Navbar({ overlay = false, authHint }: NavbarProps) {
   const { profile, loading, clearProfile, refreshProfile } = useProfile();
   const { t }       = useTranslation();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [profileOpen, setProfileOpen] = useState(false);
   const [signOutOpen, setSignOutOpen] = useState(false);
   const [signedOut, setSignedOut] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -102,7 +99,6 @@ export function Navbar({ overlay = false, authHint }: NavbarProps) {
 
   async function handleSignOut() {
     setSignedOut(true);
-    setProfileOpen(false);
     setMenuOpen(false);
     clearProfile();
     await clientSignOut(router, { onClear: clearProfile });
@@ -172,8 +168,9 @@ export function Navbar({ overlay = false, authHint }: NavbarProps) {
 
           {isLoggedIn ? (
             <div className="hidden md:flex items-center gap-3">
-              <NavIconButton
-                onClick={() => setProfileOpen(true)}
+              <NavLink
+                href="/dashboard/profile"
+                prefetch
                 className="rounded-full hover:ring-2 hover:ring-border flex-shrink-0"
                 aria-label="Open profile"
               >
@@ -184,7 +181,7 @@ export function Navbar({ overlay = false, authHint }: NavbarProps) {
                   gradient={avatarGradient}
                   className="!h-8 !w-8 text-xs ring-1 ring-border"
                 />
-              </NavIconButton>
+              </NavLink>
               <Button
                 variant="ghost"
                 size="icon"
@@ -336,14 +333,15 @@ export function Navbar({ overlay = false, authHint }: NavbarProps) {
                   {t('common.dashboard')}
                 </NavLink>
                 {profile && (
-                  <button
-                    type="button"
-                    onClick={() => { setMenuOpen(false); setProfileOpen(true); }}
-                    className={cn(NAV_MENU_ITEM, 'flex w-full items-center gap-2.5 px-3 py-3 text-left text-sm text-foreground hover:bg-accent')}
+                  <NavLink
+                    href="/dashboard/profile"
+                    prefetch
+                    onClick={() => setMenuOpen(false)}
+                    className={cn(NAV_MENU_ITEM, 'flex items-center gap-2.5 px-3 py-3 text-sm text-foreground hover:bg-accent')}
                   >
                     <User className="h-4 w-4 text-violet-400" />
                     {t('nav.myProfile')}
-                  </button>
+                  </NavLink>
                 )}
                 <button
                   type="button"
@@ -394,19 +392,6 @@ export function Navbar({ overlay = false, authHint }: NavbarProps) {
       onOpenChange={setSignOutOpen}
       onConfirm={handleSignOut}
     />
-
-    {isLoggedIn && profile && (
-      <ProfileDrawer
-        open={profileOpen}
-        onOpenChange={setProfileOpen}
-        profile={profile}
-        avatarGradient={avatarGradient}
-        onSignOut={() => {
-          setProfileOpen(false);
-          setSignOutOpen(true);
-        }}
-      />
-    )}
     </>
   );
 }
