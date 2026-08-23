@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Plus } from 'lucide-react';
+import { useProfile } from '@/lib/hooks/useProfile';
+import { normalizeRole } from '@/lib/auth/roles';
 import { cn } from '@/lib/utils';
 
 function shouldHideFloatingPostButton(pathname: string | null): boolean {
@@ -25,6 +27,12 @@ function shouldHideFloatingPostButton(pathname: string | null): boolean {
 
 export function FloatingPostProjectButton() {
   const pathname = usePathname();
+  const { profile, loading } = useProfile();
+
+  if (loading) return null;
+
+  const role = profile ? normalizeRole(profile.role) : null;
+  if (role !== 'owner') return null;
 
   if (shouldHideFloatingPostButton(pathname)) return null;
 
