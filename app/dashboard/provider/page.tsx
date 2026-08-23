@@ -10,6 +10,7 @@ import { STATUS_CONFIG, cn } from '@/lib/utils';
 import { AuctionRow } from '../builder/AuctionRow';
 import { ProviderPortfolioManager } from '@/components/provider/ProviderPortfolioManager';
 import { formatBidUnitSuffix } from '@/lib/bid/earthworkBid';
+import { canWorkerBidOnProject } from '@/lib/bid/workerBidEligibility';
 import { getProviderSpecialtyEmoji, getProviderSpecialtyLabel } from '@/lib/trades';
 import type { Project, Bid } from '@/lib/types';
 
@@ -110,6 +111,8 @@ export default async function ProviderDashboard() {
                 key={project.id}
                 project={project}
                 myBid={myBidMap.get(project.id)}
+                canBid={canWorkerBidOnProject(profile.role, profile.service_type, project)}
+                bidHrefOverride={`/dashboard/builder/bid/${project.id}`}
               />
             ))}
           </div>

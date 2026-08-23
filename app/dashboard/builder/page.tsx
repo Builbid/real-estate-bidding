@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { STAT_ICON_STYLES, type StatIconColor } from '@/lib/dashboard/statIconStyles';
 import { STATUS_CONFIG, cn } from '@/lib/utils';
 import { formatBidUnitSuffix } from '@/lib/bid/earthworkBid';
+import { canWorkerBidOnProject } from '@/lib/bid/workerBidEligibility';
 import { AuctionRow } from './AuctionRow';
 import { PortfolioManager } from './PortfolioManager';
 import type { Project, Bid } from '@/lib/types';
@@ -108,6 +109,7 @@ export default async function BuilderDashboard() {
                 key={project.id}
                 project={project}
                 myBid={myBidMap.get(project.id)}
+                canBid={canWorkerBidOnProject(profile.role, 'labour_contractor', project)}
               />
             ))}
           </div>

@@ -2,12 +2,11 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Clock, ArrowRight } from 'lucide-react';
+import { Clock, ArrowRight, CalendarDays } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { CountdownTicker } from '@/components/shared/CountdownTicker';
 import { useCountdown } from '@/lib/hooks/useCountdown';
-import { CalendarDays } from 'lucide-react';
 import { TRACK_LABELS, formatProjectPostedAt } from '@/lib/utils';
 import { isTradeServiceType } from '@/lib/trades';
 import {
@@ -16,32 +15,59 @@ import {
 } from '@/lib/project/display';
 import { isDrawingDesignServiceType } from '@/lib/drawingDesign';
 import { formatBidUnitSuffix } from '@/lib/bid/earthworkBid';
+import {
+  getWorkerBidHref,
+  getWorkerProjectViewHref,
+} from '@/lib/bid/workerBidEligibility';
+import { useTranslation } from '@/lib/context/LanguageProvider';
 import type { Project, Bid } from '@/lib/types';
 
 interface AuctionRowProps {
   project: Project;
   myBid?: Bid;
+  /** When false, row opens read-only project details instead of the bid console. */
+  canBid?: boolean;
   bidHrefOverride?: string;
 }
 
-export function AuctionRow({ project, myBid, bidHrefOverride }: AuctionRowProps) {
+export function AuctionRow({
+  project,
+  myBid,
+  canBid = true,
+  bidHrefOverride,
+}: AuctionRowProps) {
+  const { t } = useTranslation();
   const countdown = useCountdown(project.bidding_ends_at);
   const router = useRouter();
 
   const hasBid = !!myBid;
   const isExpired = countdown.isExpired;
-  const bidHref = bidHrefOverride ?? `/dashboard/builder/bid/${project.id}`;
+  const bidHref = bidHrefOverride ?? getWorkerBidHref('labour_contractor', project.id);
+  const viewHref = getWorkerProjectViewHref(project.id);
+  const destinationHref = canBid ? bidHref : viewHref;
   const isTrade = isTradeServiceType(project.service_type);
   const isDrawing = isDrawingDesignServiceType(project.service_type);
   const serviceBadge = getProjectServiceBadgeLabel(project);
   const configLabel = getProjectConfigOrDrawingMeta(project);
   const postedAt = formatProjectPostedAt(project.created_at);
 
+  const ctaLabel = isExpired
+    ? hasBid && canBid
+      ? 'Update Bid'
+      : canBid
+        ? t('home.auctions.bidNow')
+        : t('common.viewDetails')
+    : hasBid && canBid
+      ? 'Update Bid'
+      : canBid
+        ? t('home.auctions.bidNow')
+        : t('common.viewDetails');
+
   return (
     <div
-      onClick={() => router.push(bidHref)}
+      onClick={() => router.push(destinationHref)}
       className={`flex items-center gap-4 p-4 rounded-xl border bg-card/80 dark:bg-card/60 hover:border-border transition-colors cursor-pointer ${
-        hasBid ? 'border-indigo-500/30' : 'border-border'
+        hasBid && canBid ? 'border-indigo-500/30' : 'border-border'
       }`}
     >
       {/* Project info */}
@@ -57,7 +83,7 @@ export function AuctionRow({ project, myBid, bidHrefOverride }: AuctionRowProps)
           {isTrade && !isDrawing && (
             <Badge>{TRACK_LABELS[project.track_type]}</Badge>
           )}
-          {hasBid && (
+          {hasBid && canBid && (
             <Badge variant="indigo">
               Your Bid: ₹{myBid!.total_sum_metric.toLocaleString('en-IN')}{formatBidUnitSuffix(myBid!.rates, undefined, project.service_type)}
             </Badge>
@@ -95,14 +121,14 @@ export function AuctionRow({ project, myBid, bidHrefOverride }: AuctionRowProps)
       {/* CTA — stop propagation only when active so the card click still fires when expired */}
       <div onClick={(e) => { if (!isExpired) e.stopPropagation(); }}>
         {isExpired ? (
-          <Button size="sm" variant={hasBid ? 'outline' : 'default'} disabled>
-            {hasBid ? 'Update Bid' : 'Place Bid'}
+          <Button size="sm" variant={hasBid && canBid ? 'outline' : 'default'} disabled>
+            {ctaLabel}
             <ArrowRight className="w-3.5 h-3.5 ml-1" />
           </Button>
         ) : (
-          <Button size="sm" variant={hasBid ? 'outline' : 'default'} asChild>
-            <Link href={bidHref}>
-              {hasBid ? 'Update Bid' : 'Place Bid'}
+          <Button size="sm" variant={hasBid && canBid ? 'outline' : 'default'} asChild>
+            <Link href={destinationHref}>
+              {ctaLabel}
               <ArrowRight className="w-3.5 h-3.5 ml-1" />
             </Link>
           </Button>

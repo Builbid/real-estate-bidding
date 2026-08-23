@@ -1,5 +1,10 @@
-import type { Project, PublicProfile } from './types';
+import type { Project, PublicProfile, ServiceType } from './types';
 import { getDashboardPath, normalizeRole } from './auth/roles';
+import {
+  canWorkerBidOnProject,
+  getWorkerBidHref,
+  getWorkerProjectViewHref,
+} from './bid/workerBidEligibility';
 
 export interface ShowcaseProject extends Project {
   owner?: Pick<PublicProfile, 'id' | 'full_name'>;
@@ -17,17 +22,25 @@ function isDemoProjectId(projectId: string): boolean {
 export function getShowcaseCardAction(
   projectId: string,
   role: string | null,
-  options?: { isDemo?: boolean },
+  options?: {
+    isDemo?: boolean;
+    project?: Pick<Project, 'service_type'>;
+    workerServiceType?: ServiceType | null;
+  },
 ): { href: string; action: ShowcaseCardAction } {
   const isDemo = options?.isDemo ?? isDemoProjectId(projectId);
+  const workerServiceType = options?.workerServiceType ?? null;
 
   if (isDemo) {
     if (!role) {
       return { href: '/signup', action: 'viewDetails' };
     }
     const normalized = normalizeRole(role);
-    if (normalized === 'labour_contractor') {
-      return { href: '/dashboard/builder', action: 'bidNow' };
+    if (normalized === 'labour_contractor' || normalized === 'service_provider') {
+      return {
+        href: normalized === 'service_provider' ? '/dashboard/provider' : '/dashboard/builder',
+        action: 'bidNow',
+      };
     }
     if (normalized === 'construction_firm') {
       return { href: '/dashboard/firm', action: 'bidNow' };
@@ -36,13 +49,29 @@ export function getShowcaseCardAction(
   }
 
   const normalized = normalizeRole(role);
-  if (normalized === 'labour_contractor' || normalized === 'service_provider') {
-    return { href: `/dashboard/builder/bid/${projectId}`, action: 'bidNow' };
+  const canBid =
+    !!options?.project &&
+    canWorkerBidOnProject(normalized, workerServiceType, options.project);
+
+  if (canBid) {
+    return {
+      href: getWorkerBidHref(normalized, projectId),
+      action: 'bidNow',
+    };
   }
-  if (normalized === 'construction_firm') {
-    return { href: `/dashboard/firm/bid/${projectId}`, action: 'bidNow' };
+
+  if (
+    normalized === 'labour_contractor' ||
+    normalized === 'service_provider' ||
+    normalized === 'construction_firm'
+  ) {
+    return {
+      href: getWorkerProjectViewHref(projectId),
+      action: 'viewDetails',
+    };
   }
-  return { href: `/project/${projectId}`, action: 'viewDetails' };
+
+  return { href: getWorkerProjectViewHref(projectId), action: 'viewDetails' };
 }
 
 export function getShowcaseSectionLink(

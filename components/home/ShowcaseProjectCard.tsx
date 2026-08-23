@@ -37,6 +37,7 @@ import {
 } from '@/lib/projectShowcase';
 import { getLiveAuctionDisplayTitle } from '@/lib/generateProjectTitle';
 import { useTranslation } from '@/lib/context/LanguageProvider';
+import { useProfile } from '@/lib/hooks/useProfile';
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import type { ServiceType } from '@/lib/types';
 
@@ -223,8 +224,15 @@ export function ShowcaseProjectCard({
   hideWhenExpired = true,
 }: ShowcaseProjectCardProps) {
   const { t } = useTranslation();
+  const { profile } = useProfile();
   const patternUid = useId().replace(/:/g, '');
-  const { href, action } = getShowcaseCardAction(project.id, role, { isDemo: project.isDemo });
+  const effectiveRole = profile?.role ?? role;
+  const workerServiceType = profile?.service_type ?? null;
+  const { href, action } = getShowcaseCardAction(project.id, effectiveRole, {
+    isDemo: project.isDemo,
+    project,
+    workerServiceType,
+  });
   const [remaining, setRemaining] = useState(() =>
     formatShowcaseRemaining(project.bidding_ends_at),
   );
