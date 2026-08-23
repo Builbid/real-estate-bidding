@@ -120,19 +120,6 @@ export default function AboutPage() {
         </div>
       </GlassSection>
 
-      <GlassSection eyebrow="Platform" title="How BuilBid works">
-        <p>
-          Clients publish construction projects with precise scope — area, work type, timelines,
-          and unit-rate parameters. Verified trade professionals submit live bids during a
-          time-bound auction. Rankings update instantly so everyone sees the same competitive
-          picture.
-        </p>
-        <p>
-          When bidding closes, owners review the leaderboard, compare rates against profiles,
-          and select the partner that fits the project inside a next-generation construction ecosystem.
-        </p>
-      </GlassSection>
-
       <GlassSection eyebrow="Principles" title="What we optimize for">
         <ul className="grid gap-3 sm:grid-cols-2 list-none pl-0">
           <li>
