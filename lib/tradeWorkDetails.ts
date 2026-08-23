@@ -2171,29 +2171,18 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
           value: `${details.approxBuiltUpAreaSqft.toLocaleString('en-IN')} Sq Ft`,
         });
       }
-      for (const pkg of PLUMBING_SCOPE_PACKAGES) {
-        if (!selectedPackages.includes(pkg.id)) continue;
-        const picked = pkg.options.filter((option) => selectedSubOptions.includes(option.id));
+      if (
+        selectedPackages.includes('water_tank') &&
+        details.houseStructure === 'rcc' &&
+        details.waterTankFloor
+      ) {
         blocks.push({
-          label: pkg.label,
-          value:
-            picked.length > 0
-              ? picked
-                  .map((option) =>
-                    option.note ? `${option.label} (${option.note})` : option.label,
-                  )
-                  .join('\n')
-              : 'No sub-options selected',
+          label: 'Water Tank Floor',
+          value: getPlumbingWaterTankFloorLabel(
+            details.waterTankFloor,
+            details.customWaterTankFloor,
+          ),
         });
-        if (pkg.id === 'water_tank' && details.houseStructure === 'rcc' && details.waterTankFloor) {
-          blocks.push({
-            label: 'Water Tank Floor',
-            value: getPlumbingWaterTankFloorLabel(
-              details.waterTankFloor,
-              details.customWaterTankFloor,
-            ),
-          });
-        }
       }
       blocks.push({
         label: 'Material Scope',
@@ -2448,21 +2437,6 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
           value: `${details.approxBuiltUpAreaSqft.toLocaleString('en-IN')} Sq Ft`,
         });
       }
-      for (const pkg of ELECTRICIAN_SCOPE_PACKAGES) {
-        if (!selectedPackages.includes(pkg.id)) continue;
-        const picked = pkg.options.filter((option) => selectedSubOptions.includes(option.id));
-        blocks.push({
-          label: pkg.label,
-          value:
-            picked.length > 0
-              ? picked
-                  .map((option) =>
-                    option.note ? `${option.label} (${option.note})` : option.label,
-                  )
-                  .join('\n')
-              : 'No sub-options selected',
-        });
-      }
       blocks.push({
         label: 'Material Scope',
         value: ELECTRICIAN_LABOUR_ONLY_DISCLAIMER,
@@ -2570,21 +2544,6 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
         blocks.push({
           label: 'Approx Built-Up Area',
           value: `${details.approxBuiltUpAreaSqft.toLocaleString('en-IN')} Sq Ft`,
-        });
-      }
-      for (const pkg of INTERIOR_DESIGNER_SCOPE_PACKAGES) {
-        if (!selectedPackages.includes(pkg.id)) continue;
-        const picked = pkg.options.filter((option) => selectedSubOptions.includes(option.id));
-        blocks.push({
-          label: pkg.label,
-          value:
-            picked.length > 0
-              ? picked
-                  .map((option) =>
-                    option.note ? `${option.label} (${option.note})` : option.label,
-                  )
-                  .join('\n')
-              : 'No sub-options selected',
         });
       }
       blocks.push({

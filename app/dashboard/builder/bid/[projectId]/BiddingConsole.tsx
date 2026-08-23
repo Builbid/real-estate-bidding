@@ -105,6 +105,11 @@ interface Props {
 
 const FLOOR_RATE_KEYS: BidFloorRateKey[] = ['ground_rate', 'first_rate', 'second_rate', 'third_rate'];
 
+const LABOUR_NOTICE_CLASSES =
+  'rounded-xl border border-amber-300 bg-amber-100 px-3.5 py-3 dark:border-amber-700 dark:bg-amber-900/40';
+const LABOUR_NOTICE_TEXT_CLASSES = 'text-sm font-medium leading-relaxed text-amber-900 dark:text-amber-200';
+const LABOUR_NOTICE_ICON_CLASSES = 'mt-0.5 h-4 w-4 flex-shrink-0 text-amber-700 dark:text-amber-200';
+
 interface BuilderInfo {
   full_name: string;
   avatar_url?: string | null;
@@ -485,11 +490,15 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
         </div>
       </div>
 
-      {isPlumbingBid && (
-        <div className="flex items-start gap-2 rounded-xl border border-amber-500/25 bg-amber-500/10 px-3.5 py-3">
-          <Info className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-400" />
-          <p className="text-sm font-medium leading-relaxed text-amber-100">
-            {PLUMBING_LABOUR_ONLY_DISCLAIMER}
+      {(isPlumbingBid || isElectricianBid || isInteriorBid) && isTradeUnitRateBid && (
+        <div className={cn('flex items-start gap-2', LABOUR_NOTICE_CLASSES)}>
+          <Info className={LABOUR_NOTICE_ICON_CLASSES} />
+          <p className={LABOUR_NOTICE_TEXT_CLASSES}>
+            {isInteriorBid
+              ? INTERIOR_DESIGNER_LABOUR_ONLY_DISCLAIMER
+              : isElectricianBid
+                ? ELECTRICIAN_LABOUR_ONLY_DISCLAIMER
+                : PLUMBING_LABOUR_ONLY_DISCLAIMER}
           </p>
         </div>
       )}
@@ -673,6 +682,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
               )}
 
               <form onSubmit={handleSubmit} className="space-y-3">
+                {!isTradeUnitRateBid && (
                 <div className="flex items-center gap-2 p-2.5 rounded-lg bg-blue-500/5 border border-blue-500/15 mb-2">
                   <Info className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
                   <p className="text-xs text-blue-300">
@@ -681,32 +691,6 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                     ) : scopeBid?.kind === 'assam-addons' ? (
                       <>
                         Mistri contractors submit add-on rates on behalf of specialized roofers, tile workers, and carpenters. Negotiate carefully—your overall average rate determines leaderboard rank.
-                      </>
-                    ) : isTradeUnitRateBid ? (
-                      <>
-                        Enter a <strong>labour rate</strong> only for the sub-options selected by
-                        the owner.{' '}
-                        {isInteriorBid
-                          ? 'Ceiling, paneling, and woodwork items are quoted'
-                          : isElectricianBid
-                            ? 'Wiring items are quoted'
-                            : 'Piping items are quoted'}{' '}
-                        <strong>per sqft</strong> and{' '}
-                        {isInteriorBid
-                          ? 'hardware / fittings'
-                          : isElectricianBid
-                            ? 'fixtures / boards'
-                            : 'fittings'}{' '}
-                        are quoted <strong>per unit</strong>. Rates must be whole numbers ending in{' '}
-                        <strong>0 or 5</strong>. Rank is the <strong>lowest Baseline Score</strong>
-                        {' '}(
-                        {isInteriorBid
-                          ? 'area-based'
-                          : isElectricianBid
-                            ? 'wiring'
-                            : 'piping'}{' '}
-                        rate × built-up area + unit rates × 1,
-                        then × {isInteriorBid ? '1.1' : '1.2'} for RCC Building).
                       </>
                     ) : isPlumbingBid ? (
                       <>
@@ -737,19 +721,8 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                     )}
                   </p>
                 </div>
-
-                {(isPlumbingBid || isElectricianBid || isInteriorBid) && isTradeUnitRateBid && (
-                  <div className="flex items-start gap-2 p-2.5 rounded-lg bg-amber-500/5 border border-amber-500/20 mb-1">
-                    <Info className="w-3.5 h-3.5 text-amber-400 flex-shrink-0 mt-0.5" />
-                    <p className="text-xs text-amber-200/90 leading-relaxed">
-                      {isInteriorBid
-                        ? INTERIOR_DESIGNER_LABOUR_ONLY_DISCLAIMER
-                        : isElectricianBid
-                          ? ELECTRICIAN_LABOUR_ONLY_DISCLAIMER
-                          : PLUMBING_LABOUR_ONLY_DISCLAIMER}
-                    </p>
-                  </div>
                 )}
+
                 {isPlumbingBid && !isTradeUnitRateBid && (
                   <div className="flex items-start gap-2 p-2.5 rounded-lg bg-amber-500/5 border border-amber-500/20 mb-1">
                     <Info className="w-3.5 h-3.5 text-amber-400 flex-shrink-0 mt-0.5" />
@@ -759,18 +732,15 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                   </div>
                 )}
                 {isTradeUnitRateBid && (
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {(isInteriorBid
                       ? interiorPackageGroupsForOptions(interiorBidOptions)
                       : isElectricianBid
                         ? electricianPackageGroupsForOptions(electricianBidOptions)
                         : plumbingPackageGroupsForOptions(plumbingBidOptions)
-                    ).map((group) => (
-                      <div key={group.id} className="space-y-2">
-                        <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-500">
-                          {group.label}
-                        </p>
-                        {group.options.map((option, i) => {
+                    )
+                      .flatMap((group) => group.options)
+                      .map((option, i) => {
                           const inputValue = unitRateInputs[option.id] ?? '';
                           const numericValue = parseBidRateValue(inputValue);
                           const fieldError = unitRateErrors[option.id];
@@ -819,8 +789,6 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                             </motion.div>
                           );
                         })}
-                      </div>
-                    ))}
                   </div>
                 )}
                 {!isTradeUnitRateBid && (
