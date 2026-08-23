@@ -8,7 +8,6 @@ import { Badge } from '@/components/ui/badge';
 import { STAT_ICON_STYLES, type StatIconColor } from '@/lib/dashboard/statIconStyles';
 import { STATUS_CONFIG, cn } from '@/lib/utils';
 import { AuctionRow } from '../builder/AuctionRow';
-import { BuilderProfileSettings } from '../builder/BuilderProfileSettings';
 import { ProviderPortfolioManager } from '@/components/provider/ProviderPortfolioManager';
 import { formatBidUnitSuffix } from '@/lib/bid/earthworkBid';
 import { getProviderSpecialtyEmoji, getProviderSpecialtyLabel } from '@/lib/trades';
@@ -125,11 +124,6 @@ export default async function ProviderDashboard() {
         )}
       </div>
 
-      {/* Profile photo + portfolio for clients reviewing bids */}
-      <BuilderProfileSettings
-        fullName={profile.full_name}
-        avatarUrl={profile.avatar_url}
-      />
       <ProviderPortfolioManager
         builderId={profile.id}
         specialtyLabel={tradeLabel.toLowerCase()}

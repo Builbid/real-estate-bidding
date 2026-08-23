@@ -17,9 +17,7 @@ import {
 } from '@/lib/trades';
 import { isConstructionFirmEnabled } from '@/lib/features';
 import type { ProviderSpecialtyType } from '@/lib/types';
-import { uploadBuilderAvatar } from '@/lib/avatar/uploadBuilderAvatar';
 import { uploadFirmLogo } from '@/lib/firm/uploadFirmLogo';
-import { AvatarUpload } from '@/components/builder/AvatarUpload';
 import { LogoUpload } from '@/components/firm/LogoUpload';
 import { FirmConstructionClassPackagesForm } from '@/components/firm/FirmConstructionClassPackagesForm';
 import { Button } from '@/components/ui/button';
@@ -164,7 +162,6 @@ function RegisterPageContent() {
   const [classPackages, setClassPackages] = useState<FirmConstructionPackage[]>(
     createDefaultPackages,
   );
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
 
@@ -259,9 +256,6 @@ function RegisterPageContent() {
     }
 
     if (result.autoSignedIn) {
-      if ((role === 'labour_contractor' || isSpecialty) && avatarFile) {
-        await uploadBuilderAvatar(avatarFile);
-      }
       if (role === 'construction_firm' && logoFile) {
         await uploadFirmLogo(logoFile);
       }
@@ -496,15 +490,6 @@ function RegisterPageContent() {
               <p className="text-sm font-semibold text-foreground/80 mb-2">
                 {roleLabel} — Account Details
               </p>
-
-              {(role === 'labour_contractor' || isProviderSpecialtyType(role)) && (
-                <AvatarUpload
-                  fullName={fullName.trim() || 'Contractor'}
-                  deferred
-                  registration
-                  onFileSelected={setAvatarFile}
-                />
-              )}
 
               {role === 'construction_firm' && (
                 <LogoUpload

@@ -10,7 +10,6 @@ import { STATUS_CONFIG, cn } from '@/lib/utils';
 import { formatBidUnitSuffix } from '@/lib/bid/earthworkBid';
 import { AuctionRow } from './AuctionRow';
 import { PortfolioManager } from './PortfolioManager';
-import { BuilderProfileSettings } from './BuilderProfileSettings';
 import type { Project, Bid } from '@/lib/types';
 
 async function getData() {
@@ -122,12 +121,6 @@ export default async function BuilderDashboard() {
           </Card>
         )}
       </div>
-
-      {/* Profile photo */}
-      <BuilderProfileSettings
-        fullName={profile.full_name}
-        avatarUrl={profile.avatar_url}
-      />
 
       {/* Portfolio management */}
       <PortfolioManager builderId={userId} />
