@@ -1485,6 +1485,16 @@ export function targetFloorsToTotalFloors(
   return 1;
 }
 
+function packagesFromSelectedSubOptions<TPackage extends string, TOption extends string>(
+  catalog: ReadonlyArray<{ id: TPackage; options: ReadonlyArray<{ id: TOption }> }>,
+  selectedSubOptions: TOption[],
+): TPackage[] {
+  const picked = new Set(selectedSubOptions);
+  return catalog
+    .filter((pkg) => pkg.options.some((option) => picked.has(option.id)))
+    .map((pkg) => pkg.id);
+}
+
 export function subOptionsForPackages(
   packages: PlumbingPackageKind[],
   selected: PlumbingSubOptionId[],
@@ -2779,21 +2789,18 @@ export function validateTradeDetailsInput(
     if (approxBuiltUpAreaSqft == null) {
       return { error: 'Enter the approximate built-up area in Sq Ft.' };
     }
-    const selectedPackages = parsePlumbingPackageKinds(input.selectedPackages);
-    if (selectedPackages.length === 0) {
-      return { error: 'Select at least one plumbing category.' };
-    }
+    const requestedPackages = parsePlumbingPackageKinds(input.selectedPackages);
     const selectedSubOptions = subOptionsForPackages(
-      selectedPackages,
+      requestedPackages,
       parsePlumbingSubOptionIds(input.selectedSubOptions),
     );
-    for (const pkg of selectedPackages) {
-      const catalog = PLUMBING_SCOPE_PACKAGES.find((item) => item.id === pkg);
-      const picked = catalog?.options.filter((option) => selectedSubOptions.includes(option.id)) ?? [];
-      if (picked.length === 0) {
-        return { error: `Select at least one sub-option for ${getPlumbingPackageLabel(pkg)}.` };
-      }
+    if (selectedSubOptions.length === 0) {
+      return { error: 'Select at least one work item.' };
     }
+    const selectedPackages = packagesFromSelectedSubOptions(
+      PLUMBING_SCOPE_PACKAGES,
+      selectedSubOptions,
+    );
     const requiresTankFloor = houseStructure === 'rcc' && selectedPackages.includes('water_tank');
     const waterTankFloor = requiresTankFloor
       ? parsePlumbingWaterTankFloor(input.waterTankFloor)
@@ -2876,21 +2883,18 @@ export function validateTradeDetailsInput(
     if (approxBuiltUpAreaSqft == null) {
       return { error: 'Enter the approximate built-up area in Sq Ft.' };
     }
-    const selectedPackages = parseElectricianPackageKinds(input.electricianPackages);
-    if (selectedPackages.length === 0) {
-      return { error: 'Select at least one electrical work category.' };
-    }
+    const requestedPackages = parseElectricianPackageKinds(input.electricianPackages);
     const selectedSubOptions = subOptionsForElectricianPackages(
-      selectedPackages,
+      requestedPackages,
       parseElectricianSubOptionIds(input.electricianSubOptions),
     );
-    for (const pkg of selectedPackages) {
-      const catalog = ELECTRICIAN_SCOPE_PACKAGES.find((item) => item.id === pkg);
-      const picked = catalog?.options.filter((option) => selectedSubOptions.includes(option.id)) ?? [];
-      if (picked.length === 0) {
-        return { error: `Select at least one sub-option for ${getElectricianPackageLabel(pkg)}.` };
-      }
+    if (selectedSubOptions.length === 0) {
+      return { error: 'Select at least one work item.' };
     }
+    const selectedPackages = packagesFromSelectedSubOptions(
+      ELECTRICIAN_SCOPE_PACKAGES,
+      selectedSubOptions,
+    );
     return {
       details: {
         ...base,
@@ -2983,22 +2987,18 @@ export function validateTradeDetailsInput(
     if (approxBuiltUpAreaSqft == null) {
       return { error: 'Enter the approximate built-up area in Sq Ft.' };
     }
-    const selectedPackages = parseInteriorDesignerPackageKinds(input.interiorPackages);
-    if (selectedPackages.length === 0) {
-      return { error: 'Select at least one interior design work category.' };
-    }
+    const requestedPackages = parseInteriorDesignerPackageKinds(input.interiorPackages);
     const selectedSubOptions = subOptionsForInteriorDesignerPackages(
-      selectedPackages,
+      requestedPackages,
       parseInteriorDesignerSubOptionIds(input.interiorSubOptions),
     );
-    for (const pkg of selectedPackages) {
-      const catalog = INTERIOR_DESIGNER_SCOPE_PACKAGES.find((item) => item.id === pkg);
-      const picked =
-        catalog?.options.filter((option) => selectedSubOptions.includes(option.id)) ?? [];
-      if (picked.length === 0) {
-        return { error: `Select at least one sub-option for ${getInteriorDesignerPackageLabel(pkg)}.` };
-      }
+    if (selectedSubOptions.length === 0) {
+      return { error: 'Select at least one work item.' };
     }
+    const selectedPackages = packagesFromSelectedSubOptions(
+      INTERIOR_DESIGNER_SCOPE_PACKAGES,
+      selectedSubOptions,
+    );
     return {
       details: {
         ...base,
