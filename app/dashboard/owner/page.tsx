@@ -4,13 +4,15 @@ import { getAuthUser } from '@/lib/supabase/getUser';
 import { processAuctionTransitions } from '@/app/actions/auction';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { Plus, Building, TrendingUp, Users, Clock, ArrowRight, Layers } from 'lucide-react';
+import { Plus, Building, TrendingUp, Users, Clock, ArrowRight, Layers, ArrowLeft } from 'lucide-react';
 import { DeleteProjectButton } from './DeleteProjectButton';
 import { OwnerLiveProjectCard } from './OwnerLiveProjectCard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { NavLink } from '@/components/shared/NavLink';
 import { STAT_ICON_STYLES, type StatIconColor } from '@/lib/dashboard/statIconStyles';
+import { NAV_BACK_LINK } from '@/lib/navStyles';
 import { cn } from '@/lib/utils';
 import {
   STATUS_CONFIG,
@@ -147,18 +149,24 @@ export default async function OwnerDashboard() {
   return (
     <div className="space-y-8 pb-24">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Client Dashboard</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Welcome back, <span className="text-foreground font-semibold">{profile.full_name}</span>
-          </p>
+      <div>
+        <NavLink href="/" prefetch className={cn(NAV_BACK_LINK, 'mb-3')}>
+          <ArrowLeft className="w-4 h-4" />
+          Back to Home
+        </NavLink>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Client Dashboard</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Welcome back, <span className="text-foreground font-semibold">{profile.full_name}</span>
+            </p>
+          </div>
+          <Button asChild>
+            <Link href="/dashboard/owner/new-project">
+              <Plus className="w-4 h-4" /> Post New Project
+            </Link>
+          </Button>
         </div>
-        <Button asChild>
-          <Link href="/dashboard/owner/new-project">
-            <Plus className="w-4 h-4" /> Post New Project
-          </Link>
-        </Button>
       </div>
 
       {/* Stats */}

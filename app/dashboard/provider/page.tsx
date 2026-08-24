@@ -2,10 +2,12 @@ export const dynamic = 'force-dynamic'
 
 import { getAuthUser } from '@/lib/supabase/getUser';
 import { redirect } from 'next/navigation';
-import { TrendingUp, Award, CheckCircle2, Building } from 'lucide-react';
+import { ArrowLeft, TrendingUp, Award, CheckCircle2, Building } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { NavLink } from '@/components/shared/NavLink';
 import { STAT_ICON_STYLES, type StatIconColor } from '@/lib/dashboard/statIconStyles';
+import { NAV_BACK_LINK } from '@/lib/navStyles';
 import { STATUS_CONFIG, cn } from '@/lib/utils';
 import { AuctionRow } from '../builder/AuctionRow';
 import { formatBidUnitSuffix } from '@/lib/bid/earthworkBid';
@@ -63,6 +65,10 @@ export default async function ProviderDashboard() {
   return (
     <div className="space-y-8">
       <div>
+        <NavLink href="/" prefetch className={cn(NAV_BACK_LINK, 'mb-3')}>
+          <ArrowLeft className="w-4 h-4" />
+          Back to Home
+        </NavLink>
         <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
           <span>{tradeEmoji}</span> {tradeLabel} Console
         </h1>
