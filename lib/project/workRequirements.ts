@@ -151,3 +151,75 @@ export function isWideRequirementLabel(label: string): boolean {
     label.startsWith('RCC ')
   );
 }
+
+/** Top-level project specs shown in the bidding summary banner, not on item cards. */
+const BID_SUMMARY_LABELS = new Set([
+  'Approx Built-Up Area',
+  'Approx. Area',
+  'Approximate Paint Area',
+  'Interior Area',
+  'Total Plot Area',
+  'Plot Dimensions',
+  'Building Structure Type',
+  'House Structure',
+  'Work Start Time',
+  'Project Submission Time',
+  'Target Work Floor',
+  'Target Floors',
+  'Custom / Higher Floors',
+  'Total Floors in Building',
+  'Number of Floors',
+  'Floor Level',
+  'Work Area (Floors)',
+  'Current Build Floors',
+  'Foundation Provision For',
+  'Village / Town Name',
+  'Project Address',
+  'Water Tank Floor',
+]);
+
+const BID_NOTE_LABELS = new Set(['Additional Requirements', 'Additional Notes']);
+
+export function splitBidRequirementDisplay(blocks: WorkRequirementBlock[]): {
+  summary: WorkRequirementBlock[];
+  notes: WorkRequirementBlock[];
+  specs: WorkRequirementBlock[];
+} {
+  const summary: WorkRequirementBlock[] = [];
+  const notes: WorkRequirementBlock[] = [];
+  const specs: WorkRequirementBlock[] = [];
+  for (const block of blocks) {
+    if (BID_SUMMARY_LABELS.has(block.label)) summary.push(block);
+    else if (BID_NOTE_LABELS.has(block.label)) notes.push(block);
+    else specs.push(block);
+  }
+  return { summary, notes, specs };
+}
+
+function normalizeRequirementLabel(label: string): string {
+  return label.replace(/^RCC\s+/i, '').replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
+export function findRequirementSpec(
+  label: string,
+  blocks: WorkRequirementBlock[],
+): WorkRequirementBlock | undefined {
+  const target = normalizeRequirementLabel(label);
+  if (!target) return undefined;
+  return blocks.find((block) => {
+    const current = normalizeRequirementLabel(block.label);
+    return current === target || current.includes(target) || target.includes(current);
+  });
+}
+
+export function formatBidRatePlaceholder(unitSuffix: string): string {
+  const unit = unitSuffix.replace(/^\//, '').replace(/^per\s+/i, '').trim().toLowerCase();
+  if (!unit || unit === 'avg') return 'Enter rate per sqft / per unit';
+  if (unit === 'sqft') return 'Enter rate per sqft';
+  if (unit === 'unit' || unit === 'pkg') return 'Enter rate per unit';
+  if (unit === 'rft') return 'Enter rate per running foot';
+  if (unit === 'point') return 'Enter rate per point';
+  if (unit === 'hour') return 'Enter rate per hour';
+  if (unit === 'trip') return 'Enter rate per trip';
+  return `Enter rate ${unitSuffix}`;
+}

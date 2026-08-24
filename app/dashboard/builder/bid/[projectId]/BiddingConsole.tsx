@@ -38,6 +38,7 @@ import {
   validateBidRatesForFloorCount,
 } from '@/lib/validation/bidRates';
 import { submitBidAction } from '@/app/actions/bid';
+import { BidWorkItemCard } from '@/components/bid/BidWorkItemCard';
 import { UserAvatar } from '@/components/shared/UserAvatar';
 import { BidFloorRatesBreakdown } from '@/components/shared/BidFloorRatesBreakdown';
 import {
@@ -88,8 +89,11 @@ import {
   getProjectServiceBadgeLabel,
 } from '@/lib/project/display';
 import {
+  findRequirementSpec,
+  formatBidRatePlaceholder,
   getProjectWorkRequirementBlocks,
-  isWideRequirementLabel,
+  splitBidRequirementDisplay,
+  type WorkRequirementBlock,
 } from '@/lib/project/workRequirements';
 import type { Project, Bid, BidFloorRateKey, BidRates } from '@/lib/types';
 
@@ -104,6 +108,11 @@ interface Props {
 }
 
 const FLOOR_RATE_KEYS: BidFloorRateKey[] = ['ground_rate', 'first_rate', 'second_rate', 'third_rate'];
+
+function formatSpecLines(blocks: WorkRequirementBlock[]): string | undefined {
+  const lines = blocks.map((block) => `${block.label}: ${block.value}`).filter(Boolean);
+  return lines.length > 0 ? lines.join('\n') : undefined;
+}
 
 const LABOUR_NOTICE_CLASSES =
   'rounded-xl border border-amber-300 bg-amber-100 px-3.5 py-3 dark:border-amber-700 dark:bg-amber-900/40';
@@ -125,7 +134,18 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
   const serviceBadge = getProjectServiceBadgeLabel(project);
   const configMeta = getProjectConfigOrDrawingMeta(project);
   const workRequirements = getProjectWorkRequirementBlocks(project);
-  const requirementBlocks = workRequirements?.blocks ?? null;
+  const requirementBlocks = workRequirements?.blocks ?? [];
+  const {
+    summary: summaryBlocks,
+    notes: noteBlocks,
+    specs: specBlocks,
+  } = splitBidRequirementDisplay(requirementBlocks);
+  const summaryBannerBlocks: WorkRequirementBlock[] = [
+    ...(project.district && !summaryBlocks.some((block) => block.label === 'Project Address' || block.label === 'Village / Town Name')
+      ? [{ label: 'Location', value: project.district }]
+      : []),
+    ...summaryBlocks,
+  ];
 
   // Trade / Drawing & Design bid a single package rate (not per floor),
   // except scoped /sqft items (Chowkhat, Modular Kitchen, legacy carpenter).
@@ -168,6 +188,103 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
   const rateRules = scopeBid?.flexibleRates
     ? { requireMultipleOfFive: false }
     : getBidRateRules(project.service_type, bidderServiceType);
+
+  const tradeOptionGroups = isTradeUnitRateBid
+    ? isInteriorBid
+      ? interiorPackageGroupsForOptions(interiorBidOptions)
+      : isElectricianBid
+        ? electricianPackageGroupsForOptions(electricianBidOptions)
+        : plumbingPackageGroupsForOptions(plumbingBidOptions)
+    : [];
+
+  const usedSpecLabels = new Set<string>();
+  const unitRateWorkItems = tradeOptionGroups.flatMap((group) =>
+    group.options.map((option) => ({
+      key: option.id,
+      title: option.shortLabel,
+      category: group.label,
+      description: option.note,
+      unitSuffix: option.unitSuffix,
+      placeholder: formatBidRatePlaceholder(option.unitSuffix),
+      kind: 'unit' as const,
+      optionId: option.id,
+    })),
+  );
+
+  const floorRateWorkItems = !isTradeUnitRateBid
+    ? floorLabels.flatMap((label, index) => {
+        const floorKey = FLOOR_RATE_KEYS[index];
+        if (!floorKey) return [];
+        const plumbingUnit = isPlumbingBid ? (plumbingRateUnits[index] ?? '/Rft') : undefined;
+        const unitSuffix =
+          plumbingUnit === '/unit' || plumbingUnit === 'pkg'
+            ? '/unit'
+            : plumbingUnit
+              ? '/Rft'
+              : rateUnitSuffix || (isPlumberFlat ? '' : '/sqft');
+        const matched = findRequirementSpec(label, specBlocks);
+        if (matched) usedSpecLabels.add(matched.label);
+        if (!matched && /civil work/i.test(label)) {
+          const assam = specBlocks.find((block) => /^assam type/i.test(block.label));
+          if (assam) usedSpecLabels.add(assam.label);
+        }
+        const title =
+          label === 'Your'
+            ? isPainter
+              ? 'Painting Work'
+              : isDrawing
+                ? 'Drawing & Design'
+                : earthworkMode === 'hourly'
+                  ? 'Hourly Machine Work'
+                  : earthworkMode === 'trip'
+                    ? 'Trip Rate'
+                    : isElectrician
+                      ? 'Electrical Work'
+                      : isPlumberFlat
+                        ? 'Plumbing Work'
+                        : `${serviceBadge} Rate`
+            : label;
+        const category =
+          earthworkMode === 'hourly'
+            ? 'Your Hourly Rate'
+            : earthworkMode === 'trip'
+              ? 'Your Rate Per Trip'
+              : isElectrician
+                ? 'Your Rate Per Point'
+                : isPlumberFlat
+                  ? 'Your Rate'
+                  : scopeBid?.kind === 'assam-addons'
+                    ? 'Add-on Rate'
+                    : undefined;
+        const matchedAssam =
+          !matched && /civil work/i.test(label)
+            ? specBlocks.find((block) => /^assam type/i.test(block.label))
+            : undefined;
+        return [{
+          key: floorKey,
+          title,
+          category,
+          description: matched?.value ?? matchedAssam?.value,
+          unitSuffix,
+          placeholder: formatBidRatePlaceholder(unitSuffix),
+          kind: 'floor' as const,
+          floorKey,
+        }];
+      })
+    : [];
+
+  const leftoverSpecs = specBlocks.filter((block) => !usedSpecLabels.has(block.label));
+  const baseBidWorkItems =
+    unitRateWorkItems.length > 0 ? unitRateWorkItems : floorRateWorkItems;
+  const extra = baseBidWorkItems.length === 1 ? formatSpecLines(leftoverSpecs) : undefined;
+  const bidWorkItems =
+    extra && baseBidWorkItems[0]
+      ? [{
+          ...baseBidWorkItems[0],
+          description: [baseBidWorkItems[0].description, extra].filter(Boolean).join('\n'),
+        }]
+      : baseBidWorkItems;
+  const extraScopeBlocks = baseBidWorkItems.length === 1 ? [] : leftoverSpecs;
 
   const [rateInputs, setRateInputs] = useState<Partial<Record<BidFloorRateKey, string>>>(() =>
     existingBid ? ratesToInputStrings(existingBid.rates) : {},
@@ -503,35 +620,59 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
         </div>
       )}
 
-      {requirementBlocks && requirementBlocks.length > 0 && (
-        <Card className="border-emerald-500/20">
-          <CardHeader className="p-4 pb-2">
-            <CardTitle className="text-xs text-emerald-400 uppercase tracking-wider">
-              {workRequirements?.title ?? 'Work Requirements'}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="px-4 pb-4 pt-0">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {requirementBlocks.map((block) => (
-                <div
-                  key={block.label}
-                  className={cn(
-                    'rounded-lg border border-border/70 bg-muted/20 px-3 py-2.5',
-                    isWideRequirementLabel(block.label) &&
-                      'sm:col-span-2 border-emerald-500/25 bg-emerald-500/5',
-                  )}
-                >
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    {block.label}
-                  </p>
-                  <p className="text-sm font-semibold text-foreground mt-0.5 leading-snug whitespace-pre-line">
-                    {block.value}
-                  </p>
-                </div>
-              ))}
+      {summaryBannerBlocks.length > 0 && (
+        <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.04] px-4 py-3">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-500">
+            Project specifications
+          </p>
+          <dl className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {summaryBannerBlocks.map((block) => (
+              <div key={block.label} className="min-w-0">
+                <dt className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  {block.label}
+                </dt>
+                <dd className="mt-0.5 text-sm font-semibold leading-snug text-foreground whitespace-pre-line">
+                  {block.value}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      )}
+
+      {extraScopeBlocks.length > 0 && (
+        <div className="rounded-xl border border-border/70 bg-muted/20 px-4 py-3">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Scope details
+          </p>
+          <dl className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {extraScopeBlocks.map((block) => (
+              <div key={block.label} className="min-w-0">
+                <dt className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  {block.label}
+                </dt>
+                <dd className="mt-0.5 text-sm font-medium leading-snug text-foreground whitespace-pre-line">
+                  {block.value}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      )}
+
+      {noteBlocks.length > 0 && (
+        <div className="rounded-xl border border-border/70 bg-muted/20 px-4 py-3 space-y-2">
+          {noteBlocks.map((block) => (
+            <div key={block.label}>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                {block.label}
+              </p>
+              <p className="mt-0.5 text-sm leading-relaxed text-foreground whitespace-pre-line">
+                {block.value}
+              </p>
             </div>
-          </CardContent>
-        </Card>
+          ))}
+        </div>
       )}
 
       {/* Countdown — full width above the bid / leaderboard split */}
@@ -731,151 +872,90 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                     </p>
                   </div>
                 )}
-                {isTradeUnitRateBid && (
-                  <div className="space-y-3">
-                    {(isInteriorBid
-                      ? interiorPackageGroupsForOptions(interiorBidOptions)
-                      : isElectricianBid
-                        ? electricianPackageGroupsForOptions(electricianBidOptions)
-                        : plumbingPackageGroupsForOptions(plumbingBidOptions)
-                    )
-                      .flatMap((group) => group.options)
-                      .map((option, i) => {
-                          const inputValue = unitRateInputs[option.id] ?? '';
-                          const numericValue = parseBidRateValue(inputValue);
-                          const fieldError = unitRateErrors[option.id];
-                          const showRoundHelper =
-                            !isFlexibleRate &&
-                            fieldError === BID_RATE_ERROR &&
-                            numericValue !== undefined &&
-                            numericValue > 0;
-                          return (
-                            <motion.div
-                              key={option.id}
-                              initial={{ opacity: 0, y: 8 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              transition={{ delay: i * 0.04 }}
-                            >
-                              <Input
-                                label={option.shortLabel}
-                                type="text"
-                                inputMode="numeric"
-                                pattern="[0-9]*"
-                                placeholder="e.g. 350"
-                                value={inputValue}
-                                onChange={(e) => handleUnitRateChange(option.id, e.target.value)}
-                                prefix={<span className="text-muted-foreground text-xs">₹</span>}
-                                suffix={
-                                  <span className="text-muted-foreground/80 text-xs">
-                                    {option.unitSuffix}
-                                  </span>
-                                }
-                                error={fieldError && fieldError !== BID_RATE_ERROR ? fieldError : undefined}
-                              />
-                              {showRoundHelper && numericValue != null && (
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    handleUnitRateChange(
-                                      option.id,
-                                      String(roundBidRateToNearestFive(numericValue)),
-                                    )
-                                  }
-                                  className="mt-1 text-xs text-amber-400 hover:text-amber-300 underline underline-offset-2 transition-colors"
-                                >
-                                  Round to nearest 5 (→ ₹{roundBidRateToNearestFive(numericValue).toLocaleString('en-IN')})
-                                </button>
-                              )}
-                            </motion.div>
-                          );
-                        })}
-                  </div>
-                )}
-                {!isTradeUnitRateBid && (
                 <AnimatePresence>
-                  {floorLabels.map((label, i) => {
-                    const key = FLOOR_RATE_KEYS[i];
-                    if (!key) return null;
-                    const inputValue = rateInputs[key] ?? '';
+                  {bidWorkItems.map((item, i) => {
+                    const isUnitItem = item.kind === 'unit' && item.optionId;
+                    const inputValue = isUnitItem
+                      ? (unitRateInputs[item.optionId!] ?? '')
+                      : (rateInputs[item.floorKey!] ?? '');
                     const numericValue = parseBidRateValue(inputValue);
-                    const fieldError = rateErrors[key];
+                    const fieldError = isUnitItem
+                      ? unitRateErrors[item.optionId!]
+                      : rateErrors[item.floorKey!];
                     const showRoundHelper =
                       !isFlexibleRate &&
-                      !!fieldError &&
                       fieldError === BID_RATE_ERROR &&
                       numericValue !== undefined &&
                       numericValue > 0;
-
-                    const plumbingUnit = isPlumbingBid ? (plumbingRateUnits[i] ?? '/Rft') : undefined;
-                    const isPackageRate = plumbingUnit === '/unit' || plumbingUnit === 'pkg';
+                    const visibleError =
+                      isUnitItem && fieldError === BID_RATE_ERROR ? undefined : fieldError;
 
                     return (
                       <motion.div
-                        key={key}
+                        key={item.key}
                         initial={{ opacity: 0, y: 8 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: i * 0.08 }}
+                        transition={{ delay: i * 0.04 }}
                       >
-                        <Input
-                          label={
-                            earthworkMode === 'hourly'
-                              ? 'Your Hourly Rate'
-                              : earthworkMode === 'trip'
-                                ? 'Your Rate Per Trip'
-                                : isPlumbingBid
-                                  ? label
-                                  : isPlumberFlat
-                                  ? 'Your Rate'
-                                  : isElectrician
-                                    ? 'Your Rate Per Point'
-                                    : scopeBid?.kind === 'assam-addons'
-                                      ? `${label} Rate (₹/sqft)`
-                                      : `${label} Rate`
-                          }
-                          type="text"
-                          inputMode="numeric"
-                          pattern="[0-9]*"
-                          placeholder={
-                            isPlumberFlat
-                              ? 'e.g. 25000'
-                              : isPackageRate
-                                ? 'e.g. 18000'
-                                : isPlumbingBid
-                                  ? 'e.g. 85'
-                                  : isElectrician
-                                    ? 'e.g. 250'
-                                    : 'e.g. 1800'
-                          }
-                          value={inputValue}
-                          onChange={(e) => handleRateChange(key, e.target.value)}
-                          onBlur={() => handleRateBlur(key)}
-                          prefix={<span className="text-muted-foreground text-xs">{isPlumberFlat ? 'Rs.' : '₹'}</span>}
-                          suffix={
-                            isPlumbingBid ? (
-                              <span className="text-muted-foreground/80 text-xs">
-                                {isPackageRate ? '/unit' : '/Rft'}
+                        <BidWorkItemCard
+                          title={item.title}
+                          category={item.category}
+                          description={item.description}
+                        >
+                          <Input
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            placeholder={item.placeholder}
+                            value={inputValue}
+                            onChange={(e) => {
+                              if (isUnitItem && item.optionId) {
+                                handleUnitRateChange(item.optionId, e.target.value);
+                              } else if (item.floorKey) {
+                                handleRateChange(item.floorKey, e.target.value);
+                              }
+                            }}
+                            onBlur={
+                              !isUnitItem && item.floorKey
+                                ? () => handleRateBlur(item.floorKey!)
+                                : undefined
+                            }
+                            prefix={
+                              <span className="text-muted-foreground text-xs">
+                                {isPlumberFlat ? 'Rs.' : '₹'}
                               </span>
-                            ) : rateUnitSuffix ? (
-                              <span className="text-muted-foreground/80 text-xs">{rateUnitSuffix}</span>
-                            ) : undefined
-                          }
-                          error={fieldError}
-                          required
-                        />
-                        {showRoundHelper && (
-                          <button
-                            type="button"
-                            onClick={() => handleRoundToNearestFive(key)}
-                            className="mt-1 text-xs text-amber-400 hover:text-amber-300 underline underline-offset-2 transition-colors"
-                          >
-                            Round to nearest 5 (→ ₹{roundBidRateToNearestFive(numericValue).toLocaleString('en-IN')})
-                          </button>
-                        )}
+                            }
+                            suffix={
+                              item.unitSuffix ? (
+                                <span className="text-muted-foreground/80 text-xs">
+                                  {item.unitSuffix}
+                                </span>
+                              ) : undefined
+                            }
+                            error={visibleError}
+                            required={!isUnitItem}
+                          />
+                          {showRoundHelper && numericValue != null && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const rounded = String(roundBidRateToNearestFive(numericValue));
+                                if (isUnitItem && item.optionId) {
+                                  handleUnitRateChange(item.optionId, rounded);
+                                } else if (item.floorKey) {
+                                  handleRoundToNearestFive(item.floorKey);
+                                }
+                              }}
+                              className="mt-1 text-xs text-amber-400 hover:text-amber-300 underline underline-offset-2 transition-colors"
+                            >
+                              Round to nearest 5 (→ ₹{roundBidRateToNearestFive(numericValue).toLocaleString('en-IN')})
+                            </button>
+                          )}
+                        </BidWorkItemCard>
                       </motion.div>
                     );
                   })}
-                  </AnimatePresence>
-                )}
+                </AnimatePresence>
 
                 {earthworkMode === 'trip' && (
                   <Input
