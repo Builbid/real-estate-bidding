@@ -231,10 +231,7 @@ export function ActiveProjectsShowcaseGrid({
         <div className="flex w-full items-center justify-center pt-6 pb-2">
           <Link
             href="/projects"
-            className={cn(
-              'inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/30 px-6 py-2 text-sm font-medium text-emerald-400 transition-all hover:bg-emerald-500/10',
-              heroOverlay && 'border-emerald-300/40 text-emerald-100 hover:bg-emerald-400/15',
-            )}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-6 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
           >
             {t('home.auctions.viewAllProjects')}
             <ArrowRight className="h-4 w-4" aria-hidden />

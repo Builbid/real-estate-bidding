@@ -6,5 +6,6 @@ export const PUBLIC_NAV_LINKS = [
 ] as const;
 
 export const PUBLIC_FOOTER_PLATFORM_LINKS = [
+  { href: '/projects', labelKey: 'footer.allProjects' as const },
   { href: '/workers', labelKey: 'footer.workers' as const },
 ] as const;

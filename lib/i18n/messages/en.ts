@@ -58,6 +58,7 @@ export const en = {
     exploreProjects: 'Explore Projects',
     activeBids: 'Active Bids',
     forBuilders: 'For Builders',
+    allProjects: 'All Projects',
     workers: 'Workers',
     aboutUs: 'About Us',
     contact: 'Contact',
