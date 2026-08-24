@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import {
-  ArrowLeft, X, CheckCheck, Trophy, Award, Bell,
+  X, CheckCheck, Trophy, Award, Bell,
 } from 'lucide-react'
 import { UserAvatar } from '@/components/shared/UserAvatar'
 import { FirmLogo } from '@/components/firm/FirmLogo'
@@ -14,7 +14,7 @@ import { NavLink } from '@/components/shared/NavLink'
 import { NavIconButton } from '@/components/shared/NavIconButton'
 import { normalizeRole } from '@/lib/auth/roles'
 import { BuilBidLogo } from '@/components/shared/BuilBidLogo'
-import { NAV_BACK_LINK, NAV_LOGO_LINK } from '@/lib/navStyles'
+import { NAV_LOGO_LINK } from '@/lib/navStyles'
 
 interface ProfileData {
   id: string
@@ -65,15 +65,6 @@ export function TopBar({ profile, avatarGradient }: TopBarProps) {
         >
           <BuilBidLogo size="sm" compact className="sm:hidden" />
           <BuilBidLogo size="sm" className="hidden sm:inline-flex" />
-        </NavLink>
-
-        <NavLink
-          href="/"
-          prefetch
-          className={cn(NAV_BACK_LINK, 'ml-0')}
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Home
         </NavLink>
 
         <div className="flex-1" />

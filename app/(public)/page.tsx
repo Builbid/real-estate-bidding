@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { HomePageContent } from '@/components/home/HomePageContent';
 import type { Project } from '@/lib/types';
 import type { ShowcaseProject } from '@/lib/projectShowcase';
@@ -65,14 +66,17 @@ async function getFrozenProjects() {
 
 async function getStats(activeShowcaseCount: number) {
   const supabase = await createClient();
+  // Service role bypasses bids RLS, which otherwise only exposes rows on
+  // currently active_24h auctions (so the homepage undercounted real bids).
+  const admin = createAdminClient();
 
   const [
     { count: totalProjects },
-    { count: activeBids },
+    { count: totalBids },
     { count: frozenProjects },
   ] = await Promise.all([
     supabase.from('projects').select('*', { count: 'exact', head: true }),
-    supabase.from('bids').select('*', { count: 'exact', head: true }),
+    admin.from('bids').select('*', { count: 'exact', head: true }),
     supabase
       .from('projects')
       .select('*', { count: 'exact', head: true })
@@ -81,7 +85,7 @@ async function getStats(activeShowcaseCount: number) {
 
   return {
     totalProjects: totalProjects ?? 0,
-    activeBids: activeBids ?? 0,
+    activeBids: totalBids ?? 0,
     activeShowcaseCount,
     frozenProjects: frozenProjects ?? 0,
   };
