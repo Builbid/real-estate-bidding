@@ -1,12 +1,6 @@
 'use client';
 
-import { useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { getVisibleServiceCategories } from '@/lib/trades';
 import { cn } from '@/lib/utils';
 import type { ServiceType } from '@/lib/types';
@@ -60,22 +54,20 @@ function WaterTapIcon() {
 /** Compact homepage service picker — sized to fit the first viewport with the hero. */
 export function ServiceCategoryBar({ isAuthenticated, role }: ServiceCategoryBarProps) {
   const router = useRouter();
-  const [authPromptHref, setAuthPromptHref] = useState<string | null>(null);
   const isOwner = role === 'owner';
   const categories = getVisibleServiceCategories();
 
   function handleSelect(service: ServiceType) {
     const target = `/dashboard/owner/new-project?service=${service}`;
     if (!isAuthenticated || !isOwner) {
-      setAuthPromptHref(target);
+      router.push(`/login?next=${encodeURIComponent(target)}`);
       return;
     }
     router.push(target);
   }
 
   return (
-    <>
-      <div className="relative overflow-hidden rounded-xl border border-border/60 bg-gradient-to-br from-card/90 via-card/80 to-emerald-500/[0.07] px-3 py-4 shadow-sm backdrop-blur-sm sm:px-5 sm:py-5">
+    <div className="relative overflow-hidden rounded-xl border border-border/60 bg-gradient-to-br from-card/90 via-card/80 to-emerald-500/[0.07] px-3 py-4 shadow-sm backdrop-blur-sm sm:px-5 sm:py-5">
         <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-emerald-500/10 blur-2xl" />
 
         <div className="relative">
@@ -122,28 +114,5 @@ export function ServiceCategoryBar({ isAuthenticated, role }: ServiceCategoryBar
           </div>
         </div>
       </div>
-
-      <Dialog open={!!authPromptHref} onOpenChange={(open) => { if (!open) setAuthPromptHref(null); }}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Sign in to post a project</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-slate-700 dark:text-slate-300">
-            Create a client account or sign in to post this project and start receiving bids from
-            registered contractors and trade professionals.
-          </p>
-          <div className="mt-2 flex flex-col gap-2">
-            <Button asChild>
-              <Link href={`/login?next=${encodeURIComponent(authPromptHref ?? '/dashboard/owner/new-project')}`}>
-                Sign in
-              </Link>
-            </Button>
-            <Button asChild variant="outline">
-              <Link href="/signup/client">Create client account</Link>
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </>
   );
 }
