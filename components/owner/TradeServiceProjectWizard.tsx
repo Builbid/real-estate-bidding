@@ -646,7 +646,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                   : trade === 'plumber'
                     ? 'Check the plumbing categories you need, then pick the sub-options plumbers should quote as labour unit rates.'
                     : trade === 'electrician'
-                      ? 'Check the electrical work categories you need, then pick the sub-options electricians should quote as labour unit rates.'
+                      ? 'Expand electrical work categories and tap the cards for items electricians should quote as labour unit rates.'
                       : trade === 'false_ceiling_work'
                         ? 'Check the interior design categories you need, then pick the sub-options designers should quote as labour unit rates.'
                     : `Describe the ${tradeLabel.toLowerCase()} work so bidders can quote without scope conflicts.`}

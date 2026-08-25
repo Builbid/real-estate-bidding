@@ -1,6 +1,9 @@
 'use client';
 
-import { CheckCircle2, ChevronDown } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { ChevronDown } from 'lucide-react';
+import { ElectricianWorkCard } from '@/components/owner/electrician/ElectricianWorkCard';
+import { ELECTRICIAN_WORK_IMAGES } from '@/lib/electricianWorkImages';
 import {
   ELECTRICIAN_SCOPE_PACKAGES,
   type ElectricianPackageKind,
@@ -19,73 +22,94 @@ export function ElectricianPackageForm({
   onChangePackages: (value: ElectricianPackageKind[]) => void;
   onChangeSubOptions: (value: ElectricianSubOptionId[]) => void;
 }) {
-  function togglePackage(id: ElectricianPackageKind) {
-    const enabled = selectedPackages.includes(id);
-    const catalog = ELECTRICIAN_SCOPE_PACKAGES.find((pkg) => pkg.id === id);
-    const optionIds = catalog?.options.map((option) => option.id) ?? [];
-    if (enabled) {
-      onChangePackages(selectedPackages.filter((item) => item !== id));
-      onChangeSubOptions(selectedSubOptions.filter((item) => !optionIds.includes(item)));
-      return;
-    }
-    onChangePackages([...selectedPackages, id]);
+  const [expandedPackages, setExpandedPackages] = useState<ElectricianPackageKind[]>(() =>
+    selectedPackages.length > 0 ? selectedPackages : [ELECTRICIAN_SCOPE_PACKAGES[0].id],
+  );
+
+  useEffect(() => {
+    if (selectedPackages.length === 0) return;
+    setExpandedPackages((current) => {
+      const merged = new Set([...current, ...selectedPackages]);
+      return ELECTRICIAN_SCOPE_PACKAGES.map((pkg) => pkg.id).filter((id) => merged.has(id));
+    });
+  }, [selectedPackages]);
+
+  function toggleExpanded(id: ElectricianPackageKind) {
+    setExpandedPackages((current) =>
+      current.includes(id) ? current.filter((item) => item !== id) : [...current, id],
+    );
   }
 
   function toggleSubOption(packageId: ElectricianPackageKind, optionId: ElectricianSubOptionId) {
+    const isSelected = selectedSubOptions.includes(optionId);
+
+    if (isSelected) {
+      const nextSubOptions = selectedSubOptions.filter((item) => item !== optionId);
+      onChangeSubOptions(nextSubOptions);
+      const catalog = ELECTRICIAN_SCOPE_PACKAGES.find((pkg) => pkg.id === packageId);
+      const stillHasPicks = catalog?.options.some((option) => nextSubOptions.includes(option.id));
+      if (!stillHasPicks) {
+        onChangePackages(selectedPackages.filter((item) => item !== packageId));
+      }
+      return;
+    }
+
     if (!selectedPackages.includes(packageId)) {
       onChangePackages([...selectedPackages, packageId]);
     }
-    onChangeSubOptions(
-      selectedSubOptions.includes(optionId)
-        ? selectedSubOptions.filter((item) => item !== optionId)
-        : [...selectedSubOptions, optionId],
-    );
+    onChangeSubOptions([...selectedSubOptions, optionId]);
+    setExpandedPackages((current) => (current.includes(packageId) ? current : [...current, packageId]));
   }
 
   return (
     <div className="space-y-3">
       <p className="text-xs font-medium text-gray-700 dark:text-zinc-300">
-        Check a category to reveal its sub-options. Electricians bid a labour rate only for the items you select.
+        Expand a category and tap the work cards you need. Electricians bid a labour rate only for
+        the items you select.
       </p>
       {ELECTRICIAN_SCOPE_PACKAGES.map((pkg) => {
-        const open = selectedPackages.includes(pkg.id);
+        const open = expandedPackages.includes(pkg.id);
         const pickedCount = pkg.options.filter((option) => selectedSubOptions.includes(option.id)).length;
+        const hasSelections = pickedCount > 0;
+
         return (
           <div
             key={pkg.id}
             className={cn(
-              'rounded-xl border-2 overflow-hidden',
-              open
-                ? 'border-emerald-500/50 bg-secondary/10'
-                : 'border-border bg-secondary/15',
+              'overflow-hidden rounded-xl border-2 transition-colors',
+              hasSelections
+                ? 'border-emerald-500/40 bg-secondary/10'
+                : open
+                  ? 'border-emerald-500/30 bg-secondary/10'
+                  : 'border-border bg-secondary/15',
             )}
           >
-            <label className="flex w-full cursor-pointer items-start gap-3 p-4">
-              <input
-                type="checkbox"
-                checked={open}
-                onChange={() => togglePackage(pkg.id)}
-                className="mt-1 h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
-              />
+            <button
+              type="button"
+              onClick={() => toggleExpanded(pkg.id)}
+              aria-expanded={open}
+              className="flex w-full items-start gap-3 p-4 text-left transition-colors hover:bg-secondary/20"
+            >
               <span className="flex-1 min-w-0">
                 <span className="flex items-center justify-between gap-2">
                   <span className="text-sm font-bold text-gray-900 dark:text-white">{pkg.label}</span>
                   <ChevronDown
                     className={cn(
-                      'h-4 w-4 flex-shrink-0 text-gray-500 transition-transform',
+                      'h-4 w-4 flex-shrink-0 text-gray-500 transition-transform duration-200',
                       open && 'rotate-180',
                     )}
                   />
                 </span>
                 <span className="mt-1 block text-xs font-medium text-gray-600 dark:text-zinc-400">
-                  {open
-                    ? pickedCount > 0
-                      ? `${pickedCount} sub-option${pickedCount === 1 ? '' : 's'} selected`
-                      : 'Select the items electricians should quote'
-                    : 'Tap to add this category'}
+                  {hasSelections
+                    ? `${pickedCount} item${pickedCount === 1 ? '' : 's'} selected`
+                    : open
+                      ? 'Select the work items electricians should quote'
+                      : 'Tap to view available work items'}
                 </span>
               </span>
-            </label>
+            </button>
+
             <div
               className={cn(
                 'grid transition-[grid-template-rows] duration-300 ease-in-out',
@@ -93,45 +117,20 @@ export function ElectricianPackageForm({
               )}
             >
               <div className="overflow-hidden">
-                <div className="space-y-2 border-t border-border/70 px-4 pb-4 pt-3">
-                  {pkg.options.map((option) => {
-                    const checked = selectedSubOptions.includes(option.id);
-                    return (
-                      <label
+                <div className="border-t border-border/70 px-4 pb-4 pt-3">
+                  <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+                    {pkg.options.map((option) => (
+                      <ElectricianWorkCard
                         key={option.id}
-                        className={cn(
-                          'flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-2.5',
-                          checked
-                            ? 'border-emerald-500/40 bg-emerald-500/5'
-                            : 'border-border/70 bg-background/40',
-                        )}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() => toggleSubOption(pkg.id, option.id)}
-                          className="mt-0.5 h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
-                        />
-                        <span className="flex-1">
-                          <span className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white">
-                            {option.label}
-                            {checked && (
-                              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" aria-hidden />
-                            )}
-                          </span>
-                          {option.note ? (
-                            <span className="mt-0.5 block text-[11px] font-medium italic text-gray-600 dark:text-zinc-400">
-                              ({option.note})
-                            </span>
-                          ) : (
-                            <span className="text-[11px] font-medium text-gray-600 dark:text-zinc-400">
-                              Labour rate {option.unitSuffix}
-                            </span>
-                          )}
-                        </span>
-                      </label>
-                    );
-                  })}
+                        selected={selectedSubOptions.includes(option.id)}
+                        onClick={() => toggleSubOption(pkg.id, option.id)}
+                        title={option.label}
+                        subtitle={option.note ?? `Labour rate ${option.unitSuffix}`}
+                        imageUrl={ELECTRICIAN_WORK_IMAGES[option.id]}
+                        imageAlt={option.label}
+                      />
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
