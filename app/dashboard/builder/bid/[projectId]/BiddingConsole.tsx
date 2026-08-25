@@ -109,6 +109,30 @@ interface Props {
 
 const FLOOR_RATE_KEYS: BidFloorRateKey[] = ['ground_rate', 'first_rate', 'second_rate', 'third_rate'];
 
+type BidWorkItemView =
+  | {
+      key: string;
+      title: string;
+      category?: string;
+      description?: string;
+      unitSuffix: string;
+      placeholder: string;
+      kind: 'unit';
+      optionId: string;
+      floorKey?: undefined;
+    }
+  | {
+      key: BidFloorRateKey;
+      title: string;
+      category?: string;
+      description?: string;
+      unitSuffix: string;
+      placeholder: string;
+      kind: 'floor';
+      floorKey: BidFloorRateKey;
+      optionId?: undefined;
+    };
+
 function formatSpecLines(blocks: WorkRequirementBlock[]): string | undefined {
   const lines = blocks.map((block) => `${block.label}: ${block.value}`).filter(Boolean);
   return lines.length > 0 ? lines.join('\n') : undefined;
@@ -198,7 +222,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
     : [];
 
   const usedSpecLabels = new Set<string>();
-  const unitRateWorkItems = tradeOptionGroups.flatMap((group) =>
+  const unitRateWorkItems: BidWorkItemView[] = tradeOptionGroups.flatMap((group) =>
     group.options.map((option) => ({
       key: option.id,
       title: option.shortLabel,
@@ -211,7 +235,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
     })),
   );
 
-  const floorRateWorkItems = !isTradeUnitRateBid
+  const floorRateWorkItems: BidWorkItemView[] = !isTradeUnitRateBid
     ? floorLabels.flatMap((label, index) => {
         const floorKey = FLOOR_RATE_KEYS[index];
         if (!floorKey) return [];
@@ -274,10 +298,10 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
     : [];
 
   const leftoverSpecs = specBlocks.filter((block) => !usedSpecLabels.has(block.label));
-  const baseBidWorkItems =
+  const baseBidWorkItems: BidWorkItemView[] =
     unitRateWorkItems.length > 0 ? unitRateWorkItems : floorRateWorkItems;
   const extra = baseBidWorkItems.length === 1 ? formatSpecLines(leftoverSpecs) : undefined;
-  const bidWorkItems =
+  const bidWorkItems: BidWorkItemView[] =
     extra && baseBidWorkItems[0]
       ? [{
           ...baseBidWorkItems[0],
@@ -874,14 +898,14 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                 )}
                 <AnimatePresence>
                   {bidWorkItems.map((item, i) => {
-                    const isUnitItem = item.kind === 'unit' && item.optionId;
+                    const isUnitItem = item.kind === 'unit';
                     const inputValue = isUnitItem
-                      ? (unitRateInputs[item.optionId!] ?? '')
-                      : (rateInputs[item.floorKey!] ?? '');
+                      ? (unitRateInputs[item.optionId] ?? '')
+                      : (rateInputs[item.floorKey] ?? '');
                     const numericValue = parseBidRateValue(inputValue);
                     const fieldError = isUnitItem
-                      ? unitRateErrors[item.optionId!]
-                      : rateErrors[item.floorKey!];
+                      ? unitRateErrors[item.optionId]
+                      : rateErrors[item.floorKey];
                     const showRoundHelper =
                       !isFlexibleRate &&
                       fieldError === BID_RATE_ERROR &&
@@ -909,15 +933,15 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                             placeholder={item.placeholder}
                             value={inputValue}
                             onChange={(e) => {
-                              if (isUnitItem && item.optionId) {
+                              if (item.kind === 'unit') {
                                 handleUnitRateChange(item.optionId, e.target.value);
-                              } else if (item.floorKey) {
+                              } else {
                                 handleRateChange(item.floorKey, e.target.value);
                               }
                             }}
                             onBlur={
-                              !isUnitItem && item.floorKey
-                                ? () => handleRateBlur(item.floorKey!)
+                              item.kind === 'floor'
+                                ? () => handleRateBlur(item.floorKey)
                                 : undefined
                             }
                             prefix={
@@ -940,9 +964,9 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                               type="button"
                               onClick={() => {
                                 const rounded = String(roundBidRateToNearestFive(numericValue));
-                                if (isUnitItem && item.optionId) {
+                                if (item.kind === 'unit') {
                                   handleUnitRateChange(item.optionId, rounded);
-                                } else if (item.floorKey) {
+                                } else {
                                   handleRoundToNearestFive(item.floorKey);
                                 }
                               }}
@@ -1117,7 +1141,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                       const competitor = bid.builder_id ? builders[bid.builder_id] : undefined;
                       const rowName = isMe
                         ? builderName
-                        : competitor?.full_name ?? (bid.builder_id ? `Builder #${bid.builder_id.slice(-6).toUpperCase()}` : 'Builder');
+                        : (competitor?.full_name ?? (bid.builder_id ? `Builder #${bid.builder_id.slice(-6).toUpperCase()}` : 'Builder'));
                       const rowAvatar = isMe ? builderAvatarUrl : competitor?.avatar_url;
 
                       return (
@@ -1179,7 +1203,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                               {earthworkMode === 'hourly'
                                 ? '/hour'
                                 : earthworkMode === 'trip'
-                                  ? formatTripCapacityLabel(bid.rates?.vehicleCapacityCum) ?? '/trip'
+                                  ? (formatTripCapacityLabel(bid.rates?.vehicleCapacityCum) ?? '/trip')
                                   : isPlumbingBid
                                     ? 'overall avg'
                                   : isPlumberFlat
