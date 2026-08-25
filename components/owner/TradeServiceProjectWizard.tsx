@@ -415,8 +415,10 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
         )
       : [];
 
+  const isElectricianCatalog = trade === 'electrician';
+
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className={cn('mx-auto space-y-6', isElectricianCatalog ? 'w-full max-w-none' : 'max-w-2xl')}>
       <div>
         <h1 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
           <span>{tradeEmoji}</span> Post {tradeLabel} Project
@@ -646,7 +648,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                   : trade === 'plumber'
                     ? 'Check the plumbing categories you need, then pick the sub-options plumbers should quote as labour unit rates.'
                     : trade === 'electrician'
-                      ? 'Expand electrical work categories and tap the cards for items electricians should quote as labour unit rates.'
+                      ? 'Browse the catalog below and tap items electricians should quote as labour unit rates.'
                       : trade === 'false_ceiling_work'
                         ? 'Check the interior design categories you need, then pick the sub-options designers should quote as labour unit rates.'
                     : `Describe the ${tradeLabel.toLowerCase()} work so bidders can quote without scope conflicts.`}

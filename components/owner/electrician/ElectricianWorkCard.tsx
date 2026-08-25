@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { CheckCircle2 } from 'lucide-react';
+import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export function ElectricianWorkCard({
@@ -25,39 +25,38 @@ export function ElectricianWorkCard({
       onClick={onClick}
       aria-pressed={selected}
       className={cn(
-        'group relative flex w-full flex-col overflow-hidden rounded-xl border-2 text-left transition-all duration-200',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 focus-visible:ring-offset-2',
+        'group relative flex w-full flex-col overflow-hidden rounded-lg border-2 bg-card text-left transition-all duration-150',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/50 focus-visible:ring-offset-1',
         selected
-          ? 'border-emerald-500 bg-emerald-500/8 shadow-md shadow-emerald-500/15'
-          : 'border-border bg-card hover:border-muted-foreground/40 hover:shadow-sm',
+          ? 'border-amber-500 bg-amber-500/5 shadow-sm'
+          : 'border-border hover:border-muted-foreground/50 hover:shadow-sm',
       )}
     >
-      <div className="relative aspect-square w-full overflow-hidden bg-secondary/40">
+      <div className="relative h-32 w-full overflow-hidden bg-secondary/30 sm:h-36">
         <Image
           src={imageUrl}
           alt={imageAlt}
           fill
-          sizes="(max-width: 768px) 50vw, 33vw"
+          sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
           className={cn(
-            'object-cover transition-transform duration-300',
-            !selected && 'group-hover:scale-[1.03]',
+            'object-cover transition-transform duration-200',
+            !selected && 'group-hover:scale-[1.02]',
           )}
         />
         {selected && (
-          <div className="absolute inset-0 bg-emerald-500/10" aria-hidden />
-        )}
-        {selected && (
-          <CheckCircle2
-            className="absolute top-2 right-2 h-6 w-6 text-emerald-500 drop-shadow-md dark:text-emerald-400"
+          <span
+            className="absolute top-1.5 right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-white shadow-md"
             aria-hidden
-          />
+          >
+            <Check className="h-3 w-3 stroke-[3]" />
+          </span>
         )}
       </div>
-      <div className="flex flex-1 flex-col gap-0.5 p-3">
-        <p className="text-xs font-bold leading-snug text-gray-900 dark:text-white sm:text-sm">
+      <div className="flex flex-1 flex-col gap-0.5 p-2">
+        <p className="line-clamp-2 text-[11px] font-semibold leading-snug text-gray-900 dark:text-white sm:text-xs">
           {title}
         </p>
-        <p className="text-[10px] font-medium leading-snug text-gray-600 dark:text-zinc-400 sm:text-[11px]">
+        <p className="line-clamp-2 text-[10px] leading-snug text-gray-600 dark:text-zinc-400">
           {subtitle}
         </p>
       </div>
