@@ -1,7 +1,6 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { Pipette } from 'lucide-react';
 import { getVisibleServiceCategories } from '@/lib/trades';
 import { cn } from '@/lib/utils';
 import type { ServiceType } from '@/lib/types';
@@ -70,11 +69,7 @@ export function ServiceCategoryBar({ isAuthenticated, role }: ServiceCategoryBar
                 >
                   <span className="absolute inset-0 rounded-lg bg-card/40 dark:bg-card/20" />
                   <span className="relative flex items-center justify-center leading-none drop-shadow-sm transition-transform duration-200 group-hover:scale-110">
-                    {cat.value === 'plumber' ? (
-                      <Pipette className="h-7 w-7" aria-hidden />
-                    ) : (
-                      <span className="text-lg sm:text-xl">{cat.emoji}</span>
-                    )}
+                    <span className="text-lg sm:text-xl">{cat.emoji}</span>
                   </span>
                 </span>
                 <span className="line-clamp-2 min-h-[2em] px-0.5 text-[9px] font-semibold leading-tight text-slate-800 transition-colors group-hover:text-emerald-700 dark:text-slate-100 dark:group-hover:text-emerald-400 sm:text-[10px]">
