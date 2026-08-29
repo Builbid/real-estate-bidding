@@ -64,6 +64,22 @@ async function getFrozenProjects() {
   return (data ?? []) as Project[];
 }
 
+async function countLifetimeBidsSubmitted(
+  admin: ReturnType<typeof createAdminClient>,
+): Promise<number> {
+  // Lifetime total must survive hard-deletes (project cascade / admin wipe).
+  // bid_submission_log is append-only; fall back to live bids if the table
+  // is not migrated yet. Never filter withdrawn/deleted rows.
+  const [{ count: liveCount, error: liveError }, logResult] = await Promise.all([
+    admin.from('bids').select('*', { count: 'exact', head: true }),
+    admin.from('bid_submission_log').select('*', { count: 'exact', head: true }),
+  ]);
+
+  const live = liveError ? 0 : (liveCount ?? 0);
+  if (logResult.error) return live;
+  return Math.max(logResult.count ?? 0, live);
+}
+
 async function getStats(activeShowcaseCount: number) {
   const supabase = await createClient();
   // Service role bypasses bids RLS, which otherwise only exposes rows on
@@ -72,11 +88,11 @@ async function getStats(activeShowcaseCount: number) {
 
   const [
     { count: totalProjects },
-    { count: totalBids },
+    totalBids,
     { count: frozenProjects },
   ] = await Promise.all([
     supabase.from('projects').select('*', { count: 'exact', head: true }),
-    admin.from('bids').select('*', { count: 'exact', head: true }),
+    countLifetimeBidsSubmitted(admin),
     supabase
       .from('projects')
       .select('*', { count: 'exact', head: true })
@@ -85,7 +101,7 @@ async function getStats(activeShowcaseCount: number) {
 
   return {
     totalProjects: totalProjects ?? 0,
-    activeBids: totalBids ?? 0,
+    activeBids: totalBids,
     activeShowcaseCount,
     frozenProjects: frozenProjects ?? 0,
   };
