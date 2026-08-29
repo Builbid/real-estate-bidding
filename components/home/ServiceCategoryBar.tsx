@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { Pipette } from 'lucide-react';
 import { getVisibleServiceCategories } from '@/lib/trades';
 import { cn } from '@/lib/utils';
 import type { ServiceType } from '@/lib/types';
@@ -20,36 +21,6 @@ const TILE_TONES = [
   'from-indigo-500/15 via-violet-500/5 to-transparent border-indigo-500/25 group-hover:border-indigo-500/50',
   'from-lime-500/15 via-green-500/5 to-transparent border-lime-500/30 group-hover:border-lime-500/55',
 ] as const;
-
-/** Custom water tap with flowing drops — sized to sit with the emoji service icons. */
-function WaterTapIcon() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="28"
-      height="28"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="h-7 w-7 text-sky-600 dark:text-sky-400"
-      aria-hidden
-    >
-      {/* Tap Handle */}
-      <path d="M10 2h4" />
-      <path d="M12 2v3" />
-      {/* Main Pipe/Faucet Body */}
-      <path d="M4 8h10a3 3 0 0 1 3 3v3H7a3 3 0 0 1-3-3V8z" />
-      {/* Spout Outlet */}
-      <path d="M14 14v2a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1v-2" />
-      {/* Water Drops */}
-      <circle cx="11.5" cy="19.5" r="0.8" fill="currentColor" />
-      <circle cx="11.5" cy="22" r="0.5" fill="currentColor" />
-    </svg>
-  );
-}
 
 /** Compact homepage service picker — sized to fit the first viewport with the hero. */
 export function ServiceCategoryBar({ isAuthenticated, role }: ServiceCategoryBarProps) {
@@ -100,7 +71,7 @@ export function ServiceCategoryBar({ isAuthenticated, role }: ServiceCategoryBar
                   <span className="absolute inset-0 rounded-lg bg-card/40 dark:bg-card/20" />
                   <span className="relative flex items-center justify-center leading-none drop-shadow-sm transition-transform duration-200 group-hover:scale-110">
                     {cat.value === 'plumber' ? (
-                      <WaterTapIcon />
+                      <Pipette className="h-7 w-7" aria-hidden />
                     ) : (
                       <span className="text-lg sm:text-xl">{cat.emoji}</span>
                     )}
