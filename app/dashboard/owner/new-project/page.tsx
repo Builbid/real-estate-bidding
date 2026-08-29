@@ -88,12 +88,6 @@ function NewProjectPageContent() {
 
   return (
     <div className="mx-auto w-full max-w-6xl space-y-6">
-      <div>
-        <h1 className="text-xl font-bold text-foreground">Post New Project</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Choose your service type to get started
-        </p>
-      </div>
       <ServiceTypeSelector
         value={serviceType}
         onChange={setServiceType}
