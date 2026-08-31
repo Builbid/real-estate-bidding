@@ -234,6 +234,8 @@ export interface BidRates {
   weighted_index?: number;
   /** Informational plumber rate for extra long connection lines. Not included in ranking. */
   running_foot_rate?: number;
+  /** Estimated total for point-rate bids (sum of floor points × rate per point). */
+  total_bid_amount?: number;
 }
 
 /**

@@ -24,7 +24,11 @@ import {
   readPlumbingPointRateFloors,
   readProjectPlumbingBidOptions,
 } from '@/lib/plumberBid';
-import { readProjectElectricianBidOptions } from '@/lib/electricianBid';
+import {
+  isElectricianPointRateProject,
+  readElectricianPointRateFloors,
+  readProjectElectricianBidOptions,
+} from '@/lib/electricianBid';
 
 export const MODULAR_KITCHEN_BID_LABEL = 'Modular Kitchen';
 
@@ -38,7 +42,7 @@ export interface ScopeRateBidItems {
   rateUnits?: string[];
   optionIds?: string[];
   unitRateBid?: boolean;
-  /** Plumber fixture-point bids: per-floor rate per point, ranked by estimated fixture total. */
+  /** Plumber/electrician fixture-point bids: per-floor rate per point, ranked by estimated fixture total. */
   pointRateBid?: boolean;
 }
 
@@ -132,6 +136,22 @@ export function resolveScopeRateBidItems(
   }
 
   if (service === 'electrician' || tradeDetails?.service === 'electrician') {
+    if (isElectricianPointRateProject(readNestedProjectDetail(project, 'trade_details'))) {
+      const floors = readElectricianPointRateFloors(project);
+      if (floors.length > 0) {
+        return {
+          labels: floors.map((floor) => `${floor.label} — Rate Per Point`),
+          count: floors.length,
+          kind: 'electrician',
+          flexibleRates: false,
+          unitSuffix: '/point',
+          rateUnits: floors.map(() => '/point'),
+          optionIds: floors.map((floor) => `point:${floor.floor}`),
+          unitRateBid: false,
+          pointRateBid: true,
+        };
+      }
+    }
     const options = readProjectElectricianBidOptions(project);
     if (options.length > 0) {
       return {

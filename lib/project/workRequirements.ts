@@ -132,6 +132,7 @@ export function isWideRequirementLabel(label: string): boolean {
     label === 'Modular Woodwork & Cabinetry' ||
     label === 'Fixtures, Glass & Hardware Fitting' ||
     label === 'Fitting Type' ||
+    label === 'Wiring Type' ||
     label === 'Estimated Long Connection Line Length' ||
     label === 'Point Weights' ||
     label === 'Water Tank Floor' ||
@@ -190,6 +191,8 @@ const BID_SUMMARY_LABELS = new Set([
   'Village / Town Name',
   'Project Address',
   'Water Tank Floor',
+  'Fitting Type',
+  'Wiring Type',
 ]);
 
 const BID_NOTE_LABELS = new Set(['Additional Requirements', 'Additional Notes']);

@@ -21,9 +21,13 @@ import {
   validateBidRatesForFloorCount,
 } from '@/lib/validation/bidRates';
 import {
+  buildElectricianPointRatePayload,
   buildElectricianUnitRatePayload,
+  isElectricianPointRateProject,
   parseElectricianUnitRates,
+  electricianPointRateKey,
   electricianWeightageContextFromProject,
+  readElectricianPointRateFloors,
   readProjectElectricianBidOptions,
   validateElectricianUnitRateInputs,
   type ElectricianBidOption,
@@ -213,10 +217,14 @@ export async function submitBidAction(
             total_floors: project.total_floors,
           }).count);
 
-  const pointRateFloors = isPlumbingPointRateProject(project.trade_details)
+  const plumbingPointFloors = isPlumbingPointRateProject(project.trade_details)
     ? readPlumbingPointRateFloors(project)
     : [];
-  const isPointRateBid = Boolean(scopeBid?.pointRateBid && pointRateFloors.length > 0);
+  const electricianPointFloors = isElectricianPointRateProject(project.trade_details)
+    ? readElectricianPointRateFloors(project)
+    : [];
+  const isPlumbingPointRateBid = Boolean(scopeBid?.pointRateBid && plumbingPointFloors.length > 0);
+  const isElectricianPointRateBid = Boolean(scopeBid?.pointRateBid && electricianPointFloors.length > 0);
 
   const unitRateOptions = scopeBid?.unitRateBid
     ? readProjectUnitRateOptions(project)
@@ -238,7 +246,7 @@ export async function submitBidAction(
   const rateRules = scopeBid?.flexibleRates
     ? { requireMultipleOfFive: false }
     : getBidRateRules(project.service_type, profile?.service_type);
-  if (isPointRateBid && rates.running_foot_rate != null && rates.running_foot_rate > 0) {
+  if (isPlumbingPointRateBid && rates.running_foot_rate != null && rates.running_foot_rate > 0) {
     const runningFootError = getBidRateFieldError(rates.running_foot_rate, rateRules);
     if (runningFootError) {
       return { error: runningFootError, success: false };
@@ -266,18 +274,28 @@ export async function submitBidAction(
       )
     : null;
 
-  const pointRatePayload = isPointRateBid
+  const pointRatePayload = isPlumbingPointRateBid
     ? buildPlumbingPointRatePayload(
         Object.fromEntries(
-          pointRateFloors.map((floor, index) => {
+          plumbingPointFloors.map((floor, index) => {
             const key = (['ground_rate', 'first_rate', 'second_rate', 'third_rate'] as const)[index];
             return [plumbingPointRateKey(floor.floor), key ? (rates[key] ?? 0) : 0];
           }),
         ),
-        pointRateFloors,
+        plumbingPointFloors,
         rates.running_foot_rate,
       )
-    : null;
+    : isElectricianPointRateBid
+      ? buildElectricianPointRatePayload(
+          Object.fromEntries(
+            electricianPointFloors.map((floor, index) => {
+              const key = (['ground_rate', 'first_rate', 'second_rate', 'third_rate'] as const)[index];
+              return [electricianPointRateKey(floor.floor), key ? (rates[key] ?? 0) : 0];
+            }),
+          ),
+          electricianPointFloors,
+        )
+      : null;
 
   const ratesPayload = buildBidRatesPayload(
     {

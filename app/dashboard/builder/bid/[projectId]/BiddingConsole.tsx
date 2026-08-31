@@ -54,11 +54,17 @@ import {
 import { resolveScopeRateBidItems } from '@/lib/bid/scopeRateBid';
 import {
   ELECTRICIAN_LABOUR_ONLY_DISCLAIMER,
+  computeElectricianPointBidTotal,
   computeElectricianWeightedIndex,
   electricianPackageGroupsForOptions,
+  electricianPointRateKey,
+  electricianPointRatesToFloorKeys,
   electricianWeightageContextFromProject,
+  getElectricianPointRateDisplayEntries,
   getElectricianUnitRateDisplayEntries,
+  parseElectricianPointRateInputs,
   parseElectricianUnitRates,
+  readElectricianPointRateFloors,
   readProjectElectricianBidOptions,
 } from '@/lib/electricianBid';
 import {
@@ -190,9 +196,13 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
   const earthworkMode = resolveEarthworkBidMode(project);
   const isPlumber = isFlatRupeeService(project.service_type);
   const isPlumbingBid = scopeBid?.kind === 'plumbing';
-  const isPlumbingPointRateBid = Boolean(scopeBid?.pointRateBid);
-  const plumbingPointFloors = isPlumbingPointRateBid ? readPlumbingPointRateFloors(project) : [];
   const isElectricianBid = scopeBid?.kind === 'electrician';
+  const isPlumbingPointRateBid = Boolean(scopeBid?.pointRateBid && isPlumbingBid);
+  const isElectricianPointRateBid = Boolean(scopeBid?.pointRateBid && isElectricianBid);
+  const isPointRateBid = isPlumbingPointRateBid || isElectricianPointRateBid;
+  const plumbingPointFloors = isPlumbingPointRateBid ? readPlumbingPointRateFloors(project) : [];
+  const electricianPointFloors = isElectricianPointRateBid ? readElectricianPointRateFloors(project) : [];
+  const pointRateFloors = isPlumbingPointRateBid ? plumbingPointFloors : electricianPointFloors;
   const isInteriorBid = scopeBid?.kind === 'interior';
   const isTradeUnitRateBid = Boolean(scopeBid?.unitRateBid);
   const plumbingBidOptions = isPlumbingBid ? readProjectPlumbingBidOptions(project) : [];
@@ -208,7 +218,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
   const interiorWeightageContext = interiorWeightageContextFromProject(project);
   const plumbingRateUnits = isPlumbingBid ? (scopeBid.rateUnits ?? []) : [];
   const isPlumberFlat = isPlumber && !isPlumbingBid;
-  const isElectrician = isPerPointService(project.service_type) && !isTradeUnitRateBid;
+  const isElectrician = isPerPointService(project.service_type) && !isTradeUnitRateBid && !isPointRateBid;
   const rateUnitSuffix = isTradeUnitRateBid
     ? ''
     : isPlumbingBid
@@ -249,7 +259,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
         const floorKey = FLOOR_RATE_KEYS[index];
         if (!floorKey) return [];
         const plumbingUnit = isPlumbingBid ? (plumbingRateUnits[index] ?? '/Rft') : undefined;
-        const pointFloor = isPlumbingPointRateBid ? plumbingPointFloors[index] : null;
+        const pointFloor = isPointRateBid ? pointRateFloors[index] : null;
         const unitSuffix =
           pointFloor
             ? '/point'
@@ -329,12 +339,20 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
       const stored = parsePlumbingPointRateInputs(existingBid.rates, plumbingPointFloors);
       return ratesToInputStrings(plumbingPointRatesToFloorKeys(stored, plumbingPointFloors));
     }
+    if (existingBid && isElectricianPointRateBid) {
+      const stored = parseElectricianPointRateInputs(existingBid.rates, electricianPointFloors);
+      return ratesToInputStrings(electricianPointRatesToFloorKeys(stored, electricianPointFloors));
+    }
     return existingBid ? ratesToInputStrings(existingBid.rates) : {};
   });
   const [rates, setRates] = useState<Partial<BidRates>>(() => {
     if (existingBid && isPlumbingPointRateBid) {
       const stored = parsePlumbingPointRateInputs(existingBid.rates, plumbingPointFloors);
       return plumbingPointRatesToFloorKeys(stored, plumbingPointFloors);
+    }
+    if (existingBid && isElectricianPointRateBid) {
+      const stored = parseElectricianPointRateInputs(existingBid.rates, electricianPointFloors);
+      return electricianPointRatesToFloorKeys(stored, electricianPointFloors);
     }
     if (existingBid) return existingBid.rates;
     return {};
@@ -393,17 +411,26 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
       return [plumbingPointRateKey(floor.floor), key ? (rates[key] ?? 0) : 0];
     }),
   );
+  const electricianPointRateMap = Object.fromEntries(
+    electricianPointFloors.map((floor, index) => {
+      const key = FLOOR_RATE_KEYS[index];
+      return [electricianPointRateKey(floor.floor), key ? (rates[key] ?? 0) : 0];
+    }),
+  );
   const plumbingPointTotal = isPlumbingPointRateBid
     ? computePlumbingPointBidTotal(plumbingPointRateMap, plumbingPointFloors)
     : 0;
-  const averageMetric = isPlumbingPointRateBid
-    ? plumbingPointTotal
+  const electricianPointTotal = isElectricianPointRateBid
+    ? computeElectricianPointBidTotal(electricianPointRateMap, electricianPointFloors)
+    : 0;
+  const averageMetric = isPointRateBid
+    ? (isPlumbingPointRateBid ? plumbingPointTotal : electricianPointTotal)
     : isTradeUnitRateBid
     ? tradeWeightedIndex
     : computeAverageMetric(rates, floorCount);
   const displayBidAverage = (bid: { total_sum_metric: number; rates?: BidRates | null }) => {
-    if (isPlumbingPointRateBid) {
-      return formatBidMetric(bid.total_sum_metric);
+    if (isPointRateBid) {
+      return formatBidMetric(bid.rates?.total_bid_amount ?? bid.total_sum_metric);
     }
     if (isTradeUnitRateBid) {
       const stored = bid.rates?.weighted_index;
@@ -644,6 +671,8 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
               bid_unit: 'per_point' as const,
               running_foot_rate: runningFootValue && runningFootValue > 0 ? runningFootValue : undefined,
             }
+        : isElectricianPointRateBid
+          ? { bid_unit: 'per_point' as const }
         : isPlumbingBid
           ? { bid_unit: 'per_running_foot' as const }
           : {}),
@@ -696,7 +725,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
         </div>
       </div>
 
-      {(isPlumbingBid || isElectricianBid || isInteriorBid) && (isTradeUnitRateBid || isPlumbingPointRateBid) && (
+      {(isPlumbingBid || isElectricianBid || isInteriorBid) && (isTradeUnitRateBid || isPointRateBid) && (
         <div className={cn('flex items-start gap-2', LABOUR_NOTICE_CLASSES)}>
           <Info className={LABOUR_NOTICE_ICON_CLASSES} />
           <p className={LABOUR_NOTICE_TEXT_CLASSES}>
@@ -870,6 +899,13 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                           {isPlumbingPointRateBid ? 'lowest total wins' : 'lowest avg wins'}
                         </p>
                       )}
+                      {isElectricianPointRateBid && (
+                        <p className="text-xs text-muted-foreground/80 text-right">
+                          estimated total
+                          <br />
+                          lowest total wins
+                        </p>
+                      )}
                       {earthworkMode === 'hourly' && (
                         <p className="text-xs text-muted-foreground/80 text-right">/hour</p>
                       )}
@@ -945,6 +981,13 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                         winning bidder.
                       </>
                       )
+                    ) : isElectricianBid && isElectricianPointRateBid ? (
+                      <>
+                        Enter a <strong>Rate Per Point (₹)</strong> for each selected floor, based on the chosen wiring type.
+                        Ceiling light and ceiling fan = 1 pt; AC, refrigerator, and inverter = 2 pts each.
+                        The estimated bid is the sum of floor points × rate per point.
+                        Rates must be whole numbers ending in <strong>0 or 5</strong>. Lowest estimated total ranks first.
+                      </>
                     ) : isScopeRateBid ? (
                       <>Enter your rate in ₹ per sqft for each item. Rates must be whole numbers. Lower rates rank higher.</>
                     ) : isElectrician ? (
@@ -1128,7 +1171,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                               ? 'Your Rate Per Point'
                               : isTradeUnitRateBid
                                 ? 'Weighted Index'
-                                : isPlumbingPointRateBid
+                                : isPointRateBid
                                 ? 'Total Estimated Bid Amount'
                                 : isPlumbingBid
                                 ? 'Overall Average Rate'
@@ -1158,6 +1201,13 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                           : 'Overall average unit rate'}
                       <br />
                       {isPlumbingPointRateBid ? 'lowest total wins' : 'lowest avg wins'}
+                    </p>
+                  )}
+                  {isElectricianPointRateBid && (
+                    <p className="text-xs text-muted-foreground/80 text-right">
+                      Fixture point total
+                      <br />
+                      lowest total wins
                     </p>
                   )}
                   {isScopeRateBid && !isPlumbingBid && (
@@ -1324,7 +1374,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                                 ? '/hour'
                                 : earthworkMode === 'trip'
                                   ? (formatTripCapacityLabel(bid.rates?.vehicleCapacityCum) ?? '/trip')
-                                  : isPlumbingPointRateBid
+                                  : isPointRateBid
                                     ? 'estimated total'
                                   : isPlumbingBid
                                     ? 'overall avg'
@@ -1344,17 +1394,19 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                           </div>
 
                           {(shouldShowBidFloorBreakdown(bid.rates, floorCount) ||
-                            isPlumbingPointRateBid ||
+                            isPointRateBid ||
                             (isTradeUnitRateBid && Object.keys(bid.rates?.unit_rates ?? {}).length > 0)) && (
                             <div className="w-full basis-full">
                               <BidFloorRatesBreakdown
                                 rates={bid.rates}
                                 floorLabels={isSingleRateBid && !isScopeRateBid ? undefined : floorLabels}
-                                unitSuffix={isPlumbingPointRateBid ? '/point' : isPlumbingBid ? '/Rft' : '/sqft'}
+                                unitSuffix={isPointRateBid ? '/point' : isPlumbingBid ? '/Rft' : '/sqft'}
                                 unitSuffixes={isPlumbingBid ? plumbingRateUnits : undefined}
                                 extraEntries={
                                   isPlumbingPointRateBid
                                     ? getPlumbingPointRateDisplayEntries(bid.rates, plumbingPointFloors)
+                                    : isElectricianPointRateBid
+                                      ? getElectricianPointRateDisplayEntries(bid.rates, electricianPointFloors)
                                     : isTradeUnitRateBid
                                     ? isInteriorBid
                                       ? getInteriorUnitRateDisplayEntries(bid.rates, interiorBidOptions)
@@ -1363,10 +1415,10 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                                         : getPlumbingUnitRateDisplayEntries(bid.rates, plumbingBidOptions)
                                     : undefined
                                 }
-                                indexLabel={isPlumbingPointRateBid ? 'Estimated Total' : 'Weighted Index'}
+                                indexLabel={isPointRateBid ? 'Estimated Total' : 'Weighted Index'}
                                 indexValue={
-                                  isPlumbingPointRateBid
-                                    ? bid.total_sum_metric
+                                  isPointRateBid
+                                    ? (bid.rates?.total_bid_amount ?? bid.total_sum_metric)
                                     : isTradeUnitRateBid
                                       ? bid.rates?.weighted_index
                                       : undefined

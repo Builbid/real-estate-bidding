@@ -1,13 +1,14 @@
 'use client';
 
 import { PlumbingFloorFixtureForm } from '@/components/owner/plumber/PlumbingFloorFixtureForm';
-import { ElectricianPackageForm } from '@/components/owner/electrician/ElectricianPackageForm';
+import { ElectricianFloorFixtureForm } from '@/components/owner/electrician/ElectricianFloorFixtureForm';
 import { InteriorPackageForm } from '@/components/owner/interior/InteriorPackageForm';
 import { OptionSelectGrid } from '@/components/owner/wizard/OptionSelectCard';
 import { StartTimeAndNotes, WIZARD_SECTION_LABEL } from '@/components/owner/wizard/StartTimeAndNotes';
 import {
   EARTHWORK_SOIL_VEHICLE_OPTIONS,
   EARTHWORK_TYPE_OPTIONS,
+  ELECTRICIAN_WIRING_TYPE_OPTIONS,
   PLUMBING_FITTING_TYPE_OPTIONS,
   type BathroomPackage,
   type BathroomPackageSelection,
@@ -17,6 +18,8 @@ import {
   type EarthworkType,
   type ElectricianPackageKind,
   type ElectricianSubOptionId,
+  type ElectricianFixtureCountDraft,
+  type ElectricianWiringType,
   type InteriorDesignerPackageKind,
   type InteriorDesignerSubOptionId,
   type InteriorScopeType,
@@ -71,6 +74,8 @@ export interface TradeWorkFormFields {
   drainageInstallMethods: DrainageInstallMethod[];
   electricianPackages: ElectricianPackageKind[];
   electricianSubOptions: ElectricianSubOptionId[];
+  electricianFloorFixtureCounts: Partial<Record<PlumbingTargetFloor, ElectricianFixtureCountDraft>>;
+  electricianWiringType: ElectricianWiringType | null;
   interiorPackages: InteriorDesignerPackageKind[];
   interiorSubOptions: InteriorDesignerSubOptionId[];
   doorWindowFramesQuantity: string;
@@ -132,12 +137,20 @@ export function TradeWorkRequirementsFields({
           <p className="text-xs font-medium leading-relaxed rounded-xl border border-amber-500/25 bg-amber-500/5 px-3 py-2.5 text-gray-800 dark:text-zinc-200">
             All bids are strictly for LABOUR CHARGES. Materials must be supplied by the Property Owner.
           </p>
-          <ElectricianPackageForm
-            selectedPackages={form.electricianPackages}
-            selectedSubOptions={form.electricianSubOptions}
-            onChangePackages={(v) => onChange('electricianPackages', v)}
-            onChangeSubOptions={(v) => onChange('electricianSubOptions', v)}
+          <ElectricianFloorFixtureForm
+            targetFloors={form.targetFloors}
+            customTargetFloors={form.customTargetFloors}
+            values={form.electricianFloorFixtureCounts}
+            onChange={(v) => onChange('electricianFloorFixtureCounts', v)}
           />
+          <FieldGroup label="Wiring Type">
+            <OptionSelectGrid
+              options={ELECTRICIAN_WIRING_TYPE_OPTIONS}
+              value={form.electricianWiringType}
+              onSelect={(v) => onChange('electricianWiringType', v)}
+              columns={2}
+            />
+          </FieldGroup>
         </>
       )}
 

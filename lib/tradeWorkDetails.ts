@@ -69,6 +69,29 @@ export interface PlumbingFloorFixtureCounts extends PlumbingFixtureCounts {
 
 export type PlumbingFixtureCountDraft = Record<PlumbingFixtureKind, string>;
 
+export type ElectricianFixtureKind =
+  | 'ceiling_light'
+  | 'ceiling_fan'
+  | 'ac'
+  | 'refrigerator'
+  | 'inverter';
+
+export interface ElectricianFixtureCounts {
+  ceiling_light: number;
+  ceiling_fan: number;
+  ac: number;
+  refrigerator: number;
+  inverter: number;
+}
+
+export interface ElectricianFloorFixtureCounts extends ElectricianFixtureCounts {
+  floor: PlumbingTargetFloor;
+}
+
+export type ElectricianFixtureCountDraft = Record<ElectricianFixtureKind, string>;
+
+export type ElectricianWiringType = 'concealed' | 'surface_casing';
+
 export type PlumbingBuildingStoreys = 'single' | 'g_plus_1' | 'g_plus_2' | 'g_plus_3_plus';
 
 export type PlumbingPackageKind =
@@ -337,6 +360,10 @@ export interface ElectricianDetails extends TradeDetailsBase {
   selectedPackages?: ElectricianPackageKind[];
   /** Sub-options opened for unit-rate bidding. */
   selectedSubOptions?: ElectricianSubOptionId[];
+  /** Fixture quantities collected per selected work floor. */
+  floorFixtureCounts?: ElectricianFloorFixtureCounts[];
+  /** Concealed vs surface casing wiring selected by the owner. */
+  electricianWiringType?: ElectricianWiringType | null;
 }
 
 export interface CarpenterDetails extends TradeDetailsBase {
@@ -560,6 +587,43 @@ export const PLUMBING_FIXTURE_KIND_KEYS: PlumbingFixtureKind[] = PLUMBING_FIXTUR
 
 export function emptyPlumbingFixtureDraft(): PlumbingFixtureCountDraft {
   return { basin: '', taps: '', shower: '', commode: '', geyser: '' };
+}
+
+export const ELECTRICIAN_WIRING_TYPE_OPTIONS: {
+  value: ElectricianWiringType;
+  label: string;
+  description: string;
+}[] = [
+  {
+    value: 'concealed',
+    label: 'Concealed Wiring',
+    description: 'Wires hidden inside walls after fitting.',
+  },
+  {
+    value: 'surface_casing',
+    label: 'Surface Casing Wiring',
+    description: 'Wires run in casing on the outer wall surface.',
+  },
+];
+
+export const ELECTRICIAN_FIXTURE_FIELDS: {
+  key: ElectricianFixtureKind;
+  label: string;
+  points: number;
+}[] = [
+  { key: 'ceiling_light', label: 'No. of Ceiling Light', points: 1 },
+  { key: 'ceiling_fan', label: 'No. of Ceiling Fan', points: 1 },
+  { key: 'ac', label: 'No. of AC', points: 2 },
+  { key: 'refrigerator', label: 'No. of Refrigerator', points: 2 },
+  { key: 'inverter', label: 'No. of Inverter', points: 2 },
+];
+
+export const ELECTRICIAN_FIXTURE_KIND_KEYS: ElectricianFixtureKind[] = ELECTRICIAN_FIXTURE_FIELDS.map(
+  (field) => field.key,
+);
+
+export function emptyElectricianFixtureDraft(): ElectricianFixtureCountDraft {
+  return { ceiling_light: '', ceiling_fan: '', ac: '', refrigerator: '', inverter: '' };
 }
 
 export const PLUMBING_BUILDING_STOREYS_OPTIONS: {
@@ -1491,6 +1555,142 @@ export function formatPlumbingFloorFixtureLine(item: PlumbingFixtureCounts): str
   ).join(' · ');
 }
 
+export function emptyElectricianFixtureCounts(): ElectricianFixtureCounts {
+  return { ceiling_light: 0, ceiling_fan: 0, ac: 0, refrigerator: 0, inverter: 0 };
+}
+
+export function parseElectricianFixtureCounts(raw: unknown): ElectricianFixtureCounts | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const row = raw as Record<string, unknown>;
+  const counts = emptyElectricianFixtureCounts();
+  for (const key of ELECTRICIAN_FIXTURE_KIND_KEYS) {
+    const n = parseCount(row[key], 0, 50);
+    if (n == null) return null;
+    counts[key] = n;
+  }
+  return counts;
+}
+
+export function parseElectricianFloorFixtureCounts(raw: unknown): ElectricianFloorFixtureCounts[] {
+  if (!Array.isArray(raw)) return [];
+  const byFloor = new Map<PlumbingTargetFloor, ElectricianFloorFixtureCounts>();
+  for (const item of raw) {
+    if (!item || typeof item !== 'object') continue;
+    const row = item as Record<string, unknown>;
+    const floor = normalizePlumbingTargetFloor(row.floor);
+    if (!floor) continue;
+    const counts = parseElectricianFixtureCounts(row);
+    if (!counts) continue;
+    byFloor.set(floor, { floor, ...counts });
+  }
+  return PLUMBING_TARGET_FLOOR_OPTIONS.flatMap((opt) => {
+    const item = byFloor.get(opt.value);
+    return item ? [item] : [];
+  });
+}
+
+export function electricianFloorFixtureTotal(item: ElectricianFixtureCounts): number {
+  return ELECTRICIAN_FIXTURE_KIND_KEYS.reduce((sum, key) => sum + item[key], 0);
+}
+
+export function electricianFloorPoints(item: ElectricianFixtureCounts): number {
+  return ELECTRICIAN_FIXTURE_FIELDS.reduce((sum, field) => sum + item[field.key] * field.points, 0);
+}
+
+export function formatElectricianFloorPointBreakdown(item: ElectricianFixtureCounts): string {
+  const parts = ELECTRICIAN_FIXTURE_FIELDS.flatMap((field) =>
+    item[field.key] > 0
+      ? [`${field.label.replace('No. of ', '')} ${item[field.key]}×${field.points}`]
+      : [],
+  );
+  const points = electricianFloorPoints(item);
+  return parts.length > 0 ? `${points} pts · ${parts.join(' · ')}` : '0 pts';
+}
+
+function parseElectricianFixtureDraftCounts(
+  draft: ElectricianFixtureCountDraft | null | undefined,
+): ElectricianFixtureCounts | { error: string } {
+  const counts = emptyElectricianFixtureCounts();
+  for (const field of ELECTRICIAN_FIXTURE_FIELDS) {
+    const raw = draft?.[field.key]?.trim() ?? '';
+    if (raw === '') {
+      return { error: `Enter ${field.label.toLowerCase()} for each selected floor.` };
+    }
+    const n = parseCount(raw, 0, 50);
+    if (n == null) {
+      return { error: `${field.label} must be a whole number from 0 to 50.` };
+    }
+    counts[field.key] = n;
+  }
+  return counts;
+}
+
+function parseElectricianFixtureInput(
+  targetFloors: PlumbingTargetFloor[],
+  raw:
+    | Partial<Record<PlumbingTargetFloor, ElectricianFixtureCountDraft>>
+    | ElectricianFloorFixtureCounts[]
+    | undefined,
+  customTargetFloors: string | null,
+): ElectricianFloorFixtureCounts[] | { error: string } {
+  if (Array.isArray(raw)) {
+    const parsed = parseElectricianFloorFixtureCounts(raw).filter((item) =>
+      targetFloors.includes(item.floor),
+    );
+    if (parsed.length !== targetFloors.length) {
+      return { error: 'Enter fixture quantities for each selected floor.' };
+    }
+    for (const item of parsed) {
+      if (electricianFloorFixtureTotal(item) === 0) {
+        return {
+          error: `Enter at least one fixture quantity for ${plumbingFloorLabel(item.floor, customTargetFloors)}.`,
+        };
+      }
+    }
+    return parsed;
+  }
+
+  const next: ElectricianFloorFixtureCounts[] = [];
+  for (const floor of targetFloors) {
+    const parsed = parseElectricianFixtureDraftCounts(raw?.[floor]);
+    if ('error' in parsed) {
+      return {
+        error: parsed.error.replace(
+          'for each selected floor.',
+          `for ${plumbingFloorLabel(floor, customTargetFloors)}.`,
+        ),
+      };
+    }
+    if (electricianFloorFixtureTotal(parsed) === 0) {
+      return {
+        error: `Enter at least one fixture quantity for ${plumbingFloorLabel(floor, customTargetFloors)}.`,
+      };
+    }
+    next.push({ floor, ...parsed });
+  }
+  return next;
+}
+
+export function formatElectricianFloorFixtureLine(item: ElectricianFixtureCounts): string {
+  return ELECTRICIAN_FIXTURE_FIELDS.map(
+    (field) => `${field.label.replace('No. of ', '')}: ${item[field.key]}`,
+  ).join(' · ');
+}
+
+export function parseElectricianWiringType(raw: unknown): ElectricianWiringType | null {
+  if (raw === 'concealed' || raw === 'surface_casing') return raw;
+  if (raw === true) return 'concealed';
+  if (raw === false) return 'surface_casing';
+  return null;
+}
+
+export function getElectricianWiringTypeLabel(
+  value: ElectricianWiringType | null | undefined,
+): string {
+  if (!value) return '';
+  return ELECTRICIAN_WIRING_TYPE_OPTIONS.find((option) => option.value === value)?.label ?? value;
+}
+
 export function formatPlumbingFixtureScopeSummary(
   floors: PlumbingFloorFixtureCounts[] | null | undefined,
 ): string {
@@ -1502,6 +1702,21 @@ export function formatPlumbingFixtureScopeSummary(
     }
   }
   return PLUMBING_FIXTURE_FIELDS.flatMap((field) =>
+    totals[field.key] > 0 ? [`${field.label.replace('No. of ', '')} ${totals[field.key]}`] : [],
+  ).join(' · ');
+}
+
+export function formatElectricianFixtureScopeSummary(
+  floors: ElectricianFloorFixtureCounts[] | null | undefined,
+): string {
+  if (!floors?.length) return '';
+  const totals = emptyElectricianFixtureCounts();
+  for (const floor of floors) {
+    for (const key of ELECTRICIAN_FIXTURE_KIND_KEYS) {
+      totals[key] += floor[key];
+    }
+  }
+  return ELECTRICIAN_FIXTURE_FIELDS.flatMap((field) =>
     totals[field.key] > 0 ? [`${field.label.replace('No. of ', '')} ${totals[field.key]}`] : [],
   ).join(' · ');
 }
@@ -1609,9 +1824,16 @@ export function subOptionsForElectricianPackages(
   return selected.filter((id) => allowed.has(id));
 }
 
-export function hasElectricianUnitRateScope(
-  details: Pick<ElectricianDetails, 'selectedSubOptions' | 'selectedPackages'> | null | undefined,
+export function hasElectricianPointRateScope(
+  details: Pick<ElectricianDetails, 'floorFixtureCounts'> | null | undefined,
 ): boolean {
+  return (details?.floorFixtureCounts?.length ?? 0) > 0;
+}
+
+export function hasElectricianUnitRateScope(
+  details: Pick<ElectricianDetails, 'selectedSubOptions' | 'selectedPackages' | 'floorFixtureCounts'> | null | undefined,
+): boolean {
+  if (hasElectricianPointRateScope(details)) return false;
   return (details?.selectedSubOptions?.length ?? 0) > 0 || (details?.selectedPackages?.length ?? 0) > 0;
 }
 
@@ -2239,7 +2461,39 @@ export function parseTradeDetails(value: unknown): TradeDetails | null {
             ? (['ground'] as PlumbingTargetFloor[])
             : [];
     const targetWorkFloor = parsedWorkFloor ?? targetFloors[0] ?? null;
-    const approxBuiltUpAreaSqft = parsePositiveNumber(v.approxBuiltUpAreaSqft);
+    const floorFixtureCounts = parseElectricianFloorFixtureCounts(v.floorFixtureCounts).filter((item) =>
+      targetFloors.length === 0 ? true : targetFloors.includes(item.floor),
+    );
+    const electricianWiringType =
+      parseElectricianWiringType(v.electricianWiringType) ??
+      parseElectricianWiringType(v.concealedWiring);
+    const hasPointRateScope = floorFixtureCounts.length > 0;
+
+    if (hasPointRateScope) {
+      return {
+        service: 'electrician',
+        projectAddress: address,
+        villageTownName,
+        ...start,
+        additionalRequirements: additional,
+        scopeType: v.scopeType as ElectricianScopeType,
+        houseStructure,
+        targetFloors,
+        targetWorkFloor,
+        customTargetFloors: targetFloors.includes('custom') ? customTargetFloors : null,
+        selectedPackages,
+        selectedSubOptions,
+        floorFixtureCounts,
+        electricianWiringType,
+        concealedWiring:
+          electricianWiringType === 'concealed'
+            ? true
+            : electricianWiringType === 'surface_casing'
+              ? false
+              : null,
+        materialScope,
+      };
+    }
 
     if (hasUnitRateScope) {
       return {
@@ -2253,7 +2507,6 @@ export function parseTradeDetails(value: unknown): TradeDetails | null {
         targetFloors,
         targetWorkFloor,
         customTargetFloors: targetFloors.includes('custom') ? customTargetFloors : null,
-        approxBuiltUpAreaSqft,
         selectedPackages,
         selectedSubOptions,
         materialScope,
@@ -2739,9 +2992,11 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
   } else if (details.service === 'electrician') {
     const selectedPackages = details.selectedPackages ?? [];
     const selectedSubOptions = details.selectedSubOptions ?? [];
+    const floorFixtureCounts = details.floorFixtureCounts ?? [];
+    const hasPointRateScope = floorFixtureCounts.length > 0;
     const hasUnitRateScope = selectedPackages.length > 0 || selectedSubOptions.length > 0;
 
-    if (hasUnitRateScope) {
+    if (hasPointRateScope || hasUnitRateScope) {
       if (details.houseStructure) {
         blocks.push({
           label: 'Building Structure Type',
@@ -2760,23 +3015,37 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
           value: formatPlumbingTargetWorkFloors(workFloors, details.customTargetFloors),
         });
       }
+      for (const item of floorFixtureCounts) {
+        blocks.push({
+          label: `${plumbingFloorLabel(item.floor, details.customTargetFloors)} Fixtures`,
+          value: formatElectricianFloorFixtureLine(item),
+        });
+      }
+      if (details.electricianWiringType) {
+        blocks.push({
+          label: 'Wiring Type',
+          value: getElectricianWiringTypeLabel(details.electricianWiringType),
+        });
+      }
       blocks.push({
         label: 'Material Scope',
         value: ELECTRICIAN_LABOUR_ONLY_DISCLAIMER,
       });
-      const bidLabels: string[] = [];
-      for (const optionId of selectedSubOptions) {
-        const option = getElectricianSubOption(optionId);
-        const suffix = option?.unitSuffix ?? '/unit';
-        bidLabels.push(`${getElectricianSubOptionLabel(optionId)} (₹ ${suffix})`);
-      }
-      if (bidLabels.length > 0) {
-        blocks.push({
-          label: 'Bidding Options',
-          value: bidLabels
-            .map((label, index) => `Option ${String.fromCharCode(65 + index)}: ${label}`)
-            .join('\n'),
-        });
+      if (!hasPointRateScope) {
+        const bidLabels: string[] = [];
+        for (const optionId of selectedSubOptions) {
+          const option = getElectricianSubOption(optionId);
+          const suffix = option?.unitSuffix ?? '/unit';
+          bidLabels.push(`${getElectricianSubOptionLabel(optionId)} (₹ ${suffix})`);
+        }
+        if (bidLabels.length > 0) {
+          blocks.push({
+            label: 'Bidding Options',
+            value: bidLabels
+              .map((label, index) => `Option ${String.fromCharCode(65 + index)}: ${label}`)
+              .join('\n'),
+          });
+        }
       }
     } else {
       blocks.push(
@@ -2974,6 +3243,8 @@ export function getTradeScopeLabel(details: TradeDetails): string {
     return LEGACY_PLUMBER_SCOPE_LABELS[details.scopeType];
   }
   if (details.service === 'electrician') {
+    const fixtureSummary = formatElectricianFixtureScopeSummary(details.floorFixtureCounts);
+    if (fixtureSummary) return fixtureSummary;
     const unitSummary = formatElectricianSubOptionSummary(
       details.selectedPackages,
       details.selectedSubOptions,
@@ -3034,6 +3305,10 @@ export interface TradeDetailsFormInput {
   drainageInstallMethods?: DrainageInstallMethod[];
   electricianPackages?: ElectricianPackageKind[];
   electricianSubOptions?: ElectricianSubOptionId[];
+  electricianFloorFixtureCounts?:
+    | Partial<Record<PlumbingTargetFloor, ElectricianFixtureCountDraft>>
+    | ElectricianFloorFixtureCounts[];
+  electricianWiringType?: ElectricianWiringType | null;
   electricianScope?: ElectricianScopeType | null;
   pointEstimate?: ElectricianPointEstimate | null;
   heavyAppliances?: ElectricianHeavyAppliance[];
@@ -3219,18 +3494,18 @@ export function validateTradeDetailsInput(
       return { error: 'Enter the custom / higher floor numbers.' };
     }
     const targetWorkFloor = targetFloors[0];
-    const requestedPackages = parseElectricianPackageKinds(input.electricianPackages);
-    const selectedSubOptions = subOptionsForElectricianPackages(
-      requestedPackages,
-      parseElectricianSubOptionIds(input.electricianSubOptions),
+    const floorFixtureCounts = parseElectricianFixtureInput(
+      targetFloors,
+      input.electricianFloorFixtureCounts,
+      customTargetFloors,
     );
-    if (selectedSubOptions.length === 0) {
-      return { error: 'Select at least one work item.' };
+    if ('error' in floorFixtureCounts) {
+      return floorFixtureCounts;
     }
-    const selectedPackages = packagesFromSelectedSubOptions(
-      ELECTRICIAN_SCOPE_PACKAGES,
-      selectedSubOptions,
-    );
+    const electricianWiringType = parseElectricianWiringType(input.electricianWiringType);
+    if (!electricianWiringType) {
+      return { error: 'Select Concealed Wiring or Surface Casing Wiring.' };
+    }
     return {
       details: {
         ...base,
@@ -3240,8 +3515,11 @@ export function validateTradeDetailsInput(
         targetFloors,
         targetWorkFloor,
         customTargetFloors,
-        selectedPackages,
-        selectedSubOptions,
+        selectedPackages: [],
+        selectedSubOptions: [],
+        floorFixtureCounts,
+        electricianWiringType,
+        concealedWiring: electricianWiringType === 'concealed',
       },
     };
   }

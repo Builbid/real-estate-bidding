@@ -129,6 +129,9 @@ export function buildBidRatesPayload(
     ...(rates.running_foot_rate != null && rates.running_foot_rate > 0
       ? { running_foot_rate: rates.running_foot_rate }
       : {}),
+    ...(rates.total_bid_amount != null && rates.total_bid_amount > 0
+      ? { total_bid_amount: rates.total_bid_amount }
+      : {}),
   };
 }
 

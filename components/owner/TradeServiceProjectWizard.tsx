@@ -53,7 +53,7 @@ type Step = 1 | 2 | 3;
 const BIDDING_MINUTES = 7;
 
 const DEFAULT_PROGRESS_LABELS = ['Project Info', 'Work Requirements', 'Review & Launch'] as const;
-const PLUMBER_PROGRESS_LABELS = ['Project Info', 'Fixture Quantities', 'Review & Launch'] as const;
+const FIXTURE_PROGRESS_LABELS = ['Project Info', 'Fixture Quantities', 'Review & Launch'] as const;
 
 const BUILDING_TYPE_OPTIONS: { value: TrackType; label: string; description: string }[] = [
   { value: 'RCC', label: 'RCC', description: 'Reinforced cement concrete building' },
@@ -117,6 +117,8 @@ const EMPTY_FORM: FormState = {
   drainageInstallMethods: ['open_outer_hanging'],
   electricianPackages: [],
   electricianSubOptions: [],
+  electricianFloorFixtureCounts: {},
+  electricianWiringType: null,
   interiorPackages: [],
   interiorSubOptions: [],
   doorWindowFramesQuantity: '',
@@ -287,6 +289,8 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
       drainageInstallMethods: form.drainageInstallMethods,
       electricianPackages: form.electricianPackages,
       electricianSubOptions: form.electricianSubOptions,
+      electricianFloorFixtureCounts: form.electricianFloorFixtureCounts,
+      electricianWiringType: form.electricianWiringType,
       interiorPackages: form.interiorPackages,
       interiorSubOptions: form.interiorSubOptions,
       carpenterScopes: [],
@@ -429,11 +433,11 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
         )
       : [];
 
-  const isElectricianCatalog = trade === 'electrician';
-  const progressLabels = trade === 'plumber' ? PLUMBER_PROGRESS_LABELS : DEFAULT_PROGRESS_LABELS;
+  const progressLabels =
+    trade === 'plumber' || trade === 'electrician' ? FIXTURE_PROGRESS_LABELS : DEFAULT_PROGRESS_LABELS;
 
   return (
-    <div className={cn('mx-auto space-y-6', isElectricianCatalog ? 'w-full max-w-none' : 'max-w-2xl')}>
+    <div className="mx-auto max-w-2xl space-y-6">
       <div>
         <h1 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
           <span>{tradeEmoji}</span> Post {tradeLabel} Project
@@ -443,7 +447,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
           {trade === 'plumber'
             ? 'as per-unit labour rates for basin, taps, shower, commode, and geyser on each selected floor'
             : trade === 'electrician'
-              ? 'as per-unit labour rates for the wiring and fixture items you select'
+              ? 'as per-point labour rates for ceiling lights, fans, ACs, refrigerators, and inverters on each selected floor'
               : 'per sqft'}{' '}
           on your project.
         </p>
@@ -588,6 +592,11 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                                 next.includes(key as (typeof next)[number]),
                               ),
                             ) as FormState['floorFixtureCounts'],
+                            electricianFloorFixtureCounts: Object.fromEntries(
+                              Object.entries(current.electricianFloorFixtureCounts).filter(([key]) =>
+                                next.includes(key as (typeof next)[number]),
+                              ),
+                            ) as FormState['electricianFloorFixtureCounts'],
                           };
                         });
                         if (step1ValidationAttempted) {
@@ -664,7 +673,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
               <h2 className="text-base font-semibold text-gray-900 dark:text-white">
                 {isPainter
                   ? 'Building Type & Work Requirements'
-                  : trade === 'plumber'
+                  : trade === 'plumber' || trade === 'electrician'
                     ? 'Fixture Quantities'
                     : 'Work Requirements'}
               </h2>
@@ -674,7 +683,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                   : trade === 'plumber'
                     ? 'Enter how many basins, taps, showers, commodes, and geysers you need on each selected floor.'
                     : trade === 'electrician'
-                      ? 'Browse the catalog below and tap items electricians should quote as labour unit rates.'
+                      ? 'Enter how many ceiling lights, ceiling fans, ACs, refrigerators, and inverters you need on each selected floor.'
                       : trade === 'false_ceiling_work'
                         ? 'Check the interior design categories you need, then pick the sub-options designers should quote as labour unit rates.'
                     : `Describe the ${tradeLabel.toLowerCase()} work so bidders can quote without scope conflicts.`}

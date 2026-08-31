@@ -17,7 +17,7 @@ import { formatBidUnitCaption, formatBidUnitSuffix, formatTripCapacityLabel } fr
 import { resolveScopeRateBidItems } from '@/lib/bid/scopeRateBid';
 import { resolveProjectFloorCount, shouldShowBidFloorBreakdown } from '@/lib/bid/floorRateDisplay';
 import { getPlumbingPointRateDisplayEntries, getPlumbingUnitRateDisplayEntries, parsePlumbingRunningFootRate, readPlumbingPointRateFloors, readProjectPlumbingBidOptions } from '@/lib/plumberBid';
-import { getElectricianUnitRateDisplayEntries, readProjectElectricianBidOptions } from '@/lib/electricianBid';
+import { getElectricianPointRateDisplayEntries, getElectricianUnitRateDisplayEntries, readElectricianPointRateFloors, readProjectElectricianBidOptions } from '@/lib/electricianBid';
 import { getInteriorUnitRateDisplayEntries, readProjectInteriorBidOptions } from '@/lib/interiorBid';
 import { useOwnerProjectPhaseContext } from '@/lib/context/OwnerProjectPhaseContext';
 import type { Project, Bid } from '@/lib/types';
@@ -126,9 +126,12 @@ export function UnifiedBidRankings({
   const isCompleted = project.status === 'completed';
   const scopeBid = resolveScopeRateBidItems(project);
   const isPlumbingBid = scopeBid?.kind === 'plumbing';
-  const isPlumbingPointRateBid = Boolean(scopeBid?.pointRateBid);
-  const plumbingPointFloors = isPlumbingPointRateBid ? readPlumbingPointRateFloors(project) : [];
   const isElectricianBid = scopeBid?.kind === 'electrician';
+  const isPlumbingPointRateBid = Boolean(scopeBid?.pointRateBid && isPlumbingBid);
+  const isElectricianPointRateBid = Boolean(scopeBid?.pointRateBid && isElectricianBid);
+  const isPointRateBid = isPlumbingPointRateBid || isElectricianPointRateBid;
+  const plumbingPointFloors = isPlumbingPointRateBid ? readPlumbingPointRateFloors(project) : [];
+  const electricianPointFloors = isElectricianPointRateBid ? readElectricianPointRateFloors(project) : [];
   const isInteriorBid = scopeBid?.kind === 'interior';
   const isTradeUnitRateBid = Boolean(scopeBid?.unitRateBid);
   const plumbingOptions = isPlumbingBid ? readProjectPlumbingBidOptions(project) : [];
@@ -152,7 +155,7 @@ export function UnifiedBidRankings({
           <TrendingDown className="w-4 h-4 text-emerald-400" />
           <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             Bid Rankings — {bids.length} bid{bids.length !== 1 ? 's' : ''}
-            {isTradeUnitRateBid ? ' · lowest Baseline Score first' : ''}
+            {isPointRateBid ? ' · lowest estimated total first' : isTradeUnitRateBid ? ' · lowest Baseline Score first' : ''}
           </span>
         </div>
         {!isCompleted && !isFrozen && (
@@ -261,8 +264,8 @@ export function UnifiedBidRankings({
                 }`}>
                   {project.service_type === 'plumber' && !isPlumbingBid ? 'Rs. ' : '₹'}
                   {formatBidMetric(
-                    isPlumbingPointRateBid
-                      ? bid.total_sum_metric
+                    isPointRateBid
+                      ? (bid.rates?.total_bid_amount ?? bid.total_sum_metric)
                       : isTradeUnitRateBid && bid.rates?.weighted_index
                       ? bid.rates.weighted_index
                       : averageFromSumMetric(bid.total_sum_metric, projectFloorCount),
@@ -270,7 +273,7 @@ export function UnifiedBidRankings({
                 </p>
                 <p className="text-[10px] text-muted-foreground">
                   {formatTripCapacityLabel(bid.rates?.vehicleCapacityCum)
-                    ?? (isPlumbingPointRateBid
+                    ?? (isPointRateBid
                       ? 'estimated total'
                       : isTradeUnitRateBid
                       ? 'weighted index'
@@ -290,17 +293,19 @@ export function UnifiedBidRankings({
               </div>
 
               {(shouldShowBidFloorBreakdown(bid.rates, projectFloorCount) ||
-                isPlumbingPointRateBid ||
+                isPointRateBid ||
                 (isTradeUnitRateBid && Object.keys(bid.rates?.unit_rates ?? {}).length > 0)) && (
                 <div className="w-full basis-full">
                   <BidFloorRatesBreakdown
                     rates={bid.rates}
                     floorLabels={carpenterFloorLabels}
-                    unitSuffix={isPlumbingPointRateBid ? '/point' : isPlumbingBid ? '/Rft' : isInteriorBid || isElectricianBid ? '/unit' : '/sqft'}
+                    unitSuffix={isPointRateBid ? '/point' : isPlumbingBid ? '/Rft' : isInteriorBid || isElectricianBid ? '/unit' : '/sqft'}
                     unitSuffixes={(isPlumbingBid || isElectricianBid || isInteriorBid) ? scopeBid?.rateUnits : undefined}
                     extraEntries={
                       isPlumbingPointRateBid
                         ? getPlumbingPointRateDisplayEntries(bid.rates, plumbingPointFloors)
+                        : isElectricianPointRateBid
+                          ? getElectricianPointRateDisplayEntries(bid.rates, electricianPointFloors)
                         : isTradeUnitRateBid
                         ? isInteriorBid
                           ? getInteriorUnitRateDisplayEntries(bid.rates, interiorOptions)
@@ -309,10 +314,10 @@ export function UnifiedBidRankings({
                             : getPlumbingUnitRateDisplayEntries(bid.rates, plumbingOptions)
                         : undefined
                     }
-                    indexLabel={isPlumbingPointRateBid ? 'Estimated Total' : 'Weighted Index'}
+                    indexLabel={isPointRateBid ? 'Estimated Total' : 'Weighted Index'}
                     indexValue={
-                      isPlumbingPointRateBid
-                        ? bid.total_sum_metric
+                      isPointRateBid
+                        ? (bid.rates?.total_bid_amount ?? bid.total_sum_metric)
                         : isTradeUnitRateBid
                           ? bid.rates?.weighted_index
                           : undefined
