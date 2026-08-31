@@ -1486,11 +1486,9 @@ function parsePlumberFixtureInput(
 }
 
 export function formatPlumbingFloorFixtureLine(item: PlumbingFixtureCounts): string {
-  const fixtures = PLUMBING_FIXTURE_FIELDS.map(
+  return PLUMBING_FIXTURE_FIELDS.map(
     (field) => `${field.label.replace('No. of ', '')}: ${item[field.key]}`,
   ).join(' · ');
-  const points = plumbingFloorPoints(item);
-  return `${fixtures} · ${points} pt${points === 1 ? '' : 's'}`;
 }
 
 export function formatPlumbingFixtureScopeSummary(
@@ -2677,10 +2675,7 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
 
     const plumbingBidLabels: string[] = [];
     if (floorFixtureCounts.length > 0) {
-      blocks.push({
-        label: 'Point Weights',
-        value: 'Basin 1 pt · Tap 1 pt · Shower 2 pts · Commode 2 pts · Geyser 2 pts',
-      });
+      // Fixture quantities are listed above. Point weights stay internal for plumber bid scoring.
     } else if (hasUnitRateScope) {
       const quantities = plumbingSubOptionQuantities(floorFixtureCounts);
       for (const optionId of selectedSubOptions) {

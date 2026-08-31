@@ -27,6 +27,7 @@ const HIDDEN_DISPLAY_LABELS = new Set([
   'Bidding Options',
   'Bidding Options (₹ / Running Foot)',
   'Billing Notice',
+  'Point Weights',
 ]);
 
 function filterDisplayRequirementBlocks(blocks: WorkRequirementBlock[]): WorkRequirementBlock[] {

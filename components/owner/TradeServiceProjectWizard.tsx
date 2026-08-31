@@ -421,6 +421,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
             block.label !== 'Village / Town Name' &&
             block.label !== 'Estimated Depth' &&
             block.label !== 'Area / Volume' &&
+            block.label !== 'Point Weights' &&
             !(
               (trade === 'plumber' || trade === 'electrician') &&
               block.label === 'Approx Built-Up Area'

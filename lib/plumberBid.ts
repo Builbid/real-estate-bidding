@@ -542,7 +542,7 @@ export function getPlumbingPointRateDisplayEntries(
     const value = pointRates[plumbingPointRateKey(item.floor)];
     if (value == null || value <= 0) return [];
     return [{
-      label: `${item.label} (${item.points} pt${item.points === 1 ? '' : 's'})`,
+      label: item.label,
       value,
       suffix: '/point',
     }];
