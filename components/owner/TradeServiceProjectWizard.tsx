@@ -230,9 +230,11 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
       if (form.targetFloors.includes('custom') && !form.customTargetFloors.trim()) {
         errors.customTargetFloors = 'Enter the custom / higher floor numbers.';
       }
-      const area = parseFloat(form.approxBuiltUpAreaSqft.replace(/,/g, '').trim());
-      if (!Number.isFinite(area) || area <= 0) {
-        errors.approxBuiltUpAreaSqft = 'Enter the approximate built-up area in Sq Ft.';
+      if (trade === 'false_ceiling_work') {
+        const area = parseFloat(form.approxBuiltUpAreaSqft.replace(/,/g, '').trim());
+        if (!Number.isFinite(area) || area <= 0) {
+          errors.approxBuiltUpAreaSqft = 'Enter the approximate built-up area in Sq Ft.';
+        }
       }
     }
 
@@ -418,7 +420,11 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
           (block) =>
             block.label !== 'Village / Town Name' &&
             block.label !== 'Estimated Depth' &&
-            block.label !== 'Area / Volume',
+            block.label !== 'Area / Volume' &&
+            !(
+              (trade === 'plumber' || trade === 'electrician') &&
+              block.label === 'Approx Built-Up Area'
+            ),
         )
       : [];
 
@@ -611,18 +617,20 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                     ) : null}
                   </div>
 
-                  <Input
-                    label="Approx Built-Up Area (Sq Ft)"
-                    type="number"
-                    inputMode="decimal"
-                    min={1}
-                    placeholder="e.g. 1200"
-                    required
-                    suffix={<span className="text-xs font-medium text-muted-foreground">Sq Ft</span>}
-                    value={form.approxBuiltUpAreaSqft}
-                    onChange={(e) => update('approxBuiltUpAreaSqft', e.target.value)}
-                    error={step1ValidationAttempted ? step1Errors.approxBuiltUpAreaSqft : undefined}
-                  />
+                  {trade === 'false_ceiling_work' ? (
+                    <Input
+                      label="Approx Built-Up Area (Sq Ft)"
+                      type="number"
+                      inputMode="decimal"
+                      min={1}
+                      placeholder="e.g. 1200"
+                      required
+                      suffix={<span className="text-xs font-medium text-muted-foreground">Sq Ft</span>}
+                      value={form.approxBuiltUpAreaSqft}
+                      onChange={(e) => update('approxBuiltUpAreaSqft', e.target.value)}
+                      error={step1ValidationAttempted ? step1Errors.approxBuiltUpAreaSqft : undefined}
+                    />
+                  ) : null}
                 </div>
               )}
 

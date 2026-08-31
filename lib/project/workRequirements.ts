@@ -80,9 +80,13 @@ export function getProjectWorkRequirementBlocks(project: {
       false_ceiling_work: 'Interior Work Requirements',
       earthwork: 'Earthwork Requirements',
     };
+    const blocks = filterDisplayRequirementBlocks(getTradeWorkRequirementBlocks(details));
     return {
       title: titles[serviceType],
-      blocks: filterDisplayRequirementBlocks(getTradeWorkRequirementBlocks(details)),
+      blocks:
+        serviceType === 'plumber' || serviceType === 'electrician'
+          ? blocks.filter((block) => block.label !== 'Approx Built-Up Area')
+          : blocks,
     };
   }
 

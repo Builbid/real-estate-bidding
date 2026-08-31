@@ -2479,12 +2479,6 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
           value: formatPlumbingTargetWorkFloors(workFloors, details.customTargetFloors),
         });
       }
-      if (details.approxBuiltUpAreaSqft != null) {
-        blocks.push({
-          label: 'Approx Built-Up Area',
-          value: `${details.approxBuiltUpAreaSqft.toLocaleString('en-IN')} Sq Ft`,
-        });
-      }
       for (const item of floorFixtureCounts) {
         blocks.push({
           label: `${plumbingFloorLabel(item.floor, details.customTargetFloors)} Fixtures`,
@@ -2769,12 +2763,6 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
         blocks.push({
           label: 'Target Work Floor',
           value: formatPlumbingTargetWorkFloors(workFloors, details.customTargetFloors),
-        });
-      }
-      if (details.approxBuiltUpAreaSqft != null) {
-        blocks.push({
-          label: 'Approx Built-Up Area',
-          value: `${details.approxBuiltUpAreaSqft.toLocaleString('en-IN')} Sq Ft`,
         });
       }
       blocks.push({
@@ -3120,10 +3108,6 @@ export function validateTradeDetailsInput(
       input.buildingStoreys && PLUMBING_BUILDING_STOREYS_SET.has(input.buildingStoreys)
         ? input.buildingStoreys
         : null;
-    const approxBuiltUpAreaSqft = parsePositiveNumber(input.approxBuiltUpAreaSqft);
-    if (approxBuiltUpAreaSqft == null) {
-      return { error: 'Enter the approximate built-up area in Sq Ft.' };
-    }
     const requestedPackages = parsePlumbingPackageKinds(input.selectedPackages);
     const floorFixtureCounts = parsePlumberFixtureInput(
       targetFloors,
@@ -3198,7 +3182,6 @@ export function validateTradeDetailsInput(
         targetWorkFloor,
         customTargetFloors,
         buildingStoreys,
-        approxBuiltUpAreaSqft,
         selectedPackages,
         selectedSubOptions,
         floorFixtureCounts,
@@ -3241,10 +3224,6 @@ export function validateTradeDetailsInput(
       return { error: 'Enter the custom / higher floor numbers.' };
     }
     const targetWorkFloor = targetFloors[0];
-    const approxBuiltUpAreaSqft = parsePositiveNumber(input.approxBuiltUpAreaSqft);
-    if (approxBuiltUpAreaSqft == null) {
-      return { error: 'Enter the approximate built-up area in Sq Ft.' };
-    }
     const requestedPackages = parseElectricianPackageKinds(input.electricianPackages);
     const selectedSubOptions = subOptionsForElectricianPackages(
       requestedPackages,
@@ -3266,7 +3245,6 @@ export function validateTradeDetailsInput(
         targetFloors,
         targetWorkFloor,
         customTargetFloors,
-        approxBuiltUpAreaSqft,
         selectedPackages,
         selectedSubOptions,
       },

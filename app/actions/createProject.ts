@@ -240,13 +240,11 @@ export async function createProjectAction(
       }
       insertPayload.trade_details = trade.trade_details
       if (trade.trade_details.service === 'plumber') {
-        insertPayload.floor_area_sqft = trade.trade_details.approxBuiltUpAreaSqft ?? null
         insertPayload.total_floors = trade.trade_details.buildingStoreys
           ? buildingStoreysToTotalFloors(trade.trade_details.buildingStoreys)
           : targetFloorsToTotalFloors(trade.trade_details.targetFloors)
       }
-      if (trade.trade_details.service === 'electrician' && trade.trade_details.approxBuiltUpAreaSqft) {
-        insertPayload.floor_area_sqft = trade.trade_details.approxBuiltUpAreaSqft
+      if (trade.trade_details.service === 'electrician') {
         insertPayload.total_floors = targetFloorsToTotalFloors(trade.trade_details.targetFloors)
       }
       if (
