@@ -16,12 +16,14 @@ import {
   getPlumbingSubOption,
   hasPlumbingUnitRateScope,
   parseTradeDetails,
+  plumbingSubOptionQuantities,
   type BathroomPackage,
   type BathroomPackageSelection,
   type CpvcPipeSize,
   type DrainageInstallMethod,
   type PipingPackageKind,
   type PlumberDetails,
+  type PlumbingFloorFixtureCounts,
   type PlumbingSubOptionId,
   type WaterInstallMethod,
 } from '@/lib/tradeWorkDetails';
@@ -42,6 +44,7 @@ export interface PlumbingBidOptionInput {
   bathroomPackages?: BathroomPackageSelection[];
   pipingPackage?: PipingPackageKind | null;
   selectedSubOptions?: PlumbingSubOptionId[];
+  floorFixtureCounts?: PlumbingFloorFixtureCounts[];
   cpvcPipeSizes: CpvcPipeSize[];
   waterInstallMethods: WaterInstallMethod[];
   includeToiletWastePipe: boolean;
@@ -123,15 +126,18 @@ export function resolvePlumbingSubOptionIds(
 
 export function buildPlumbingUnitRateOptions(
   subOptionIds: PlumbingSubOptionId[],
+  quantities?: Partial<Record<PlumbingSubOptionId, number>>,
 ): PlumbingBidOption[] {
   return subOptionIds.flatMap((id, index) => {
     const option = getPlumbingSubOption(id);
     if (!option) return [];
+    const qty = quantities?.[id];
+    const qtyLabel = qty && qty > 0 ? ` × ${qty}` : '';
     const isPiping = option.isPiping === true || option.unitType === 'per_sqft';
     return [{
       id: option.id,
-      shortLabel: option.label,
-      label: `${optionLetter(index)}: ${option.label}`,
+      shortLabel: `${option.label}${qtyLabel}`,
+      label: `${optionLetter(index)}: ${option.label}${qtyLabel}`,
       unit: 'per_unit' as const,
       unitSuffix: option.unitSuffix,
       weight: option.weight,
@@ -169,7 +175,10 @@ export function countPlumbingBidOptions(input: PlumbingBidOptionInput): number {
 export function buildPlumbingBidOptions(input: PlumbingBidOptionInput): PlumbingBidOption[] {
   const selectedSubOptions = input.selectedSubOptions ?? [];
   if (selectedSubOptions.length > 0) {
-    return buildPlumbingUnitRateOptions(selectedSubOptions);
+    return buildPlumbingUnitRateOptions(
+      selectedSubOptions,
+      plumbingSubOptionQuantities(input.floorFixtureCounts),
+    );
   }
 
   const active = activeBathroomPackageSelections(input.bathroomPackages);
@@ -246,6 +255,7 @@ export function plumbingInputFromDetails(details: PlumberDetails): PlumbingBidOp
     bathroomPackages: details.bathroomPackages,
     pipingPackage: details.pipingPackage ?? null,
     selectedSubOptions: details.selectedSubOptions,
+    floorFixtureCounts: details.floorFixtureCounts,
     cpvcPipeSizes: details.cpvcPipeSizes ?? [],
     waterInstallMethods: details.waterInstallMethods ?? [],
     includeToiletWastePipe: details.includeToiletWastePipe === true,

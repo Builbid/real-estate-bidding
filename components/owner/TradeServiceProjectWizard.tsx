@@ -52,7 +52,8 @@ type Step = 1 | 2 | 3;
 
 const BIDDING_MINUTES = 7;
 
-const PROGRESS_LABELS = ['Project Info', 'Work Requirements', 'Review & Launch'] as const;
+const DEFAULT_PROGRESS_LABELS = ['Project Info', 'Work Requirements', 'Review & Launch'] as const;
+const PLUMBER_PROGRESS_LABELS = ['Project Info', 'Fixture Quantities', 'Review & Launch'] as const;
 
 const BUILDING_TYPE_OPTIONS: { value: TrackType; label: string; description: string }[] = [
   { value: 'RCC', label: 'RCC', description: 'Reinforced cement concrete building' },
@@ -103,6 +104,7 @@ const EMPTY_FORM: FormState = {
   approxBuiltUpAreaSqft: '',
   selectedPackages: [],
   selectedSubOptions: [],
+  floorFixtureCounts: {},
   waterTankFloor: null,
   customWaterTankFloor: '',
   bathroomPackages: emptyBathroomPackageSelections(),
@@ -268,6 +270,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
       approxBuiltUpAreaSqft: form.approxBuiltUpAreaSqft,
       selectedPackages: form.selectedPackages,
       selectedSubOptions: form.selectedSubOptions,
+      floorFixtureCounts: form.floorFixtureCounts,
       waterTankFloor: form.waterTankFloor,
       customWaterTankFloor: form.customWaterTankFloor,
       bathroomPackages: form.bathroomPackages,
@@ -416,6 +419,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
       : [];
 
   const isElectricianCatalog = trade === 'electrician';
+  const progressLabels = trade === 'plumber' ? PLUMBER_PROGRESS_LABELS : DEFAULT_PROGRESS_LABELS;
 
   return (
     <div className={cn('mx-auto space-y-6', isElectricianCatalog ? 'w-full max-w-none' : 'max-w-2xl')}>
@@ -426,7 +430,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
         <p className="text-sm text-gray-700 dark:text-zinc-300 mt-1">
           Registered {tradeLabel.toLowerCase()}s will bid their rate{' '}
           {trade === 'plumber'
-            ? 'as per-unit labour rates for the fittings and piping items you select'
+            ? 'as per-unit labour rates for basin, taps, shower, commode, and geyser on each selected floor'
             : trade === 'electrician'
               ? 'as per-unit labour rates for the wiring and fixture items you select'
               : 'per sqft'}{' '}
@@ -435,7 +439,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
       </div>
 
       <div className="flex items-center gap-1 overflow-x-auto pb-1">
-        {PROGRESS_LABELS.map((label, i) => (
+        {progressLabels.map((label, i) => (
           <div key={label} className="flex items-center gap-1 flex-1 min-w-0">
             <div
               className={cn(
@@ -455,7 +459,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
             >
               {label}
             </span>
-            {i < PROGRESS_LABELS.length - 1 && (
+            {i < progressLabels.length - 1 && (
               <div className="h-px flex-1 bg-secondary mx-1 min-w-[8px]" />
             )}
           </div>
@@ -568,6 +572,11 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                             targetFloors: next,
                             targetWorkFloor: next[0] ?? null,
                             customTargetFloors: next.includes('custom') ? current.customTargetFloors : '',
+                            floorFixtureCounts: Object.fromEntries(
+                              Object.entries(current.floorFixtureCounts).filter(([key]) =>
+                                next.includes(key as (typeof next)[number]),
+                              ),
+                            ) as FormState['floorFixtureCounts'],
                           };
                         });
                         if (step1ValidationAttempted) {
@@ -640,13 +649,17 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
           {step === 2 && (
             <div className="space-y-5">
               <h2 className="text-base font-semibold text-gray-900 dark:text-white">
-                {isPainter ? 'Building Type & Work Requirements' : 'Work Requirements'}
+                {isPainter
+                  ? 'Building Type & Work Requirements'
+                  : trade === 'plumber'
+                    ? 'Fixture Quantities'
+                    : 'Work Requirements'}
               </h2>
               <p className="text-xs font-medium text-gray-700 dark:text-zinc-300 -mt-3">
                 {isPainter
                   ? 'Tell painters the building type, area, primer, materials, and when work should start.'
                   : trade === 'plumber'
-                    ? 'Check the plumbing categories you need, then pick the sub-options plumbers should quote as labour unit rates.'
+                    ? 'Enter how many basins, taps, showers, commodes, and geysers you need on each selected floor.'
                     : trade === 'electrician'
                       ? 'Browse the catalog below and tap items electricians should quote as labour unit rates.'
                       : trade === 'false_ceiling_work'

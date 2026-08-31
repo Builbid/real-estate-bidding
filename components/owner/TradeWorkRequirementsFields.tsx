@@ -1,9 +1,8 @@
 'use client';
 
-import { PlumbingPackageForm } from '@/components/owner/plumber/PlumbingPackageForm';
+import { PlumbingFloorFixtureForm } from '@/components/owner/plumber/PlumbingFloorFixtureForm';
 import { ElectricianPackageForm } from '@/components/owner/electrician/ElectricianPackageForm';
 import { InteriorPackageForm } from '@/components/owner/interior/InteriorPackageForm';
-import { Input } from '@/components/ui/input';
 import { OptionSelectGrid } from '@/components/owner/wizard/OptionSelectCard';
 import { StartTimeAndNotes, WIZARD_SECTION_LABEL } from '@/components/owner/wizard/StartTimeAndNotes';
 import {
@@ -28,6 +27,7 @@ import {
   type PlumbingPackageKind,
   type PlumbingSubOptionId,
   type PlumbingTargetFloor,
+  type PlumbingFixtureCountDraft,
   type PlumbingWaterTankFloor,
   type PlumberScopeType,
   type ProjectStartTimeType,
@@ -56,6 +56,7 @@ export interface TradeWorkFormFields {
   approxBuiltUpAreaSqft: string;
   selectedPackages: PlumbingPackageKind[];
   selectedSubOptions: PlumbingSubOptionId[];
+  floorFixtureCounts: Partial<Record<PlumbingTargetFloor, PlumbingFixtureCountDraft>>;
   waterTankFloor: PlumbingWaterTankFloor | null;
   customWaterTankFloor: string;
   bathroomPackages: BathroomPackageSelection[];
@@ -98,16 +99,11 @@ export function TradeWorkRequirementsFields({
           <p className="text-xs font-medium leading-relaxed rounded-xl border border-amber-500/25 bg-amber-500/5 px-3 py-2.5 text-gray-800 dark:text-zinc-200">
             All bids are strictly for LABOUR CHARGES. Materials must be supplied by the Property Owner.
           </p>
-        <PlumbingPackageForm
-          selectedPackages={form.selectedPackages}
-          selectedSubOptions={form.selectedSubOptions}
-          houseStructure={form.houseStructure}
-          waterTankFloor={form.waterTankFloor}
-          customWaterTankFloor={form.customWaterTankFloor}
-          onChangePackages={(v) => onChange('selectedPackages', v)}
-          onChangeSubOptions={(v) => onChange('selectedSubOptions', v)}
-          onChangeWaterTankFloor={(v) => onChange('waterTankFloor', v)}
-          onChangeCustomWaterTankFloor={(v) => onChange('customWaterTankFloor', v)}
+        <PlumbingFloorFixtureForm
+          targetFloors={form.targetFloors}
+          customTargetFloors={form.customTargetFloors}
+          values={form.floorFixtureCounts}
+          onChange={(v) => onChange('floorFixtureCounts', v)}
         />
         </>
       )}

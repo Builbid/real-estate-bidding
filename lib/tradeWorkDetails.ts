@@ -53,6 +53,22 @@ export type PlumbingHouseStructure = 'assam_type' | 'rcc';
 
 export type PlumbingTargetFloor = 'ground' | 'first' | 'second' | 'custom';
 
+export type PlumbingFixtureKind = 'basin' | 'taps' | 'shower' | 'commode' | 'geyser';
+
+export interface PlumbingFixtureCounts {
+  basin: number;
+  taps: number;
+  shower: number;
+  commode: number;
+  geyser: number;
+}
+
+export interface PlumbingFloorFixtureCounts extends PlumbingFixtureCounts {
+  floor: PlumbingTargetFloor;
+}
+
+export type PlumbingFixtureCountDraft = Record<PlumbingFixtureKind, string>;
+
 export type PlumbingBuildingStoreys = 'single' | 'g_plus_1' | 'g_plus_2' | 'g_plus_3_plus';
 
 export type PlumbingPackageKind =
@@ -284,6 +300,8 @@ export interface PlumberDetails extends TradeDetailsBase {
   selectedPackages?: PlumbingPackageKind[];
   /** Sub-options opened for unit-rate bidding. */
   selectedSubOptions?: PlumbingSubOptionId[];
+  /** Fixture quantities collected per selected work floor. */
+  floorFixtureCounts?: PlumbingFloorFixtureCounts[];
   /** RCC-only: floor where the water tank will be fitted. */
   waterTankFloor?: PlumbingWaterTankFloor | null;
   /** Free-text location when the water tank floor is `custom`. */
@@ -499,6 +517,26 @@ export const PLUMBING_TARGET_FLOOR_OPTIONS: {
   { value: 'second', label: '2nd Floor' },
   { value: 'custom', label: 'Custom / Higher Floors' },
 ];
+
+export const PLUMBING_FIXTURE_FIELDS: {
+  key: PlumbingFixtureKind;
+  label: string;
+  subOption: PlumbingSubOptionId;
+}[] = [
+  { key: 'basin', label: 'No. of Basin', subOption: 'wash_basin' },
+  { key: 'taps', label: 'No. of Taps', subOption: 'taps_accessories' },
+  { key: 'shower', label: 'No. of Shower', subOption: 'overhead_shower' },
+  { key: 'commode', label: 'No. of Commode', subOption: 'western_commode' },
+  { key: 'geyser', label: 'No. of Geyser', subOption: 'geyser' },
+];
+
+export const PLUMBING_FIXTURE_KIND_KEYS: PlumbingFixtureKind[] = PLUMBING_FIXTURE_FIELDS.map(
+  (field) => field.key,
+);
+
+export function emptyPlumbingFixtureDraft(): PlumbingFixtureCountDraft {
+  return { basin: '', taps: '', shower: '', commode: '', geyser: '' };
+}
 
 export const PLUMBING_BUILDING_STOREYS_OPTIONS: {
   value: PlumbingBuildingStoreys;
@@ -1282,6 +1320,162 @@ export function parsePlumbingTargetFloors(raw: unknown): PlumbingTargetFloor[] {
   return next;
 }
 
+export function emptyPlumbingFixtureCounts(): PlumbingFixtureCounts {
+  return { basin: 0, taps: 0, shower: 0, commode: 0, geyser: 0 };
+}
+
+export function parsePlumbingFixtureCounts(raw: unknown): PlumbingFixtureCounts | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const row = raw as Record<string, unknown>;
+  const counts = emptyPlumbingFixtureCounts();
+  for (const key of PLUMBING_FIXTURE_KIND_KEYS) {
+    const n = parseCount(row[key], 0, 50);
+    if (n == null) return null;
+    counts[key] = n;
+  }
+  return counts;
+}
+
+export function parsePlumbingFloorFixtureCounts(raw: unknown): PlumbingFloorFixtureCounts[] {
+  if (!Array.isArray(raw)) return [];
+  const byFloor = new Map<PlumbingTargetFloor, PlumbingFloorFixtureCounts>();
+  for (const item of raw) {
+    if (!item || typeof item !== 'object') continue;
+    const row = item as Record<string, unknown>;
+    const floor = normalizePlumbingTargetFloor(row.floor);
+    if (!floor) continue;
+    const counts = parsePlumbingFixtureCounts(row);
+    if (!counts) continue;
+    byFloor.set(floor, { floor, ...counts });
+  }
+  return PLUMBING_TARGET_FLOOR_OPTIONS.flatMap((opt) => {
+    const item = byFloor.get(opt.value);
+    return item ? [item] : [];
+  });
+}
+
+export function plumbingFloorFixtureTotal(item: PlumbingFixtureCounts): number {
+  return PLUMBING_FIXTURE_KIND_KEYS.reduce((sum, key) => sum + item[key], 0);
+}
+
+export function fixtureCountsToSubOptions(
+  floors: PlumbingFloorFixtureCounts[],
+): PlumbingSubOptionId[] {
+  const quantities = plumbingSubOptionQuantities(floors);
+  return PLUMBING_FIXTURE_FIELDS.flatMap((field) =>
+    quantities[field.subOption] ? [field.subOption] : [],
+  );
+}
+
+export function plumbingSubOptionQuantities(
+  floors: PlumbingFloorFixtureCounts[] | null | undefined,
+): Partial<Record<PlumbingSubOptionId, number>> {
+  const totals = emptyPlumbingFixtureCounts();
+  for (const floor of floors ?? []) {
+    for (const key of PLUMBING_FIXTURE_KIND_KEYS) {
+      totals[key] += floor[key];
+    }
+  }
+  const next: Partial<Record<PlumbingSubOptionId, number>> = {};
+  for (const field of PLUMBING_FIXTURE_FIELDS) {
+    if (totals[field.key] > 0) next[field.subOption] = totals[field.key];
+  }
+  return next;
+}
+
+function parseFixtureDraftCounts(
+  draft: PlumbingFixtureCountDraft | null | undefined,
+): PlumbingFixtureCounts | { error: string } {
+  const counts = emptyPlumbingFixtureCounts();
+  for (const field of PLUMBING_FIXTURE_FIELDS) {
+    const raw = draft?.[field.key]?.trim() ?? '';
+    if (raw === '') {
+      return { error: `Enter ${field.label.toLowerCase()} for each selected floor.` };
+    }
+    const n = parseCount(raw, 0, 50);
+    if (n == null) {
+      return { error: `${field.label} must be a whole number from 0 to 50.` };
+    }
+    counts[field.key] = n;
+  }
+  return counts;
+}
+
+function parsePlumberFixtureInput(
+  targetFloors: PlumbingTargetFloor[],
+  raw:
+    | Partial<Record<PlumbingTargetFloor, PlumbingFixtureCountDraft>>
+    | PlumbingFloorFixtureCounts[]
+    | undefined,
+  customTargetFloors: string | null,
+): PlumbingFloorFixtureCounts[] | { error: string } {
+  if (Array.isArray(raw)) {
+    const parsed = parsePlumbingFloorFixtureCounts(raw).filter((item) =>
+      targetFloors.includes(item.floor),
+    );
+    if (parsed.length !== targetFloors.length) {
+      return { error: 'Enter fixture quantities for each selected floor.' };
+    }
+    for (const item of parsed) {
+      if (plumbingFloorFixtureTotal(item) === 0) {
+        return {
+          error: `Enter at least one fixture quantity for ${plumbingFloorLabel(item.floor, customTargetFloors)}.`,
+        };
+      }
+    }
+    return parsed;
+  }
+
+  const next: PlumbingFloorFixtureCounts[] = [];
+  for (const floor of targetFloors) {
+    const parsed = parseFixtureDraftCounts(raw?.[floor]);
+    if ('error' in parsed) {
+      return {
+        error: parsed.error.replace(
+          'for each selected floor.',
+          `for ${plumbingFloorLabel(floor, customTargetFloors)}.`,
+        ),
+      };
+    }
+    if (plumbingFloorFixtureTotal(parsed) === 0) {
+      return {
+        error: `Enter at least one fixture quantity for ${plumbingFloorLabel(floor, customTargetFloors)}.`,
+      };
+    }
+    next.push({ floor, ...parsed });
+  }
+  return next;
+}
+
+export function formatPlumbingFloorFixtureLine(item: PlumbingFixtureCounts): string {
+  return PLUMBING_FIXTURE_FIELDS.map((field) => `${field.label.replace('No. of ', '')}: ${item[field.key]}`).join(
+    ' · ',
+  );
+}
+
+export function formatPlumbingFixtureScopeSummary(
+  floors: PlumbingFloorFixtureCounts[] | null | undefined,
+): string {
+  if (!floors?.length) return '';
+  const totals = emptyPlumbingFixtureCounts();
+  for (const floor of floors) {
+    for (const key of PLUMBING_FIXTURE_KIND_KEYS) {
+      totals[key] += floor[key];
+    }
+  }
+  return PLUMBING_FIXTURE_FIELDS.flatMap((field) =>
+    totals[field.key] > 0 ? [`${field.label.replace('No. of ', '')} ${totals[field.key]}`] : [],
+  ).join(' · ');
+}
+
+export function plumbingFloorLabel(
+  floor: PlumbingTargetFloor,
+  customText?: string | null,
+): string {
+  if (floor === 'custom' && customText?.trim()) return customText.trim();
+  return PLUMBING_TARGET_FLOOR_OPTIONS.find((o) => o.value === floor)?.label ?? floor;
+}
+
 export function parseCustomTargetFloors(raw: unknown): string | null {
   if (typeof raw !== 'string') return null;
   const trimmed = raw.trim();
@@ -1508,9 +1702,13 @@ export function subOptionsForPackages(
 }
 
 export function hasPlumbingUnitRateScope(
-  details: Pick<PlumberDetails, 'selectedSubOptions' | 'selectedPackages'> | null | undefined,
+  details: Pick<PlumberDetails, 'selectedSubOptions' | 'selectedPackages' | 'floorFixtureCounts'> | null | undefined,
 ): boolean {
-  return (details?.selectedSubOptions?.length ?? 0) > 0 || (details?.selectedPackages?.length ?? 0) > 0;
+  return (
+    (details?.selectedSubOptions?.length ?? 0) > 0 ||
+    (details?.selectedPackages?.length ?? 0) > 0 ||
+    (details?.floorFixtureCounts?.length ?? 0) > 0
+  );
 }
 
 export function formatPlumbingSubOptionSummary(
@@ -1822,11 +2020,7 @@ export function parseTradeDetails(value: unknown): TradeDetails | null {
       TANK_DISTANCE_SET.has(v.tankDistance as TankDistance)
         ? (v.tankDistance as TankDistance)
         : null;
-    const selectedPackages = parsePlumbingPackageKinds(v.selectedPackages);
-    const selectedSubOptions = subOptionsForPackages(
-      selectedPackages,
-      parsePlumbingSubOptionIds(v.selectedSubOptions),
-    );
+    const selectedPackagesFromForm = parsePlumbingPackageKinds(v.selectedPackages);
     const parsedTargetFloors = parsePlumbingTargetFloors(v.targetFloors);
     const parsedWorkFloor = normalizePlumbingTargetFloor(v.targetWorkFloor);
     const customTargetFloors = parseCustomTargetFloors(v.customTargetFloors);
@@ -1852,6 +2046,21 @@ export function parseTradeDetails(value: unknown): TradeDetails | null {
             ? (['ground'] as PlumbingTargetFloor[])
             : packageFloors;
     const targetWorkFloor = parsedWorkFloor ?? targetFloors[0] ?? null;
+    const floorFixtureCounts = parsePlumbingFloorFixtureCounts(v.floorFixtureCounts).filter((item) =>
+      targetFloors.length === 0 ? true : targetFloors.includes(item.floor),
+    );
+    const fixtureSubOptions = fixtureCountsToSubOptions(floorFixtureCounts);
+    const selectedSubOptions =
+      fixtureSubOptions.length > 0
+        ? fixtureSubOptions
+        : subOptionsForPackages(
+            selectedPackagesFromForm,
+            parsePlumbingSubOptionIds(v.selectedSubOptions),
+          );
+    const selectedPackages =
+      fixtureSubOptions.length > 0
+        ? packagesFromSelectedSubOptions(PLUMBING_SCOPE_PACKAGES, selectedSubOptions)
+        : selectedPackagesFromForm;
     const pipingPackage =
       typeof v.pipingPackage === 'string' &&
       PIPING_PACKAGE_SET.has(v.pipingPackage as PipingPackageKind)
@@ -1891,6 +2100,7 @@ export function parseTradeDetails(value: unknown): TradeDetails | null {
       approxBuiltUpAreaSqft,
       selectedPackages,
       selectedSubOptions,
+      floorFixtureCounts,
       waterTankFloor:
         houseStructure === 'rcc' && selectedPackages.includes('water_tank')
           ? waterTankFloor
@@ -2150,7 +2360,11 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
     const activePackages = activeBathroomPackageSelections(details.bathroomPackages);
     const selectedPackages = details.selectedPackages ?? [];
     const selectedSubOptions = details.selectedSubOptions ?? [];
-    const hasUnitRateScope = selectedPackages.length > 0 || selectedSubOptions.length > 0;
+    const floorFixtureCounts = details.floorFixtureCounts ?? [];
+    const hasUnitRateScope =
+      selectedPackages.length > 0 ||
+      selectedSubOptions.length > 0 ||
+      floorFixtureCounts.length > 0;
     const hasPackageSystem = activePackages.length > 0 || Boolean(details.pipingPackage);
     const hasSimplifiedScope = Boolean(
       details.bathroomSize || details.plumbingFloorLevel || details.tankDistance,
@@ -2179,6 +2393,12 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
         blocks.push({
           label: 'Approx Built-Up Area',
           value: `${details.approxBuiltUpAreaSqft.toLocaleString('en-IN')} Sq Ft`,
+        });
+      }
+      for (const item of floorFixtureCounts) {
+        blocks.push({
+          label: `${plumbingFloorLabel(item.floor, details.customTargetFloors)} Fixtures`,
+          value: formatPlumbingFloorFixtureLine(item),
         });
       }
       if (
@@ -2361,10 +2581,13 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
 
     const plumbingBidLabels: string[] = [];
     if (hasUnitRateScope) {
+      const quantities = plumbingSubOptionQuantities(floorFixtureCounts);
       for (const optionId of selectedSubOptions) {
         const option = getPlumbingSubOption(optionId);
         const suffix = option?.unitSuffix ?? '/unit';
-        plumbingBidLabels.push(`${getPlumbingSubOptionLabel(optionId)} (₹ ${suffix})`);
+        const qty = quantities[optionId];
+        const qtyLabel = qty && qty > 0 ? ` × ${qty}` : '';
+        plumbingBidLabels.push(`${getPlumbingSubOptionLabel(optionId)}${qtyLabel} (₹ ${suffix})`);
       }
     } else if (hasPackageSystem) {
       for (const item of activePackages) {
@@ -2646,6 +2869,8 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
 
 export function getTradeScopeLabel(details: TradeDetails): string {
   if (details.service === 'plumber') {
+    const fixtureSummary = formatPlumbingFixtureScopeSummary(details.floorFixtureCounts);
+    if (fixtureSummary) return fixtureSummary;
     const unitSummary = formatPlumbingSubOptionSummary(
       details.selectedPackages,
       details.selectedSubOptions,
@@ -2706,6 +2931,7 @@ export interface TradeDetailsFormInput {
   approxBuiltUpAreaSqft?: string | number | null;
   selectedPackages?: PlumbingPackageKind[];
   selectedSubOptions?: PlumbingSubOptionId[];
+  floorFixtureCounts?: Partial<Record<PlumbingTargetFloor, PlumbingFixtureCountDraft>> | PlumbingFloorFixtureCounts[];
   waterTankFloor?: PlumbingWaterTankFloor | null;
   customWaterTankFloor?: string | null;
   bathroomPackages?: BathroomPackageSelection[];
@@ -2790,17 +3016,30 @@ export function validateTradeDetailsInput(
       return { error: 'Enter the approximate built-up area in Sq Ft.' };
     }
     const requestedPackages = parsePlumbingPackageKinds(input.selectedPackages);
-    const selectedSubOptions = subOptionsForPackages(
-      requestedPackages,
-      parsePlumbingSubOptionIds(input.selectedSubOptions),
+    const floorFixtureCounts = parsePlumberFixtureInput(
+      targetFloors,
+      input.floorFixtureCounts,
+      customTargetFloors,
     );
+    if ('error' in floorFixtureCounts) {
+      return floorFixtureCounts;
+    }
+    const fixtureSubOptions = fixtureCountsToSubOptions(floorFixtureCounts);
+    const selectedSubOptions =
+      fixtureSubOptions.length > 0
+        ? fixtureSubOptions
+        : subOptionsForPackages(
+            requestedPackages,
+            parsePlumbingSubOptionIds(input.selectedSubOptions),
+          );
     if (selectedSubOptions.length === 0) {
-      return { error: 'Select at least one work item.' };
+      return { error: 'Enter fixture quantities for each selected floor.' };
     }
     const selectedPackages = packagesFromSelectedSubOptions(
       PLUMBING_SCOPE_PACKAGES,
       selectedSubOptions,
     );
+    const totalCommode = floorFixtureCounts.reduce((sum, item) => sum + item.commode, 0);
     const requiresTankFloor = houseStructure === 'rcc' && selectedPackages.includes('water_tank');
     const waterTankFloor = requiresTankFloor
       ? parsePlumbingWaterTankFloor(input.waterTankFloor)
@@ -2826,7 +3065,7 @@ export function validateTradeDetailsInput(
         ...base,
         service: 'plumber',
         scopeType: 'full_house',
-        bathrooms: 1,
+        bathrooms: Math.min(20, Math.max(1, totalCommode || 1)),
         kitchens: 1,
         overheadTank: selectedPackages.includes('water_tank'),
         concealedPiping: hasConcealedPiping || smart.concealedPiping,
@@ -2842,6 +3081,7 @@ export function validateTradeDetailsInput(
         approxBuiltUpAreaSqft,
         selectedPackages,
         selectedSubOptions,
+        floorFixtureCounts,
         waterTankFloor,
         customWaterTankFloor,
         bathroomPackages: emptyBathroomPackageSelections(),
