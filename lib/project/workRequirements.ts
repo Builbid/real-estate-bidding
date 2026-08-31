@@ -94,6 +94,11 @@ export function getProjectWorkRequirementBlocks(project: {
   return null;
 }
 
+/** Floor-wise fixture rows belong on the full project page, not compact preview cards. */
+export function isFloorFixtureRequirementLabel(label: string): boolean {
+  return label.trim().toLowerCase().endsWith(' fixtures');
+}
+
 export function isWideRequirementLabel(label: string): boolean {
   return (
     label === 'Additional Requirements' ||

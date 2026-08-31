@@ -29,7 +29,7 @@ import {
   isTradeProject,
 } from '@/lib/project/display';
 import { DRAWING_TYPE_OPTIONS, isDrawingDesignServiceType } from '@/lib/drawingDesign';
-import { getProjectWorkRequirementBlocks } from '@/lib/project/workRequirements';
+import { getProjectWorkRequirementBlocks, isFloorFixtureRequirementLabel } from '@/lib/project/workRequirements';
 import {
   formatShowcaseRemaining,
   getShowcaseCardAction,
@@ -273,7 +273,9 @@ export function ShowcaseProjectCard({
   const budgetDisplay = getProjectBudgetDisplay(project);
   const finishingBadge = getFinishingBadge(project.finishing_level);
   const postedDisplay = formatProjectPostedDisplay(project.created_at);
-  const requirementBlocks = getProjectWorkRequirementBlocks(project)?.blocks ?? null;
+  const requirementBlocks = (getProjectWorkRequirementBlocks(project)?.blocks ?? null)?.filter(
+    (block) => !isFloorFixtureRequirementLabel(block.label),
+  ) ?? null;
 
   const statCells: { label: string; value: string }[] = requirementBlocks
     ? requirementBlocks
