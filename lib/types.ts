@@ -232,6 +232,8 @@ export interface BidRates {
   unit_rates?: Record<string, number>;
   /** Baseline weighted score for plumber unit-rate bids (lowest score ranks first). */
   weighted_index?: number;
+  /** Informational plumber rate for extra long connection lines. Not included in ranking. */
+  running_foot_rate?: number;
 }
 
 /**

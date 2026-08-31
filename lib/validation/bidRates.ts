@@ -126,6 +126,9 @@ export function buildBidRatesPayload(
     ...(rates.weighted_index != null && rates.weighted_index > 0
       ? { weighted_index: rates.weighted_index }
       : {}),
+    ...(rates.running_foot_rate != null && rates.running_foot_rate > 0
+      ? { running_foot_rate: rates.running_foot_rate }
+      : {}),
   };
 }
 

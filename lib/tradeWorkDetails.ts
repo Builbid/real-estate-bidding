@@ -302,6 +302,10 @@ export interface PlumberDetails extends TradeDetailsBase {
   selectedSubOptions?: PlumbingSubOptionId[];
   /** Fixture quantities collected per selected work floor. */
   floorFixtureCounts?: PlumbingFloorFixtureCounts[];
+  /** Concealed vs open-surface fitting selected by the owner. */
+  plumbingFittingType?: PlumbingFittingType | null;
+  /** Optional estimated extra long connection line length in feet. */
+  estimatedLongConnectionLengthFt?: number | null;
   /** RCC-only: floor where the water tank will be fitted. */
   waterTankFloor?: PlumbingWaterTankFloor | null;
   /** Free-text location when the water tank floor is `custom`. */
@@ -518,16 +522,36 @@ export const PLUMBING_TARGET_FLOOR_OPTIONS: {
   { value: 'custom', label: 'Custom / Higher Floors' },
 ];
 
+export type PlumbingFittingType = 'concealed' | 'open_surface';
+
+export const PLUMBING_FITTING_TYPE_OPTIONS: {
+  value: PlumbingFittingType;
+  label: string;
+  description: string;
+}[] = [
+  {
+    value: 'concealed',
+    label: 'Concealed Fitting',
+    description: 'Pipes hidden inside walls after fitting.',
+  },
+  {
+    value: 'open_surface',
+    label: 'Open Surface Fitting',
+    description: 'Pipes run on the outer wall surface.',
+  },
+];
+
 export const PLUMBING_FIXTURE_FIELDS: {
   key: PlumbingFixtureKind;
   label: string;
   subOption: PlumbingSubOptionId;
+  points: number;
 }[] = [
-  { key: 'basin', label: 'No. of Basin', subOption: 'wash_basin' },
-  { key: 'taps', label: 'No. of Taps', subOption: 'taps_accessories' },
-  { key: 'shower', label: 'No. of Shower', subOption: 'overhead_shower' },
-  { key: 'commode', label: 'No. of Commode', subOption: 'western_commode' },
-  { key: 'geyser', label: 'No. of Geyser', subOption: 'geyser' },
+  { key: 'basin', label: 'No. of Basin', subOption: 'wash_basin', points: 1 },
+  { key: 'taps', label: 'No. of Taps', subOption: 'taps_accessories', points: 1 },
+  { key: 'shower', label: 'No. of Shower', subOption: 'overhead_shower', points: 2 },
+  { key: 'commode', label: 'No. of Commode', subOption: 'western_commode', points: 2 },
+  { key: 'geyser', label: 'No. of Geyser', subOption: 'geyser', points: 2 },
 ];
 
 export const PLUMBING_FIXTURE_KIND_KEYS: PlumbingFixtureKind[] = PLUMBING_FIXTURE_FIELDS.map(
@@ -1358,6 +1382,20 @@ export function plumbingFloorFixtureTotal(item: PlumbingFixtureCounts): number {
   return PLUMBING_FIXTURE_KIND_KEYS.reduce((sum, key) => sum + item[key], 0);
 }
 
+export function plumbingFloorPoints(item: PlumbingFixtureCounts): number {
+  return PLUMBING_FIXTURE_FIELDS.reduce((sum, field) => sum + item[field.key] * field.points, 0);
+}
+
+export function formatPlumbingFloorPointBreakdown(item: PlumbingFixtureCounts): string {
+  const parts = PLUMBING_FIXTURE_FIELDS.flatMap((field) =>
+    item[field.key] > 0
+      ? [`${field.label.replace('No. of ', '')} ${item[field.key]}×${field.points}`]
+      : [],
+  );
+  const points = plumbingFloorPoints(item);
+  return parts.length > 0 ? `${points} pts · ${parts.join(' · ')}` : '0 pts';
+}
+
 export function fixtureCountsToSubOptions(
   floors: PlumbingFloorFixtureCounts[],
 ): PlumbingSubOptionId[] {
@@ -1448,9 +1486,11 @@ function parsePlumberFixtureInput(
 }
 
 export function formatPlumbingFloorFixtureLine(item: PlumbingFixtureCounts): string {
-  return PLUMBING_FIXTURE_FIELDS.map((field) => `${field.label.replace('No. of ', '')}: ${item[field.key]}`).join(
-    ' · ',
-  );
+  const fixtures = PLUMBING_FIXTURE_FIELDS.map(
+    (field) => `${field.label.replace('No. of ', '')}: ${item[field.key]}`,
+  ).join(' · ');
+  const points = plumbingFloorPoints(item);
+  return `${fixtures} · ${points} pt${points === 1 ? '' : 's'}`;
 }
 
 export function formatPlumbingFixtureScopeSummary(
@@ -1474,6 +1514,31 @@ export function plumbingFloorLabel(
 ): string {
   if (floor === 'custom' && customText?.trim()) return customText.trim();
   return PLUMBING_TARGET_FLOOR_OPTIONS.find((o) => o.value === floor)?.label ?? floor;
+}
+
+export function parsePlumbingFittingType(raw: unknown): PlumbingFittingType | null {
+  if (raw === 'concealed' || raw === 'open_surface') return raw;
+  if (raw === 'concealed_wall_cutting' || raw === 'concealing') return 'concealed';
+  if (raw === 'open_outer_fitting' || raw === 'non_concealing') return 'open_surface';
+  return null;
+}
+
+export function getPlumbingFittingTypeLabel(
+  value: PlumbingFittingType | null | undefined,
+): string {
+  if (!value) return '';
+  return PLUMBING_FITTING_TYPE_OPTIONS.find((option) => option.value === value)?.label ?? value;
+}
+
+export function plumbingFittingTypeToInstallMethod(
+  value: PlumbingFittingType,
+): WaterInstallMethod {
+  return value === 'concealed' ? 'concealed_wall_cutting' : 'open_outer_fitting';
+}
+
+export function parseEstimatedLongConnectionLengthFt(raw: unknown): number | null {
+  if (raw == null || raw === '') return null;
+  return parseCount(raw, 1, 9999);
 }
 
 export function parseCustomTargetFloors(raw: unknown): string | null {
@@ -1701,13 +1766,19 @@ export function subOptionsForPackages(
   return selected.filter((id) => allowed.has(id));
 }
 
+export function hasPlumbingPointRateScope(
+  details: Pick<PlumberDetails, 'floorFixtureCounts'> | null | undefined,
+): boolean {
+  return (details?.floorFixtureCounts?.length ?? 0) > 0;
+}
+
 export function hasPlumbingUnitRateScope(
   details: Pick<PlumberDetails, 'selectedSubOptions' | 'selectedPackages' | 'floorFixtureCounts'> | null | undefined,
 ): boolean {
+  if (hasPlumbingPointRateScope(details)) return false;
   return (
     (details?.selectedSubOptions?.length ?? 0) > 0 ||
-    (details?.selectedPackages?.length ?? 0) > 0 ||
-    (details?.floorFixtureCounts?.length ?? 0) > 0
+    (details?.selectedPackages?.length ?? 0) > 0
   );
 }
 
@@ -2072,6 +2143,23 @@ export function parseTradeDetails(value: unknown): TradeDetails | null {
     const drainageInstallMethods = includeToiletWastePipe
       ? parseDrainageInstallMethods(v.drainageInstallMethods)
       : [];
+    const plumbingFittingType =
+      parsePlumbingFittingType(v.plumbingFittingType) ??
+      parsePlumbingFittingType(v.fittingType) ??
+      (waterInstallMethods.includes('concealed_wall_cutting')
+        ? 'concealed'
+        : waterInstallMethods.includes('open_outer_fitting')
+          ? 'open_surface'
+          : pipingPackage === 'concealing'
+            ? 'concealed'
+            : pipingPackage === 'non_concealing'
+              ? 'open_surface'
+              : v.concealedPiping === true
+                ? 'concealed'
+                : null);
+    const estimatedLongConnectionLengthFt = parseEstimatedLongConnectionLengthFt(
+      v.estimatedLongConnectionLengthFt,
+    );
     return {
       service: 'plumber',
       projectAddress: address,
@@ -2101,6 +2189,8 @@ export function parseTradeDetails(value: unknown): TradeDetails | null {
       selectedPackages,
       selectedSubOptions,
       floorFixtureCounts,
+      plumbingFittingType,
+      estimatedLongConnectionLengthFt,
       waterTankFloor:
         houseStructure === 'rcc' && selectedPackages.includes('water_tank')
           ? waterTankFloor
@@ -2401,6 +2491,18 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
           value: formatPlumbingFloorFixtureLine(item),
         });
       }
+      if (details.plumbingFittingType) {
+        blocks.push({
+          label: 'Fitting Type',
+          value: getPlumbingFittingTypeLabel(details.plumbingFittingType),
+        });
+      }
+      if (details.estimatedLongConnectionLengthFt != null) {
+        blocks.push({
+          label: 'Estimated Long Connection Line Length',
+          value: `${details.estimatedLongConnectionLengthFt.toLocaleString('en-IN')} ft`,
+        });
+      }
       if (
         selectedPackages.includes('water_tank') &&
         details.houseStructure === 'rcc' &&
@@ -2580,7 +2682,12 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
     }
 
     const plumbingBidLabels: string[] = [];
-    if (hasUnitRateScope) {
+    if (floorFixtureCounts.length > 0) {
+      blocks.push({
+        label: 'Point Weights',
+        value: 'Basin 1 pt · Tap 1 pt · Shower 2 pts · Commode 2 pts · Geyser 2 pts',
+      });
+    } else if (hasUnitRateScope) {
       const quantities = plumbingSubOptionQuantities(floorFixtureCounts);
       for (const optionId of selectedSubOptions) {
         const option = getPlumbingSubOption(optionId);
@@ -2932,6 +3039,8 @@ export interface TradeDetailsFormInput {
   selectedPackages?: PlumbingPackageKind[];
   selectedSubOptions?: PlumbingSubOptionId[];
   floorFixtureCounts?: Partial<Record<PlumbingTargetFloor, PlumbingFixtureCountDraft>> | PlumbingFloorFixtureCounts[];
+  plumbingFittingType?: PlumbingFittingType | null;
+  estimatedLongConnectionLengthFt?: string | number | null;
   waterTankFloor?: PlumbingWaterTankFloor | null;
   customWaterTankFloor?: string | null;
   bathroomPackages?: BathroomPackageSelection[];
@@ -3040,6 +3149,25 @@ export function validateTradeDetailsInput(
       selectedSubOptions,
     );
     const totalCommode = floorFixtureCounts.reduce((sum, item) => sum + item.commode, 0);
+    const plumbingFittingType = parsePlumbingFittingType(input.plumbingFittingType);
+    if (!plumbingFittingType) {
+      return { error: 'Select Concealed Fitting or Open Surface Fitting.' };
+    }
+    const estimatedLongConnectionLengthFt = input.estimatedLongConnectionLengthFt == null
+      || String(input.estimatedLongConnectionLengthFt).trim() === ''
+      ? null
+      : parseEstimatedLongConnectionLengthFt(input.estimatedLongConnectionLengthFt);
+    if (
+      input.estimatedLongConnectionLengthFt != null &&
+      String(input.estimatedLongConnectionLengthFt).trim() !== '' &&
+      estimatedLongConnectionLengthFt == null
+    ) {
+      return { error: 'Estimated long connection line length must be a whole number of feet from 1 to 9999.' };
+    }
+    const installMethod = plumbingFittingTypeToInstallMethod(plumbingFittingType);
+    const pipingPackage: PipingPackageKind =
+      plumbingFittingType === 'concealed' ? 'concealing' : 'non_concealing';
+    const smart = resolvePlumbingPackageDefaults(pipingPackage);
     const requiresTankFloor = houseStructure === 'rcc' && selectedPackages.includes('water_tank');
     const waterTankFloor = requiresTankFloor
       ? parsePlumbingWaterTankFloor(input.waterTankFloor)
@@ -3052,14 +3180,6 @@ export function validateTradeDetailsInput(
     if (requiresTankFloor && waterTankFloor === 'custom' && !customWaterTankFloor) {
       return { error: 'Enter the custom water tank floor location.' };
     }
-    const hasConcealedPiping = selectedSubOptions.some((id) =>
-      CONCEALED_PIPING_SUB_OPTION_IDS.has(id),
-    );
-    const hasOpenPiping = selectedSubOptions.some((id) => OPEN_PIPING_SUB_OPTION_IDS.has(id));
-    const pipingPackage: PipingPackageKind = hasConcealedPiping && !hasOpenPiping
-      ? 'concealing'
-      : 'non_concealing';
-    const smart = resolvePlumbingPackageDefaults(pipingPackage);
     return {
       details: {
         ...base,
@@ -3068,7 +3188,7 @@ export function validateTradeDetailsInput(
         bathrooms: Math.min(20, Math.max(1, totalCommode || 1)),
         kitchens: 1,
         overheadTank: selectedPackages.includes('water_tank'),
-        concealedPiping: hasConcealedPiping || smart.concealedPiping,
+        concealedPiping: plumbingFittingType === 'concealed',
         bathroomPackage: null,
         bathroomSize: null,
         plumbingFloorLevel: targetFloorToPlumbingFloorLevel(targetFloors),
@@ -3082,12 +3202,14 @@ export function validateTradeDetailsInput(
         selectedPackages,
         selectedSubOptions,
         floorFixtureCounts,
+        plumbingFittingType,
+        estimatedLongConnectionLengthFt,
         waterTankFloor,
         customWaterTankFloor,
         bathroomPackages: emptyBathroomPackageSelections(),
         pipingPackage,
         cpvcPipeSizes: smart.cpvcPipeSizes,
-        waterInstallMethods: smart.waterInstallMethods,
+        waterInstallMethods: [installMethod],
         includeToiletWastePipe: selectedPackages.includes('waste_line'),
         drainageInstallMethods: smart.drainageInstallMethods,
       },

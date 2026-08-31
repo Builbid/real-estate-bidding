@@ -15,6 +15,7 @@ import { isTradeServiceType } from '@/lib/trades';
 import type { BidRates, ServiceType, SubConfiguration, TrackType } from '@/lib/types';
 import {
   buildBidRatesPayload,
+  getBidRateFieldError,
   getBidRateRules,
   parseBidDbError,
   validateBidRatesForFloorCount,
@@ -28,9 +29,13 @@ import {
   type ElectricianBidOption,
 } from '@/lib/electricianBid';
 import {
+  buildPlumbingPointRatePayload,
   buildPlumbingUnitRatePayload,
+  isPlumbingPointRateProject,
   parsePlumbingUnitRates,
+  plumbingPointRateKey,
   plumbingWeightageContextFromProject,
+  readPlumbingPointRateFloors,
   readProjectPlumbingBidOptions,
   validatePlumbingUnitRateInputs,
   type PlumbingBidOption,
@@ -208,6 +213,11 @@ export async function submitBidAction(
             total_floors: project.total_floors,
           }).count);
 
+  const pointRateFloors = isPlumbingPointRateProject(project.trade_details)
+    ? readPlumbingPointRateFloors(project)
+    : [];
+  const isPointRateBid = Boolean(scopeBid?.pointRateBid && pointRateFloors.length > 0);
+
   const unitRateOptions = scopeBid?.unitRateBid
     ? readProjectUnitRateOptions(project)
     : [];
@@ -223,6 +233,16 @@ export async function submitBidAction(
       );
   if (!validation.valid) {
     return { error: validation.message ?? 'Invalid bid rates.', success: false };
+  }
+
+  const rateRules = scopeBid?.flexibleRates
+    ? { requireMultipleOfFive: false }
+    : getBidRateRules(project.service_type, profile?.service_type);
+  if (isPointRateBid && rates.running_foot_rate != null && rates.running_foot_rate > 0) {
+    const runningFootError = getBidRateFieldError(rates.running_foot_rate, rateRules);
+    if (runningFootError) {
+      return { error: runningFootError, success: false };
+    }
   }
 
   const earthworkMode = resolveEarthworkBidMode({
@@ -246,13 +266,26 @@ export async function submitBidAction(
       )
     : null;
 
+  const pointRatePayload = isPointRateBid
+    ? buildPlumbingPointRatePayload(
+        Object.fromEntries(
+          pointRateFloors.map((floor, index) => {
+            const key = (['ground_rate', 'first_rate', 'second_rate', 'third_rate'] as const)[index];
+            return [plumbingPointRateKey(floor.floor), key ? (rates[key] ?? 0) : 0];
+          }),
+        ),
+        pointRateFloors,
+        rates.running_foot_rate,
+      )
+    : null;
+
   const ratesPayload = buildBidRatesPayload(
     {
       ...rates,
-      ...(unitRatePayload ?? {}),
+      ...(unitRatePayload ?? pointRatePayload ?? {}),
       bid_unit: earthworkMode
         ? bidUnitForEarthworkMode(earthworkMode)
-        : unitRatePayload
+        : unitRatePayload || pointRatePayload
           ? 'per_point'
           : project.service_type === 'plumber'
             ? (scopeBid?.kind === 'plumbing' ? 'per_running_foot' : 'flat')

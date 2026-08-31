@@ -19,7 +19,11 @@ import { isLegacyCarpenterService } from '@/lib/trades';
 import type { ServiceType, SubConfiguration } from '@/lib/types';
 import { normalizeServiceType } from '@/lib/validation/bidRates';
 import { readProjectInteriorBidOptions } from '@/lib/interiorBid';
-import { readProjectPlumbingBidOptions } from '@/lib/plumberBid';
+import {
+  isPlumbingPointRateProject,
+  readPlumbingPointRateFloors,
+  readProjectPlumbingBidOptions,
+} from '@/lib/plumberBid';
 import { readProjectElectricianBidOptions } from '@/lib/electricianBid';
 
 export const MODULAR_KITCHEN_BID_LABEL = 'Modular Kitchen';
@@ -34,6 +38,8 @@ export interface ScopeRateBidItems {
   rateUnits?: string[];
   optionIds?: string[];
   unitRateBid?: boolean;
+  /** Plumber fixture-point bids: per-floor rate per point, ranked by estimated fixture total. */
+  pointRateBid?: boolean;
 }
 
 const LEGACY_CARPENTER_SCOPE_ORDER: CarpenterScopeType[] = [
@@ -93,6 +99,22 @@ export function resolveScopeRateBidItems(
   const mistriDetails = parseMistriDetails(readNestedProjectDetail(project, 'mistri_details'));
 
   if (service === 'plumber' || tradeDetails?.service === 'plumber') {
+    if (isPlumbingPointRateProject(readNestedProjectDetail(project, 'trade_details'))) {
+      const floors = readPlumbingPointRateFloors(project);
+      if (floors.length > 0) {
+        return {
+          labels: floors.map((floor) => `${floor.label} — Rate Per Point`),
+          count: floors.length,
+          kind: 'plumbing',
+          flexibleRates: false,
+          unitSuffix: '/point',
+          rateUnits: floors.map(() => '/point'),
+          optionIds: floors.map((floor) => `point:${floor.floor}`),
+          unitRateBid: false,
+          pointRateBid: true,
+        };
+      }
+    }
     const options = readProjectPlumbingBidOptions(project);
     if (options.length > 0) {
       const unitRateBid = options.every((option) => option.unit === 'per_unit');

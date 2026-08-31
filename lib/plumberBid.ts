@@ -10,12 +10,16 @@ import {
   activeBathroomPackageSelections,
   formatBathroomPackageBidLabel,
   formatBathroomPackageItem,
+  formatPlumbingFloorPointBreakdown,
   getBathroomPackageLabel,
   getPipingPackageLabel,
   getPlumbingHouseStructureLabel,
   getPlumbingSubOption,
+  hasPlumbingPointRateScope,
   hasPlumbingUnitRateScope,
   parseTradeDetails,
+  plumbingFloorLabel,
+  plumbingFloorPoints,
   plumbingSubOptionQuantities,
   type BathroomPackage,
   type BathroomPackageSelection,
@@ -25,6 +29,7 @@ import {
   type PlumberDetails,
   type PlumbingFloorFixtureCounts,
   type PlumbingSubOptionId,
+  type PlumbingTargetFloor,
   type WaterInstallMethod,
 } from '@/lib/tradeWorkDetails';
 
@@ -280,6 +285,45 @@ export function isPlumbingUnitRateProject(raw: unknown): boolean {
   return Boolean(details && details.service === 'plumber' && hasPlumbingUnitRateScope(details));
 }
 
+export const PLUMBING_RUNNING_FOOT_RATE_KEY = 'running_foot';
+export const PLUMBING_POINT_RATE_PREFIX = 'point:';
+
+const POINT_RATE_FLOOR_KEYS = ['ground_rate', 'first_rate', 'second_rate', 'third_rate'] as const;
+
+export function plumbingPointRateKey(floor: PlumbingTargetFloor): string {
+  return `${PLUMBING_POINT_RATE_PREFIX}${floor}`;
+}
+
+export function isPlumbingPointRateProject(raw: unknown): boolean {
+  const details = parseTradeDetails(raw);
+  return Boolean(details && details.service === 'plumber' && hasPlumbingPointRateScope(details));
+}
+
+export function readPlumbingPointRateFloors(project: {
+  trade_details?: unknown;
+  sub_configuration?: unknown;
+}): Array<{
+  floor: PlumbingTargetFloor;
+  label: string;
+  points: number;
+  breakdown: string;
+  counts: PlumbingFloorFixtureCounts;
+}> {
+  const details = parseTradeDetails(
+    readNestedProjectDetail(project, 'trade_details'),
+  );
+  if (!details || details.service !== 'plumber' || !details.floorFixtureCounts?.length) {
+    return [];
+  }
+  return details.floorFixtureCounts.map((item) => ({
+    floor: item.floor,
+    label: plumbingFloorLabel(item.floor, details.customTargetFloors),
+    points: plumbingFloorPoints(item),
+    breakdown: formatPlumbingFloorPointBreakdown(item),
+    counts: item,
+  }));
+}
+
 export function readProjectPlumbingBidOptions(project: {
   trade_details?: unknown;
   sub_configuration?: unknown;
@@ -402,4 +446,105 @@ export function buildPlumbingUnitRatePayload(
     weighted_index: weightedIndex,
     bid_unit: 'per_point',
   };
+}
+
+export function parsePlumbingRunningFootRate(rates: {
+  running_foot_rate?: number | string | null;
+  unit_rates?: Record<string, number> | null;
+} | null | undefined): number | null {
+  const dedicated = Number(rates?.running_foot_rate);
+  if (Number.isFinite(dedicated) && dedicated > 0) return dedicated;
+  const nested = rates?.unit_rates?.[PLUMBING_RUNNING_FOOT_RATE_KEY];
+  if (typeof nested === 'number' && Number.isFinite(nested) && nested > 0) return nested;
+  return null;
+}
+
+export function parsePlumbingPointRateInputs(
+  rates: { unit_rates?: Record<string, number> | null } | null | undefined,
+  floors: Array<{ floor: PlumbingTargetFloor }>,
+): Record<string, number> {
+  const unitRates = parsePlumbingUnitRates(rates?.unit_rates);
+  const next: Record<string, number> = {};
+  for (const item of floors) {
+    const key = plumbingPointRateKey(item.floor);
+    const value = unitRates[key];
+    if (typeof value === 'number' && value > 0) next[key] = value;
+  }
+  return next;
+}
+
+export function plumbingPointRatesToFloorKeys(
+  pointRates: Record<string, number>,
+  floors: Array<{ floor: PlumbingTargetFloor }>,
+): Partial<Record<(typeof POINT_RATE_FLOOR_KEYS)[number], number>> {
+  const next: Partial<Record<(typeof POINT_RATE_FLOOR_KEYS)[number], number>> = {};
+  floors.forEach((item, index) => {
+    const floorKey = POINT_RATE_FLOOR_KEYS[index];
+    if (!floorKey) return;
+    const value = pointRates[plumbingPointRateKey(item.floor)];
+    if (value != null && value > 0) next[floorKey] = value;
+  });
+  return next;
+}
+
+export function computePlumbingPointBidTotal(
+  pointRates: Record<string, number>,
+  floors: Array<{ floor: PlumbingTargetFloor; points: number }>,
+): number {
+  return floors.reduce((sum, item) => {
+    const rate = pointRates[plumbingPointRateKey(item.floor)] ?? 0;
+    return sum + item.points * rate;
+  }, 0);
+}
+
+export function buildPlumbingPointRatePayload(
+  pointRates: Record<string, number>,
+  floors: Array<{ floor: PlumbingTargetFloor; points: number }>,
+  runningFootRate?: number | null,
+): {
+  ground_rate: number;
+  first_rate?: number;
+  second_rate?: number;
+  third_rate?: number;
+  unit_rates: Record<string, number>;
+  running_foot_rate?: number;
+  bid_unit: 'per_point';
+} {
+  const unitRates: Record<string, number> = {};
+  const amounts: number[] = [];
+  floors.forEach((item, index) => {
+    const rate = pointRates[plumbingPointRateKey(item.floor)] ?? 0;
+    unitRates[plumbingPointRateKey(item.floor)] = rate;
+    amounts[index] = item.points * rate;
+  });
+  const running = runningFootRate != null && runningFootRate > 0 ? runningFootRate : null;
+  if (running != null) unitRates[PLUMBING_RUNNING_FOOT_RATE_KEY] = running;
+  return {
+    ground_rate: amounts[0] ?? 0,
+    first_rate: amounts[1],
+    second_rate: amounts[2],
+    third_rate: amounts[3],
+    unit_rates: unitRates,
+    ...(running != null ? { running_foot_rate: running } : {}),
+    bid_unit: 'per_point',
+  };
+}
+
+export function getPlumbingPointRateDisplayEntries(
+  rates: {
+    unit_rates?: Record<string, number> | null;
+    running_foot_rate?: number | null;
+  } | null | undefined,
+  floors: Array<{ floor: PlumbingTargetFloor; label: string; points: number }>,
+): Array<{ label: string; value: number; suffix: string }> {
+  const pointRates = parsePlumbingPointRateInputs(rates, floors);
+  return floors.flatMap((item) => {
+    const value = pointRates[plumbingPointRateKey(item.floor)];
+    if (value == null || value <= 0) return [];
+    return [{
+      label: `${item.label} (${item.points} pt${item.points === 1 ? '' : 's'})`,
+      value,
+      suffix: '/point',
+    }];
+  });
 }

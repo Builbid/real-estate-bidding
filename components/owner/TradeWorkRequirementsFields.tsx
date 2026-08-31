@@ -3,11 +3,13 @@
 import { PlumbingFloorFixtureForm } from '@/components/owner/plumber/PlumbingFloorFixtureForm';
 import { ElectricianPackageForm } from '@/components/owner/electrician/ElectricianPackageForm';
 import { InteriorPackageForm } from '@/components/owner/interior/InteriorPackageForm';
+import { Input } from '@/components/ui/input';
 import { OptionSelectGrid } from '@/components/owner/wizard/OptionSelectCard';
 import { StartTimeAndNotes, WIZARD_SECTION_LABEL } from '@/components/owner/wizard/StartTimeAndNotes';
 import {
   EARTHWORK_SOIL_VEHICLE_OPTIONS,
   EARTHWORK_TYPE_OPTIONS,
+  PLUMBING_FITTING_TYPE_OPTIONS,
   type BathroomPackage,
   type BathroomPackageSelection,
   type BathroomRoomSize,
@@ -28,6 +30,7 @@ import {
   type PlumbingSubOptionId,
   type PlumbingTargetFloor,
   type PlumbingFixtureCountDraft,
+  type PlumbingFittingType,
   type PlumbingWaterTankFloor,
   type PlumberScopeType,
   type ProjectStartTimeType,
@@ -57,6 +60,8 @@ export interface TradeWorkFormFields {
   selectedPackages: PlumbingPackageKind[];
   selectedSubOptions: PlumbingSubOptionId[];
   floorFixtureCounts: Partial<Record<PlumbingTargetFloor, PlumbingFixtureCountDraft>>;
+  plumbingFittingType: PlumbingFittingType | null;
+  estimatedLongConnectionLengthFt: string;
   waterTankFloor: PlumbingWaterTankFloor | null;
   customWaterTankFloor: string;
   bathroomPackages: BathroomPackageSelection[];
@@ -104,6 +109,32 @@ export function TradeWorkRequirementsFields({
           customTargetFloors={form.customTargetFloors}
           values={form.floorFixtureCounts}
           onChange={(v) => onChange('floorFixtureCounts', v)}
+        />
+        <FieldGroup label="Fitting Type">
+          <OptionSelectGrid
+            options={PLUMBING_FITTING_TYPE_OPTIONS}
+            value={form.plumbingFittingType}
+            onSelect={(v) => {
+              onChange('plumbingFittingType', v);
+              onChange(
+                'fittingType',
+                v === 'concealed' ? 'concealed_wall_cutting' : 'open_outer_fitting',
+              );
+              onChange('concealedPiping', v === 'concealed');
+            }}
+            columns={2}
+          />
+        </FieldGroup>
+        <Input
+          label="Estimated Long Connection Line Length (optional)"
+          type="text"
+          inputMode="numeric"
+          placeholder="e.g. 40"
+          suffix={<span className="text-xs font-medium text-muted-foreground">ft</span>}
+          value={form.estimatedLongConnectionLengthFt}
+          onChange={(e) =>
+            onChange('estimatedLongConnectionLengthFt', e.target.value.replace(/[^\d]/g, '').slice(0, 4))
+          }
         />
         </>
       )}

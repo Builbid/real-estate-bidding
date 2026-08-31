@@ -121,6 +121,9 @@ export function isWideRequirementLabel(label: string): boolean {
     label === 'Ceiling & Wall Paneling Work' ||
     label === 'Modular Woodwork & Cabinetry' ||
     label === 'Fixtures, Glass & Hardware Fitting' ||
+    label === 'Fitting Type' ||
+    label === 'Estimated Long Connection Line Length' ||
+    label === 'Point Weights' ||
     label === 'Water Tank Floor' ||
     label.endsWith(' Fixtures') ||
     label === 'Target Floors' ||
