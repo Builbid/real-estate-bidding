@@ -3,7 +3,6 @@
 import { PlumbingFloorFixtureForm } from '@/components/owner/plumber/PlumbingFloorFixtureForm';
 import { ElectricianPackageForm } from '@/components/owner/electrician/ElectricianPackageForm';
 import { InteriorPackageForm } from '@/components/owner/interior/InteriorPackageForm';
-import { Input } from '@/components/ui/input';
 import { OptionSelectGrid } from '@/components/owner/wizard/OptionSelectCard';
 import { StartTimeAndNotes, WIZARD_SECTION_LABEL } from '@/components/owner/wizard/StartTimeAndNotes';
 import {
@@ -125,17 +124,6 @@ export function TradeWorkRequirementsFields({
             columns={2}
           />
         </FieldGroup>
-        <Input
-          label="Estimated Long Connection Line Length (optional)"
-          type="text"
-          inputMode="numeric"
-          placeholder="e.g. 40"
-          suffix={<span className="text-xs font-medium text-muted-foreground">ft</span>}
-          value={form.estimatedLongConnectionLengthFt}
-          onChange={(e) =>
-            onChange('estimatedLongConnectionLengthFt', e.target.value.replace(/[^\d]/g, '').slice(0, 4))
-          }
-        />
         </>
       )}
 

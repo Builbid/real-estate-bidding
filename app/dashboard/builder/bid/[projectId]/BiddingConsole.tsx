@@ -91,7 +91,6 @@ import { shouldShowBidFloorBreakdown, resolveProjectBidFloors } from '@/lib/bid/
 import { createClient } from '@/lib/supabase/client';
 import { isTradeServiceType } from '@/lib/trades';
 import { isDrawingDesignServiceType } from '@/lib/drawingDesign';
-import { parseTradeDetails } from '@/lib/tradeWorkDetails';
 import {
   getProjectConfigOrDrawingMeta,
   getProjectServiceBadgeLabel,
@@ -193,9 +192,6 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
   const isPlumbingBid = scopeBid?.kind === 'plumbing';
   const isPlumbingPointRateBid = Boolean(scopeBid?.pointRateBid);
   const plumbingPointFloors = isPlumbingPointRateBid ? readPlumbingPointRateFloors(project) : [];
-  const plumberDetails = parseTradeDetails(project.trade_details);
-  const estimatedConnectionLengthFt =
-    plumberDetails?.service === 'plumber' ? plumberDetails.estimatedLongConnectionLengthFt ?? null : null;
   const isElectricianBid = scopeBid?.kind === 'electrician';
   const isInteriorBid = scopeBid?.kind === 'interior';
   const isTradeUnitRateBid = Boolean(scopeBid?.unitRateBid);
@@ -1068,11 +1064,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                   <BidWorkItemCard
                     title="Rate per Linear Running Foot"
                     category="Separate line item — not ranked"
-                    description={
-                      estimatedConnectionLengthFt
-                        ? `Client estimate: ${estimatedConnectionLengthFt.toLocaleString('en-IN')} ft. This rate is informational and is not added to the estimated bid total.`
-                        : 'Optional extra rate for long connection lines. This is not added to the estimated bid total or ranking.'
-                    }
+                    description="Optional extra rate for long connection lines. This is not added to the estimated bid total or ranking."
                   >
                     <Input
                       type="text"
