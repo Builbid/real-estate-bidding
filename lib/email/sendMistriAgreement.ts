@@ -46,7 +46,7 @@ function buildOfficialAgreementHtml(payload: MistriAgreementPayload): string {
         ${row('Built-up area', payload.slabAreaLabel)}
         ${payload.bidRows.filter((r) => !/^Built-up area/i.test(r.label)).map((r) => row(r.label, r.value)).join('')}
         ${row('Agreed start', payload.agreedStartDate)}
-        ${row('Payment milestone', payload.paymentMilestoneClause)}
+        ${row('Agreed completion', payload.agreedCompletionDate)}
       </table>
     </div>
     <p style="color:#fecaca;font-size:13px;line-height:1.5;margin:0 0 16px">
@@ -76,8 +76,8 @@ function buildOfficialAgreementText(payload: MistriAgreementPayload): string {
       .filter((row) => !/^Built-up area/i.test(row.label))
       .map((row) => `${row.label}: ${row.value}`),
     `Agreed start: ${payload.agreedStartDate}`,
+    `Agreed completion: ${payload.agreedCompletionDate}`,
     'Payment: BuilBid gateway only. Cash to Mistri is prohibited.',
-    payload.paymentMilestoneClause,
     'Delay penalty: 5% after 10-day grace. Material delays by homeowner extend the deadline.',
   ]
     .filter(Boolean)

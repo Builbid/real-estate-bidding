@@ -5,7 +5,6 @@ import {
   type ConstructionTypesMap,
 } from '@/lib/buildingConfig';
 import {
-  formatMistriStartTime,
   getMistriWorkRequirementBlocks,
   hasAssamMistriFloorWork,
   isAssamMistriFloor,
@@ -45,9 +44,8 @@ const SCOPE_LABELS_EXCLUDED_FROM_AGREEMENT = new Set([
   'Approximate built-up Area (Sqft)',
 ]);
 
-/** Per-floor payment milestone recorded on the Mistri agreement (no stage-wise %). */
-export const MISTRI_SLAB_PAYMENT_CLAUSE =
-  'For each selected floor separately, the Homeowner shall ensure that a minimum of sixty percent (60%) of that floor\'s contracted Head Mason (Mistri) labour cost is paid through the BuilBid payment gateway on or before completion of slab casting of the same floor.';
+/** Blank line on the printed agreement so dates can be filled in by hand on site. */
+export const AGREEMENT_MANUAL_DATE_BLANK = '________________________';
 
 export function isMistriCivilService(serviceType?: string | null): boolean {
   const value = (serviceType ?? 'labour_contractor').toLowerCase();
@@ -113,7 +111,7 @@ export interface MistriAgreementPayload {
   slabAreaLabel: string;
   districtPincode: string;
   agreedStartDate: string;
-  paymentMilestoneClause: string;
+  agreedCompletionDate: string;
 }
 
 function formatRsPerSqft(value: number): string {
@@ -161,12 +159,8 @@ export function isRccStructuralMistriWork(project: MistriAgreementProjectInput):
   return hasRccBuildingContext(project) && hasStructuralMistriScope(project);
 }
 
-function buildSiteAddress(
-  project: MistriAgreementProjectInput,
-  owner: MistriAgreementParty,
-): string {
+function buildSiteAddress(project: MistriAgreementProjectInput): string {
   const parts = [
-    owner.address?.trim(),
     project.district?.trim(),
     project.state?.trim(),
     project.pincode?.trim(),
@@ -266,7 +260,7 @@ export function buildMistriAgreementPayload(input: {
       timeStyle: 'short',
     }),
     isRccStructural,
-    siteAddress: buildSiteAddress(project, owner),
+    siteAddress: buildSiteAddress(project),
     client: owner,
     mistri,
     scopeRows: buildScopeRows(project),
@@ -278,8 +272,8 @@ export function buildMistriAgreementPayload(input: {
     slabAreaLabel:
       builtUpAreaSqft > 0 ? `${builtUpAreaSqft.toLocaleString('en-IN')} sq. ft.` : '—',
     districtPincode,
-    agreedStartDate: details ? formatMistriStartTime(details) : '—',
-    paymentMilestoneClause: MISTRI_SLAB_PAYMENT_CLAUSE,
+    agreedStartDate: AGREEMENT_MANUAL_DATE_BLANK,
+    agreedCompletionDate: AGREEMENT_MANUAL_DATE_BLANK,
   };
 }
 
@@ -473,20 +467,13 @@ export function generateMistriAgreementPdfBytes(payload: MistriAgreementPayload)
     { bold: true, fill: [254, 226, 226] },
   );
   y = drawRows(doc, payload.bidRows, y, margin);
-  y = drawParagraph(
-    doc,
-    `Payment Milestone: ${payload.paymentMilestoneClause}`,
-    y,
-    margin,
-    { bold: true },
-  );
 
   y = drawSectionTitle(doc, '4. Timelines, Delays & Penalty Terms', y, margin);
   y = drawRows(
     doc,
     [
-      { label: 'Agreed start date', value: payload.agreedStartDate },
-      { label: 'Agreed completion date', value: 'To be confirmed on-site with the BuilBid Field Coordinator after material availability is verified.' },
+      { label: 'Agreed start date', value: payload.agreedStartDate || AGREEMENT_MANUAL_DATE_BLANK },
+      { label: 'Agreed completion date', value: payload.agreedCompletionDate || AGREEMENT_MANUAL_DATE_BLANK },
       { label: 'Grace extension allowed', value: '10 Calendar Days (Penalty Free)' },
     ],
     y,

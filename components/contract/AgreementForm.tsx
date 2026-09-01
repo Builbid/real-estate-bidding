@@ -15,8 +15,8 @@ export interface AgreementFormProps {
   acceptedRateLabel: string;
   rateRows: { label: string; value: string }[];
   scopePreview: { label: string; value: string }[];
-  paymentMilestoneClause: string;
   agreedStartDate: string;
+  agreedCompletionDate: string;
 }
 
 export function AgreementForm({
@@ -28,8 +28,8 @@ export function AgreementForm({
   acceptedRateLabel,
   rateRows,
   scopePreview,
-  paymentMilestoneClause,
   agreedStartDate,
+  agreedCompletionDate,
 }: AgreementFormProps) {
   const [downloading, setDownloading] = useState(false);
   const [sending, setSending] = useState(false);
@@ -135,6 +135,12 @@ export function AgreementForm({
             </dt>
             <dd className="font-medium text-foreground">{agreedStartDate}</dd>
           </div>
+          <div>
+            <dt className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Agreed completion
+            </dt>
+            <dd className="font-medium text-foreground">{agreedCompletionDate}</dd>
+          </div>
         </dl>
 
         <div className="rounded-lg border border-red-500/25 bg-red-500/5 px-3 py-2.5 text-xs text-foreground leading-relaxed">
@@ -143,19 +149,6 @@ export function AgreementForm({
           paid directly to the Mistri is prohibited and voids platform guarantees. The accepted rate
           is fixed and non-negotiable after award.
         </div>
-
-        {paymentMilestoneClause && (
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-              Payment milestone
-            </p>
-            <p className="text-xs text-foreground leading-relaxed">{paymentMilestoneClause}</p>
-            <p className="text-[11px] text-muted-foreground mt-2">
-              10-day grace after the completion date. Unexcused Mistri delay beyond grace: 5%
-              deduction from labour payout. Material delays by the homeowner extend the deadline.
-            </p>
-          </div>
-        )}
 
         {scopePreview.length > 0 && (
           <div>

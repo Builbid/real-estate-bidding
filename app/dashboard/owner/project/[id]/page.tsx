@@ -188,8 +188,8 @@ export default async function OwnerProjectPage({ params }: PageProps) {
             acceptedRateLabel={mistriAgreement.acceptedRateLabel}
             rateRows={mistriAgreement.bidRows}
             scopePreview={mistriAgreement.scopeRows}
-            paymentMilestoneClause={mistriAgreement.paymentMilestoneClause}
             agreedStartDate={mistriAgreement.agreedStartDate}
+            agreedCompletionDate={mistriAgreement.agreedCompletionDate}
           />
         )}
 
