@@ -197,7 +197,7 @@ const MISTRI_HOUSE_TYPE_OPTIONS: {
 
 function AssamTypeGraphic() {
   return (
-    <svg viewBox="0 0 128 96" className="h-[4.75rem] w-[6.25rem]" aria-hidden>
+    <svg viewBox="0 0 128 96" className="h-10 w-[3.25rem]" aria-hidden>
       <ellipse cx="64" cy="88" rx="50" ry="8" fill="#86efac" opacity="0.55" />
       <rect x="26" y="46" width="76" height="38" rx="3" fill="#fde68a" />
       <rect x="26" y="46" width="76" height="10" fill="#fcd34d" />
@@ -217,7 +217,7 @@ function AssamTypeGraphic() {
 
 function RccStructureGraphic() {
   return (
-    <svg viewBox="0 0 128 96" className="h-[4.75rem] w-[6.25rem]" aria-hidden>
+    <svg viewBox="0 0 128 96" className="h-10 w-[3.25rem]" aria-hidden>
       <ellipse cx="64" cy="88" rx="48" ry="8" fill="#93c5fd" opacity="0.5" />
       <rect x="28" y="14" width="72" height="70" rx="4" fill="#64748b" />
       <rect x="28" y="14" width="72" height="8" rx="4" fill="#475569" />
@@ -251,27 +251,27 @@ function HouseTypeCard({
       type="button"
       onClick={onClick}
       className={cn(
-        'relative flex min-h-[11.5rem] w-full flex-col items-center justify-center gap-3 rounded-2xl border-2 px-3 py-5 text-center transition-all',
+        'relative flex min-h-[5.75rem] w-full flex-col items-center justify-center gap-1.5 rounded-xl border px-3 py-3 text-center transition-all',
         selected
-          ? 'border-emerald-500 bg-emerald-500/12 shadow-md shadow-emerald-500/15'
+          ? 'border-emerald-500/70 bg-emerald-500/15 shadow-sm shadow-emerald-500/10'
           : 'border-border bg-card hover:border-emerald-400/60 hover:bg-emerald-500/5',
       )}
     >
       <span
         className={cn(
-          'flex h-[5.5rem] w-[5.5rem] items-center justify-center rounded-2xl',
+          'flex h-10 w-12 items-center justify-center rounded-lg',
           type === 'assam' ? 'bg-amber-100 dark:bg-amber-500/15' : 'bg-sky-100 dark:bg-sky-500/15',
         )}
       >
         {type === 'assam' ? <AssamTypeGraphic /> : <RccStructureGraphic />}
       </span>
-      <span className="text-sm font-bold text-gray-900 dark:text-white sm:text-base">{label}</span>
+      <span className="text-xs font-semibold text-gray-900 dark:text-white">{label}</span>
       {selected ? (
-        <CheckCircle2 className="absolute right-3 top-3 h-5 w-5 text-emerald-500 dark:text-emerald-400" />
+        <CheckCircle2 className="absolute right-2.5 top-2.5 h-4 w-4 text-emerald-500 dark:text-emerald-400" />
       ) : (
         <span
           aria-hidden
-          className="absolute right-3 top-3 h-5 w-5 rounded-full border-2 border-gray-300 dark:border-zinc-500"
+          className="absolute right-2.5 top-2.5 h-4 w-4 rounded-full border border-gray-300 dark:border-zinc-500"
         />
       )}
     </button>
