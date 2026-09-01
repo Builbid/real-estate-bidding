@@ -34,7 +34,6 @@ import {
   MISTRI_RCC_SCOPE_OPTIONS,
   MISTRI_START_TIME_OPTIONS,
   MISTRI_YES_NO_OPTIONS,
-  STRUCTURAL_FRAMING_CONTINUITY_MESSAGE,
   UPPER_FLOOR_WALL_LOCKED_BY_LOWER_STRUCTURE,
   currentFloorPlanFromFloorWork,
   floorPlanUpperCount,
@@ -44,8 +43,6 @@ import {
   getMistriRccScopeLabel,
   getMistriWorkRequirementBlocks,
   isAssamMistriFloor,
-  isStructuralFramingDisconnected,
-  isStructuralRccScope,
   isUpperFloorWallScopeBlocked,
   mistriContractTypeRequiredForFloorWork,
   mistriFloorUpperCount,
@@ -1088,11 +1085,6 @@ export function LabourContractorProjectWizard() {
                 const entry = form.floorWorkById[key] ?? EMPTY_FLOOR_WORK;
                 const isAssam = isAssamMistriFloor(fw.floorId);
                 const selectedScope = rccScopeFromWorkTypes(entry.workTypes);
-                const framingDisconnected = isStructuralFramingDisconnected(
-                  fw.floorId,
-                  fw.customFloorNumber,
-                  assembledFloorWork,
-                );
                 const wallLocked = isUpperFloorWallScopeBlocked(
                   fw.floorId,
                   assembledFloorWork,
@@ -1231,10 +1223,6 @@ export function LabourContractorProjectWizard() {
                         {MISTRI_RCC_SCOPE_OPTIONS.map((opt) => {
                           const selected = selectedScope === opt.value;
                           const optionLocked = opt.value === 'wall_plaster_only' && wallLocked;
-                          const showFramingNotice =
-                            selected &&
-                            isStructuralRccScope(opt.value) &&
-                            framingDisconnected;
                           return (
                             <div key={opt.value} className="space-y-2">
                               <OptionCardButton
@@ -1259,11 +1247,6 @@ export function LabourContractorProjectWizard() {
                                   {UPPER_FLOOR_WALL_LOCKED_BY_LOWER_STRUCTURE}
                                 </p>
                               )}
-                              {showFramingNotice && (
-                                <p className="px-1 text-[11px] font-medium text-amber-800 dark:text-amber-200">
-                                  {STRUCTURAL_FRAMING_CONTINUITY_MESSAGE}
-                                </p>
-                              )}
                               {opt.value === 'full_construction' && selected && (
                                 <div className="ml-2 space-y-3 rounded-xl border border-emerald-500/20 bg-emerald-50/60 p-3 dark:bg-emerald-500/5">
                                   <label className="flex items-start gap-2 text-sm font-semibold text-gray-900 dark:text-zinc-100">
@@ -1276,15 +1259,13 @@ export function LabourContractorProjectWizard() {
                                           fw.floorId,
                                           {
                                             includeFineFlooring: e.target.checked,
-                                            flooringMaterial: e.target.checked
-                                              ? entry.flooringMaterial
-                                              : null,
+                                            flooringMaterial: null,
                                           },
                                           fw.customFloorNumber,
                                         )
                                       }
                                     />
-                                    <span>Include Tile Fitting Work?</span>
+                                    <span>Include Flooring Work?</span>
                                   </label>
                                   {entry.includeFineFlooring === true && (
                                     <NestedChoiceButtons

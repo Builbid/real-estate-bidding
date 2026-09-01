@@ -701,8 +701,8 @@ export function formatMistriRccScopeDescription(
       ? optionLabel(MISTRI_FLOORING_MATERIAL_OPTIONS, flooringMaterial)
       : null;
     return material
-      ? `${label} + Tile Fitting Work (${material})`
-      : `${label} + Tile Fitting Work`;
+      ? `${label} + Flooring Work (${material})`
+      : `${label} + Flooring Work`;
   }
   return label;
 }
@@ -1608,9 +1608,9 @@ export function formatMistriFloorWorkTypes(
       if (extras?.includeFineFlooring) {
         if (extras.flooringMaterial) {
           const material = optionLabel(flooringOptions, extras.flooringMaterial);
-          return `${base} + Tile Fitting Work (${material})`;
+          return `${base} + Flooring Work (${material})`;
         }
-        return `${base} + Tile Fitting Work`;
+        return `${base} + Flooring Work`;
       }
       if (extras?.includeFineFlooring === false) {
         return isAssam ? `${base} (no fine flooring)` : base;
