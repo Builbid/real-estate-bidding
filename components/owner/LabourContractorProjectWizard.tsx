@@ -190,19 +190,93 @@ type MistriHouseType = 'assam' | 'rcc';
 const MISTRI_HOUSE_TYPE_OPTIONS: {
   value: MistriHouseType;
   label: string;
-  note: string;
 }[] = [
-  {
-    value: 'assam',
-    label: 'Assam Type',
-    note: 'Single-storey Assam Type house — roof truss, roofing sheet, and foundation depth on the next step.',
-  },
-  {
-    value: 'rcc',
-    label: 'RCC Structure',
-    note: 'RCC multi-storey construction — select floors, then choose Scope of Work for each floor.',
-  },
+  { value: 'assam', label: 'Assam Type' },
+  { value: 'rcc', label: 'RCC Structure' },
 ];
+
+function AssamTypeGraphic() {
+  return (
+    <svg viewBox="0 0 128 96" className="h-[4.75rem] w-[6.25rem]" aria-hidden>
+      <ellipse cx="64" cy="88" rx="50" ry="8" fill="#86efac" opacity="0.55" />
+      <rect x="26" y="46" width="76" height="38" rx="3" fill="#fde68a" />
+      <rect x="26" y="46" width="76" height="10" fill="#fcd34d" />
+      <polygon points="18,50 64,12 110,50" fill="#ea580c" />
+      <polygon points="28,50 64,20 100,50" fill="#f97316" />
+      <rect x="61" y="12" width="6" height="10" rx="1" fill="#9a3412" />
+      <rect x="32" y="62" width="5" height="22" rx="1" fill="#92400e" />
+      <rect x="91" y="62" width="5" height="22" rx="1" fill="#92400e" />
+      <rect x="55" y="60" width="18" height="24" rx="2" fill="#b45309" />
+      <rect x="34" y="54" width="14" height="12" rx="1.5" fill="#38bdf8" />
+      <rect x="80" y="54" width="14" height="12" rx="1.5" fill="#38bdf8" />
+      <rect x="36" y="56" width="10" height="8" fill="#7dd3fc" />
+      <rect x="82" y="56" width="10" height="8" fill="#7dd3fc" />
+    </svg>
+  );
+}
+
+function RccStructureGraphic() {
+  return (
+    <svg viewBox="0 0 128 96" className="h-[4.75rem] w-[6.25rem]" aria-hidden>
+      <ellipse cx="64" cy="88" rx="48" ry="8" fill="#93c5fd" opacity="0.5" />
+      <rect x="28" y="14" width="72" height="70" rx="4" fill="#64748b" />
+      <rect x="28" y="14" width="72" height="8" rx="4" fill="#475569" />
+      <rect x="34" y="10" width="12" height="6" rx="1" fill="#94a3b8" />
+      <rect x="36" y="26" width="14" height="12" rx="1.5" fill="#38bdf8" />
+      <rect x="56" y="26" width="14" height="12" rx="1.5" fill="#7dd3fc" />
+      <rect x="76" y="26" width="14" height="12" rx="1.5" fill="#38bdf8" />
+      <rect x="36" y="44" width="14" height="12" rx="1.5" fill="#7dd3fc" />
+      <rect x="56" y="44" width="14" height="12" rx="1.5" fill="#38bdf8" />
+      <rect x="76" y="44" width="14" height="12" rx="1.5" fill="#7dd3fc" />
+      <rect x="36" y="62" width="14" height="12" rx="1.5" fill="#38bdf8" />
+      <rect x="76" y="62" width="14" height="12" rx="1.5" fill="#38bdf8" />
+      <rect x="54" y="68" width="20" height="16" rx="1.5" fill="#1e293b" />
+    </svg>
+  );
+}
+
+function HouseTypeCard({
+  selected,
+  onClick,
+  label,
+  type,
+}: {
+  selected: boolean;
+  onClick: () => void;
+  label: string;
+  type: MistriHouseType;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'relative flex min-h-[11.5rem] w-full flex-col items-center justify-center gap-3 rounded-2xl border-2 px-3 py-5 text-center transition-all',
+        selected
+          ? 'border-emerald-500 bg-emerald-500/12 shadow-md shadow-emerald-500/15'
+          : 'border-border bg-card hover:border-emerald-400/60 hover:bg-emerald-500/5',
+      )}
+    >
+      <span
+        className={cn(
+          'flex h-[5.5rem] w-[5.5rem] items-center justify-center rounded-2xl',
+          type === 'assam' ? 'bg-amber-100 dark:bg-amber-500/15' : 'bg-sky-100 dark:bg-sky-500/15',
+        )}
+      >
+        {type === 'assam' ? <AssamTypeGraphic /> : <RccStructureGraphic />}
+      </span>
+      <span className="text-sm font-bold text-gray-900 dark:text-white sm:text-base">{label}</span>
+      {selected ? (
+        <CheckCircle2 className="absolute right-3 top-3 h-5 w-5 text-emerald-500 dark:text-emerald-400" />
+      ) : (
+        <span
+          aria-hidden
+          className="absolute right-3 top-3 h-5 w-5 rounded-full border-2 border-gray-300 dark:border-zinc-500"
+        />
+      )}
+    </button>
+  );
+}
 
 interface FormState {
   location: string;
@@ -788,23 +862,15 @@ export function LabourContractorProjectWizard() {
 
               <div className="flex flex-col gap-1.5">
                 <label className={SECTION_LABEL}>House type</label>
-                <p className={HELPER_TEXT}>
-                  Choose Assam Type or RCC Structure. For RCC, select floors next, then choose Scope of Work for each floor.
-                </p>
-                <div className="grid grid-cols-1 gap-2 mt-1">
+                <div className="mt-1 grid grid-cols-2 gap-3">
                   {MISTRI_HOUSE_TYPE_OPTIONS.map((opt) => (
-                    <OptionCardButton
+                    <HouseTypeCard
                       key={opt.value}
+                      type={opt.value}
+                      label={opt.label}
                       selected={form.houseType === opt.value}
                       onClick={() => setHouseType(opt.value)}
-                    >
-                      <span className="block">
-                        <span className="block">{opt.label}</span>
-                        <span className="mt-1 block text-[10px] font-medium leading-snug text-muted-foreground normal-case tracking-normal">
-                          {opt.note}
-                        </span>
-                      </span>
-                    </OptionCardButton>
+                    />
                   ))}
                 </div>
                 {step1ValidationAttempted && step1Errors.houseType && (
