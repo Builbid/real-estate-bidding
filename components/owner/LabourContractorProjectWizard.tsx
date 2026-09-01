@@ -51,6 +51,7 @@ import {
   isStructuralRccScope,
   isUpperFloorWallScopeBlocked,
   mistriContractTypeRequiredForFloorWork,
+  mistriFloorUpperCount,
   mistriFoundationProvisionRequired,
   parseCustomFloorSequence,
   parseFoundationCustomFloorCount,
@@ -83,6 +84,61 @@ const SECTION_LABEL =
   'text-xs font-semibold text-gray-800 dark:text-zinc-100 uppercase tracking-wider';
 const HELPER_TEXT =
   'text-[11px] font-medium text-gray-700 dark:text-zinc-300 leading-relaxed';
+
+const FLOOR_CARD_THEMES = [
+  {
+    card: 'border-sky-300/90 bg-gradient-to-br from-sky-100 via-sky-50 to-white shadow-sky-200/50 dark:from-sky-950/50 dark:via-sky-950/20 dark:to-card dark:border-sky-500/35 dark:shadow-none',
+    bar: 'bg-sky-500',
+    badge: 'bg-sky-600 text-white',
+  },
+  {
+    card: 'border-violet-300/90 bg-gradient-to-br from-violet-100 via-violet-50 to-white shadow-violet-200/50 dark:from-violet-950/50 dark:via-violet-950/20 dark:to-card dark:border-violet-500/35 dark:shadow-none',
+    bar: 'bg-violet-500',
+    badge: 'bg-violet-600 text-white',
+  },
+  {
+    card: 'border-amber-300/90 bg-gradient-to-br from-amber-100 via-amber-50 to-white shadow-amber-200/50 dark:from-amber-950/50 dark:via-amber-950/20 dark:to-card dark:border-amber-500/35 dark:shadow-none',
+    bar: 'bg-amber-500',
+    badge: 'bg-amber-600 text-white',
+  },
+  {
+    card: 'border-rose-300/90 bg-gradient-to-br from-rose-100 via-rose-50 to-white shadow-rose-200/50 dark:from-rose-950/50 dark:via-rose-950/20 dark:to-card dark:border-rose-500/35 dark:shadow-none',
+    bar: 'bg-rose-500',
+    badge: 'bg-rose-600 text-white',
+  },
+  {
+    card: 'border-teal-300/90 bg-gradient-to-br from-teal-100 via-teal-50 to-white shadow-teal-200/50 dark:from-teal-950/50 dark:via-teal-950/20 dark:to-card dark:border-teal-500/35 dark:shadow-none',
+    bar: 'bg-teal-500',
+    badge: 'bg-teal-600 text-white',
+  },
+  {
+    card: 'border-indigo-300/90 bg-gradient-to-br from-indigo-100 via-indigo-50 to-white shadow-indigo-200/50 dark:from-indigo-950/50 dark:via-indigo-950/20 dark:to-card dark:border-indigo-500/35 dark:shadow-none',
+    bar: 'bg-indigo-500',
+    badge: 'bg-indigo-600 text-white',
+  },
+  {
+    card: 'border-orange-300/90 bg-gradient-to-br from-orange-100 via-orange-50 to-white shadow-orange-200/50 dark:from-orange-950/50 dark:via-orange-950/20 dark:to-card dark:border-orange-500/35 dark:shadow-none',
+    bar: 'bg-orange-500',
+    badge: 'bg-orange-600 text-white',
+  },
+  {
+    card: 'border-fuchsia-300/90 bg-gradient-to-br from-fuchsia-100 via-fuchsia-50 to-white shadow-fuchsia-200/50 dark:from-fuchsia-950/50 dark:via-fuchsia-950/20 dark:to-card dark:border-fuchsia-500/35 dark:shadow-none',
+    bar: 'bg-fuchsia-500',
+    badge: 'bg-fuchsia-600 text-white',
+  },
+] as const;
+
+const ASSAM_CARD_THEME = {
+  card: 'border-emerald-300/90 bg-gradient-to-br from-emerald-100 via-emerald-50 to-white shadow-emerald-200/50 dark:from-emerald-950/50 dark:via-emerald-950/20 dark:to-card dark:border-emerald-500/35 dark:shadow-none',
+  bar: 'bg-emerald-500',
+  badge: 'bg-emerald-600 text-white',
+} as const;
+
+function floorCardTheme(floorId: MistriFloorId, customFloorNumber?: number | null) {
+  if (isAssamMistriFloor(floorId)) return ASSAM_CARD_THEME;
+  const level = mistriFloorUpperCount(floorId, customFloorNumber);
+  return FLOOR_CARD_THEMES[Math.abs(level) % FLOOR_CARD_THEMES.length];
+}
 
 interface FloorWorkForm {
   workTypes: MistriFloorWorkType[];
@@ -1033,14 +1089,29 @@ export function LabourContractorProjectWizard() {
                   fw.customFloorNumber,
                 );
                 const title = formatMistriFloorWorkLabel(fw);
+                const theme = floorCardTheme(fw.floorId, fw.customFloorNumber);
 
                 return (
                   <div
                     key={key}
-                    className="rounded-xl border border-border/80 bg-muted/20 p-3 space-y-3"
+                    className={cn(
+                      'relative overflow-hidden rounded-2xl border p-4 pl-5 space-y-3 shadow-md',
+                      theme.card,
+                    )}
                   >
-                    <div className="space-y-1">
-                      <p className="text-sm font-semibold text-foreground">{title}</p>
+                    <span
+                      aria-hidden
+                      className={cn('absolute inset-y-0 left-0 w-1.5 rounded-l-2xl', theme.bar)}
+                    />
+                    <div className="space-y-1.5">
+                      <p
+                        className={cn(
+                          'inline-flex max-w-full items-center rounded-full px-2.5 py-1 text-xs font-bold tracking-wide',
+                          theme.badge,
+                        )}
+                      >
+                        {title}
+                      </p>
                       <p className={HELPER_TEXT}>
                         {isAssam
                           ? 'Full finishing upto Plastering and Roof work is included. Select roof truss, roofing sheet, flooring, and foundation depth.'
