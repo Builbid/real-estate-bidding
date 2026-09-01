@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { loadMistriAgreementPayload } from '@/lib/contract/loadMistriAgreement';
-import { sendOfficialMistriAgreementEmail } from '@/lib/email/sendMistriAgreement';
+import { sendOfficialMistriAgreementEmail, getOfficialAgreementRecipients } from '@/lib/email/sendMistriAgreement';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -46,6 +46,6 @@ export async function POST(request: Request) {
   return NextResponse.json({
     ok: true,
     projectId,
-    recipients: ['official@builbid.in', 'contact@builbid.in'],
+    recipients: getOfficialAgreementRecipients(),
   });
 }

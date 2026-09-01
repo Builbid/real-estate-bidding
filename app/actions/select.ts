@@ -6,7 +6,9 @@ import { sendSelectionNotification, sendUserNotificationEmail } from '@/lib/emai
 import { sendOfficialMistriAgreementEmail } from '@/lib/email/sendMistriAgreement'
 import {
   buildMistriAgreementPayload,
+  generateMistriAgreementPdfBytes,
   isMistriCivilService,
+  mistriAgreementFileName,
 } from '@/lib/contract/mistriAgreement'
 import { getConstructionLabel } from '@/lib/utils'
 import { formatPackageRateRange } from '@/lib/firm/bidDisplay'
@@ -187,6 +189,64 @@ export async function selectBuilderAction(
       console.warn('Admin client unavailable — builder contact details may be partial in email.')
     }
 
+    const isMistriProject = isMistriCivilService(existing.service_type)
+    let agreementPayload = null as ReturnType<typeof buildMistriAgreementPayload> | null
+    let agreementAttachment: Array<{ filename: string; content: Buffer; contentType: string }> | undefined
+    if (isMistriProject) {
+      try {
+        agreementPayload = buildMistriAgreementPayload({
+          project: {
+            id: existing.id,
+            title: existing.title,
+            district: existing.district,
+            state: existing.state,
+            pincode: existing.pincode,
+            description: existing.description,
+            track_type: existing.track_type as TrackType,
+            sub_configuration: (existing.sub_configuration ?? {}) as SubConfiguration,
+            building_types: existing.building_types,
+            construction_types: (existing.construction_types ?? null) as ConstructionTypesMap | null,
+            total_floors: existing.total_floors,
+            plot_area_sqft: existing.plot_area_sqft,
+            floor_area_sqft: existing.floor_area_sqft,
+            mistri_details: existing.mistri_details,
+            service_type: existing.service_type,
+          },
+          bid: winningBid
+            ? {
+                id: winningBid.id,
+                single_rate: winningBid.single_rate,
+                total_sum_metric: winningBid.total_sum_metric,
+                rates: winningBid.rates as BidRates | null,
+              }
+            : null,
+          owner: {
+            name: ownerProfile?.full_name ?? 'Client',
+            email: ownerProfile?.email,
+            mobile: ownerProfile?.mobile,
+            address: ownerProfile?.physical_address,
+          },
+          mistri: {
+            name: builderFull?.full_name ?? builderLabel,
+            email: builderFull?.email,
+            mobile: builderFull?.mobile,
+            address: builderFull?.physical_address,
+            companyName: builderFull?.company_name,
+            gstNumber: builderFull?.gst_number ?? null,
+            yearsInBusiness: builderFull?.years_in_business ?? null,
+            isVerified: builderFull?.is_verified ?? null,
+          },
+        })
+        agreementAttachment = [{
+          filename: mistriAgreementFileName(existing.id),
+          content: Buffer.from(generateMistriAgreementPdfBytes(agreementPayload)),
+          contentType: 'application/pdf',
+        }]
+      } catch (pdfErr) {
+        console.error('Mistri agreement PDF generation failed (non-fatal):', pdfErr)
+      }
+    }
+
     await sendSelectionNotification({
       projectTitle:     existing.title,
       projectDistrict:  existing.district,
@@ -202,7 +262,7 @@ export async function selectBuilderAction(
       builderEmail:     builderFull?.email              ?? 'N/A',
       builderMobile:    builderFull?.mobile             ?? null,
       builderAddress:   builderFull?.physical_address   ?? null,
-    })
+    }, agreementAttachment)
 
     await Promise.all([
       sendUserNotificationEmail({
@@ -219,51 +279,8 @@ export async function selectBuilderAction(
       }),
     ])
 
-    if (isMistriCivilService(existing.service_type)) {
+    if (agreementPayload) {
       try {
-        const agreementPayload = buildMistriAgreementPayload({
-        project: {
-          id: existing.id,
-          title: existing.title,
-          district: existing.district,
-          state: existing.state,
-          pincode: existing.pincode,
-          description: existing.description,
-          track_type: existing.track_type as TrackType,
-          sub_configuration: (existing.sub_configuration ?? {}) as SubConfiguration,
-          building_types: existing.building_types,
-          construction_types: (existing.construction_types ?? null) as ConstructionTypesMap | null,
-          total_floors: existing.total_floors,
-          plot_area_sqft: existing.plot_area_sqft,
-          floor_area_sqft: existing.floor_area_sqft,
-          mistri_details: existing.mistri_details,
-          service_type: existing.service_type,
-        },
-        bid: winningBid
-          ? {
-              id: winningBid.id,
-              single_rate: winningBid.single_rate,
-              total_sum_metric: winningBid.total_sum_metric,
-              rates: winningBid.rates as BidRates | null,
-            }
-          : null,
-        owner: {
-          name: ownerProfile?.full_name ?? 'Client',
-          email: ownerProfile?.email,
-          mobile: ownerProfile?.mobile,
-          address: ownerProfile?.physical_address,
-        },
-        mistri: {
-          name: builderFull?.full_name ?? builderLabel,
-          email: builderFull?.email,
-          mobile: builderFull?.mobile,
-          address: builderFull?.physical_address,
-          companyName: builderFull?.company_name,
-          gstNumber: builderFull?.gst_number ?? null,
-          yearsInBusiness: builderFull?.years_in_business ?? null,
-          isVerified: builderFull?.is_verified ?? null,
-        },
-      })
         await sendOfficialMistriAgreementEmail(agreementPayload)
       } catch (agreementErr) {
         console.error('Official mistri agreement email failed (non-fatal):', agreementErr)

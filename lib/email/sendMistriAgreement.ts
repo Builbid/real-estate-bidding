@@ -1,5 +1,6 @@
 import { getMailTransporter } from '@/lib/email/sendNotification';
 import {
+  BUILBID_CORP_GMAIL,
   BUILBID_OFFICIAL_AGREEMENT_EMAILS,
   generateMistriAgreementPdfBytes,
   mistriAgreementEmailSubject,
@@ -77,13 +78,29 @@ function buildOfficialAgreementText(payload: MistriAgreementPayload): string {
     .join('\n');
 }
 
+/** Official inboxes only — always includes builbidcorp@gmail.com and the SMTP GMAIL_USER. */
+export function getOfficialAgreementRecipients(): string[] {
+  const recipients = new Set<string>();
+  for (const address of BUILBID_OFFICIAL_AGREEMENT_EMAILS) {
+    recipients.add(address.toLowerCase());
+  }
+  recipients.add(BUILBID_CORP_GMAIL.toLowerCase());
+  const gmailUser = process.env.GMAIL_USER?.trim();
+  if (gmailUser) recipients.add(gmailUser.toLowerCase());
+  return [...recipients];
+}
+
 /** Emails the signed mistri agreement PDF only to BuilBid official addresses. */
 export async function sendOfficialMistriAgreementEmail(
   payload: MistriAgreementPayload,
 ): Promise<void> {
   const { transporter, from } = getMailTransporter();
   const pdfBytes = generateMistriAgreementPdfBytes(payload);
-  const to = [...BUILBID_OFFICIAL_AGREEMENT_EMAILS];
+  const to = getOfficialAgreementRecipients();
+
+  if (to.length === 0) {
+    throw new Error('No official agreement recipients configured.');
+  }
 
   const info = await transporter.sendMail({
     from,

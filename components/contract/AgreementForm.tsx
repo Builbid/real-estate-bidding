@@ -73,7 +73,7 @@ export function AgreementForm({
       if (!res.ok) {
         throw new Error(body?.error || 'Could not send the official agreement email.');
       }
-      setMessage(`PDF sent to ${BUILBID_OFFICIAL_AGREEMENT_EMAILS.join(' and ')}.`);
+      setMessage(`PDF sent to ${BUILBID_OFFICIAL_AGREEMENT_EMAILS.join(', ')}.`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Email dispatch failed.');
     } finally {
@@ -154,7 +154,7 @@ export function AgreementForm({
 
         <p className="flex items-start gap-2 text-[11px] text-muted-foreground leading-relaxed">
           <ShieldCheck className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-emerald-600" />
-          An official copy is emailed only to {BUILBID_OFFICIAL_AGREEMENT_EMAILS.join(' and ')} when
+          An official copy is emailed to {BUILBID_OFFICIAL_AGREEMENT_EMAILS.join(', ')} when
           the Head Mason is selected. It is not sent to the client or mistri from this dispatch.
         </p>
 

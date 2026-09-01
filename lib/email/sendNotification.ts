@@ -240,7 +240,10 @@ function buildHtml(d: SelectionEmailData): string {
 </html>`;
 }
 
-export async function sendSelectionNotification(data: SelectionEmailData): Promise<void> {
+export async function sendSelectionNotification(
+  data: SelectionEmailData,
+  attachments?: Array<{ filename: string; content: Buffer; contentType: string }>,
+): Promise<void> {
   const { transporter, from } = getMailTransporter();
   const gmailUser = process.env.GMAIL_USER!.trim();
 
@@ -251,7 +254,8 @@ export async function sendSelectionNotification(data: SelectionEmailData): Promi
       ? `Construction Firm Selected — ${data.projectTitle} (${data.projectDistrict})`
       : `Builder Selected — ${data.projectTitle} (${data.projectDistrict})`,
     html:    buildHtml(data),
+    attachments: attachments?.length ? attachments : undefined,
   });
 
-  console.log('Selection email sent:', info.messageId);
+  console.log('Selection email sent:', info.messageId, '→', gmailUser);
 }

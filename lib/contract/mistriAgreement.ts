@@ -22,11 +22,11 @@ import { readNestedProjectDetail } from '@/lib/project/storedDetails';
 import type { BidRates, ServiceType, SubConfiguration, TrackType } from '@/lib/types';
 import { averageFromSumMetric, getConstructionLabel, TRACK_LABELS } from '@/lib/utils';
 
-/** Official BuilBid inboxes that receive signed mistri agreements (never client or mistri). */
-export const BUILBID_OFFICIAL_AGREEMENT_EMAILS = [
-  'official@builbid.in',
-  'contact@builbid.in',
-] as const;
+/** Official mailbox that already receives selection notices (GMAIL_USER). */
+export const BUILBID_CORP_GMAIL = 'builbidcorp@gmail.com';
+
+/** Default official recipients for mistri agreement PDFs. */
+export const BUILBID_OFFICIAL_AGREEMENT_EMAILS = [BUILBID_CORP_GMAIL] as const;
 
 const STRUCTURAL_CIVIL_TYPES: ReadonlySet<string> = new Set<MistriCivilWorkType | string>([
   'complete_full_structure',
@@ -492,7 +492,7 @@ export function generateMistriAgreementPdfBytes(payload: MistriAgreementPayload)
   doc.setFontSize(8);
   doc.setTextColor(100);
   const footer = doc.splitTextToSize(
-    'This PDF is an official BuilBid platform record of the awarded Mistri / civil work bid. A stamped legal construction contract, if required, is executed separately between the parties. Generated for official@builbid.in / contact@builbid.in only.',
+    'This PDF is an official BuilBid platform record of the awarded Mistri / civil work bid. A stamped legal construction contract, if required, is executed separately between the parties. Generated for builbidcorp@gmail.com.',
     pageW - margin * 2,
   ) as string[];
   doc.text(footer, margin, y);
