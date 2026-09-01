@@ -248,12 +248,20 @@ export interface BidRates {
     slabAreaSqft: number;
     civilRate: number;
     civilCost: number;
+    flooringRate?: number;
+    flooringMaterial?: string;
   }>;
   /**
    * Mistri add-on: tile fitting rate in ₹ per sq. ft. of floor area.
    * Informational only — not added to total_civil_cost or ranking.
+   * Legacy global field; prefer flooring_rates for new bids.
    */
   tile_fitting_rate?: number;
+  /**
+   * Mistri add-on: flooring fitting rate per selected floor (₹ / sq. ft. of floor area).
+   * Informational only — not added to total_civil_cost or ranking.
+   */
+  flooring_rates?: Record<string, number>;
 }
 
 /**

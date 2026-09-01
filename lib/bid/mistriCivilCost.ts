@@ -1,8 +1,13 @@
 import { resolveProjectBidFloors } from '@/lib/bid/floorRateDisplay';
 import {
   formatMistriFloorWorkLabel,
+  isAssamMistriFloor,
+  MISTRI_ASSAM_FLOORING_MATERIAL_OPTIONS,
+  MISTRI_FLOORING_MATERIAL_OPTIONS,
   parseMistriDetails,
   sortMistriFloorWork,
+  type MistriFloorId,
+  type MistriFloorWork,
 } from '@/lib/mistriDetails';
 import { readNestedProjectDetail } from '@/lib/project/storedDetails';
 import type { Bid, BidFloorRateKey, BidRates, Project, SubConfiguration, TrackType } from '@/lib/types';
@@ -20,6 +25,9 @@ export interface MistriCivilFloor {
   label: string;
   slabAreaSqft: number;
   rateKey?: BidFloorRateKey;
+  includeFlooring: boolean;
+  flooringMaterial?: string | null;
+  flooringMaterialLabel?: string | null;
 }
 
 export interface MistriFloorCivilBreakdown {
@@ -28,6 +36,16 @@ export interface MistriFloorCivilBreakdown {
   slabAreaSqft: number;
   civilRate: number;
   civilCost: number;
+  flooringRate?: number;
+  flooringMaterial?: string;
+}
+
+export interface MistriFlooringRateDisplayEntry {
+  floorId: string;
+  floorLabel: string;
+  materialLabel: string;
+  label: string;
+  rate: number;
 }
 
 export interface MistriCivilCostProject {
@@ -42,6 +60,34 @@ export interface MistriCivilCostProject {
 
 function toRateInputLabel(raw: string): string {
   return raw.replace(/^RCC\s+/i, '').trim() || raw;
+}
+
+export function flooringFittingTitle(materialLabel: string): string {
+  return `${materialLabel} Fitting Rate`;
+}
+
+export function flooringFittingFieldLabel(materialLabel: string): string {
+  return `₹ ${materialLabel} Rate per sq. ft. of floor area`;
+}
+
+function resolveFlooringMaterialLabel(
+  material: string | null | undefined,
+  floorId: MistriFloorId,
+): string {
+  if (!material) return 'Flooring';
+  const options = isAssamMistriFloor(floorId)
+    ? MISTRI_ASSAM_FLOORING_MATERIAL_OPTIONS
+    : MISTRI_FLOORING_MATERIAL_OPTIONS;
+  return (
+    options.find((option) => option.value === material)?.label
+    ?? MISTRI_FLOORING_MATERIAL_OPTIONS.find((option) => option.value === material)?.label
+    ?? MISTRI_ASSAM_FLOORING_MATERIAL_OPTIONS.find((option) => option.value === material)?.label
+    ?? 'Flooring'
+  );
+}
+
+function floorHasFlooringWork(fw: MistriFloorWork): boolean {
+  return fw.includeFineFlooring === true || fw.workTypes.includes('flooring');
 }
 
 export function isMistriCivilCostProject(
@@ -81,15 +127,24 @@ export function resolveMistriCivilFloors(project: MistriCivilCostProject): Mistr
   );
 
   if (work.length > 0) {
-    return work.map((fw, index) => ({
-      floorId:
-        fw.floorId === 'custom'
-          ? `custom:${fw.customFloorNumber ?? index}`
-          : fw.floorId,
-      label: toRateInputLabel(formatMistriFloorWorkLabel(fw)),
-      slabAreaSqft: builtUpAreaSqft,
-      rateKey: FLOOR_RATE_KEYS[index],
-    }));
+    return work.map((fw, index) => {
+      const includeFlooring = floorHasFlooringWork(fw);
+      const sourceFloorId = fw.floorId;
+      return {
+        floorId:
+          fw.floorId === 'custom'
+            ? `custom:${fw.customFloorNumber ?? index}`
+            : fw.floorId,
+        label: toRateInputLabel(formatMistriFloorWorkLabel(fw)),
+        slabAreaSqft: builtUpAreaSqft,
+        rateKey: FLOOR_RATE_KEYS[index],
+        includeFlooring,
+        flooringMaterial: includeFlooring ? (fw.flooringMaterial ?? null) : null,
+        flooringMaterialLabel: includeFlooring
+          ? resolveFlooringMaterialLabel(fw.flooringMaterial, sourceFloorId)
+          : null,
+      };
+    });
   }
 
   const floors = resolveProjectBidFloors({
@@ -100,12 +155,16 @@ export function resolveMistriCivilFloors(project: MistriCivilCostProject): Mistr
     mistri_details: project.mistri_details,
   });
   const labels = floors.labels.length > 0 ? floors.labels : ['Selected floor'];
+  const includeFlooring = details?.civilWorkTypes?.includes('tile_marble_flooring') === true;
 
   return labels.map((label, index) => ({
     floorId: label,
     label,
     slabAreaSqft: builtUpAreaSqft,
     rateKey: FLOOR_RATE_KEYS[index],
+    includeFlooring,
+    flooringMaterial: includeFlooring ? 'tile' : null,
+    flooringMaterialLabel: includeFlooring ? 'Flooring' : null,
   }));
 }
 
@@ -125,22 +184,69 @@ export function civilRatesFromBid(
   });
 }
 
+export function parseFlooringRatesFromBid(
+  rates: Partial<BidRates> | null | undefined,
+  floors: MistriCivilFloor[],
+): Record<string, number> {
+  const stored = rates?.flooring_rates;
+  const breakdown = Array.isArray(rates?.floor_civil_breakdown)
+    ? rates.floor_civil_breakdown
+    : [];
+  const legacy = parseTileFittingRate(rates);
+  const result: Record<string, number> = {};
+
+  for (const floor of floors) {
+    if (!floor.includeFlooring) continue;
+    const fromMap = stored?.[floor.floorId];
+    if (typeof fromMap === 'number' && Number.isFinite(fromMap) && fromMap > 0) {
+      result[floor.floorId] = fromMap;
+      continue;
+    }
+    const fromBreakdown = breakdown.find((row) => row.floorId === floor.floorId)?.flooringRate;
+    if (typeof fromBreakdown === 'number' && Number.isFinite(fromBreakdown) && fromBreakdown > 0) {
+      result[floor.floorId] = fromBreakdown;
+      continue;
+    }
+    if (legacy != null) {
+      result[floor.floorId] = legacy;
+    }
+  }
+
+  return result;
+}
+
 export function buildMistriCivilCostPayload(
   floors: MistriCivilFloor[],
   civilRates: number[],
-  tileFittingRate?: number | null,
+  flooringRates?: Record<string, number> | null,
 ): BidRates {
   const floor_civil_breakdown: MistriFloorCivilBreakdown[] = floors.map((floor, index) => {
     const civilRate = civilRates[index] ?? 0;
+    const flooringRate = floor.includeFlooring
+      ? (flooringRates?.[floor.floorId] ?? 0)
+      : 0;
     return {
       floorId: floor.floorId,
       label: floor.label,
       slabAreaSqft: floor.slabAreaSqft,
       civilRate,
       civilCost: computeMistriFloorCivilCost(floor.slabAreaSqft, civilRate),
+      ...(floor.includeFlooring && flooringRate > 0
+        ? {
+            flooringRate,
+            flooringMaterial: floor.flooringMaterialLabel ?? 'Flooring',
+          }
+        : {}),
     };
   });
   const total_civil_cost = floor_civil_breakdown.reduce((sum, row) => sum + row.civilCost, 0);
+  const flooring_rates: Record<string, number> = {};
+  for (const floor of floors) {
+    if (!floor.includeFlooring) continue;
+    const rate = flooringRates?.[floor.floorId] ?? 0;
+    if (rate > 0) flooring_rates[floor.floorId] = rate;
+  }
+  const firstFlooringRate = Object.values(flooring_rates)[0];
 
   return {
     ground_rate: floor_civil_breakdown[0]?.civilRate ?? 0,
@@ -150,7 +256,10 @@ export function buildMistriCivilCostPayload(
     bid_unit: 'per_sqft',
     total_civil_cost,
     floor_civil_breakdown,
-    ...(tileFittingRate != null && tileFittingRate > 0 ? { tile_fitting_rate: tileFittingRate } : {}),
+    ...(Object.keys(flooring_rates).length > 0 ? { flooring_rates } : {}),
+    ...(firstFlooringRate != null && firstFlooringRate > 0
+      ? { tile_fitting_rate: firstFlooringRate }
+      : {}),
   };
 }
 
@@ -225,12 +334,38 @@ export function getMistriCivilRateDisplayEntries(
   });
 }
 
+export function getMistriFlooringRateDisplayEntries(
+  rates: Partial<BidRates> | null | undefined,
+  floors: MistriCivilFloor[],
+): MistriFlooringRateDisplayEntry[] {
+  const parsed = parseFlooringRatesFromBid(rates, floors);
+  const breakdown = Array.isArray(rates?.floor_civil_breakdown)
+    ? rates.floor_civil_breakdown
+    : [];
+
+  return floors.flatMap((floor) => {
+    if (!floor.includeFlooring) return [];
+    const rate = parsed[floor.floorId];
+    if (!(rate > 0)) return [];
+    const materialLabel =
+      breakdown.find((row) => row.floorId === floor.floorId)?.flooringMaterial
+      || floor.flooringMaterialLabel
+      || 'Flooring';
+    return [{
+      floorId: floor.floorId,
+      floorLabel: floor.label,
+      materialLabel,
+      label: `${floor.label} · ${flooringFittingTitle(materialLabel)}`,
+      rate,
+    }];
+  });
+}
+
 export function validateMistriCivilBid(
   floors: MistriCivilFloor[],
   civilRates: number[],
-  tileFittingRate: number | undefined,
+  flooringRates: Record<string, number> | undefined,
   rules?: BidRateRules,
-  options?: { tileRequired?: boolean },
 ): { valid: boolean; message: string | null } {
   if (floors.length === 0) {
     return { valid: false, message: 'No floors found for this project.' };
@@ -252,19 +387,18 @@ export function validateMistriCivilBid(
     if (fieldError) return { valid: false, message: fieldError };
   }
 
-  const tileRequired = options?.tileRequired !== false;
-  if (tileRequired) {
-    if (tileFittingRate == null || tileFittingRate <= 0) {
+  for (const floor of floors) {
+    if (!floor.includeFlooring) continue;
+    const materialLabel = floor.flooringMaterialLabel || 'Flooring';
+    const flooringRate = flooringRates?.[floor.floorId];
+    if (flooringRate == null || flooringRate <= 0) {
       return {
         valid: false,
-        message: 'Enter a tile fitting rate (₹ per sq. ft. of floor area).',
+        message: `Enter a ${materialLabel.toLowerCase()} fitting rate for ${floor.label}.`,
       };
     }
-    const tileError = getBidRateFieldError(tileFittingRate, rules);
-    if (tileError) return { valid: false, message: tileError };
-  } else if (tileFittingRate != null && tileFittingRate > 0) {
-    const tileError = getBidRateFieldError(tileFittingRate, rules);
-    if (tileError) return { valid: false, message: tileError };
+    const flooringError = getBidRateFieldError(flooringRate, rules);
+    if (flooringError) return { valid: false, message: flooringError };
   }
 
   return { valid: true, message: null };

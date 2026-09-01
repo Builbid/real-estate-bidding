@@ -141,6 +141,9 @@ export function buildBidRatesPayload(
     ...(rates.tile_fitting_rate != null && rates.tile_fitting_rate > 0
       ? { tile_fitting_rate: rates.tile_fitting_rate }
       : {}),
+    ...(rates.flooring_rates && Object.keys(rates.flooring_rates).length > 0
+      ? { flooring_rates: rates.flooring_rates }
+      : {}),
   };
 }
 

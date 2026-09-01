@@ -8,7 +8,6 @@ import {
   formatMistriStartTime,
   getMistriWorkRequirementBlocks,
   hasAssamMistriFloorWork,
-  hasMistriTileFittingScope,
   isAssamMistriFloor,
   parseMistriDetails,
   type MistriCivilWorkType,
@@ -17,8 +16,9 @@ import {
 import { readNestedProjectDetail } from '@/lib/project/storedDetails';
 import type { BidRates, ServiceType, SubConfiguration, TrackType } from '@/lib/types';
 import {
+  flooringFittingTitle,
   getMistriCivilRateDisplayEntries,
-  parseTileFittingRate,
+  getMistriFlooringRateDisplayEntries,
   resolveMistriCivilFloors,
 } from '@/lib/bid/mistriCivilCost';
 
@@ -207,9 +207,7 @@ export function buildMistriAgreementPayload(input: {
     || project.floor_area_sqft
     || civilFloors[0]?.slabAreaSqft
     || 0;
-  const tileFittingRate = parseTileFittingRate(bid?.rates);
-  const showTileFitting =
-    tileFittingRate != null && hasMistriTileFittingScope(details);
+  const flooringRateEntries = getMistriFlooringRateDisplayEntries(bid?.rates, civilFloors);
   const acceptedRateSqft = rateEntries.length === 1 ? rateEntries[0].rate : 0;
   const acceptedRateLabel =
     rateEntries.length === 1
@@ -231,10 +229,10 @@ export function buildMistriAgreementPayload(input: {
       value: formatRsPerSqft(entry.rate),
     });
   }
-  if (showTileFitting && tileFittingRate != null) {
+  for (const entry of flooringRateEntries) {
     bidRows.push({
-      label: 'Tile fitting rate',
-      value: `Rs. ${tileFittingRate.toLocaleString('en-IN')} / sq. ft. of floor area`,
+      label: `${entry.floorLabel} ${flooringFittingTitle(entry.materialLabel)}`,
+      value: `Rs. ${entry.rate.toLocaleString('en-IN')} / sq. ft. of floor area`,
     });
   }
 

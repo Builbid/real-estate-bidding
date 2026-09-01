@@ -21,9 +21,9 @@ import { getElectricianPointRateDisplayEntries, getElectricianUnitRateDisplayEnt
 import { getInteriorUnitRateDisplayEntries, readProjectInteriorBidOptions } from '@/lib/interiorBid';
 import {
   getMistriCivilCostDisplayEntries,
+  getMistriFlooringRateDisplayEntries,
   isMistriCivilCostProject,
   mistriRankMetric,
-  parseTileFittingRate,
   resolveMistriCivilFloors,
 } from '@/lib/bid/mistriCivilCost';
 import type { ProjectStatus, ServiceType, TrackType, SubConfiguration } from '@/lib/types';
@@ -380,11 +380,14 @@ export function BidLeaderboard({
                     ₹{parsePlumbingRunningFootRate(bid.rates)!.toLocaleString('en-IN')}/ft
                   </p>
                 )}
-                {isMistriCivilBid && parseTileFittingRate(bid.rates) != null && (
-                  <p className="mt-1 inline-flex rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-800 dark:text-amber-300">
-                    Tile ₹{parseTileFittingRate(bid.rates)!.toLocaleString('en-IN')}/sqft
+                {isMistriCivilBid && getMistriFlooringRateDisplayEntries(bid.rates, mistriCivilFloors).map((entry) => (
+                  <p
+                    key={entry.floorId}
+                    className="mt-1 inline-flex rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-800 dark:text-amber-300"
+                  >
+                    {entry.floorLabel} · {entry.materialLabel} ₹{entry.rate.toLocaleString('en-IN')}/sqft
                   </p>
-                )}
+                ))}
               </div>
 
               {showFloorBreakdown &&
@@ -430,7 +433,11 @@ export function BidLeaderboard({
                           : undefined
                     }
                     runningFootRate={parsePlumbingRunningFootRate(bid.rates)}
-                    tileFittingRate={parseTileFittingRate(bid.rates)}
+                    flooringRateEntries={
+                      isMistriCivilBid
+                        ? getMistriFlooringRateDisplayEntries(bid.rates, mistriCivilFloors)
+                        : undefined
+                    }
                   />
                 </div>
               )}

@@ -18,7 +18,9 @@ interface BidFloorRatesBreakdownProps {
   indexValue?: number;
   /** Informational plumber running-foot rate. Shown separately and never added to totals. */
   runningFootRate?: number | null;
-  /** Informational Mistri tile fitting rate. Shown separately and never added to totals. */
+  /** Informational Mistri flooring fitting rates per floor. Shown separately and never added to totals. */
+  flooringRateEntries?: Array<{ label: string; rate: number }>;
+  /** Legacy global Mistri tile fitting rate. Used only when flooringRateEntries is empty. */
   tileFittingRate?: number | null;
   className?: string;
 }
@@ -36,6 +38,7 @@ export function BidFloorRatesBreakdown({
   indexLabel,
   indexValue,
   runningFootRate,
+  flooringRateEntries,
   tileFittingRate,
   className,
 }: BidFloorRatesBreakdownProps) {
@@ -51,11 +54,16 @@ export function BidFloorRatesBreakdown({
         suffix: unitSuffixes?.[RATE_KEY_ORDER.indexOf(entry.key)] ?? unitSuffix,
       }));
 
+  const flooringEntries = (flooringRateEntries ?? []).filter((entry) => entry.rate > 0);
+  const showLegacyTileFitting =
+    flooringEntries.length === 0 && tileFittingRate != null && tileFittingRate > 0;
+
   if (
     floorEntries.length === 0 &&
     indexValue == null &&
     !(runningFootRate != null && runningFootRate > 0) &&
-    !(tileFittingRate != null && tileFittingRate > 0)
+    flooringEntries.length === 0 &&
+    !showLegacyTileFitting
   ) {
     return null;
   }
@@ -88,11 +96,22 @@ export function BidFloorRatesBreakdown({
           </span>
         </div>
       )}
-      {tileFittingRate != null && tileFittingRate > 0 && (
+      {flooringEntries.map((entry) => (
+        <div
+          key={entry.label}
+          className="mt-1.5 flex items-center justify-between gap-3 border-t border-dashed border-amber-500/40 pt-1.5 text-[11px]"
+        >
+          <span className="font-medium text-amber-800 dark:text-amber-300">{entry.label}</span>
+          <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 font-bold tabular-nums text-amber-800 dark:text-amber-300">
+            ₹{entry.rate.toLocaleString('en-IN')}/sqft floor
+          </span>
+        </div>
+      ))}
+      {showLegacyTileFitting && (
         <div className="mt-1.5 flex items-center justify-between gap-3 border-t border-dashed border-amber-500/40 pt-1.5 text-[11px]">
           <span className="font-medium text-amber-800 dark:text-amber-300">Tile Fitting Rate</span>
           <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 font-bold tabular-nums text-amber-800 dark:text-amber-300">
-            ₹{tileFittingRate.toLocaleString('en-IN')}/sqft floor
+            ₹{tileFittingRate!.toLocaleString('en-IN')}/sqft floor
           </span>
         </div>
       )}
