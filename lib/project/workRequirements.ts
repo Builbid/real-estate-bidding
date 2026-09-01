@@ -197,6 +197,7 @@ const BID_SUMMARY_LABELS = new Set([
   'Water Tank Floor',
   'Fitting Type',
   'Wiring Type',
+  'Contract Type',
 ]);
 
 const BID_NOTE_LABELS = new Set(['Additional Requirements', 'Additional Notes']);

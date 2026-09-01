@@ -124,7 +124,21 @@ import {
   splitBidRequirementDisplay,
   type WorkRequirementBlock,
 } from '@/lib/project/workRequirements';
+import { readNestedProjectDetail } from '@/lib/project/storedDetails';
+import {
+  formatMistriContractTypeLabel,
+  parseMistriDetails,
+} from '@/lib/mistriDetails';
 import type { Project, Bid, BidFloorRateKey, BidRates } from '@/lib/types';
+
+function resolveProjectContractTypeLabel(project: Project): string {
+  const details = parseMistriDetails(
+    readNestedProjectDetail(project, 'mistri_details'),
+  );
+  const extra = project as Project & { contract_type?: unknown };
+  const topLevel = typeof extra.contract_type === 'string' ? extra.contract_type : null;
+  return formatMistriContractTypeLabel(details?.contractType ?? topLevel);
+}
 
 interface Props {
   project: Project;
@@ -212,11 +226,19 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
     notes: noteBlocks,
     specs: specBlocks,
   } = splitBidRequirementDisplay(requirementBlocks);
+  const mistriDetails = parseMistriDetails(
+    readNestedProjectDetail(project, 'mistri_details'),
+  );
+  const showContractType =
+    project.service_type === 'labour_contractor' || mistriDetails != null;
   const summaryBannerBlocks: WorkRequirementBlock[] = [
     ...(project.district && !summaryBlocks.some((block) => block.label === 'Project Address' || block.label === 'Village / Town Name')
       ? [{ label: 'Location', value: project.district }]
       : []),
-    ...summaryBlocks,
+    ...summaryBlocks.filter((block) => block.label !== 'Contract Type'),
+    ...(showContractType
+      ? [{ label: 'Contract Type', value: resolveProjectContractTypeLabel(project) }]
+      : []),
   ];
 
   // Trade / Drawing & Design bid a single package rate (not per floor),
@@ -978,7 +1000,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
           <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-500">
             Project specifications
           </p>
-          <dl className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <dl className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
             {summaryBannerBlocks.map((block) => (
               <div key={block.label} className="min-w-0">
                 <dt className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">

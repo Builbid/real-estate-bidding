@@ -965,6 +965,22 @@ function normalizeContractType(value: unknown): MistriContractType | null {
   return null;
 }
 
+const CONTRACT_TYPE_FALLBACK_LABEL = 'Labor Rate Only';
+
+/** Human-readable supply scope for bid / project spec grids. */
+export function formatMistriContractTypeLabel(value: unknown): string {
+  const normalized = normalizeContractType(value);
+  if (normalized) return optionLabel(MISTRI_CONTRACT_TYPE_OPTIONS, normalized);
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    const byLabel = MISTRI_CONTRACT_TYPE_OPTIONS.find(
+      (o) => o.label.toLowerCase() === trimmed.toLowerCase(),
+    );
+    if (byLabel) return byLabel.label;
+  }
+  return CONTRACT_TYPE_FALLBACK_LABEL;
+}
+
 function normalizeLegacyFloorLevel(value: unknown): MistriFloorLevel | null {
   if (typeof value !== 'string') return null;
   if (LEGACY_FLOOR_SET.has(value)) return value as MistriFloorLevel;
@@ -2379,13 +2395,10 @@ export function getMistriWorkRequirementBlocks(details: MistriDetails): {
       });
     }
 
-    if (
-      mistriContractTypeRequiredForFloorWork(details.floorWork) &&
-      details.contractType
-    ) {
+    if (mistriContractTypeRequiredForFloorWork(details.floorWork)) {
       blocks.push({
         label: 'Contract Type',
-        value: optionLabel(MISTRI_CONTRACT_TYPE_OPTIONS, details.contractType),
+        value: formatMistriContractTypeLabel(details.contractType),
       });
     }
 
@@ -2500,10 +2513,10 @@ export function getMistriWorkRequirementBlocks(details: MistriDetails): {
     });
   }
 
-  if (mistriContractTypeRequired(details.civilWorkTypes) && details.contractType) {
+  if (mistriContractTypeRequired(details.civilWorkTypes)) {
     blocks.push({
       label: 'Contract Type',
-      value: optionLabel(MISTRI_CONTRACT_TYPE_OPTIONS, details.contractType),
+      value: formatMistriContractTypeLabel(details.contractType),
     });
   }
 
