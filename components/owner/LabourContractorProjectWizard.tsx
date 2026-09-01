@@ -598,7 +598,7 @@ export function LabourContractorProjectWizard() {
     }
 
     if (parseApproximateAreaSqft(form.approximateArea) == null) {
-      errors.builtUpArea = 'Enter the built-up area in sq. ft.';
+      errors.builtUpArea = 'Enter the approximate built-up area in sqft.';
     }
 
     if (!form.houseType) {
@@ -805,7 +805,7 @@ export function LabourContractorProjectWizard() {
               />
 
               <Input
-                label="Built-Up Area (sq. ft.)"
+                label="Approximate built-up Area (Sqft)"
                 type="text"
                 inputMode="decimal"
                 placeholder="e.g. 1200"

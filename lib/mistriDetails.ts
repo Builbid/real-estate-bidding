@@ -2067,7 +2067,7 @@ export function getMistriWorkRequirementBlocks(details: MistriDetails): {
     }));
 
     blocks.push({
-      label: 'Built-Up Area',
+      label: 'Approximate built-up Area (Sqft)',
       value: formatMistriArea(details.approximateAreaSqft),
     });
 
@@ -2189,7 +2189,7 @@ export function getMistriWorkRequirementBlocks(details: MistriDetails): {
   }
 
   blocks.push({
-    label: 'Built-Up Area',
+    label: 'Approximate built-up Area (Sqft)',
     value: formatMistriArea(details.approximateAreaSqft),
   });
 
@@ -2419,7 +2419,7 @@ export function validateMistriFloorWorkInput(input: {
 
   const area = parseApproximateAreaSqft(input.approximateArea);
   if (area == null) {
-    return { error: 'Enter the built-up area in sq. ft.' };
+    return { error: 'Enter the approximate built-up area in sqft.' };
   }
 
   const currentFloorPlan = currentFloorPlanFromFloorWork(floorWork);

@@ -42,6 +42,7 @@ const STRUCTURAL_FLOOR_WORK: ReadonlySet<MistriFloorWorkType> = new Set([
 const SCOPE_LABELS_EXCLUDED_FROM_AGREEMENT = new Set([
   'Work Start Time',
   'Built-Up Area',
+  'Approximate built-up Area (Sqft)',
 ]);
 
 /** Per-floor payment milestone recorded on the Mistri agreement (no stage-wise %). */
