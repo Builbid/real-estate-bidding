@@ -46,17 +46,12 @@ function buildOfficialAgreementHtml(payload: MistriAgreementPayload): string {
         ${row('Built-up area', payload.slabAreaLabel)}
         ${payload.bidRows.filter((r) => !/^Built-up area/i.test(r.label)).map((r) => row(r.label, r.value)).join('')}
         ${row('Agreed start', payload.agreedStartDate)}
-        ${payload.payoutSchedule.map((s) => row(`${s.stage} (${s.percent}%)`, `${s.deliverable} — ${s.amountLabel}`)).join('')}
+        ${row('Payment milestone', payload.paymentMilestoneClause)}
       </table>
     </div>
     <p style="color:#fecaca;font-size:13px;line-height:1.5;margin:0 0 16px">
       All funds must flow through the BuilBid payment gateway. Direct cash to the Mistri is prohibited and voids platform guarantees. Accepted rate is fixed. Delay beyond a 10-day grace period: 5% deduction from labour payout.
     </p>
-    ${
-      payload.isRccStructural
-        ? `<p style="color:#fde68a;font-size:13px;line-height:1.5;margin:0 0 16px">${escapeHtml(payload.rccRateClause)}</p>`
-        : ''
-    }
     <p style="color:#94a3b8;font-size:13px;line-height:1.6;margin:0">
       The generated PDF agreement is attached. This message is sent only to BuilBid official inboxes.
     </p>
@@ -82,9 +77,8 @@ function buildOfficialAgreementText(payload: MistriAgreementPayload): string {
       .map((row) => `${row.label}: ${row.value}`),
     `Agreed start: ${payload.agreedStartDate}`,
     'Payment: BuilBid gateway only. Cash to Mistri is prohibited.',
-    'Payout: Stage1 25% plinth, Stage2 35% slab, Stage3 30% plaster/brick, Stage4 10% handover.',
+    payload.paymentMilestoneClause,
     'Delay penalty: 5% after 10-day grace. Material delays by homeowner extend the deadline.',
-    payload.isRccStructural ? payload.rccRateClause : '',
   ]
     .filter(Boolean)
     .join('\n');

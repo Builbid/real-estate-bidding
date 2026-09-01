@@ -1,11 +1,6 @@
 import { jsPDF } from 'jspdf';
 import {
-  resolveProjectBidFloors,
-} from '@/lib/bid/floorRateDisplay';
-import {
-  formatBuildingTypesSummary,
   isStructuralConstructionType,
-  type BuildingType,
   type ConstructionTypeValue,
   type ConstructionTypesMap,
 } from '@/lib/buildingConfig';
@@ -21,10 +16,8 @@ import {
 } from '@/lib/mistriDetails';
 import { readNestedProjectDetail } from '@/lib/project/storedDetails';
 import type { BidRates, ServiceType, SubConfiguration, TrackType } from '@/lib/types';
-import { getConstructionLabel, TRACK_LABELS } from '@/lib/utils';
 import {
   getMistriCivilRateDisplayEntries,
-  mistriRankMetric,
   parseTileFittingRate,
   resolveMistriCivilFloors,
 } from '@/lib/bid/mistriCivilCost';
@@ -46,12 +39,14 @@ const STRUCTURAL_FLOOR_WORK: ReadonlySet<MistriFloorWorkType> = new Set([
   'frame_skeleton',
 ]);
 
-const PAYOUT_STAGES: { stage: string; deliverable: string; percent: number }[] = [
-  { stage: 'Stage 1', deliverable: 'Foundation / Plinth Level (100% completion)', percent: 25 },
-  { stage: 'Stage 2', deliverable: 'Roof Level / Slab Casting (100% completion)', percent: 35 },
-  { stage: 'Stage 3', deliverable: 'Plastering & Brickwork (100% completion)', percent: 30 },
-  { stage: 'Stage 4', deliverable: 'Final Handover & Verification (100% completion)', percent: 10 },
-];
+const SCOPE_LABELS_EXCLUDED_FROM_AGREEMENT = new Set([
+  'Work Start Time',
+  'Built-Up Area',
+]);
+
+/** Per-floor payment milestone recorded on the Mistri agreement (no stage-wise %). */
+export const MISTRI_SLAB_PAYMENT_CLAUSE =
+  'For each selected floor separately, the Homeowner shall ensure that a minimum of sixty percent (60%) of that floor\'s contracted Head Mason (Mistri) labour cost is paid through the BuilBid payment gateway on or before completion of slab casting of the same floor.';
 
 export function isMistriCivilService(serviceType?: string | null): boolean {
   const value = (serviceType ?? 'labour_contractor').toLowerCase();
@@ -88,13 +83,6 @@ export interface MistriAgreementParty {
   platformId?: string | null;
 }
 
-export interface MistriAgreementPayoutStage {
-  stage: string;
-  deliverable: string;
-  percent: number;
-  amountLabel: string;
-}
-
 export interface MistriAgreementBidInput {
   id?: string | null;
   single_rate?: number | null;
@@ -122,17 +110,9 @@ export interface MistriAgreementPayload {
   acceptedRateLabel: string;
   slabAreaSqft: number;
   slabAreaLabel: string;
-  totalLaborCost: number;
-  totalLaborLabel: string;
-  rccRateClause: string;
   districtPincode: string;
   agreedStartDate: string;
-  payoutSchedule: MistriAgreementPayoutStage[];
-}
-
-function formatRs(value: number): string {
-  if (!Number.isFinite(value) || value <= 0) return 'Rs. —';
-  return `Rs. ${Math.round(value).toLocaleString('en-IN')}`;
+  paymentMilestoneClause: string;
 }
 
 function formatRsPerSqft(value: number): string {
@@ -193,77 +173,17 @@ function buildSiteAddress(
   return parts.length > 0 ? parts.join(', ') : '—';
 }
 
-function buildDimensionRows(project: MistriAgreementProjectInput): MistriAgreementRow[] {
-  const rows: MistriAgreementRow[] = [];
+function buildScopeRows(project: MistriAgreementProjectInput): MistriAgreementRow[] {
   const mistri = parseMistriDetails(readNestedProjectDetail(project, 'mistri_details'));
-  const buildingTypes = (project.building_types ?? []).filter(
-    (type): type is BuildingType => typeof type === 'string' && type.length > 0,
-  );
+  const seen = new Set<string>();
+  const rows: MistriAgreementRow[] = [];
 
-  if (buildingTypes.length > 0) {
-    rows.push({ label: 'Building type(s)', value: formatBuildingTypesSummary(buildingTypes) });
-  } else {
-    rows.push({
-      label: 'Building type(s)',
-      value: TRACK_LABELS[project.track_type] ?? project.track_type,
-    });
-  }
-
-  const floors = resolveProjectBidFloors({
-    track_type: project.track_type,
-    total_floors: project.total_floors,
-    sub_configuration: project.sub_configuration,
-    building_types: project.building_types,
-    mistri_details: project.mistri_details,
-  });
-  rows.push({
-    label: 'Floor count / selected floors',
-    value: `${floors.count} — ${floors.labels.join(', ') || '—'}`,
-  });
-
-  if (mistri?.currentFloorPlan) {
-    rows.push({ label: 'Current floor plan', value: mistri.currentFloorPlan });
-  }
-  if (mistri?.futureFloorPlan) {
-    rows.push({ label: 'Foundation provision (future floors)', value: mistri.futureFloorPlan });
-  }
-
-  const constructionTypes = project.construction_types ?? {};
-  const constructionLines = Object.entries(constructionTypes)
-    .filter(([, value]) => Boolean(value))
-    .map(([type, value]) => `${type}: ${value}`);
-  if (constructionLines.length > 0) {
-    rows.push({ label: 'Construction scope', value: constructionLines.join(' | ') });
-  } else {
-    rows.push({
-      label: 'Construction scope',
-      value: getConstructionLabel(
-        project.track_type,
-        (project.sub_configuration ?? {}) as SubConfiguration,
-      ),
-    });
-  }
-
-  const slabArea = mistri?.approximateAreaSqft || project.floor_area_sqft || 0;
-  if (slabArea > 0) {
-    rows.push({
-      label: 'Built-up area',
-      value: `${slabArea.toLocaleString('en-IN')} sq. ft. (applied to each selected floor)`,
-    });
-  }
-  if (project.plot_area_sqft && project.plot_area_sqft > 0) {
-    rows.push({
-      label: 'Plot area',
-      value: `${project.plot_area_sqft.toLocaleString('en-IN')} sq. ft.`,
-    });
-  }
-
-  const assamWork = mistri?.floorWork?.find((fw) => isAssamMistriFloor(fw.floorId));
-  if (assamWork?.foundationDepthFt && assamWork.foundationDepthFt > 0) {
-    rows.push({
-      label: 'Foundation depth (height spec)',
-      value: `${assamWork.foundationDepthFt} ft`,
-    });
+  for (const block of mistri ? getMistriWorkRequirementBlocks(mistri) : []) {
+    if (SCOPE_LABELS_EXCLUDED_FROM_AGREEMENT.has(block.label)) continue;
+    const key = `${block.label}|${block.value}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    rows.push({ label: block.label, value: block.value });
   }
 
   return rows;
@@ -278,16 +198,9 @@ export function buildMistriAgreementPayload(input: {
   const { project, bid, owner, mistri } = input;
   const details = parseMistriDetails(readNestedProjectDetail(project, 'mistri_details'));
   const isRccStructural = isRccStructuralMistriWork(project);
-  const scopeFromRequirements = (details ? getMistriWorkRequirementBlocks(details) : []).map(
-    (block) => ({ label: block.label, value: block.value }),
-  );
 
   const civilFloors = resolveMistriCivilFloors(project);
   const rateEntries = getMistriCivilRateDisplayEntries(bid?.rates, civilFloors);
-  const totalLaborCost = mistriRankMetric({
-    total_sum_metric: bid?.total_sum_metric,
-    rates: bid?.rates,
-  });
   const builtUpAreaSqft =
     details?.approximateAreaSqft
     || project.floor_area_sqft
@@ -319,7 +232,7 @@ export function buildMistriAgreementPayload(input: {
   }
   if (showTileFitting && tileFittingRate != null) {
     bidRows.push({
-      label: 'Tile fitting rate (add-on, not ranked)',
+      label: 'Tile fitting rate',
       value: `Rs. ${tileFittingRate.toLocaleString('en-IN')} / sq. ft. of floor area`,
     });
   }
@@ -327,35 +240,10 @@ export function buildMistriAgreementPayload(input: {
   const contractorRows: MistriAgreementRow[] = [
     { label: 'Head Mason / contractor', value: nonEmpty(mistri.companyName || mistri.name) },
     { label: 'builbid ID', value: nonEmpty(mistri.platformId) },
-    { label: 'Platform account name', value: nonEmpty(mistri.name) },
     { label: 'Registered email', value: nonEmpty(mistri.email) },
     { label: 'Mobile / WhatsApp', value: nonEmpty(mistri.mobile) },
-    { label: 'Address', value: nonEmpty(mistri.address) },
     { label: 'Government ID / GST / Govt Reg No', value: nonEmpty(mistri.gstNumber) },
-    {
-      label: 'Years on record',
-      value:
-        mistri.yearsInBusiness != null && mistri.yearsInBusiness > 0
-          ? String(mistri.yearsInBusiness)
-          : '—',
-    },
-    { label: 'BuilBid verification', value: mistri.isVerified ? 'Verified on BuilBid' : 'Unverified' },
   ];
-
-  const seen = new Set<string>();
-  const scopeRows: MistriAgreementRow[] = [];
-  for (const row of [...buildDimensionRows(project), ...scopeFromRequirements]) {
-    const key = `${row.label}|${row.value}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    scopeRows.push(row);
-  }
-
-  const payoutSchedule: MistriAgreementPayoutStage[] = PAYOUT_STAGES.map((stage) => ({
-    ...stage,
-    amountLabel:
-      totalLaborCost > 0 ? formatRs((totalLaborCost * stage.percent) / 100) : 'Rs. —',
-  }));
 
   const districtPincode = [project.district?.trim(), project.pincode?.trim()]
     .filter(Boolean)
@@ -373,7 +261,7 @@ export function buildMistriAgreementPayload(input: {
     siteAddress: buildSiteAddress(project, owner),
     client: owner,
     mistri,
-    scopeRows,
+    scopeRows: buildScopeRows(project),
     bidRows,
     contractorRows,
     acceptedRateSqft,
@@ -381,13 +269,9 @@ export function buildMistriAgreementPayload(input: {
     slabAreaSqft: builtUpAreaSqft,
     slabAreaLabel:
       builtUpAreaSqft > 0 ? `${builtUpAreaSqft.toLocaleString('en-IN')} sq. ft.` : '—',
-    totalLaborCost,
-    totalLaborLabel: formatRs(totalLaborCost),
-    rccRateClause:
-      'For RCC structural work, the Head Mason (Mistri) labour rate is strictly calculated on a per sq. ft. of built-up area basis. The same client-specified built-up area applies to each selected floor. Accepted civil work rates on this agreement are the per sq. ft. rates quoted for each floor. This basis does not apply to non-structural finishing-only packages (brickwork, plastering, or flooring without RCC frame/slab).',
     districtPincode,
     agreedStartDate: details ? formatMistriStartTime(details) : '—',
-    payoutSchedule,
+    paymentMilestoneClause: MISTRI_SLAB_PAYMENT_CLAUSE,
   };
 }
 
@@ -464,55 +348,6 @@ function drawParagraph(
   return y + boxH + 3;
 }
 
-function drawPayoutTable(
-  doc: jsPDF,
-  stages: MistriAgreementPayoutStage[],
-  startY: number,
-  margin: number,
-): number {
-  const pageW = doc.internal.pageSize.getWidth();
-  const usable = pageW - margin * 2;
-  const cols = [usable * 0.16, usable * 0.48, usable * 0.14, usable * 0.22];
-  const headers = ['Stage', 'Work Deliverable / Milestone', 'Payout %', 'Amount'];
-  let y = startY;
-  const rowH = 9;
-
-  const drawCells = (cells: string[], header: boolean) => {
-    y = ensurePage(doc, y, rowH + 1, margin);
-    let x = margin;
-    if (header) {
-      doc.setFillColor(15, 118, 110);
-      doc.setTextColor(255);
-      doc.setFont('helvetica', 'bold');
-    } else {
-      doc.setFillColor(248, 250, 249);
-      doc.setTextColor(25);
-      doc.setFont('helvetica', 'normal');
-    }
-    doc.setFontSize(8);
-    doc.rect(margin, y, usable, rowH, header ? 'F' : 'S');
-    for (let i = 0; i < cells.length; i++) {
-      const wrapped = doc.splitTextToSize(cells[i], cols[i] - 3) as string[];
-      doc.text(wrapped[0] ?? '', x + 1.5, y + 6);
-      x += cols[i];
-      if (i < cells.length - 1) {
-        doc.setDrawColor(200);
-        doc.line(x, y, x, y + rowH);
-      }
-    }
-    y += rowH;
-  };
-
-  drawCells(headers, true);
-  for (const stage of stages) {
-    drawCells(
-      [stage.stage, stage.deliverable, `${stage.percent}%`, stage.amountLabel],
-      false,
-    );
-  }
-  return y + 6;
-}
-
 function drawSignatureBlock(doc: jsPDF, startY: number, margin: number): number {
   const pageW = doc.internal.pageSize.getWidth();
   const usable = pageW - margin * 2;
@@ -572,27 +407,16 @@ export function generateMistriAgreementPdfBytes(payload: MistriAgreementPayload)
     'Legal Platform Notice: This document is an official digital contract executed directly between the Homeowner and the Head Mason (Mistri). BuilBid operates strictly as a technology marketplace, site coordinator, and payment facilitator. BuilBid is not a direct employer, general contractor, or primary party to the construction work executed on site.',
     y,
     margin,
-    { bold: true, fill: [254, 243, 199] },
+    { bold: true },
   );
 
   y = drawSectionTitle(doc, '1. Parties to the Agreement', y, margin);
   y = drawRows(
     doc,
     [
-      { label: 'Project ID', value: payload.projectId },
       { label: 'Project title', value: payload.projectTitle },
-      { label: 'Generated (IST)', value: payload.generatedAtLabel },
-      { label: 'Service category', value: 'Mistri / Civil Work (Head Mason)' },
-    ],
-    y,
-    margin,
-  );
-  y = drawRows(
-    doc,
-    [
       { label: 'PARTY A — Homeowner (Client) full name', value: nonEmpty(payload.client.name) },
       { label: 'Phone / WhatsApp', value: nonEmpty(payload.client.mobile) },
-      { label: 'Email', value: nonEmpty(payload.client.email) },
       { label: 'Site address', value: payload.siteAddress },
       { label: 'District / Pincode', value: payload.districtPincode },
     ],
@@ -604,7 +428,6 @@ export function generateMistriAgreementPdfBytes(payload: MistriAgreementPayload)
     [
       { label: 'PARTY B — Head Mason (Mistri / Contractor)', value: nonEmpty(payload.mistri.companyName || payload.mistri.name) },
       { label: 'Phone / WhatsApp', value: nonEmpty(payload.mistri.mobile) },
-      { label: 'Email', value: nonEmpty(payload.mistri.email) },
       { label: 'builbid ID', value: nonEmpty(payload.mistri.platformId) },
       { label: 'Government ID / GST / Govt Reg No', value: nonEmpty(payload.mistri.gstNumber) },
     ],
@@ -627,11 +450,6 @@ export function generateMistriAgreementPdfBytes(payload: MistriAgreementPayload)
   );
   y = drawRows(doc, payload.scopeRows, y, margin);
 
-  if (payload.isRccStructural) {
-    y = drawSectionTitle(doc, 'RCC Structural Work — Rate Basis', y, margin);
-    y = drawParagraph(doc, payload.rccRateClause, y, margin, { bold: true, fill: [254, 243, 199] });
-  }
-
   y = drawSectionTitle(doc, '3. Fixed Rates & Payment Terms', y, margin);
   y = drawParagraph(
     doc,
@@ -649,11 +467,11 @@ export function generateMistriAgreementPdfBytes(payload: MistriAgreementPayload)
   y = drawRows(doc, payload.bidRows, y, margin);
   y = drawParagraph(
     doc,
-    'Stage-Wise Payout Schedule: Payments are released systematically based on completed project stages as a percentage of the total contract labour cost.',
+    `Payment Milestone: ${payload.paymentMilestoneClause}`,
     y,
     margin,
+    { bold: true },
   );
-  y = drawPayoutTable(doc, payload.payoutSchedule, y, margin);
 
   y = drawSectionTitle(doc, '4. Timelines, Delays & Penalty Terms', y, margin);
   y = drawRows(
@@ -695,15 +513,12 @@ export function generateMistriAgreementPdfBytes(payload: MistriAgreementPayload)
   );
   y = drawSignatureBlock(doc, y, margin);
 
-  y = drawSectionTitle(doc, 'Contractor Platform Details', y, margin);
-  y = drawRows(doc, payload.contractorRows, y, margin);
-
   y = ensurePage(doc, y, 16, margin);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7.5);
   doc.setTextColor(100);
   const footer = doc.splitTextToSize(
-    'Official BuilBid digital agreement for awarded Mistri / RCC civil work. Generated for builbidcorp@gmail.com. Cash payments outside the BuilBid gateway void platform guarantees.',
+    'Official BuilBid digital agreement for awarded Mistri / RCC civil work. Cash payments outside the BuilBid gateway void platform guarantees.',
     pageW - margin * 2,
   ) as string[];
   doc.text(footer, margin, y);

@@ -187,9 +187,8 @@ export default async function OwnerProjectPage({ params }: PageProps) {
             siteAddress={mistriAgreement.siteAddress}
             acceptedRateLabel={mistriAgreement.acceptedRateLabel}
             rateRows={mistriAgreement.bidRows}
-            isRccStructural={mistriAgreement.isRccStructural}
             scopePreview={mistriAgreement.scopeRows}
-            payoutSchedule={mistriAgreement.payoutSchedule}
+            paymentMilestoneClause={mistriAgreement.paymentMilestoneClause}
             agreedStartDate={mistriAgreement.agreedStartDate}
           />
         )}
