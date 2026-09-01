@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react';
+import { ArrowRight, ArrowLeft, CheckCircle2, AlertCircle, Lock } from 'lucide-react';
 import { useProfile } from '@/lib/hooks/useProfile';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,6 +38,7 @@ import {
   MISTRI_START_TIME_OPTIONS,
   MISTRI_YES_NO_OPTIONS,
   STRUCTURAL_FRAMING_CONTINUITY_MESSAGE,
+  UPPER_FLOOR_WALL_LOCKED_BY_LOWER_STRUCTURE,
   currentFloorPlanFromFloorWork,
   floorPlanUpperCount,
   formatMistriFloorWorkLabel,
@@ -48,6 +49,7 @@ import {
   isAssamMistriFloor,
   isStructuralFramingDisconnected,
   isStructuralRccScope,
+  isUpperFloorWallScopeBlocked,
   mistriContractTypeRequiredForFloorWork,
   mistriFoundationProvisionRequired,
   parseCustomFloorSequence,
@@ -115,12 +117,14 @@ function OptionCardButton({
   children,
   className,
   disabled,
+  locked,
 }: {
   selected: boolean;
   onClick: () => void;
   children: React.ReactNode;
   className?: string;
   disabled?: boolean;
+  locked?: boolean;
 }) {
   return (
     <button
@@ -134,12 +138,14 @@ function OptionCardButton({
         selected
           ? 'border-emerald-500/70 bg-emerald-500/15 text-gray-900 dark:text-white'
           : 'border-border bg-card text-gray-800 dark:text-zinc-100 hover:border-zinc-400 dark:hover:border-zinc-500',
-        disabled && 'cursor-not-allowed opacity-50 hover:border-border',
+        disabled && 'cursor-not-allowed opacity-50 grayscale hover:border-border',
         className,
       )}
     >
       <span className="min-w-0">{children}</span>
-      {selected ? (
+      {locked ? (
+        <Lock className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+      ) : selected ? (
         <CheckCircle2 className="w-4 h-4 text-emerald-500 dark:text-emerald-400 flex-shrink-0" />
       ) : (
         <span
@@ -356,6 +362,56 @@ function pruneFloorWorkById(
   return next;
 }
 
+function scopeSnapshotFromById(
+  form: Pick<FormState, 'buildingTypes' | 'customFloorSelected' | 'customFloorNumber'>,
+  floorWorkById: Record<string, FloorWorkForm>,
+): MistriFloorWork[] {
+  return selectedFloorEntries(form as FormState).map((entry) => {
+    const work = floorWorkById[floorWorkKey(entry.floorId, entry.customFloorNumber)] ?? EMPTY_FLOOR_WORK;
+    return {
+      floorId: entry.floorId,
+      customFloorNumber: entry.customFloorNumber,
+      workTypes: work.workTypes,
+      brickMaterial: work.brickMaterial,
+      plasterScope: work.plasterScope,
+      flooringMaterial: work.flooringMaterial,
+      includeFineFlooring: work.includeFineFlooring,
+      scopeOption: rccScopeFromWorkTypes(work.workTypes),
+      scopeLabel: null,
+      assamRoofType: work.assamRoofType,
+      assamRoofingSheet: work.assamRoofingSheet,
+      foundationDepthFt: parseFoundationDepthFt(work.foundationDepthFt),
+    };
+  });
+}
+
+function resetLockedWallFloorsToFullConstruction(
+  form: Pick<FormState, 'buildingTypes' | 'customFloorSelected' | 'customFloorNumber'>,
+  floorWorkById: Record<string, FloorWorkForm>,
+): { next: Record<string, FloorWorkForm>; changed: boolean } {
+  const snapshot = scopeSnapshotFromById(form, floorWorkById);
+  const next = { ...floorWorkById };
+  let changed = false;
+  for (const entry of selectedFloorEntries(form as FormState)) {
+    if (isAssamMistriFloor(entry.floorId)) continue;
+    if (!isUpperFloorWallScopeBlocked(entry.floorId, snapshot, entry.customFloorNumber)) continue;
+    const key = floorWorkKey(entry.floorId, entry.customFloorNumber);
+    const current = next[key];
+    if (!current) continue;
+    if (rccScopeFromWorkTypes(current.workTypes) !== 'wall_plaster_only') continue;
+    next[key] = {
+      ...current,
+      workTypes: workTypesFromRccScope('full_construction'),
+      brickMaterial: null,
+      plasterScope: null,
+      flooringMaterial: null,
+      includeFineFlooring: null,
+    };
+    changed = true;
+  }
+  return { next, changed };
+}
+
 export function LabourContractorProjectWizard() {
   const router = useRouter();
   const { profile } = useProfile();
@@ -451,6 +507,17 @@ export function LabourContractorProjectWizard() {
       };
     });
   }, [step, form.buildingTypes]);
+
+  // If a lower floor uses Option 1/2, reset Option 3 on every higher floor to Option 1.
+  useEffect(() => {
+    if (step !== 2) return;
+    if (form.houseType !== 'rcc') return;
+    setForm((f) => {
+      const { next, changed } = resetLockedWallFloorsToFullConstruction(f, f.floorWorkById);
+      if (!changed) return f;
+      return { ...f, floorWorkById: next };
+    });
+  }, [step, form.houseType, form.buildingTypes, form.customFloorSelected, form.customFloorNumber, form.floorWorkById]);
 
   const previewTitle = generateProjectTitle({
     serviceType: 'labour_contractor',
@@ -595,6 +662,19 @@ export function LabourContractorProjectWizard() {
   ) {
     setForm((f) => {
       const key = floorWorkKey(floorId, customFloorNumber);
+      if (option === 'wall_plaster_only') {
+        const withoutThis = scopeSnapshotFromById(f, f.floorWorkById).map((fw) => {
+          const sameFloor =
+            fw.floorId === floorId &&
+            (fw.customFloorNumber ?? null) === (customFloorNumber ?? null);
+          if (!sameFloor) return fw;
+          return { ...fw, workTypes: [] as MistriFloorWorkType[], scopeOption: null };
+        });
+        if (isUpperFloorWallScopeBlocked(floorId, withoutThis, customFloorNumber)) {
+          return f;
+        }
+      }
+
       const current = f.floorWorkById[key] ?? EMPTY_FLOOR_WORK;
       const workTypes = workTypesFromRccScope(option);
       const nextFloor: FloorWorkForm = {
@@ -609,10 +689,14 @@ export function LabourContractorProjectWizard() {
         includeFineFlooring: option === 'full_construction' ? current.includeFineFlooring === true : null,
       };
 
-      const floorWorkById: Record<string, FloorWorkForm> = {
+      let floorWorkById: Record<string, FloorWorkForm> = {
         ...f.floorWorkById,
         [key]: nextFloor,
       };
+
+      if (option === 'full_construction' || option === 'frame_only') {
+        floorWorkById = resetLockedWallFloorsToFullConstruction(f, floorWorkById).next;
+      }
 
       return { ...f, floorWorkById };
     });
@@ -922,7 +1006,7 @@ export function LabourContractorProjectWizard() {
                 <p className="text-xs font-medium text-gray-700 dark:text-zinc-300 mt-1">
                   {form.buildingTypes.includes(ASSAM_BUILDING_TYPE)
                     ? 'Assam Type — Full finishing upto Plastering and Roof work is included. Choose roof truss, roofing sheet, flooring, and foundation depth.'
-                    : 'Choose one Scope of Work for each selected floor. Wall construction (Option 3) can skip floors. New framing (Option 1 or 2) must stay continuous from the base or an existing structure.'}
+                    : 'Choose one Scope of Work for each selected floor. If a lower floor uses Option 1 or 2, upper floors can only use Option 1 or 2 — Option 3 is locked until the slab/frame is included.'}
                 </p>
               </div>
 
@@ -942,6 +1026,11 @@ export function LabourContractorProjectWizard() {
                   fw.floorId,
                   fw.customFloorNumber,
                   assembledFloorWork,
+                );
+                const wallLocked = isUpperFloorWallScopeBlocked(
+                  fw.floorId,
+                  assembledFloorWork,
+                  fw.customFloorNumber,
                 );
                 const title = formatMistriFloorWorkLabel(fw);
 
@@ -1059,6 +1148,7 @@ export function LabourContractorProjectWizard() {
                       <div className="grid grid-cols-1 gap-2">
                         {MISTRI_RCC_SCOPE_OPTIONS.map((opt) => {
                           const selected = selectedScope === opt.value;
+                          const optionLocked = opt.value === 'wall_plaster_only' && wallLocked;
                           const showFramingNotice =
                             selected &&
                             isStructuralRccScope(opt.value) &&
@@ -1066,7 +1156,9 @@ export function LabourContractorProjectWizard() {
                           return (
                             <div key={opt.value} className="space-y-2">
                               <OptionCardButton
-                                selected={selected}
+                                selected={selected && !optionLocked}
+                                disabled={optionLocked}
+                                locked={optionLocked}
                                 onClick={() =>
                                   setRccScope(fw.floorId, opt.value, fw.customFloorNumber)
                                 }
@@ -1080,6 +1172,11 @@ export function LabourContractorProjectWizard() {
                                   </span>
                                 </span>
                               </OptionCardButton>
+                              {optionLocked && (
+                                <p className="px-1 text-[11px] font-medium text-red-700 dark:text-red-300">
+                                  {UPPER_FLOOR_WALL_LOCKED_BY_LOWER_STRUCTURE}
+                                </p>
+                              )}
                               {showFramingNotice && (
                                 <p className="px-1 text-[11px] font-medium text-amber-800 dark:text-amber-200">
                                   {STRUCTURAL_FRAMING_CONTINUITY_MESSAGE}
@@ -1107,7 +1204,7 @@ export function LabourContractorProjectWizard() {
                                   </label>
                                 </div>
                               )}
-                              {opt.value === 'wall_plaster_only' && selected && (
+                              {opt.value === 'wall_plaster_only' && selected && !optionLocked && (
                                 <div className="ml-2 space-y-3 rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-2.5">
                                   <NestedChoiceButtons
                                     question="What type of wall material will be used?"

@@ -623,6 +623,9 @@ export const UPPER_FLOOR_WALL_REQUIRES_EXISTING_GF_STRUCTURE =
 export const STRUCTURAL_FRAMING_CONTINUITY_MESSAGE =
   'New structural framing (Option 1/2) requires structural continuity from lower floors.';
 
+export const UPPER_FLOOR_WALL_LOCKED_BY_LOWER_STRUCTURE =
+  'Option 3 (Wall Construction Only) is unavailable because lower floors require new structural framing. You must select Option 1 or Option 2 to cast the slab/frame first.';
+
 export const MISTRI_RCC_SCOPE_OPTIONS: {
   value: MistriRccScopeOption;
   optionNumber: 1 | 2 | 3;
@@ -711,17 +714,6 @@ export function groundFloorStructureIsNewBuild(
   return isStructuralRccScope(scope);
 }
 
-/**
- * Wall-only work (Option 3) is allowed on any selected floor, including
- * non-sequential floors, because the structural frame is assumed to exist.
- */
-export function isUpperFloorWallScopeBlocked(
-  _floorId: MistriFloorId,
-  _floorWork: readonly Pick<MistriFloorWork, 'floorId' | 'workTypes' | 'scopeOption'>[],
-): boolean {
-  return false;
-}
-
 type MistriScopeFloor = Pick<
   MistriFloorWork,
   'floorId' | 'customFloorNumber' | 'workTypes' | 'scopeOption'
@@ -736,6 +728,34 @@ export function structuralFramingLevels(floorWork: readonly MistriScopeFloor[]):
     levels.push(mistriFloorUpperCount(fw.floorId, fw.customFloorNumber));
   }
   return [...new Set(levels)].sort((a, b) => a - b);
+}
+
+/**
+ * Lowest selected floor that uses Option 1 (Full Construction) or
+ * Option 2 (Structure / Frame Only). Floors above this boundary cannot
+ * use Option 3 because the new frame/slab must be cast first.
+ */
+export function firstNewStructureFloorLevel(
+  floorWork: readonly MistriScopeFloor[],
+): number | null {
+  const levels = structuralFramingLevels(floorWork);
+  return levels.length > 0 ? levels[0] : null;
+}
+
+/**
+ * Option 3 is locked on every floor above the lowest Option 1/2 floor.
+ * Floors at or below that boundary may still use wall-only work
+ * (existing shell below new framing).
+ */
+export function isUpperFloorWallScopeBlocked(
+  floorId: MistriFloorId,
+  floorWork: readonly MistriScopeFloor[],
+  customFloorNumber?: number | null,
+): boolean {
+  if (isAssamMistriFloor(floorId)) return false;
+  const firstNewStructure = firstNewStructureFloorLevel(floorWork);
+  if (firstNewStructure == null) return false;
+  return mistriFloorUpperCount(floorId, customFloorNumber) > firstNewStructure;
 }
 
 export function hasStructuralFramingDiscontinuity(
@@ -2651,6 +2671,17 @@ export function validateMistriFloorWorkInput(input: {
 
   if (hasStructuralFramingDiscontinuity(input.floorWork)) {
     return { error: STRUCTURAL_FRAMING_CONTINUITY_MESSAGE };
+  }
+
+  for (const fw of input.floorWork) {
+    if (isAssamMistriFloor(fw.floorId)) continue;
+    const scope = rccScopeFromWorkTypes(fw.workTypes, fw.scopeOption);
+    if (
+      scope === 'wall_plaster_only' &&
+      isUpperFloorWallScopeBlocked(fw.floorId, input.floorWork, fw.customFloorNumber)
+    ) {
+      return { error: UPPER_FLOOR_WALL_LOCKED_BY_LOWER_STRUCTURE };
+    }
   }
 
   const floorWork = normalizeMistriFloorWork(input.floorWork);
