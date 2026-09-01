@@ -16,6 +16,8 @@ export interface AgreementFormProps {
   totalValueLabel: string;
   isRccStructural: boolean;
   scopePreview: { label: string; value: string }[];
+  payoutSchedule: { stage: string; deliverable: string; percent: number; amountLabel: string }[];
+  agreedStartDate: string;
 }
 
 export function AgreementForm({
@@ -28,6 +30,8 @@ export function AgreementForm({
   totalValueLabel,
   isRccStructural,
   scopePreview,
+  payoutSchedule,
+  agreedStartDate,
 }: AgreementFormProps) {
   const [downloading, setDownloading] = useState(false);
   const [sending, setSending] = useState(false);
@@ -135,7 +139,43 @@ export function AgreementForm({
             </dt>
             <dd className="font-semibold text-foreground">{totalValueLabel}</dd>
           </div>
+          <div>
+            <dt className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Agreed start
+            </dt>
+            <dd className="font-medium text-foreground">{agreedStartDate}</dd>
+          </div>
         </dl>
+
+        <div className="rounded-lg border border-red-500/25 bg-red-500/5 px-3 py-2.5 text-xs text-foreground leading-relaxed">
+          <p className="font-semibold mb-1">Mandatory BuilBid payment gateway</p>
+          All project funds must flow exclusively through BuilBid (Homeowner gateway → Mistri). Cash
+          paid directly to the Mistri is prohibited and voids platform guarantees. The accepted rate
+          is fixed and non-negotiable after award.
+        </div>
+
+        {payoutSchedule.length > 0 && (
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+              Stage-wise payout
+            </p>
+            <ul className="space-y-1">
+              {payoutSchedule.map((stage) => (
+                <li key={stage.stage} className="text-xs text-foreground flex justify-between gap-3">
+                  <span>
+                    <span className="font-semibold">{stage.stage}</span> — {stage.deliverable} (
+                    {stage.percent}%)
+                  </span>
+                  <span className="font-semibold whitespace-nowrap">{stage.amountLabel}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="text-[11px] text-muted-foreground mt-2">
+              10-day grace after the completion date. Unexcused Mistri delay beyond grace: 5%
+              deduction from total labour payout. Material delays by the homeowner extend the deadline.
+            </p>
+          </div>
+        )}
 
         {scopePreview.length > 0 && (
           <div>

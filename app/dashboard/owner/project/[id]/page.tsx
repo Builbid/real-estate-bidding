@@ -143,7 +143,10 @@ export default async function OwnerProjectPage({ params }: PageProps) {
           project,
           bid: winningBid,
           owner: { name: ownerName || 'Client' },
-          mistri: { name: selectedBuilder?.full_name ?? 'Head Mason' },
+          mistri: {
+            name: selectedBuilder?.full_name ?? 'Head Mason',
+            platformId: project.selected_builder_id,
+          },
         })
       : null;
 
@@ -186,6 +189,8 @@ export default async function OwnerProjectPage({ params }: PageProps) {
             totalValueLabel={mistriAgreement.totalLaborLabel}
             isRccStructural={mistriAgreement.isRccStructural}
             scopePreview={mistriAgreement.scopeRows}
+            payoutSchedule={mistriAgreement.payoutSchedule}
+            agreedStartDate={mistriAgreement.agreedStartDate}
           />
         )}
 

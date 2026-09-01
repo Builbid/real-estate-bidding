@@ -236,6 +236,24 @@ export interface BidRates {
   running_foot_rate?: number;
   /** Estimated total for point-rate bids (sum of floor points × rate per point). */
   total_bid_amount?: number;
+  /**
+   * Mistri / Civil: sum of (floor slab area × floor civil rate).
+   * Ranking uses this value. Tile fitting is never included.
+   */
+  total_civil_cost?: number;
+  /** Mistri / Civil: per-floor slab area, civil rate, and civil cost. */
+  floor_civil_breakdown?: Array<{
+    floorId: string;
+    label: string;
+    slabAreaSqft: number;
+    civilRate: number;
+    civilCost: number;
+  }>;
+  /**
+   * Mistri add-on: tile fitting rate in ₹ per sq. ft. of floor area.
+   * Informational only — not added to total_civil_cost or ranking.
+   */
+  tile_fitting_rate?: number;
 }
 
 /**

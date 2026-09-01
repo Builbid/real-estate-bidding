@@ -235,6 +235,7 @@ export async function selectBuilderAction(
             gstNumber: builderFull?.gst_number ?? null,
             yearsInBusiness: builderFull?.years_in_business ?? null,
             isVerified: builderFull?.is_verified ?? null,
+            platformId: builderId,
           },
         })
         agreementAttachment = [{

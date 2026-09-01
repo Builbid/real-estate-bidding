@@ -51,6 +51,7 @@ import {
   mistriFoundationProvisionRequired,
   parseCustomFloorSequence,
   parseFoundationCustomFloorCount,
+  parseApproximateAreaSqft,
   parseFoundationDepthFt,
   sortMistriFloorWork,
   validateMajorMistriFloorSequence,
@@ -90,6 +91,7 @@ interface FloorWorkForm {
   assamRoofType: MistriAssamRoofType | null;
   assamRoofingSheet: MistriAssamRoofingSheet | null;
   foundationDepthFt: string;
+  slabArea: string;
 }
 
 const EMPTY_FLOOR_WORK: FloorWorkForm = {
@@ -101,6 +103,7 @@ const EMPTY_FLOOR_WORK: FloorWorkForm = {
   assamRoofType: null,
   assamRoofingSheet: null,
   foundationDepthFt: '',
+  slabArea: '',
 };
 
 const ASSAM_FULL_FINISHED_WORK: FloorWorkForm = {
@@ -324,6 +327,7 @@ export function LabourContractorProjectWizard() {
           assamRoofType: isAssam ? work.assamRoofType : null,
           assamRoofingSheet: isAssam ? work.assamRoofingSheet : null,
           foundationDepthFt: isAssam ? parseFoundationDepthFt(work.foundationDepthFt) : null,
+          slabAreaSqft: parseApproximateAreaSqft(work.slabArea),
         };
       }),
     );
@@ -562,6 +566,7 @@ export function LabourContractorProjectWizard() {
             assamRoofType: current.assamRoofType,
             assamRoofingSheet: current.assamRoofingSheet,
             foundationDepthFt: current.foundationDepthFt,
+            slabArea: current.slabArea,
           },
         },
       };
@@ -971,6 +976,24 @@ export function LabourContractorProjectWizard() {
                       </p>
                     </div>
 
+                    <Input
+                      label="Slab Area (Sq. Ft.)"
+                      type="text"
+                      inputMode="decimal"
+                      placeholder="e.g. 1200"
+                      value={entry.slabArea}
+                      onChange={(e) =>
+                        patchFloorWork(
+                          fw.floorId,
+                          { slabArea: e.target.value },
+                          fw.customFloorNumber,
+                        )
+                      }
+                    />
+                    <p className={HELPER_TEXT}>
+                      Enter this floor&apos;s slab area. The Mistri will quote a civil rate per sq. ft. of slab area.
+                    </p>
+
                     {isAssam ? (
                       <div className="space-y-3">
                         <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2.5">
@@ -1316,18 +1339,6 @@ export function LabourContractorProjectWizard() {
                   />
                 )}
               </div>
-
-              <Input
-                label="Approximate Project Area (Sq. Ft.)"
-                type="text"
-                inputMode="decimal"
-                placeholder="e.g. Approx. 1200 Sq. Ft."
-                value={form.approximateArea}
-                onChange={(e) => {
-                  update('approximateArea', e.target.value);
-                  setStep2Error(null);
-                }}
-              />
 
               <div className="flex flex-col gap-1.5">
                 <label className={SECTION_LABEL}>

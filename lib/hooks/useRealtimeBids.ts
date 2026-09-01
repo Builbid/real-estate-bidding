@@ -21,7 +21,15 @@ export function useRealtimeBids(projectId: string) {
     if (error) {
       setError(error.message);
     } else {
-      setBids((data ?? []) as Bid[]);
+      setBids(
+        ((data ?? []) as Bid[]).slice().sort((a, b) => {
+          const aCivil = a.rates?.total_civil_cost;
+          const bCivil = b.rates?.total_civil_cost;
+          const aRank = typeof aCivil === 'number' && aCivil > 0 ? aCivil : a.total_sum_metric;
+          const bRank = typeof bCivil === 'number' && bCivil > 0 ? bCivil : b.total_sum_metric;
+          return aRank - bRank;
+        }),
+      );
     }
     setLoading(false);
   }, [projectId, supabase]);

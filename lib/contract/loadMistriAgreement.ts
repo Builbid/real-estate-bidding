@@ -99,6 +99,7 @@ export async function loadMistriAgreementPayload(
         gstNumber: mistriRow.gst_number,
         yearsInBusiness: mistriRow.years_in_business,
         isVerified: mistriRow.is_verified,
+        platformId: project.selected_builder_id,
       };
     }
   } catch (err) {

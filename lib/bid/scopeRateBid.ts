@@ -1,14 +1,3 @@
-import { resolveProjectBidFloors } from '@/lib/bid/floorRateDisplay';
-import {
-  ASSAM_CIVIL_BID_LABEL,
-  ASSAM_ROOF_BID_LABEL,
-  MISTRI_CHOWKHAT_LABEL,
-  getAssamMistriBidLabels,
-  hasAssamMistriFloorWork,
-  hasMistriChowkhat,
-  parseMistriDetails,
-} from '@/lib/mistriDetails';
-import { ASSAM_BUILDING_TYPE } from '@/lib/buildingConfig';
 import { readNestedProjectDetail } from '@/lib/project/storedDetails';
 import {
   getCarpenterScopeLabel,
@@ -16,7 +5,7 @@ import {
   type CarpenterScopeType,
 } from '@/lib/tradeWorkDetails';
 import { isLegacyCarpenterService } from '@/lib/trades';
-import type { ServiceType, SubConfiguration } from '@/lib/types';
+import type { ServiceType } from '@/lib/types';
 import { normalizeServiceType } from '@/lib/validation/bidRates';
 import { readProjectInteriorBidOptions } from '@/lib/interiorBid';
 import {
@@ -67,20 +56,8 @@ function hasInteriorModularKitchen(raw: unknown): boolean {
   return details?.service === 'false_ceiling_work' && details.scopeType === 'modular_kitchen';
 }
 
-function isAssamTypeProject(project: {
-  track_type?: string | null;
-  building_types?: string[] | null;
-}): boolean {
-  return (
-    project.track_type === 'AssamType' ||
-    (project.building_types?.includes(ASSAM_BUILDING_TYPE) ?? false)
-  );
-}
-
 /**
  * Extra /sqft rate inputs beyond the default single-package or per-floor layout:
- * - Assam Type Mistri: Civil + Roof / Tile / Chowkhat add-ons
- * - RCC Mistri Worker + Chowkhat
  * - Interior Work + Modular Kitchen
  * - Legacy Carpenter projects
  * - Plumber: bathroom package + multi-option CPVC / SWR piping (₹ / Running Foot)
@@ -100,7 +77,6 @@ export function resolveScopeRateBidItems(
   const service = normalizeServiceType(project.service_type);
   const bidder = normalizeServiceType(bidderServiceType);
   const tradeDetails = parseTradeDetails(readNestedProjectDetail(project, 'trade_details'));
-  const mistriDetails = parseMistriDetails(readNestedProjectDetail(project, 'mistri_details'));
 
   if (service === 'plumber' || tradeDetails?.service === 'plumber') {
     if (isPlumbingPointRateProject(readNestedProjectDetail(project, 'trade_details'))) {
@@ -212,35 +188,9 @@ export function resolveScopeRateBidItems(
   }
 
   if (service === 'labour_contractor' || bidder === 'labour_contractor') {
-    if (hasAssamMistriFloorWork(mistriDetails) || isAssamTypeProject(project)) {
-      const labels = mistriDetails
-        ? getAssamMistriBidLabels(mistriDetails)
-        : [ASSAM_CIVIL_BID_LABEL, ASSAM_ROOF_BID_LABEL];
-      return {
-        labels,
-        count: labels.length,
-        kind: 'assam-addons',
-        flexibleRates: true,
-      };
-    }
-
-    if (!hasMistriChowkhat(mistriDetails)) return null;
-    const floors = resolveProjectBidFloors({
-      track_type: (project.track_type as 'RCC' | 'AssamType') ?? 'RCC',
-      total_floors: project.total_floors,
-      sub_configuration: project.sub_configuration as SubConfiguration | null | undefined,
-      building_types: project.building_types,
-      mistri_details: project.mistri_details,
-    });
-    const floorLabels = floors.labels.slice(0, 3);
-    const labels =
-      floorLabels.length > 0 ? [...floorLabels, MISTRI_CHOWKHAT_LABEL] : [MISTRI_CHOWKHAT_LABEL];
-    return {
-      labels,
-      count: labels.length,
-      kind: floorLabels.length > 0 ? 'floors' : 'scope',
-      flexibleRates: true,
-    };
+    // Mistri / Civil bids are ranked on total floor-wise slab-area civil cost,
+    // not Assam add-on averages or Chowkhat extra rate keys.
+    return null;
   }
 
   return null;

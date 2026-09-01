@@ -9,6 +9,13 @@ import {
 } from '@/lib/bid/earthworkBid';
 import { resolveScopeRateBidItems } from '@/lib/bid/scopeRateBid';
 import { resolveProjectBidFloors } from '@/lib/bid/floorRateDisplay';
+import {
+  buildMistriCivilCostPayload,
+  civilRatesFromBid,
+  isMistriCivilCostProject,
+  resolveMistriCivilFloors,
+  validateMistriCivilBid,
+} from '@/lib/bid/mistriCivilCost';
 import { missingProjectsColumn } from '@/lib/project/storedDetails';
 import { isDrawingDesignServiceType } from '@/lib/drawingDesign';
 import { isTradeServiceType } from '@/lib/trades';
@@ -205,8 +212,16 @@ export async function submitBidAction(
     total_floors: project.total_floors,
   }, profile?.service_type);
 
+  const isMistriCivilBid = isMistriCivilCostProject(project);
+  const mistriCivilFloors = isMistriCivilBid ? resolveMistriCivilFloors(project) : [];
+  const mistriCivilRates = isMistriCivilBid
+    ? civilRatesFromBid(rates, mistriCivilFloors)
+    : [];
+
   const floorCount =
-    scopeBid?.count
+    isMistriCivilBid
+      ? Math.max(mistriCivilFloors.length, 1)
+      : scopeBid?.count
       ?? (isTradeServiceType(project.service_type) || isDrawingDesignServiceType(project.service_type)
         ? 1
         : resolveProjectBidFloors({
@@ -230,22 +245,29 @@ export async function submitBidAction(
     ? readProjectUnitRateOptions(project)
     : [];
 
-  const validation = scopeBid?.unitRateBid
+  const rateRules = scopeBid?.flexibleRates
+    ? { requireMultipleOfFive: false }
+    : getBidRateRules(project.service_type, profile?.service_type);
+
+  const validation = isMistriCivilBid
+    ? validateMistriCivilBid(
+        mistriCivilFloors,
+        mistriCivilRates,
+        rates.tile_fitting_rate,
+        rateRules,
+      )
+    : scopeBid?.unitRateBid
     ? validateProjectUnitRates(project, rates, unitRateOptions)
     : validateBidRatesForFloorCount(
         rates,
         floorCount,
         scopeBid?.flexibleRates
           ? { requireMultipleOfFive: false }
-          : getBidRateRules(project.service_type, profile?.service_type),
+          : rateRules,
       );
   if (!validation.valid) {
     return { error: validation.message ?? 'Invalid bid rates.', success: false };
   }
-
-  const rateRules = scopeBid?.flexibleRates
-    ? { requireMultipleOfFive: false }
-    : getBidRateRules(project.service_type, profile?.service_type);
   if (isPlumbingPointRateBid && rates.running_foot_rate != null && rates.running_foot_rate > 0) {
     const runningFootError = getBidRateFieldError(rates.running_foot_rate, rateRules);
     if (runningFootError) {
@@ -297,10 +319,18 @@ export async function submitBidAction(
         )
       : null;
 
+  const mistriCivilPayload = isMistriCivilBid
+    ? buildMistriCivilCostPayload(
+        mistriCivilFloors,
+        mistriCivilRates,
+        rates.tile_fitting_rate,
+      )
+    : null;
+
   const ratesPayload = buildBidRatesPayload(
     {
       ...rates,
-      ...(unitRatePayload ?? pointRatePayload ?? {}),
+      ...(unitRatePayload ?? pointRatePayload ?? mistriCivilPayload ?? {}),
       bid_unit: earthworkMode
         ? bidUnitForEarthworkMode(earthworkMode)
         : unitRatePayload || pointRatePayload
@@ -309,10 +339,12 @@ export async function submitBidAction(
             ? (scopeBid?.kind === 'plumbing' ? 'per_running_foot' : 'flat')
             : project.service_type === 'electrician'
               ? 'per_point'
-              : rates.bid_unit,
+              : mistriCivilPayload
+                ? 'per_sqft'
+                : rates.bid_unit,
       vehicleCapacityCum: isTripBid ? rates.vehicleCapacityCum : undefined,
     },
-    unitRatePayload ? 1 : floorCount,
+    unitRatePayload ? 1 : Math.min(floorCount, 4),
   );
 
   if (bidId) {

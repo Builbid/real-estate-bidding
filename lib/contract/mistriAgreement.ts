@@ -1,6 +1,5 @@
 import { jsPDF } from 'jspdf';
 import {
-  getBidFloorRateEntries,
   resolveProjectBidFloors,
 } from '@/lib/bid/floorRateDisplay';
 import {
@@ -11,6 +10,7 @@ import {
   type ConstructionTypesMap,
 } from '@/lib/buildingConfig';
 import {
+  formatMistriStartTime,
   getMistriWorkRequirementBlocks,
   hasAssamMistriFloorWork,
   isAssamMistriFloor,
@@ -20,7 +20,13 @@ import {
 } from '@/lib/mistriDetails';
 import { readNestedProjectDetail } from '@/lib/project/storedDetails';
 import type { BidRates, ServiceType, SubConfiguration, TrackType } from '@/lib/types';
-import { averageFromSumMetric, getConstructionLabel, TRACK_LABELS } from '@/lib/utils';
+import { getConstructionLabel, TRACK_LABELS } from '@/lib/utils';
+import {
+  getMistriCivilCostDisplayEntries,
+  mistriRankMetric,
+  parseTileFittingRate,
+  resolveMistriCivilFloors,
+} from '@/lib/bid/mistriCivilCost';
 
 /** Official mailbox that already receives selection notices (GMAIL_USER). */
 export const BUILBID_CORP_GMAIL = 'builbidcorp@gmail.com';
@@ -38,6 +44,13 @@ const STRUCTURAL_FLOOR_WORK: ReadonlySet<MistriFloorWorkType> = new Set([
   'full_finished',
   'frame_skeleton',
 ]);
+
+const PAYOUT_STAGES: { stage: string; deliverable: string; percent: number }[] = [
+  { stage: 'Stage 1', deliverable: 'Foundation / Plinth Level (100% completion)', percent: 25 },
+  { stage: 'Stage 2', deliverable: 'Roof Level / Slab Casting (100% completion)', percent: 35 },
+  { stage: 'Stage 3', deliverable: 'Plastering & Brickwork (100% completion)', percent: 30 },
+  { stage: 'Stage 4', deliverable: 'Final Handover & Verification (100% completion)', percent: 10 },
+];
 
 export function isMistriCivilService(serviceType?: string | null): boolean {
   const value = (serviceType ?? 'labour_contractor').toLowerCase();
@@ -71,6 +84,14 @@ export interface MistriAgreementParty {
   gstNumber?: string | null;
   yearsInBusiness?: number | null;
   isVerified?: boolean | null;
+  platformId?: string | null;
+}
+
+export interface MistriAgreementPayoutStage {
+  stage: string;
+  deliverable: string;
+  percent: number;
+  amountLabel: string;
 }
 
 export interface MistriAgreementBidInput {
@@ -103,6 +124,9 @@ export interface MistriAgreementPayload {
   totalLaborCost: number;
   totalLaborLabel: string;
   rccRateClause: string;
+  districtPincode: string;
+  agreedStartDate: string;
+  payoutSchedule: MistriAgreementPayoutStage[];
 }
 
 function formatRs(value: number): string {
@@ -257,55 +281,77 @@ export function buildMistriAgreementPayload(input: {
     (block) => ({ label: block.label, value: block.value }),
   );
 
-  const floors = resolveProjectBidFloors({
-    track_type: project.track_type,
-    total_floors: project.total_floors,
-    sub_configuration: project.sub_configuration,
-    building_types: project.building_types,
-    mistri_details: project.mistri_details,
+  const civilFloors = resolveMistriCivilFloors(project);
+  const civilEntries = getMistriCivilCostDisplayEntries(bid?.rates, civilFloors);
+  const totalLaborCost = mistriRankMetric({
+    total_sum_metric: bid?.total_sum_metric,
+    rates: bid?.rates,
   });
-  const floorRates = getBidFloorRateEntries(bid?.rates, floors.labels);
-  const floorCount = Math.max(floorRates.length || floors.count || 1, 1);
-  const sumMetric = Number(bid?.total_sum_metric ?? 0);
-  const singleRate = Number(bid?.single_rate ?? 0);
+  const slabAreaSqft =
+    civilFloors.reduce((sum, floor) => sum + (floor.slabAreaSqft > 0 ? floor.slabAreaSqft : 0), 0)
+    || details?.approximateAreaSqft
+    || project.floor_area_sqft
+    || 0;
+  const breakdown = Array.isArray(bid?.rates?.floor_civil_breakdown)
+    ? bid.rates.floor_civil_breakdown
+    : [];
   const acceptedRateSqft =
-    singleRate > 0
-      ? singleRate
-      : floorRates.length === 1
-        ? floorRates[0].value
-        : averageFromSumMetric(sumMetric, floorCount);
-
-  const slabAreaSqft = details?.approximateAreaSqft || project.floor_area_sqft || 0;
-  const totalLaborCost = acceptedRateSqft > 0 && slabAreaSqft > 0 ? acceptedRateSqft * slabAreaSqft : 0;
+    breakdown.length === 1
+      ? Number(breakdown[0].civilRate || 0)
+      : slabAreaSqft > 0 && totalLaborCost > 0
+        ? totalLaborCost / slabAreaSqft
+        : 0;
+  const tileFittingRate = parseTileFittingRate(bid?.rates);
 
   const bidRows: MistriAgreementRow[] = [
-    { label: 'Accepted rate per sq. ft. of slab area', value: formatRsPerSqft(acceptedRateSqft) },
+    {
+      label: 'Total civil construction cost',
+      value: `${formatRs(totalLaborCost)}  (sum of floor slab area x floor civil rate)`,
+    },
     {
       label: 'Total slab area (client-specified)',
       value: slabAreaSqft > 0 ? `${slabAreaSqft.toLocaleString('en-IN')} sq. ft.` : '—',
     },
-    {
-      label: 'Calculated total labour cost',
-      value: `${formatRs(totalLaborCost)}${isRccStructural ? '  (rate x slab area)' : ''}`,
-    },
   ];
 
-  if (floorRates.length > 1) {
-    for (const entry of floorRates) {
+  if (acceptedRateSqft > 0 && breakdown.length <= 1) {
+    bidRows.push({
+      label: 'Accepted civil rate per sq. ft. of slab area',
+      value: formatRsPerSqft(acceptedRateSqft),
+    });
+  }
+
+  for (const row of breakdown.length > 0 ? breakdown : []) {
+    bidRows.push({
+      label: `${row.label} civil rate`,
+      value: `Rs. ${Number(row.civilRate || 0).toLocaleString('en-IN')} / sq. ft.  (${Number(row.slabAreaSqft || 0).toLocaleString('en-IN')} sq. ft. = ${formatRs(row.civilCost)})`,
+    });
+  }
+
+  if (civilEntries.length > 0 && breakdown.length === 0) {
+    for (const entry of civilEntries) {
       bidRows.push({
-        label: `${entry.label} bid rate`,
-        value: `Rs. ${entry.value.toLocaleString('en-IN')} / sq. ft.`,
+        label: entry.label,
+        value: formatRs(entry.value),
       });
     }
   }
 
+  if (tileFittingRate != null) {
+    bidRows.push({
+      label: 'Tile fitting rate (add-on, not in civil cost)',
+      value: `Rs. ${tileFittingRate.toLocaleString('en-IN')} / sq. ft. of floor area`,
+    });
+  }
+
   const contractorRows: MistriAgreementRow[] = [
     { label: 'Head Mason / contractor', value: nonEmpty(mistri.companyName || mistri.name) },
+    { label: 'builbid ID', value: nonEmpty(mistri.platformId) },
     { label: 'Platform account name', value: nonEmpty(mistri.name) },
     { label: 'Registered email', value: nonEmpty(mistri.email) },
-    { label: 'Mobile', value: nonEmpty(mistri.mobile) },
+    { label: 'Mobile / WhatsApp', value: nonEmpty(mistri.mobile) },
     { label: 'Address', value: nonEmpty(mistri.address) },
-    { label: 'GST', value: nonEmpty(mistri.gstNumber) },
+    { label: 'Government ID / GST / Govt Reg No', value: nonEmpty(mistri.gstNumber) },
     {
       label: 'Years on record',
       value:
@@ -324,6 +370,16 @@ export function buildMistriAgreementPayload(input: {
     seen.add(key);
     scopeRows.push(row);
   }
+
+  const payoutSchedule: MistriAgreementPayoutStage[] = PAYOUT_STAGES.map((stage) => ({
+    ...stage,
+    amountLabel:
+      totalLaborCost > 0 ? formatRs((totalLaborCost * stage.percent) / 100) : 'Rs. —',
+  }));
+
+  const districtPincode = [project.district?.trim(), project.pincode?.trim()]
+    .filter(Boolean)
+    .join(' / ') || '—';
 
   return {
     projectId: project.id,
@@ -349,6 +405,9 @@ export function buildMistriAgreementPayload(input: {
     totalLaborLabel: formatRs(totalLaborCost),
     rccRateClause:
       'For RCC structural work, the Head Mason (Mistri) labour rate is strictly calculated on a per sq. ft. of slab area basis. The accepted rate applies to the client-specified slab area. Total labour cost = Accepted Rate per Sq. Ft. of Slab Area x Total Slab Area. This basis does not apply to non-structural finishing-only packages (brickwork, plastering, or flooring without RCC frame/slab).',
+    districtPincode,
+    agreedStartDate: details ? formatMistriStartTime(details) : '—',
+    payoutSchedule,
   };
 }
 
@@ -366,7 +425,7 @@ function drawSectionTitle(doc: jsPDF, title: string, y: number, margin: number):
   doc.setFillColor(15, 118, 110);
   doc.rect(margin, y, doc.internal.pageSize.getWidth() - margin * 2, 8, 'F');
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10);
+  doc.setFontSize(9);
   doc.setTextColor(255);
   doc.text(title.toUpperCase(), margin + 3, y + 5.5);
   doc.setTextColor(20);
@@ -402,40 +461,141 @@ function drawRows(
   return y + 6;
 }
 
+function drawParagraph(
+  doc: jsPDF,
+  text: string,
+  startY: number,
+  margin: number,
+  opts?: { bold?: boolean; fill?: [number, number, number] },
+): number {
+  const pageW = doc.internal.pageSize.getWidth();
+  const usable = pageW - margin * 2;
+  const lines = doc.splitTextToSize(text, usable - 4) as string[];
+  const boxH = lines.length * 4.3 + 6;
+  const y = ensurePage(doc, startY, boxH + 2, margin);
+  if (opts?.fill) {
+    doc.setFillColor(...opts.fill);
+    doc.rect(margin, y, usable, boxH, 'F');
+  }
+  doc.setFont('helvetica', opts?.bold ? 'bold' : 'normal');
+  doc.setFontSize(8.5);
+  doc.setTextColor(30);
+  doc.text(lines, margin + 2, y + 5);
+  return y + boxH + 3;
+}
+
+function drawPayoutTable(
+  doc: jsPDF,
+  stages: MistriAgreementPayoutStage[],
+  startY: number,
+  margin: number,
+): number {
+  const pageW = doc.internal.pageSize.getWidth();
+  const usable = pageW - margin * 2;
+  const cols = [usable * 0.16, usable * 0.48, usable * 0.14, usable * 0.22];
+  const headers = ['Stage', 'Work Deliverable / Milestone', 'Payout %', 'Amount'];
+  let y = startY;
+  const rowH = 9;
+
+  const drawCells = (cells: string[], header: boolean) => {
+    y = ensurePage(doc, y, rowH + 1, margin);
+    let x = margin;
+    if (header) {
+      doc.setFillColor(15, 118, 110);
+      doc.setTextColor(255);
+      doc.setFont('helvetica', 'bold');
+    } else {
+      doc.setFillColor(248, 250, 249);
+      doc.setTextColor(25);
+      doc.setFont('helvetica', 'normal');
+    }
+    doc.setFontSize(8);
+    doc.rect(margin, y, usable, rowH, header ? 'F' : 'S');
+    for (let i = 0; i < cells.length; i++) {
+      const wrapped = doc.splitTextToSize(cells[i], cols[i] - 3) as string[];
+      doc.text(wrapped[0] ?? '', x + 1.5, y + 6);
+      x += cols[i];
+      if (i < cells.length - 1) {
+        doc.setDrawColor(200);
+        doc.line(x, y, x, y + rowH);
+      }
+    }
+    y += rowH;
+  };
+
+  drawCells(headers, true);
+  for (const stage of stages) {
+    drawCells(
+      [stage.stage, stage.deliverable, `${stage.percent}%`, stage.amountLabel],
+      false,
+    );
+  }
+  return y + 6;
+}
+
+function drawSignatureBlock(doc: jsPDF, startY: number, margin: number): number {
+  const pageW = doc.internal.pageSize.getWidth();
+  const usable = pageW - margin * 2;
+  const gap = 4;
+  const boxW = (usable - gap * 2) / 3;
+  const boxH = 38;
+  const y = ensurePage(doc, startY, boxH + 4, margin);
+  const labels = [
+    ['PARTY A: HOMEOWNER', 'Physical Signature / Thumb Impression'],
+    ['PARTY B: HEAD MASON (MISTRI)', 'Physical Signature / Thumb Impression'],
+    ['WITNESS / BUILBID COORDINATOR', 'Field Coordinator Signature'],
+  ];
+  labels.forEach((pair, i) => {
+    const x = margin + i * (boxW + gap);
+    doc.setDrawColor(180);
+    doc.rect(x, y, boxW, boxH);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7);
+    doc.setTextColor(20);
+    const title = doc.splitTextToSize(pair[0], boxW - 4) as string[];
+    doc.text(title, x + 2, y + 5);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.setTextColor(80);
+    const sub = doc.splitTextToSize(pair[1], boxW - 4) as string[];
+    doc.text(sub, x + 2, y + 12);
+    doc.setDrawColor(120);
+    doc.line(x + 4, y + 26, x + boxW - 4, y + 26);
+    doc.setFontSize(7);
+    doc.text('Date: ____ / ____ / 20__', x + 2, y + 33);
+  });
+  return y + boxH + 6;
+}
+
 /** jsPDF Helvetica cannot render the rupee glyph — keep ASCII. */
 export function generateMistriAgreementPdfBytes(payload: MistriAgreementPayload): Uint8Array {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
-  const margin = 16;
+  const margin = 14;
   const pageW = doc.internal.pageSize.getWidth();
-  let y = 18;
+  let y = 16;
 
   doc.setFillColor(15, 23, 42);
-  doc.rect(0, 0, pageW, 28, 'F');
+  doc.rect(0, 0, pageW, 30, 'F');
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(16);
   doc.setTextColor(255);
-  doc.text('BuilBid', margin, 12);
+  doc.text('BUILBID', margin, 12);
   doc.setFontSize(10);
+  doc.text('DIGITAL CONSTRUCTION & LABOUR AGREEMENT FORM', margin, 19);
   doc.setFont('helvetica', 'normal');
-  doc.text('Official Construction Agreement — Head Mason (Mistri / Civil Work)', margin, 20);
+  doc.setFontSize(8);
+  doc.text('Head Mason (Mistri / RCC Civil Work)  |  Official platform record', margin, 25);
   y = 36;
 
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(13);
-  doc.setTextColor(15, 23, 42);
-  doc.text('Agreement of Labour Work', margin, y);
-  y += 7;
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
-  doc.setTextColor(60);
-  const intro = doc.splitTextToSize(
-    `This record is generated automatically when the client awards a Head Mason (Mistri) bid on BuilBid. It captures the project scope selected at posting and the accepted winning bid. It is issued for BuilBid official records.`,
-    pageW - margin * 2,
-  ) as string[];
-  doc.text(intro, margin, y);
-  y += intro.length * 4.5 + 4;
+  y = drawParagraph(
+    doc,
+    'Legal Platform Notice: This document is an official digital contract executed directly between the Homeowner and the Head Mason (Mistri). BuilBid operates strictly as a technology marketplace, site coordinator, and payment facilitator. BuilBid is not a direct employer, general contractor, or primary party to the construction work executed on site.',
+    y,
+    margin,
+    { bold: true, fill: [254, 243, 199] },
+  );
 
-  y = drawSectionTitle(doc, 'Document', y, margin);
+  y = drawSectionTitle(doc, '1. Parties to the Agreement', y, margin);
   y = drawRows(
     doc,
     [
@@ -447,52 +607,123 @@ export function generateMistriAgreementPdfBytes(payload: MistriAgreementPayload)
     y,
     margin,
   );
-
-  y = drawSectionTitle(doc, 'Parties', y, margin);
   y = drawRows(
     doc,
     [
-      { label: 'Client name', value: nonEmpty(payload.client.name) },
-      { label: 'Client email', value: nonEmpty(payload.client.email) },
-      { label: 'Client mobile', value: nonEmpty(payload.client.mobile) },
-      { label: 'Head Mason (Mistri)', value: nonEmpty(payload.mistri.companyName || payload.mistri.name) },
-      { label: 'Mistri email', value: nonEmpty(payload.mistri.email) },
-      { label: 'Mistri mobile', value: nonEmpty(payload.mistri.mobile) },
+      { label: 'PARTY A — Homeowner (Client) full name', value: nonEmpty(payload.client.name) },
+      { label: 'Phone / WhatsApp', value: nonEmpty(payload.client.mobile) },
+      { label: 'Email', value: nonEmpty(payload.client.email) },
       { label: 'Site address', value: payload.siteAddress },
+      { label: 'District / Pincode', value: payload.districtPincode },
+    ],
+    y,
+    margin,
+  );
+  y = drawRows(
+    doc,
+    [
+      { label: 'PARTY B — Head Mason (Mistri / Contractor)', value: nonEmpty(payload.mistri.companyName || payload.mistri.name) },
+      { label: 'Phone / WhatsApp', value: nonEmpty(payload.mistri.mobile) },
+      { label: 'Email', value: nonEmpty(payload.mistri.email) },
+      { label: 'builbid ID', value: nonEmpty(payload.mistri.platformId) },
+      { label: 'Government ID / GST / Govt Reg No', value: nonEmpty(payload.mistri.gstNumber) },
     ],
     y,
     margin,
   );
 
-  y = drawSectionTitle(doc, 'Scope of Work (as selected by client)', y, margin);
+  y = drawSectionTitle(doc, '2. Scope of Work & Blueprint Verification', y, margin);
+  y = drawParagraph(
+    doc,
+    'Joint Blueprint Review: Homeowner, Mistri, and BuilBid Field Coordinator must jointly review site blueprints to finalize structural parameters (length, width, depth, and height).',
+    y,
+    margin,
+  );
+  y = drawParagraph(
+    doc,
+    'Excluded Extra / Decorative Work: This agreement strictly covers primary structural labor accepted during bidding. Additional decorative plastering, complex moulding, or elevation designs are excluded. Any extra work must be negotiated independently between Homeowner and Mistri without BuilBid involvement.',
+    y,
+    margin,
+  );
   y = drawRows(doc, payload.scopeRows, y, margin);
 
   if (payload.isRccStructural) {
     y = drawSectionTitle(doc, 'RCC Structural Work — Rate Basis', y, margin);
-    y = ensurePage(doc, y, 28, margin);
-    doc.setFillColor(254, 243, 199);
-    const clauseLines = doc.splitTextToSize(payload.rccRateClause, pageW - margin * 2 - 6) as string[];
-    const boxH = clauseLines.length * 4.4 + 8;
-    doc.rect(margin, y, pageW - margin * 2, boxH, 'F');
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9);
-    doc.setTextColor(120, 53, 15);
-    doc.text(clauseLines, margin + 3, y + 6);
-    y += boxH + 8;
+    y = drawParagraph(doc, payload.rccRateClause, y, margin, { bold: true, fill: [254, 243, 199] });
   }
 
-  y = drawSectionTitle(doc, 'Winning Bid — Commercials', y, margin);
+  y = drawSectionTitle(doc, '3. Fixed Rates & Payment Terms', y, margin);
+  y = drawParagraph(
+    doc,
+    'Fixed Non-Negotiable Rate: The final bid price accepted on the BuilBid platform is fixed. No bargaining or rate alterations are permitted post-acceptance.',
+    y,
+    margin,
+  );
+  y = drawParagraph(
+    doc,
+    "Mandatory BuilBid Payment Gateway: All project funds must flow exclusively through BuilBid's official platform account (Homeowner BuilBid Gateway -> Mistri). Cash payments made directly to the Mistri are strictly prohibited and nullify all platform guarantees.",
+    y,
+    margin,
+    { bold: true, fill: [254, 226, 226] },
+  );
   y = drawRows(doc, payload.bidRows, y, margin);
+  y = drawParagraph(
+    doc,
+    'Stage-Wise Payout Schedule: Payments are released systematically based on completed project stages as a percentage of the total contract labour cost.',
+    y,
+    margin,
+  );
+  y = drawPayoutTable(doc, payload.payoutSchedule, y, margin);
+
+  y = drawSectionTitle(doc, '4. Timelines, Delays & Penalty Terms', y, margin);
+  y = drawRows(
+    doc,
+    [
+      { label: 'Agreed start date', value: payload.agreedStartDate },
+      { label: 'Agreed completion date', value: 'To be confirmed on-site with the BuilBid Field Coordinator after material availability is verified.' },
+      { label: 'Grace extension allowed', value: '10 Calendar Days (Penalty Free)' },
+    ],
+    y,
+    margin,
+  );
+  y = drawParagraph(
+    doc,
+    'Timeline Guidance: The Start Date marks the day physical construction begins on site after material availability is confirmed. The Completion Date represents the mutually agreed deadline set by the Mistri to hand over 100% completed structural work.',
+    y,
+    margin,
+  );
+  y = drawParagraph(
+    doc,
+    'Material Supply Obligation: Homeowners must supply all materials on time. Material supply delays by the Homeowner void the on-time project completion guarantee and extend the deadline accordingly.',
+    y,
+    margin,
+  );
+  y = drawParagraph(
+    doc,
+    'Mistri Delay Penalty (5% Cut): If the project extends beyond the 10-day grace period due to unexcused delay or absenteeism by the Mistri, a mandatory 5% penalty deduction will be applied to the total contract labor payout through BuilBid.',
+    y,
+    margin,
+    { bold: true, fill: [254, 226, 226] },
+  );
+
+  y = drawSectionTitle(doc, '5. Execution & Physical Authorization', y, margin);
+  y = drawParagraph(
+    doc,
+    'This agreement is physically authorized and signed on-site by the Homeowner and Head Mason (Mistri) in the presence of the official BuilBid Field Coordinator.',
+    y,
+    margin,
+  );
+  y = drawSignatureBlock(doc, y, margin);
 
   y = drawSectionTitle(doc, 'Contractor Platform Details', y, margin);
   y = drawRows(doc, payload.contractorRows, y, margin);
 
-  y = ensurePage(doc, y, 22, margin);
+  y = ensurePage(doc, y, 16, margin);
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
+  doc.setFontSize(7.5);
   doc.setTextColor(100);
   const footer = doc.splitTextToSize(
-    'This PDF is an official BuilBid platform record of the awarded Mistri / civil work bid. A stamped legal construction contract, if required, is executed separately between the parties. Generated for builbidcorp@gmail.com.',
+    'Official BuilBid digital agreement for awarded Mistri / RCC civil work. Generated for builbidcorp@gmail.com. Cash payments outside the BuilBid gateway void platform guarantees.',
     pageW - margin * 2,
   ) as string[];
   doc.text(footer, margin, y);

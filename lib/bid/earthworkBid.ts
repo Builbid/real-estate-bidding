@@ -53,6 +53,7 @@ export function formatBidUnitSuffix(
   mode?: EarthworkBidMode | null,
   serviceType?: ServiceType | null,
 ): string {
+  if (rates?.total_civil_cost != null && rates.total_civil_cost > 0) return '';
   const unit = getBidDisplayUnit(rates, mode, serviceType);
   if (unit === 'flat') return '';
   if (unit === 'rft') return '/Rft';
@@ -65,6 +66,7 @@ export function formatBidUnitCaption(
   mode?: EarthworkBidMode | null,
   serviceType?: ServiceType | null,
 ): string {
+  if (rates?.total_civil_cost != null && rates.total_civil_cost > 0) return 'total civil';
   const unit = getBidDisplayUnit(rates, mode, serviceType);
   if (unit === 'flat') return 'Rs.';
   if (unit === 'hour') return '/hour';

@@ -19,6 +19,13 @@ import { resolveProjectFloorCount, shouldShowBidFloorBreakdown } from '@/lib/bid
 import { getPlumbingPointRateDisplayEntries, getPlumbingUnitRateDisplayEntries, parsePlumbingRunningFootRate, readPlumbingPointRateFloors, readProjectPlumbingBidOptions } from '@/lib/plumberBid';
 import { getElectricianPointRateDisplayEntries, getElectricianUnitRateDisplayEntries, readElectricianPointRateFloors, readProjectElectricianBidOptions } from '@/lib/electricianBid';
 import { getInteriorUnitRateDisplayEntries, readProjectInteriorBidOptions } from '@/lib/interiorBid';
+import {
+  getMistriCivilCostDisplayEntries,
+  isMistriCivilCostProject,
+  mistriRankMetric,
+  parseTileFittingRate,
+  resolveMistriCivilFloors,
+} from '@/lib/bid/mistriCivilCost';
 import { useOwnerProjectPhaseContext } from '@/lib/context/OwnerProjectPhaseContext';
 import type { Project, Bid } from '@/lib/types';
 
@@ -134,6 +141,8 @@ export function UnifiedBidRankings({
   const electricianPointFloors = isElectricianPointRateBid ? readElectricianPointRateFloors(project) : [];
   const isInteriorBid = scopeBid?.kind === 'interior';
   const isTradeUnitRateBid = Boolean(scopeBid?.unitRateBid);
+  const isMistriCivilBid = isMistriCivilCostProject(project);
+  const mistriCivilFloors = isMistriCivilBid ? resolveMistriCivilFloors(project) : [];
   const plumbingOptions = isPlumbingBid ? readProjectPlumbingBidOptions(project) : [];
   const electricianOptions = isElectricianBid ? readProjectElectricianBidOptions(project) : [];
   const interiorOptions = isInteriorBid ? readProjectInteriorBidOptions(project) : [];
@@ -155,7 +164,13 @@ export function UnifiedBidRankings({
           <TrendingDown className="w-4 h-4 text-emerald-400" />
           <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             Bid Rankings — {bids.length} bid{bids.length !== 1 ? 's' : ''}
-            {isPointRateBid ? ' · lowest estimated total first' : isTradeUnitRateBid ? ' · lowest Baseline Score first' : ''}
+            {isMistriCivilBid
+              ? ' · lowest total civil cost first'
+              : isPointRateBid
+                ? ' · lowest estimated total first'
+                : isTradeUnitRateBid
+                  ? ' · lowest Baseline Score first'
+                  : ''}
           </span>
         </div>
         {!isCompleted && !isFrozen && (
@@ -264,7 +279,9 @@ export function UnifiedBidRankings({
                 }`}>
                   {project.service_type === 'plumber' && !isPlumbingBid ? 'Rs. ' : '₹'}
                   {formatBidMetric(
-                    isPointRateBid
+                    isMistriCivilBid
+                      ? mistriRankMetric(bid)
+                      : isPointRateBid
                       ? (bid.rates?.total_bid_amount ?? bid.total_sum_metric)
                       : isTradeUnitRateBid && bid.rates?.weighted_index
                       ? bid.rates.weighted_index
@@ -273,7 +290,9 @@ export function UnifiedBidRankings({
                 </p>
                 <p className="text-[10px] text-muted-foreground">
                   {formatTripCapacityLabel(bid.rates?.vehicleCapacityCum)
-                    ?? (isPointRateBid
+                    ?? (isMistriCivilBid
+                      ? 'total civil cost'
+                      : isPointRateBid
                       ? 'estimated total'
                       : isTradeUnitRateBid
                       ? 'weighted index'
@@ -290,9 +309,15 @@ export function UnifiedBidRankings({
                     ₹{parsePlumbingRunningFootRate(bid.rates)!.toLocaleString('en-IN')}/ft
                   </p>
                 )}
+                {isMistriCivilBid && parseTileFittingRate(bid.rates) != null && (
+                  <p className="mt-1 inline-flex rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-800 dark:text-amber-300">
+                    Tile ₹{parseTileFittingRate(bid.rates)!.toLocaleString('en-IN')}/sqft
+                  </p>
+                )}
               </div>
 
               {(shouldShowBidFloorBreakdown(bid.rates, projectFloorCount) ||
+                isMistriCivilBid ||
                 isPointRateBid ||
                 (isTradeUnitRateBid && Object.keys(bid.rates?.unit_rates ?? {}).length > 0)) && (
                 <div className="w-full basis-full">
@@ -302,7 +327,9 @@ export function UnifiedBidRankings({
                     unitSuffix={isPointRateBid ? '/point' : isPlumbingBid ? '/Rft' : isInteriorBid || isElectricianBid ? '/unit' : '/sqft'}
                     unitSuffixes={(isPlumbingBid || isElectricianBid || isInteriorBid) ? scopeBid?.rateUnits : undefined}
                     extraEntries={
-                      isPlumbingPointRateBid
+                      isMistriCivilBid
+                        ? getMistriCivilCostDisplayEntries(bid.rates, mistriCivilFloors)
+                        : isPlumbingPointRateBid
                         ? getPlumbingPointRateDisplayEntries(bid.rates, plumbingPointFloors)
                         : isElectricianPointRateBid
                           ? getElectricianPointRateDisplayEntries(bid.rates, electricianPointFloors)
@@ -314,15 +341,24 @@ export function UnifiedBidRankings({
                             : getPlumbingUnitRateDisplayEntries(bid.rates, plumbingOptions)
                         : undefined
                     }
-                    indexLabel={isPointRateBid ? 'Estimated Total' : 'Weighted Index'}
+                    indexLabel={
+                      isMistriCivilBid
+                        ? 'Total Civil Construction Cost'
+                        : isPointRateBid
+                          ? 'Estimated Total'
+                          : 'Weighted Index'
+                    }
                     indexValue={
-                      isPointRateBid
+                      isMistriCivilBid
+                        ? mistriRankMetric(bid)
+                        : isPointRateBid
                         ? (bid.rates?.total_bid_amount ?? bid.total_sum_metric)
                         : isTradeUnitRateBid
                           ? bid.rates?.weighted_index
                           : undefined
                     }
                     runningFootRate={parsePlumbingRunningFootRate(bid.rates)}
+                    tileFittingRate={parseTileFittingRate(bid.rates)}
                   />
                 </div>
               )}

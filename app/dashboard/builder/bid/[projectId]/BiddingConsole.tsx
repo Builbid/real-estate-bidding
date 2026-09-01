@@ -94,6 +94,20 @@ import {
   readProjectPlumbingBidOptions,
 } from '@/lib/plumberBid';
 import { shouldShowBidFloorBreakdown, resolveProjectBidFloors } from '@/lib/bid/floorRateDisplay';
+import {
+  TILE_FITTING_RATE_HINT,
+  TILE_FITTING_RATE_LABEL,
+  TILE_FITTING_RATE_UNIT,
+  buildMistriCivilCostPayload,
+  civilRatesFromBid,
+  computeMistriFloorCivilCost,
+  getMistriCivilCostDisplayEntries,
+  isMistriCivilCostProject,
+  mistriRankMetric,
+  parseTileFittingRate,
+  resolveMistriCivilFloors,
+  validateMistriCivilBid,
+} from '@/lib/bid/mistriCivilCost';
 import { createClient } from '@/lib/supabase/client';
 import { isTradeServiceType } from '@/lib/trades';
 import { isDrawingDesignServiceType } from '@/lib/drawingDesign';
@@ -144,6 +158,20 @@ type BidWorkItemView =
       kind: 'floor';
       floorKey: BidFloorRateKey;
       optionId?: undefined;
+      civilIndex?: undefined;
+    }
+  | {
+      key: string;
+      title: string;
+      category?: string;
+      description?: string;
+      unitSuffix: string;
+      placeholder: string;
+      kind: 'civil';
+      civilIndex: number;
+      slabAreaSqft: number;
+      floorKey?: BidFloorRateKey;
+      optionId?: undefined;
     };
 
 function formatSpecLines(blocks: WorkRequirementBlock[]): string | undefined {
@@ -189,9 +217,23 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
   const bidFloors = resolveProjectBidFloors(project);
   const scopeBid = resolveScopeRateBidItems(project, bidderServiceType);
   const isScopeRateBid = scopeBid != null;
-  const isAssamTypeHouse = bidFloors.isAssamType && !isScopeRateBid;
-  const floorCount = isScopeRateBid ? scopeBid.count : isSingleRateBid ? 1 : bidFloors.count;
-  const floorLabels = isScopeRateBid ? scopeBid.labels : isSingleRateBid ? ['Your'] : bidFloors.labels;
+  const isMistriCivilBid = isMistriCivilCostProject(project);
+  const mistriCivilFloors = isMistriCivilBid ? resolveMistriCivilFloors(project) : [];
+  const isAssamTypeHouse = bidFloors.isAssamType && !isScopeRateBid && !isMistriCivilBid;
+  const floorCount = isMistriCivilBid
+    ? Math.max(mistriCivilFloors.length, 1)
+    : isScopeRateBid
+      ? scopeBid.count
+      : isSingleRateBid
+        ? 1
+        : bidFloors.count;
+  const floorLabels = isMistriCivilBid
+    ? mistriCivilFloors.map((floor) => floor.label)
+    : isScopeRateBid
+      ? scopeBid.labels
+      : isSingleRateBid
+        ? ['Your']
+        : bidFloors.labels;
   const rateKeys = getRateKeys(floorCount);
   const earthworkMode = resolveEarthworkBidMode(project);
   const isPlumber = isFlatRupeeService(project.service_type);
@@ -253,6 +295,25 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
       optionId: option.id,
     })),
   );
+
+  const civilWorkItems: BidWorkItemView[] = isMistriCivilBid
+    ? mistriCivilFloors.map((floor, index) => ({
+        key: floor.rateKey ?? `civil-${index}`,
+        title: floor.label,
+        category: 'Civil Construction Rate',
+        description: [
+          `Slab area: ${floor.slabAreaSqft > 0 ? `${floor.slabAreaSqft.toLocaleString('en-IN')} sq. ft.` : 'not specified'}`,
+          'Enter your Civil Construction Rate (₹/sq. ft. of slab area) for this floor.',
+          'Floor civil cost = slab area × civil rate. Ranking uses the sum of floor civil costs only.',
+        ].join('\n'),
+        unitSuffix: '/sqft slab',
+        placeholder: 'Civil rate per sq. ft. of slab area',
+        kind: 'civil' as const,
+        civilIndex: index,
+        slabAreaSqft: floor.slabAreaSqft,
+        floorKey: floor.rateKey,
+      }))
+    : [];
 
   const floorRateWorkItems: BidWorkItemView[] = !isTradeUnitRateBid
     ? floorLabels.flatMap((label, index) => {
@@ -322,8 +383,11 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
     : [];
 
   const leftoverSpecs = specBlocks.filter((block) => !usedSpecLabels.has(block.label));
-  const baseBidWorkItems: BidWorkItemView[] =
-    unitRateWorkItems.length > 0 ? unitRateWorkItems : floorRateWorkItems;
+  const baseBidWorkItems: BidWorkItemView[] = isMistriCivilBid
+    ? civilWorkItems
+    : unitRateWorkItems.length > 0
+      ? unitRateWorkItems
+      : floorRateWorkItems;
   const extra = baseBidWorkItems.length === 1 ? formatSpecLines(leftoverSpecs) : undefined;
   const bidWorkItems: BidWorkItemView[] =
     extra && baseBidWorkItems[0]
@@ -395,6 +459,21 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
     parsePlumbingRunningFootRate(existingBid?.rates) ?? undefined,
   );
   const [runningFootError, setRunningFootError] = useState<string | null>(null);
+  const [civilRateInputs, setCivilRateInputs] = useState<string[]>(() => {
+    if (!isMistriCivilBid) return [];
+    return civilRatesFromBid(existingBid?.rates, mistriCivilFloors).map((value) =>
+      value > 0 ? String(Math.trunc(value)) : '',
+    );
+  });
+  const [civilRateErrors, setCivilRateErrors] = useState<Record<number, string>>({});
+  const [tileFittingInput, setTileFittingInput] = useState(() => {
+    const value = parseTileFittingRate(existingBid?.rates);
+    return value != null ? String(value) : '';
+  });
+  const [tileFittingValue, setTileFittingValue] = useState<number | undefined>(() =>
+    parseTileFittingRate(existingBid?.rates) ?? undefined,
+  );
+  const [tileFittingError, setTileFittingError] = useState<string | null>(null);
 
   const countdown     = useCountdown(project.bidding_ends_at);
   const biddingClosed = project.status !== 'active_24h' || countdown.isExpired;
@@ -423,12 +502,23 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
   const electricianPointTotal = isElectricianPointRateBid
     ? computeElectricianPointBidTotal(electricianPointRateMap, electricianPointFloors)
     : 0;
-  const averageMetric = isPointRateBid
+  const liveCivilRates = isMistriCivilBid
+    ? mistriCivilFloors.map((_, index) => parseBidRateValue(civilRateInputs[index] ?? '') ?? 0)
+    : [];
+  const liveCivilPayload = isMistriCivilBid
+    ? buildMistriCivilCostPayload(mistriCivilFloors, liveCivilRates, tileFittingValue)
+    : null;
+  const averageMetric = isMistriCivilBid
+    ? (liveCivilPayload?.total_civil_cost ?? 0)
+    : isPointRateBid
     ? (isPlumbingPointRateBid ? plumbingPointTotal : electricianPointTotal)
     : isTradeUnitRateBid
     ? tradeWeightedIndex
     : computeAverageMetric(rates, floorCount);
   const displayBidAverage = (bid: { total_sum_metric: number; rates?: BidRates | null }) => {
+    if (isMistriCivilBid) {
+      return formatBidMetric(mistriRankMetric(bid));
+    }
     if (isPointRateBid) {
       return formatBidMetric(bid.rates?.total_bid_amount ?? bid.total_sum_metric);
     }
@@ -488,10 +578,16 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
     setError((prev) => (prev === BID_RATE_ERROR ? null : prev));
   }, [isFlexibleRate]);
 
-  const allFilled = isTradeUnitRateBid
+  const allFilled = isMistriCivilBid
+    ? mistriCivilFloors.every((_, index) =>
+        isValidBidRate(parseBidRateValue(civilRateInputs[index] ?? ''), rateRules),
+      ) && isValidBidRate(tileFittingValue, rateRules)
+    : isTradeUnitRateBid
     ? tradeBidOptions.every((option) => isValidBidRate(unitRateValues[option.id], rateRules))
     : rateKeys.every((k) => isValidBidRate(rates[k], rateRules));
-  const hasRateErrors = isTradeUnitRateBid
+  const hasRateErrors = isMistriCivilBid
+    ? Object.values(civilRateErrors).some(Boolean) || Boolean(tileFittingError)
+    : isTradeUnitRateBid
     ? tradeBidOptions.some((option) => {
         const fieldError = unitRateErrors[option.id];
         if (!fieldError) return false;
@@ -542,6 +638,54 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
     }
 
     validateRateField(key, value);
+  }
+
+  function handleCivilRateChange(index: number, raw: string) {
+    const sanitized = sanitizeBidRateInput(raw);
+    setCivilRateInputs((prev) => {
+      const next = prev.length > index ? [...prev] : [...prev, ...Array(index + 1 - prev.length).fill('')];
+      next[index] = sanitized;
+      return next;
+    });
+    const value = parseBidRateValue(sanitized);
+    const floorKey = mistriCivilFloors[index]?.rateKey;
+    if (floorKey) {
+      setRates((prev) => ({ ...prev, [floorKey]: value ?? 0 }));
+      setRateInputs((prev) => ({ ...prev, [floorKey]: sanitized }));
+    }
+
+    if (!sanitized) {
+      setCivilRateErrors((prev) => {
+        const next = { ...prev };
+        delete next[index];
+        return next;
+      });
+      return;
+    }
+
+    let fieldError = getBidRateFieldError(value, rateRules);
+    if (isFlexibleRate && fieldError === BID_RATE_ERROR) fieldError = null;
+    setCivilRateErrors((prev) => {
+      const next = { ...prev };
+      if (fieldError) next[index] = fieldError;
+      else delete next[index];
+      return next;
+    });
+  }
+
+  function handleTileFittingChange(raw: string) {
+    const sanitized = sanitizeBidRateInput(raw);
+    setTileFittingInput(sanitized);
+    const value = parseBidRateValue(sanitized);
+    setTileFittingValue(value);
+    if (!sanitized) {
+      setTileFittingError(null);
+      return;
+    }
+    let fieldError = getBidRateFieldError(value, rateRules);
+    if (isFlexibleRate && fieldError === BID_RATE_ERROR) fieldError = null;
+    if (value == null || value <= 0) fieldError = 'Enter a rate greater than zero.';
+    setTileFittingError(fieldError);
   }
 
   function handleRateBlur(key: BidFloorRateKey) {
@@ -606,6 +750,30 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
         setError(Object.values(submitErrors)[0]);
         return;
       }
+    } else if (isMistriCivilBid) {
+      const civilRates = civilRateInputs.map((value) => parseBidRateValue(value) ?? 0);
+      const civilValidation = validateMistriCivilBid(
+        mistriCivilFloors,
+        civilRates,
+        tileFittingValue,
+        rateRules,
+      );
+      const nextCivilErrors: Record<number, string> = {};
+      civilRateInputs.forEach((input, index) => {
+        const value = parseBidRateValue(input);
+        let fieldError = getBidRateFieldError(value, rateRules);
+        if (isFlexibleRate && fieldError === BID_RATE_ERROR) fieldError = null;
+        if (value == null || value <= 0) nextCivilErrors[index] = 'Enter a rate greater than zero.';
+        else if (fieldError) nextCivilErrors[index] = fieldError;
+      });
+      setCivilRateErrors(nextCivilErrors);
+      if (tileFittingValue == null || tileFittingValue <= 0) {
+        setTileFittingError('Enter a tile fitting rate greater than zero.');
+      }
+      if (!civilValidation.valid) {
+        setError(civilValidation.message);
+        return;
+      }
     } else {
       const validation = validateBidRatesForFloorCount(rates, floorCount, rateRules);
       const submitErrors = { ...validation.errors };
@@ -655,11 +823,26 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
     setSuccess(false);
 
     const bidId = existingBid?.id ?? myCurrentBid?.id ?? null;
+    const mistriPayload = isMistriCivilBid
+      ? buildMistriCivilCostPayload(
+          mistriCivilFloors,
+          mistriCivilFloors.map((_, index) => parseBidRateValue(civilRateInputs[index] ?? '') ?? 0),
+          tileFittingValue,
+        )
+      : null;
     const result = await submitBidAction(project.id, {
-      ground_rate: rates.ground_rate ?? 0,
-      first_rate: rates.first_rate,
-      second_rate: rates.second_rate,
-      third_rate: rates.third_rate,
+      ground_rate: mistriPayload?.ground_rate ?? rates.ground_rate ?? 0,
+      first_rate: mistriPayload?.first_rate ?? rates.first_rate,
+      second_rate: mistriPayload?.second_rate ?? rates.second_rate,
+      third_rate: mistriPayload?.third_rate ?? rates.third_rate,
+      ...(mistriPayload
+        ? {
+            bid_unit: 'per_sqft' as const,
+            total_civil_cost: mistriPayload.total_civil_cost,
+            floor_civil_breakdown: mistriPayload.floor_civil_breakdown,
+            tile_fitting_rate: mistriPayload.tile_fitting_rate,
+          }
+        : {}),
       ...(earthworkMode === 'hourly' ? { bid_unit: 'per_hour' as const } : {}),
       ...(earthworkMode === 'trip'
         ? { bid_unit: 'per_trip' as const, vehicleCapacityCum: tripCapacity }
@@ -851,6 +1034,8 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                               ? 'Trip Rate Metric'
                               : isPlumberFlat
                                 ? 'Your Rate'
+                                : isMistriCivilBid
+                                  ? 'Total Civil Construction Cost'
                                 : isScopeRateBid
                                   ? 'Your Average Rate Metric'
                                   : 'Your Final Rate Metric'}
@@ -865,7 +1050,14 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                           </p>
                         )}
                       </div>
-                      {isScopeRateBid && !isPlumbingBid && (
+                      {isMistriCivilBid && (
+                        <p className="text-xs text-muted-foreground text-right">
+                          Total civil cost
+                          <br />
+                          lowest quote #1
+                        </p>
+                      )}
+                      {isScopeRateBid && !isPlumbingBid && !isMistriCivilBid && (
                         <p className="text-xs text-muted-foreground text-right">
                           {floorCount === 1 ? (
                             <>Single rate<br />bid</>
@@ -874,7 +1066,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                           )}
                         </p>
                       )}
-                      {!isAssamTypeHouse && !earthworkMode && !isPlumberFlat && !isElectrician && !isScopeRateBid && (
+                      {!isMistriCivilBid && !isAssamTypeHouse && !earthworkMode && !isPlumberFlat && !isElectrician && !isScopeRateBid && (
                         <p className="text-xs text-muted-foreground text-right">
                           {isSingleRateBid ? (
                             <>Single rate<br />bid</>
@@ -913,6 +1105,11 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                         <p className="text-xs text-muted-foreground text-right">/point</p>
                       )}
                     </div>
+                    {isMistriCivilBid && parseTileFittingRate(myCurrentBid.rates) != null && (
+                      <p className="inline-flex rounded-full border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-[11px] font-semibold text-amber-800 dark:text-amber-300">
+                        Tile Fitting Rate: ₹{parseTileFittingRate(myCurrentBid.rates)!.toLocaleString('en-IN')}{TILE_FITTING_RATE_UNIT}
+                      </p>
+                    )}
                     {myRank > 0 && (
                       <div className={cn(
                         'flex items-center gap-3 p-2.5 rounded-lg border text-sm',
@@ -958,11 +1155,15 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                   <p className="text-xs text-blue-300">
                     {isPainter || isDrawing ? (
                       <>Enter your rate in ₹ per sqft. Rates must be whole numbers. Lower rates rank higher.</>
-                    ) : scopeBid?.kind === 'assam-addons' ? (
+                    ) : isMistriCivilBid ? (
                       <>
-                        Mistri contractors submit add-on rates on behalf of specialized roofers, tile workers, and carpenters. Negotiate carefully—your overall average rate determines leaderboard rank.
+                        Enter a <strong>Civil Construction Rate (₹/sq. ft. of slab area)</strong> for each selected floor.
+                        Floor civil cost = that floor&apos;s slab area × your rate.
+                        <strong> Total Civil Construction Cost</strong> is the sum of all floor civil costs — lowest total ranks #1.
+                        Tile fitting is a separate add-on and is <strong>not</strong> added to ranking.
+                        Rates must be whole numbers{isFlexibleRate ? '' : <> ending in <strong>0 or 5</strong></>}.
                       </>
-                    )                     : isPlumbingBid ? (
+                    ) : isPlumbingBid ? (
                       isPlumbingPointRateBid ? (
                       <>
                         Enter a <strong>Rate Per Point (₹)</strong> for each selected floor.
@@ -1021,13 +1222,18 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                 <AnimatePresence>
                   {bidWorkItems.map((item, i) => {
                     const isUnitItem = item.kind === 'unit';
+                    const isCivilItem = item.kind === 'civil';
                     const inputValue = isUnitItem
                       ? (unitRateInputs[item.optionId] ?? '')
-                      : (rateInputs[item.floorKey] ?? '');
+                      : isCivilItem
+                        ? (civilRateInputs[item.civilIndex] ?? '')
+                        : (rateInputs[item.floorKey] ?? '');
                     const numericValue = parseBidRateValue(inputValue);
                     const fieldError = isUnitItem
                       ? unitRateErrors[item.optionId]
-                      : rateErrors[item.floorKey];
+                      : isCivilItem
+                        ? civilRateErrors[item.civilIndex]
+                        : rateErrors[item.floorKey];
                     const showRoundHelper =
                       !isFlexibleRate &&
                       fieldError === BID_RATE_ERROR &&
@@ -1057,6 +1263,8 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                             onChange={(e) => {
                               if (item.kind === 'unit') {
                                 handleUnitRateChange(item.optionId, e.target.value);
+                              } else if (item.kind === 'civil') {
+                                handleCivilRateChange(item.civilIndex, e.target.value);
                               } else {
                                 handleRateChange(item.floorKey, e.target.value);
                               }
@@ -1088,6 +1296,8 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                                 const rounded = String(roundBidRateToNearestFive(numericValue));
                                 if (item.kind === 'unit') {
                                   handleUnitRateChange(item.optionId, rounded);
+                                } else if (item.kind === 'civil') {
+                                  handleCivilRateChange(item.civilIndex, rounded);
                                 } else {
                                   handleRoundToNearestFive(item.floorKey);
                                 }
@@ -1097,11 +1307,37 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                               Round to nearest 5 (→ ₹{roundBidRateToNearestFive(numericValue).toLocaleString('en-IN')})
                             </button>
                           )}
+                          {isCivilItem && numericValue != null && numericValue > 0 && item.slabAreaSqft > 0 && (
+                            <p className="text-xs font-medium text-emerald-700 dark:text-emerald-300">
+                              Floor civil cost: ₹{computeMistriFloorCivilCost(item.slabAreaSqft, numericValue).toLocaleString('en-IN')}
+                            </p>
+                          )}
                         </BidWorkItemCard>
                       </motion.div>
                     );
                   })}
                 </AnimatePresence>
+
+                {isMistriCivilBid && (
+                  <BidWorkItemCard
+                    title={TILE_FITTING_RATE_LABEL}
+                    category="Separate add-on — not ranked"
+                    description={TILE_FITTING_RATE_HINT}
+                  >
+                    <Input
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      placeholder="Tile fitting rate per sq. ft. of floor area"
+                      value={tileFittingInput}
+                      onChange={(e) => handleTileFittingChange(e.target.value)}
+                      prefix={<span className="text-muted-foreground text-xs">₹</span>}
+                      suffix={<span className="text-muted-foreground text-xs">{TILE_FITTING_RATE_UNIT}</span>}
+                      error={tileFittingError ?? undefined}
+                      required
+                    />
+                  </BidWorkItemCard>
+                )}
 
                 {isPlumbingPointRateBid && (
                   <BidWorkItemCard
@@ -1173,6 +1409,8 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                                 ? 'Weighted Index'
                                 : isPointRateBid
                                 ? 'Total Estimated Bid Amount'
+                                : isMistriCivilBid
+                                ? 'Total Civil Construction Cost'
                                 : isPlumbingBid
                                 ? 'Overall Average Rate'
                                 : 'Your Average Rate Metric'}
@@ -1210,7 +1448,14 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                       lowest total wins
                     </p>
                   )}
-                  {isScopeRateBid && !isPlumbingBid && (
+                  {isMistriCivilBid && (
+                    <p className="text-xs text-muted-foreground text-right">
+                      Total civil cost
+                      <br />
+                      lowest quote #1
+                    </p>
+                  )}
+                  {isScopeRateBid && !isPlumbingBid && !isMistriCivilBid && (
                     <p className="text-xs text-muted-foreground text-right">
                       {floorCount === 1 ? (
                         <>Single rate<br />bid</>
@@ -1219,7 +1464,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                       )}
                     </p>
                   )}
-                  {!isAssamTypeHouse && !earthworkMode && !isPlumberFlat && !isElectrician && !isScopeRateBid && (
+                  {!isMistriCivilBid && !isAssamTypeHouse && !earthworkMode && !isPlumberFlat && !isElectrician && !isScopeRateBid && (
                     <p className="text-xs text-muted-foreground text-right">
                       {isSingleRateBid ? (
                         <>Single rate<br />bid</>
@@ -1234,6 +1479,11 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                 {isPlumbingPointRateBid && runningFootValue != null && runningFootValue > 0 && (
                   <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-2 text-[11px] font-medium text-amber-800 dark:text-amber-300">
                     Separate running-foot rate (not ranked): ₹{runningFootValue.toLocaleString('en-IN')}/ft
+                  </p>
+                )}
+                {isMistriCivilBid && tileFittingValue != null && tileFittingValue > 0 && (
+                  <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-2 text-[11px] font-medium text-amber-800 dark:text-amber-300">
+                    Tile Fitting Rate (not ranked): ₹{tileFittingValue.toLocaleString('en-IN')}{TILE_FITTING_RATE_UNIT}
                   </p>
                 )}
 
@@ -1376,6 +1626,8 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                                   ? (formatTripCapacityLabel(bid.rates?.vehicleCapacityCum) ?? '/trip')
                                   : isPointRateBid
                                     ? 'estimated total'
+                                  : isMistriCivilBid
+                                    ? 'total civil cost'
                                   : isPlumbingBid
                                     ? 'overall avg'
                                   : isPlumberFlat
@@ -1391,9 +1643,15 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                                 ₹{parsePlumbingRunningFootRate(bid.rates)!.toLocaleString('en-IN')}/ft
                               </p>
                             )}
+                            {isMistriCivilBid && parseTileFittingRate(bid.rates) != null && (
+                              <p className="mt-1 inline-flex rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-800 dark:text-amber-300">
+                                Tile ₹{parseTileFittingRate(bid.rates)!.toLocaleString('en-IN')}/sqft
+                              </p>
+                            )}
                           </div>
 
                           {(shouldShowBidFloorBreakdown(bid.rates, floorCount) ||
+                            isMistriCivilBid ||
                             isPointRateBid ||
                             (isTradeUnitRateBid && Object.keys(bid.rates?.unit_rates ?? {}).length > 0)) && (
                             <div className="w-full basis-full">
@@ -1403,7 +1661,9 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                                 unitSuffix={isPointRateBid ? '/point' : isPlumbingBid ? '/Rft' : '/sqft'}
                                 unitSuffixes={isPlumbingBid ? plumbingRateUnits : undefined}
                                 extraEntries={
-                                  isPlumbingPointRateBid
+                                  isMistriCivilBid
+                                    ? getMistriCivilCostDisplayEntries(bid.rates, mistriCivilFloors)
+                                    : isPlumbingPointRateBid
                                     ? getPlumbingPointRateDisplayEntries(bid.rates, plumbingPointFloors)
                                     : isElectricianPointRateBid
                                       ? getElectricianPointRateDisplayEntries(bid.rates, electricianPointFloors)
@@ -1415,15 +1675,24 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                                         : getPlumbingUnitRateDisplayEntries(bid.rates, plumbingBidOptions)
                                     : undefined
                                 }
-                                indexLabel={isPointRateBid ? 'Estimated Total' : 'Weighted Index'}
+                                indexLabel={
+                                  isMistriCivilBid
+                                    ? 'Total Civil Construction Cost'
+                                    : isPointRateBid
+                                      ? 'Estimated Total'
+                                      : 'Weighted Index'
+                                }
                                 indexValue={
-                                  isPointRateBid
+                                  isMistriCivilBid
+                                    ? mistriRankMetric(bid)
+                                    : isPointRateBid
                                     ? (bid.rates?.total_bid_amount ?? bid.total_sum_metric)
                                     : isTradeUnitRateBid
                                       ? bid.rates?.weighted_index
                                       : undefined
                                 }
                                 runningFootRate={parsePlumbingRunningFootRate(bid.rates)}
+                                tileFittingRate={parseTileFittingRate(bid.rates)}
                               />
                             </div>
                           )}
