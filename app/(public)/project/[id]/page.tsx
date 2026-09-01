@@ -288,10 +288,10 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                     />
                     {project.description?.trim() && (
                       <div className="col-span-2 sm:col-span-3">
-                        <p className="text-[10px] text-muted-foreground/80 uppercase tracking-wider mb-1">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">
                           Specific Details
                         </p>
-                        <p className="text-sm font-medium text-foreground/90 leading-relaxed">
+                        <p className="text-sm font-medium text-foreground leading-relaxed">
                           {project.description.trim()}
                         </p>
                       </div>
@@ -303,7 +303,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                     <SpecItem icon={MapPin} label="State" value={project.state} />
                     <SpecItem icon={Layers} label="Track" value={TRACK_LABELS[project.track_type]} />
                     <div className="col-span-2 sm:col-span-3">
-                      <p className="text-[10px] text-muted-foreground/80 uppercase tracking-wider mb-2">Building Types</p>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Building Types</p>
                       <BuildingConfigSummary
                         project={project}
                         compact
@@ -312,7 +312,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                       />
                       {!isFirmProject(project) && (
                         <>
-                          <p className="text-[10px] text-muted-foreground/80 uppercase tracking-wider mb-2">Construction Scope</p>
+                          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Construction Scope</p>
                           <BuildingConfigSummary project={project} className="space-y-3" />
                         </>
                       )}
@@ -430,8 +430,8 @@ function SpecItem({ icon: Icon, label, value }: { icon: React.ElementType; label
         <Icon className="w-3.5 h-3.5 text-muted-foreground" />
       </div>
       <div>
-        <p className="text-[10px] text-muted-foreground/80 uppercase tracking-wider">{label}</p>
-        <p className="text-sm font-medium text-foreground/90 leading-snug whitespace-pre-line">{value}</p>
+        <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{label}</p>
+        <p className="text-sm font-medium text-foreground leading-snug whitespace-pre-line">{value}</p>
       </div>
     </div>
   );

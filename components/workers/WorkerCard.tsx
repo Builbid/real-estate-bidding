@@ -58,7 +58,7 @@ export function WorkerCard({ worker }: WorkerCardProps) {
 
       <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
         <StarRating rating={worker.rating} />
-        <span className="font-semibold tabular-nums text-foreground/90">
+        <span className="font-semibold tabular-nums text-foreground">
           {worker.rating.toFixed(1)}
         </span>
         <span className="text-border">·</span>

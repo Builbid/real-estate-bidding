@@ -75,16 +75,16 @@ function OwnerLiveProjectCardBody({
           <p className="text-sm font-semibold text-foreground">{project.title}</p>
           <div className="flex flex-wrap items-center gap-3 mt-1">
             <span className="text-xs text-muted-foreground">{project.district}</span>
-            <span className="text-muted-foreground/60 hidden sm:inline">·</span>
+            <span className="text-muted-foreground hidden sm:inline">·</span>
             <span className="text-xs text-muted-foreground">{configLabel}</span>
-            <span className="text-muted-foreground/60 hidden sm:inline">·</span>
+            <span className="text-muted-foreground hidden sm:inline">·</span>
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
               <Users className="w-3 h-3" />
               {bidCount} bid{bidCount !== 1 ? 's' : ''}
             </div>
             {postedAt && (
               <>
-                <span className="text-muted-foreground/60 hidden sm:inline">·</span>
+                <span className="text-muted-foreground hidden sm:inline">·</span>
                 <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
                   <CalendarDays className="w-3 h-3" />
                   Posted {postedAt}

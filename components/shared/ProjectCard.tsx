@@ -162,7 +162,7 @@ export function ProjectCard({
               {project.description?.trim() && (
                 <div className="col-span-2 rounded-xl border border-border/60 bg-muted/25 px-3 py-2.5 dark:bg-muted/15">
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Specific Details</p>
-                  <p className="mt-0.5 text-sm font-medium leading-snug text-foreground/90 line-clamp-3">
+                  <p className="mt-0.5 text-sm font-medium leading-snug text-foreground line-clamp-3">
                     {project.description.trim()}
                   </p>
                 </div>
@@ -199,7 +199,7 @@ export function ProjectCard({
                     project={project}
                     compact
                     hideConstructionTypes={isFirm}
-                    className="text-sm font-medium text-foreground/90 leading-snug mt-0.5"
+                    className="text-sm font-medium text-foreground leading-snug mt-0.5"
                   />
                 </div>
               )}

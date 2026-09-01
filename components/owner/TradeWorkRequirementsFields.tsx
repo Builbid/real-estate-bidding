@@ -232,7 +232,7 @@ function FieldGroup({
       <label className={WIZARD_SECTION_LABEL}>
         {label}
         {hint ? (
-          <span className="ml-1.5 normal-case tracking-normal font-medium text-gray-600 dark:text-zinc-400">
+          <span className="ml-1.5 normal-case tracking-normal font-medium text-slate-700 dark:text-slate-300">
             {hint}
           </span>
         ) : null}

@@ -183,7 +183,7 @@ export function BuildingTypeSelector({
             <p className="text-sm text-muted-foreground">
               Select Assam Type <span className="font-semibold">or</span> RCC floor(s) for these drawings.
             </p>
-            <p className="text-xs text-muted-foreground/80">
+            <p className="text-xs text-muted-foreground">
               Assam Type and RCC cannot be mixed.
               <br />
               For RCC you can select multiple floors (e.g. Ground + 1st Floor).
@@ -207,7 +207,7 @@ export function BuildingTypeSelector({
             <p className="text-sm text-muted-foreground">
               Select the floor(s) you want to construct. You can select multiple floors.
             </p>
-            <p className="text-xs text-muted-foreground/80">
+            <p className="text-xs text-muted-foreground">
               e.g. Building G+1? Select Ground Floor + 1st Floor
               <br />
               e.g. Already built Ground Floor? Select only 1st Floor

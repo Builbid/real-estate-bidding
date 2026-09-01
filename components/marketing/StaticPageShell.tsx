@@ -51,11 +51,11 @@ export function StaticPageShell({
             <p className="mt-3 text-base sm:text-lg text-muted-foreground leading-relaxed">{subtitle}</p>
           )}
           {lastUpdated && (
-            <p className="mt-4 text-xs text-muted-foreground/80">Last updated: {lastUpdated}</p>
+            <p className="mt-4 text-xs text-muted-foreground">Last updated: {lastUpdated}</p>
           )}
         </header>
 
-        <article className="space-y-8 text-sm sm:text-[15px] leading-relaxed text-foreground/90">
+        <article className="space-y-8 text-sm sm:text-[15px] leading-relaxed text-foreground">
           {children}
         </article>
       </main>

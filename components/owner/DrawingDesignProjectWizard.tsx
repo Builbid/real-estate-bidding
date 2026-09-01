@@ -212,7 +212,7 @@ export function DrawingDesignProjectWizard() {
                   ? 'bg-emerald-500 text-white'
                   : i + 1 === step
                     ? 'border-2 border-emerald-500 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
-                    : 'bg-secondary text-muted-foreground/80',
+                    : 'bg-secondary text-muted-foreground',
               )}
             >
               {i + 1 < step ? '✓' : i + 1}
@@ -220,7 +220,7 @@ export function DrawingDesignProjectWizard() {
             <span
               className={cn(
                 'truncate text-[10px] sm:text-xs',
-                i + 1 === step ? 'font-semibold text-gray-900 dark:text-white' : 'text-gray-600 dark:text-zinc-400',
+                i + 1 === step ? 'font-semibold text-gray-900 dark:text-white' : 'text-slate-700 dark:text-slate-300',
               )}
             >
               {label}
@@ -412,7 +412,7 @@ export function DrawingDesignProjectWizard() {
                   },
                 ].map((row) => (
                   <div key={row.label} className="flex items-start justify-between gap-3 px-4 py-3">
-                    <span className="text-xs font-medium text-gray-600 dark:text-zinc-400 flex-shrink-0">{row.label}</span>
+                    <span className="text-xs font-medium text-slate-700 dark:text-slate-300 flex-shrink-0">{row.label}</span>
                     <span className="text-sm font-semibold text-gray-900 dark:text-white text-right">{row.value}</span>
                   </div>
                 ))}

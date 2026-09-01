@@ -34,7 +34,7 @@ export function PlumbingFloorFixtureForm({
 
   if (targetFloors.length === 0) {
     return (
-      <p className="text-xs font-medium text-gray-600 dark:text-zinc-400">
+      <p className="text-xs font-medium text-slate-700 dark:text-slate-300">
         Go back and select at least one target work floor to enter fixture quantities.
       </p>
     );
@@ -56,7 +56,7 @@ export function PlumbingFloorFixtureForm({
               <h3 className="text-sm font-bold text-gray-900 dark:text-white">
                 {plumbingFloorLabel(floor, customTargetFloors)}
               </h3>
-              <p className="mt-0.5 text-[11px] font-medium text-gray-600 dark:text-zinc-400">
+              <p className="mt-0.5 text-[11px] font-medium text-slate-700 dark:text-slate-300">
                 How many of each fixture on this floor?
               </p>
             </div>

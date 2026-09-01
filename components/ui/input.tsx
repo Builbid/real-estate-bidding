@@ -13,7 +13,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className="flex flex-col gap-1.5 w-full">
         {label && (
-          <label className="text-xs font-semibold text-gray-800 dark:text-zinc-100 uppercase tracking-wider">
+          <label className="text-xs font-semibold text-slate-800 dark:text-zinc-100 uppercase tracking-wider">
             {label}
           </label>
         )}
@@ -24,7 +24,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
           <input
             type={type}
             className={cn(
-              'flex h-11 w-full rounded-xl border border-input bg-background/80 px-3 py-2 text-base md:text-sm text-foreground placeholder:text-gray-500 dark:placeholder:text-zinc-400 shadow-sm',
+              'flex h-11 w-full rounded-xl border border-input bg-background/80 px-3 py-2 text-base md:text-sm text-foreground placeholder:text-slate-600 dark:placeholder:text-slate-300 shadow-sm',
               'ring-offset-background transition-all duration-150',
               'focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-emerald-500/70',
               'disabled:cursor-not-allowed disabled:opacity-50',

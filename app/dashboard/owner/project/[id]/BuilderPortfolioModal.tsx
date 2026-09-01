@@ -174,7 +174,7 @@ export function BuilderPortfolioModal({
               </DialogTitle>
               <div className="flex items-center gap-3 mt-1.5 flex-wrap">
                 <BuilderRatingBadge average={average} total={total} size="md" showCount />
-                <span className="text-[11px] text-muted-foreground/80">Rank #{rank} on this project</span>
+                <span className="text-[11px] text-muted-foreground">Rank #{rank} on this project</span>
               </div>
             </div>
           </div>
@@ -289,7 +289,7 @@ export function BuilderPortfolioModal({
                 </p>
               </div>
               {wonProjects.length === 0 ? (
-                <p className="text-xs text-muted-foreground/80 px-2">No completed projects yet.</p>
+                <p className="text-xs text-muted-foreground px-2">No completed projects yet.</p>
               ) : (
                 <div className="space-y-1.5">
                   {wonProjects.map((p) => (
@@ -298,7 +298,7 @@ export function BuilderPortfolioModal({
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-semibold text-foreground truncate">{p.title}</p>
                         <div className="flex items-center gap-1.5 mt-0.5">
-                          <MapPin className="w-2.5 h-2.5 text-muted-foreground/80" />
+                          <MapPin className="w-2.5 h-2.5 text-muted-foreground" />
                           <span className="text-[10px] text-muted-foreground">{p.district}</span>
                         </div>
                       </div>
@@ -333,7 +333,7 @@ export function BuilderPortfolioModal({
                     onChange={(e) => setReviewInput(e.target.value)}
                     placeholder="Share your experience working with this builder (optional)…"
                     rows={3}
-                    className="w-full px-3 py-2.5 rounded-lg bg-secondary/60 border border-border text-sm text-foreground placeholder:text-muted-foreground/80 focus:outline-none focus:border-indigo-500/50 resize-none"
+                    className="w-full px-3 py-2.5 rounded-lg bg-secondary/60 border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-indigo-500/50 resize-none"
                   />
                   <Button
                     onClick={handleSaveRating}
@@ -355,7 +355,7 @@ export function BuilderPortfolioModal({
               </div>
             )}
 
-            <p className="text-[11px] text-muted-foreground/80 text-center">
+            <p className="text-[11px] text-muted-foreground text-center">
               Contact details (phone, email, address) are never shown here — shared only after contract confirmation.
             </p>
           </div>

@@ -62,7 +62,7 @@ export function LanguageSwitcher({ overlay = false, className }: LanguageSwitche
                 'flex w-full items-center justify-between gap-2 rounded-md px-2.5 py-2 text-sm transition-colors',
                 selected
                   ? 'bg-accent text-foreground font-medium'
-                  : 'text-foreground/80 hover:bg-accent/60',
+                  : 'text-foreground hover:bg-accent/60',
               )}
             >
               <span>

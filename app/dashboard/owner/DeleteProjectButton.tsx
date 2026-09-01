@@ -52,7 +52,7 @@ export function DeleteProjectButton({ projectId, projectTitle }: Props) {
           setError(null);
           setOpen(true);
         }}
-        className="p-1.5 rounded-lg text-muted-foreground/80 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+        className="p-1.5 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors"
         title="Delete project"
         aria-label="Delete project"
       >

@@ -23,7 +23,7 @@ export function AssamMatrixSelector({ value, onChange }: AssamMatrixSelectorProp
     <div className="space-y-3">
       <div className="space-y-1">
         <p className="text-sm text-muted-foreground">{t('construction.assamHelper')}</p>
-        <p className="text-xs text-muted-foreground/80">{t('construction.assamHelperAs')}</p>
+        <p className="text-xs text-muted-foreground">{t('construction.assamHelperAs')}</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

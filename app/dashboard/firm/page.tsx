@@ -182,7 +182,7 @@ export default async function FirmDashboardPage() {
         ) : (
           <Card className="border-dashed">
             <CardContent className="pt-10 pb-10 text-center">
-              <Building2 className="w-10 h-10 text-muted-foreground/60 mx-auto mb-3" />
+              <Building2 className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
               <p className="text-sm font-semibold text-foreground mb-1">No Open Firm Auctions</p>
               <p className="text-xs text-muted-foreground">
                 Check back soon — new projects are posted regularly.

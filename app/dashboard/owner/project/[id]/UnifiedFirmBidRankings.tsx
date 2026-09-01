@@ -66,7 +66,7 @@ export function UnifiedFirmBidRankings({
   if (bids.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
-        <Trophy className="w-10 h-10 text-muted-foreground/60" />
+        <Trophy className="w-10 h-10 text-muted-foreground" />
         <p className="text-sm font-semibold text-foreground">No bids yet</p>
         <p className="text-xs text-muted-foreground">Firm bids will appear here in real time.</p>
       </div>
@@ -128,7 +128,7 @@ export function UnifiedFirmBidRankings({
                     .filter(Boolean)
                     .join(' · ')}
                 </p>
-                <p className="text-[10px] text-muted-foreground/80 mt-0.5">{formatRelativeTime(bid.created_at)}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">{formatRelativeTime(bid.created_at)}</p>
               </div>
 
               <div className="w-full sm:w-auto sm:flex-shrink-0">

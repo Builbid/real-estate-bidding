@@ -68,7 +68,7 @@ export function NotificationBell() {
           <div className="max-h-96 overflow-y-auto">
             {notifications.length === 0 ? (
               <div className="flex flex-col items-center gap-2 py-10 text-center px-4">
-                <Bell className="w-8 h-8 text-muted-foreground/60" />
+                <Bell className="w-8 h-8 text-muted-foreground" />
                 <p className="text-xs text-muted-foreground">No notifications yet</p>
               </div>
             ) : (
@@ -86,7 +86,7 @@ export function NotificationBell() {
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-semibold text-foreground mb-0.5">{n.title}</p>
                     <p className="text-xs text-muted-foreground leading-relaxed">{notificationText(n)}</p>
-                    <p className="text-[10px] text-muted-foreground/80 mt-1">{timeAgo(n.created_at)}</p>
+                    <p className="text-[10px] text-muted-foreground mt-1">{timeAgo(n.created_at)}</p>
                   </div>
                   {!n.is_read && (
                     <span className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0 mt-1.5" />

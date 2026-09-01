@@ -56,7 +56,7 @@ export function BuilderRatingBreakdown({ stats, className }: BuilderRatingBreakd
                     style={{ width: `${pct}%` }}
                   />
                 </div>
-                <span className="text-[10px] text-muted-foreground/80 w-7 text-right tabular-nums">{count}</span>
+                <span className="text-[10px] text-muted-foreground w-7 text-right tabular-nums">{count}</span>
               </div>
             );
           })}
@@ -87,7 +87,7 @@ function MetricBadge({
   color: 'slate' | 'emerald' | 'rose';
 }) {
   const colors = {
-    slate: 'bg-secondary/60 border-border text-foreground/80',
+    slate: 'bg-secondary/60 border-border text-foreground',
     emerald: 'bg-emerald-500/5 border-emerald-500/20 text-emerald-300',
     rose: 'bg-rose-500/5 border-rose-500/20 text-rose-300',
   };
@@ -112,7 +112,7 @@ export function BuilderReviewsFeed({ reviews, className }: BuilderReviewsFeedPro
 
   if (withText.length === 0) {
     return (
-      <p className={cn('text-xs text-muted-foreground/80 px-1', className)}>
+      <p className={cn('text-xs text-muted-foreground px-1', className)}>
         No written reviews yet.
       </p>
     );
@@ -140,13 +140,13 @@ export function BuilderReviewsFeed({ reviews, className }: BuilderReviewsFeedPro
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between gap-2 flex-wrap">
                 <span className="text-xs font-semibold text-foreground">{masked}</span>
-                <span className="text-[10px] text-muted-foreground/80">{date}</span>
+                <span className="text-[10px] text-muted-foreground">{date}</span>
               </div>
               <div className="flex items-center gap-2 mt-1">
                 <StarRating rating={r.rating} size="xs" />
                 <BuilderRatingBadge average={r.rating} total={1} size="xs" />
               </div>
-              <p className="text-xs text-foreground/80 leading-relaxed mt-2">{r.review}</p>
+              <p className="text-xs text-foreground leading-relaxed mt-2">{r.review}</p>
             </div>
           </div>
         );

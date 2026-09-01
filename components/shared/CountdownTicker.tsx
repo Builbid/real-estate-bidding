@@ -81,9 +81,9 @@ export function CountdownTicker({ targetDateISO, label, className, compact = fal
       )}
       <div className="flex items-end gap-1.5">
         <DigitBlock value={countdown.hours}   label="HRS" />
-        <span className="text-muted-foreground/80 font-mono text-xl mb-3.5">:</span>
+        <span className="text-muted-foreground font-mono text-xl mb-3.5">:</span>
         <DigitBlock value={countdown.minutes} label="MIN" />
-        <span className="text-muted-foreground/80 font-mono text-xl mb-3.5">:</span>
+        <span className="text-muted-foreground font-mono text-xl mb-3.5">:</span>
         <DigitBlock value={countdown.seconds} label="SEC" />
       </div>
       {isUrgent && (

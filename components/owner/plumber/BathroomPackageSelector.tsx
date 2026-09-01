@@ -20,7 +20,7 @@ export function BathroomPackageSelector({
   return (
     <div className="flex flex-col gap-1.5">
       <label className={WIZARD_SECTION_LABEL}>Type</label>
-      <p className="text-xs font-medium text-gray-600 dark:text-zinc-400 -mt-0.5 mb-1">
+      <p className="text-xs font-medium text-slate-700 dark:text-slate-300 -mt-0.5 mb-1">
         Choose Common, Master, or Luxury. Included fittings appear below.
       </p>
       <div className="grid grid-cols-3 gap-2 sm:gap-3">

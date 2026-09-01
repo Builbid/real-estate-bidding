@@ -119,9 +119,9 @@ export function BrochureUpload({ brochureUrl, onChanged }: BrochureUploadProps) 
               <span className="text-xs font-medium text-foreground">Upload brochure</span>
               <span className="text-[10px] text-muted-foreground inline-flex items-center gap-1.5">
                 <FileText className="h-3 w-3" /> PDF
-                <span className="text-muted-foreground/40">·</span>
+                <span className="text-muted-foreground">·</span>
                 <ImageIcon className="h-3 w-3" /> JPG / PNG / WebP
-                <span className="text-muted-foreground/40">·</span>
+                <span className="text-muted-foreground">·</span>
                 max 10 MB
               </span>
             </>

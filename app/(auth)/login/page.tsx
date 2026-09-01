@@ -123,7 +123,7 @@ function LoginForm({ roleParam }: { roleParam: RoleParam }) {
               <button
                 type="button"
                 onClick={() => setShowPw(!showPw)}
-                className="text-muted-foreground hover:text-foreground/80 transition-colors"
+                className="text-muted-foreground hover:text-foreground transition-colors"
               >
                 {showPw ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
               </button>
@@ -220,7 +220,7 @@ function LoginPageContent() {
           </div>
         </div>
 
-        <p className="text-center mt-6 text-xs text-muted-foreground/80">
+        <p className="text-center mt-6 text-xs text-muted-foreground">
           By signing in, you agree to our{' '}
           <Link href="/terms" className="text-muted-foreground hover:text-foreground underline-offset-2 hover:underline">
             Terms of Service

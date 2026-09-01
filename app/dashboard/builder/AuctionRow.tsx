@@ -92,11 +92,11 @@ export function AuctionRow({
         <p className="text-sm font-semibold text-foreground truncate">{project.title}</p>
         <div className="flex flex-wrap items-center gap-3 mt-1">
           <span className="text-xs text-muted-foreground">{project.district}</span>
-          <span className="text-muted-foreground/60">·</span>
+          <span className="text-muted-foreground">·</span>
           <span className="text-xs text-muted-foreground">{configLabel}</span>
           {postedAt && (
             <>
-              <span className="text-muted-foreground/60">·</span>
+              <span className="text-muted-foreground">·</span>
               <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
                 <CalendarDays className="w-3 h-3" />
                 Posted {postedAt}
@@ -107,14 +107,14 @@ export function AuctionRow({
 
         {/* Countdown — mobile only, shown inline under project meta */}
         <div className="flex sm:hidden items-center gap-2 mt-2">
-          <Clock className="w-3.5 h-3.5 text-muted-foreground/80" />
+          <Clock className="w-3.5 h-3.5 text-muted-foreground" />
           <CountdownTicker targetDateISO={project.bidding_ends_at} compact />
         </div>
       </div>
 
       {/* Countdown — desktop only */}
       <div className="hidden sm:flex items-center gap-2">
-        <Clock className="w-3.5 h-3.5 text-muted-foreground/80" />
+        <Clock className="w-3.5 h-3.5 text-muted-foreground" />
         <CountdownTicker targetDateISO={project.bidding_ends_at} compact />
       </div>
 

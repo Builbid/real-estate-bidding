@@ -72,12 +72,12 @@ export function InteriorPackageForm({
                   <span className="text-sm font-bold text-gray-900 dark:text-white">{pkg.label}</span>
                   <ChevronDown
                     className={cn(
-                      'h-4 w-4 flex-shrink-0 text-gray-500 transition-transform',
+                      'h-4 w-4 flex-shrink-0 text-slate-700 transition-transform',
                       open && 'rotate-180',
                     )}
                   />
                 </span>
-                <span className="mt-1 block text-xs font-medium text-gray-600 dark:text-zinc-400">
+                <span className="mt-1 block text-xs font-medium text-slate-700 dark:text-slate-300">
                   {open
                     ? pickedCount > 0
                       ? `${pickedCount} sub-option${pickedCount === 1 ? '' : 's'} selected`
@@ -120,11 +120,11 @@ export function InteriorPackageForm({
                             )}
                           </span>
                           {option.note ? (
-                            <span className="mt-0.5 block text-[11px] font-medium italic text-gray-600 dark:text-zinc-400">
+                            <span className="mt-0.5 block text-[11px] font-medium italic text-slate-700 dark:text-slate-300">
                               ({option.note})
                             </span>
                           ) : (
-                            <span className="text-[11px] font-medium text-gray-600 dark:text-zinc-400">
+                            <span className="text-[11px] font-medium text-slate-700 dark:text-slate-300">
                               Labour rate {option.unitSuffix}
                             </span>
                           )}

@@ -357,7 +357,7 @@ function RadioOption({
             className={cn(
               'block text-[10px] leading-snug mt-0.5',
               disabled
-                ? 'text-muted-foreground/80'
+                ? 'text-muted-foreground'
                 : isSelected
                   ? selectedSub
                   : 'text-muted-foreground',
@@ -631,7 +631,7 @@ function SelectionSummary({
               key={type}
               className={cn(
                 'flex items-center gap-2 text-sm',
-                selected ? 'text-foreground' : 'text-muted-foreground/70',
+                selected ? 'text-foreground' : 'text-muted-foreground',
               )}
             >
               <span

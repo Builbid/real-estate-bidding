@@ -149,7 +149,7 @@ export function TopBar({ profile, avatarGradient }: TopBarProps) {
             <div className="flex-1 overflow-y-auto">
               {notifications.length === 0 ? (
                 <div className="flex flex-col items-center justify-center gap-3 h-48 text-center px-6">
-                  <Bell className="w-8 h-8 text-muted-foreground/60" />
+                  <Bell className="w-8 h-8 text-muted-foreground" />
                   <p className="text-xs text-muted-foreground">No notifications yet</p>
                 </div>
               ) : (
@@ -179,7 +179,7 @@ export function TopBar({ profile, avatarGradient }: TopBarProps) {
                               {notificationText(notif)}
                             </p>
                           )}
-                          <p className="text-[10px] text-muted-foreground/80 mt-1">
+                          <p className="text-[10px] text-muted-foreground mt-1">
                             {formatRelativeTime(notif.created_at)}
                           </p>
                         </div>

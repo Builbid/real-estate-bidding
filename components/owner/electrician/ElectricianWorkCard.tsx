@@ -56,7 +56,7 @@ export function ElectricianWorkCard({
         <p className="line-clamp-2 text-[11px] font-semibold leading-snug text-gray-900 dark:text-white sm:text-xs">
           {title}
         </p>
-        <p className="line-clamp-2 text-[10px] leading-snug text-gray-600 dark:text-zinc-400">
+        <p className="line-clamp-2 text-[10px] leading-snug text-slate-700 dark:text-slate-300">
           {subtitle}
         </p>
       </div>

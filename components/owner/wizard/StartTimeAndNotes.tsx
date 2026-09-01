@@ -66,7 +66,7 @@ export function StartTimeAndNotes<T extends string = ProjectStartTimeType>({
           }
           value={additionalRequirements}
           onChange={(e) => onNotesChange(e.target.value)}
-          className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm font-medium text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
+          className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm font-medium text-gray-900 dark:text-white placeholder:text-slate-600 dark:placeholder:text-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
         />
       </div>
     </div>

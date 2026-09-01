@@ -112,7 +112,7 @@ function ResetPasswordForm() {
               <button
                 type="button"
                 onClick={() => setShowPw(!showPw)}
-                className="text-muted-foreground transition-colors hover:text-foreground/80"
+                className="text-muted-foreground transition-colors hover:text-foreground"
               >
                 {showPw ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
               </button>

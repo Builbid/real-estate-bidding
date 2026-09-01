@@ -30,7 +30,7 @@
 @layer base {
   :root {
     --background: 210 40% 98%;
-    --foreground: 222.2 47.4% 11.2%;
+    --foreground: 222.2 47.4% 11.2%; /* #0f172a slate-900 */
     --card: 0 0% 100%;
     --card-foreground: 222.2 47.4% 11.2%;
     --popover: 0 0% 100%;
@@ -40,7 +40,7 @@
     --secondary: 214 32% 91%;
     --secondary-foreground: 222.2 47.4% 11.2%;
     --muted: 214 32% 91%;
-    --muted-foreground: 215 16% 47%;
+    --muted-foreground: 215 25% 27%; /* slate-700 #334155 */
     --accent: 214 32% 91%;
     --accent-foreground: 222.2 47.4% 11.2%;
     --destructive: 0 72% 51%;
@@ -63,7 +63,7 @@
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
     --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted-foreground: 210 20% 82%; /* slate-300 — high contrast on dark */
     --accent: 217.2 32.6% 17.5%;
     --accent-foreground: 210 40% 98%;
     --destructive: 0 62.8% 45%;
@@ -95,16 +95,29 @@
     text-size-adjust: 100%;
   }
 
+  h1, h2, h3, h4, h5, h6 {
+    @apply text-foreground;
+  }
+
+  label {
+    @apply text-foreground;
+  }
+
   body {
     @apply bg-background text-foreground;
+    color: #0f172a;
     font-feature-settings: "rlig" 1, "calt" 1;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+    -webkit-font-smoothing: auto;
+    -moz-osx-font-smoothing: auto;
     background-image:
       radial-gradient(ellipse 90% 60% at 50% -30%, hsl(263 90% 55% / 0.07), transparent 55%),
       radial-gradient(ellipse 70% 50% at 100% 0%, hsl(160 84% 39% / 0.05), transparent 50%),
       radial-gradient(ellipse 60% 40% at 0% 100%, hsl(38 92% 50% / 0.04), transparent 45%);
     background-attachment: fixed;
+  }
+
+  .dark body {
+    color: hsl(210 40% 98%);
   }
 
   .scrollbar-thin::-webkit-scrollbar {
@@ -231,5 +244,27 @@
     box-shadow:
       0 1px 2px hsl(160 84% 39% / 0.12),
       0 4px 14px hsl(160 84% 39% / 0.18);
+  }
+
+  /* Raise contrast of faint gray text utilities without remapping background colors */
+  .text-gray-400,
+  .text-slate-400,
+  .text-zinc-400 {
+    color: #334155;
+  }
+  .dark .text-gray-400,
+  .dark .text-slate-400,
+  .dark .text-zinc-400 {
+    color: #cbd5e1;
+  }
+  .text-gray-500,
+  .text-slate-500,
+  .text-zinc-500 {
+    color: #1e293b;
+  }
+  .dark .text-gray-500,
+  .dark .text-slate-500,
+  .dark .text-zinc-500 {
+    color: #e2e8f0;
   }
 }

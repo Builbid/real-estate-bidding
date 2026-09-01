@@ -85,7 +85,7 @@ export function AdminServiceTables({ projects, profiles, recentBids }: AdminServ
                     {getServiceBadgeLabel(serviceType)}
                   </Badge>
                   <span className="text-[10px] text-muted-foreground">{project.district}</span>
-                  <span className="text-muted-foreground/60">·</span>
+                  <span className="text-muted-foreground">·</span>
                   <span className="text-[10px] text-muted-foreground truncate">
                     {hasNewBuildingConfig(project)
                       ? formatBuildingTypesSummary(project.building_types ?? [])

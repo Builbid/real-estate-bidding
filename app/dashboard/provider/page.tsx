@@ -124,7 +124,7 @@ export default async function ProviderDashboard() {
         ) : (
           <Card className="border-dashed">
             <CardContent className="pt-10 pb-10 text-center">
-              <Building className="w-10 h-10 text-muted-foreground/60 mx-auto mb-3" />
+              <Building className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
               <p className="text-sm font-semibold text-foreground mb-1">No Open Auctions</p>
               <p className="text-xs text-muted-foreground">Check back soon — new {tradeLabel.toLowerCase()} projects are posted regularly.</p>
             </CardContent>
@@ -149,7 +149,7 @@ export default async function ProviderDashboard() {
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-bold text-foreground">₹{bid.total_sum_metric.toLocaleString('en-IN')}{formatBidUnitSuffix(bid.rates, undefined, project?.service_type ?? bid.service_type)}</p>
-                    <p className="text-[10px] text-muted-foreground/80">{new Date(bid.created_at).toLocaleDateString('en-IN')}</p>
+                    <p className="text-[10px] text-muted-foreground">{new Date(bid.created_at).toLocaleDateString('en-IN')}</p>
                   </div>
                   {project && (
                     <Badge variant={project.status === 'active_24h' ? 'emerald' : project.status === 'frozen_24h' ? 'indigo' : 'default'}>

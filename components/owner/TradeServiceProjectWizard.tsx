@@ -461,7 +461,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                 'flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold flex-shrink-0',
                 i + 1 < step ? 'bg-emerald-500 text-white' :
                 i + 1 === step ? 'bg-emerald-500/20 border-2 border-emerald-500 text-emerald-600 dark:text-emerald-400' :
-                'bg-secondary text-muted-foreground/80',
+                'bg-secondary text-muted-foreground',
               )}
             >
               {i + 1 < step ? '✓' : i + 1}
@@ -469,7 +469,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
             <span
               className={cn(
                 'text-[10px] sm:text-xs truncate',
-                i + 1 === step ? 'text-gray-900 dark:text-white font-semibold' : 'text-gray-600 dark:text-zinc-400',
+                i + 1 === step ? 'text-gray-900 dark:text-white font-semibold' : 'text-slate-700 dark:text-slate-300',
               )}
             >
               {label}
@@ -830,7 +830,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                         update('additionalRequirements', e.target.value);
                         setStep2Error(null);
                       }}
-                      className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm font-medium text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
+                      className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm font-medium text-gray-900 dark:text-white placeholder:text-slate-600 dark:placeholder:text-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
                     />
                   </div>
                 </div>
@@ -904,7 +904,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                   { label: 'Selection Window', value: '5 minutes after bids close' },
                 ].map(({ label, value }) => (
                   <div key={label} className="flex items-start justify-between gap-3 px-4 py-3">
-                    <span className="text-xs font-medium text-gray-600 dark:text-zinc-400 flex-1 min-w-0">{label}</span>
+                    <span className="text-xs font-medium text-slate-700 dark:text-slate-300 flex-1 min-w-0">{label}</span>
                     <div className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white text-right flex-shrink-0 max-w-[55%]">
                     <div className="min-w-0 whitespace-pre-line text-right">{value}</div>
                     </div>

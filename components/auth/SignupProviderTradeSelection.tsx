@@ -39,7 +39,7 @@ export function SignupProviderTradeSelection() {
         </p>
 
         <div className="rounded-2xl border border-border/80 bg-card/80 dark:bg-card/60 backdrop-blur-md shadow-xl shadow-black/[0.06] p-6 sm:p-8 space-y-3">
-          <p className="text-sm font-semibold text-foreground/80 mb-1">
+          <p className="text-sm font-semibold text-foreground mb-1">
             Bid your rate/sqft on live client projects
           </p>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 auto-rows-fr items-stretch">

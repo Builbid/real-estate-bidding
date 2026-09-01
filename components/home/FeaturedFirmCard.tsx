@@ -81,7 +81,7 @@ export function FeaturedFirmCard({
 
       <div className="flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
         <StarRating rating={firm.rating} />
-        <span className="font-semibold tabular-nums text-foreground/90">
+        <span className="font-semibold tabular-nums text-foreground">
           {firm.rating.toFixed(1)}
         </span>
         <span className="text-border">·</span>

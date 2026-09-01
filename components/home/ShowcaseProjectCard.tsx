@@ -343,7 +343,7 @@ export function ShowcaseProjectCard({
         <p className="text-[9px] font-medium uppercase tracking-wider text-muted-foreground">
           Specific Details
         </p>
-        <p className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-foreground/90">
+        <p className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-foreground">
           {project.description.trim()}
         </p>
       </div>

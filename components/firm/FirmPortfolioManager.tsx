@@ -199,7 +199,7 @@ export function FirmPortfolioManager() {
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={item.photos[0]} alt={item.project_name} className="w-full h-full object-cover" />
                   ) : (
-                    <ImageIcon className="w-8 h-8 text-muted-foreground/50" />
+                    <ImageIcon className="w-8 h-8 text-muted-foreground" />
                   )}
                 </div>
                 <div className="p-3">

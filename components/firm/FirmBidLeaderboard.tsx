@@ -137,7 +137,7 @@ export function FirmBidLeaderboard({
 
       {bids.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-3 py-10 rounded-xl bg-secondary/30 border border-border text-center">
-          <Trophy className="w-8 h-8 text-muted-foreground/60" />
+          <Trophy className="w-8 h-8 text-muted-foreground" />
           <p className="text-sm font-semibold text-foreground">No Bids Yet</p>
           <p className="text-xs text-muted-foreground">Be the first firm to submit a competitive rate.</p>
         </div>
@@ -197,8 +197,8 @@ export function FirmBidLeaderboard({
                     {[city, years != null ? `${years} years in business` : null].filter(Boolean).join(' · ') || 'Construction firm'}
                   </p>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <Clock className="w-2.5 h-2.5 text-muted-foreground/80" />
-                    <p className="text-[10px] text-muted-foreground/80">{formatRelativeTime(bid.created_at)}</p>
+                    <Clock className="w-2.5 h-2.5 text-muted-foreground" />
+                    <p className="text-[10px] text-muted-foreground">{formatRelativeTime(bid.created_at)}</p>
                     {isMe && (
                       <span className="text-[10px] font-semibold text-violet-400 bg-violet-500/10 px-1.5 py-0.5 rounded">You</span>
                     )}

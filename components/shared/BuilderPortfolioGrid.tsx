@@ -13,7 +13,7 @@ interface BuilderPortfolioGridProps {
 export function BuilderPortfolioGrid({ items, className }: BuilderPortfolioGridProps) {
   if (items.length === 0) {
     return (
-      <p className={cn('text-xs text-muted-foreground/80 px-1', className)}>
+      <p className={cn('text-xs text-muted-foreground px-1', className)}>
         No portfolio items uploaded yet.
       </p>
     );
@@ -47,7 +47,7 @@ export function BuilderPortfolioGrid({ items, className }: BuilderPortfolioGridP
             </div>
           ) : (
             <div className="aspect-[16/9] bg-secondary/60 flex items-center justify-center">
-              <ImageIcon className="w-8 h-8 text-muted-foreground/60" />
+              <ImageIcon className="w-8 h-8 text-muted-foreground" />
             </div>
           )}
           <div className="p-3">

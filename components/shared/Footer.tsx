@@ -79,19 +79,19 @@ export function Footer({ compact }: FooterProps) {
             >
               <BuilBidLogo size="sm" />
             </Link>
-            <p className="text-sm text-muted-foreground leading-relaxed max-w-xs">
+            <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed max-w-xs">
               {t('footer.tagline')}
             </p>
           </div>
 
           <div>
-            <h3 className="text-xs font-semibold text-foreground/80 uppercase tracking-wider mb-4">
+            <h3 className="text-xs font-semibold text-slate-800 dark:text-slate-200 uppercase tracking-wider mb-4">
               {t('footer.platform')}
             </h3>
             <ul className="space-y-3">
               {PLATFORM_LINKS.map(({ label, href }) => (
                 <li key={href}>
-                  <Link href={href} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  <Link href={href} className="text-sm font-medium text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors">
                     {label}
                   </Link>
                 </li>
@@ -100,13 +100,13 @@ export function Footer({ compact }: FooterProps) {
           </div>
 
           <div>
-            <h3 className="text-xs font-semibold text-foreground/80 uppercase tracking-wider mb-4">
+            <h3 className="text-xs font-semibold text-slate-800 dark:text-slate-200 uppercase tracking-wider mb-4">
               {t('footer.company')}
             </h3>
             <ul className="space-y-3">
               {COMPANY_LINKS.map(({ label, href }) => (
                 <li key={href}>
-                  <Link href={href} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  <Link href={href} className="text-sm font-medium text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors">
                     {label}
                   </Link>
                 </li>
@@ -115,13 +115,13 @@ export function Footer({ compact }: FooterProps) {
           </div>
 
           <div>
-            <h3 className="text-xs font-semibold text-foreground/80 uppercase tracking-wider mb-4">
+            <h3 className="text-xs font-semibold text-slate-800 dark:text-slate-200 uppercase tracking-wider mb-4">
               {t('footer.legal')}
             </h3>
             <ul className="space-y-3">
               {LEGAL_LINKS.map(({ label, href }) => (
                 <li key={href}>
-                  <Link href={href} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  <Link href={href} className="text-sm font-medium text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors">
                     {label}
                   </Link>
                 </li>
@@ -131,7 +131,7 @@ export function Footer({ compact }: FooterProps) {
         </div>
 
         <div className="mt-10 pt-6 border-t border-border grid grid-cols-1 sm:grid-cols-3 items-center gap-4">
-          <p className="text-xs text-muted-foreground text-center sm:text-left order-2 sm:order-1">
+          <p className="text-xs font-medium text-slate-700 dark:text-slate-300 text-center sm:text-left order-2 sm:order-1">
             {t('footer.copyright')}
           </p>
           <div className="flex items-center justify-center gap-3 order-1 sm:order-2">
@@ -142,7 +142,7 @@ export function Footer({ compact }: FooterProps) {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={label}
-                className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-border hover:bg-card transition-colors"
+                className="w-8 h-8 rounded-lg border border-border flex items-center justify-center text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:border-border hover:bg-card transition-colors"
               >
                 <Icon className="w-3.5 h-3.5" />
               </a>

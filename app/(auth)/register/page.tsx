@@ -427,7 +427,7 @@ function RegisterPageContent() {
 
           {step === 1 && (
             <div>
-              <p className="text-sm font-semibold text-foreground/80 mb-4">How will you use BuilBid?</p>
+              <p className="text-sm font-semibold text-foreground mb-4">How will you use BuilBid?</p>
               <div className="space-y-3 mb-6">
                 {visibleCards.map((card) => {
                   const selected = role === card.role;
@@ -487,7 +487,7 @@ function RegisterPageContent() {
           {step === 2 && !emailConfirmPending && role && (
             <form onSubmit={handleDetailsSubmit} className="space-y-4">
 
-              <p className="text-sm font-semibold text-foreground/80 mb-2">
+              <p className="text-sm font-semibold text-foreground mb-2">
                 {roleLabel} — Account Details
               </p>
 
@@ -549,7 +549,7 @@ function RegisterPageContent() {
                     {fieldErrors.gst_number && (
                       <p className="text-xs text-red-400 mt-1">{fieldErrors.gst_number}</p>
                     )}
-                    <p className="text-[11px] text-muted-foreground/80 mt-1.5">
+                    <p className="text-[11px] text-muted-foreground mt-1.5">
                       GST number is required to participate in construction firm bidding on BuilBid
                     </p>
                   </div>
@@ -609,7 +609,7 @@ function RegisterPageContent() {
                   placeholder="Min. 8 characters"
                   prefix={<Lock className="w-3.5 h-3.5" />}
                   suffix={
-                    <button type="button" onClick={() => setShowPw(!showPw)} className="text-muted-foreground hover:text-foreground/80 transition-colors">
+                    <button type="button" onClick={() => setShowPw(!showPw)} className="text-muted-foreground hover:text-foreground transition-colors">
                       {showPw ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                     </button>
                   }
@@ -696,7 +696,7 @@ function RegisterPageContent() {
 
           {step === 3 && !emailConfirmPending && role === 'construction_firm' && (
             <form onSubmit={handlePackagesSubmit} className="space-y-4">
-              <p className="text-sm font-semibold text-foreground/80 mb-1">
+              <p className="text-sm font-semibold text-foreground mb-1">
                 Create Your Construction Packages
               </p>
               <p className="text-xs text-muted-foreground mb-2 leading-relaxed">

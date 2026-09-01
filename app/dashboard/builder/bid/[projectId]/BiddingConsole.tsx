@@ -866,7 +866,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                         )}
                       </div>
                       {isScopeRateBid && !isPlumbingBid && (
-                        <p className="text-xs text-muted-foreground/80 text-right">
+                        <p className="text-xs text-muted-foreground text-right">
                           {floorCount === 1 ? (
                             <>Single rate<br />bid</>
                           ) : (
@@ -875,7 +875,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                         </p>
                       )}
                       {!isAssamTypeHouse && !earthworkMode && !isPlumberFlat && !isElectrician && !isScopeRateBid && (
-                        <p className="text-xs text-muted-foreground/80 text-right">
+                        <p className="text-xs text-muted-foreground text-right">
                           {isSingleRateBid ? (
                             <>Single rate<br />bid</>
                           ) : floorCount === 1 ? (
@@ -886,10 +886,10 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                         </p>
                       )}
                       {isPlumberFlat && (
-                        <p className="text-xs text-muted-foreground/80 text-right">Rs.</p>
+                        <p className="text-xs text-muted-foreground text-right">Rs.</p>
                       )}
                       {isPlumbingBid && (
-                        <p className="text-xs text-muted-foreground/80 text-right">
+                        <p className="text-xs text-muted-foreground text-right">
                           {isPlumbingPointRateBid
                             ? 'estimated total'
                             : isTradeUnitRateBid
@@ -900,17 +900,17 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                         </p>
                       )}
                       {isElectricianPointRateBid && (
-                        <p className="text-xs text-muted-foreground/80 text-right">
+                        <p className="text-xs text-muted-foreground text-right">
                           estimated total
                           <br />
                           lowest total wins
                         </p>
                       )}
                       {earthworkMode === 'hourly' && (
-                        <p className="text-xs text-muted-foreground/80 text-right">/hour</p>
+                        <p className="text-xs text-muted-foreground text-right">/hour</p>
                       )}
                       {isElectrician && (
-                        <p className="text-xs text-muted-foreground/80 text-right">/point</p>
+                        <p className="text-xs text-muted-foreground text-right">/point</p>
                       )}
                     </div>
                     {myRank > 0 && (
@@ -926,7 +926,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                           : `You ranked #${myRank} of ${bids.length} when bidding closed`}
                       </div>
                     )}
-                    <p className="text-center text-xs text-muted-foreground/80">
+                    <p className="text-center text-xs text-muted-foreground">
                       Submitted {formatRelativeTime(myCurrentBid.updated_at ?? myCurrentBid.created_at)} — bidding is now closed and rates can no longer be changed.
                     </p>
                   </div>
@@ -1073,7 +1073,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                             }
                             suffix={
                               item.unitSuffix ? (
-                                <span className="text-muted-foreground/80 text-xs">
+                                <span className="text-muted-foreground text-xs">
                                   {item.unitSuffix}
                                 </span>
                               ) : undefined
@@ -1127,7 +1127,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                         setRunningFootError(getBidRateFieldError(value, rateRules));
                       }}
                       prefix={<span className="text-muted-foreground text-xs">₹</span>}
-                      suffix={<span className="text-muted-foreground/80 text-xs">/ft</span>}
+                      suffix={<span className="text-muted-foreground text-xs">/ft</span>}
                       error={runningFootError ?? undefined}
                     />
                   </BidWorkItemCard>
@@ -1146,7 +1146,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                       if (capacityError) setCapacityError(getVehicleCapacityError(next));
                     }}
                     onBlur={() => setCapacityError(getVehicleCapacityError(capacityInput))}
-                    suffix={<span className="text-muted-foreground/80 text-xs">cu.m</span>}
+                    suffix={<span className="text-muted-foreground text-xs">cu.m</span>}
                     error={capacityError ?? undefined}
                     required
                   />
@@ -1177,23 +1177,23 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                                 ? 'Overall Average Rate'
                                 : 'Your Average Rate Metric'}
                     </p>
-                    <p className={cn('text-lg font-bold tabular-nums', averageMetric > 0 ? 'text-emerald-400' : 'text-muted-foreground/80')}>
+                    <p className={cn('text-lg font-bold tabular-nums', averageMetric > 0 ? 'text-emerald-400' : 'text-muted-foreground')}>
                       {earthworkMode === 'trip' && averageMetric > 0
                         ? `₹${formatBidMetric(averageMetric)} / trip${capacityValue != null ? ` (Capacity: ${capacityValue} cum)` : ''}`
                         : `${isPlumberFlat ? 'Rs. ' : '₹'}${formatBidMetric(averageMetric)}`}
                     </p>
                   </div>
                   {earthworkMode === 'hourly' && (
-                    <p className="text-xs text-muted-foreground/80 text-right">/hour</p>
+                    <p className="text-xs text-muted-foreground text-right">/hour</p>
                   )}
                   {isElectrician && (
-                    <p className="text-xs text-muted-foreground/80 text-right">/point</p>
+                    <p className="text-xs text-muted-foreground text-right">/point</p>
                   )}
                   {isPlumberFlat && (
-                    <p className="text-xs text-muted-foreground/80 text-right">lump sum</p>
+                    <p className="text-xs text-muted-foreground text-right">lump sum</p>
                   )}
                   {isPlumbingBid && (
-                    <p className="text-xs text-muted-foreground/80 text-right">
+                    <p className="text-xs text-muted-foreground text-right">
                       {isPlumbingPointRateBid
                         ? 'Fixture point total'
                         : isTradeUnitRateBid
@@ -1204,14 +1204,14 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                     </p>
                   )}
                   {isElectricianPointRateBid && (
-                    <p className="text-xs text-muted-foreground/80 text-right">
+                    <p className="text-xs text-muted-foreground text-right">
                       Fixture point total
                       <br />
                       lowest total wins
                     </p>
                   )}
                   {isScopeRateBid && !isPlumbingBid && (
-                    <p className="text-xs text-muted-foreground/80 text-right">
+                    <p className="text-xs text-muted-foreground text-right">
                       {floorCount === 1 ? (
                         <>Single rate<br />bid</>
                       ) : (
@@ -1220,7 +1220,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                     </p>
                   )}
                   {!isAssamTypeHouse && !earthworkMode && !isPlumberFlat && !isElectrician && !isScopeRateBid && (
-                    <p className="text-xs text-muted-foreground/80 text-right">
+                    <p className="text-xs text-muted-foreground text-right">
                       {isSingleRateBid ? (
                         <>Single rate<br />bid</>
                       ) : floorCount === 1 ? (
@@ -1266,7 +1266,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                 </Button>
 
                 {myCurrentBid && (
-                  <p className="text-center text-xs text-muted-foreground/80">
+                  <p className="text-center text-xs text-muted-foreground">
                     Last submitted {formatRelativeTime(myCurrentBid.updated_at ?? myCurrentBid.created_at)}
                   </p>
                 )}
@@ -1299,7 +1299,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                 </div>
               ) : bids.length === 0 ? (
                 <div className="py-10 text-center">
-                  <Building className="w-8 h-8 text-muted-foreground/60 mx-auto mb-3" />
+                  <Building className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
                   <p className="text-sm text-muted-foreground">Be the first to bid!</p>
                 </div>
               ) : (
@@ -1337,7 +1337,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                           <div className={cn(
                             'w-7 h-7 rounded-md border flex items-center justify-center text-xs font-bold flex-shrink-0',
                             index === 0 ? 'bg-amber-500/20 border-amber-500/30 text-amber-400'
-                            : index === 1 ? 'bg-muted/50 border-border/30 text-foreground/80'
+                            : index === 1 ? 'bg-muted/50 border-border/30 text-foreground'
                             : index === 2 ? 'bg-orange-500/10 border-orange-500/20 text-orange-400'
                             : 'bg-secondary border-border text-muted-foreground'
                           )}>
@@ -1354,11 +1354,11 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                             <div className="min-w-0">
                               <p className={cn(
                                 'truncate',
-                                isMe ? 'text-sm font-semibold text-foreground' : 'text-sm font-medium text-foreground/90'
+                                isMe ? 'text-sm font-semibold text-foreground' : 'text-sm font-medium text-foreground'
                               )}>
                                 {isMe ? `You (${builderName})` : rowName}
                               </p>
-                              <p className="text-[10px] text-muted-foreground/80">{formatRelativeTime(bid.created_at)}</p>
+                              <p className="text-[10px] text-muted-foreground">{formatRelativeTime(bid.created_at)}</p>
                             </div>
                           </div>
 
@@ -1369,7 +1369,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                             )}>
                               {isPlumberFlat ? 'Rs. ' : '₹'}{displayBidAverage(bid)}
                             </p>
-                            <p className="text-[10px] text-muted-foreground/80">
+                            <p className="text-[10px] text-muted-foreground">
                               {earthworkMode === 'hourly'
                                 ? '/hour'
                                 : earthworkMode === 'trip'

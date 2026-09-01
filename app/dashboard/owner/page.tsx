@@ -242,7 +242,7 @@ export default async function OwnerDashboard() {
       {totalLive === 0 && completed.length === 0 && (
         <Card className="border-dashed">
           <CardContent className="pt-10 pb-10 flex flex-col items-center gap-4 text-center">
-            <Building className="w-10 h-10 text-muted-foreground/60" />
+            <Building className="w-10 h-10 text-muted-foreground" />
             <div>
               <p className="text-sm font-semibold text-foreground mb-1">No Projects Yet</p>
               <p className="text-xs text-muted-foreground">
@@ -313,9 +313,9 @@ function ArchivedProjectRow({
         <p className="text-sm font-semibold text-foreground truncate">{project.title}</p>
         <div className="flex items-center gap-3 mt-1">
           <span className="text-xs text-muted-foreground">{project.district}</span>
-          <span className="text-muted-foreground/60">·</span>
+          <span className="text-muted-foreground">·</span>
           <span className="text-xs text-muted-foreground">{configLabel}</span>
-          <span className="text-muted-foreground/60">·</span>
+          <span className="text-muted-foreground">·</span>
           <div className="flex items-center gap-1 text-xs text-muted-foreground">
             <Users className="w-3 h-3" />
             {bidCount} bid{bidCount !== 1 ? 's' : ''}

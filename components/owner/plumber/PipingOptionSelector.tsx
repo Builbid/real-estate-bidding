@@ -85,7 +85,7 @@ export function PipingOptionSelector({
     <div className="space-y-5">
       <div className="flex flex-col gap-1.5">
         <label className={WIZARD_SECTION_LABEL}>Water Supply Lines (CPVC)</label>
-        <p className="text-xs font-medium text-gray-600 dark:text-zinc-400 -mt-0.5">
+        <p className="text-xs font-medium text-slate-700 dark:text-slate-300 -mt-0.5">
           Select every pipe size plumbers should quote. Each size × installation method becomes a
           bidding option at ₹ / Running Foot.
         </p>
@@ -112,7 +112,7 @@ export function PipingOptionSelector({
 
       <div className="flex flex-col gap-1.5">
         <label className={WIZARD_SECTION_LABEL}>Water Installation Method</label>
-        <p className="text-xs font-medium text-gray-600 dark:text-zinc-400 -mt-0.5">
+        <p className="text-xs font-medium text-slate-700 dark:text-slate-300 -mt-0.5">
           Select one or both methods so contractors can bid concealed (higher) and open (lower)
           rates.
         </p>
@@ -155,7 +155,7 @@ export function PipingOptionSelector({
         />
         {includeToiletWastePipe && (
           <div className="mt-2">
-            <p className="mb-2 text-xs font-medium text-gray-600 dark:text-zinc-400">
+            <p className="mb-2 text-xs font-medium text-slate-700 dark:text-slate-300">
               Drainage installation method
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -205,13 +205,13 @@ export function PipingOptionSelector({
                 <Ruler className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-emerald-500" />
                 <span>
                   {option.label}
-                  <span className="ml-1 text-gray-500 dark:text-zinc-400">· ₹ / Running Foot</span>
+                  <span className="ml-1 text-slate-700 dark:text-slate-400">· ₹ / Running Foot</span>
                 </span>
               </li>
             ))}
           </ul>
         )}
-        <p className="text-[11px] font-medium text-gray-600 dark:text-zinc-400">
+        <p className="text-[11px] font-medium text-slate-700 dark:text-slate-300">
           Rank is based on the overall average rate across these options. Up to{' '}
           {MAX_PLUMBING_BID_OPTIONS} options can be opened for bidding.
         </p>

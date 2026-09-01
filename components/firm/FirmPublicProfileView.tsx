@@ -71,7 +71,7 @@ export function FirmPublicProfileView({
               </span>
             )}
             {firm.is_verified && (
-              <span className="text-xs px-2.5 py-1 rounded-full bg-slate-500/10 text-slate-400 border border-slate-500/20 font-semibold inline-flex items-center gap-1">
+              <span className="text-xs px-2.5 py-1 rounded-full bg-slate-500/10 text-slate-700 dark:text-slate-300 border border-slate-500/20 font-semibold inline-flex items-center gap-1">
                 <Star className="w-3 h-3" /> Verified
               </span>
             )}

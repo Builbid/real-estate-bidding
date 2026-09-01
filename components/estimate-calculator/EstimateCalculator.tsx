@@ -429,7 +429,7 @@ function RccEstimateCalculator({ onChangeType }: { onChangeType: () => void }) {
                   ? 'bg-emerald-500 text-white'
                   : i + 1 === step
                     ? 'bg-emerald-500/20 border-2 border-emerald-500 text-emerald-600 dark:text-emerald-400'
-                    : 'bg-secondary text-muted-foreground/80',
+                    : 'bg-secondary text-muted-foreground',
               )}
             >
               {i + 1 < step ? '✓' : i + 1}
@@ -1016,7 +1016,7 @@ function RccEstimateCalculator({ onChangeType }: { onChangeType: () => void }) {
                       <p className="text-xs text-muted-foreground">Steel by diameter (incl. {LAP_LENGTH_MULTIPLIER}d laps)</p>
                       {results.steelByDiameter.map((row) => (
                         <div key={row.diameterMm} className="flex justify-between text-sm">
-                          <span className="text-foreground/80">{row.diameterMm} mm</span>
+                          <span className="text-foreground">{row.diameterMm} mm</span>
                           <span className="font-semibold tabular-nums">{row.quintals} quintals</span>
                         </div>
                       ))}

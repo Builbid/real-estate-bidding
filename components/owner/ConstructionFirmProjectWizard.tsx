@@ -201,7 +201,7 @@ export function ConstructionFirmProjectWizard() {
                   'flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold flex-shrink-0',
                   i + 1 < step ? 'bg-indigo-500 text-white' :
                   i + 1 === step ? 'bg-indigo-500/20 border-2 border-indigo-500 text-indigo-400' :
-                  'bg-secondary text-muted-foreground/80',
+                  'bg-secondary text-muted-foreground',
                 )}
               >
                 {i + 1 < step ? '✓' : i + 1}

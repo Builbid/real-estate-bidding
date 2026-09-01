@@ -113,7 +113,7 @@ export function BuildingConfigSummary({
             </div>
             {!hideConstructionTypes && ct && (
               <div className="flex items-center gap-1.5 border-t border-border/50 px-3.5 py-2.5">
-                <span className="text-sm text-foreground/90">
+                <span className="text-sm text-foreground">
                   {getConstructionDisplayShortLabel(ct)}
                 </span>
                 <ConstructionTypeInfoButton

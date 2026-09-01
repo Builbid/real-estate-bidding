@@ -107,21 +107,21 @@ export function PortfolioManager({ builderId }: PortfolioManagerProps) {
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Project title *"
               required
-              className="w-full px-3 py-2 rounded-lg bg-secondary/60 border border-border text-sm text-foreground placeholder:text-muted-foreground/80 focus:outline-none focus:border-indigo-500/50"
+              className="w-full px-3 py-2 rounded-lg bg-secondary/60 border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-indigo-500/50"
             />
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Description of work completed…"
               rows={3}
-              className="w-full px-3 py-2 rounded-lg bg-secondary/60 border border-border text-sm text-foreground placeholder:text-muted-foreground/80 focus:outline-none focus:border-indigo-500/50 resize-none"
+              className="w-full px-3 py-2 rounded-lg bg-secondary/60 border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-indigo-500/50 resize-none"
             />
             <textarea
               value={photoUrls}
               onChange={(e) => setPhotoUrls(e.target.value)}
               placeholder="Photo URLs (one per line)"
               rows={2}
-              className="w-full px-3 py-2 rounded-lg bg-secondary/60 border border-border text-sm text-foreground placeholder:text-muted-foreground/80 focus:outline-none focus:border-indigo-500/50 resize-none"
+              className="w-full px-3 py-2 rounded-lg bg-secondary/60 border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-indigo-500/50 resize-none"
             />
             <Button type="submit" size="sm" disabled={saving || !title.trim()}>
               {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Save Portfolio Item'}
@@ -130,7 +130,7 @@ export function PortfolioManager({ builderId }: PortfolioManagerProps) {
         )}
 
         {loaded && items.length === 0 && !showForm && (
-          <p className="text-xs text-muted-foreground/80">No portfolio items yet. Add your first project showcase.</p>
+          <p className="text-xs text-muted-foreground">No portfolio items yet. Add your first project showcase.</p>
         )}
 
         {items.length > 0 && (
@@ -145,7 +145,7 @@ export function PortfolioManager({ builderId }: PortfolioManagerProps) {
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={item.photo_urls[0]} alt="" className="w-full h-full object-cover rounded-lg" />
                   ) : (
-                    <ImageIcon className="w-4 h-4 text-muted-foreground/80" />
+                    <ImageIcon className="w-4 h-4 text-muted-foreground" />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -153,7 +153,7 @@ export function PortfolioManager({ builderId }: PortfolioManagerProps) {
                   {item.description && (
                     <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{item.description}</p>
                   )}
-                  <p className="text-[10px] text-muted-foreground/80 mt-1">{item.photo_urls.length} photo(s)</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">{item.photo_urls.length} photo(s)</p>
                 </div>
                 <Button
                   size="sm"

@@ -369,7 +369,7 @@ export function FirmBiddingConsole({
                               value={value}
                               onChange={(e) => handleRateChange(pkg.id, e.target.value)}
                               prefix={<span className="text-muted-foreground text-xs">₹</span>}
-                              suffix={<span className="text-muted-foreground/80 text-xs">per sqft</span>}
+                              suffix={<span className="text-muted-foreground text-xs">per sqft</span>}
                               error={fieldError ?? undefined}
                               required
                             />
@@ -408,7 +408,7 @@ export function FirmBiddingConsole({
                       You ranked #{myRank} when bidding closed
                     </p>
                   )}
-                  <p className="text-center text-xs text-muted-foreground/80">
+                  <p className="text-center text-xs text-muted-foreground">
                     Submitted {formatRelativeTime(myCurrentBid.updated_at ?? myCurrentBid.created_at)} — bidding is now closed and rates can no longer be changed.
                   </p>
                 </div>
@@ -443,7 +443,7 @@ export function FirmBiddingConsole({
                 </div>
               ) : bids.length === 0 ? (
                 <div className="flex flex-col items-center justify-center gap-3 py-10 rounded-xl bg-secondary/30 border border-border text-center">
-                  <Trophy className="w-8 h-8 text-muted-foreground/60" />
+                  <Trophy className="w-8 h-8 text-muted-foreground" />
                   <p className="text-sm font-semibold text-foreground">No Bids Yet</p>
                   <p className="text-xs text-muted-foreground">Be the first firm to submit competitive rates.</p>
                 </div>
@@ -495,8 +495,8 @@ export function FirmBiddingConsole({
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-bold text-foreground truncate">{rowName}</p>
                             <div className="flex items-center gap-2 mt-0.5">
-                              <Clock className="w-2.5 h-2.5 text-muted-foreground/80" />
-                              <p className="text-[10px] text-muted-foreground/80">
+                              <Clock className="w-2.5 h-2.5 text-muted-foreground" />
+                              <p className="text-[10px] text-muted-foreground">
                                 {formatRelativeTime(bid.created_at)}
                               </p>
                               {isMe && (

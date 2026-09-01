@@ -124,9 +124,9 @@ export function LogoUpload({
       <p className="text-xs font-medium text-foreground">Company Logo</p>
       <p className="text-[11px] text-muted-foreground text-center max-w-[240px] leading-snug">
         Your logo appears on your bids and profile.{' '}
-        <span className="text-muted-foreground/80">(Optional)</span>
+        <span className="text-muted-foreground">(Optional)</span>
       </p>
-      <p className="text-[10px] text-muted-foreground/70 text-center max-w-[240px]">
+      <p className="text-[10px] text-muted-foreground text-center max-w-[240px]">
         Firms with a logo appear more professional to clients
       </p>
 

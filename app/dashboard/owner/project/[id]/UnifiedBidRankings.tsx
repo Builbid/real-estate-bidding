@@ -114,7 +114,7 @@ export function UnifiedBidRankings({
   if (bids.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
-        <Trophy className="w-10 h-10 text-muted-foreground/60" />
+        <Trophy className="w-10 h-10 text-muted-foreground" />
         <div>
           <p className="text-sm font-semibold text-foreground">No bids yet</p>
           <p className="text-xs text-muted-foreground mt-1">Bids will appear here in real time as builders submit them.</p>
@@ -204,7 +204,7 @@ export function UnifiedBidRankings({
                   : index === 0
                   ? 'bg-amber-500/20 border-amber-500/30 text-amber-400'
                   : index === 1
-                  ? 'bg-muted/50 border-border/30 text-foreground/80'
+                  ? 'bg-muted/50 border-border/30 text-foreground'
                   : index === 2
                   ? 'bg-orange-500/10 border-orange-500/20 text-orange-400'
                   : 'bg-secondary border-border text-muted-foreground'
@@ -243,8 +243,8 @@ export function UnifiedBidRankings({
                         size="xs"
                         showCount={starTotal > 0}
                       />
-                      <span className="text-muted-foreground/60">·</span>
-                      <span className="text-[10px] text-muted-foreground/80">{formatRelativeTime(bid.created_at)}</span>
+                      <span className="text-muted-foreground">·</span>
+                      <span className="text-[10px] text-muted-foreground">{formatRelativeTime(bid.created_at)}</span>
                     </div>
                   </div>
                 ) : (
@@ -252,7 +252,7 @@ export function UnifiedBidRankings({
                     <p className="text-xs text-muted-foreground">
                       {bid.builder_id ? `Builder #${bid.builder_id.slice(-6).toUpperCase()}` : 'Builder'}
                     </p>
-                    <p className="text-[10px] text-muted-foreground/80 mt-0.5">{formatRelativeTime(bid.created_at)}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">{formatRelativeTime(bid.created_at)}</p>
                   </div>
                 )}
               </div>

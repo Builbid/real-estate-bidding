@@ -76,7 +76,7 @@ export function FinishingLevelSelector({ value, onChange }: FinishingLevelSelect
                   </li>
                 ))}
               </ul>
-              <p className="text-[10px] text-muted-foreground/80 italic">Best for: {cfg.bestFor}</p>
+              <p className="text-[10px] text-muted-foreground italic">Best for: {cfg.bestFor}</p>
             </button>
           );
         })}

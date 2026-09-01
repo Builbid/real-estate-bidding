@@ -42,7 +42,7 @@ export function PackageInfoButton({ pkg, className }: PackageInfoButtonProps) {
           <dl className="space-y-2">
             {filledCategories.map((category) => (
               <div key={category.key}>
-                <dt className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground/80">
+                <dt className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
                   {category.label}
                 </dt>
                 <dd className="text-xs text-muted-foreground leading-relaxed whitespace-pre-line mt-0.5">

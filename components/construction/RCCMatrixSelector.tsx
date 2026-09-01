@@ -60,7 +60,7 @@ export function RCCMatrixSelector({ value, onChange }: RCCMatrixSelectorProps) {
     <div className="space-y-5">
       <div className="space-y-1">
         <p className="text-sm text-muted-foreground">{t('construction.matrixHelper')}</p>
-        <p className="text-xs text-muted-foreground/80">{t('construction.matrixHelperAs')}</p>
+        <p className="text-xs text-muted-foreground">{t('construction.matrixHelperAs')}</p>
       </div>
 
       {groups.map((group, index) => (
