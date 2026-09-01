@@ -165,6 +165,8 @@ export interface MistriFloorWork {
    * Tile / Marble / Granite flooring (beyond rough flooring in the package).
    */
   includeFineFlooring?: boolean | null;
+  /** Approximate flooring work area in sq. ft. when flooring work is included. */
+  flooringAreaSqft?: number | null;
   /** RCC Scope of Work card: full construction, frame only, or wall + plaster. */
   scopeOption?: MistriRccScopeOption | null;
   /** Canonical scope sentence stored for the agreement PDF. */
@@ -1592,6 +1594,7 @@ export function formatMistriFloorWorkTypes(
     plasterScope?: MistriPlasterScope | null;
     flooringMaterial?: MistriFlooringMaterial | null;
     includeFineFlooring?: boolean | null;
+    flooringAreaSqft?: number | null;
     scopeLabel?: string | null;
     assamRoofType?: MistriAssamRoofType | null;
     assamRoofingSheet?: MistriAssamRoofingSheet | null;
@@ -1615,11 +1618,15 @@ export function formatMistriFloorWorkTypes(
           ? getMistriRccScopeLabel(extras.floorId, 'full_construction')
           : 'Full Construction (Beam, column, slab, wall and plastering, rough flooring, staircase)';
       if (extras?.includeFineFlooring) {
+        const area =
+          extras.flooringAreaSqft && extras.flooringAreaSqft > 0
+            ? ` · ${formatMistriArea(extras.flooringAreaSqft)} flooring`
+            : '';
         if (extras.flooringMaterial) {
           const material = optionLabel(flooringOptions, extras.flooringMaterial);
-          return `${base} + Flooring Work (${material})`;
+          return `${base} + Flooring Work (${material})${area}`;
         }
-        return `${base} + Flooring Work`;
+        return `${base} + Flooring Work${area}`;
       }
       if (extras?.includeFineFlooring === false) {
         return isAssam ? `${base} (no fine flooring)` : base;
@@ -1645,9 +1652,13 @@ export function formatMistriFloorWorkTypes(
       const material = extras?.flooringMaterial
         ? optionLabel(MISTRI_FLOORING_MATERIAL_OPTIONS, extras.flooringMaterial)
         : null;
+      const area =
+        extras?.flooringAreaSqft && extras.flooringAreaSqft > 0
+          ? ` · ${formatMistriArea(extras.flooringAreaSqft)}`
+          : '';
       return material
-        ? `Flooring (${material})`
-        : 'Flooring work (Tile / Marble / Granite)';
+        ? `Flooring (${material})${area}`
+        : `Flooring work (Tile / Marble / Granite)${area}`;
     }
     return t;
   })
@@ -1834,6 +1845,14 @@ function normalizeSingleFloorWork(raw: unknown): MistriFloorWork | null {
       ? parseApproximateAreaSqft(v.slabAreaSqft)
       : null;
 
+  const flooringAreaRaw = v.flooringAreaSqft ?? v.flooring_area_sqft;
+  const flooringAreaSqft =
+    includeFineFlooring === true || workTypes.includes('flooring')
+      ? typeof flooringAreaRaw === 'number' || typeof flooringAreaRaw === 'string'
+        ? parseApproximateAreaSqft(flooringAreaRaw)
+        : null
+      : null;
+
   const scopeOption = rccScopeFromWorkTypes(workTypes, normalizeRccScopeOption(v.scopeOption));
   const includeTile = includeFineFlooring === true;
   const scopeLabel =
@@ -1857,6 +1876,7 @@ function normalizeSingleFloorWork(raw: unknown): MistriFloorWork | null {
     plasterScope,
     flooringMaterial,
     includeFineFlooring,
+    flooringAreaSqft,
     scopeOption,
     scopeLabel,
     assamRoofType,
@@ -2647,6 +2667,11 @@ export function validateMistriFloorWorkInput(input: {
           error: 'Select flooring material (Tile, Marble, or Smooth Cement Finish) for Assam Type.',
         };
       }
+      if (fw.includeFineFlooring === true && parseApproximateAreaSqft(fw.flooringAreaSqft ?? '') == null) {
+        return {
+          error: 'Enter the approximate flooring work area (sq. ft.) for Assam Type.',
+        };
+      }
       continue;
     }
 
@@ -2658,6 +2683,14 @@ export function validateMistriFloorWorkInput(input: {
     }
     if (fw.workTypes.includes('flooring') && !fw.flooringMaterial) {
       return { error: `Select flooring material (Tile, Marble, or Granite) for ${label}.` };
+    }
+    if (
+      (fw.includeFineFlooring === true || fw.workTypes.includes('flooring')) &&
+      parseApproximateAreaSqft(fw.flooringAreaSqft ?? '') == null
+    ) {
+      return {
+        error: `Enter the approximate flooring work area (sq. ft.) for ${label}.`,
+      };
     }
     if (fw.workTypes.includes('full_finished') && !isAssamMistriFloor(fw.floorId)) {
       if (fw.includeFineFlooring === true) {

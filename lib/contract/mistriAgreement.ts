@@ -230,9 +230,12 @@ export function buildMistriAgreementPayload(input: {
     });
   }
   for (const entry of flooringRateEntries) {
+    const areaSqft = civilFloors.find((floor) => floor.floorId === entry.floorId)?.flooringAreaSqft;
     bidRows.push({
       label: `${entry.floorLabel} ${flooringFittingTitle(entry.materialLabel)}`,
-      value: `Rs. ${entry.rate.toLocaleString('en-IN')} / sq. ft. of floor area`,
+      value: areaSqft && areaSqft > 0
+        ? `Rs. ${entry.rate.toLocaleString('en-IN')} / sq. ft. of floor area (${areaSqft.toLocaleString('en-IN')} sq. ft.)`
+        : `Rs. ${entry.rate.toLocaleString('en-IN')} / sq. ft. of floor area`,
     });
   }
 

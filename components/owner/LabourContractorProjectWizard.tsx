@@ -140,6 +140,7 @@ interface FloorWorkForm {
   plasterScope: MistriPlasterScope | null;
   flooringMaterial: MistriFlooringMaterial | null;
   includeFineFlooring: boolean | null;
+  flooringAreaSqft: string;
   assamRoofType: MistriAssamRoofType | null;
   assamRoofingSheet: MistriAssamRoofingSheet | null;
   foundationDepthFt: string;
@@ -151,6 +152,7 @@ const EMPTY_FLOOR_WORK: FloorWorkForm = {
   plasterScope: null,
   flooringMaterial: null,
   includeFineFlooring: null,
+  flooringAreaSqft: '',
   assamRoofType: null,
   assamRoofingSheet: null,
   foundationDepthFt: '',
@@ -160,6 +162,29 @@ const ASSAM_FULL_FINISHED_WORK: FloorWorkForm = {
   ...EMPTY_FLOOR_WORK,
   workTypes: ['full_finished'],
 };
+
+function FlooringAreaField({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <label className="text-xs font-semibold text-gray-900 dark:text-zinc-100">
+        Approximate Flooring Work Area (sq. ft.)
+      </label>
+      <Input
+        type="text"
+        inputMode="decimal"
+        placeholder="e.g., 1800"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      />
+    </div>
+  );
+}
 
 function OptionCardButton({
   selected,
@@ -438,6 +463,7 @@ function scopeSnapshotFromById(
       plasterScope: work.plasterScope,
       flooringMaterial: work.flooringMaterial,
       includeFineFlooring: work.includeFineFlooring,
+      flooringAreaSqft: parseApproximateAreaSqft(work.flooringAreaSqft),
       scopeOption: rccScopeFromWorkTypes(work.workTypes),
       scopeLabel: null,
       assamRoofType: work.assamRoofType,
@@ -468,6 +494,7 @@ function resetLockedWallFloorsToFullConstruction(
       plasterScope: null,
       flooringMaterial: null,
       includeFineFlooring: null,
+      flooringAreaSqft: '',
     };
     changed = true;
   }
@@ -519,6 +546,7 @@ export function LabourContractorProjectWizard() {
           plasterScope: work.plasterScope,
           flooringMaterial: work.flooringMaterial,
           includeFineFlooring: work.includeFineFlooring,
+          flooringAreaSqft: parseApproximateAreaSqft(work.flooringAreaSqft),
           scopeOption,
           scopeLabel:
             scopeOption
@@ -750,6 +778,10 @@ export function LabourContractorProjectWizard() {
             ? current.flooringMaterial
             : null,
         includeFineFlooring: option === 'full_construction' ? current.includeFineFlooring === true : null,
+        flooringAreaSqft:
+          option === 'full_construction' && current.includeFineFlooring
+            ? current.flooringAreaSqft
+            : '',
       };
 
       let floorWorkById: Record<string, FloorWorkForm> = {
@@ -1172,12 +1204,14 @@ export function LabourContractorProjectWizard() {
                                   includeFineFlooring: v === 'yes',
                                   flooringMaterial:
                                     v === 'yes' ? entry.flooringMaterial : null,
+                                  flooringAreaSqft: v === 'yes' ? entry.flooringAreaSqft : '',
                                 },
                                 fw.customFloorNumber,
                               )
                             }
                           />
                           {entry.includeFineFlooring === true && (
+                            <>
                             <NestedChoiceButtons
                               question="What flooring material will be used?"
                               options={MISTRI_ASSAM_FLOORING_MATERIAL_OPTIONS}
@@ -1191,6 +1225,17 @@ export function LabourContractorProjectWizard() {
                                 )
                               }
                             />
+                            <FlooringAreaField
+                              value={entry.flooringAreaSqft}
+                              onChange={(value) =>
+                                patchFloorWork(
+                                  fw.floorId,
+                                  { flooringAreaSqft: value },
+                                  fw.customFloorNumber,
+                                )
+                              }
+                            />
+                            </>
                           )}
                         </div>
 
@@ -1260,6 +1305,7 @@ export function LabourContractorProjectWizard() {
                                           {
                                             includeFineFlooring: e.target.checked,
                                             flooringMaterial: null,
+                                            flooringAreaSqft: e.target.checked ? entry.flooringAreaSqft : '',
                                           },
                                           fw.customFloorNumber,
                                         )
@@ -1268,6 +1314,7 @@ export function LabourContractorProjectWizard() {
                                     <span>Include Flooring Work?</span>
                                   </label>
                                   {entry.includeFineFlooring === true && (
+                                    <>
                                     <NestedChoiceButtons
                                       question="Flooring material"
                                       options={MISTRI_FLOORING_MATERIAL_OPTIONS}
@@ -1281,6 +1328,17 @@ export function LabourContractorProjectWizard() {
                                         )
                                       }
                                     />
+                                    <FlooringAreaField
+                                      value={entry.flooringAreaSqft}
+                                      onChange={(value) =>
+                                        patchFloorWork(
+                                          fw.floorId,
+                                          { flooringAreaSqft: value },
+                                          fw.customFloorNumber,
+                                        )
+                                      }
+                                    />
+                                    </>
                                   )}
                                 </div>
                               )}

@@ -237,29 +237,35 @@ export interface BidRates {
   /** Estimated total for point-rate bids (sum of floor points × rate per point). */
   total_bid_amount?: number;
   /**
-   * Mistri / Civil: sum of (floor slab area × floor civil rate).
-   * Ranking uses this value. Tile fitting is never included.
+   * Mistri / Civil: ranking total = sum of floor civil estimates + flooring estimates.
+   * Also stored as total_project_cost. Legacy bids may contain civil-only values.
    */
   total_civil_cost?: number;
-  /** Mistri / Civil: per-floor slab area, civil rate, and civil cost. */
+  /** Mistri: sum of (flooring area × flooring rate) across selected floors. */
+  total_flooring_cost?: number;
+  /** Mistri: combined civil + flooring project cost used for ranking. */
+  total_project_cost?: number;
+  /** Mistri / Civil: per-floor slab area, civil rate, civil cost, and optional flooring. */
   floor_civil_breakdown?: Array<{
     floorId: string;
     label: string;
     slabAreaSqft: number;
     civilRate: number;
     civilCost: number;
+    flooringAreaSqft?: number;
     flooringRate?: number;
+    flooringCost?: number;
     flooringMaterial?: string;
+    floorTotal?: number;
   }>;
   /**
    * Mistri add-on: tile fitting rate in ₹ per sq. ft. of floor area.
-   * Informational only — not added to total_civil_cost or ranking.
    * Legacy global field; prefer flooring_rates for new bids.
    */
   tile_fitting_rate?: number;
   /**
-   * Mistri add-on: flooring fitting rate per selected floor (₹ / sq. ft. of floor area).
-   * Informational only — not added to total_civil_cost or ranking.
+   * Mistri flooring fitting rate per selected floor (₹ / sq. ft. of flooring area).
+   * Included in total_project_cost / ranking.
    */
   flooring_rates?: Record<string, number>;
 }

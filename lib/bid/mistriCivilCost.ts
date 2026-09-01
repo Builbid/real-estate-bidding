@@ -19,7 +19,7 @@ const FLOOR_RATE_KEYS: BidFloorRateKey[] = ['ground_rate', 'first_rate', 'second
 export const TILE_FITTING_RATE_LABEL = 'Tile Fitting Rate';
 export const TILE_FITTING_RATE_UNIT = '/sqft floor area';
 export const TILE_FITTING_RATE_HINT =
-  'Informational add-on only. This rate is not added to the total estimated civil cost and is not used for ranking.';
+  'This flooring rate is multiplied by the client’s flooring work area and added to the total estimated project cost used for ranking.';
 
 export interface MistriCivilFloor {
   floorId: string;
@@ -27,6 +27,7 @@ export interface MistriCivilFloor {
   slabAreaSqft: number;
   rateKey?: BidFloorRateKey;
   includeFlooring: boolean;
+  flooringAreaSqft: number;
   flooringMaterial?: string | null;
   flooringMaterialLabel?: string | null;
   scopeTitle?: string | null;
@@ -38,8 +39,11 @@ export interface MistriFloorCivilBreakdown {
   slabAreaSqft: number;
   civilRate: number;
   civilCost: number;
+  flooringAreaSqft?: number;
   flooringRate?: number;
+  flooringCost?: number;
   flooringMaterial?: string;
+  floorTotal?: number;
 }
 
 export interface MistriFlooringRateDisplayEntry {
@@ -111,6 +115,11 @@ export function computeMistriFloorCivilCost(slabAreaSqft: number, civilRate: num
   return Math.round(slabAreaSqft * civilRate);
 }
 
+export function computeMistriFloorFlooringCost(flooringAreaSqft: number, flooringRate: number): number {
+  if (!(flooringAreaSqft > 0) || !(flooringRate > 0)) return 0;
+  return Math.round(flooringAreaSqft * flooringRate);
+}
+
 function resolveBuiltUpAreaSqft(
   detailsArea: number | undefined,
   projectArea: number | undefined,
@@ -132,6 +141,9 @@ export function resolveMistriCivilFloors(project: MistriCivilCostProject): Mistr
     return work.map((fw, index) => {
       const includeFlooring = floorHasFlooringWork(fw);
       const sourceFloorId = fw.floorId;
+      const flooringAreaSqft = includeFlooring
+        ? (fw.flooringAreaSqft && fw.flooringAreaSqft > 0 ? fw.flooringAreaSqft : builtUpAreaSqft)
+        : 0;
       return {
         floorId:
           fw.floorId === 'custom'
@@ -141,6 +153,7 @@ export function resolveMistriCivilFloors(project: MistriCivilCostProject): Mistr
         slabAreaSqft: builtUpAreaSqft,
         rateKey: FLOOR_RATE_KEYS[index],
         includeFlooring,
+        flooringAreaSqft,
         flooringMaterial: includeFlooring ? (fw.flooringMaterial ?? null) : null,
         flooringMaterialLabel: includeFlooring
           ? resolveFlooringMaterialLabel(fw.flooringMaterial, sourceFloorId)
@@ -166,6 +179,7 @@ export function resolveMistriCivilFloors(project: MistriCivilCostProject): Mistr
     slabAreaSqft: builtUpAreaSqft,
     rateKey: FLOOR_RATE_KEYS[index],
     includeFlooring,
+    flooringAreaSqft: includeFlooring ? builtUpAreaSqft : 0,
     flooringMaterial: includeFlooring ? 'tile' : null,
     flooringMaterialLabel: includeFlooring ? 'Flooring' : null,
     scopeTitle: null,
@@ -229,21 +243,33 @@ export function buildMistriCivilCostPayload(
     const flooringRate = floor.includeFlooring
       ? (flooringRates?.[floor.floorId] ?? 0)
       : 0;
+    const civilCost = computeMistriFloorCivilCost(floor.slabAreaSqft, civilRate);
+    const flooringCost = floor.includeFlooring
+      ? computeMistriFloorFlooringCost(floor.flooringAreaSqft, flooringRate)
+      : 0;
     return {
       floorId: floor.floorId,
       label: floor.label,
       slabAreaSqft: floor.slabAreaSqft,
       civilRate,
-      civilCost: computeMistriFloorCivilCost(floor.slabAreaSqft, civilRate),
-      ...(floor.includeFlooring && flooringRate > 0
+      civilCost,
+      ...(floor.includeFlooring
         ? {
+            flooringAreaSqft: floor.flooringAreaSqft,
             flooringRate,
+            flooringCost,
             flooringMaterial: floor.flooringMaterialLabel ?? 'Flooring',
+            floorTotal: civilCost + flooringCost,
           }
-        : {}),
+        : { floorTotal: civilCost }),
     };
   });
-  const total_civil_cost = floor_civil_breakdown.reduce((sum, row) => sum + row.civilCost, 0);
+  const totalCivilOnly = floor_civil_breakdown.reduce((sum, row) => sum + row.civilCost, 0);
+  const total_flooring_cost = floor_civil_breakdown.reduce(
+    (sum, row) => sum + (row.flooringCost ?? 0),
+    0,
+  );
+  const total_project_cost = totalCivilOnly + total_flooring_cost;
   const flooring_rates: Record<string, number> = {};
   for (const floor of floors) {
     if (!floor.includeFlooring) continue;
@@ -258,7 +284,9 @@ export function buildMistriCivilCostPayload(
     second_rate: floor_civil_breakdown[2] ? floor_civil_breakdown[2].civilRate : undefined,
     third_rate: floor_civil_breakdown[3] ? floor_civil_breakdown[3].civilRate : undefined,
     bid_unit: 'per_sqft',
-    total_civil_cost,
+    total_civil_cost: total_project_cost,
+    total_flooring_cost,
+    total_project_cost,
     floor_civil_breakdown,
     ...(Object.keys(flooring_rates).length > 0 ? { flooring_rates } : {}),
     ...(firstFlooringRate != null && firstFlooringRate > 0
@@ -271,8 +299,29 @@ export function mistriRankMetric(bid: {
   total_sum_metric?: number | null;
   rates?: Partial<BidRates> | null;
 }): number {
+  const projectCost = bid.rates?.total_project_cost;
+  if (typeof projectCost === 'number' && Number.isFinite(projectCost) && projectCost > 0) {
+    return projectCost;
+  }
+
+  const breakdown = Array.isArray(bid.rates?.floor_civil_breakdown)
+    ? bid.rates.floor_civil_breakdown
+    : [];
+  if (breakdown.length > 0) {
+    const fromRows = breakdown.reduce((sum, row) => {
+      const floorTotal =
+        typeof row.floorTotal === 'number' && row.floorTotal > 0
+          ? row.floorTotal
+          : Number(row.civilCost || 0) + Number(row.flooringCost || 0);
+      return sum + floorTotal;
+    }, 0);
+    if (fromRows > 0) return fromRows;
+  }
+
   const stored = bid.rates?.total_civil_cost;
-  if (typeof stored === 'number' && Number.isFinite(stored) && stored > 0) return stored;
+  if (typeof stored === 'number' && Number.isFinite(stored) && stored > 0) {
+    return stored;
+  }
   return Number(bid.total_sum_metric ?? 0);
 }
 
@@ -291,13 +340,25 @@ export function getMistriCivilCostDisplayEntries(
     ? rates.floor_civil_breakdown
     : [];
   if (breakdown.length > 0) {
-    return breakdown
-      .filter((row) => row.civilRate > 0 || row.civilCost > 0)
-      .map((row) => ({
-        label: `${row.label} · ${Number(row.slabAreaSqft || 0).toLocaleString('en-IN')} sqft × ₹${Number(row.civilRate || 0).toLocaleString('en-IN')}`,
-        value: Number(row.civilCost || 0),
-        suffix: '',
-      }));
+    return breakdown.flatMap((row) => {
+      const entries: Array<{ label: string; value: number; suffix?: string }> = [];
+      if (row.civilRate > 0 || row.civilCost > 0) {
+        entries.push({
+          label: `${row.label} · ${Number(row.slabAreaSqft || 0).toLocaleString('en-IN')} sqft × ₹${Number(row.civilRate || 0).toLocaleString('en-IN')}`,
+          value: Number(row.civilCost || 0),
+          suffix: '',
+        });
+      }
+      if ((row.flooringRate ?? 0) > 0 || (row.flooringCost ?? 0) > 0) {
+        const material = row.flooringMaterial || 'Flooring';
+        entries.push({
+          label: `${row.label} · ${material} Fitting · ${Number(row.flooringAreaSqft || 0).toLocaleString('en-IN')} sqft × ₹${Number(row.flooringRate || 0).toLocaleString('en-IN')}`,
+          value: Number(row.flooringCost || 0),
+          suffix: '',
+        });
+      }
+      return entries;
+    });
   }
 
   const sourceFloors = floors ?? [];
@@ -393,6 +454,12 @@ export function validateMistriCivilBid(
 
   for (const floor of floors) {
     if (!floor.includeFlooring) continue;
+    if (!(floor.flooringAreaSqft > 0)) {
+      return {
+        valid: false,
+        message: `Flooring work area is missing for ${floor.label}.`,
+      };
+    }
     const materialLabel = floor.flooringMaterialLabel || 'Flooring';
     const flooringRate = flooringRates?.[floor.floorId];
     if (flooringRate == null || flooringRate <= 0) {

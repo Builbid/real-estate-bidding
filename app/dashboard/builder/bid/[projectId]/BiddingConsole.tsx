@@ -99,6 +99,7 @@ import {
   buildMistriCivilCostPayload,
   civilRatesFromBid,
   computeMistriFloorCivilCost,
+  computeMistriFloorFlooringCost,
   flooringFittingFieldLabel,
   flooringFittingTitle,
   getMistriCivilCostDisplayEntries,
@@ -173,6 +174,7 @@ type BidWorkItemView =
       slabAreaSqft: number;
       floorId: string;
       includeFlooring: boolean;
+      flooringAreaSqft: number;
       flooringMaterialLabel?: string | null;
       scopeBadge?: string | null;
       floorKey?: BidFloorRateKey;
@@ -314,6 +316,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
         slabAreaSqft: floor.slabAreaSqft,
         floorId: floor.floorId,
         includeFlooring: floor.includeFlooring,
+        flooringAreaSqft: floor.flooringAreaSqft,
         flooringMaterialLabel: floor.flooringMaterialLabel,
         scopeBadge: floor.scopeTitle,
         floorKey: floor.rateKey,
@@ -885,6 +888,8 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
         ? {
             bid_unit: 'per_sqft' as const,
             total_civil_cost: mistriPayload.total_civil_cost,
+            total_flooring_cost: mistriPayload.total_flooring_cost,
+            total_project_cost: mistriPayload.total_project_cost,
             floor_civil_breakdown: mistriPayload.floor_civil_breakdown,
             flooring_rates: mistriPayload.flooring_rates,
             tile_fitting_rate: mistriPayload.tile_fitting_rate,
@@ -1292,6 +1297,9 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                                   {flooringFittingTitle(item.flooringMaterialLabel || 'Flooring')}
                                 </p>
                                 <p className="text-xs text-muted-foreground">
+                                  Approximate flooring work area: {item.flooringAreaSqft > 0 ? `${item.flooringAreaSqft.toLocaleString('en-IN')} sq. ft.` : 'not specified'}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
                                   {flooringFittingFieldLabel(item.flooringMaterialLabel || 'Flooring')}
                                 </p>
                               </div>
@@ -1323,7 +1331,32 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                                   Round to nearest 5 (→ ₹{roundBidRateToNearestFive(parseBidRateValue(flooringRateInputs[item.floorId] ?? '') ?? 0).toLocaleString('en-IN')})
                                 </button>
                               )}
+                              {parseBidRateValue(flooringRateInputs[item.floorId] ?? '') != null &&
+                                (parseBidRateValue(flooringRateInputs[item.floorId] ?? '') ?? 0) > 0 &&
+                                item.flooringAreaSqft > 0 && (
+                                <p className="text-xs font-medium text-emerald-700 dark:text-emerald-300">
+                                  Floor flooring estimate: ₹{computeMistriFloorFlooringCost(
+                                    item.flooringAreaSqft,
+                                    parseBidRateValue(flooringRateInputs[item.floorId] ?? '') ?? 0,
+                                  ).toLocaleString('en-IN')}
+                                </p>
+                              )}
                             </div>
+                          )}
+                          {isCivilItem && numericValue != null && numericValue > 0 && item.slabAreaSqft > 0 && (
+                            (() => {
+                              const flooringRate = parseBidRateValue(flooringRateInputs[item.floorId] ?? '') ?? 0;
+                              const flooringCost = item.includeFlooring
+                                ? computeMistriFloorFlooringCost(item.flooringAreaSqft, flooringRate)
+                                : 0;
+                              const floorTotal = computeMistriFloorCivilCost(item.slabAreaSqft, numericValue) + flooringCost;
+                              if (!(floorTotal > 0)) return null;
+                              return (
+                                <p className="text-xs font-semibold text-foreground">
+                                  Floor total: ₹{floorTotal.toLocaleString('en-IN')}
+                                </p>
+                              );
+                            })()
                           )}
                         </BidWorkItemCard>
                       </motion.div>
@@ -1477,14 +1510,20 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                   <div className="space-y-1.5">
                     {mistriCivilFloors
                       .filter((floor) => floor.includeFlooring && (liveFlooringRates[floor.floorId] ?? 0) > 0)
-                      .map((floor) => (
+                      .map((floor) => {
+                        const flooringCost = computeMistriFloorFlooringCost(
+                          floor.flooringAreaSqft,
+                          liveFlooringRates[floor.floorId] ?? 0,
+                        );
+                        return (
                         <p
                           key={floor.floorId}
-                          className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-2 text-[11px] font-medium text-amber-800 dark:text-amber-300"
+                          className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-2 text-[11px] font-medium text-emerald-800 dark:text-emerald-300"
                         >
-                          {floor.label} · {flooringFittingTitle(floor.flooringMaterialLabel || 'Flooring')} (not ranked): ₹{(liveFlooringRates[floor.floorId] ?? 0).toLocaleString('en-IN')}{TILE_FITTING_RATE_UNIT}
+                          {floor.label} · {flooringFittingTitle(floor.flooringMaterialLabel || 'Flooring')}: {floor.flooringAreaSqft.toLocaleString('en-IN')} sq. ft. × ₹{(liveFlooringRates[floor.floorId] ?? 0).toLocaleString('en-IN')} = ₹{flooringCost.toLocaleString('en-IN')}
                         </p>
-                      ))}
+                        );
+                      })}
                   </div>
                 )}
 
@@ -1696,11 +1735,6 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                                       : undefined
                                 }
                                 runningFootRate={parsePlumbingRunningFootRate(bid.rates)}
-                                flooringRateEntries={
-                                  isMistriCivilBid
-                                    ? getMistriFlooringRateDisplayEntries(bid.rates, mistriCivilFloors)
-                                    : undefined
-                                }
                               />
                             </div>
                           )}

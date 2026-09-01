@@ -361,11 +361,6 @@ export function UnifiedBidRankings({
                           : undefined
                     }
                     runningFootRate={parsePlumbingRunningFootRate(bid.rates)}
-                    flooringRateEntries={
-                      isMistriCivilBid
-                        ? getMistriFlooringRateDisplayEntries(bid.rates, mistriCivilFloors)
-                        : undefined
-                    }
                   />
                 </div>
               )}
