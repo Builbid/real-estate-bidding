@@ -36,6 +36,11 @@ interface BuildingTypeSelectorProps {
    */
   enforceContiguousFloors?: boolean;
   /**
+   * Mistri Project Info: allow any mix of named RCC floors plus custom floors
+   * above 4th (e.g. 2nd + 4th + 7th) without filling intermediate storeys.
+   */
+  allowNonSequentialFloors?: boolean;
+  /**
    * Mistri Project Info when house type is already RCC — hide Assam Type option.
    */
   rccOnly?: boolean;
@@ -52,6 +57,7 @@ export function BuildingTypeSelector({
   onCustomChange,
   customError,
   enforceContiguousFloors = false,
+  allowNonSequentialFloors = false,
   rccOnly = false,
 }: BuildingTypeSelectorProps) {
   const hasAssam = !rccOnly && value.includes(ASSAM_BUILDING_TYPE);
@@ -59,7 +65,8 @@ export function BuildingTypeSelector({
   const rccFloorsSelected = value.filter((t) => RCC_BUILDING_TYPES.includes(t));
   const has4thFloor = value.includes(RCC_4TH_FLOOR);
   /** Active with no RCC floors yet (custom alone) or together with 4th floor. */
-  const customSelectable = rccFloorsSelected.length === 0 || has4thFloor;
+  const customSelectable =
+    allowNonSequentialFloors || rccFloorsSelected.length === 0 || has4thFloor;
   const hasRcc =
     rccFloorsSelected.length > 0 || (customSelected && customFloorVisible);
 
@@ -80,7 +87,7 @@ export function BuildingTypeSelector({
   }, [customSelected, customSelectable]);
 
   function isContiguousBlocked(nextLevel: number): boolean {
-    if (!enforceContiguousFloors || hasAssam) return false;
+    if (!enforceContiguousFloors || allowNonSequentialFloors || hasAssam) return false;
     return !canToggleMistriFloorUpper(currentLevels, nextLevel);
   }
 
@@ -99,7 +106,7 @@ export function BuildingTypeSelector({
     const next = value.filter((t) => t !== ASSAM_BUILDING_TYPE);
     const isSelected = next.includes(type);
 
-    if (enforceContiguousFloors) {
+    if (enforceContiguousFloors && !allowNonSequentialFloors) {
       const level = mistriFloorUpperCount(type);
       if (!canToggleMistriFloorUpper(currentLevels, level)) return;
     }
@@ -107,6 +114,7 @@ export function BuildingTypeSelector({
     if (isSelected) {
       const nextTypes = next.filter((t) => t !== type);
       if (
+        !allowNonSequentialFloors &&
         customSelected &&
         nextTypes.length > 0 &&
         !nextTypes.includes(RCC_4TH_FLOOR)
@@ -116,7 +124,11 @@ export function BuildingTypeSelector({
       onChange(nextTypes);
     } else {
       const nextTypes = [...next, type];
-      if (customSelected && !nextTypes.includes(RCC_4TH_FLOOR)) {
+      if (
+        !allowNonSequentialFloors &&
+        customSelected &&
+        !nextTypes.includes(RCC_4TH_FLOOR)
+      ) {
         onCustomChange?.(false, '');
       }
       onChange(nextTypes);
@@ -132,9 +144,10 @@ export function BuildingTypeSelector({
     if (!customSelectable) return;
 
     const sequence = parseCustomFloorSequence(customFloorNumber, {
-      requireStartAt5: has4thFloor,
+      requireStartAt5: !allowNonSequentialFloors && has4thFloor,
+      allowGaps: allowNonSequentialFloors,
     });
-    if (enforceContiguousFloors && sequence) {
+    if (enforceContiguousFloors && !allowNonSequentialFloors && sequence) {
       const withoutCustom = collectMistriFloorUpperLevels({
         buildingTypes: value,
         customSelected: false,
@@ -151,7 +164,7 @@ export function BuildingTypeSelector({
   function onCustomSequenceChange(raw: string) {
     if (!customSelectable) return;
     const cleaned = raw.replace(/[^\d,\s]/g, '');
-    if (!enforceContiguousFloors || !customSelected) {
+    if (!enforceContiguousFloors || allowNonSequentialFloors || !customSelected) {
       onCustomChange?.(true, cleaned);
       return;
     }
@@ -193,7 +206,8 @@ export function BuildingTypeSelector({
           <p className="text-sm text-muted-foreground">
             {rccOnly ? (
               <>
-                Select the RCC floor(s) included in this project. You can select multiple floors.
+                Select the RCC floor(s) included in this project. You can select any mix of
+                floors, including non-consecutive floors (for example 2nd, 4th, and 7th).
               </>
             ) : (
               <>
@@ -234,8 +248,12 @@ export function BuildingTypeSelector({
           const selected = value.includes(type);
           const isAssamOption = type === ASSAM_BUILDING_TYPE;
           const contiguousBlocked =
-            !isAssamOption && !selected && isContiguousBlocked(mistriFloorUpperCount(type));
+            !allowNonSequentialFloors &&
+            !isAssamOption &&
+            !selected &&
+            isContiguousBlocked(mistriFloorUpperCount(type));
           const deselectBlocked =
+            !allowNonSequentialFloors &&
             !isAssamOption &&
             selected &&
             enforceContiguousFloors &&
@@ -285,7 +303,7 @@ export function BuildingTypeSelector({
             disabled={customDisabled}
             onClick={toggleCustom}
             title={
-              !customSelectable
+              !allowNonSequentialFloors && !customSelectable
                 ? 'Select RCC 4th Floor first, or clear other floors to choose floors above 4th alone'
                 : undefined
             }
@@ -322,15 +340,17 @@ export function BuildingTypeSelector({
             label="Custom floor numbers (above 4th)"
             type="text"
             inputMode="numeric"
-            placeholder="e.g. 5,6,7"
+            placeholder={allowNonSequentialFloors ? 'e.g. 7,9,12' : 'e.g. 5,6,7'}
             value={customFloorNumber}
             onChange={(e) => onCustomSequenceChange(e.target.value)}
             error={customError ?? undefined}
           />
           <p className="text-[11px] font-medium text-muted-foreground leading-snug">
-            {has4thFloor
-              ? 'With 4th floor selected, enter consecutive floors starting at 5 (example: 5,6,7).'
-              : 'Enter consecutive floors from 5–50 (example: 7,8,9). Gaps or out-of-order values are invalid.'}
+            {allowNonSequentialFloors
+              ? 'Enter floor numbers from 5–50, comma-separated (example: 7,9,12). Skipped floors are allowed.'
+              : has4thFloor
+                ? 'With 4th floor selected, enter consecutive floors starting at 5 (example: 5,6,7).'
+                : 'Enter consecutive floors from 5–50 (example: 7,8,9). Gaps or out-of-order values are invalid.'}
           </p>
         </div>
       )}

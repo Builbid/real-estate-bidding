@@ -37,7 +37,7 @@ import {
   MISTRI_RCC_SCOPE_OPTIONS,
   MISTRI_START_TIME_OPTIONS,
   MISTRI_YES_NO_OPTIONS,
-  UPPER_FLOOR_WALL_REQUIRES_EXISTING_GF_STRUCTURE,
+  STRUCTURAL_FRAMING_CONTINUITY_MESSAGE,
   currentFloorPlanFromFloorWork,
   floorPlanUpperCount,
   formatMistriFloorWorkLabel,
@@ -46,7 +46,8 @@ import {
   getMistriRccScopeLabel,
   getMistriWorkRequirementBlocks,
   isAssamMistriFloor,
-  isUpperFloorWallScopeBlocked,
+  isStructuralFramingDisconnected,
+  isStructuralRccScope,
   mistriContractTypeRequiredForFloorWork,
   mistriFoundationProvisionRequired,
   parseCustomFloorSequence,
@@ -324,7 +325,7 @@ function selectedFloorEntries(form: FormState): Array<{
 
   if (form.customFloorSelected) {
     const sequence = parseCustomFloorSequence(form.customFloorNumber, {
-      requireStartAt5: form.buildingTypes.includes('RCC 4th Floor'),
+      allowGaps: true,
     });
     if (sequence) {
       for (const n of sequence) {
@@ -379,9 +380,8 @@ export function LabourContractorProjectWizard() {
   const [submittedTitle, setSubmittedTitle] = useState('');
 
   const districtSelection = parseAssamDistrictSelection(form.location);
-  const requireCustomStartAt5 = form.buildingTypes.includes('RCC 4th Floor');
   const parsedCustomSequence = parseCustomFloorSequence(form.customFloorNumber, {
-    requireStartAt5: requireCustomStartAt5,
+    allowGaps: true,
   });
 
   const assembledFloorWork: MistriFloorWork[] = useMemo(() => {
@@ -614,18 +614,6 @@ export function LabourContractorProjectWizard() {
         [key]: nextFloor,
       };
 
-      if (floorId === 'RCC Ground Floor' && (option === 'full_construction' || option === 'frame_only')) {
-        for (const entry of selectedFloorEntries(f)) {
-          if (entry.floorId === 'RCC Ground Floor' || isAssamMistriFloor(entry.floorId)) continue;
-          const upperKey = floorWorkKey(entry.floorId, entry.customFloorNumber);
-          const upper = floorWorkById[upperKey];
-          if (!upper) continue;
-          if (rccScopeFromWorkTypes(upper.workTypes) === 'wall_plaster_only') {
-            floorWorkById[upperKey] = { ...EMPTY_FLOOR_WORK };
-          }
-        }
-      }
-
       return { ...f, floorWorkById };
     });
     setStep2Error(null);
@@ -677,7 +665,7 @@ export function LabourContractorProjectWizard() {
 
     if (form.houseType === 'rcc' && form.customFloorSelected) {
       if (!parsedCustomSequence || parsedCustomSequence.length === 0) {
-        errors.customFloor = getCustomFloorSequenceInvalidMessage(requireCustomStartAt5);
+        errors.customFloor = getCustomFloorSequenceInvalidMessage(false, true);
       }
     }
 
@@ -885,11 +873,12 @@ export function LabourContractorProjectWizard() {
                 <div className="flex flex-col gap-1.5">
                   <label className={SECTION_LABEL}>Building / Floor Type</label>
                   <p className={HELPER_TEXT}>
-                    Select the RCC floors included in this project. Scope of Work is chosen on the next step for each floor.
+                    Select only the RCC floors included in this project. Intermediate floors are not added automatically.
                   </p>
                   <BuildingTypeSelector
                     purpose="mistri"
                     rccOnly
+                    allowNonSequentialFloors
                     value={form.buildingTypes}
                     onChange={setBuildingTypes}
                     showCustomFloor
@@ -933,7 +922,7 @@ export function LabourContractorProjectWizard() {
                 <p className="text-xs font-medium text-gray-700 dark:text-zinc-300 mt-1">
                   {form.buildingTypes.includes(ASSAM_BUILDING_TYPE)
                     ? 'Assam Type — Full finishing upto Plastering and Roof work is included. Choose roof truss, roofing sheet, flooring, and foundation depth.'
-                    : 'Choose one Scope of Work for each selected floor. Tile fitting is an optional add-on on Full Construction.'}
+                    : 'Choose one Scope of Work for each selected floor. Wall construction (Option 3) can skip floors. New framing (Option 1 or 2) must stay continuous from the base or an existing structure.'}
                 </p>
               </div>
 
@@ -949,7 +938,11 @@ export function LabourContractorProjectWizard() {
                 const entry = form.floorWorkById[key] ?? EMPTY_FLOOR_WORK;
                 const isAssam = isAssamMistriFloor(fw.floorId);
                 const selectedScope = rccScopeFromWorkTypes(entry.workTypes);
-                const wallBlocked = isUpperFloorWallScopeBlocked(fw.floorId, assembledFloorWork);
+                const framingDisconnected = isStructuralFramingDisconnected(
+                  fw.floorId,
+                  fw.customFloorNumber,
+                  assembledFloorWork,
+                );
                 const title = formatMistriFloorWorkLabel(fw);
 
                 return (
@@ -1066,12 +1059,14 @@ export function LabourContractorProjectWizard() {
                       <div className="grid grid-cols-1 gap-2">
                         {MISTRI_RCC_SCOPE_OPTIONS.map((opt) => {
                           const selected = selectedScope === opt.value;
-                          const disabled = opt.value === 'wall_plaster_only' && wallBlocked;
+                          const showFramingNotice =
+                            selected &&
+                            isStructuralRccScope(opt.value) &&
+                            framingDisconnected;
                           return (
                             <div key={opt.value} className="space-y-2">
                               <OptionCardButton
                                 selected={selected}
-                                disabled={disabled}
                                 onClick={() =>
                                   setRccScope(fw.floorId, opt.value, fw.customFloorNumber)
                                 }
@@ -1085,9 +1080,9 @@ export function LabourContractorProjectWizard() {
                                   </span>
                                 </span>
                               </OptionCardButton>
-                              {opt.value === 'wall_plaster_only' && wallBlocked && (
+                              {showFramingNotice && (
                                 <p className="px-1 text-[11px] font-medium text-amber-800 dark:text-amber-200">
-                                  {UPPER_FLOOR_WALL_REQUIRES_EXISTING_GF_STRUCTURE}
+                                  {STRUCTURAL_FRAMING_CONTINUITY_MESSAGE}
                                 </p>
                               )}
                               {opt.value === 'full_construction' && selected && (

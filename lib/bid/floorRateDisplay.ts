@@ -133,7 +133,6 @@ export function resolveProjectBidFloors(project: {
   );
   if (mistri?.floorWork && mistri.floorWork.length > 0) {
     const labels = sortMistriFloorWork(mistri.floorWork)
-      .slice(0, 3)
       .map((fw) => toRateInputLabel(formatMistriFloorWorkLabel(fw)));
     if (labels.length > 0) {
       return { labels, count: labels.length, isAssamType: false };

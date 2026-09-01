@@ -620,6 +620,9 @@ export const MISTRI_RCC_FLOOR_WORK_OPTIONS: {
 export const UPPER_FLOOR_WALL_REQUIRES_EXISTING_GF_STRUCTURE =
   'Upper floor wall construction (Option 3) requires an existing ground floor structure.';
 
+export const STRUCTURAL_FRAMING_CONTINUITY_MESSAGE =
+  'New structural framing (Option 1/2) requires structural continuity from lower floors.';
+
 export const MISTRI_RCC_SCOPE_OPTIONS: {
   value: MistriRccScopeOption;
   optionNumber: 1 | 2 | 3;
@@ -695,21 +698,83 @@ export function formatMistriRccScopeDescription(
   return label;
 }
 
+export function isStructuralRccScope(scope: MistriRccScopeOption | null | undefined): boolean {
+  return scope === 'full_construction' || scope === 'frame_only';
+}
+
 export function groundFloorStructureIsNewBuild(
   floorWork: readonly Pick<MistriFloorWork, 'floorId' | 'workTypes' | 'scopeOption'>[],
 ): boolean {
   const gf = floorWork.find((fw) => isRccGroundMistriFloor(fw.floorId));
   if (!gf) return false;
   const scope = rccScopeFromWorkTypes(gf.workTypes, gf.scopeOption);
-  return scope === 'full_construction' || scope === 'frame_only';
+  return isStructuralRccScope(scope);
 }
 
+/**
+ * Wall-only work (Option 3) is allowed on any selected floor, including
+ * non-sequential floors, because the structural frame is assumed to exist.
+ */
 export function isUpperFloorWallScopeBlocked(
-  floorId: MistriFloorId,
-  floorWork: readonly Pick<MistriFloorWork, 'floorId' | 'workTypes' | 'scopeOption'>[],
+  _floorId: MistriFloorId,
+  _floorWork: readonly Pick<MistriFloorWork, 'floorId' | 'workTypes' | 'scopeOption'>[],
 ): boolean {
-  if (isAssamMistriFloor(floorId) || isRccGroundMistriFloor(floorId)) return false;
-  return groundFloorStructureIsNewBuild(floorWork);
+  return false;
+}
+
+type MistriScopeFloor = Pick<
+  MistriFloorWork,
+  'floorId' | 'customFloorNumber' | 'workTypes' | 'scopeOption'
+>;
+
+export function structuralFramingLevels(floorWork: readonly MistriScopeFloor[]): number[] {
+  const levels: number[] = [];
+  for (const fw of floorWork) {
+    if (isAssamMistriFloor(fw.floorId)) continue;
+    const scope = rccScopeFromWorkTypes(fw.workTypes, fw.scopeOption);
+    if (!isStructuralRccScope(scope)) continue;
+    levels.push(mistriFloorUpperCount(fw.floorId, fw.customFloorNumber));
+  }
+  return [...new Set(levels)].sort((a, b) => a - b);
+}
+
+export function hasStructuralFramingDiscontinuity(
+  floorWork: readonly MistriScopeFloor[],
+): boolean {
+  return !areMistriFloorUppersContiguous(structuralFramingLevels(floorWork));
+}
+
+/** Highest floor in the unbroken Option 1/2 run starting at the lowest structural floor. */
+export function structuralFramingContinuityEnd(
+  floorWork: readonly MistriScopeFloor[],
+): number | null {
+  const levels = structuralFramingLevels(floorWork);
+  if (levels.length === 0) return null;
+  let end = levels[0];
+  for (let i = 1; i < levels.length; i++) {
+    if (levels[i] === end + 1) end = levels[i];
+    else break;
+  }
+  return end;
+}
+
+/**
+ * True when this floor uses Option 1/2 and sits above a gap in new concrete
+ * (e.g. 2nd + 4th frame without 3rd). The lowest structural floor is allowed
+ * to start from an existing shell.
+ */
+export function isStructuralFramingDisconnected(
+  floorId: MistriFloorId,
+  customFloorNumber: number | null | undefined,
+  floorWork: readonly MistriScopeFloor[],
+): boolean {
+  if (isAssamMistriFloor(floorId)) return false;
+  const levels = structuralFramingLevels(floorWork);
+  if (areMistriFloorUppersContiguous(levels)) return false;
+  const end = structuralFramingContinuityEnd(floorWork);
+  if (end == null) return false;
+  const level = mistriFloorUpperCount(floorId, customFloorNumber);
+  return levels.includes(level) && level > end;
 }
 
 export const MISTRI_ASSAM_FLOOR_WORK_OPTIONS: {
@@ -751,7 +816,14 @@ export const CUSTOM_FLOOR_SEQUENCE_INVALID_MESSAGE =
 export const CUSTOM_FLOOR_SEQUENCE_AFTER_4TH_INVALID_MESSAGE =
   'With RCC 4th Floor selected, custom floors must be a consecutive sequence starting at 5 (e.g. 5,6,7).';
 
-export function getCustomFloorSequenceInvalidMessage(requireStartAt5: boolean): string {
+export const CUSTOM_FLOOR_NUMBERS_INVALID_MESSAGE =
+  'Enter floor numbers from 5 to 50, separated by commas (e.g. 7,9,12).';
+
+export function getCustomFloorSequenceInvalidMessage(
+  requireStartAt5: boolean,
+  allowGaps = false,
+): string {
+  if (allowGaps) return CUSTOM_FLOOR_NUMBERS_INVALID_MESSAGE;
   return requireStartAt5
     ? CUSTOM_FLOOR_SEQUENCE_AFTER_4TH_INVALID_MESSAGE
     : CUSTOM_FLOOR_SEQUENCE_INVALID_MESSAGE;
@@ -1220,15 +1292,17 @@ export function parseCustomFloorNumber(raw: unknown): number | null {
 }
 
 /**
- * Comma-separated floors above 4th (5–50), consecutive ascending.
- * When `requireStartAt5` is true (RCC 4th Floor selected), the sequence must start at 5.
- * When false, any start ≥ 5 is allowed (e.g. 7,8,9 for an existing building).
+ * Comma-separated floors above 4th (5–50).
+ * Default: consecutive ascending. When `requireStartAt5` is true, the sequence
+ * must start at 5. When `allowGaps` is true (Mistri), any unique 5–50 mix is
+ * allowed (e.g. 7,9,12) so existing shells can skip storeys.
  */
 export function parseCustomFloorSequence(
   raw: unknown,
-  options?: { requireStartAt5?: boolean },
+  options?: { requireStartAt5?: boolean; allowGaps?: boolean },
 ): number[] | null {
-  const requireStartAt5 = options?.requireStartAt5 === true;
+  const allowGaps = options?.allowGaps === true;
+  const requireStartAt5 = options?.requireStartAt5 === true && !allowGaps;
 
   if (typeof raw === 'number' && Number.isInteger(raw)) {
     const single = parseCustomFloorNumber(raw);
@@ -1252,6 +1326,11 @@ export function parseCustomFloorSequence(
     const n = parseInt(part, 10);
     if (n < MIN_CUSTOM_RCC_FLOOR || n > MAX_CUSTOM_RCC_FLOOR) return null;
     nums.push(n);
+  }
+
+  if (allowGaps) {
+    if (new Set(nums).size !== nums.length) return null;
+    return [...nums].sort((a, b) => a - b);
   }
 
   if (requireStartAt5 && nums[0] !== MIN_CUSTOM_RCC_FLOOR) return null;
@@ -2559,12 +2638,6 @@ export function validateMistriFloorWorkInput(input: {
   for (const fw of input.floorWork) {
     if (isAssamMistriFloor(fw.floorId)) continue;
     const scope = rccScopeFromWorkTypes(fw.workTypes, fw.scopeOption);
-    if (
-      scope === 'wall_plaster_only' &&
-      isUpperFloorWallScopeBlocked(fw.floorId, input.floorWork)
-    ) {
-      return { error: UPPER_FLOOR_WALL_REQUIRES_EXISTING_GF_STRUCTURE };
-    }
     if (scope) {
       fw.scopeOption = scope;
       fw.scopeLabel = formatMistriRccScopeDescription(
@@ -2574,6 +2647,10 @@ export function validateMistriFloorWorkInput(input: {
         fw.brickMaterial,
       );
     }
+  }
+
+  if (hasStructuralFramingDiscontinuity(input.floorWork)) {
+    return { error: STRUCTURAL_FRAMING_CONTINUITY_MESSAGE };
   }
 
   const floorWork = normalizeMistriFloorWork(input.floorWork);
