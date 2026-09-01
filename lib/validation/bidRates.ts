@@ -6,7 +6,6 @@ export const BID_RATE_ERROR =
 
 /** Only these services still require rates ending in 0 or 5. All others accept 0–9. */
 export const MULTIPLE_OF_FIVE_SERVICES = [
-  'labour_contractor',
   'plumber',
   'earthwork',
   'construction_firm',
@@ -21,7 +20,7 @@ export const FLEXIBLE_WHOLE_NUMBER_SERVICES = [
 ] as const;
 
 export interface BidRateRules {
-  /** When false, any positive whole number is accepted. Default true for mistri/plumber/earthwork. */
+  /** When false, any positive whole number is accepted. Default true for plumber/earthwork/firm. */
   requireMultipleOfFive?: boolean;
 }
 

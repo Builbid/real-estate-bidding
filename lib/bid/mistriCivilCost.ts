@@ -1,6 +1,7 @@
 import { resolveProjectBidFloors } from '@/lib/bid/floorRateDisplay';
 import {
   formatMistriFloorWorkLabel,
+  getMistriRccScopeTitle,
   isAssamMistriFloor,
   MISTRI_ASSAM_FLOORING_MATERIAL_OPTIONS,
   MISTRI_FLOORING_MATERIAL_OPTIONS,
@@ -28,6 +29,7 @@ export interface MistriCivilFloor {
   includeFlooring: boolean;
   flooringMaterial?: string | null;
   flooringMaterialLabel?: string | null;
+  scopeTitle?: string | null;
 }
 
 export interface MistriFloorCivilBreakdown {
@@ -143,6 +145,7 @@ export function resolveMistriCivilFloors(project: MistriCivilCostProject): Mistr
         flooringMaterialLabel: includeFlooring
           ? resolveFlooringMaterialLabel(fw.flooringMaterial, sourceFloorId)
           : null,
+        scopeTitle: getMistriRccScopeTitle(fw.workTypes, fw.scopeOption),
       };
     });
   }
@@ -165,6 +168,7 @@ export function resolveMistriCivilFloors(project: MistriCivilCostProject): Mistr
     includeFlooring,
     flooringMaterial: includeFlooring ? 'tile' : null,
     flooringMaterialLabel: includeFlooring ? 'Flooring' : null,
+    scopeTitle: null,
   }));
 }
 

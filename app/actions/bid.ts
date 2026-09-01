@@ -249,7 +249,7 @@ export async function submitBidAction(
     ? readProjectUnitRateOptions(project)
     : [];
 
-  const rateRules = scopeBid?.flexibleRates
+  const rateRules = isMistriCivilBid || scopeBid?.flexibleRates
     ? { requireMultipleOfFive: false }
     : getBidRateRules(project.service_type, profile?.service_type);
 

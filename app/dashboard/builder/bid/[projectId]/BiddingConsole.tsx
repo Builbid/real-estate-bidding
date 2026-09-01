@@ -174,6 +174,7 @@ type BidWorkItemView =
       floorId: string;
       includeFlooring: boolean;
       flooringMaterialLabel?: string | null;
+      scopeBadge?: string | null;
       floorKey?: BidFloorRateKey;
       optionId?: undefined;
     };
@@ -223,7 +224,6 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
   const isScopeRateBid = scopeBid != null;
   const isMistriCivilBid = isMistriCivilCostProject(project);
   const mistriCivilFloors = isMistriCivilBid ? resolveMistriCivilFloors(project) : [];
-  const mistriBuiltUpArea = mistriCivilFloors[0]?.slabAreaSqft ?? 0;
   const isAssamTypeHouse = bidFloors.isAssamType && !isScopeRateBid && !isMistriCivilBid;
   const floorCount = isMistriCivilBid
     ? Math.max(mistriCivilFloors.length, 1)
@@ -273,9 +273,10 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
     : formatBidUnitSuffix(undefined, earthworkMode, project.service_type);
   const isPainter = project.service_type === 'painter';
   const isFlexibleRate =
+    isMistriCivilBid ||
     allowsAnyWholeNumberRate(project.service_type, bidderServiceType) ||
     scopeBid?.flexibleRates === true;
-  const rateRules = scopeBid?.flexibleRates
+  const rateRules = isMistriCivilBid || scopeBid?.flexibleRates
     ? { requireMultipleOfFive: false }
     : getBidRateRules(project.service_type, bidderServiceType);
 
@@ -314,6 +315,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
         floorId: floor.floorId,
         includeFlooring: floor.includeFlooring,
         flooringMaterialLabel: floor.flooringMaterialLabel,
+        scopeBadge: floor.scopeTitle,
         floorKey: floor.rateKey,
       }))
     : [];
@@ -391,7 +393,9 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
     : unitRateWorkItems.length > 0
       ? unitRateWorkItems
       : floorRateWorkItems;
-  const extra = baseBidWorkItems.length === 1 ? formatSpecLines(leftoverSpecs) : undefined;
+  const extra = !isMistriCivilBid && baseBidWorkItems.length === 1
+    ? formatSpecLines(leftoverSpecs)
+    : undefined;
   const bidWorkItems: BidWorkItemView[] =
     extra && baseBidWorkItems[0]
       ? [{
@@ -399,7 +403,6 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
           description: [baseBidWorkItems[0].description, extra].filter(Boolean).join('\n'),
         }]
       : baseBidWorkItems;
-  const extraScopeBlocks = baseBidWorkItems.length === 1 ? [] : leftoverSpecs;
 
   const [rateInputs, setRateInputs] = useState<Partial<Record<BidFloorRateKey, string>>>(() => {
     if (existingBid && isPlumbingPointRateBid) {
@@ -985,26 +988,6 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
         </div>
       )}
 
-      {extraScopeBlocks.length > 0 && (
-        <div className="rounded-xl border border-border/70 bg-muted/20 px-4 py-3">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-            Scope details
-          </p>
-          <dl className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {extraScopeBlocks.map((block) => (
-              <div key={block.label} className="min-w-0">
-                <dt className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  {block.label}
-                </dt>
-                <dd className="mt-0.5 text-sm font-medium leading-snug text-foreground whitespace-pre-line">
-                  {block.value}
-                </dd>
-              </div>
-            ))}
-          </dl>
-        </div>
-      )}
-
       {noteBlocks.length > 0 && (
         <div className="rounded-xl border border-border/70 bg-muted/20 px-4 py-3 space-y-2">
           {noteBlocks.map((block) => (
@@ -1200,68 +1183,6 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
               )}
 
               <form onSubmit={handleSubmit} className="space-y-3">
-                {!isTradeUnitRateBid && (
-                <div className="flex items-center gap-2 p-2.5 rounded-lg bg-blue-500/5 border border-blue-500/15 mb-2">
-                  <Info className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
-                  <p className="text-xs text-blue-300">
-                    {isPainter || isDrawing ? (
-                      <>Enter your rate in ₹ per sqft. Rates must be whole numbers. Lower rates rank higher.</>
-                    ) : isMistriCivilBid ? (
-                      <>
-                        Enter a <strong>Civil Construction Rate (₹/sq. ft.)</strong> for each selected floor.
-                        The client&apos;s <strong>built-up area</strong>
-                        {mistriBuiltUpArea > 0 ? ` (${mistriBuiltUpArea.toLocaleString('en-IN')} sq. ft.)` : ''}
-                        {' '}is used as the slab area for every floor.
-                        {' '}Rates must be whole numbers{isFlexibleRate ? '' : <> ending in <strong>0 or 5</strong></>}.
-                      </>
-                    ) : isPlumbingBid ? (
-                      isPlumbingPointRateBid ? (
-                      <>
-                        Enter a <strong>Rate Per Point (₹)</strong> for each selected floor.
-                        Basin and tap = 1 pt; shower, commode, and geyser = 2 pts each.
-                        The estimated bid is the sum of floor points × rate per point.
-                        The running-foot rate is optional and is <strong>not</strong> added to ranking.
-                        Rates must be whole numbers ending in <strong>0 or 5</strong>. Lowest estimated total ranks first.
-                      </>
-                      ) : (
-                      <>
-                        Enter a <strong>Bathroom Package Rate</strong> (₹ / unit) for each selected
-                        bathroom type, then <strong>per running foot</strong> rates for{' '}
-                        <strong>Tap Water Pipe</strong> and <strong>Toilet Drainage Pipe</strong>.
-                        Rates must be whole numbers ending in <strong>0 or 5</strong>. The plumber
-                        with the <strong>lowest overall average unit rate</strong> ranks as the
-                        winning bidder.
-                      </>
-                      )
-                    ) : isElectricianBid && isElectricianPointRateBid ? (
-                      <>
-                        Enter a <strong>Rate Per Point (₹)</strong> for each selected floor, based on the chosen wiring type.
-                        Ceiling light and ceiling fan = 1 pt; AC, refrigerator, and inverter = 2 pts each.
-                        The estimated bid is the sum of floor points × rate per point.
-                        Rates must be whole numbers ending in <strong>0 or 5</strong>. Lowest estimated total ranks first.
-                      </>
-                    ) : isScopeRateBid ? (
-                      <>Enter your rate in ₹ per sqft for each item. Rates must be whole numbers. Lower rates rank higher.</>
-                    ) : isElectrician ? (
-                      <>Enter your rate in ₹ per point. Rates must be whole numbers. Lower rates rank higher.</>
-                    ) : isPlumberFlat ? (
-                      <>Enter your rate in <strong>Rs.</strong> Rates must be whole numbers ending in 0 or 5. Lower rates rank higher.</>
-                    ) : earthworkMode === 'hourly' ? (
-                      <>Enter your rate in ₹ per hour. Rates must be whole numbers ending in 0 or 5.</>
-                    ) : earthworkMode === 'trip' ? (
-                      <>Enter your rate in ₹ per trip and specify vehicle capacity in cu.m (cum).</>
-                    ) : (
-                      <>
-                        Enter your rate in <strong>₹ per sqft</strong>
-                        {isSingleRateBid ? '' : ' for each floor'}. Rates must be whole numbers
-                        {isFlexibleRate ? '' : <> ending in <strong>0 or 5</strong></>}. Lower{' '}
-                        {isSingleRateBid ? 'rates rank' : 'average rates rank'} higher.
-                      </>
-                    )}
-                  </p>
-                </div>
-                )}
-
                 {isPlumbingBid && !isTradeUnitRateBid && !isPlumbingPointRateBid && (
                   <div className="flex items-start gap-2 p-2.5 rounded-lg bg-amber-500/5 border border-amber-500/20 mb-1">
                     <Info className="w-3.5 h-3.5 text-amber-400 flex-shrink-0 mt-0.5" />
@@ -1303,6 +1224,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                         <BidWorkItemCard
                           title={item.title}
                           category={item.category}
+                          badge={item.kind === 'civil' ? (item.scopeBadge ?? undefined) : undefined}
                           description={item.description}
                         >
                           <Input

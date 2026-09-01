@@ -636,6 +636,15 @@ export const MISTRI_RCC_SCOPE_OPTIONS: {
   { value: 'wall_plaster_only', optionNumber: 3, title: 'Wall Construction & Plastering Only' },
 ];
 
+export function getMistriRccScopeTitle(
+  workTypes: readonly MistriFloorWorkType[] = [],
+  stored?: MistriRccScopeOption | null,
+): string | null {
+  const option = rccScopeFromWorkTypes(workTypes, stored);
+  if (!option) return null;
+  return MISTRI_RCC_SCOPE_OPTIONS.find((entry) => entry.value === option)?.title ?? null;
+}
+
 export function isRccGroundMistriFloor(floorId: MistriFloorId): boolean {
   return floorId === 'RCC Ground Floor';
 }
