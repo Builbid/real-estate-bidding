@@ -3,9 +3,15 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient }      from '@/lib/supabase/server'
 import { sendSelectionNotification, sendUserNotificationEmail } from '@/lib/email/sendNotification'
+import { sendOfficialMistriAgreementEmail } from '@/lib/email/sendMistriAgreement'
+import {
+  buildMistriAgreementPayload,
+  isMistriCivilService,
+} from '@/lib/contract/mistriAgreement'
 import { getConstructionLabel } from '@/lib/utils'
 import { formatPackageRateRange } from '@/lib/firm/bidDisplay'
-import type { PackageBidPrice, SubConfiguration, TrackType } from '@/lib/types'
+import type { BidRates, PackageBidPrice, SubConfiguration, TrackType } from '@/lib/types'
+import type { ConstructionTypesMap } from '@/lib/buildingConfig'
 import { revalidatePath } from 'next/cache'
 
 export async function selectBuilderAction(
@@ -19,7 +25,7 @@ export async function selectBuilderAction(
   // 1. Confirm the project is still selectable (prevents double-select)
   const { data: existing, error: fetchError } = await supabase
     .from('projects')
-    .select('id, owner_id, title, district, track_type, sub_configuration, status, selected_builder_id, service_type')
+    .select('id, owner_id, title, district, state, pincode, description, track_type, sub_configuration, building_types, construction_types, total_floors, plot_area_sqft, floor_area_sqft, mistri_details, status, selected_builder_id, service_type')
     .eq('id', projectId)
     .single()
 
@@ -37,7 +43,7 @@ export async function selectBuilderAction(
 
   const { data: winningBid } = await supabase
     .from('bids')
-    .select('total_sum_metric, single_rate, package_rates, rates')
+    .select('id, total_sum_metric, single_rate, package_rates, rates')
     .eq('project_id', projectId)
     .eq('builder_id', builderId)
     .limit(1)
@@ -164,13 +170,16 @@ export async function selectBuilderAction(
       mobile?: string | null
       physical_address?: string | null
       company_name?: string | null
+      gst_number?: string | null
+      years_in_business?: number | null
+      is_verified?: boolean | null
       role?: string
     } | null = null
     try {
       const admin = createAdminClient()
       const { data } = await admin
         .from('profiles')
-        .select('full_name, email, mobile, physical_address, company_name, role')
+        .select('full_name, email, mobile, physical_address, company_name, gst_number, years_in_business, is_verified, role')
         .eq('id', builderId)
         .single()
       builderFull = data
@@ -209,6 +218,57 @@ export async function selectBuilderAction(
         selectedPackage,
       }),
     ])
+
+    if (isMistriCivilService(existing.service_type)) {
+      try {
+        const agreementPayload = buildMistriAgreementPayload({
+        project: {
+          id: existing.id,
+          title: existing.title,
+          district: existing.district,
+          state: existing.state,
+          pincode: existing.pincode,
+          description: existing.description,
+          track_type: existing.track_type as TrackType,
+          sub_configuration: (existing.sub_configuration ?? {}) as SubConfiguration,
+          building_types: existing.building_types,
+          construction_types: (existing.construction_types ?? null) as ConstructionTypesMap | null,
+          total_floors: existing.total_floors,
+          plot_area_sqft: existing.plot_area_sqft,
+          floor_area_sqft: existing.floor_area_sqft,
+          mistri_details: existing.mistri_details,
+          service_type: existing.service_type,
+        },
+        bid: winningBid
+          ? {
+              id: winningBid.id,
+              single_rate: winningBid.single_rate,
+              total_sum_metric: winningBid.total_sum_metric,
+              rates: winningBid.rates as BidRates | null,
+            }
+          : null,
+        owner: {
+          name: ownerProfile?.full_name ?? 'Client',
+          email: ownerProfile?.email,
+          mobile: ownerProfile?.mobile,
+          address: ownerProfile?.physical_address,
+        },
+        mistri: {
+          name: builderFull?.full_name ?? builderLabel,
+          email: builderFull?.email,
+          mobile: builderFull?.mobile,
+          address: builderFull?.physical_address,
+          companyName: builderFull?.company_name,
+          gstNumber: builderFull?.gst_number ?? null,
+          yearsInBusiness: builderFull?.years_in_business ?? null,
+          isVerified: builderFull?.is_verified ?? null,
+        },
+      })
+        await sendOfficialMistriAgreementEmail(agreementPayload)
+      } catch (agreementErr) {
+        console.error('Official mistri agreement email failed (non-fatal):', agreementErr)
+      }
+    }
   } catch (err) {
     console.error('Selection email failed (non-fatal):', err)
   }

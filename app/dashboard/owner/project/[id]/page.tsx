@@ -15,6 +15,8 @@ import type { Project, Bid, PublicFirmProfile } from '@/lib/types';
 import { UnifiedBidRankings } from './UnifiedBidRankings';
 import { UnifiedFirmBidRankings } from './UnifiedFirmBidRankings';
 import { isFirmProject } from '@/lib/project/display';
+import { isMistriCivilService, buildMistriAgreementPayload } from '@/lib/contract/mistriAgreement';
+import { AgreementForm } from '@/components/contract/AgreementForm';
 
 interface BuilderInfo {
   id: string;
@@ -29,7 +31,7 @@ interface PageProps {
 }
 
 async function getData(id: string) {
-  const { supabase, userId } = await getAuthUser();
+  const { supabase, userId, fullName } = await getAuthUser();
 
   await supabase.rpc('expire_active_projects');
 
@@ -107,13 +109,14 @@ async function getData(id: string) {
     }
   }
 
-  return { project, bids: (bids ?? []) as Bid[], builders, firms, userId };
+  return { project, bids: (bids ?? []) as Bid[], builders, firms, userId, ownerName: fullName };
 }
 
 export default async function OwnerProjectPage({ params }: PageProps) {
   const { id } = await params;
-  const { project, bids, builders, firms, userId } = await getData(id);
+  const { project, bids, builders, firms, userId, ownerName } = await getData(id);
   const isFirm = isFirmProject(project);
+  const isMistri = isMistriCivilService(project.service_type);
 
   const configSummary = (
     <ConstructionMatrixSummary
@@ -129,6 +132,20 @@ export default async function OwnerProjectPage({ params }: PageProps) {
   const selectedFirm = project.selected_builder_id
     ? firms[project.selected_builder_id]
     : null;
+
+  const winningBid = project.selected_builder_id
+    ? bids.find((bid) => bid.builder_id === project.selected_builder_id) ?? null
+    : null;
+
+  const mistriAgreement =
+    isMistri && project.selected_builder_id
+      ? buildMistriAgreementPayload({
+          project,
+          bid: winningBid,
+          owner: { name: ownerName || 'Client' },
+          mistri: { name: selectedBuilder?.full_name ?? 'Head Mason' },
+        })
+      : null;
 
   return (
     <OwnerProjectPhaseProvider initialProject={project}>
@@ -157,6 +174,20 @@ export default async function OwnerProjectPage({ params }: PageProps) {
           selectedBuilder={selectedBuilder}
           selectedFirm={selectedFirm}
         />
+
+        {mistriAgreement && (
+          <AgreementForm
+            projectId={project.id}
+            projectTitle={project.title}
+            clientName={mistriAgreement.client.name}
+            mistriName={mistriAgreement.mistri.companyName || mistriAgreement.mistri.name}
+            siteAddress={mistriAgreement.siteAddress}
+            acceptedRateLabel={mistriAgreement.acceptedRateLabel}
+            totalValueLabel={mistriAgreement.totalLaborLabel}
+            isRccStructural={mistriAgreement.isRccStructural}
+            scopePreview={mistriAgreement.scopeRows}
+          />
+        )}
 
         {/* ── Unified bid rankings ─────────────────────────────────── */}
         <Card>

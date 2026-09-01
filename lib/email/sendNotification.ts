@@ -42,7 +42,7 @@ function escapeHtml(text: string): string {
     .replace(/"/g, '&quot;');
 }
 
-function getMailTransporter(): { transporter: Transporter; from: string } {
+export function getMailTransporter(): { transporter: Transporter; from: string } {
   const gmailUser = process.env.GMAIL_USER?.trim();
   const gmailPass = process.env.GMAIL_APP_PASSWORD?.replace(/\s+/g, '');
 
