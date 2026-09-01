@@ -137,6 +137,9 @@ export function buildBidRatesPayload(
     ...(rates.total_flooring_cost != null && rates.total_flooring_cost > 0
       ? { total_flooring_cost: rates.total_flooring_cost }
       : {}),
+    ...(rates.total_wall_cost != null && rates.total_wall_cost > 0
+      ? { total_wall_cost: rates.total_wall_cost }
+      : {}),
     ...(rates.total_project_cost != null && rates.total_project_cost > 0
       ? { total_project_cost: rates.total_project_cost }
       : {}),
@@ -148,6 +151,9 @@ export function buildBidRatesPayload(
       : {}),
     ...(rates.flooring_rates && Object.keys(rates.flooring_rates).length > 0
       ? { flooring_rates: rates.flooring_rates }
+      : {}),
+    ...(rates.wall_rates && Object.keys(rates.wall_rates).length > 0
+      ? { wall_rates: rates.wall_rates }
       : {}),
   };
 }

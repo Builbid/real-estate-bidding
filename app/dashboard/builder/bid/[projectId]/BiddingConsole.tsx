@@ -96,10 +96,13 @@ import {
 import { shouldShowBidFloorBreakdown, resolveProjectBidFloors } from '@/lib/bid/floorRateDisplay';
 import {
   TILE_FITTING_RATE_UNIT,
+  WALL_CONSTRUCTION_RATE_FIELD_LABEL,
+  WALL_CONSTRUCTION_RATE_UNIT,
   buildMistriCivilCostPayload,
   civilRatesFromBid,
   computeMistriFloorCivilCost,
   computeMistriFloorFlooringCost,
+  computeMistriFloorWallCost,
   flooringFittingFieldLabel,
   flooringFittingTitle,
   getMistriCivilCostDisplayEntries,
@@ -187,6 +190,8 @@ type BidWorkItemView =
       civilIndex: number;
       slabAreaSqft: number;
       floorId: string;
+      costKind: 'civil' | 'wall';
+      wallAreaSqft: number;
       includeFlooring: boolean;
       flooringAreaSqft: number;
       flooringMaterialLabel?: string | null;
@@ -327,22 +332,29 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
   );
 
   const civilWorkItems: BidWorkItemView[] = isMistriCivilBid
-    ? mistriCivilFloors.map((floor, index) => ({
-        key: floor.rateKey ?? `civil-${index}`,
-        title: floor.label,
-        category: 'Civil Construction Rate',
-        unitSuffix: '/sqft slab',
-        placeholder: 'Civil rate per sq. ft. of slab area',
-        kind: 'civil' as const,
-        civilIndex: index,
-        slabAreaSqft: floor.slabAreaSqft,
-        floorId: floor.floorId,
-        includeFlooring: floor.includeFlooring,
-        flooringAreaSqft: floor.flooringAreaSqft,
-        flooringMaterialLabel: floor.flooringMaterialLabel,
-        scopeBadge: floor.scopeTitle,
-        floorKey: floor.rateKey,
-      }))
+    ? mistriCivilFloors.map((floor, index) => {
+        const isWall = floor.costKind === 'wall';
+        return {
+          key: floor.rateKey ?? `civil-${index}`,
+          title: floor.label,
+          category: isWall ? 'Wall Construction & Plastering Rate' : 'Civil Construction Rate',
+          unitSuffix: isWall ? WALL_CONSTRUCTION_RATE_UNIT : '/sqft slab',
+          placeholder: isWall
+            ? WALL_CONSTRUCTION_RATE_FIELD_LABEL
+            : 'Civil rate per sq. ft. of slab area',
+          kind: 'civil' as const,
+          civilIndex: index,
+          slabAreaSqft: floor.slabAreaSqft,
+          floorId: floor.floorId,
+          costKind: floor.costKind,
+          wallAreaSqft: floor.wallAreaSqft,
+          includeFlooring: floor.includeFlooring,
+          flooringAreaSqft: floor.flooringAreaSqft,
+          flooringMaterialLabel: floor.flooringMaterialLabel,
+          scopeBadge: floor.scopeTitle,
+          floorKey: floor.rateKey,
+        };
+      })
     : [];
 
   const floorRateWorkItems: BidWorkItemView[] = !isTradeUnitRateBid
@@ -554,7 +566,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
     ? buildMistriCivilCostPayload(mistriCivilFloors, liveCivilRates, liveFlooringRates)
     : null;
   const averageMetric = isMistriCivilBid
-    ? (liveCivilPayload?.total_civil_cost ?? 0)
+    ? (liveCivilPayload?.total_project_cost ?? liveCivilPayload?.total_civil_cost ?? 0)
     : isPointRateBid
     ? (isPlumbingPointRateBid ? plumbingPointTotal : electricianPointTotal)
     : isTradeUnitRateBid
@@ -910,10 +922,12 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
         ? {
             bid_unit: 'per_sqft' as const,
             total_civil_cost: mistriPayload.total_civil_cost,
+            total_wall_cost: mistriPayload.total_wall_cost,
             total_flooring_cost: mistriPayload.total_flooring_cost,
             total_project_cost: mistriPayload.total_project_cost,
             floor_civil_breakdown: mistriPayload.floor_civil_breakdown,
             flooring_rates: mistriPayload.flooring_rates,
+            wall_rates: mistriPayload.wall_rates,
             tile_fitting_rate: mistriPayload.tile_fitting_rate,
           }
         : {}),
@@ -1106,7 +1120,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                       </div>
                       {isMistriCivilBid && (
                         <p className="text-xs text-muted-foreground text-right">
-                          Total civil cost
+                          Total project cost
                           <br />
                           lowest quote #1
                         </p>
@@ -1254,6 +1268,16 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                           badge={item.kind === 'civil' ? (item.scopeBadge ?? undefined) : undefined}
                           description={item.description}
                         >
+                          {isCivilItem && item.costKind === 'wall' && (
+                            <div className="space-y-0.5">
+                              <p className="text-xs text-muted-foreground">
+                                Approximate wall area: {item.wallAreaSqft > 0 ? `${item.wallAreaSqft.toLocaleString('en-IN')} sq. ft.` : 'not specified'}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {WALL_CONSTRUCTION_RATE_FIELD_LABEL}
+                              </p>
+                            </div>
+                          )}
                           <Input
                             type="text"
                             inputMode="numeric"
@@ -1307,9 +1331,14 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                               Round to nearest 5 (→ ₹{roundBidRateToNearestFive(numericValue).toLocaleString('en-IN')})
                             </button>
                           )}
-                          {isCivilItem && numericValue != null && numericValue > 0 && item.slabAreaSqft > 0 && (
+                          {isCivilItem && item.costKind !== 'wall' && numericValue != null && numericValue > 0 && item.slabAreaSqft > 0 && (
                             <p className="text-xs font-medium text-emerald-700 dark:text-emerald-300">
                               Floor civil estimate: ₹{computeMistriFloorCivilCost(item.slabAreaSqft, numericValue).toLocaleString('en-IN')}
+                            </p>
+                          )}
+                          {isCivilItem && item.costKind === 'wall' && numericValue != null && numericValue > 0 && item.wallAreaSqft > 0 && (
+                            <p className="text-xs font-medium text-emerald-700 dark:text-emerald-300">
+                              Floor wall estimate: ₹{computeMistriFloorWallCost(item.wallAreaSqft, numericValue).toLocaleString('en-IN')}
                             </p>
                           )}
                           {isCivilItem && item.includeFlooring && (
@@ -1365,13 +1394,16 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                               )}
                             </div>
                           )}
-                          {isCivilItem && numericValue != null && numericValue > 0 && item.slabAreaSqft > 0 && (
+                          {isCivilItem && numericValue != null && numericValue > 0 && (
                             (() => {
                               const flooringRate = parseBidRateValue(flooringRateInputs[item.floorId] ?? '') ?? 0;
                               const flooringCost = item.includeFlooring
                                 ? computeMistriFloorFlooringCost(item.flooringAreaSqft, flooringRate)
                                 : 0;
-                              const floorTotal = computeMistriFloorCivilCost(item.slabAreaSqft, numericValue) + flooringCost;
+                              const primaryCost = item.costKind === 'wall'
+                                ? computeMistriFloorWallCost(item.wallAreaSqft, numericValue)
+                                : computeMistriFloorCivilCost(item.slabAreaSqft, numericValue);
+                              const floorTotal = primaryCost + flooringCost;
                               if (!(floorTotal > 0)) return null;
                               return (
                                 <p className="text-xs font-semibold text-foreground">
@@ -1497,7 +1529,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                   )}
                   {isMistriCivilBid && (
                     <p className="text-xs text-muted-foreground text-right">
-                      Total civil cost
+                      Total project cost
                       <br />
                       lowest quote #1
                     </p>
@@ -1527,6 +1559,24 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                   <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-2 text-[11px] font-medium text-amber-800 dark:text-amber-300">
                     Separate running-foot rate (not ranked): ₹{runningFootValue.toLocaleString('en-IN')}/ft
                   </p>
+                )}
+                {isMistriCivilBid && mistriCivilFloors.some((floor, index) => floor.costKind === 'wall' && (liveCivilRates[index] ?? 0) > 0) && (
+                  <div className="space-y-1.5">
+                    {mistriCivilFloors.map((floor, index) => {
+                      if (floor.costKind !== 'wall') return null;
+                      const wallRate = liveCivilRates[index] ?? 0;
+                      if (!(wallRate > 0) || !(floor.wallAreaSqft > 0)) return null;
+                      const wallCost = computeMistriFloorWallCost(floor.wallAreaSqft, wallRate);
+                      return (
+                        <p
+                          key={`wall-${floor.floorId}`}
+                          className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-2 text-[11px] font-medium text-emerald-800 dark:text-emerald-300"
+                        >
+                          {floor.label} · Wall construction: {floor.wallAreaSqft.toLocaleString('en-IN')} sq. ft. × ₹{wallRate.toLocaleString('en-IN')} = ₹{wallCost.toLocaleString('en-IN')}
+                        </p>
+                      );
+                    })}
+                  </div>
                 )}
                 {isMistriCivilBid && Object.keys(liveFlooringRates).length > 0 && (
                   <div className="space-y-1.5">
@@ -1689,7 +1739,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                                   : isPointRateBid
                                     ? 'estimated total'
                                   : isMistriCivilBid
-                                    ? 'total civil cost'
+                                    ? 'total project cost'
                                   : isPlumbingBid
                                     ? 'overall avg'
                                   : isPlumberFlat

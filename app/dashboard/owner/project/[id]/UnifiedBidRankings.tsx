@@ -165,7 +165,7 @@ export function UnifiedBidRankings({
           <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             Bid Rankings — {bids.length} bid{bids.length !== 1 ? 's' : ''}
             {isMistriCivilBid
-              ? ' · lowest total civil cost first'
+              ? ' · lowest total project cost first'
               : isPointRateBid
                 ? ' · lowest estimated total first'
                 : isTradeUnitRateBid
@@ -291,7 +291,7 @@ export function UnifiedBidRankings({
                 <p className="text-[10px] text-muted-foreground">
                   {formatTripCapacityLabel(bid.rates?.vehicleCapacityCum)
                     ?? (isMistriCivilBid
-                      ? 'total civil cost'
+                      ? 'total project cost'
                       : isPointRateBid
                       ? 'estimated total'
                       : isTradeUnitRateBid

@@ -370,7 +370,7 @@ export function BidLeaderboard({
                     : isTradeUnitRateBid
                     ? 'weighted index'
                     : isMistriCivilBid
-                    ? 'total civil cost'
+                    ? 'total project cost'
                     : isPlumbingBid
                     ? 'overall avg'
                     : serviceType === 'plumber' ? 'Rs.' : serviceType === 'electrician' ? '/point' : projectFloorCount > 1 ? '/sqft avg' : '/sqft'}

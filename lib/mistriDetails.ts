@@ -167,6 +167,8 @@ export interface MistriFloorWork {
   includeFineFlooring?: boolean | null;
   /** Approximate flooring work area in sq. ft. when flooring work is included. */
   flooringAreaSqft?: number | null;
+  /** Approximate wall area in sq. ft. when Option 3 (wall + plaster only) is selected. */
+  wallAreaSqft?: number | null;
   /** RCC Scope of Work card: full construction, frame only, or wall + plaster. */
   scopeOption?: MistriRccScopeOption | null;
   /** Canonical scope sentence stored for the agreement PDF. */
@@ -694,6 +696,12 @@ export function rccScopeFromWorkTypes(
     return 'wall_plaster_only';
   }
   return null;
+}
+
+export function isMistriWallPlasterOnlyFloor(
+  fw: Pick<MistriFloorWork, 'workTypes' | 'scopeOption'>,
+): boolean {
+  return rccScopeFromWorkTypes(fw.workTypes, fw.scopeOption) === 'wall_plaster_only';
 }
 
 export function formatMistriRccScopeDescription(
@@ -1611,6 +1619,7 @@ export function formatMistriFloorWorkTypes(
     flooringMaterial?: MistriFlooringMaterial | null;
     includeFineFlooring?: boolean | null;
     flooringAreaSqft?: number | null;
+    wallAreaSqft?: number | null;
     scopeLabel?: string | null;
     assamRoofType?: MistriAssamRoofType | null;
     assamRoofingSheet?: MistriAssamRoofingSheet | null;
@@ -1656,11 +1665,14 @@ export function formatMistriFloorWorkTypes(
     }
     if (t === 'brick_aac' || t === 'plastering') {
       if (t === 'plastering' && workTypes.includes('brick_aac')) return null;
-      const wall = extras?.floorId
+      let wall = extras?.floorId
         ? getMistriRccScopeLabel(extras.floorId, 'wall_plaster_only')
         : 'Wall Construction & Plastering Only (Brick / AAC Block)';
       if (extras?.brickMaterial) {
-        return `${wall} — ${optionLabel(MISTRI_BRICKWORK_MATERIAL_OPTIONS, extras.brickMaterial)}`;
+        wall = `${wall} — ${optionLabel(MISTRI_BRICKWORK_MATERIAL_OPTIONS, extras.brickMaterial)}`;
+      }
+      if (extras?.wallAreaSqft && extras.wallAreaSqft > 0) {
+        wall = `${wall} · ${formatMistriArea(extras.wallAreaSqft)} wall`;
       }
       return wall;
     }
@@ -1870,6 +1882,13 @@ function normalizeSingleFloorWork(raw: unknown): MistriFloorWork | null {
       : null;
 
   const scopeOption = rccScopeFromWorkTypes(workTypes, normalizeRccScopeOption(v.scopeOption));
+  const wallAreaRaw = v.wallAreaSqft ?? v.wall_area_sqft;
+  const wallAreaSqft =
+    scopeOption === 'wall_plaster_only'
+      ? typeof wallAreaRaw === 'number' || typeof wallAreaRaw === 'string'
+        ? parseApproximateAreaSqft(wallAreaRaw)
+        : null
+      : null;
   const includeTile = includeFineFlooring === true;
   const scopeLabel =
     typeof v.scopeLabel === 'string' && v.scopeLabel.trim()
@@ -1893,6 +1912,7 @@ function normalizeSingleFloorWork(raw: unknown): MistriFloorWork | null {
     flooringMaterial,
     includeFineFlooring,
     flooringAreaSqft,
+    wallAreaSqft,
     scopeOption,
     scopeLabel,
     assamRoofType,
@@ -2690,6 +2710,14 @@ export function validateMistriFloorWorkInput(input: {
 
     if (fw.workTypes.includes('brick_aac') && !fw.brickMaterial) {
       return { error: `Select Red Brick or AAC Block for ${label}.` };
+    }
+    if (
+      isMistriWallPlasterOnlyFloor(fw) &&
+      parseApproximateAreaSqft(fw.wallAreaSqft ?? '') == null
+    ) {
+      return {
+        error: `Enter the approximate wall area (sq. ft.) for ${label}.`,
+      };
     }
     if (fw.workTypes.includes('plastering') && !fw.plasterScope) {
       fw.plasterScope = 'both';

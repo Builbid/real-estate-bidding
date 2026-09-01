@@ -237,21 +237,27 @@ export interface BidRates {
   /** Estimated total for point-rate bids (sum of floor points × rate per point). */
   total_bid_amount?: number;
   /**
-   * Mistri / Civil: ranking total = sum of floor civil estimates + flooring estimates.
+   * Mistri / Civil: ranking total = sum of floor civil estimates + wall estimates + flooring estimates.
    * Also stored as total_project_cost. Legacy bids may contain civil-only values.
    */
   total_civil_cost?: number;
+  /** Mistri: sum of (wall area × wall rate) across Option 3 floors. */
+  total_wall_cost?: number;
   /** Mistri: sum of (flooring area × flooring rate) across selected floors. */
   total_flooring_cost?: number;
-  /** Mistri: combined civil + flooring project cost used for ranking. */
+  /** Mistri: combined civil + wall + flooring project cost used for ranking. */
   total_project_cost?: number;
-  /** Mistri / Civil: per-floor slab area, civil rate, civil cost, and optional flooring. */
+  /** Mistri / Civil: per-floor slab or wall area, rates, costs, and optional flooring. */
   floor_civil_breakdown?: Array<{
     floorId: string;
     label: string;
     slabAreaSqft: number;
     civilRate: number;
     civilCost: number;
+    costKind?: 'civil' | 'wall';
+    wallAreaSqft?: number;
+    wallRate?: number;
+    wallCost?: number;
     flooringAreaSqft?: number;
     flooringRate?: number;
     flooringCost?: number;
@@ -268,6 +274,11 @@ export interface BidRates {
    * Included in total_project_cost / ranking.
    */
   flooring_rates?: Record<string, number>;
+  /**
+   * Mistri Option 3 wall construction rate per selected floor (₹ / sq. ft. of wall area).
+   * Included in total_project_cost / ranking.
+   */
+  wall_rates?: Record<string, number>;
 }
 
 /**

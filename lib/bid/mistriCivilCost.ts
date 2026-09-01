@@ -3,6 +3,7 @@ import {
   formatMistriFloorWorkLabel,
   getMistriRccScopeTitle,
   isAssamMistriFloor,
+  isMistriWallPlasterOnlyFloor,
   MISTRI_ASSAM_FLOORING_MATERIAL_OPTIONS,
   MISTRI_FLOORING_MATERIAL_OPTIONS,
   parseMistriDetails,
@@ -21,11 +22,20 @@ export const TILE_FITTING_RATE_UNIT = '/sqft floor area';
 export const TILE_FITTING_RATE_HINT =
   'This flooring rate is multiplied by the client’s flooring work area and added to the total estimated project cost used for ranking.';
 
+export const WALL_CONSTRUCTION_RATE_LABEL = 'Wall Construction & Plastering Rate';
+export const WALL_CONSTRUCTION_RATE_UNIT = '/sqft wall area';
+export const WALL_CONSTRUCTION_RATE_FIELD_LABEL =
+  'Wall Construction & Plastering Rate (₹/sq. ft. of wall area)';
+
+export type MistriFloorCostKind = 'civil' | 'wall';
+
 export interface MistriCivilFloor {
   floorId: string;
   label: string;
   slabAreaSqft: number;
   rateKey?: BidFloorRateKey;
+  costKind: MistriFloorCostKind;
+  wallAreaSqft: number;
   includeFlooring: boolean;
   flooringAreaSqft: number;
   flooringMaterial?: string | null;
@@ -39,6 +49,10 @@ export interface MistriFloorCivilBreakdown {
   slabAreaSqft: number;
   civilRate: number;
   civilCost: number;
+  costKind?: MistriFloorCostKind;
+  wallAreaSqft?: number;
+  wallRate?: number;
+  wallCost?: number;
   flooringAreaSqft?: number;
   flooringRate?: number;
   flooringCost?: number;
@@ -120,6 +134,29 @@ export function computeMistriFloorFlooringCost(flooringAreaSqft: number, floorin
   return Math.round(flooringAreaSqft * flooringRate);
 }
 
+export function computeMistriFloorWallCost(wallAreaSqft: number, wallRate: number): number {
+  if (!(wallAreaSqft > 0) || !(wallRate > 0)) return 0;
+  return Math.round(wallAreaSqft * wallRate);
+}
+
+function floorPrimaryRate(row: {
+  costKind?: MistriFloorCostKind;
+  civilRate?: number;
+  wallRate?: number;
+}): number {
+  if (row.costKind === 'wall') return Number(row.wallRate || 0);
+  return Number(row.civilRate || 0);
+}
+
+function floorPrimaryCost(row: {
+  costKind?: MistriFloorCostKind;
+  civilCost?: number;
+  wallCost?: number;
+}): number {
+  if (row.costKind === 'wall') return Number(row.wallCost || 0);
+  return Number(row.civilCost || 0);
+}
+
 function resolveBuiltUpAreaSqft(
   detailsArea: number | undefined,
   projectArea: number | undefined,
@@ -144,6 +181,10 @@ export function resolveMistriCivilFloors(project: MistriCivilCostProject): Mistr
       const flooringAreaSqft = includeFlooring
         ? (fw.flooringAreaSqft && fw.flooringAreaSqft > 0 ? fw.flooringAreaSqft : builtUpAreaSqft)
         : 0;
+      const isWall = isMistriWallPlasterOnlyFloor(fw);
+      const wallAreaSqft = isWall
+        ? (fw.wallAreaSqft && fw.wallAreaSqft > 0 ? fw.wallAreaSqft : 0)
+        : 0;
       return {
         floorId:
           fw.floorId === 'custom'
@@ -152,6 +193,8 @@ export function resolveMistriCivilFloors(project: MistriCivilCostProject): Mistr
         label: toRateInputLabel(formatMistriFloorWorkLabel(fw)),
         slabAreaSqft: builtUpAreaSqft,
         rateKey: FLOOR_RATE_KEYS[index],
+        costKind: isWall ? 'wall' : 'civil',
+        wallAreaSqft,
         includeFlooring,
         flooringAreaSqft,
         flooringMaterial: includeFlooring ? (fw.flooringMaterial ?? null) : null,
@@ -178,6 +221,8 @@ export function resolveMistriCivilFloors(project: MistriCivilCostProject): Mistr
     label,
     slabAreaSqft: builtUpAreaSqft,
     rateKey: FLOOR_RATE_KEYS[index],
+    costKind: 'civil' as const,
+    wallAreaSqft: 0,
     includeFlooring,
     flooringAreaSqft: includeFlooring ? builtUpAreaSqft : 0,
     flooringMaterial: includeFlooring ? 'tile' : null,
@@ -194,8 +239,17 @@ export function civilRatesFromBid(
     ? rates.floor_civil_breakdown
     : [];
   return floors.map((floor, index) => {
-    const fromBreakdown = breakdown[index]?.civilRate;
-    if (typeof fromBreakdown === 'number' && fromBreakdown > 0) return fromBreakdown;
+    const fromBreakdown = breakdown[index];
+    if (floor.costKind === 'wall') {
+      const wallRate = fromBreakdown?.wallRate;
+      if (typeof wallRate === 'number' && wallRate > 0) return wallRate;
+    }
+    const civilRate = fromBreakdown?.civilRate;
+    if (typeof civilRate === 'number' && civilRate > 0) return civilRate;
+    const storedWall = rates?.wall_rates?.[floor.floorId];
+    if (floor.costKind === 'wall' && typeof storedWall === 'number' && storedWall > 0) {
+      return storedWall;
+    }
     const key = floor.rateKey ?? FLOOR_RATE_KEYS[index];
     const fromKey = key ? rates?.[key] : undefined;
     return typeof fromKey === 'number' && fromKey > 0 ? fromKey : 0;
@@ -239,56 +293,81 @@ export function buildMistriCivilCostPayload(
   flooringRates?: Record<string, number> | null,
 ): BidRates {
   const floor_civil_breakdown: MistriFloorCivilBreakdown[] = floors.map((floor, index) => {
-    const civilRate = civilRates[index] ?? 0;
+    const enteredRate = civilRates[index] ?? 0;
+    const isWall = floor.costKind === 'wall';
+    const civilRate = isWall ? 0 : enteredRate;
+    const wallRate = isWall ? enteredRate : 0;
     const flooringRate = floor.includeFlooring
       ? (flooringRates?.[floor.floorId] ?? 0)
       : 0;
-    const civilCost = computeMistriFloorCivilCost(floor.slabAreaSqft, civilRate);
+    const civilCost = isWall ? 0 : computeMistriFloorCivilCost(floor.slabAreaSqft, civilRate);
+    const wallCost = isWall ? computeMistriFloorWallCost(floor.wallAreaSqft, wallRate) : 0;
     const flooringCost = floor.includeFlooring
       ? computeMistriFloorFlooringCost(floor.flooringAreaSqft, flooringRate)
       : 0;
+    const floorTotal = civilCost + wallCost + flooringCost;
     return {
       floorId: floor.floorId,
       label: floor.label,
       slabAreaSqft: floor.slabAreaSqft,
       civilRate,
       civilCost,
+      costKind: floor.costKind,
+      ...(isWall
+        ? {
+            wallAreaSqft: floor.wallAreaSqft,
+            wallRate,
+            wallCost,
+          }
+        : {}),
       ...(floor.includeFlooring
         ? {
             flooringAreaSqft: floor.flooringAreaSqft,
             flooringRate,
             flooringCost,
             flooringMaterial: floor.flooringMaterialLabel ?? 'Flooring',
-            floorTotal: civilCost + flooringCost,
           }
-        : { floorTotal: civilCost }),
+        : {}),
+      floorTotal,
     };
   });
   const totalCivilOnly = floor_civil_breakdown.reduce((sum, row) => sum + row.civilCost, 0);
+  const total_wall_cost = floor_civil_breakdown.reduce(
+    (sum, row) => sum + (row.wallCost ?? 0),
+    0,
+  );
   const total_flooring_cost = floor_civil_breakdown.reduce(
     (sum, row) => sum + (row.flooringCost ?? 0),
     0,
   );
-  const total_project_cost = totalCivilOnly + total_flooring_cost;
+  const total_project_cost = totalCivilOnly + total_wall_cost + total_flooring_cost;
   const flooring_rates: Record<string, number> = {};
   for (const floor of floors) {
     if (!floor.includeFlooring) continue;
     const rate = flooringRates?.[floor.floorId] ?? 0;
     if (rate > 0) flooring_rates[floor.floorId] = rate;
   }
+  const wall_rates: Record<string, number> = {};
+  floors.forEach((floor, index) => {
+    if (floor.costKind !== 'wall') return;
+    const rate = civilRates[index] ?? 0;
+    if (rate > 0) wall_rates[floor.floorId] = rate;
+  });
   const firstFlooringRate = Object.values(flooring_rates)[0];
 
   return {
-    ground_rate: floor_civil_breakdown[0]?.civilRate ?? 0,
-    first_rate: floor_civil_breakdown[1] ? floor_civil_breakdown[1].civilRate : undefined,
-    second_rate: floor_civil_breakdown[2] ? floor_civil_breakdown[2].civilRate : undefined,
-    third_rate: floor_civil_breakdown[3] ? floor_civil_breakdown[3].civilRate : undefined,
+    ground_rate: civilRates[0] ?? 0,
+    first_rate: civilRates[1] != null ? civilRates[1] : undefined,
+    second_rate: civilRates[2] != null ? civilRates[2] : undefined,
+    third_rate: civilRates[3] != null ? civilRates[3] : undefined,
     bid_unit: 'per_sqft',
     total_civil_cost: total_project_cost,
+    total_wall_cost,
     total_flooring_cost,
     total_project_cost,
     floor_civil_breakdown,
     ...(Object.keys(flooring_rates).length > 0 ? { flooring_rates } : {}),
+    ...(Object.keys(wall_rates).length > 0 ? { wall_rates } : {}),
     ...(firstFlooringRate != null && firstFlooringRate > 0
       ? { tile_fitting_rate: firstFlooringRate }
       : {}),
@@ -312,7 +391,7 @@ export function mistriRankMetric(bid: {
       const floorTotal =
         typeof row.floorTotal === 'number' && row.floorTotal > 0
           ? row.floorTotal
-          : Number(row.civilCost || 0) + Number(row.flooringCost || 0);
+          : floorPrimaryCost(row) + Number(row.flooringCost || 0);
       return sum + floorTotal;
     }, 0);
     if (fromRows > 0) return fromRows;
@@ -342,7 +421,14 @@ export function getMistriCivilCostDisplayEntries(
   if (breakdown.length > 0) {
     return breakdown.flatMap((row) => {
       const entries: Array<{ label: string; value: number; suffix?: string }> = [];
-      if (row.civilRate > 0 || row.civilCost > 0) {
+      const isWallRow = row.costKind === 'wall' || ((row.wallCost ?? 0) > 0 && !(row.civilCost > 0));
+      if (isWallRow) {
+        entries.push({
+          label: `${row.label} · Wall · ${Number(row.wallAreaSqft || 0).toLocaleString('en-IN')} sqft × ₹${Number(row.wallRate || floorPrimaryRate(row)).toLocaleString('en-IN')}`,
+          value: Number(row.wallCost || 0),
+          suffix: '',
+        });
+      } else if (row.civilRate > 0 || row.civilCost > 0) {
         entries.push({
           label: `${row.label} · ${Number(row.slabAreaSqft || 0).toLocaleString('en-IN')} sqft × ₹${Number(row.civilRate || 0).toLocaleString('en-IN')}`,
           value: Number(row.civilCost || 0),
@@ -364,11 +450,18 @@ export function getMistriCivilCostDisplayEntries(
   const sourceFloors = floors ?? [];
   const civilRates = civilRatesFromBid(rates, sourceFloors);
   return sourceFloors.flatMap((floor, index) => {
-    const civilRate = civilRates[index] ?? 0;
-    if (!(civilRate > 0)) return [];
+    const rate = civilRates[index] ?? 0;
+    if (!(rate > 0)) return [];
+    if (floor.costKind === 'wall') {
+      return [{
+        label: `${floor.label} · Wall · ${floor.wallAreaSqft.toLocaleString('en-IN')} sqft × ₹${rate.toLocaleString('en-IN')}`,
+        value: computeMistriFloorWallCost(floor.wallAreaSqft, rate),
+        suffix: '',
+      }];
+    }
     return [{
-      label: `${floor.label} · ${floor.slabAreaSqft.toLocaleString('en-IN')} sqft × ₹${civilRate.toLocaleString('en-IN')}`,
-      value: computeMistriFloorCivilCost(floor.slabAreaSqft, civilRate),
+      label: `${floor.label} · ${floor.slabAreaSqft.toLocaleString('en-IN')} sqft × ₹${rate.toLocaleString('en-IN')}`,
+      value: computeMistriFloorCivilCost(floor.slabAreaSqft, rate),
       suffix: '',
     }];
   });
@@ -382,12 +475,11 @@ export function getMistriCivilRateDisplayEntries(
     ? rates.floor_civil_breakdown
     : [];
   if (breakdown.length > 0) {
-    return breakdown
-      .filter((row) => row.civilRate > 0)
-      .map((row) => ({
-        label: row.label,
-        rate: Number(row.civilRate || 0),
-      }));
+    return breakdown.flatMap((row) => {
+      const rate = floorPrimaryRate(row);
+      if (!(rate > 0)) return [];
+      return [{ label: row.label, rate }];
+    });
   }
 
   const sourceFloors = floors ?? [];
@@ -438,14 +530,21 @@ export function validateMistriCivilBid(
 
   for (let index = 0; index < floors.length; index += 1) {
     const floor = floors[index];
-    if (!(floor.slabAreaSqft > 0)) {
+    const isWall = floor.costKind === 'wall';
+    if (isWall) {
+      if (!(floor.wallAreaSqft > 0)) {
+        return { valid: false, message: `Wall area is missing for ${floor.label}.` };
+      }
+    } else if (!(floor.slabAreaSqft > 0)) {
       return { valid: false, message: 'Built-up area is missing for this project.' };
     }
     const rate = civilRates[index];
     if (rate == null || rate <= 0) {
       return {
         valid: false,
-        message: `Enter a civil construction rate for ${floor.label}.`,
+        message: isWall
+          ? `Enter a wall construction & plastering rate for ${floor.label}.`
+          : `Enter a civil construction rate for ${floor.label}.`,
       };
     }
     const fieldError = getBidRateFieldError(rate, rules);

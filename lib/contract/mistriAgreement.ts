@@ -224,9 +224,15 @@ export function buildMistriAgreementPayload(input: {
     });
   }
   for (const entry of rateEntries) {
+    const floor = civilFloors.find((item) => item.label === entry.label);
+    const isWall = floor?.costKind === 'wall';
     bidRows.push({
-      label: `${entry.label} civil work rate`,
-      value: formatRsPerSqft(entry.rate),
+      label: isWall
+        ? `${entry.label} wall construction rate`
+        : `${entry.label} civil work rate`,
+      value: isWall && floor?.wallAreaSqft
+        ? `Rs. ${entry.rate.toLocaleString('en-IN')} / sq. ft. of wall area (${floor.wallAreaSqft.toLocaleString('en-IN')} sq. ft.)`
+        : formatRsPerSqft(entry.rate),
     });
   }
   for (const entry of flooringRateEntries) {

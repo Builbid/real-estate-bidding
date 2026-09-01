@@ -141,6 +141,7 @@ interface FloorWorkForm {
   flooringMaterial: MistriFlooringMaterial | null;
   includeFineFlooring: boolean | null;
   flooringAreaSqft: string;
+  wallAreaSqft: string;
   assamRoofType: MistriAssamRoofType | null;
   assamRoofingSheet: MistriAssamRoofingSheet | null;
   foundationDepthFt: string;
@@ -153,6 +154,7 @@ const EMPTY_FLOOR_WORK: FloorWorkForm = {
   flooringMaterial: null,
   includeFineFlooring: null,
   flooringAreaSqft: '',
+  wallAreaSqft: '',
   assamRoofType: null,
   assamRoofingSheet: null,
   foundationDepthFt: '',
@@ -179,6 +181,29 @@ function FlooringAreaField({
         type="text"
         inputMode="decimal"
         placeholder="e.g., 1800"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      />
+    </div>
+  );
+}
+
+function WallAreaField({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <label className="text-xs font-semibold text-gray-900 dark:text-zinc-100">
+        Approximate Wall Area (sq. ft.)
+      </label>
+      <Input
+        type="text"
+        inputMode="decimal"
+        placeholder="e.g., 1200"
         value={value}
         onChange={(e) => onChange(e.target.value)}
       />
@@ -464,6 +489,7 @@ function scopeSnapshotFromById(
       flooringMaterial: work.flooringMaterial,
       includeFineFlooring: work.includeFineFlooring,
       flooringAreaSqft: parseApproximateAreaSqft(work.flooringAreaSqft),
+      wallAreaSqft: parseApproximateAreaSqft(work.wallAreaSqft),
       scopeOption: rccScopeFromWorkTypes(work.workTypes),
       scopeLabel: null,
       assamRoofType: work.assamRoofType,
@@ -495,6 +521,7 @@ function resetLockedWallFloorsToFullConstruction(
       flooringMaterial: null,
       includeFineFlooring: null,
       flooringAreaSqft: '',
+      wallAreaSqft: '',
     };
     changed = true;
   }
@@ -547,6 +574,7 @@ export function LabourContractorProjectWizard() {
           flooringMaterial: work.flooringMaterial,
           includeFineFlooring: work.includeFineFlooring,
           flooringAreaSqft: parseApproximateAreaSqft(work.flooringAreaSqft),
+          wallAreaSqft: parseApproximateAreaSqft(work.wallAreaSqft),
           scopeOption,
           scopeLabel:
             scopeOption
@@ -782,6 +810,7 @@ export function LabourContractorProjectWizard() {
           option === 'full_construction' && current.includeFineFlooring
             ? current.flooringAreaSqft
             : '',
+        wallAreaSqft: option === 'wall_plaster_only' ? current.wallAreaSqft : '',
       };
 
       let floorWorkById: Record<string, FloorWorkForm> = {
@@ -1352,6 +1381,16 @@ export function LabourContractorProjectWizard() {
                                       patchFloorWork(
                                         fw.floorId,
                                         { brickMaterial: v, plasterScope: 'both' },
+                                        fw.customFloorNumber,
+                                      )
+                                    }
+                                  />
+                                  <WallAreaField
+                                    value={entry.wallAreaSqft}
+                                    onChange={(value) =>
+                                      patchFloorWork(
+                                        fw.floorId,
+                                        { wallAreaSqft: value },
                                         fw.customFloorNumber,
                                       )
                                     }
