@@ -122,6 +122,8 @@ import {
   splitBidRequirementDisplay,
   type WorkRequirementBlock,
 } from '@/lib/project/workRequirements';
+import { hasMistriTileFittingScope, parseMistriDetails } from '@/lib/mistriDetails';
+import { readNestedProjectDetail } from '@/lib/project/storedDetails';
 import type { Project, Bid, BidFloorRateKey, BidRates } from '@/lib/types';
 
 interface Props {
@@ -219,6 +221,12 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
   const isScopeRateBid = scopeBid != null;
   const isMistriCivilBid = isMistriCivilCostProject(project);
   const mistriCivilFloors = isMistriCivilBid ? resolveMistriCivilFloors(project) : [];
+  const mistriBuiltUpArea = mistriCivilFloors[0]?.slabAreaSqft ?? 0;
+  const mistriTileRequired = isMistriCivilBid
+    ? hasMistriTileFittingScope(
+        parseMistriDetails(readNestedProjectDetail(project, 'mistri_details')),
+      )
+    : false;
   const isAssamTypeHouse = bidFloors.isAssamType && !isScopeRateBid && !isMistriCivilBid;
   const floorCount = isMistriCivilBid
     ? Math.max(mistriCivilFloors.length, 1)
@@ -302,9 +310,9 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
         title: floor.label,
         category: 'Civil Construction Rate',
         description: [
-          `Slab area: ${floor.slabAreaSqft > 0 ? `${floor.slabAreaSqft.toLocaleString('en-IN')} sq. ft.` : 'not specified'}`,
-          'Enter your Civil Construction Rate (₹/sq. ft. of slab area) for this floor.',
-          'Floor civil cost = slab area × civil rate. Ranking uses the sum of floor civil costs only.',
+          `Built-up area (applied to this floor): ${floor.slabAreaSqft > 0 ? `${floor.slabAreaSqft.toLocaleString('en-IN')} sq. ft.` : 'not specified'}`,
+          'Enter your Civil Construction Rate (₹/sq. ft.) for this floor.',
+          'Floor civil estimate = built-up area × civil rate. Ranking uses the sum of floor estimates only.',
         ].join('\n'),
         unitSuffix: '/sqft slab',
         placeholder: 'Civil rate per sq. ft. of slab area',
@@ -581,7 +589,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
   const allFilled = isMistriCivilBid
     ? mistriCivilFloors.every((_, index) =>
         isValidBidRate(parseBidRateValue(civilRateInputs[index] ?? ''), rateRules),
-      ) && isValidBidRate(tileFittingValue, rateRules)
+      ) && (!mistriTileRequired || isValidBidRate(tileFittingValue, rateRules))
     : isTradeUnitRateBid
     ? tradeBidOptions.every((option) => isValidBidRate(unitRateValues[option.id], rateRules))
     : rateKeys.every((k) => isValidBidRate(rates[k], rateRules));
@@ -757,6 +765,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
         civilRates,
         tileFittingValue,
         rateRules,
+        { tileRequired: mistriTileRequired },
       );
       const nextCivilErrors: Record<number, string> = {};
       civilRateInputs.forEach((input, index) => {
@@ -767,7 +776,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
         else if (fieldError) nextCivilErrors[index] = fieldError;
       });
       setCivilRateErrors(nextCivilErrors);
-      if (tileFittingValue == null || tileFittingValue <= 0) {
+      if (mistriTileRequired && (tileFittingValue == null || tileFittingValue <= 0)) {
         setTileFittingError('Enter a tile fitting rate greater than zero.');
       }
       if (!civilValidation.valid) {
@@ -1035,7 +1044,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                               : isPlumberFlat
                                 ? 'Your Rate'
                                 : isMistriCivilBid
-                                  ? 'Total Civil Construction Cost'
+                                  ? 'Total Estimated Cost'
                                 : isScopeRateBid
                                   ? 'Your Average Rate Metric'
                                   : 'Your Final Rate Metric'}
@@ -1157,11 +1166,15 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                       <>Enter your rate in ₹ per sqft. Rates must be whole numbers. Lower rates rank higher.</>
                     ) : isMistriCivilBid ? (
                       <>
-                        Enter a <strong>Civil Construction Rate (₹/sq. ft. of slab area)</strong> for each selected floor.
-                        Floor civil cost = that floor&apos;s slab area × your rate.
-                        <strong> Total Civil Construction Cost</strong> is the sum of all floor civil costs — lowest total ranks #1.
-                        Tile fitting is a separate add-on and is <strong>not</strong> added to ranking.
-                        Rates must be whole numbers{isFlexibleRate ? '' : <> ending in <strong>0 or 5</strong></>}.
+                        Enter a <strong>Civil Construction Rate (₹/sq. ft.)</strong> for each selected floor.
+                        The client&apos;s <strong>built-up area</strong>
+                        {mistriBuiltUpArea > 0 ? ` (${mistriBuiltUpArea.toLocaleString('en-IN')} sq. ft.)` : ''}
+                        {' '}is used as the slab area for every floor.
+                        Floor estimate = built-up area × your rate. <strong>Total estimated cost</strong> is the sum of those floor estimates — lowest total ranks #1.
+                        {mistriTileRequired ? (
+                          <> Tile fitting is a separate add-on and is <strong>not</strong> added to ranking.</>
+                        ) : null}
+                        {' '}Rates must be whole numbers{isFlexibleRate ? '' : <> ending in <strong>0 or 5</strong></>}.
                       </>
                     ) : isPlumbingBid ? (
                       isPlumbingPointRateBid ? (
@@ -1309,7 +1322,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                           )}
                           {isCivilItem && numericValue != null && numericValue > 0 && item.slabAreaSqft > 0 && (
                             <p className="text-xs font-medium text-emerald-700 dark:text-emerald-300">
-                              Floor civil cost: ₹{computeMistriFloorCivilCost(item.slabAreaSqft, numericValue).toLocaleString('en-IN')}
+                              Floor civil estimate: ₹{computeMistriFloorCivilCost(item.slabAreaSqft, numericValue).toLocaleString('en-IN')}
                             </p>
                           )}
                         </BidWorkItemCard>
@@ -1318,7 +1331,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                   })}
                 </AnimatePresence>
 
-                {isMistriCivilBid && (
+                {isMistriCivilBid && mistriTileRequired && (
                   <BidWorkItemCard
                     title={TILE_FITTING_RATE_LABEL}
                     category="Separate add-on — not ranked"
@@ -1410,7 +1423,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                                 : isPointRateBid
                                 ? 'Total Estimated Bid Amount'
                                 : isMistriCivilBid
-                                ? 'Total Civil Construction Cost'
+                                ? 'Total Estimated Cost'
                                 : isPlumbingBid
                                 ? 'Overall Average Rate'
                                 : 'Your Average Rate Metric'}
@@ -1677,7 +1690,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                                 }
                                 indexLabel={
                                   isMistriCivilBid
-                                    ? 'Total Civil Construction Cost'
+                                    ? 'Total Estimated Cost'
                                     : isPointRateBid
                                       ? 'Estimated Total'
                                       : 'Weighted Index'

@@ -13,7 +13,7 @@ export interface AgreementFormProps {
   mistriName: string;
   siteAddress: string;
   acceptedRateLabel: string;
-  totalValueLabel: string;
+  rateRows: { label: string; value: string }[];
   isRccStructural: boolean;
   scopePreview: { label: string; value: string }[];
   payoutSchedule: { stage: string; deliverable: string; percent: number; amountLabel: string }[];
@@ -27,7 +27,7 @@ export function AgreementForm({
   mistriName,
   siteAddress,
   acceptedRateLabel,
-  totalValueLabel,
+  rateRows,
   isRccStructural,
   scopePreview,
   payoutSchedule,
@@ -102,8 +102,8 @@ export function AgreementForm({
             </p>
             <p className="text-xs text-foreground mt-1 leading-relaxed">
               For RCC structural work, the Head Mason (Mistri) labour rate is strictly calculated on a{' '}
-              <strong>per sq. ft. of slab area</strong> basis. Total labour cost = accepted rate ×
-              client-specified slab area.
+              <strong>per sq. ft. of built-up area</strong> basis. The same built-up area applies to
+              each selected floor. This agreement records the accepted per-floor civil work rates.
             </p>
           </div>
         )}
@@ -127,18 +127,23 @@ export function AgreementForm({
             </dt>
             <dd className="font-medium text-foreground">{siteAddress}</dd>
           </div>
-          <div>
-            <dt className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Accepted rate / sqft of slab area
-            </dt>
-            <dd className="font-semibold text-foreground">{acceptedRateLabel}</dd>
-          </div>
-          <div>
-            <dt className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Total contract value
-            </dt>
-            <dd className="font-semibold text-foreground">{totalValueLabel}</dd>
-          </div>
+          {rateRows.length > 0 ? (
+            rateRows.map((row) => (
+              <div key={row.label}>
+                <dt className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  {row.label}
+                </dt>
+                <dd className="font-semibold text-foreground">{row.value}</dd>
+              </div>
+            ))
+          ) : (
+            <div>
+              <dt className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Accepted civil work rates
+              </dt>
+              <dd className="font-semibold text-foreground">{acceptedRateLabel}</dd>
+            </div>
+          )}
           <div>
             <dt className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
               Agreed start

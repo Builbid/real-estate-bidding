@@ -121,6 +121,7 @@ export function isWideRequirementLabel(label: string): boolean {
     label === 'Custom / Higher Floors' ||
     label === 'Total Floors in Building' ||
     label === 'Approx Built-Up Area' ||
+    label === 'Built-Up Area' ||
     label === 'Bathroom Fittings Rate' ||
     label === 'Water Piping Rate' ||
     label === 'Waste Line Rate' ||
@@ -170,6 +171,7 @@ export function isWideRequirementLabel(label: string): boolean {
 /** Top-level project specs shown in the bidding summary banner, not on item cards. */
 const BID_SUMMARY_LABELS = new Set([
   'Approx Built-Up Area',
+  'Built-Up Area',
   'Approx. Area',
   'Approximate Paint Area',
   'Interior Area',

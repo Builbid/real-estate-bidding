@@ -13,7 +13,7 @@ const FLOOR_RATE_KEYS: BidFloorRateKey[] = ['ground_rate', 'first_rate', 'second
 export const TILE_FITTING_RATE_LABEL = 'Tile Fitting Rate';
 export const TILE_FITTING_RATE_UNIT = '/sqft floor area';
 export const TILE_FITTING_RATE_HINT =
-  'Informational add-on only. This rate is not added to Total Civil Construction Cost and is not used for ranking.';
+  'Informational add-on only. This rate is not added to the total estimated civil cost and is not used for ranking.';
 
 export interface MistriCivilFloor {
   floorId: string;
@@ -63,45 +63,33 @@ export function computeMistriFloorCivilCost(slabAreaSqft: number, civilRate: num
   return Math.round(slabAreaSqft * civilRate);
 }
 
-function fallbackAreaPerFloor(
+function resolveBuiltUpAreaSqft(
   detailsArea: number | undefined,
   projectArea: number | undefined,
-  floorCount: number,
 ): number {
-  const total = detailsArea && detailsArea > 0
-    ? detailsArea
-    : projectArea && projectArea > 0
-      ? projectArea
-      : 0;
-  if (!(total > 0) || floorCount <= 0) return 0;
-  return Math.round((total / floorCount) * 100) / 100;
+  if (detailsArea && detailsArea > 0) return detailsArea;
+  if (projectArea && projectArea > 0) return projectArea;
+  return 0;
 }
 
 export function resolveMistriCivilFloors(project: MistriCivilCostProject): MistriCivilFloor[] {
   const details = parseMistriDetails(readNestedProjectDetail(project, 'mistri_details'));
   const work = details?.floorWork?.length ? sortMistriFloorWork(details.floorWork) : [];
-  const projectArea = details?.approximateAreaSqft || project.floor_area_sqft || 0;
+  const builtUpAreaSqft = resolveBuiltUpAreaSqft(
+    details?.approximateAreaSqft,
+    project.floor_area_sqft ?? undefined,
+  );
 
   if (work.length > 0) {
-    const sharedFallback = fallbackAreaPerFloor(details?.approximateAreaSqft, project.floor_area_sqft ?? undefined, work.length);
-    return work.map((fw, index) => {
-      const ownArea = fw.slabAreaSqft != null && fw.slabAreaSqft > 0 ? fw.slabAreaSqft : 0;
-      const slabAreaSqft =
-        ownArea > 0
-          ? ownArea
-          : work.length === 1 && projectArea > 0
-            ? projectArea
-            : sharedFallback;
-      return {
-        floorId:
-          fw.floorId === 'custom'
-            ? `custom:${fw.customFloorNumber ?? index}`
-            : fw.floorId,
-        label: toRateInputLabel(formatMistriFloorWorkLabel(fw)),
-        slabAreaSqft,
-        rateKey: FLOOR_RATE_KEYS[index],
-      };
-    });
+    return work.map((fw, index) => ({
+      floorId:
+        fw.floorId === 'custom'
+          ? `custom:${fw.customFloorNumber ?? index}`
+          : fw.floorId,
+      label: toRateInputLabel(formatMistriFloorWorkLabel(fw)),
+      slabAreaSqft: builtUpAreaSqft,
+      rateKey: FLOOR_RATE_KEYS[index],
+    }));
   }
 
   const floors = resolveProjectBidFloors({
@@ -112,12 +100,11 @@ export function resolveMistriCivilFloors(project: MistriCivilCostProject): Mistr
     mistri_details: project.mistri_details,
   });
   const labels = floors.labels.length > 0 ? floors.labels : ['Selected floor'];
-  const perFloor = fallbackAreaPerFloor(details?.approximateAreaSqft, project.floor_area_sqft ?? undefined, labels.length);
 
   return labels.map((label, index) => ({
     floorId: label,
     label,
-    slabAreaSqft: perFloor,
+    slabAreaSqft: builtUpAreaSqft,
     rateKey: FLOOR_RATE_KEYS[index],
   }));
 }
@@ -213,11 +200,37 @@ export function getMistriCivilCostDisplayEntries(
   });
 }
 
+export function getMistriCivilRateDisplayEntries(
+  rates: Partial<BidRates> | null | undefined,
+  floors?: MistriCivilFloor[],
+): Array<{ label: string; rate: number }> {
+  const breakdown = Array.isArray(rates?.floor_civil_breakdown)
+    ? rates.floor_civil_breakdown
+    : [];
+  if (breakdown.length > 0) {
+    return breakdown
+      .filter((row) => row.civilRate > 0)
+      .map((row) => ({
+        label: row.label,
+        rate: Number(row.civilRate || 0),
+      }));
+  }
+
+  const sourceFloors = floors ?? [];
+  const civilRates = civilRatesFromBid(rates, sourceFloors);
+  return sourceFloors.flatMap((floor, index) => {
+    const civilRate = civilRates[index] ?? 0;
+    if (!(civilRate > 0)) return [];
+    return [{ label: floor.label, rate: civilRate }];
+  });
+}
+
 export function validateMistriCivilBid(
   floors: MistriCivilFloor[],
   civilRates: number[],
   tileFittingRate: number | undefined,
   rules?: BidRateRules,
+  options?: { tileRequired?: boolean },
 ): { valid: boolean; message: string | null } {
   if (floors.length === 0) {
     return { valid: false, message: 'No floors found for this project.' };
@@ -226,7 +239,7 @@ export function validateMistriCivilBid(
   for (let index = 0; index < floors.length; index += 1) {
     const floor = floors[index];
     if (!(floor.slabAreaSqft > 0)) {
-      return { valid: false, message: `Slab area is missing for ${floor.label}.` };
+      return { valid: false, message: 'Built-up area is missing for this project.' };
     }
     const rate = civilRates[index];
     if (rate == null || rate <= 0) {
@@ -239,14 +252,20 @@ export function validateMistriCivilBid(
     if (fieldError) return { valid: false, message: fieldError };
   }
 
-  if (tileFittingRate == null || tileFittingRate <= 0) {
-    return {
-      valid: false,
-      message: 'Enter a tile fitting rate (₹ per sq. ft. of floor area).',
-    };
+  const tileRequired = options?.tileRequired !== false;
+  if (tileRequired) {
+    if (tileFittingRate == null || tileFittingRate <= 0) {
+      return {
+        valid: false,
+        message: 'Enter a tile fitting rate (₹ per sq. ft. of floor area).',
+      };
+    }
+    const tileError = getBidRateFieldError(tileFittingRate, rules);
+    if (tileError) return { valid: false, message: tileError };
+  } else if (tileFittingRate != null && tileFittingRate > 0) {
+    const tileError = getBidRateFieldError(tileFittingRate, rules);
+    if (tileError) return { valid: false, message: tileError };
   }
-  const tileError = getBidRateFieldError(tileFittingRate, rules);
-  if (tileError) return { valid: false, message: tileError };
 
   return { valid: true, message: null };
 }

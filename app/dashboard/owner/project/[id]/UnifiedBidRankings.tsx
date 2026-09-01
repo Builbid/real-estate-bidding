@@ -343,7 +343,7 @@ export function UnifiedBidRankings({
                     }
                     indexLabel={
                       isMistriCivilBid
-                        ? 'Total Civil Construction Cost'
+                        ? 'Total Estimated Cost'
                         : isPointRateBid
                           ? 'Estimated Total'
                           : 'Weighted Index'

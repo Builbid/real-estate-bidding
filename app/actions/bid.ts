@@ -16,7 +16,8 @@ import {
   resolveMistriCivilFloors,
   validateMistriCivilBid,
 } from '@/lib/bid/mistriCivilCost';
-import { missingProjectsColumn } from '@/lib/project/storedDetails';
+import { hasMistriTileFittingScope, parseMistriDetails } from '@/lib/mistriDetails';
+import { missingProjectsColumn, readNestedProjectDetail } from '@/lib/project/storedDetails';
 import { isDrawingDesignServiceType } from '@/lib/drawingDesign';
 import { isTradeServiceType } from '@/lib/trades';
 import type { BidRates, ServiceType, SubConfiguration, TrackType } from '@/lib/types';
@@ -217,6 +218,11 @@ export async function submitBidAction(
   const mistriCivilRates = isMistriCivilBid
     ? civilRatesFromBid(rates, mistriCivilFloors)
     : [];
+  const mistriTileRequired = isMistriCivilBid
+    ? hasMistriTileFittingScope(
+        parseMistriDetails(readNestedProjectDetail(project, 'mistri_details')),
+      )
+    : false;
 
   const floorCount =
     isMistriCivilBid
@@ -255,6 +261,7 @@ export async function submitBidAction(
         mistriCivilRates,
         rates.tile_fitting_rate,
         rateRules,
+        { tileRequired: mistriTileRequired },
       )
     : scopeBid?.unitRateBid
     ? validateProjectUnitRates(project, rates, unitRateOptions)

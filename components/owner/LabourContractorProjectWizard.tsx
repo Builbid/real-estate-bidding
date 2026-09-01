@@ -91,7 +91,6 @@ interface FloorWorkForm {
   assamRoofType: MistriAssamRoofType | null;
   assamRoofingSheet: MistriAssamRoofingSheet | null;
   foundationDepthFt: string;
-  slabArea: string;
 }
 
 const EMPTY_FLOOR_WORK: FloorWorkForm = {
@@ -103,7 +102,6 @@ const EMPTY_FLOOR_WORK: FloorWorkForm = {
   assamRoofType: null,
   assamRoofingSheet: null,
   foundationDepthFt: '',
-  slabArea: '',
 };
 
 const ASSAM_FULL_FINISHED_WORK: FloorWorkForm = {
@@ -295,6 +293,7 @@ export function LabourContractorProjectWizard() {
   const [step1Errors, setStep1Errors] = useState<{
     location?: string;
     pincode?: string;
+    builtUpArea?: string;
     houseType?: string;
     activityCategory?: string;
     floors?: string;
@@ -327,7 +326,6 @@ export function LabourContractorProjectWizard() {
           assamRoofType: isAssam ? work.assamRoofType : null,
           assamRoofingSheet: isAssam ? work.assamRoofingSheet : null,
           foundationDepthFt: isAssam ? parseFoundationDepthFt(work.foundationDepthFt) : null,
-          slabAreaSqft: parseApproximateAreaSqft(work.slabArea),
         };
       }),
     );
@@ -566,7 +564,6 @@ export function LabourContractorProjectWizard() {
             assamRoofType: current.assamRoofType,
             assamRoofingSheet: current.assamRoofingSheet,
             foundationDepthFt: current.foundationDepthFt,
-            slabArea: current.slabArea,
           },
         },
       };
@@ -598,6 +595,10 @@ export function LabourContractorProjectWizard() {
     const pincodeError = validatePincode(form.pincode);
     if (pincodeError) {
       errors.pincode = pincodeError;
+    }
+
+    if (parseApproximateAreaSqft(form.approximateArea) == null) {
+      errors.builtUpArea = 'Enter the built-up area in sq. ft.';
     }
 
     if (!form.houseType) {
@@ -803,6 +804,22 @@ export function LabourContractorProjectWizard() {
                 error={step1ValidationAttempted ? step1Errors.pincode : undefined}
               />
 
+              <Input
+                label="Built-Up Area (sq. ft.)"
+                type="text"
+                inputMode="decimal"
+                placeholder="e.g. 1200"
+                value={form.approximateArea}
+                onChange={(e) => {
+                  update('approximateArea', e.target.value);
+                  setStep1Errors((prev) => ({ ...prev, builtUpArea: undefined }));
+                }}
+                error={step1ValidationAttempted ? step1Errors.builtUpArea : undefined}
+              />
+              <p className={HELPER_TEXT}>
+                This built-up area is used as the slab area for every selected floor when Mistris quote their civil rate.
+              </p>
+
               <div className="flex flex-col gap-1.5">
                 <label className={SECTION_LABEL}>House type</label>
                 <p className={HELPER_TEXT}>
@@ -975,24 +992,6 @@ export function LabourContractorProjectWizard() {
                             : 'Select one or more minor works for this floor. Brick, plastering, and flooring can all be combined.'}
                       </p>
                     </div>
-
-                    <Input
-                      label="Slab Area (Sq. Ft.)"
-                      type="text"
-                      inputMode="decimal"
-                      placeholder="e.g. 1200"
-                      value={entry.slabArea}
-                      onChange={(e) =>
-                        patchFloorWork(
-                          fw.floorId,
-                          { slabArea: e.target.value },
-                          fw.customFloorNumber,
-                        )
-                      }
-                    />
-                    <p className={HELPER_TEXT}>
-                      Enter this floor&apos;s slab area. The Mistri will quote a civil rate per sq. ft. of slab area.
-                    </p>
 
                     {isAssam ? (
                       <div className="space-y-3">

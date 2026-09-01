@@ -13,6 +13,7 @@ import {
   formatMistriStartTime,
   getMistriWorkRequirementBlocks,
   hasAssamMistriFloorWork,
+  hasMistriTileFittingScope,
   isAssamMistriFloor,
   parseMistriDetails,
   type MistriCivilWorkType,
@@ -22,7 +23,7 @@ import { readNestedProjectDetail } from '@/lib/project/storedDetails';
 import type { BidRates, ServiceType, SubConfiguration, TrackType } from '@/lib/types';
 import { getConstructionLabel, TRACK_LABELS } from '@/lib/utils';
 import {
-  getMistriCivilCostDisplayEntries,
+  getMistriCivilRateDisplayEntries,
   mistriRankMetric,
   parseTileFittingRate,
   resolveMistriCivilFloors,
@@ -136,7 +137,7 @@ function formatRs(value: number): string {
 
 function formatRsPerSqft(value: number): string {
   if (!Number.isFinite(value) || value <= 0) return 'Rs. — / sq. ft.';
-  return `Rs. ${Math.round(value).toLocaleString('en-IN')} / sq. ft. of slab area`;
+  return `Rs. ${Math.round(value).toLocaleString('en-IN')} / sq. ft.`;
 }
 
 function nonEmpty(value: string | null | undefined, fallback = '—'): string {
@@ -246,8 +247,8 @@ function buildDimensionRows(project: MistriAgreementProjectInput): MistriAgreeme
   const slabArea = mistri?.approximateAreaSqft || project.floor_area_sqft || 0;
   if (slabArea > 0) {
     rows.push({
-      label: 'Slab / work area',
-      value: `${slabArea.toLocaleString('en-IN')} sq. ft.`,
+      label: 'Built-up area',
+      value: `${slabArea.toLocaleString('en-IN')} sq. ft. (applied to each selected floor)`,
     });
   }
   if (project.plot_area_sqft && project.plot_area_sqft > 0) {
@@ -282,64 +283,43 @@ export function buildMistriAgreementPayload(input: {
   );
 
   const civilFloors = resolveMistriCivilFloors(project);
-  const civilEntries = getMistriCivilCostDisplayEntries(bid?.rates, civilFloors);
+  const rateEntries = getMistriCivilRateDisplayEntries(bid?.rates, civilFloors);
   const totalLaborCost = mistriRankMetric({
     total_sum_metric: bid?.total_sum_metric,
     rates: bid?.rates,
   });
-  const slabAreaSqft =
-    civilFloors.reduce((sum, floor) => sum + (floor.slabAreaSqft > 0 ? floor.slabAreaSqft : 0), 0)
-    || details?.approximateAreaSqft
+  const builtUpAreaSqft =
+    details?.approximateAreaSqft
     || project.floor_area_sqft
+    || civilFloors[0]?.slabAreaSqft
     || 0;
-  const breakdown = Array.isArray(bid?.rates?.floor_civil_breakdown)
-    ? bid.rates.floor_civil_breakdown
-    : [];
-  const acceptedRateSqft =
-    breakdown.length === 1
-      ? Number(breakdown[0].civilRate || 0)
-      : slabAreaSqft > 0 && totalLaborCost > 0
-        ? totalLaborCost / slabAreaSqft
-        : 0;
   const tileFittingRate = parseTileFittingRate(bid?.rates);
+  const showTileFitting =
+    tileFittingRate != null && hasMistriTileFittingScope(details);
+  const acceptedRateSqft = rateEntries.length === 1 ? rateEntries[0].rate : 0;
+  const acceptedRateLabel =
+    rateEntries.length === 1
+      ? formatRsPerSqft(rateEntries[0].rate)
+      : rateEntries.length > 0
+        ? rateEntries.map((entry) => `${entry.label}: ${formatRsPerSqft(entry.rate)}`).join('; ')
+        : formatRsPerSqft(0);
 
-  const bidRows: MistriAgreementRow[] = [
-    {
-      label: 'Total civil construction cost',
-      value: `${formatRs(totalLaborCost)}  (sum of floor slab area x floor civil rate)`,
-    },
-    {
-      label: 'Total slab area (client-specified)',
-      value: slabAreaSqft > 0 ? `${slabAreaSqft.toLocaleString('en-IN')} sq. ft.` : '—',
-    },
-  ];
-
-  if (acceptedRateSqft > 0 && breakdown.length <= 1) {
+  const bidRows: MistriAgreementRow[] = [];
+  if (builtUpAreaSqft > 0) {
     bidRows.push({
-      label: 'Accepted civil rate per sq. ft. of slab area',
-      value: formatRsPerSqft(acceptedRateSqft),
+      label: 'Built-up area (client-specified)',
+      value: `${builtUpAreaSqft.toLocaleString('en-IN')} sq. ft. per selected floor`,
     });
   }
-
-  for (const row of breakdown.length > 0 ? breakdown : []) {
+  for (const entry of rateEntries) {
     bidRows.push({
-      label: `${row.label} civil rate`,
-      value: `Rs. ${Number(row.civilRate || 0).toLocaleString('en-IN')} / sq. ft.  (${Number(row.slabAreaSqft || 0).toLocaleString('en-IN')} sq. ft. = ${formatRs(row.civilCost)})`,
+      label: `${entry.label} civil work rate`,
+      value: formatRsPerSqft(entry.rate),
     });
   }
-
-  if (civilEntries.length > 0 && breakdown.length === 0) {
-    for (const entry of civilEntries) {
-      bidRows.push({
-        label: entry.label,
-        value: formatRs(entry.value),
-      });
-    }
-  }
-
-  if (tileFittingRate != null) {
+  if (showTileFitting && tileFittingRate != null) {
     bidRows.push({
-      label: 'Tile fitting rate (add-on, not in civil cost)',
+      label: 'Tile fitting rate (add-on, not ranked)',
       value: `Rs. ${tileFittingRate.toLocaleString('en-IN')} / sq. ft. of floor area`,
     });
   }
@@ -397,14 +377,14 @@ export function buildMistriAgreementPayload(input: {
     bidRows,
     contractorRows,
     acceptedRateSqft,
-    acceptedRateLabel: formatRsPerSqft(acceptedRateSqft),
-    slabAreaSqft,
+    acceptedRateLabel,
+    slabAreaSqft: builtUpAreaSqft,
     slabAreaLabel:
-      slabAreaSqft > 0 ? `${slabAreaSqft.toLocaleString('en-IN')} sq. ft.` : '—',
+      builtUpAreaSqft > 0 ? `${builtUpAreaSqft.toLocaleString('en-IN')} sq. ft.` : '—',
     totalLaborCost,
     totalLaborLabel: formatRs(totalLaborCost),
     rccRateClause:
-      'For RCC structural work, the Head Mason (Mistri) labour rate is strictly calculated on a per sq. ft. of slab area basis. The accepted rate applies to the client-specified slab area. Total labour cost = Accepted Rate per Sq. Ft. of Slab Area x Total Slab Area. This basis does not apply to non-structural finishing-only packages (brickwork, plastering, or flooring without RCC frame/slab).',
+      'For RCC structural work, the Head Mason (Mistri) labour rate is strictly calculated on a per sq. ft. of built-up area basis. The same client-specified built-up area applies to each selected floor. Accepted civil work rates on this agreement are the per sq. ft. rates quoted for each floor. This basis does not apply to non-structural finishing-only packages (brickwork, plastering, or flooring without RCC frame/slab).',
     districtPincode,
     agreedStartDate: details ? formatMistriStartTime(details) : '—',
     payoutSchedule,

@@ -289,6 +289,17 @@ export function hasAssamTileFlooringWork(
   );
 }
 
+/** Client selected tile / marble / granite fitting as project scope. */
+export function hasMistriTileFittingScope(
+  details: Pick<MistriDetails, 'floorWork' | 'civilWorkTypes'> | null | undefined,
+): boolean {
+  if (!details) return false;
+  if (details.civilWorkTypes?.includes('tile_marble_flooring')) return true;
+  return !!details.floorWork?.some(
+    (fw) => fw.includeFineFlooring === true || fw.workTypes.includes('flooring'),
+  );
+}
+
 export function getAssamMistriBidLabels(
   details: Pick<MistriDetails, 'floorWork' | 'includeDoorWindowFrames' | 'doorWindowFramesQuantity'> | null | undefined,
 ): string[] {
@@ -2050,20 +2061,13 @@ export function getMistriWorkRequirementBlocks(details: MistriDetails): {
   if (details.floorWork && details.floorWork.length > 0) {
     const blocks: { label: string; value: string }[] = sortMistriFloorWork(
       details.floorWork,
-    ).map((fw) => {
-      const work = formatMistriFloorWorkTypes(fw.workTypes, fw);
-      const slab =
-        fw.slabAreaSqft != null && fw.slabAreaSqft > 0
-          ? `Slab area: ${fw.slabAreaSqft.toLocaleString('en-IN')} Sq. Ft.`
-          : null;
-      return {
-        label: formatMistriFloorWorkLabel(fw),
-        value: slab ? `${work}\n${slab}` : work,
-      };
-    });
+    ).map((fw) => ({
+      label: formatMistriFloorWorkLabel(fw),
+      value: formatMistriFloorWorkTypes(fw.workTypes, fw),
+    }));
 
     blocks.push({
-      label: 'Total Slab Area',
+      label: 'Built-Up Area',
       value: formatMistriArea(details.approximateAreaSqft),
     });
 
@@ -2185,7 +2189,7 @@ export function getMistriWorkRequirementBlocks(details: MistriDetails): {
   }
 
   blocks.push({
-    label: 'Approx. Area',
+    label: 'Built-Up Area',
     value: formatMistriArea(details.approximateAreaSqft),
   });
 
@@ -2382,9 +2386,6 @@ export function validateMistriFloorWorkInput(input: {
           error: 'Select flooring material (Tile, Marble, or Smooth Cement Finish) for Assam Type.',
         };
       }
-      if (fw.slabAreaSqft == null || !(fw.slabAreaSqft > 0)) {
-        return { error: `Enter slab area (sq. ft.) for ${label}.` };
-      }
       continue;
     }
 
@@ -2409,9 +2410,6 @@ export function validateMistriFloorWorkInput(input: {
         };
       }
     }
-    if (fw.slabAreaSqft == null || !(fw.slabAreaSqft > 0)) {
-      return { error: `Enter slab area (sq. ft.) for ${label}.` };
-    }
   }
 
   const floorWork = normalizeMistriFloorWork(input.floorWork);
@@ -2419,13 +2417,9 @@ export function validateMistriFloorWorkInput(input: {
     return { error: 'Select work type for each selected floor.' };
   }
 
-  const summedSlabArea = floorWork.reduce(
-    (sum, fw) => sum + (fw.slabAreaSqft != null && fw.slabAreaSqft > 0 ? fw.slabAreaSqft : 0),
-    0,
-  );
-  const area = summedSlabArea > 0 ? summedSlabArea : parseApproximateAreaSqft(input.approximateArea);
+  const area = parseApproximateAreaSqft(input.approximateArea);
   if (area == null) {
-    return { error: 'Enter slab area (sq. ft.) for each selected floor.' };
+    return { error: 'Enter the built-up area in sq. ft.' };
   }
 
   const currentFloorPlan = currentFloorPlanFromFloorWork(floorWork);

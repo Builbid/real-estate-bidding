@@ -186,7 +186,7 @@ export default async function OwnerProjectPage({ params }: PageProps) {
             mistriName={mistriAgreement.mistri.companyName || mistriAgreement.mistri.name}
             siteAddress={mistriAgreement.siteAddress}
             acceptedRateLabel={mistriAgreement.acceptedRateLabel}
-            totalValueLabel={mistriAgreement.totalLaborLabel}
+            rateRows={mistriAgreement.bidRows}
             isRccStructural={mistriAgreement.isRccStructural}
             scopePreview={mistriAgreement.scopeRows}
             payoutSchedule={mistriAgreement.payoutSchedule}
