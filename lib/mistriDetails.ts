@@ -690,13 +690,19 @@ export function formatMistriRccScopeDescription(
   option: MistriRccScopeOption,
   includeTileFitting: boolean,
   brickMaterial?: MistriBrickworkMaterial | null,
+  flooringMaterial?: MistriFlooringMaterial | null,
 ): string {
   let label = getMistriRccScopeLabel(floorId, option);
   if (option === 'wall_plaster_only' && brickMaterial) {
     label = `${label} — ${optionLabel(MISTRI_BRICKWORK_MATERIAL_OPTIONS, brickMaterial)}`;
   }
   if (option === 'full_construction' && includeTileFitting) {
-    return `${label} + Tile Fitting Work`;
+    const material = flooringMaterial
+      ? optionLabel(MISTRI_FLOORING_MATERIAL_OPTIONS, flooringMaterial)
+      : null;
+    return material
+      ? `${label} + Tile Fitting Work (${material})`
+      : `${label} + Tile Fitting Work`;
   }
   return label;
 }
@@ -822,7 +828,7 @@ export const MISTRI_FLOORING_MATERIAL_OPTIONS: {
   value: MistriFlooringMaterial;
   label: string;
 }[] = [
-  { value: 'tile', label: 'Tile' },
+  { value: 'tile', label: 'Tiles' },
   { value: 'marble', label: 'Marble' },
   { value: 'granite', label: 'Granite' },
 ];
@@ -1600,9 +1606,9 @@ export function formatMistriFloorWorkTypes(
           ? getMistriRccScopeLabel(extras.floorId, 'full_construction')
           : 'Full Construction (Beam, column, slab, wall and plastering, rough flooring, staircase)';
       if (extras?.includeFineFlooring) {
-        if (isAssam && extras.flooringMaterial) {
+        if (extras.flooringMaterial) {
           const material = optionLabel(flooringOptions, extras.flooringMaterial);
-          return `${base} + Flooring (${material})`;
+          return `${base} + Tile Fitting Work (${material})`;
         }
         return `${base} + Tile Fitting Work`;
       }
@@ -1706,6 +1712,10 @@ function normalizePlasterScope(value: unknown): MistriPlasterScope | null {
 
 function normalizeFlooringMaterial(value: unknown): MistriFlooringMaterial | null {
   if (typeof value !== 'string') return null;
+  const key = value.trim().toLowerCase();
+  if (key === 'tile' || key === 'tiles') return 'tile';
+  if (key === 'marble') return 'marble';
+  if (key === 'granite') return 'granite';
   if (FLOORING_MATERIAL_SET.has(value)) return value as MistriFlooringMaterial;
   return null;
 }
@@ -1821,7 +1831,13 @@ function normalizeSingleFloorWork(raw: unknown): MistriFloorWork | null {
     typeof v.scopeLabel === 'string' && v.scopeLabel.trim()
       ? v.scopeLabel.trim()
       : scopeOption && !isAssamMistriFloor(floorId)
-        ? formatMistriRccScopeDescription(floorId, scopeOption, includeTile, brickMaterial)
+        ? formatMistriRccScopeDescription(
+            floorId,
+            scopeOption,
+            includeTile,
+            brickMaterial,
+            flooringMaterial,
+          )
         : null;
 
   return {
@@ -2636,7 +2652,13 @@ export function validateMistriFloorWorkInput(input: {
     }
     if (fw.workTypes.includes('full_finished') && !isAssamMistriFloor(fw.floorId)) {
       if (fw.includeFineFlooring === true) {
-        fw.flooringMaterial = fw.flooringMaterial ?? 'tile';
+        const material = normalizeFlooringMaterial(fw.flooringMaterial);
+        if (!material || material === 'smooth_cement_finish') {
+          return {
+            error: `Select flooring material (Tiles, Marble, or Granite) for ${label}.`,
+          };
+        }
+        fw.flooringMaterial = material;
       } else {
         fw.includeFineFlooring = false;
         if (!fw.workTypes.includes('flooring')) fw.flooringMaterial = null;
@@ -2665,6 +2687,7 @@ export function validateMistriFloorWorkInput(input: {
         scope,
         fw.includeFineFlooring === true,
         fw.brickMaterial,
+        fw.flooringMaterial,
       );
     }
   }

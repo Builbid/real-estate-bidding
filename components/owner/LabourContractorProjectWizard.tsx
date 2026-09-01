@@ -28,12 +28,9 @@ import {
   MISTRI_ASSAM_ROOF_OPTIONS,
   MISTRI_ASSAM_ROOFING_SHEET_OPTIONS,
   MISTRI_BRICKWORK_MATERIAL_OPTIONS,
-  MISTRI_CHOWKHAT_HINT,
-  MISTRI_CHOWKHAT_LABEL,
-  MISTRI_CHOWKHAT_RATE_NOTE,
-  MISTRI_CHOWKHAT_SECTION_LABEL,
   MISTRI_CONTRACT_TYPE_OPTIONS,
   MISTRI_CUSTOM_FLOOR_ID,
+  MISTRI_FLOORING_MATERIAL_OPTIONS,
   MISTRI_RCC_SCOPE_OPTIONS,
   MISTRI_START_TIME_OPTIONS,
   MISTRI_YES_NO_OPTIONS,
@@ -190,11 +187,11 @@ function OptionCardButton({
         if (!disabled) onClick();
       }}
       className={cn(
-        'flex w-full items-center justify-between gap-3 rounded-lg border px-3 py-2.5 text-left text-xs font-semibold transition-colors',
+        'flex w-full items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3.5 text-left text-sm font-semibold transition-all',
         selected
-          ? 'border-emerald-500/70 bg-emerald-500/15 text-gray-900 dark:text-white'
-          : 'border-border bg-card text-gray-800 dark:text-zinc-100 hover:border-zinc-400 dark:hover:border-zinc-500',
-        disabled && 'cursor-not-allowed opacity-50 grayscale hover:border-border',
+          ? 'border-emerald-600 bg-emerald-50 text-emerald-700 shadow-sm dark:border-emerald-500 dark:bg-emerald-500/15 dark:text-emerald-300'
+          : 'text-gray-800 hover:border-emerald-500 hover:bg-emerald-50/50 dark:border-border dark:bg-card dark:text-zinc-100 dark:hover:border-emerald-500 dark:hover:bg-emerald-500/10',
+        disabled && 'cursor-not-allowed opacity-50 grayscale hover:border-gray-200 hover:bg-white dark:hover:border-border dark:hover:bg-card',
         className,
       )}
     >
@@ -202,11 +199,16 @@ function OptionCardButton({
       {locked ? (
         <Lock className="w-4 h-4 text-muted-foreground flex-shrink-0" />
       ) : selected ? (
-        <CheckCircle2 className="w-4 h-4 text-emerald-500 dark:text-emerald-400 flex-shrink-0" />
+        <span
+          aria-hidden
+          className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border-2 border-emerald-600 dark:border-emerald-400"
+        >
+          <span className="h-2.5 w-2.5 rounded-full bg-emerald-600 dark:bg-emerald-400" />
+        </span>
       ) : (
         <span
           aria-hidden
-          className="h-4 w-4 flex-shrink-0 rounded-full border border-gray-300 dark:border-zinc-500"
+          className="h-5 w-5 flex-shrink-0 rounded-full border-2 border-gray-300 dark:border-zinc-500"
         />
       )}
     </button>
@@ -218,16 +220,23 @@ function NestedChoiceButtons<T extends string>({
   options,
   value,
   onChange,
+  columns = 1,
 }: {
   question: string;
   options: { value: T; label: string }[];
   value: T | null;
   onChange: (value: T) => void;
+  columns?: 1 | 2 | 3;
 }) {
   return (
     <div className="space-y-1.5">
       <p className="text-xs font-semibold text-gray-900 dark:text-zinc-100">{question}</p>
-      <div className="grid grid-cols-1 gap-2">
+      <div
+        className={cn(
+          'grid gap-2',
+          columns === 3 ? 'grid-cols-3' : columns === 2 ? 'grid-cols-2' : 'grid-cols-1',
+        )}
+      >
         {options.map((opt) => (
           <OptionCardButton
             key={opt.value}
@@ -521,6 +530,7 @@ export function LabourContractorProjectWizard() {
                   scopeOption,
                   work.includeFineFlooring === true,
                   work.brickMaterial,
+                  work.flooringMaterial,
                 )
               : null,
           assamRoofType: isAssam ? work.assamRoofType : null,
@@ -740,7 +750,7 @@ export function LabourContractorProjectWizard() {
         plasterScope: option === 'wall_plaster_only' ? (current.plasterScope ?? 'both') : null,
         flooringMaterial:
           option === 'full_construction' && current.includeFineFlooring
-            ? (current.flooringMaterial ?? 'tile')
+            ? current.flooringMaterial
             : null,
         includeFineFlooring: option === 'full_construction' ? current.includeFineFlooring === true : null,
       };
@@ -769,7 +779,7 @@ export function LabourContractorProjectWizard() {
       projectStartTimeType: form.projectStartTimeType,
       projectStartTimeSpecificDate: form.projectStartTimeSpecificDate,
       additionalRequirements: form.additionalRequirements,
-      includeDoorWindowFrames: form.includeDoorWindowFrames,
+      includeDoorWindowFrames: false,
     };
   }
 
@@ -1180,6 +1190,7 @@ export function LabourContractorProjectWizard() {
                               question="What flooring material will be used?"
                               options={MISTRI_ASSAM_FLOORING_MATERIAL_OPTIONS}
                               value={entry.flooringMaterial}
+                              columns={3}
                               onChange={(v) =>
                                 patchFloorWork(
                                   fw.floorId,
@@ -1254,18 +1265,20 @@ export function LabourContractorProjectWizard() {
                                 </p>
                               )}
                               {opt.value === 'full_construction' && selected && (
-                                <div className="ml-2 space-y-2 rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-2.5">
-                                  <label className="flex items-start gap-2 text-xs font-semibold text-gray-900 dark:text-zinc-100">
+                                <div className="ml-2 space-y-3 rounded-xl border border-emerald-500/20 bg-emerald-50/60 p-3 dark:bg-emerald-500/5">
+                                  <label className="flex items-start gap-2 text-sm font-semibold text-gray-900 dark:text-zinc-100">
                                     <input
                                       type="checkbox"
-                                      className="mt-0.5 h-4 w-4 rounded border-border"
+                                      className="mt-0.5 h-4 w-4 rounded border-border text-emerald-600 focus:ring-emerald-500"
                                       checked={entry.includeFineFlooring === true}
                                       onChange={(e) =>
                                         patchFloorWork(
                                           fw.floorId,
                                           {
                                             includeFineFlooring: e.target.checked,
-                                            flooringMaterial: e.target.checked ? 'tile' : null,
+                                            flooringMaterial: e.target.checked
+                                              ? entry.flooringMaterial
+                                              : null,
                                           },
                                           fw.customFloorNumber,
                                         )
@@ -1273,6 +1286,21 @@ export function LabourContractorProjectWizard() {
                                     />
                                     <span>Include Tile Fitting Work?</span>
                                   </label>
+                                  {entry.includeFineFlooring === true && (
+                                    <NestedChoiceButtons
+                                      question="Flooring material"
+                                      options={MISTRI_FLOORING_MATERIAL_OPTIONS}
+                                      value={entry.flooringMaterial}
+                                      columns={3}
+                                      onChange={(v) =>
+                                        patchFloorWork(
+                                          fw.floorId,
+                                          { flooringMaterial: v },
+                                          fw.customFloorNumber,
+                                        )
+                                      }
+                                    />
+                                  )}
                                 </div>
                               )}
                               {opt.value === 'wall_plaster_only' && selected && !optionLocked && (
@@ -1299,32 +1327,6 @@ export function LabourContractorProjectWizard() {
                   </div>
                 );
               })}
-
-              <div className="flex flex-col gap-1.5">
-                <label className={SECTION_LABEL}>
-                  {MISTRI_CHOWKHAT_SECTION_LABEL}
-                </label>
-                <OptionCardButton
-                  className="items-start"
-                  selected={form.includeDoorWindowFrames}
-                  onClick={() => {
-                    update('includeDoorWindowFrames', !form.includeDoorWindowFrames);
-                    setStep2Error(null);
-                  }}
-                >
-                  <span className="block">{MISTRI_CHOWKHAT_LABEL}</span>
-                  <span className="mt-1 block text-[10px] font-medium normal-case tracking-normal text-slate-700 dark:text-slate-300">
-                    {MISTRI_CHOWKHAT_HINT}
-                  </span>
-                </OptionCardButton>
-                <div className="rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2">
-                  <p className={cn(HELPER_TEXT, 'text-amber-800 dark:text-amber-200')}>
-                    💡{' '}
-                    <span className="font-semibold">Note:</span>{' '}
-                    {MISTRI_CHOWKHAT_RATE_NOTE}
-                  </p>
-                </div>
-              </div>
 
               {showFoundationProvision && (
                 <div className="flex flex-col gap-3">
@@ -1369,11 +1371,11 @@ export function LabourContractorProjectWizard() {
               )}
 
               {showContractType && (
-                <div className="flex flex-col gap-1.5">
+                <div className="flex flex-col gap-2">
                   <label className={SECTION_LABEL}>
                     Contract Type (Supply Scope)
                   </label>
-                  <div className="grid grid-cols-1 gap-2">
+                  <div className="grid grid-cols-1 gap-2.5">
                     {MISTRI_CONTRACT_TYPE_OPTIONS.map((opt) => (
                       <OptionCardButton
                         key={opt.value}
@@ -1390,11 +1392,11 @@ export function LabourContractorProjectWizard() {
                 </div>
               )}
 
-              <div className="flex flex-col gap-1.5">
+              <div className="flex flex-col gap-2">
                 <label className={SECTION_LABEL}>
                   Project Starting Time
                 </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   {MISTRI_START_TIME_OPTIONS.map((opt) => (
                     <OptionCardButton
                       key={opt.value}
