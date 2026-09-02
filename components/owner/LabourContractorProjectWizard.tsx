@@ -83,6 +83,9 @@ const SECTION_LABEL =
 const HELPER_TEXT =
   'text-[11px] font-medium text-gray-700 dark:text-zinc-300 leading-relaxed';
 
+const FORM_SECTION_CARD =
+  'rounded-xl border border-teal-500/30 bg-slate-50/50 p-5 space-y-3 dark:border-teal-500/25 dark:bg-slate-900/20';
+
 const FLOOR_CARD_THEMES = [
   {
     card: 'border-sky-300/90 bg-gradient-to-br from-sky-100 via-sky-50 to-white shadow-sky-200/50 dark:from-sky-950/50 dark:via-sky-950/20 dark:to-card dark:border-sky-500/35 dark:shadow-none',
@@ -1479,20 +1482,10 @@ export function LabourContractorProjectWizard() {
 
               {showFoundationProvision && (
                 <div className="flex flex-col gap-3">
-                  <div className="rounded-lg border border-border/80 bg-muted/20 p-3 space-y-2">
-                    <div className="space-y-1">
-                      <p className="text-xs font-semibold text-gray-900 dark:text-zinc-100">
-                        Foundation provision for
-                      </p>
-                      <p className={HELPER_TEXT}>
-                        Enter the number of floors the foundation must support (whole number only).
-                        It must be greater than your highest constructing floor
-                        {currentUpper != null
-                          ? ` — minimum ${minFoundationFloors}`
-                          : ''}
-                        .
-                      </p>
-                    </div>
+                  <div className={FORM_SECTION_CARD}>
+                    <p className="text-xs font-semibold text-gray-900 dark:text-zinc-100">
+                      Foundation provision for
+                    </p>
                     <Input
                       label="No. of floors"
                       type="text"
@@ -1504,6 +1497,10 @@ export function LabourContractorProjectWizard() {
                         setStep2Error(null);
                       }}
                     />
+                    <p className={HELPER_TEXT}>
+                      Enter the number of floors the foundation must support. It must be greater
+                      than your highest constructing floor.
+                    </p>
                     {futureCustomError && (
                       <p className="text-xs text-destructive flex items-center gap-1">
                         <AlertCircle className="h-3 w-3 shrink-0" />
@@ -1520,15 +1517,19 @@ export function LabourContractorProjectWizard() {
               )}
 
               {showContractType && (
-                <div className="flex flex-col gap-2">
+                <div className={FORM_SECTION_CARD}>
                   <label className={SECTION_LABEL}>
-                    Contract Type (Supply Scope)
+                    Contract Type (Work Scope)
                   </label>
                   <div className="grid grid-cols-1 gap-2.5">
                     {MISTRI_CONTRACT_TYPE_OPTIONS.map((opt) => (
                       <OptionCardButton
                         key={opt.value}
                         selected={form.contractType === opt.value}
+                        className={cn(
+                          form.contractType === opt.value &&
+                            'border-teal-600 bg-teal-50 text-teal-800 shadow-md ring-2 ring-teal-500/30 dark:border-teal-400 dark:bg-teal-500/15 dark:text-teal-200',
+                        )}
                         onClick={() => {
                           update('contractType', opt.value);
                           setStep2Error(null);

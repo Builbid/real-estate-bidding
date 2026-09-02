@@ -521,8 +521,8 @@ export const MISTRI_CONTRACT_TYPE_OPTIONS: {
   value: MistriContractType;
   label: string;
 }[] = [
-  { value: 'labor_only', label: 'Labor Rate Only' },
-  { value: 'labor_centering', label: 'Labor + Shuttering' },
+  { value: 'labor_only', label: 'Mistri Rate Only' },
+  { value: 'labor_centering', label: 'Mistri Rate + Shuttering' },
 ];
 
 const LEGACY_CIVIL_WORK_MAP: Record<LegacyMistriCivilWorkType, MistriCivilWorkType> = {
@@ -1062,14 +1062,23 @@ function normalizeContractType(value: unknown): MistriContractType | null {
   return null;
 }
 
-const CONTRACT_TYPE_FALLBACK_LABEL = 'Labor Rate Only';
+const CONTRACT_TYPE_FALLBACK_LABEL = 'Mistri Rate Only';
 
-/** Human-readable supply scope for bid / project spec grids. */
+const LEGACY_CONTRACT_LABEL_MAP: Record<string, MistriContractType> = {
+  'labor rate only': 'labor_only',
+  'mistri rate only': 'labor_only',
+  'labor + shuttering': 'labor_centering',
+  'mistri rate + shuttering': 'labor_centering',
+};
+
+/** Human-readable work scope for bid / project spec grids and agreements. */
 export function formatMistriContractTypeLabel(value: unknown): string {
   const normalized = normalizeContractType(value);
   if (normalized) return optionLabel(MISTRI_CONTRACT_TYPE_OPTIONS, normalized);
   if (typeof value === 'string') {
     const trimmed = value.trim();
+    const legacy = LEGACY_CONTRACT_LABEL_MAP[trimmed.toLowerCase()];
+    if (legacy) return optionLabel(MISTRI_CONTRACT_TYPE_OPTIONS, legacy);
     const byLabel = MISTRI_CONTRACT_TYPE_OPTIONS.find(
       (o) => o.label.toLowerCase() === trimmed.toLowerCase(),
     );
