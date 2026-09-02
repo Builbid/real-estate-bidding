@@ -627,8 +627,14 @@ export const UPPER_FLOOR_WALL_REQUIRES_EXISTING_GF_STRUCTURE =
 export const STRUCTURAL_FRAMING_CONTINUITY_MESSAGE =
   'New structural framing (Option 1/2) requires structural continuity from lower floors.';
 
+export const UPPER_FLOOR_STRUCTURAL_REQUIRES_LOWER_FRAME =
+  'Requires structural frame on the floor below.';
+
 export const UPPER_FLOOR_WALL_LOCKED_BY_LOWER_STRUCTURE =
   'Option 3 (Wall Construction Only) is unavailable because lower floors require new structural framing. You must select Option 1 or Option 2 to cast the slab/frame first.';
+
+export const OPTION_3_REQUIRES_EXISTING_SLAB =
+  'Option 3 requires an existing structural slab on this floor from prior construction.';
 
 export const MISTRI_RCC_SCOPE_OPTIONS: {
   value: MistriRccScopeOption;
@@ -743,6 +749,89 @@ type MistriScopeFloor = Pick<
   MistriFloorWork,
   'floorId' | 'customFloorNumber' | 'workTypes' | 'scopeOption'
 >;
+
+function findScopeFloorAtLevel(
+  floorWork: readonly MistriScopeFloor[],
+  level: number,
+): MistriScopeFloor | undefined {
+  return floorWork.find(
+    (fw) =>
+      !isAssamMistriFloor(fw.floorId) &&
+      mistriFloorUpperCount(fw.floorId, fw.customFloorNumber) === level,
+  );
+}
+
+function selectedRccFloorLevels(floorWork: readonly MistriScopeFloor[]): number[] {
+  return floorWork
+    .filter((fw) => !isAssamMistriFloor(fw.floorId))
+    .map((fw) => mistriFloorUpperCount(fw.floorId, fw.customFloorNumber))
+    .sort((a, b) => a - b);
+}
+
+/**
+ * A floor level has a structural frame when Option 1/2 is selected on it,
+ * Option 3 is selected (existing slab), or the level sits below the lowest
+ * selected floor (Structure Already Built Previously).
+ */
+export function floorLevelHasStructuralFrame(
+  level: number,
+  floorWork: readonly MistriScopeFloor[],
+): boolean {
+  const atLevel = findScopeFloorAtLevel(floorWork, level);
+  if (atLevel) {
+    const scope = rccScopeFromWorkTypes(atLevel.workTypes, atLevel.scopeOption);
+    if (isStructuralRccScope(scope)) return true;
+    if (scope === 'wall_plaster_only') return true;
+    return false;
+  }
+  const selectedLevels = selectedRccFloorLevels(floorWork);
+  if (selectedLevels.length === 0) return false;
+  return level < selectedLevels[0];
+}
+
+/**
+ * Option 1/2 on upper floor N requires a structural frame on floor N-1
+ * (new framing, wall-only on existing slab, or prior construction below).
+ */
+export function isUpperFloorStructuralScopeBlocked(
+  floorId: MistriFloorId,
+  floorWork: readonly MistriScopeFloor[],
+  customFloorNumber?: number | null,
+): boolean {
+  if (isAssamMistriFloor(floorId)) return false;
+  const level = mistriFloorUpperCount(floorId, customFloorNumber);
+  if (level <= 0) return false;
+  return !floorLevelHasStructuralFrame(level - 1, floorWork);
+}
+
+/**
+ * Option 3 requires the slab for this floor to already exist from prior construction.
+ */
+export function floorSlabExistsFromPriorConstruction(
+  level: number,
+  floorWork: readonly MistriScopeFloor[],
+): boolean {
+  const atLevel = findScopeFloorAtLevel(floorWork, level);
+  if (atLevel) {
+    const scope = rccScopeFromWorkTypes(atLevel.workTypes, atLevel.scopeOption);
+    if (isStructuralRccScope(scope)) return false;
+  }
+  const firstNewStructure = firstNewStructureFloorLevel(floorWork);
+  if (firstNewStructure == null) return true;
+  return level < firstNewStructure;
+}
+
+/** Option 3 is blocked when lower floors need new framing or this slab does not pre-exist. */
+export function isWallPlasterScopeBlocked(
+  floorId: MistriFloorId,
+  floorWork: readonly MistriScopeFloor[],
+  customFloorNumber?: number | null,
+): boolean {
+  if (isAssamMistriFloor(floorId)) return false;
+  const level = mistriFloorUpperCount(floorId, customFloorNumber);
+  if (isUpperFloorWallScopeBlocked(floorId, floorWork, customFloorNumber)) return true;
+  return !floorSlabExistsFromPriorConstruction(level, floorWork);
+}
 
 export function structuralFramingLevels(floorWork: readonly MistriScopeFloor[]): number[] {
   const levels: number[] = [];
@@ -2783,10 +2872,25 @@ export function validateMistriFloorWorkInput(input: {
     if (isAssamMistriFloor(fw.floorId)) continue;
     const scope = rccScopeFromWorkTypes(fw.workTypes, fw.scopeOption);
     if (
-      scope === 'wall_plaster_only' &&
-      isUpperFloorWallScopeBlocked(fw.floorId, input.floorWork, fw.customFloorNumber)
+      isStructuralRccScope(scope) &&
+      isUpperFloorStructuralScopeBlocked(fw.floorId, input.floorWork, fw.customFloorNumber)
     ) {
-      return { error: UPPER_FLOOR_WALL_LOCKED_BY_LOWER_STRUCTURE };
+      return { error: UPPER_FLOOR_STRUCTURAL_REQUIRES_LOWER_FRAME };
+    }
+  }
+
+  for (const fw of input.floorWork) {
+    if (isAssamMistriFloor(fw.floorId)) continue;
+    const scope = rccScopeFromWorkTypes(fw.workTypes, fw.scopeOption);
+    if (
+      scope === 'wall_plaster_only' &&
+      isWallPlasterScopeBlocked(fw.floorId, input.floorWork, fw.customFloorNumber)
+    ) {
+      return {
+        error: isUpperFloorWallScopeBlocked(fw.floorId, input.floorWork, fw.customFloorNumber)
+          ? UPPER_FLOOR_WALL_LOCKED_BY_LOWER_STRUCTURE
+          : OPTION_3_REQUIRES_EXISTING_SLAB,
+      };
     }
   }
 

@@ -35,6 +35,8 @@ import {
   MISTRI_START_TIME_OPTIONS,
   MISTRI_YES_NO_OPTIONS,
   UPPER_FLOOR_WALL_LOCKED_BY_LOWER_STRUCTURE,
+  UPPER_FLOOR_STRUCTURAL_REQUIRES_LOWER_FRAME,
+  OPTION_3_REQUIRES_EXISTING_SLAB,
   currentFloorPlanFromFloorWork,
   floorPlanUpperCount,
   formatMistriFloorWorkLabel,
@@ -44,6 +46,8 @@ import {
   getMistriWorkRequirementBlocks,
   isAssamMistriFloor,
   isUpperFloorWallScopeBlocked,
+  isUpperFloorStructuralScopeBlocked,
+  isWallPlasterScopeBlocked,
   mistriContractTypeRequiredForFloorWork,
   mistriFloorUpperCount,
   mistriFoundationProvisionRequired,
@@ -499,6 +503,38 @@ function scopeSnapshotFromById(
   });
 }
 
+function resetLockedStructuralFloors(
+  form: Pick<FormState, 'buildingTypes' | 'customFloorSelected' | 'customFloorNumber'>,
+  floorWorkById: Record<string, FloorWorkForm>,
+): { next: Record<string, FloorWorkForm>; changed: boolean } {
+  const snapshot = scopeSnapshotFromById(form, floorWorkById);
+  const next = { ...floorWorkById };
+  let changed = false;
+  for (const entry of selectedFloorEntries(form as FormState)) {
+    if (isAssamMistriFloor(entry.floorId)) continue;
+    if (!isUpperFloorStructuralScopeBlocked(entry.floorId, snapshot, entry.customFloorNumber)) {
+      continue;
+    }
+    const key = floorWorkKey(entry.floorId, entry.customFloorNumber);
+    const current = next[key];
+    if (!current) continue;
+    const scope = rccScopeFromWorkTypes(current.workTypes);
+    if (!scope || scope === 'wall_plaster_only') continue;
+    next[key] = {
+      ...current,
+      workTypes: [],
+      brickMaterial: null,
+      plasterScope: null,
+      flooringMaterial: null,
+      includeFineFlooring: null,
+      flooringAreaSqft: '',
+      wallAreaSqft: '',
+    };
+    changed = true;
+  }
+  return { next, changed };
+}
+
 function resetLockedWallFloorsToFullConstruction(
   form: Pick<FormState, 'buildingTypes' | 'customFloorSelected' | 'customFloorNumber'>,
   floorWorkById: Record<string, FloorWorkForm>,
@@ -508,7 +544,7 @@ function resetLockedWallFloorsToFullConstruction(
   let changed = false;
   for (const entry of selectedFloorEntries(form as FormState)) {
     if (isAssamMistriFloor(entry.floorId)) continue;
-    if (!isUpperFloorWallScopeBlocked(entry.floorId, snapshot, entry.customFloorNumber)) continue;
+    if (!isWallPlasterScopeBlocked(entry.floorId, snapshot, entry.customFloorNumber)) continue;
     const key = floorWorkKey(entry.floorId, entry.customFloorNumber);
     const current = next[key];
     if (!current) continue;
@@ -628,12 +664,18 @@ export function LabourContractorProjectWizard() {
   }, [step, form.buildingTypes]);
 
   // If a lower floor uses Option 1/2, reset Option 3 on every higher floor to Option 1.
+  // Clear Option 1/2 on floors missing structural continuity from below.
   useEffect(() => {
     if (step !== 2) return;
     if (form.houseType !== 'rcc') return;
     setForm((f) => {
-      const { next, changed } = resetLockedWallFloorsToFullConstruction(f, f.floorWorkById);
-      if (!changed) return f;
+      let floorWorkById = f.floorWorkById;
+      const structuralReset = resetLockedStructuralFloors(f, floorWorkById);
+      if (structuralReset.changed) {
+        floorWorkById = structuralReset.next;
+      }
+      const { next, changed } = resetLockedWallFloorsToFullConstruction(f, floorWorkById);
+      if (!structuralReset.changed && !changed) return f;
       return { ...f, floorWorkById: next };
     });
   }, [step, form.houseType, form.buildingTypes, form.customFloorSelected, form.customFloorNumber, form.floorWorkById]);
@@ -781,15 +823,21 @@ export function LabourContractorProjectWizard() {
   ) {
     setForm((f) => {
       const key = floorWorkKey(floorId, customFloorNumber);
+      const snapshot = scopeSnapshotFromById(f, f.floorWorkById);
+
       if (option === 'wall_plaster_only') {
-        const withoutThis = scopeSnapshotFromById(f, f.floorWorkById).map((fw) => {
+        const withoutThis = snapshot.map((fw) => {
           const sameFloor =
             fw.floorId === floorId &&
             (fw.customFloorNumber ?? null) === (customFloorNumber ?? null);
           if (!sameFloor) return fw;
           return { ...fw, workTypes: [] as MistriFloorWorkType[], scopeOption: null };
         });
-        if (isUpperFloorWallScopeBlocked(floorId, withoutThis, customFloorNumber)) {
+        if (isWallPlasterScopeBlocked(floorId, withoutThis, customFloorNumber)) {
+          return f;
+        }
+      } else if (option === 'full_construction' || option === 'frame_only') {
+        if (isUpperFloorStructuralScopeBlocked(floorId, snapshot, customFloorNumber)) {
           return f;
         }
       }
@@ -820,6 +868,7 @@ export function LabourContractorProjectWizard() {
 
       if (option === 'full_construction' || option === 'frame_only') {
         floorWorkById = resetLockedWallFloorsToFullConstruction(f, floorWorkById).next;
+        floorWorkById = resetLockedStructuralFloors(f, floorWorkById).next;
       }
 
       return { ...f, floorWorkById };
@@ -1146,7 +1195,17 @@ export function LabourContractorProjectWizard() {
                 const entry = form.floorWorkById[key] ?? EMPTY_FLOOR_WORK;
                 const isAssam = isAssamMistriFloor(fw.floorId);
                 const selectedScope = rccScopeFromWorkTypes(entry.workTypes);
-                const wallLocked = isUpperFloorWallScopeBlocked(
+                const structuralLocked = isUpperFloorStructuralScopeBlocked(
+                  fw.floorId,
+                  assembledFloorWork,
+                  fw.customFloorNumber,
+                );
+                const wallLocked = isWallPlasterScopeBlocked(
+                  fw.floorId,
+                  assembledFloorWork,
+                  fw.customFloorNumber,
+                );
+                const wallLockedByLowerStructure = isUpperFloorWallScopeBlocked(
                   fw.floorId,
                   assembledFloorWork,
                   fw.customFloorNumber,
@@ -1296,13 +1355,18 @@ export function LabourContractorProjectWizard() {
                       <div className="grid grid-cols-1 gap-2">
                         {MISTRI_RCC_SCOPE_OPTIONS.map((opt) => {
                           const selected = selectedScope === opt.value;
-                          const optionLocked = opt.value === 'wall_plaster_only' && wallLocked;
+                          const structuralOptionLocked =
+                            (opt.value === 'full_construction' || opt.value === 'frame_only') &&
+                            structuralLocked;
+                          const optionLocked =
+                            opt.value === 'wall_plaster_only' && wallLocked;
+                          const disabled = structuralOptionLocked || optionLocked;
                           return (
                             <div key={opt.value} className="space-y-2">
                               <OptionCardButton
-                                selected={selected && !optionLocked}
-                                disabled={optionLocked}
-                                locked={optionLocked}
+                                selected={selected && !disabled}
+                                disabled={disabled}
+                                locked={disabled}
                                 onClick={() =>
                                   setRccScope(fw.floorId, opt.value, fw.customFloorNumber)
                                 }
@@ -1316,9 +1380,16 @@ export function LabourContractorProjectWizard() {
                                   </span>
                                 </span>
                               </OptionCardButton>
+                              {structuralOptionLocked && (
+                                <p className="px-1 text-[11px] font-medium text-red-700 dark:text-red-300">
+                                  {UPPER_FLOOR_STRUCTURAL_REQUIRES_LOWER_FRAME}
+                                </p>
+                              )}
                               {optionLocked && (
                                 <p className="px-1 text-[11px] font-medium text-red-700 dark:text-red-300">
-                                  {UPPER_FLOOR_WALL_LOCKED_BY_LOWER_STRUCTURE}
+                                  {wallLockedByLowerStructure
+                                    ? UPPER_FLOOR_WALL_LOCKED_BY_LOWER_STRUCTURE
+                                    : OPTION_3_REQUIRES_EXISTING_SLAB}
                                 </p>
                               )}
                               {opt.value === 'full_construction' && selected && (
