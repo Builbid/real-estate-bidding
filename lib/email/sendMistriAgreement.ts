@@ -43,8 +43,7 @@ function buildOfficialAgreementHtml(payload: MistriAgreementPayload): string {
         ${row('Mistri name', payload.mistri.companyName || payload.mistri.name)}
         ${row('Site address', payload.siteAddress)}
         ${row('Accepted civil work rates', payload.acceptedRateLabel)}
-        ${row('Built-up area', payload.slabAreaLabel)}
-        ${payload.bidRows.filter((r) => !/^Built-up area/i.test(r.label)).map((r) => row(r.label, r.value)).join('')}
+        ${payload.bidRows.map((r) => row(r.label, r.value)).join('')}
         ${row('Agreed start', payload.agreedStartDate)}
         ${row('Agreed completion', payload.agreedCompletionDate)}
       </table>
@@ -71,10 +70,7 @@ function buildOfficialAgreementText(payload: MistriAgreementPayload): string {
     `Mistri Name: ${payload.mistri.companyName || payload.mistri.name}`,
     `Site Address: ${payload.siteAddress}`,
     `Accepted civil work rates: ${payload.acceptedRateLabel}`,
-    `Built-up area: ${payload.slabAreaLabel}`,
-    ...payload.bidRows
-      .filter((row) => !/^Built-up area/i.test(row.label))
-      .map((row) => `${row.label}: ${row.value}`),
+    ...payload.bidRows.map((row) => `${row.label}: ${row.value}`),
     `Agreed start: ${payload.agreedStartDate}`,
     `Agreed completion: ${payload.agreedCompletionDate}`,
     'Payment: BuilBid gateway only. Cash to Mistri is prohibited.',
