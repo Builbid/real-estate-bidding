@@ -19,7 +19,7 @@ const COMPACT_SERVICE_OPTIONS: CompactServiceOption[] = [
     value: 'labour_contractor',
     emoji: '👷',
     title: 'Mistri Worker',
-    subtitle: 'Hire skilled masonry, labor & chowkhat workers',
+    subtitle: 'Hire skilled masonry & labor workers',
   },
   {
     value: 'construction_firm',

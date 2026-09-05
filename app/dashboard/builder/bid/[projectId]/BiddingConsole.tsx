@@ -38,7 +38,8 @@ import {
   validateBidRatesForFloorCount,
 } from '@/lib/validation/bidRates';
 import { submitBidAction } from '@/app/actions/bid';
-import { BidWorkItemCard } from '@/components/bid/BidWorkItemCard';
+import { BidWorkItemCard, getBidFloorCardTone } from '@/components/bid/BidWorkItemCard';
+import { ASSAM_BUILDING_TYPE } from '@/lib/buildingConfig';
 import { UserAvatar } from '@/components/shared/UserAvatar';
 import { BidFloorRatesBreakdown } from '@/components/shared/BidFloorRatesBreakdown';
 import {
@@ -1254,6 +1255,20 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                       numericValue > 0;
                     const visibleError =
                       isUnitItem && fieldError === BID_RATE_ERROR ? undefined : fieldError;
+                    const isAssamFloor =
+                      item.kind === 'civil' &&
+                      (item.floorId === ASSAM_BUILDING_TYPE || /^assam/i.test(item.title));
+                    const toneIndex =
+                      item.kind === 'civil'
+                        ? item.civilIndex
+                        : item.kind === 'floor'
+                          ? i
+                          : null;
+                    const floorTone = getBidFloorCardTone({
+                      index: toneIndex,
+                      isAssam: isAssamFloor,
+                    });
+                    const estimateClass = floorTone?.estimate ?? 'text-emerald-700 dark:text-emerald-300';
 
                     return (
                       <motion.div
@@ -1267,6 +1282,8 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                           category={item.category}
                           badge={item.kind === 'civil' ? (item.scopeBadge ?? undefined) : undefined}
                           description={item.description}
+                          toneIndex={toneIndex}
+                          isAssam={isAssamFloor}
                         >
                           {isCivilItem && item.costKind === 'wall' && (
                             <div className="space-y-0.5">
@@ -1332,12 +1349,12 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                             </button>
                           )}
                           {isCivilItem && item.costKind !== 'wall' && numericValue != null && numericValue > 0 && item.slabAreaSqft > 0 && (
-                            <p className="text-xs font-medium text-emerald-700 dark:text-emerald-300">
+                            <p className={cn('text-xs font-medium', estimateClass)}>
                               Floor civil estimate: ₹{computeMistriFloorCivilCost(item.slabAreaSqft, numericValue).toLocaleString('en-IN')}
                             </p>
                           )}
                           {isCivilItem && item.costKind === 'wall' && numericValue != null && numericValue > 0 && item.wallAreaSqft > 0 && (
-                            <p className="text-xs font-medium text-emerald-700 dark:text-emerald-300">
+                            <p className={cn('text-xs font-medium', estimateClass)}>
                               Floor wall estimate: ₹{computeMistriFloorWallCost(item.wallAreaSqft, numericValue).toLocaleString('en-IN')}
                             </p>
                           )}
@@ -1385,7 +1402,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                               {parseBidRateValue(flooringRateInputs[item.floorId] ?? '') != null &&
                                 (parseBidRateValue(flooringRateInputs[item.floorId] ?? '') ?? 0) > 0 &&
                                 item.flooringAreaSqft > 0 && (
-                                <p className="text-xs font-medium text-emerald-700 dark:text-emerald-300">
+                                <p className={cn('text-xs font-medium', estimateClass)}>
                                   Floor flooring estimate: ₹{computeMistriFloorFlooringCost(
                                     item.flooringAreaSqft,
                                     parseBidRateValue(flooringRateInputs[item.floorId] ?? '') ?? 0,
@@ -1406,7 +1423,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                               const floorTotal = primaryCost + flooringCost;
                               if (!(floorTotal > 0)) return null;
                               return (
-                                <p className="text-xs font-semibold text-foreground">
+                                <p className={cn('text-xs font-semibold', estimateClass)}>
                                   Floor total: ₹{floorTotal.toLocaleString('en-IN')}
                                 </p>
                               );
