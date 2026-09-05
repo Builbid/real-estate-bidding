@@ -18,6 +18,7 @@ import { OptionSelectGrid } from '@/components/owner/wizard/OptionSelectCard';
 import { generateProjectTitle } from '@/lib/generateProjectTitle';
 import { hasContactInfo } from '@/lib/validation/projectContactInfo';
 import { formatPincodeInput, validatePincode } from '@/lib/validation/pincode';
+import { todayLocalDateString } from '@/lib/projectStartTime';
 import { getTradeLabel, getTradeEmoji } from '@/lib/trades';
 import {
   PAINTER_FINISH_OPTIONS,
@@ -810,6 +811,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                     <Input
                       label="Specific Start Date"
                       type="date"
+                      min={todayLocalDateString()}
                       value={form.projectStartTimeSpecificDate}
                       onChange={(e) => {
                         update('projectStartTimeSpecificDate', e.target.value);

@@ -18,6 +18,7 @@ import {
 import { generateProjectTitle } from '@/lib/generateProjectTitle';
 import { hasContactInfo } from '@/lib/validation/projectContactInfo';
 import { formatPincodeInput, validatePincode } from '@/lib/validation/pincode';
+import { todayLocalDateString } from '@/lib/projectStartTime';
 import type { BuildingType } from '@/lib/buildingConfig';
 import { ASSAM_BUILDING_TYPE } from '@/lib/buildingConfig';
 import {
@@ -1567,6 +1568,7 @@ export function LabourContractorProjectWizard() {
                   <Input
                     label="Specific Start Date"
                     type="date"
+                    min={todayLocalDateString()}
                     value={form.projectStartTimeSpecificDate}
                     onChange={(e) => {
                       update('projectStartTimeSpecificDate', e.target.value);

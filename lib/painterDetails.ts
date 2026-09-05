@@ -2,6 +2,11 @@
 // Painter-only work requirements — stored as projects.painter_details
 // ============================================================
 
+import {
+  isProjectStartDateNotInPast,
+  PROJECT_START_DATE_PAST_INVALID_MESSAGE,
+} from './projectStartTime';
+
 export type PainterStartTimeType = '1week' | '2week' | '1month' | 'specific';
 
 /** Legacy start-time values that may exist on older painter_details rows. */
@@ -336,6 +341,9 @@ export function validatePainterDetailsInput(input: {
     const date = input.projectStartTimeSpecificDate.trim();
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       return { error: 'Select a specific project start date.' };
+    }
+    if (!isProjectStartDateNotInPast(date)) {
+      return { error: PROJECT_START_DATE_PAST_INVALID_MESSAGE };
     }
     return {
       details: {

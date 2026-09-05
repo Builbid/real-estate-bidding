@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { OptionSelectGrid } from '@/components/owner/wizard/OptionSelectCard';
 import {
   PROJECT_START_TIME_OPTIONS,
+  todayLocalDateString,
   type ProjectStartTimeType,
 } from '@/lib/projectStartTime';
 
@@ -47,6 +48,7 @@ export function StartTimeAndNotes<T extends string = ProjectStartTimeType>({
           <Input
             label="Specific Start Date"
             type="date"
+            min={todayLocalDateString()}
             value={specificDate}
             onChange={(e) => onSpecificDateChange?.(e.target.value)}
             className="mt-2"

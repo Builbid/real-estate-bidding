@@ -4,6 +4,10 @@
 
 import type { BuildingType, ConstructionTypesMap, ConstructionTypeValue } from './buildingConfig';
 import {
+  isProjectStartDateNotInPast,
+  PROJECT_START_DATE_PAST_INVALID_MESSAGE,
+} from './projectStartTime';
+import {
   ASSAM_BUILDING_TYPE,
   BUILDING_TYPE_OPTIONS,
   CONSTRUCTION_TYPE_FULL,
@@ -2984,6 +2988,9 @@ export function validateMistriFloorWorkInput(input: {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       return { error: 'Select a specific project start date.' };
     }
+    if (!isProjectStartDateNotInPast(date)) {
+      return { error: PROJECT_START_DATE_PAST_INVALID_MESSAGE };
+    }
     return {
       details: {
         ...base,
@@ -3181,6 +3188,9 @@ export function validateMistriDetailsInput(input: {
     const date = input.projectStartTimeSpecificDate.trim();
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       return { error: 'Select a specific project start date.' };
+    }
+    if (!isProjectStartDateNotInPast(date)) {
+      return { error: PROJECT_START_DATE_PAST_INVALID_MESSAGE };
     }
     return {
       details: {
