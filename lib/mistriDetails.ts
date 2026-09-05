@@ -642,7 +642,7 @@ export const MISTRI_RCC_SCOPE_OPTIONS: {
   title: string;
 }[] = [
   { value: 'full_construction', optionNumber: 1, title: 'Full Construction' },
-  { value: 'frame_only', optionNumber: 2, title: 'Structure / Frame Only' },
+  { value: 'frame_only', optionNumber: 2, title: 'Frame / Slab Casting Only' },
   { value: 'wall_plaster_only', optionNumber: 3, title: 'Wall Construction & Plastering Only' },
 ];
 
@@ -671,8 +671,8 @@ export function getMistriRccScopeLabel(
         : 'Full Construction (Beam, column, slab, wall and plastering, rough flooring, staircase)';
     case 'frame_only':
       return ground
-        ? 'Structure / Frame Only (Foundation, column, beam, staircase, slab casting)'
-        : 'Structure / Frame Only (Column, beam, staircase, slab casting)';
+        ? 'Frame / Slab Casting Only (Foundation, column, beam, staircase, slab casting). No Wall construction.'
+        : 'Frame / Slab Casting Only (Column, beam, staircase, slab casting). No Wall construction.';
     case 'wall_plaster_only':
       return 'Wall Construction & Plastering Only (Brick / AAC Block)';
   }
@@ -846,7 +846,7 @@ export function structuralFramingLevels(floorWork: readonly MistriScopeFloor[]):
 
 /**
  * Lowest selected floor that uses Option 1 (Full Construction) or
- * Option 2 (Structure / Frame Only). Floors above this boundary cannot
+ * Option 2 (Frame / Slab Casting Only). Floors above this boundary cannot
  * use Option 3 because the new frame/slab must be cast first.
  */
 export function firstNewStructureFloorLevel(
@@ -1759,7 +1759,7 @@ export function formatMistriFloorWorkTypes(
     if (t === 'frame_skeleton') {
       return extras?.floorId
         ? getMistriRccScopeLabel(extras.floorId, 'frame_only')
-        : 'Structure / Frame Only (Column, beam, staircase, slab casting)';
+        : 'Frame / Slab Casting Only (Column, beam, staircase, slab casting). No Wall construction.';
     }
     if (t === 'brick_aac' || t === 'plastering') {
       if (t === 'plastering' && workTypes.includes('brick_aac')) return null;
