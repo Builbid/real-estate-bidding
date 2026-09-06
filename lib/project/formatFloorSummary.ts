@@ -1,6 +1,7 @@
 import {
   isAssamMistriFloor,
   mistriFloorUpperCount,
+  ordinalFloorSuffix,
   parseMistriDetails,
   rccScopeFromWorkTypes,
   sortMistriFloorWork,
@@ -24,11 +25,11 @@ import { formatMatrixSummary, getProjectFloorStages } from '@/lib/constructionMa
 
 export type FloorSummaryItem = {
   key: string;
-  /** Compact floor code for badges, e.g. G, 1F, 2F, Assam. */
+  /** Floor label for badges, e.g. Ground Floor, 1st Floor, Assam Type. */
   floorCode: string;
   /** Concise scope using exact trade terms. */
   scope: string;
-  /** Combined badge text, e.g. "G: Full Construction + Tiles". */
+  /** Combined badge text, e.g. "Ground Floor: Full Construction + Tiles". */
   label: string;
 };
 
@@ -43,14 +44,14 @@ function flooringMaterialShort(
   return options.find((o) => o.value === material)?.label ?? null;
 }
 
-/** Short floor code for card badges (G / 1F / 2F / Assam). */
+/** Full floor name for card badges (Ground Floor / 1st Floor / Assam Type). */
 export function formatFloorCode(
   floor: Pick<MistriFloorWork, 'floorId' | 'customFloorNumber'>,
 ): string {
-  if (isAssamMistriFloor(floor.floorId)) return 'Assam';
+  if (isAssamMistriFloor(floor.floorId)) return 'Assam Type';
   const upper = mistriFloorUpperCount(floor.floorId, floor.customFloorNumber);
-  if (upper <= 0) return 'G';
-  return `${upper}F`;
+  if (upper <= 0) return 'Ground Floor';
+  return `${upper}${ordinalFloorSuffix(upper)} Floor`;
 }
 
 /**
@@ -127,12 +128,17 @@ function fromBuildingConstructionTypes(project: {
 
   return types.map((type) => {
     const ct = constructionTypes[type];
-    let floorCode = 'G';
-    if (type === 'Assam Type') floorCode = 'Assam';
-    else if (type === 'RCC Ground Floor') floorCode = 'G';
+    let floorCode = 'Ground Floor';
+    if (type === 'Assam Type') floorCode = 'Assam Type';
+    else if (type === 'RCC Ground Floor') floorCode = 'Ground Floor';
     else {
       const m = type.match(/RCC\s+(\d+)/i);
-      floorCode = m ? `${m[1]}F` : type.replace(/^RCC\s+/i, '');
+      if (m) {
+        const n = Number(m[1]);
+        floorCode = `${n}${ordinalFloorSuffix(n)} Floor`;
+      } else {
+        floorCode = type.replace(/^RCC\s+/i, '');
+      }
     }
     const scope = ct
       ? getConstructionDisplayShortLabel(ct)
@@ -158,7 +164,13 @@ function fromLegacyMatrix(project: {
 
   return floors.map((f) => {
     const floorCode =
-      f.floor === 'ground' ? 'G' : f.floor === 'first' ? '1F' : f.floor === 'second' ? '2F' : f.floor;
+      f.floor === 'ground'
+        ? 'Ground Floor'
+        : f.floor === 'first'
+          ? '1st Floor'
+          : f.floor === 'second'
+            ? '2nd Floor'
+            : f.floor;
     const scope =
       f.stage === 'full' ? 'Full Construction' : 'Frame / Slab Casting Only';
     return {
