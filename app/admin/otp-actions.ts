@@ -33,10 +33,9 @@ async function ensureOfficialAdminUser(): Promise<{ ok: true } | { error: string
   });
 
   if (createError && !isAlreadyRegisteredError(createError.message)) {
-    return { error: createError.message };
+    return { error: `Auth user setup failed: ${createError.message}` };
   }
 
-  // Best-effort profile sync (needs migration 042 is_admin column).
   try {
     const { data } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
     const user = data.users.find(
@@ -57,7 +56,7 @@ async function ensureOfficialAdminUser(): Promise<{ ok: true } | { error: string
       );
     }
   } catch {
-    // non-fatal
+    // non-fatal — portal guard can still use email allowlist
   }
 
   return { ok: true };
@@ -66,11 +65,15 @@ async function ensureOfficialAdminUser(): Promise<{ ok: true } | { error: string
 async function sendOtpEmail(otpCode: string): Promise<{ ok: true } | { error: string }> {
   try {
     const { transporter, from } = getMailTransporter();
-    await transporter.sendMail({
+
+    // Fail fast with a clear SMTP auth error instead of a vague send failure.
+    await transporter.verify();
+
+    const info = await transporter.sendMail({
       from,
       to: BUILBID_OFFICIAL_ADMIN_EMAIL,
-      subject: 'BuilBid Official Portal — OTP code',
-      text: `Your BuilBid Official Admin Portal code is ${otpCode}.\n\nIt expires in about 10 minutes.\nIf you did not request this, ignore this email.`,
+      subject: 'BuilBid Official Portal OTP',
+      text: `Your BuilBid Official Admin Portal code is ${otpCode}.\n\nIt expires in 10 minutes.\nIf you did not request this, ignore this email.`,
       html: `
         <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:480px;margin:0 auto;padding:24px">
           <h2 style="margin:0 0 8px;color:#0f172a">Official Admin Portal</h2>
@@ -80,72 +83,67 @@ async function sendOtpEmail(otpCode: string): Promise<{ ok: true } | { error: st
           <p style="font-size:32px;letter-spacing:0.35em;font-weight:800;color:#0f766e;margin:0 0 16px">
             ${otpCode}
           </p>
-          <p style="color:#94a3b8;font-size:12px;margin:0">Expires in about 10 minutes.</p>
+          <p style="color:#94a3b8;font-size:12px;margin:0">Expires in 10 minutes.</p>
         </div>
       `,
     });
+
+    if (!info.accepted || info.accepted.length === 0) {
+      return {
+        error: `Gmail SMTP did not accept the recipient (${BUILBID_OFFICIAL_ADMIN_EMAIL}).`,
+      };
+    }
+
     return { ok: true };
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Failed to send OTP email.';
-    return { error: message };
+    return {
+      error: `OTP email failed: ${message}. Check GMAIL_USER / GMAIL_APP_PASSWORD on Vercel (Production) and redeploy.`,
+    };
   }
 }
 
 /**
- * Send a 6-digit admin OTP via BuilBid Gmail SMTP (not Supabase default mail).
+ * Send a 6-digit admin OTP via BuilBid Gmail SMTP only (never Supabase mail).
  */
 export async function sendOfficialAdminOtpAction(email: string): Promise<{
   ok?: true;
   error?: string;
 }> {
-  if (!isOfficialAdminEmail(email)) {
-    return { error: ADMIN_UNAUTHORIZED_MESSAGE };
+  try {
+    if (!isOfficialAdminEmail(email)) {
+      return { error: ADMIN_UNAUTHORIZED_MESSAGE };
+    }
+
+    const ensured = await ensureOfficialAdminUser();
+    if ('error' in ensured) {
+      return { error: ensured.error };
+    }
+
+    const admin = createAdminClient();
+    const otpCode = String(randomInt(100000, 999999));
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+
+    const { error: storeError } = await admin.from('admin_otp_challenges').upsert(
+      {
+        email: BUILBID_OFFICIAL_ADMIN_EMAIL,
+        code_hash: hashOtp(otpCode),
+        expires_at: expiresAt,
+      },
+      { onConflict: 'email' },
+    );
+
+    if (storeError) {
+      return {
+        error: `Could not store OTP (${storeError.message}). Run supabase/migrations/043_admin_otp_challenges.sql in the Supabase SQL Editor, then try again.`,
+      };
+    }
+
+    return await sendOtpEmail(otpCode);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unexpected OTP send failure.';
+    return { error: message };
   }
-
-  const ensured = await ensureOfficialAdminUser();
-  if ('error' in ensured) {
-    return { error: ensured.error };
-  }
-
-  const admin = createAdminClient();
-
-  const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
-    type: 'magiclink',
-    email: BUILBID_OFFICIAL_ADMIN_EMAIL,
-  });
-
-  const nativeOtp = linkData?.properties?.email_otp?.trim() || null;
-
-  if (nativeOtp) {
-    const mailed = await sendOtpEmail(nativeOtp);
-    if ('error' in mailed) return { error: mailed.error };
-    return { ok: true };
-  }
-
-  // Fallback path if Auth did not return email_otp
-  const otpCode = String(randomInt(100000, 999999));
-  const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
-  const { error: storeError } = await admin.from('admin_otp_challenges').upsert(
-    {
-      email: BUILBID_OFFICIAL_ADMIN_EMAIL,
-      code_hash: hashOtp(otpCode),
-      expires_at: expiresAt,
-    },
-    { onConflict: 'email' },
-  );
-
-  if (storeError) {
-    return {
-      error:
-        linkError?.message ||
-        storeError.message ||
-        'Could not prepare OTP. Run migration 043_admin_otp_challenges.sql in Supabase.',
-    };
-  }
-
-  const mailed = await sendOtpEmail(otpCode);
-  if ('error' in mailed) return { error: mailed.error };
-  return { ok: true };
 }
 
 /**
@@ -155,38 +153,24 @@ export async function verifyOfficialAdminOtpAction(tokenRaw: string): Promise<{
   ok?: true;
   error?: string;
 }> {
-  const token = tokenRaw.replace(/\s/g, '');
-  if (!/^\d{6}$/.test(token)) {
-    return { error: 'Enter the 6-digit code from your email.' };
-  }
-
-  const supabase = await createClient();
-
-  const { error: nativeError } = await supabase.auth.verifyOtp({
-    email: BUILBID_OFFICIAL_ADMIN_EMAIL,
-    token,
-    type: 'email',
-  });
-
-  if (!nativeError) {
-    await supabase
-      .from('profiles')
-      .update({
-        is_admin: true,
-        role: 'admin',
-        updated_at: new Date().toISOString(),
-      })
-      .eq('email', BUILBID_OFFICIAL_ADMIN_EMAIL);
-    return { ok: true };
-  }
-
   try {
+    const token = tokenRaw.replace(/\s/g, '');
+    if (!/^\d{6}$/.test(token)) {
+      return { error: 'Enter the 6-digit code from your email.' };
+    }
+
     const admin = createAdminClient();
-    const { data: challenge } = await admin
+    const { data: challenge, error: challengeError } = await admin
       .from('admin_otp_challenges')
       .select('code_hash, expires_at')
       .eq('email', BUILBID_OFFICIAL_ADMIN_EMAIL)
       .maybeSingle();
+
+    if (challengeError) {
+      return {
+        error: `OTP lookup failed (${challengeError.message}). Run migration 043_admin_otp_challenges.sql.`,
+      };
+    }
 
     if (
       !challenge ||
@@ -208,13 +192,21 @@ export async function verifyOfficialAdminOtpAction(tokenRaw: string): Promise<{
       return { error: linkError?.message ?? 'Could not create admin session.' };
     }
 
+    const supabase = await createClient();
     const { error: sessionError } = await supabase.auth.verifyOtp({
-      type: 'email',
+      type: 'magiclink',
       token_hash: hashed,
     });
 
     if (sessionError) {
-      return { error: sessionError.message };
+      // Older Auth stacks expect type "email" for the same hashed token.
+      const { error: emailTypeError } = await supabase.auth.verifyOtp({
+        type: 'email',
+        token_hash: hashed,
+      });
+      if (emailTypeError) {
+        return { error: sessionError.message };
+      }
     }
 
     await supabase
@@ -227,7 +219,8 @@ export async function verifyOfficialAdminOtpAction(tokenRaw: string): Promise<{
       .eq('email', BUILBID_OFFICIAL_ADMIN_EMAIL);
 
     return { ok: true };
-  } catch {
-    return { error: nativeError.message || 'Invalid or expired OTP.' };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Invalid or expired OTP.';
+    return { error: message };
   }
 }

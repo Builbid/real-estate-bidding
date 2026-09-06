@@ -49,7 +49,7 @@ export function AdminLoginForm() {
 
     setEmail(BUILBID_OFFICIAL_ADMIN_EMAIL);
     setInfo(
-      `OTP sent to ${BUILBID_OFFICIAL_ADMIN_EMAIL} via BuilBid mail. Check inbox and spam.`,
+      `OTP emailed to ${BUILBID_OFFICIAL_ADMIN_EMAIL}. Check Inbox, Spam, and Gmail Sent (SMTP account).`,
     );
     setStep('otp');
   }
