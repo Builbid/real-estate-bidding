@@ -797,19 +797,21 @@ export function floorLevelHasStructuralFrame(
  * Option 1/2 on upper floor N requires a structural frame on floor N-1
  * (new framing, wall-only on existing slab, or prior construction below).
  */
+/**
+ * @deprecated Inter-floor Option 3 locking removed — scopes are independent per floor.
+ * Always returns false.
+ */
 export function isUpperFloorStructuralScopeBlocked(
-  floorId: MistriFloorId,
-  floorWork: readonly MistriScopeFloor[],
-  customFloorNumber?: number | null,
+  _floorId: MistriFloorId,
+  _floorWork: readonly MistriScopeFloor[],
+  _customFloorNumber?: number | null,
 ): boolean {
-  if (isAssamMistriFloor(floorId)) return false;
-  const level = mistriFloorUpperCount(floorId, customFloorNumber);
-  if (level <= 0) return false;
-  return !floorLevelHasStructuralFrame(level - 1, floorWork);
+  return false;
 }
 
 /**
  * Option 3 requires the slab for this floor to already exist from prior construction.
+ * Informational only — selection is no longer blocked in the wizard.
  */
 export function floorSlabExistsFromPriorConstruction(
   level: number,
@@ -825,16 +827,16 @@ export function floorSlabExistsFromPriorConstruction(
   return level < firstNewStructure;
 }
 
-/** Option 3 is blocked when lower floors need new framing or this slab does not pre-exist. */
+/**
+ * @deprecated Inter-floor Option 3 locking removed — scopes are independent per floor.
+ * Always returns false.
+ */
 export function isWallPlasterScopeBlocked(
-  floorId: MistriFloorId,
-  floorWork: readonly MistriScopeFloor[],
-  customFloorNumber?: number | null,
+  _floorId: MistriFloorId,
+  _floorWork: readonly MistriScopeFloor[],
+  _customFloorNumber?: number | null,
 ): boolean {
-  if (isAssamMistriFloor(floorId)) return false;
-  const level = mistriFloorUpperCount(floorId, customFloorNumber);
-  if (isUpperFloorWallScopeBlocked(floorId, floorWork, customFloorNumber)) return true;
-  return !floorSlabExistsFromPriorConstruction(level, floorWork);
+  return false;
 }
 
 export function structuralFramingLevels(floorWork: readonly MistriScopeFloor[]): number[] {
@@ -850,8 +852,7 @@ export function structuralFramingLevels(floorWork: readonly MistriScopeFloor[]):
 
 /**
  * Lowest selected floor that uses Option 1 (Full Construction) or
- * Option 2 (Frame / Slab Casting Only). Floors above this boundary cannot
- * use Option 3 because the new frame/slab must be cast first.
+ * Option 2 (Frame / Slab Casting Only).
  */
 export function firstNewStructureFloorLevel(
   floorWork: readonly MistriScopeFloor[],
@@ -861,25 +862,25 @@ export function firstNewStructureFloorLevel(
 }
 
 /**
- * Option 3 is locked on every floor above the lowest Option 1/2 floor.
- * Floors at or below that boundary may still use wall-only work
- * (existing shell below new framing).
+ * @deprecated Inter-floor Option 3 locking removed — scopes are independent per floor.
+ * Always returns false.
  */
 export function isUpperFloorWallScopeBlocked(
-  floorId: MistriFloorId,
-  floorWork: readonly MistriScopeFloor[],
-  customFloorNumber?: number | null,
+  _floorId: MistriFloorId,
+  _floorWork: readonly MistriScopeFloor[],
+  _customFloorNumber?: number | null,
 ): boolean {
-  if (isAssamMistriFloor(floorId)) return false;
-  const firstNewStructure = firstNewStructureFloorLevel(floorWork);
-  if (firstNewStructure == null) return false;
-  return mistriFloorUpperCount(floorId, customFloorNumber) > firstNewStructure;
+  return false;
 }
 
+/**
+ * @deprecated Structural continuity is no longer enforced across floors.
+ * Always returns false.
+ */
 export function hasStructuralFramingDiscontinuity(
-  floorWork: readonly MistriScopeFloor[],
+  _floorWork: readonly MistriScopeFloor[],
 ): boolean {
-  return !areMistriFloorUppersContiguous(structuralFramingLevels(floorWork));
+  return false;
 }
 
 /** Highest floor in the unbroken Option 1/2 run starting at the lowest structural floor. */
@@ -2874,36 +2875,6 @@ export function validateMistriFloorWorkInput(input: {
         fw.brickMaterial,
         fw.flooringMaterial,
       );
-    }
-  }
-
-  if (hasStructuralFramingDiscontinuity(input.floorWork)) {
-    return { error: STRUCTURAL_FRAMING_CONTINUITY_MESSAGE };
-  }
-
-  for (const fw of input.floorWork) {
-    if (isAssamMistriFloor(fw.floorId)) continue;
-    const scope = rccScopeFromWorkTypes(fw.workTypes, fw.scopeOption);
-    if (
-      isStructuralRccScope(scope) &&
-      isUpperFloorStructuralScopeBlocked(fw.floorId, input.floorWork, fw.customFloorNumber)
-    ) {
-      return { error: UPPER_FLOOR_STRUCTURAL_REQUIRES_LOWER_FRAME };
-    }
-  }
-
-  for (const fw of input.floorWork) {
-    if (isAssamMistriFloor(fw.floorId)) continue;
-    const scope = rccScopeFromWorkTypes(fw.workTypes, fw.scopeOption);
-    if (
-      scope === 'wall_plaster_only' &&
-      isWallPlasterScopeBlocked(fw.floorId, input.floorWork, fw.customFloorNumber)
-    ) {
-      return {
-        error: isUpperFloorWallScopeBlocked(fw.floorId, input.floorWork, fw.customFloorNumber)
-          ? UPPER_FLOOR_WALL_LOCKED_BY_LOWER_STRUCTURE
-          : OPTION_3_REQUIRES_EXISTING_SLAB,
-      };
     }
   }
 
