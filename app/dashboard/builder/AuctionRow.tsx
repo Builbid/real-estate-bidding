@@ -13,6 +13,13 @@ import {
   getProjectConfigOrDrawingMeta,
   getProjectServiceBadgeLabel,
 } from '@/lib/project/display';
+import {
+  formatFloorSummary,
+  getProjectBuildingTypeLabel,
+  getProjectBuiltUpAreaLabel,
+  getProjectLocationLabel,
+} from '@/lib/project/formatFloorSummary';
+import { FloorScopeBadges } from '@/components/project/FloorScopeBadges';
 import { isDrawingDesignServiceType } from '@/lib/drawingDesign';
 import { formatBidUnitSuffix } from '@/lib/bid/earthworkBid';
 import {
@@ -48,8 +55,20 @@ export function AuctionRow({
   const isTrade = isTradeServiceType(project.service_type);
   const isDrawing = isDrawingDesignServiceType(project.service_type);
   const serviceBadge = getProjectServiceBadgeLabel(project);
-  const configLabel = getProjectConfigOrDrawingMeta(project);
+  const floorScopes = formatFloorSummary(project);
+  const locationLabel = getProjectLocationLabel(project);
+  const buildingTypeLabel = getProjectBuildingTypeLabel(project);
+  const builtUpLabel = getProjectBuiltUpAreaLabel(project);
+  const configLabel =
+    floorScopes.length > 0
+      ? buildingTypeLabel
+      : getProjectConfigOrDrawingMeta(project);
   const postedAt = formatProjectPostedAt(project.created_at);
+  const metaParts = [
+    locationLabel || null,
+    configLabel,
+    builtUpLabel,
+  ].filter(Boolean) as string[];
 
   const ctaLabel = isExpired
     ? hasBid && canBid
@@ -90,20 +109,32 @@ export function AuctionRow({
           )}
         </div>
         <p className="text-sm font-semibold text-foreground truncate">{project.title}</p>
-        <div className="flex flex-wrap items-center gap-3 mt-1">
-          <span className="text-xs text-muted-foreground">{project.district}</span>
-          <span className="text-muted-foreground">·</span>
-          <span className="text-xs text-muted-foreground">{configLabel}</span>
+        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+          {metaParts.map((part, index) => (
+            <span key={`${part}-${index}`} className="inline-flex items-center gap-2">
+              {index > 0 ? (
+                <span className="text-muted-foreground/60" aria-hidden>
+                  •
+                </span>
+              ) : null}
+              <span>{part}</span>
+            </span>
+          ))}
           {postedAt && (
-            <>
-              <span className="text-muted-foreground">·</span>
-              <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
+            <span className="inline-flex items-center gap-2">
+              <span className="text-muted-foreground/60" aria-hidden>
+                •
+              </span>
+              <span className="inline-flex items-center gap-1">
                 <CalendarDays className="w-3 h-3" />
                 Posted {postedAt}
               </span>
-            </>
+            </span>
           )}
         </div>
+        {floorScopes.length > 0 ? (
+          <FloorScopeBadges items={floorScopes} className="mt-2" />
+        ) : null}
 
         {/* Countdown — mobile only, shown inline under project meta */}
         <div className="flex sm:hidden items-center gap-2 mt-2">

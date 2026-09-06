@@ -21,6 +21,11 @@ import {
   getProjectWorkRequirementBlocks,
   isWideRequirementLabel,
 } from '@/lib/project/workRequirements';
+import {
+  formatFloorSummary,
+  isFloorScopeRequirementLabel,
+} from '@/lib/project/formatFloorSummary';
+import { FloorScopeBadges } from '@/components/project/FloorScopeBadges';
 import { getLiveAuctionDisplayTitle } from '@/lib/generateProjectTitle';
 import { useTranslation } from '@/lib/context/LanguageProvider';
 import type { Project, ProjectStatus } from '@/lib/types';
@@ -56,7 +61,15 @@ export function ProjectCard({
   const finishingBadge = getFinishingBadge(project.finishing_level);
   const postedAt = formatProjectPostedAt(project.created_at);
   const compact = variant === 'compact';
-  const detailBlocks = getProjectWorkRequirementBlocks(project)?.blocks ?? null;
+  const floorScopes = formatFloorSummary(project);
+  const rawDetailBlocks = getProjectWorkRequirementBlocks(project)?.blocks ?? null;
+  const detailBlocks = rawDetailBlocks
+    ?.filter(
+      (block) =>
+        !(floorScopes.length > 0 && isFloorScopeRequirementLabel(block.label)),
+    ) ?? null;
+  const visibleDetailBlocks =
+    detailBlocks && detailBlocks.length > 0 ? detailBlocks : null;
 
   return (
     <Card className={cn(
@@ -132,13 +145,21 @@ export function ProjectCard({
           'grid grid-cols-2 gap-2 sm:gap-2.5 mb-4',
           compact && 'flex-1',
         )}>
-          {detailBlocks ? (
+          {visibleDetailBlocks ? (
             <>
               <div className="rounded-xl border border-border/60 bg-muted/25 px-3 py-2.5 dark:bg-muted/15">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{t('project.district')}</p>
                 <p className="text-sm font-semibold text-foreground truncate mt-0.5">{project.district}</p>
               </div>
-              {detailBlocks.map((block) => (
+              {floorScopes.length > 0 ? (
+                <div className="col-span-2 rounded-xl border border-border/60 bg-muted/25 px-3 py-2.5 dark:bg-muted/15">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5">
+                    Floor scope
+                  </p>
+                  <FloorScopeBadges items={floorScopes} />
+                </div>
+              ) : null}
+              {visibleDetailBlocks.map((block) => (
                 <div
                   key={block.label}
                   className={cn(
@@ -192,7 +213,14 @@ export function ProjectCard({
                   <p className="text-sm font-semibold text-foreground truncate mt-0.5">{budgetDisplay}</p>
                 </div>
               )}
-              {!compact && (
+              {floorScopes.length > 0 ? (
+                <div className="col-span-2 rounded-xl border border-border/60 bg-muted/25 px-3 py-2.5 dark:bg-muted/15">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5">
+                    Floor scope
+                  </p>
+                  <FloorScopeBadges items={floorScopes} />
+                </div>
+              ) : !compact ? (
                 <div className="col-span-2 rounded-xl border border-border/60 bg-muted/25 px-3 py-2.5 dark:bg-muted/15">
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{t('project.configuration')}</p>
                   <BuildingConfigSummary
@@ -202,13 +230,12 @@ export function ProjectCard({
                     className="text-sm font-medium text-foreground leading-snug mt-0.5"
                   />
                 </div>
-              )}
-              {compact && !isFirm && (
+              ) : !isFirm ? (
                 <div className="rounded-xl border border-border/60 bg-muted/25 px-3 py-2.5 dark:bg-muted/15">
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{t('project.configuration')}</p>
                   <p className="text-sm font-semibold text-foreground truncate mt-0.5">{trackLabel}</p>
                 </div>
-              )}
+              ) : null}
             </>
           )}
         </div>

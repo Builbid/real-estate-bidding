@@ -24,6 +24,13 @@ import {
   getProjectConfigOrDrawingMeta,
   getProjectServiceBadgeLabel,
 } from '@/lib/project/display';
+import {
+  formatFloorSummary,
+  getProjectBuildingTypeLabel,
+  getProjectBuiltUpAreaLabel,
+  getProjectLocationLabel,
+} from '@/lib/project/formatFloorSummary';
+import { FloorScopeBadges } from '@/components/project/FloorScopeBadges';
 import type { Project, Bid } from '@/lib/types';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
@@ -301,7 +308,18 @@ function ArchivedProjectRow({
   bidCount: number;
 }) {
   const serviceBadge = getProjectServiceBadgeLabel(project);
-  const configLabel = getProjectConfigOrDrawingMeta(project);
+  const locationLabel = getProjectLocationLabel(project);
+  const buildingTypeLabel = getProjectBuildingTypeLabel(project);
+  const builtUpLabel = getProjectBuiltUpAreaLabel(project);
+  const floorScopes = formatFloorSummary(project);
+  const configFallback = floorScopes.length === 0 ? getProjectConfigOrDrawingMeta(project) : null;
+
+  const metaParts = [
+    locationLabel || null,
+    buildingTypeLabel ?? configFallback,
+    builtUpLabel,
+    `${bidCount} bid${bidCount !== 1 ? 's' : ''}`,
+  ].filter(Boolean) as string[];
 
   return (
     <div className="flex items-center gap-4 p-4 rounded-xl border border-border bg-card/80 dark:bg-card/60 transition-colors hover:border-border">
@@ -311,16 +329,28 @@ function ArchivedProjectRow({
           <Badge>{serviceBadge}</Badge>
         </div>
         <p className="text-sm font-semibold text-foreground truncate">{project.title}</p>
-        <div className="flex items-center gap-3 mt-1">
-          <span className="text-xs text-muted-foreground">{project.district}</span>
-          <span className="text-muted-foreground">·</span>
-          <span className="text-xs text-muted-foreground">{configLabel}</span>
-          <span className="text-muted-foreground">·</span>
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-            <Users className="w-3 h-3" />
-            {bidCount} bid{bidCount !== 1 ? 's' : ''}
-          </div>
+        <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+          {metaParts.map((part, index) => (
+            <span key={`${part}-${index}`} className="inline-flex items-center gap-2">
+              {index > 0 ? (
+                <span className="text-muted-foreground/60" aria-hidden>
+                  •
+                </span>
+              ) : null}
+              {index === metaParts.length - 1 ? (
+                <span className="inline-flex items-center gap-1">
+                  <Users className="h-3 w-3" />
+                  {part}
+                </span>
+              ) : (
+                <span>{part}</span>
+              )}
+            </span>
+          ))}
         </div>
+        {floorScopes.length > 0 ? (
+          <FloorScopeBadges items={floorScopes} className="mt-2" />
+        ) : null}
       </div>
 
       <div className="flex items-center gap-2 flex-shrink-0">

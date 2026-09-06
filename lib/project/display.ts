@@ -14,7 +14,8 @@ import {
   isTradeServiceType,
   type ServiceCategoryOption,
 } from '@/lib/trades';
-import { getConstructionLabel } from '@/lib/utils';
+import { getConstructionLabel, TRACK_LABELS } from '@/lib/utils';
+import { parseMistriDetails } from '@/lib/mistriDetails';
 import { readNestedProjectDetail } from '@/lib/project/storedDetails';
 
 export function getProjectServiceType(project: { service_type?: ServiceType | null }): ServiceType {
@@ -100,7 +101,8 @@ export function getProjectServiceBadgeLabel(project: {
 
 /**
  * Meta line under project title on dashboard cards.
- * Drawing & Design → selected deliverables; otherwise construction config.
+ * Drawing & Design → selected deliverables; labour with floor work → building type only
+ * (floor scopes render as badges via formatFloorSummary); otherwise construction config.
  */
 export function getProjectConfigOrDrawingMeta(project: {
   service_type?: ServiceType | null;
@@ -108,6 +110,7 @@ export function getProjectConfigOrDrawingMeta(project: {
   drawing_details?: Project['drawing_details'];
   track_type?: Project['track_type'];
   sub_configuration?: Project['sub_configuration'];
+  mistri_details?: Project['mistri_details'];
 }): string {
   if (isDrawingDesignServiceType(project.service_type)) {
     const details = parseDrawingDetails(readNestedProjectDetail(project, 'drawing_details'));
@@ -115,6 +118,12 @@ export function getProjectConfigOrDrawingMeta(project: {
       return formatDrawingPackagesSummary(details.packages);
     }
     return formatDrawingTypesSummary(project.drawing_types);
+  }
+  if (getProjectServiceType(project) === 'labour_contractor') {
+    const mistri = parseMistriDetails(readNestedProjectDetail(project, 'mistri_details'));
+    if (mistri?.floorWork && mistri.floorWork.length > 0 && project.track_type) {
+      return TRACK_LABELS[project.track_type] ?? project.track_type;
+    }
   }
   if (project.track_type && project.sub_configuration) {
     return getConstructionLabel(project.track_type, project.sub_configuration);

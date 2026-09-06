@@ -10,10 +10,16 @@ import { UnifiedFirmBidRankings } from './project/[id]/UnifiedFirmBidRankings';
 import { OwnerProjectPhaseProvider, useOwnerProjectPhaseContext } from '@/lib/context/OwnerProjectPhaseContext';
 import { formatProjectPostedAt, cn } from '@/lib/utils';
 import {
-  getProjectConfigOrDrawingMeta,
   getProjectServiceBadgeLabel,
   isFirmProject,
 } from '@/lib/project/display';
+import {
+  formatFloorSummary,
+  getProjectBuildingTypeLabel,
+  getProjectBuiltUpAreaLabel,
+  getProjectLocationLabel,
+} from '@/lib/project/formatFloorSummary';
+import { FloorScopeBadges } from '@/components/project/FloorScopeBadges';
 import type { Project, Bid, PublicFirmProfile } from '@/lib/types';
 
 interface BuilderInfo {
@@ -45,8 +51,18 @@ function OwnerLiveProjectCardBody({
   const { project, phase, canSelect } = useOwnerProjectPhaseContext();
   const isFirm = isFirmProject(project);
   const serviceBadge = getProjectServiceBadgeLabel(project);
-  const configLabel = getProjectConfigOrDrawingMeta(project);
   const postedAt = formatProjectPostedAt(project.created_at);
+  const locationLabel = getProjectLocationLabel(project);
+  const buildingTypeLabel = getProjectBuildingTypeLabel(project);
+  const builtUpLabel = getProjectBuiltUpAreaLabel(project);
+  const floorScopes = formatFloorSummary(project);
+
+  const metaParts = [
+    locationLabel || null,
+    buildingTypeLabel,
+    builtUpLabel,
+    `${bidCount} bid${bidCount !== 1 ? 's' : ''}`,
+  ].filter(Boolean) as string[];
 
   return (
     <div
@@ -73,25 +89,39 @@ function OwnerLiveProjectCardBody({
             <Badge>{serviceBadge}</Badge>
           </div>
           <p className="text-sm font-semibold text-foreground">{project.title}</p>
-          <div className="flex flex-wrap items-center gap-3 mt-1">
-            <span className="text-xs text-muted-foreground">{project.district}</span>
-            <span className="text-muted-foreground hidden sm:inline">·</span>
-            <span className="text-xs text-muted-foreground">{configLabel}</span>
-            <span className="text-muted-foreground hidden sm:inline">·</span>
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Users className="w-3 h-3" />
-              {bidCount} bid{bidCount !== 1 ? 's' : ''}
-            </div>
-            {postedAt && (
-              <>
-                <span className="text-muted-foreground hidden sm:inline">·</span>
-                <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
-                  <CalendarDays className="w-3 h-3" />
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+            {metaParts.map((part, index) => (
+              <span key={`${part}-${index}`} className="inline-flex items-center gap-2">
+                {index > 0 ? (
+                  <span className="text-muted-foreground/60" aria-hidden>
+                    •
+                  </span>
+                ) : null}
+                {index === metaParts.length - 1 ? (
+                  <span className="inline-flex items-center gap-1">
+                    <Users className="h-3 w-3" />
+                    {part}
+                  </span>
+                ) : (
+                  <span>{part}</span>
+                )}
+              </span>
+            ))}
+            {postedAt ? (
+              <span className="inline-flex items-center gap-2">
+                <span className="text-muted-foreground/60" aria-hidden>
+                  •
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <CalendarDays className="h-3 w-3" />
                   Posted {postedAt}
                 </span>
-              </>
-            )}
+              </span>
+            ) : null}
           </div>
+          {floorScopes.length > 0 ? (
+            <FloorScopeBadges items={floorScopes} className="mt-2.5" />
+          ) : null}
         </div>
 
         <div className="flex items-center gap-3 flex-shrink-0">

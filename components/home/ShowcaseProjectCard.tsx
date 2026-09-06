@@ -31,6 +31,12 @@ import {
 import { DRAWING_TYPE_OPTIONS, isDrawingDesignServiceType } from '@/lib/drawingDesign';
 import { getProjectWorkRequirementBlocks, isFloorFixtureRequirementLabel } from '@/lib/project/workRequirements';
 import {
+  formatFloorSummary,
+  getProjectBuiltUpAreaLabel,
+  isFloorScopeRequirementLabel,
+} from '@/lib/project/formatFloorSummary';
+import { FloorScopeBadges } from '@/components/project/FloorScopeBadges';
+import {
   formatShowcaseRemaining,
   getShowcaseCardAction,
   type ShowcaseProject,
@@ -273,9 +279,18 @@ export function ShowcaseProjectCard({
   const budgetDisplay = getProjectBudgetDisplay(project);
   const finishingBadge = getFinishingBadge(project.finishing_level);
   const postedDisplay = formatProjectPostedDisplay(project.created_at);
-  const requirementBlocks = (getProjectWorkRequirementBlocks(project)?.blocks ?? null)?.filter(
-    (block) => !isFloorFixtureRequirementLabel(block.label),
-  ) ?? null;
+  const floorScopes = formatFloorSummary(project);
+  const builtUpLabel = getProjectBuiltUpAreaLabel(project);
+  const filteredRequirementBlocks =
+    (getProjectWorkRequirementBlocks(project)?.blocks ?? null)?.filter(
+      (block) =>
+        !isFloorFixtureRequirementLabel(block.label) &&
+        !(floorScopes.length > 0 && isFloorScopeRequirementLabel(block.label)),
+    ) ?? null;
+  const requirementBlocks =
+    filteredRequirementBlocks && filteredRequirementBlocks.length > 0
+      ? filteredRequirementBlocks
+      : null;
 
   const statCells: { label: string; value: string }[] = requirementBlocks
     ? requirementBlocks
@@ -291,10 +306,10 @@ export function ShowcaseProjectCard({
       ];
 
   if (!requirementBlocks) {
-    if (floorAreaDisplay) {
+    if (builtUpLabel || floorAreaDisplay) {
       statCells.push({
         label: isFirm ? 'Floor Area' : t('home.showcase.specPlotSize'),
-        value: floorAreaDisplay,
+        value: builtUpLabel ?? floorAreaDisplay!,
       });
     } else if (!isFirm) {
       statCells.push({
@@ -335,6 +350,22 @@ export function ShowcaseProjectCard({
             </span>
           );
         })}
+      </div>
+    );
+  } else if (floorScopes.length > 0) {
+    metaBlock = (
+      <div className="space-y-1.5">
+        <FloorScopeBadges items={floorScopes} />
+        {project.description?.trim() ? (
+          <div className="min-w-0 rounded-lg border border-border/50 bg-muted/15 px-2 py-1.5">
+            <p className="text-[9px] font-medium uppercase tracking-wider text-muted-foreground">
+              Specific Details
+            </p>
+            <p className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-foreground">
+              {project.description.trim()}
+            </p>
+          </div>
+        ) : null}
       </div>
     );
   } else if (requirementBlocks && project.description?.trim()) {
