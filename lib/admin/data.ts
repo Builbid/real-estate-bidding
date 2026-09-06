@@ -29,6 +29,7 @@ export interface AdminProjectRow {
   winningBid: number | null;
   selectedBuilderId: string | null;
   serviceType: string | null;
+  createdAt: string;
 }
 
 export interface AdminWorkerRow {
@@ -174,6 +175,7 @@ export async function loadAdminDashboardData(): Promise<{
       winningBid,
       selectedBuilderId: p.selected_builder_id,
       serviceType: p.service_type,
+      createdAt: p.created_at,
     };
   });
 
