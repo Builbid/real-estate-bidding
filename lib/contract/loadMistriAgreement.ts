@@ -1,5 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
+import { isOfficialAdminEmail } from '@/lib/admin/constants';
 import {
   buildMistriAgreementPayload,
   isMistriCivilService,
@@ -37,12 +38,22 @@ export async function loadMistriAgreementPayload(
 
   let isAdmin = false;
   try {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', userId)
-      .maybeSingle();
-    isAdmin = profile?.role === 'admin';
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (user && isOfficialAdminEmail(user.email)) {
+      isAdmin = true;
+    } else {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role, is_admin, email')
+        .eq('id', userId)
+        .maybeSingle();
+      isAdmin =
+        profile?.role === 'admin' ||
+        profile?.is_admin === true ||
+        isOfficialAdminEmail(profile?.email);
+    }
   } catch {
     isAdmin = false;
   }

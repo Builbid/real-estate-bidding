@@ -101,6 +101,8 @@ export interface Profile {
   /** Firm-defined construction packages (custom names, structured category scope) */
   construction_class_packages?: FirmConstructionPackage[] | null;
   is_verified: boolean;
+  /** Official BuilBid staff flag (see is_builbid_admin()). */
+  is_admin?: boolean;
   created_at: string;
   updated_at: string;
   /** Hire Services trade label (e.g. Painter) — not stored on profiles table */

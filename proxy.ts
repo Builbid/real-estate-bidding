@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { isOfficialAdminEmail } from '@/lib/admin/constants'
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -39,14 +40,51 @@ export async function proxy(request: NextRequest) {
     }
   )
 
+  const isAdminRoute = pathname.startsWith('/admin')
+  const isAdminLogin = pathname === '/admin/login'
   const needsAuthServerCheck =
     pathname.startsWith('/dashboard') ||
     pathname.startsWith('/provider') ||
-    pathname.startsWith('/admin') ||
+    isAdminRoute ||
     pathname.startsWith('/auth');
 
-  if (needsAuthServerCheck) {
-    await supabase.auth.getUser();
+  if (!needsAuthServerCheck) {
+    return supabaseResponse;
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // Official admin portal — email-gated (except login page)
+  if (isAdminRoute) {
+    if (isAdminLogin) {
+      if (user && isOfficialAdminEmail(user.email)) {
+        const url = request.nextUrl.clone();
+        url.pathname = '/admin/dashboard';
+        return NextResponse.redirect(url);
+      }
+      return supabaseResponse;
+    }
+
+    if (!user || !isOfficialAdminEmail(user.email)) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/admin/login';
+      url.search = '';
+      return NextResponse.redirect(url);
+    }
+
+    return supabaseResponse;
+  }
+
+  if (
+    (pathname.startsWith('/dashboard') || pathname.startsWith('/provider')) &&
+    !user
+  ) {
+    const loginUrl = request.nextUrl.clone();
+    loginUrl.pathname = '/login';
+    loginUrl.searchParams.set('next', pathname);
+    return NextResponse.redirect(loginUrl);
   }
 
   return supabaseResponse;

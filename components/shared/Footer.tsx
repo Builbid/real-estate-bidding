@@ -58,6 +58,7 @@ export function Footer({ compact }: FooterProps) {
   const LEGAL_LINKS = [
     { label: t('footer.privacyPolicy'), href: '/privacy' },
     { label: t('footer.termsOfService'), href: '/terms' },
+    { label: 'Staff Access', href: '/admin/login' },
   ] as const;
 
   const SOCIAL_LINKS = [
@@ -121,7 +122,14 @@ export function Footer({ compact }: FooterProps) {
             <ul className="space-y-3">
               {LEGAL_LINKS.map(({ label, href }) => (
                 <li key={href}>
-                  <Link href={href} className="text-sm font-medium text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors">
+                  <Link
+                    href={href}
+                    className={
+                      href === '/admin/login'
+                        ? 'text-xs text-slate-400 transition hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300'
+                        : 'text-sm font-medium text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors'
+                    }
+                  >
                     {label}
                   </Link>
                 </li>

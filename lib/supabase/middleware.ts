@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import { isOfficialAdminEmail } from '@/lib/admin/constants';
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -25,24 +26,36 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  // Refresh session — required for Server Components to read auth state.
-  // Do NOT add redirect logic for auth pages here; handle that at the page level.
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
 
-  // Guard: unauthenticated user hitting protected paths → send to /login
+  if (pathname.startsWith('/admin')) {
+    if (pathname === '/admin/login') {
+      if (user && isOfficialAdminEmail(user.email)) {
+        const url = request.nextUrl.clone();
+        url.pathname = '/admin/dashboard';
+        return NextResponse.redirect(url);
+      }
+      return supabaseResponse;
+    }
+    if (!user || !isOfficialAdminEmail(user.email)) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/admin/login';
+      return NextResponse.redirect(url);
+    }
+    return supabaseResponse;
+  }
+
   if (
-    (pathname.startsWith('/dashboard') ||
-      pathname.startsWith('/provider') ||
-      pathname.startsWith('/admin')) &&
+    (pathname.startsWith('/dashboard') || pathname.startsWith('/provider')) &&
     !user
   ) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = '/login';
-    loginUrl.searchParams.set('next', pathname); // preserve intended destination
+    loginUrl.searchParams.set('next', pathname);
     return NextResponse.redirect(loginUrl);
   }
 
