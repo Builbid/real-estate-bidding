@@ -42,7 +42,7 @@ export function ServiceCategoryBar({ isAuthenticated, role }: ServiceCategoryBar
 
         <div className="relative">
           <p className="mx-auto max-w-2xl text-center text-xs font-medium leading-snug text-slate-700 dark:text-slate-200 sm:text-sm">
-            Post your project and receive competitive ₹/sqft bids from verified professionals.
+            Post your project and receive competitive ₹ bids from verified professionals.
           </p>
 
           <div
