@@ -1723,16 +1723,33 @@ export function formatMistriFloorWorkTypes(
     includeFineFlooring?: boolean | null;
     flooringAreaSqft?: number | null;
     wallAreaSqft?: number | null;
+    scopeOption?: MistriRccScopeOption | null;
     scopeLabel?: string | null;
     assamRoofType?: MistriAssamRoofType | null;
     assamRoofingSheet?: MistriAssamRoofingSheet | null;
     foundationDepthFt?: number | null;
   },
 ): string {
-  if (extras?.scopeLabel?.trim()) {
-    return extras.scopeLabel.trim();
-  }
   const isAssam = extras?.floorId ? isAssamMistriFloor(extras.floorId) : false;
+  const derivedScope = rccScopeFromWorkTypes(workTypes, extras?.scopeOption ?? null);
+
+  // Prefer live wizard option titles over stale stored scopeLabel (e.g. legacy "Structure / Frame Only").
+  if (derivedScope && extras?.floorId && !isAssam) {
+    return formatMistriRccScopeDescription(
+      extras.floorId,
+      derivedScope,
+      extras.includeFineFlooring === true,
+      extras.brickMaterial,
+      extras.flooringMaterial,
+    );
+  }
+
+  if (extras?.scopeLabel?.trim()) {
+    return extras.scopeLabel
+      .trim()
+      .replace(/\bStructure\s*\/\s*Frame Only\b/gi, 'Frame / Slab Casting Only');
+  }
+
   const flooringOptions = isAssam
     ? MISTRI_ASSAM_FLOORING_MATERIAL_OPTIONS
     : MISTRI_FLOORING_MATERIAL_OPTIONS;

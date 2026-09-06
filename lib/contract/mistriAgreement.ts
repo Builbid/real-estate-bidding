@@ -5,6 +5,8 @@ import {
   type ConstructionTypesMap,
 } from '@/lib/buildingConfig';
 import {
+  formatMistriFloorWorkLabel,
+  formatMistriFloorWorkTypes,
   getMistriWorkRequirementBlocks,
   hasAssamMistriFloorWork,
   isAssamMistriFloor,
@@ -50,6 +52,10 @@ const SCOPE_LABELS_EXCLUDED_FROM_AGREEMENT = new Set([
 
 /** Blank line on the printed agreement so dates can be filled in by hand on site. */
 export const AGREEMENT_MANUAL_DATE_BLANK = '________________________';
+
+/** Table / box border — slate-200. */
+const BORDER_RGB: [number, number, number] = [226, 232, 240];
+const PAGE_MARGIN_MM = 14;
 
 export function isMistriCivilService(serviceType?: string | null): boolean {
   const value = (serviceType ?? 'labour_contractor').toLowerCase();
@@ -118,9 +124,35 @@ export interface MistriAgreementPayload {
   agreedCompletionDate: string;
 }
 
-function formatRsPerSqft(value: number): string {
-  if (!Number.isFinite(value) || value <= 0) return 'Rs. — / sq. ft.';
-  return `Rs. ${Math.round(value).toLocaleString('en-IN')} / sq. ft.`;
+/** Platform currency uses ₹; Helvetica cannot draw it — PDF draw path maps to Rs. */
+function formatInrAmount(value: number): string {
+  if (!Number.isFinite(value) || value <= 0) return '₹—';
+  return `₹${Math.round(value).toLocaleString('en-IN')}`;
+}
+
+function pdfSafeText(text: string): string {
+  return text.replace(/₹/g, 'Rs.');
+}
+
+function formatCivilRatePerSlab(value: number): string {
+  return `${formatInrAmount(value)} / sq. ft. of slab area`;
+}
+
+function formatWallRatePerWall(value: number): string {
+  return `${formatInrAmount(value)} / sq. ft. of wall area`;
+}
+
+function formatFlooringRatePerFloor(value: number): string {
+  return `${formatInrAmount(value)} / sq. ft. of floor area`;
+}
+
+/** Strip accidental trailing punctuation like ". ." from formatted strings. */
+function cleanAgreementText(value: string): string {
+  return value
+    .replace(/\s+\.\s*\./g, '.')
+    .replace(/\.\s+\./g, '.')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
 }
 
 function nonEmpty(value: string | null | undefined, fallback = '—'): string {
@@ -177,14 +209,47 @@ function buildScopeRows(project: MistriAgreementProjectInput): MistriAgreementRo
   const seen = new Set<string>();
   const rows: MistriAgreementRow[] = [];
 
+  if (mistri?.floorWork && mistri.floorWork.length > 0) {
+    for (const fw of mistri.floorWork) {
+      const label = formatMistriFloorWorkLabel(fw);
+      // Force live wizard mapping — ignore stale stored scopeLabel.
+      const value = cleanAgreementText(
+        formatMistriFloorWorkTypes(fw.workTypes, { ...fw, scopeLabel: null }),
+      );
+      const key = `${label}|${value}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      rows.push({ label, value });
+    }
+
+    for (const block of getMistriWorkRequirementBlocks(mistri)) {
+      if (SCOPE_LABELS_EXCLUDED_FROM_AGREEMENT.has(block.label)) continue;
+      if (/built[- ]?up|approx\.?\s*area|approximate.*area/i.test(block.label)) continue;
+      // Floor rows already added above from live mapping.
+      if (/^(RCC\s+|Assam Type|Ground Floor|Custom Floor|\d)/i.test(block.label)) continue;
+      const key = `${block.label}|${block.value}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      rows.push({
+        label: block.label,
+        value: cleanAgreementText(block.value),
+      });
+    }
+    return rows;
+  }
+
   for (const block of mistri ? getMistriWorkRequirementBlocks(mistri) : []) {
     if (SCOPE_LABELS_EXCLUDED_FROM_AGREEMENT.has(block.label)) continue;
-    // Never include client-uploaded built-up / approximate area on the agreement.
     if (/built[- ]?up|approx\.?\s*area|approximate.*area/i.test(block.label)) continue;
     const key = `${block.label}|${block.value}`;
     if (seen.has(key)) continue;
     seen.add(key);
-    rows.push({ label: block.label, value: block.value });
+    rows.push({
+      label: block.label,
+      value: cleanAgreementText(
+        block.value.replace(/\bStructure\s*\/\s*Frame Only\b/gi, 'Frame / Slab Casting Only'),
+      ),
+    });
   }
 
   return rows;
@@ -205,10 +270,10 @@ export function buildMistriAgreementPayload(input: {
   const acceptedRateSqft = rateEntries.length === 1 ? rateEntries[0].rate : 0;
   const acceptedRateLabel =
     rateEntries.length === 1
-      ? formatRsPerSqft(rateEntries[0].rate)
+      ? formatCivilRatePerSlab(rateEntries[0].rate)
       : rateEntries.length > 0
-        ? rateEntries.map((entry) => `${entry.label}: ${formatRsPerSqft(entry.rate)}`).join('; ')
-        : formatRsPerSqft(0);
+        ? rateEntries.map((entry) => `${entry.label}: ${formatCivilRatePerSlab(entry.rate)}`).join('; ')
+        : formatCivilRatePerSlab(0);
 
   // Client-uploaded built-up / approximate area must not appear on the agreement.
   const bidRows: MistriAgreementRow[] = [];
@@ -217,15 +282,17 @@ export function buildMistriAgreementPayload(input: {
     const isWall = floor?.costKind === 'wall';
     bidRows.push({
       label: isWall
-        ? `${entry.label} wall construction rate`
-        : `${entry.label} civil work rate`,
-      value: formatRsPerSqft(entry.rate),
+        ? `${entry.label} Wall Construction Rate`
+        : `${entry.label} Civil Work Rate`,
+      value: cleanAgreementText(
+        isWall ? formatWallRatePerWall(entry.rate) : formatCivilRatePerSlab(entry.rate),
+      ),
     });
   }
   for (const entry of flooringRateEntries) {
     bidRows.push({
       label: `${entry.floorLabel} ${flooringFittingTitle(entry.materialLabel)}`,
-      value: `Rs. ${entry.rate.toLocaleString('en-IN')} / sq. ft. of floor area`,
+      value: cleanAgreementText(formatFlooringRatePerFloor(entry.rate)),
     });
   }
 
@@ -257,7 +324,7 @@ export function buildMistriAgreementPayload(input: {
     bidRows,
     contractorRows,
     acceptedRateSqft,
-    acceptedRateLabel,
+    acceptedRateLabel: cleanAgreementText(acceptedRateLabel),
     slabAreaSqft: 0,
     slabAreaLabel: '—',
     districtPincode,
@@ -268,17 +335,18 @@ export function buildMistriAgreementPayload(input: {
 
 function ensurePage(doc: jsPDF, y: number, need: number, margin: number): number {
   const pageH = doc.internal.pageSize.getHeight();
-  if (y + need > pageH - 14) {
+  if (y + need > pageH - margin) {
     doc.addPage();
-    return 14;
+    return margin;
   }
   return y;
 }
 
 function drawSectionTitle(doc: jsPDF, title: string, y: number, margin: number): number {
   y = ensurePage(doc, y, 10, margin);
+  const usable = doc.internal.pageSize.getWidth() - margin * 2;
   doc.setFillColor(15, 118, 110);
-  doc.rect(margin, y, doc.internal.pageSize.getWidth() - margin * 2, 6.5, 'F');
+  doc.rect(margin, y, usable, 6.5, 'F');
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8.5);
   doc.setTextColor(255);
@@ -295,26 +363,30 @@ function drawRows(
 ): number {
   const pageW = doc.internal.pageSize.getWidth();
   const usable = pageW - margin * 2;
-  const labelW = usable * 0.36;
+  const labelW = usable * 0.38;
+  const valueW = usable - labelW;
+  const padX = 2.5;
   let y = startY;
 
   for (const row of rows) {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8);
-    const labelLines = doc.splitTextToSize(row.label, labelW - 2) as string[];
+    const labelLines = doc.splitTextToSize(pdfSafeText(row.label), labelW - padX * 2) as string[];
     doc.setFont('helvetica', 'normal');
-    const valueLines = doc.splitTextToSize(row.value || '—', usable - labelW - 3) as string[];
-    const rowH = Math.max(6.5, Math.max(labelLines.length, valueLines.length) * 3.8 + 3);
+    const valueLines = doc.splitTextToSize(pdfSafeText(row.value || '—'), valueW - padX * 2) as string[];
+    const rowH = Math.max(7, Math.max(labelLines.length, valueLines.length) * 3.8 + 3.5);
     y = ensurePage(doc, y, rowH + 0.5, margin);
-    doc.setDrawColor(210);
+    doc.setDrawColor(...BORDER_RGB);
+    doc.setLineWidth(0.3);
     doc.rect(margin, y, usable, rowH);
+    doc.line(margin + labelW, y, margin + labelW, y + rowH);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(8);
     doc.setTextColor(40);
-    doc.text(labelLines, margin + 1.5, y + 4);
+    doc.text(labelLines, margin + padX, y + 4.2);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(20);
-    doc.text(valueLines, margin + labelW + 1.5, y + 4);
+    doc.text(valueLines, margin + labelW + padX, y + 4.2);
     y += rowH;
   }
   return y + 3.5;
@@ -325,22 +397,29 @@ function drawParagraph(
   text: string,
   startY: number,
   margin: number,
-  opts?: { bold?: boolean; fill?: [number, number, number] },
+  opts?: { bold?: boolean; fill?: [number, number, number]; bordered?: boolean },
 ): number {
   const pageW = doc.internal.pageSize.getWidth();
   const usable = pageW - margin * 2;
+  const padX = 3.5;
+  const padY = 3.2;
   doc.setFont('helvetica', opts?.bold ? 'bold' : 'normal');
   doc.setFontSize(8);
-  const lines = doc.splitTextToSize(text, usable - 3) as string[];
-  const boxH = lines.length * 3.6 + 4;
-  const y = ensurePage(doc, startY, boxH + 1, margin);
+  const lines = doc.splitTextToSize(pdfSafeText(text), usable - padX * 2) as string[];
+  const boxH = lines.length * 3.7 + padY * 2;
+  const y = ensurePage(doc, startY, boxH + 1.5, margin);
   if (opts?.fill) {
     doc.setFillColor(...opts.fill);
     doc.rect(margin, y, usable, boxH, 'F');
   }
+  if (opts?.bordered || opts?.fill) {
+    doc.setDrawColor(...BORDER_RGB);
+    doc.setLineWidth(0.35);
+    doc.rect(margin, y, usable, boxH, 'S');
+  }
   doc.setTextColor(30);
-  doc.text(lines, margin + 1.5, y + 3.8);
-  return y + boxH + 2;
+  doc.text(lines, margin + padX, y + padY + 2.2);
+  return y + boxH + 2.5;
 }
 
 function drawSignatureBlock(doc: jsPDF, startY: number, margin: number): number {
@@ -357,32 +436,36 @@ function drawSignatureBlock(doc: jsPDF, startY: number, margin: number): number 
   ];
   labels.forEach((pair, i) => {
     const x = margin + i * (boxW + gap);
-    doc.setDrawColor(170);
+    doc.setDrawColor(...BORDER_RGB);
+    doc.setLineWidth(0.35);
     doc.rect(x, y, boxW, boxH);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(6.5);
     doc.setTextColor(20);
-    const title = doc.splitTextToSize(pair[0], boxW - 3) as string[];
-    doc.text(title, x + 1.5, y + 4.5);
+    const title = doc.splitTextToSize(pair[0], boxW - 4) as string[];
+    doc.text(title, x + 2, y + 4.5);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(6.5);
     doc.setTextColor(80);
-    const sub = doc.splitTextToSize(pair[1], boxW - 3) as string[];
-    doc.text(sub, x + 1.5, y + 10);
+    const sub = doc.splitTextToSize(pair[1], boxW - 4) as string[];
+    doc.text(sub, x + 2, y + 10);
     doc.setDrawColor(120);
     doc.line(x + 3, y + 22, x + boxW - 3, y + 22);
     doc.setFontSize(6.5);
-    doc.text('Date: ____ / ____ / 20__', x + 1.5, y + 28);
+    doc.text('Date: ____ / ____ / 20__', x + 2, y + 28);
   });
   return y + boxH + 4;
 }
 
-/** jsPDF Helvetica cannot render the rupee glyph — keep ASCII. */
+/**
+ * Official signed mistri agreement PDF.
+ * Currency uses "Rs." (Helvetica-safe). On-screen/email copy may show ₹.
+ */
 export function generateMistriAgreementPdfBytes(payload: MistriAgreementPayload): Uint8Array {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
-  const margin = 12;
+  const margin = PAGE_MARGIN_MM;
   const pageW = doc.internal.pageSize.getWidth();
-  let y = 12;
+  let y = margin;
 
   doc.setFillColor(15, 23, 42);
   doc.rect(0, 0, pageW, 22, 'F');
@@ -433,7 +516,7 @@ export function generateMistriAgreementPdfBytes(payload: MistriAgreementPayload)
   y = drawSectionTitle(doc, '2. Scope of Work & Blueprint Verification', y, margin);
   y = drawParagraph(
     doc,
-    'Joint Blueprint Review: Homeowner, Mistri, and BuilBid Field Coordinator must jointly review site blueprints to finalize structural parameters (length, width, depth, and height).',
+    'Joint Blueprint Review: Homeowner, Mistri, and BuilBid Field Coordinator must jointly review site blueprints to finalize the Plinth Area (Sq. Ft.) and on-site structural dimensions before execution.',
     y,
     margin,
   );
@@ -454,10 +537,10 @@ export function generateMistriAgreementPdfBytes(payload: MistriAgreementPayload)
   );
   y = drawParagraph(
     doc,
-    "Mandatory BuilBid Payment Gateway: All funds must flow exclusively through BuilBid (Homeowner → BuilBid Gateway → Mistri). Direct cash payments to the Mistri are prohibited and nullify platform guarantees.",
+    'Mandatory BuilBid Payment Gateway: All funds must flow exclusively through BuilBid (Homeowner -> BuilBid Milestone Escrow -> Mistri). Direct cash payments to the Mistri are strictly prohibited and nullify all platform guarantees.',
     y,
     margin,
-    { bold: true, fill: [254, 226, 226] },
+    { bold: true, fill: [254, 226, 226], bordered: true },
   );
   y = drawRows(doc, payload.bidRows, y, margin);
 
@@ -489,7 +572,7 @@ export function generateMistriAgreementPdfBytes(payload: MistriAgreementPayload)
     'Mistri Delay Penalty (5%): If the project extends beyond the 10-day grace period due to unexcused Mistri delay or absenteeism, a 5% penalty is deducted from the labour payout through BuilBid.',
     y,
     margin,
-    { bold: true, fill: [254, 226, 226] },
+    { bold: true, fill: [254, 226, 226], bordered: true },
   );
 
   y = drawSectionTitle(doc, '5. Execution & Physical Authorization', y, margin);
