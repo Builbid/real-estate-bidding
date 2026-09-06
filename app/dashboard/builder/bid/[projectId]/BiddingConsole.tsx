@@ -1424,7 +1424,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                               if (!(floorTotal > 0)) return null;
                               return (
                                 <p className={cn('text-xs font-semibold', estimateClass)}>
-                                  Floor total: ₹{floorTotal.toLocaleString('en-IN')}
+                                  {item.title} Mistri Cost: ₹{floorTotal.toLocaleString('en-IN')}
                                 </p>
                               );
                             })()
