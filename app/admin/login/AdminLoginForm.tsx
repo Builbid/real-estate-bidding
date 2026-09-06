@@ -3,7 +3,10 @@
 import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { AlertCircle, ArrowRight, KeyRound, Mail, Shield } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
+import {
+  sendOfficialAdminOtpAction,
+  verifyOfficialAdminOtpAction,
+} from '@/app/admin/otp-actions';
 import {
   ADMIN_UNAUTHORIZED_MESSAGE,
   BUILBID_OFFICIAL_ADMIN_EMAIL,
@@ -36,27 +39,18 @@ export function AdminLoginForm() {
     }
 
     setPending(true);
-    const supabase = createClient();
-    const { error: otpError } = await supabase.auth.signInWithOtp({
-      email: BUILBID_OFFICIAL_ADMIN_EMAIL,
-      options: {
-        shouldCreateUser: false,
-      },
-    });
+    const result = await sendOfficialAdminOtpAction(BUILBID_OFFICIAL_ADMIN_EMAIL);
     setPending(false);
 
-    if (otpError) {
-      setError(
-        otpError.message.includes('Signups not allowed') ||
-          otpError.message.toLowerCase().includes('user not found')
-          ? 'Official admin account is not provisioned in Auth yet. Create the user for builbidcorp@gmail.com first.'
-          : otpError.message,
-      );
+    if (result.error) {
+      setError(result.error);
       return;
     }
 
     setEmail(BUILBID_OFFICIAL_ADMIN_EMAIL);
-    setInfo('A 6-digit code was sent to the official inbox. Enter it below.');
+    setInfo(
+      `OTP sent to ${BUILBID_OFFICIAL_ADMIN_EMAIL} via BuilBid mail. Check inbox and spam.`,
+    );
     setStep('otp');
   }
 
@@ -65,22 +59,9 @@ export function AdminLoginForm() {
     setError(null);
     setPending(true);
 
-    const token = otp.replace(/\s/g, '');
-    if (!/^\d{6}$/.test(token)) {
-      setError('Enter the 6-digit code from your email.');
-      setPending(false);
-      return;
-    }
-
-    const supabase = createClient();
-    const { error: verifyError } = await supabase.auth.verifyOtp({
-      email: BUILBID_OFFICIAL_ADMIN_EMAIL,
-      token,
-      type: 'email',
-    });
-
-    if (verifyError) {
-      setError(verifyError.message);
+    const result = await verifyOfficialAdminOtpAction(otp);
+    if (result.error) {
+      setError(result.error);
       setPending(false);
       return;
     }
@@ -101,7 +82,7 @@ export function AdminLoginForm() {
           Secure admin access
         </h1>
         <p className="mt-1.5 text-sm text-slate-600 dark:text-slate-400">
-          OTP sign-in restricted to the BuilBid corporate inbox.
+          OTP is emailed through BuilBid Gmail SMTP (not Supabase default mail).
         </p>
       </div>
 
@@ -121,7 +102,10 @@ export function AdminLoginForm() {
       {step === 'email' ? (
         <form onSubmit={handleEmailSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <label htmlFor="admin-email" className="text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-400">
+            <label
+              htmlFor="admin-email"
+              className="text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-400"
+            >
               Staff email
             </label>
             <div className="relative">
@@ -130,7 +114,7 @@ export function AdminLoginForm() {
                 id="admin-email"
                 type="email"
                 autoComplete="email"
-                placeholder="official@builbid.in"
+                placeholder="builbidcorp@gmail.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="pl-10"
@@ -146,10 +130,16 @@ export function AdminLoginForm() {
       ) : (
         <form onSubmit={handleOtpSubmit} className="space-y-4">
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            Code sent to <span className="font-semibold text-slate-700 dark:text-slate-200">{BUILBID_OFFICIAL_ADMIN_EMAIL}</span>
+            Code sent to{' '}
+            <span className="font-semibold text-slate-700 dark:text-slate-200">
+              {BUILBID_OFFICIAL_ADMIN_EMAIL}
+            </span>
           </p>
           <div className="space-y-1.5">
-            <label htmlFor="admin-otp" className="text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-400">
+            <label
+              htmlFor="admin-otp"
+              className="text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-400"
+            >
               6-digit OTP
             </label>
             <div className="relative">
