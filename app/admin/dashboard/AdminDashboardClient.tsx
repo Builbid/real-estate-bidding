@@ -44,7 +44,12 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { cn, formatRelativeTime, STATUS_CONFIG } from '@/lib/utils';
+import {
+  cn,
+  formatProjectPostedAt,
+  formatRelativeTime,
+  STATUS_CONFIG,
+} from '@/lib/utils';
 
 const TH =
   'px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500';
@@ -53,6 +58,60 @@ const TABLE_SHELL =
   'overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900';
 const ROW_HOVER =
   'border-b border-slate-100 transition duration-150 last:border-0 hover:bg-slate-50/60 dark:border-slate-800 dark:hover:bg-slate-800/40';
+const COL_FILTER_INPUT =
+  'mt-1.5 h-7 w-full min-w-[7.5rem] rounded-md border border-slate-200 bg-white px-2 text-[11px] font-medium text-slate-700 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-emerald-300 focus:ring-2 focus:ring-emerald-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200';
+
+const UPLOADED_DATE_FILTERS = [
+  { value: 'all', label: 'All dates' },
+  { value: 'today', label: 'Today' },
+  { value: '7d', label: 'Last 7 days' },
+  { value: '30d', label: 'Last 30 days' },
+  { value: 'older', label: 'Older than 30d' },
+] as const;
+
+const BIDS_FILTERS = [
+  { value: 'all', label: 'All bids' },
+  { value: 'with', label: 'Has bids' },
+  { value: 'none', label: 'No bids' },
+  { value: 'awarded', label: 'Awarded / PDF' },
+] as const;
+
+type ProjectColumnFilters = {
+  project: string;
+  trade: string;
+  location: string;
+  client: string;
+  bids: string;
+  status: string;
+  uploaded: string;
+};
+
+const EMPTY_PROJECT_FILTERS: ProjectColumnFilters = {
+  project: '',
+  trade: 'all',
+  location: '',
+  client: '',
+  bids: 'all',
+  status: 'all',
+  uploaded: 'all',
+};
+
+function matchesUploadedFilter(createdAt: string, filter: string): boolean {
+  if (filter === 'all') return true;
+  const ts = new Date(createdAt).getTime();
+  if (!Number.isFinite(ts)) return false;
+  const ageMs = Date.now() - ts;
+  const day = 86_400_000;
+  if (filter === 'today') {
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    return ts >= start.getTime();
+  }
+  if (filter === '7d') return ageMs <= 7 * day;
+  if (filter === '30d') return ageMs <= 30 * day;
+  if (filter === 'older') return ageMs > 30 * day;
+  return true;
+}
 
 function formatMoney(value: number | null): string {
   if (value == null) return '—';
@@ -209,7 +268,7 @@ function BidMetricsCell({ project }: { project: AdminProjectRow }) {
   );
 }
 
-function FilterSelect({
+function ColumnFilterSelect({
   value,
   onChange,
   options,
@@ -217,7 +276,7 @@ function FilterSelect({
 }: {
   value: string;
   onChange: (value: string) => void;
-  options: { value: string; label: string }[];
+  options: readonly { value: string; label: string }[];
   'aria-label': string;
 }) {
   return (
@@ -225,7 +284,7 @@ function FilterSelect({
       aria-label={ariaLabel}
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="h-9 rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 shadow-sm outline-none transition focus:border-emerald-300 focus:ring-2 focus:ring-emerald-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+      className={COL_FILTER_INPUT}
     >
       {options.map((opt) => (
         <option key={opt.value} value={opt.value}>
@@ -233,6 +292,29 @@ function FilterSelect({
         </option>
       ))}
     </select>
+  );
+}
+
+function ColumnFilterInput({
+  value,
+  onChange,
+  placeholder,
+  'aria-label': ariaLabel,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+  'aria-label': string;
+}) {
+  return (
+    <input
+      type="search"
+      aria-label={ariaLabel}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      className={COL_FILTER_INPUT}
+    />
   );
 }
 
@@ -261,16 +343,56 @@ export function AdminDashboardClient({
 }) {
   const [tab, setTab] = useState<AdminTab>('overview');
   const [query, setQuery] = useState('');
-  const [tradeFilter, setTradeFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [projectFilters, setProjectFilters] =
+    useState<ProjectColumnFilters>(EMPTY_PROJECT_FILTERS);
   const [pending, startTransition] = useTransition();
+
+  const projectFiltersActive = useMemo(
+    () =>
+      projectFilters.project.trim() !== '' ||
+      projectFilters.location.trim() !== '' ||
+      projectFilters.client.trim() !== '' ||
+      projectFilters.trade !== 'all' ||
+      projectFilters.bids !== 'all' ||
+      projectFilters.status !== 'all' ||
+      projectFilters.uploaded !== 'all',
+    [projectFilters],
+  );
 
   const filteredProjects = useMemo(() => {
     const q = query.trim().toLowerCase();
+    const projectQ = projectFilters.project.trim().toLowerCase();
+    const locationQ = projectFilters.location.trim().toLowerCase();
+    const clientQ = projectFilters.client.trim().toLowerCase();
+
     return projects.filter((p) => {
       const trade = resolveAdminTradeBadge(p.serviceType);
-      if (tradeFilter !== 'all' && trade.key !== tradeFilter) return false;
-      if (!matchesAdminStatusFilter(p.status, statusFilter)) return false;
+
+      if (projectFilters.trade !== 'all' && trade.key !== projectFilters.trade) {
+        return false;
+      }
+      if (!matchesAdminStatusFilter(p.status, projectFilters.status)) {
+        return false;
+      }
+      if (!matchesUploadedFilter(p.createdAt, projectFilters.uploaded)) {
+        return false;
+      }
+      if (projectFilters.bids === 'with' && p.bidCount === 0) return false;
+      if (projectFilters.bids === 'none' && p.bidCount > 0) return false;
+      if (projectFilters.bids === 'awarded' && !p.selectedBuilderId) return false;
+
+      if (projectQ) {
+        const hay = `${p.title} ${p.id} ${shortId(p.id)}`.toLowerCase();
+        if (!hay.includes(projectQ)) return false;
+      }
+      if (locationQ) {
+        const hay = `${p.district} ${p.state}`.toLowerCase();
+        if (!hay.includes(locationQ)) return false;
+      }
+      if (clientQ && !p.clientName.toLowerCase().includes(clientQ)) {
+        return false;
+      }
+
       if (!q) return true;
       return (
         p.title.toLowerCase().includes(q) ||
@@ -281,7 +403,14 @@ export function AdminDashboardClient({
         p.id.toLowerCase().includes(q)
       );
     });
-  }, [projects, query, tradeFilter, statusFilter]);
+  }, [projects, query, projectFilters]);
+
+  function patchProjectFilter<K extends keyof ProjectColumnFilters>(
+    key: K,
+    value: ProjectColumnFilters[K],
+  ) {
+    setProjectFilters((prev) => ({ ...prev, [key]: value }));
+  }
 
   const filteredWorkers = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -320,8 +449,7 @@ export function AdminDashboardClient({
   function switchTab(next: AdminTab) {
     setTab(next);
     setQuery('');
-    setTradeFilter('all');
-    setStatusFilter('all');
+    setProjectFilters(EMPTY_PROJECT_FILTERS);
   }
 
   function runAction(
@@ -435,25 +563,22 @@ export function AdminDashboardClient({
                 <Input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search this table…"
+                  placeholder={
+                    tab === 'projects'
+                      ? 'Quick search across projects…'
+                      : 'Search this table…'
+                  }
                   className="h-9 border-slate-200 bg-white pl-9 shadow-sm"
                 />
               </div>
-              {tab === 'projects' ? (
-                <div className="flex flex-wrap items-center gap-2">
-                  <FilterSelect
-                    aria-label="Filter by trade"
-                    value={tradeFilter}
-                    onChange={setTradeFilter}
-                    options={ADMIN_TRADE_FILTERS}
-                  />
-                  <FilterSelect
-                    aria-label="Filter by status"
-                    value={statusFilter}
-                    onChange={setStatusFilter}
-                    options={ADMIN_STATUS_FILTERS}
-                  />
-                </div>
+              {tab === 'projects' && projectFiltersActive ? (
+                <button
+                  type="button"
+                  onClick={() => setProjectFilters(EMPTY_PROJECT_FILTERS)}
+                  className="text-xs font-semibold text-emerald-700 hover:text-emerald-800"
+                >
+                  Clear column filters
+                </button>
               ) : null}
             </div>
           ) : null}
@@ -500,12 +625,69 @@ export function AdminDashboardClient({
                 <table className="min-w-full text-left text-sm">
                   <thead className="border-b border-slate-200 bg-slate-50/75 dark:border-slate-800 dark:bg-slate-950/80">
                     <tr>
-                      <th className={TH}>Project</th>
-                      <th className={TH}>Type of Work</th>
-                      <th className={TH}>Location</th>
-                      <th className={TH}>Client</th>
-                      <th className={TH}>Bids &amp; Pricing</th>
-                      <th className={TH}>Status</th>
+                      <th className={TH}>
+                        Project
+                        <ColumnFilterInput
+                          aria-label="Filter by project"
+                          value={projectFilters.project}
+                          onChange={(v) => patchProjectFilter('project', v)}
+                          placeholder="Title or ID…"
+                        />
+                      </th>
+                      <th className={TH}>
+                        Type of Work
+                        <ColumnFilterSelect
+                          aria-label="Filter by type of work"
+                          value={projectFilters.trade}
+                          onChange={(v) => patchProjectFilter('trade', v)}
+                          options={ADMIN_TRADE_FILTERS}
+                        />
+                      </th>
+                      <th className={TH}>
+                        Location
+                        <ColumnFilterInput
+                          aria-label="Filter by location"
+                          value={projectFilters.location}
+                          onChange={(v) => patchProjectFilter('location', v)}
+                          placeholder="District / state…"
+                        />
+                      </th>
+                      <th className={TH}>
+                        Client
+                        <ColumnFilterInput
+                          aria-label="Filter by client"
+                          value={projectFilters.client}
+                          onChange={(v) => patchProjectFilter('client', v)}
+                          placeholder="Client name…"
+                        />
+                      </th>
+                      <th className={TH}>
+                        Bids &amp; Pricing
+                        <ColumnFilterSelect
+                          aria-label="Filter by bids"
+                          value={projectFilters.bids}
+                          onChange={(v) => patchProjectFilter('bids', v)}
+                          options={BIDS_FILTERS}
+                        />
+                      </th>
+                      <th className={TH}>
+                        Status
+                        <ColumnFilterSelect
+                          aria-label="Filter by status"
+                          value={projectFilters.status}
+                          onChange={(v) => patchProjectFilter('status', v)}
+                          options={ADMIN_STATUS_FILTERS}
+                        />
+                      </th>
+                      <th className={TH}>
+                        Project Uploaded Date
+                        <ColumnFilterSelect
+                          aria-label="Filter by uploaded date"
+                          value={projectFilters.uploaded}
+                          onChange={(v) => patchProjectFilter('uploaded', v)}
+                          options={UPLOADED_DATE_FILTERS}
+                        />
+                      </th>
                       <th className={TH}>Actions</th>
                     </tr>
                   </thead>
@@ -513,7 +695,7 @@ export function AdminDashboardClient({
                     {filteredProjects.length === 0 ? (
                       <tr>
                         <td
-                          colSpan={7}
+                          colSpan={8}
                           className="px-4 py-10 text-center text-sm text-slate-500"
                         >
                           No projects match your filters.
@@ -531,8 +713,7 @@ export function AdminDashboardClient({
                               {p.title}
                             </Link>
                             <p className="mt-0.5 text-xs text-slate-400">
-                              ID: {shortId(p.id)} · Posted{' '}
-                              {formatRelativeTime(p.createdAt)}
+                              ID: {shortId(p.id)}
                             </p>
                           </td>
                           <td className={TD}>
@@ -546,7 +727,12 @@ export function AdminDashboardClient({
                               </span>
                             </div>
                           </td>
-                          <td className={cn(TD, 'text-sm text-slate-700 dark:text-slate-200')}>
+                          <td
+                            className={cn(
+                              TD,
+                              'text-sm text-slate-700 dark:text-slate-200',
+                            )}
+                          >
                             {p.clientName}
                           </td>
                           <td className={TD}>
@@ -557,6 +743,14 @@ export function AdminDashboardClient({
                               status={p.status}
                               biddingEndsAt={p.biddingEndsAt}
                             />
+                          </td>
+                          <td className={cn(TD, 'whitespace-nowrap')}>
+                            <p className="text-sm font-medium text-slate-800 dark:text-slate-100">
+                              {formatProjectPostedAt(p.createdAt) ?? '—'}
+                            </p>
+                            <p className="mt-0.5 text-xs text-slate-400">
+                              {formatRelativeTime(p.createdAt)}
+                            </p>
                           </td>
                           <td className={TD}>
                             <div className="flex flex-wrap items-center gap-1">
