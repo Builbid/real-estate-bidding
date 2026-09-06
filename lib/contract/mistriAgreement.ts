@@ -57,6 +57,24 @@ export const AGREEMENT_MANUAL_DATE_BLANK = '________________________';
 const BORDER_RGB: [number, number, number] = [226, 232, 240];
 const PAGE_MARGIN_MM = 14;
 
+/**
+ * Short public BuilBid ID for agreements (e.g. BB-FBC030A1).
+ * Deterministic from the profile UUID — not a separate DB column.
+ */
+export function formatBuilbidPublicId(id: string | null | undefined): string {
+  const raw = id?.trim();
+  if (!raw) return '—';
+  // Already a short public code
+  if (/^BB-[0-9A-Z]{6,10}$/i.test(raw)) return raw.toUpperCase();
+  const hex = raw.replace(/-/g, '').toUpperCase();
+  if (/^[0-9A-F]{8,}$/.test(hex)) {
+    return `BB-${hex.slice(0, 8)}`;
+  }
+  const compact = raw.replace(/[^0-9A-Za-z]/g, '').toUpperCase();
+  if (compact.length >= 6) return `BB-${compact.slice(0, 8)}`;
+  return `BB-${compact || 'UNKNOWN'}`;
+}
+
 export function isMistriCivilService(serviceType?: string | null): boolean {
   const value = (serviceType ?? 'labour_contractor').toLowerCase();
   return value === 'labour_contractor' || value === 'mistri' || value === 'civil_construction';
@@ -298,7 +316,7 @@ export function buildMistriAgreementPayload(input: {
 
   const contractorRows: MistriAgreementRow[] = [
     { label: 'Head Mason / contractor', value: nonEmpty(mistri.companyName || mistri.name) },
-    { label: 'builbid ID', value: nonEmpty(mistri.platformId) },
+    { label: 'builbid ID', value: formatBuilbidPublicId(mistri.platformId) },
     { label: 'Registered email', value: nonEmpty(mistri.email) },
     { label: 'Mobile / WhatsApp', value: nonEmpty(mistri.mobile) },
     { label: 'Government ID / GST / Govt Reg No', value: nonEmpty(mistri.gstNumber) },
@@ -506,7 +524,7 @@ export function generateMistriAgreementPdfBytes(payload: MistriAgreementPayload)
     [
       { label: 'PARTY B — Head Mason', value: nonEmpty(payload.mistri.companyName || payload.mistri.name) },
       { label: 'Phone / WhatsApp', value: nonEmpty(payload.mistri.mobile) },
-      { label: 'builbid ID', value: nonEmpty(payload.mistri.platformId) },
+      { label: 'builbid ID', value: formatBuilbidPublicId(payload.mistri.platformId) },
       { label: 'Govt ID / GST / Reg No', value: nonEmpty(payload.mistri.gstNumber) },
     ],
     y,
