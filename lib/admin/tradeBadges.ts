@@ -131,7 +131,6 @@ export const ADMIN_TRADE_FILTERS: { value: string; label: string }[] = [
   { value: 'electrical', label: 'Electrical' },
   { value: 'plumbing', label: 'Plumbing' },
   { value: 'drawing', label: 'Drawing / Architecture' },
-  { value: 'interior', label: 'Interior Work' },
   { value: 'earthwork', label: 'Earthwork' },
 ];
 

@@ -16,6 +16,7 @@ export interface TradeServiceOption {
   description: string;
 }
 
+/** Active trades offered for signup and new project posting. */
 export const TRADE_SERVICE_OPTIONS: TradeServiceOption[] = [
   {
     value: 'painter',
@@ -36,12 +37,6 @@ export const TRADE_SERVICE_OPTIONS: TradeServiceOption[] = [
     description: 'Wiring & electrical fittings',
   },
   {
-    value: 'false_ceiling_work',
-    label: 'Interior Work',
-    emoji: '🛋️',
-    description: 'Interior finishing, false ceiling & modular kitchen',
-  },
-  {
     value: 'earthwork',
     label: 'Earthwork',
     emoji: '🚜',
@@ -51,28 +46,69 @@ export const TRADE_SERVICE_OPTIONS: TradeServiceOption[] = [
 
 export const TRADE_SERVICE_VALUES: TradeServiceType[] = TRADE_SERVICE_OPTIONS.map((o) => o.value);
 
-export function isTradeServiceType(value: string | null | undefined): value is TradeServiceType {
+/** Standalone Carpenter was removed; existing DB rows may still use this value. */
+export const LEGACY_CARPENTER_SERVICE = 'carpenter' as const;
+
+/** Interior Work was removed; existing DB rows may still use this value. */
+export const LEGACY_INTERIOR_WORK_SERVICE = 'false_ceiling_work' as const;
+
+export function isLegacyCarpenterService(value: string | null | undefined): boolean {
+  return value === LEGACY_CARPENTER_SERVICE;
+}
+
+export function isLegacyInteriorWorkService(value: string | null | undefined): boolean {
+  return value === LEGACY_INTERIOR_WORK_SERVICE;
+}
+
+/** True for any retired trade that must not appear in signup / post-project pickers. */
+export function isRetiredTradeService(value: string | null | undefined): boolean {
+  return isLegacyCarpenterService(value) || isLegacyInteriorWorkService(value);
+}
+
+/** Active trades only (excludes retired Interior Work / Carpenter). */
+export function isActiveTradeServiceType(
+  value: string | null | undefined,
+): value is Exclude<TradeServiceType, 'carpenter' | 'false_ceiling_work'> {
   if (!value) return false;
   return (TRADE_SERVICE_VALUES as string[]).includes(value);
 }
 
-/** Trades + Drawing & Design — all use role `service_provider`. */
+/**
+ * Active trades + legacy Interior Work (for existing projects / bids).
+ * Carpenter stays excluded (mapped to Mistri elsewhere).
+ */
+export function isTradeServiceType(value: string | null | undefined): value is TradeServiceType {
+  if (!value) return false;
+  return isActiveTradeServiceType(value) || isLegacyInteriorWorkService(value);
+}
+
+/** Trades + Drawing & Design offered for new provider registration. */
 export function isProviderSpecialtyType(
   value: string | null | undefined,
 ): value is ProviderSpecialtyType {
-  return isTradeServiceType(value) || isDrawingDesignServiceType(value);
+  return isActiveTradeServiceType(value) || isDrawingDesignServiceType(value);
 }
 
 export function getTradeOption(value: string | null | undefined): TradeServiceOption | undefined {
+  if (isLegacyInteriorWorkService(value)) {
+    return {
+      value: LEGACY_INTERIOR_WORK_SERVICE,
+      label: 'Interior Work',
+      emoji: '🛋️',
+      description: 'Interior finishing, false ceiling & modular kitchen',
+    };
+  }
   return TRADE_SERVICE_OPTIONS.find((o) => o.value === value);
 }
 
 export function getTradeLabel(value: ServiceType | string | null | undefined): string {
   if (isLegacyCarpenterService(value)) return 'Mistri Worker';
+  if (isLegacyInteriorWorkService(value)) return 'Interior Work';
   return getTradeOption(value)?.label ?? 'Service Provider';
 }
 
 export function getTradeEmoji(value: ServiceType | string | null | undefined): string {
+  if (isLegacyInteriorWorkService(value)) return '🛋️';
   return getTradeOption(value)?.emoji ?? '🔧';
 }
 
@@ -88,8 +124,7 @@ export interface ServiceCategoryOption {
   description: string;
 }
 
-/** Every service a client can post a project for / a provider can bid on — powers the
- * homepage category bar and the provider signup grid. */
+/** Every active service a client can post / a provider can register for. */
 export const ALL_SERVICE_CATEGORIES: ServiceCategoryOption[] = [
   {
     value: 'labour_contractor',
@@ -126,13 +161,6 @@ export function getProviderSignupCategories(): ServiceCategoryOption[] {
 }
 
 export const PRIMARY_PROVIDER_SIGNUP_SERVICE = 'labour_contractor' as const;
-
-/** Standalone Carpenter was removed; existing DB rows may still use this value. */
-export const LEGACY_CARPENTER_SERVICE = 'carpenter' as const;
-
-export function isLegacyCarpenterService(value: string | null | undefined): boolean {
-  return value === LEGACY_CARPENTER_SERVICE;
-}
 
 export function getProviderSpecialtyEmoji(value: string | null | undefined): string {
   const cat = ALL_SERVICE_CATEGORIES.find((c) => c.value === value);

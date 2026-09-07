@@ -23,7 +23,7 @@ const PILLARS = [
   {
     icon: BadgeCheck,
     title: 'Verified Trade Network',
-    body: 'Vetted skilled specialists across Mistri, Electricians, Painters, Plumbers, and Interior Specialists — so every bid comes from a qualified professional.',
+    body: 'Vetted skilled specialists across Mistri, Electricians, Painters, and Plumbers — so every bid comes from a qualified professional.',
   },
   {
     icon: Layers3,

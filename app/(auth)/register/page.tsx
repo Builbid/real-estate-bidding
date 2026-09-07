@@ -11,7 +11,7 @@ import { BuilBidLogo } from '@/components/shared/BuilBidLogo';
 import { signUpAction } from '@/app/actions/auth';
 import {
   TRADE_SERVICE_OPTIONS,
-  isLegacyCarpenterService,
+  isRetiredTradeService,
   isProviderSpecialtyType,
   getProviderSpecialtyLabel,
 } from '@/lib/trades';
@@ -143,7 +143,7 @@ function RegisterPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const rawRole = searchParams.get('role');
-  const roleParam = isLegacyCarpenterService(rawRole) ? null : parseRoleParam(rawRole);
+  const roleParam = isRetiredTradeService(rawRole) ? null : parseRoleParam(rawRole);
 
   const [step, setStep] = useState<Step>(() => (isDirectRegisterRole(roleParam) ? 2 : 1));
   const [role, setRole] = useState<RegisterRole>(() =>
@@ -354,12 +354,12 @@ function RegisterPageContent() {
   }, [roleParam]);
 
   useEffect(() => {
-    if (isLegacyCarpenterService(rawRole)) {
+    if (isRetiredTradeService(rawRole)) {
       router.replace('/signup/provider');
     }
   }, [rawRole, router]);
 
-  if (isLegacyCarpenterService(rawRole)) {
+  if (isRetiredTradeService(rawRole)) {
     return null;
   }
 

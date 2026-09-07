@@ -11,7 +11,7 @@ import { TradeServiceProjectWizard } from '@/components/owner/TradeServiceProjec
 import { DrawingDesignProjectWizard } from '@/components/owner/DrawingDesignProjectWizard';
 import { isDrawingDesignServiceType } from '@/lib/drawingDesign';
 import { isConstructionFirmEnabled } from '@/lib/features';
-import { isLegacyCarpenterService, isTradeServiceType } from '@/lib/trades';
+import { isActiveTradeServiceType, isRetiredTradeService } from '@/lib/trades';
 import { NAV_BACK_LINK } from '@/lib/navStyles';
 import { cn } from '@/lib/utils';
 import type { ServiceType } from '@/lib/types';
@@ -19,13 +19,12 @@ import type { ServiceType } from '@/lib/types';
 type Phase = 'service' | 'wizard';
 
 function parseServiceParam(value: string | null): ServiceType | null {
-  if (isLegacyCarpenterService(value)) return null;
+  if (isRetiredTradeService(value)) return null;
+  if (value === 'interior_work' || value === 'interior-designer') return null;
   if (value === 'labour_contractor') return value;
   if (value === 'construction_firm' && isConstructionFirmEnabled()) return value;
   if (isDrawingDesignServiceType(value)) return value;
-  if (value === 'interior_work') return 'false_ceiling_work';
-  if (value === 'interior-designer') return 'false_ceiling_work';
-  if (isTradeServiceType(value)) return value;
+  if (isActiveTradeServiceType(value)) return value;
   return null;
 }
 
@@ -43,7 +42,8 @@ function NewProjectPageContent() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    if (isLegacyCarpenterService(searchParams.get('service'))) {
+    const service = searchParams.get('service');
+    if (isRetiredTradeService(service) || service === 'interior_work' || service === 'interior-designer') {
       router.replace('/dashboard/owner');
     }
   }, [router, searchParams]);
@@ -80,7 +80,7 @@ function NewProjectPageContent() {
     );
   }
 
-  if (phase === 'wizard' && serviceType && isTradeServiceType(serviceType)) {
+  if (phase === 'wizard' && serviceType && isActiveTradeServiceType(serviceType)) {
     return (
       <div className="space-y-4">
         <BackToHomeLink />

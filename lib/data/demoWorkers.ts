@@ -39,18 +39,6 @@ export const DEMO_RANKED_WORKERS: RankedWorker[] = [
     isVerified: true,
   },
   {
-    id: 'atelier-interiors-assam',
-    name: 'Atelier Interiors Assam',
-    location: 'Guwahati',
-    rating: 4.7,
-    reviewsCount: 29,
-    category: 'false_ceiling_work',
-    categoryLabel: 'Interior Designer',
-    avatarUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=AtelierInteriors',
-    portfolioLink: '/builder/highland-structures',
-    isVerified: true,
-  },
-  {
     id: 'sonitpur-labour-solutions',
     name: 'Sonitpur Labour Solutions',
     location: 'Tezpur',

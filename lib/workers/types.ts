@@ -1,4 +1,5 @@
 import type { ServiceType } from '@/lib/types';
+import { isLegacyInteriorWorkService } from '@/lib/trades';
 
 /** Filter keys for the workers directory (excludes construction firms). */
 export type WorkerCategory =
@@ -6,10 +7,11 @@ export type WorkerCategory =
   | 'labour_contractor'
   | 'plumber'
   | 'electrician'
-  | 'false_ceiling_work'
   | 'painter'
   | 'earthwork'
-  | 'drawing_design';
+  | 'drawing_design'
+  /** @deprecated Interior Work removed — kept only for legacy ranked rows. */
+  | 'false_ceiling_work';
 
 export interface RankedWorker {
   id: string;
@@ -32,7 +34,6 @@ export const WORKER_CATEGORY_FILTERS: Array<{
   { value: 'labour_contractor', label: 'Mistri Worker' },
   { value: 'plumber', label: 'Plumber' },
   { value: 'electrician', label: 'Electrician' },
-  { value: 'false_ceiling_work', label: 'Interior Designer' },
   { value: 'painter', label: 'Painter' },
   { value: 'earthwork', label: 'Earthwork' },
   { value: 'drawing_design', label: 'Drawing & Design' },
@@ -43,6 +44,7 @@ export function isWorkerCategory(value: string): value is Exclude<WorkerCategory
 }
 
 export function categoryLabel(category: Exclude<WorkerCategory, 'all'>): string {
+  if (category === 'false_ceiling_work') return 'Interior Work';
   return WORKER_CATEGORY_FILTERS.find((f) => f.value === category)?.label ?? 'Worker';
 }
 
@@ -51,6 +53,7 @@ export function resolveWorkerCategory(
   serviceType: ServiceType | string | null | undefined,
   role?: string | null,
 ): Exclude<WorkerCategory, 'all'> {
+  if (isLegacyInteriorWorkService(serviceType)) return 'false_ceiling_work';
   if (serviceType && isWorkerCategory(serviceType)) return serviceType;
   if (role === 'labour_contractor') return 'labour_contractor';
   if (role === 'service_provider') return 'plumber';

@@ -71,11 +71,13 @@ async function fetchLiveWorkers(): Promise<RankedWorker[]> {
     serviceById.set(row.id, row.service_type ?? null);
   }
 
-  return profiles.map((row) => {
-    const stats = computeRatingStats(ratingsByBuilder.get(row.id) ?? []);
-    const rating = stats.total > 0 ? stats.average : 4.5;
-    return mapRowToWorker(row, rating, stats.total, serviceById.get(row.id));
-  });
+  return profiles
+    .map((row) => {
+      const stats = computeRatingStats(ratingsByBuilder.get(row.id) ?? []);
+      const rating = stats.total > 0 ? stats.average : 4.5;
+      return mapRowToWorker(row, rating, stats.total, serviceById.get(row.id));
+    })
+    .filter((worker) => worker.category !== 'false_ceiling_work');
 }
 
 /** Live ranked workers with demo fallback when the directory is empty. */

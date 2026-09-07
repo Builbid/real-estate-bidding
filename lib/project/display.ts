@@ -11,6 +11,7 @@ import {
   ALL_SERVICE_CATEGORIES,
   getProviderSpecialtyLabel,
   isLegacyCarpenterService,
+  isLegacyInteriorWorkService,
   isTradeServiceType,
   type ServiceCategoryOption,
 } from '@/lib/trades';
@@ -37,6 +38,14 @@ export function getServiceCategoryOption(serviceType: ServiceType): ServiceCateg
       ALL_SERVICE_CATEGORIES.find((c) => c.value === 'labour_contractor') ??
       ALL_SERVICE_CATEGORIES[0]
     );
+  }
+  if (isLegacyInteriorWorkService(serviceType)) {
+    return {
+      value: 'false_ceiling_work',
+      label: 'Interior Work',
+      emoji: '🛋️',
+      description: 'Interior finishing, false ceiling & modular kitchen',
+    };
   }
   return (
     ALL_SERVICE_CATEGORIES.find((c) => c.value === serviceType) ??

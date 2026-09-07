@@ -19,7 +19,7 @@ import {
   type DrawingDetails,
 } from '@/lib/drawingDesign'
 import { isConstructionFirmEnabled } from '@/lib/features'
-import { isTradeServiceType } from '@/lib/trades'
+import { isLegacyInteriorWorkService, isTradeServiceType } from '@/lib/trades'
 import {
   isPainterDetails,
   type PainterDetails,
@@ -124,7 +124,10 @@ export async function createProjectAction(
   if (isFirm && !isConstructionFirmEnabled()) {
     return { error: 'Construction Firm projects are not available yet. Please choose another service.' }
   }
-  const isTrade = isTradeServiceType(input.service_type)
+  if (isLegacyInteriorWorkService(input.service_type)) {
+    return { error: 'Interior Work projects are no longer available. Please choose another service.' }
+  }
+  const isTrade = isTradeServiceType(input.service_type) && !isLegacyInteriorWorkService(input.service_type)
   const isDrawing = isDrawingDesignServiceType(input.service_type)
   const serviceType: ServiceType = isFirm
     ? 'construction_firm'

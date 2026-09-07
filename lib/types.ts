@@ -16,6 +16,7 @@ export type TradeServiceType =
   | 'electrician'
   /** @deprecated Removed as a standalone service. Existing rows may still use this value. */
   | 'carpenter'
+  /** @deprecated Interior Work removed. Existing rows may still use this value. */
   | 'false_ceiling_work'
   | 'earthwork';
 
