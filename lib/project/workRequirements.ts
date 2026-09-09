@@ -179,6 +179,7 @@ const BID_SUMMARY_LABELS = new Set([
   'Interior Area',
   'Total Plot Area',
   'Plot Dimensions',
+  'Approximate Plot Dimensions',
   'Building Structure Type',
   'House Structure',
   'Work Start Time',
