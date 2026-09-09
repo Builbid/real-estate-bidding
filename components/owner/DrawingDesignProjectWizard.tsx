@@ -338,7 +338,7 @@ export function DrawingDesignProjectWizard() {
               </div>
 
               <Input
-                label="Plot Dimensions (e.g. 30ft x 40ft)"
+                label="Approximate Plot Dimensions (e.g. 30ft x 40ft)"
                 type="text"
                 placeholder="e.g. 30ft x 40ft"
                 value={form.plotDimensions}

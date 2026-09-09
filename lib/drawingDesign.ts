@@ -15,6 +15,7 @@ export type { ProjectStartTimeType };
 
 export type DrawingDesignPackage =
   | '2d_floor_plan_only'
+  | '3d_floor_plan'
   | '3d_front_elevation'
   | 'structural_drawings'
   | 'municipal_approval'
@@ -89,6 +90,12 @@ export const DRAWING_PACKAGE_OPTIONS: {
     description: 'Dimensioned floor plans and room layout',
   },
   {
+    value: '3d_floor_plan',
+    label: '3D Floor Plan',
+    emoji: '🏠',
+    description: '3D massing / walkthrough-style floor plan views',
+  },
+  {
     value: '3d_front_elevation',
     label: '3D Front Elevation',
     emoji: '🖼️',
@@ -102,9 +109,9 @@ export const DRAWING_PACKAGE_OPTIONS: {
   },
   {
     value: 'municipal_approval',
-    label: 'Municipal / GMDA Approval Drawings',
+    label: 'Municipal / GMDA / Permission Approval Drawing',
     emoji: '📋',
-    description: 'Drawings prepared for municipal / GMDA approval',
+    description: 'Drawings prepared for municipal, GMDA, or permission approval',
   },
 ];
 
@@ -126,6 +133,7 @@ export const DRAWING_DELIVERABLE_OPTIONS: { value: DrawingDeliverable; label: st
 
 export const DRAWING_PACKAGE_TO_TYPES: Record<DrawingDesignPackage, DrawingDesignType[]> = {
   '2d_floor_plan_only': ['2d_house_plan'],
+  '3d_floor_plan': ['3d_house_plan'],
   '3d_front_elevation': ['3d_front_elevation'],
   structural_drawings: ['structural_drawing'],
   electrical_drawing: ['electrical_layout'],
@@ -299,7 +307,7 @@ export function getDrawingWorkRequirementBlocks(details: DrawingDetails): {
   blocks.push(
     { label: 'Packages', value: formatDrawingPackagesSummary(details.packages) },
     { label: 'Number of Floors', value: details.numberOfFloors },
-    { label: 'Plot Dimensions', value: details.plotDimensions },
+    { label: 'Approximate Plot Dimensions', value: details.plotDimensions },
   );
   if (details.plotAreaSqft != null) {
     blocks.push({
@@ -360,7 +368,7 @@ export function validateDrawingDetailsInput(input: {
   }
   const dimensions = input.plotDimensions.trim();
   if (dimensions.length < 2) {
-    return { error: 'Enter plot dimensions (e.g. 30ft x 40ft).' };
+    return { error: 'Enter approximate plot dimensions (e.g. 30ft x 40ft).' };
   }
   const deliverables = parseDeliverables(input.deliverables);
   if (deliverables.length === 0) {
