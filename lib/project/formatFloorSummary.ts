@@ -17,6 +17,11 @@ import {
   type BuildingType,
   type ConstructionTypesMap,
 } from '@/lib/buildingConfig';
+import {
+  formatDrawingPackagesSummary,
+  isDrawingDesignServiceType,
+  parseDrawingDetails,
+} from '@/lib/drawingDesign';
 import { getProjectServiceType } from '@/lib/project/display';
 import { readNestedProjectDetail } from '@/lib/project/storedDetails';
 import { TRACK_LABELS } from '@/lib/utils';
@@ -100,7 +105,7 @@ export function formatFloorScopeShort(fw: MistriFloorWork): string {
   }
   if (parts.length > 0) return parts.join(' + ');
 
-  return 'Scope TBD';
+  return 'Full Construction';
 }
 
 function fromMistriFloorWork(floorWork: readonly MistriFloorWork[]): FloorSummaryItem[] {
@@ -144,7 +149,7 @@ function fromBuildingConstructionTypes(project: {
       ? getConstructionDisplayShortLabel(ct)
           .replace('Full Finished Structure', 'Full Construction')
           .replace('Frame (Skeleton) only', 'Frame / Slab Casting Only')
-      : 'Scope TBD';
+      : 'Full Construction';
     return {
       key: type,
       floorCode,
@@ -152,6 +157,26 @@ function fromBuildingConstructionTypes(project: {
       label: `${floorCode}: ${scope}`,
     };
   });
+}
+
+function fromDrawingDetails(project: {
+  drawing_details?: Project['drawing_details'];
+  drawing_types?: string[] | null;
+}): FloorSummaryItem[] {
+  const details = parseDrawingDetails(readNestedProjectDetail(project, 'drawing_details'));
+  if (!details) return [];
+
+  const packageSummary = formatDrawingPackagesSummary(details.packages);
+  const floors = details.numberOfFloors?.trim() || 'Drawing';
+
+  return [
+    {
+      key: `drawing:${floors}`,
+      floorCode: floors,
+      scope: packageSummary,
+      label: `${floors}: ${packageSummary}`,
+    },
+  ];
 }
 
 function fromLegacyMatrix(project: {
@@ -189,14 +214,22 @@ type FloorSummaryProject = {
   building_types?: BuildingType[] | null;
   construction_types?: ConstructionTypesMap | null;
   mistri_details?: Project['mistri_details'];
+  drawing_details?: Project['drawing_details'];
+  drawing_types?: string[] | null;
 };
 
 /**
  * Standardized concise floor-scope labels for dashboard / public feed cards.
  * Prefers live `mistri_details.floorWork` over legacy matrix summary fields.
+ * Drawing & Design shows floors + selected packages (not construction TBD).
  */
 export function formatFloorSummary(project: FloorSummaryProject): FloorSummaryItem[] {
   const serviceType = getProjectServiceType(project);
+
+  if (isDrawingDesignServiceType(serviceType)) {
+    return fromDrawingDetails(project);
+  }
+
   if (serviceType === 'labour_contractor') {
     const details = parseMistriDetails(readNestedProjectDetail(project, 'mistri_details'));
     if (details?.floorWork && details.floorWork.length > 0) {
