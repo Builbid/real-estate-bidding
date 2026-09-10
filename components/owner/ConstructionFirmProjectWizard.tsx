@@ -26,6 +26,7 @@ import {
   parseIndianAmount,
 } from '@/lib/formatIndianCurrency';
 import { createProjectAction } from '@/app/actions/createProject';
+import { HistoryBackButton } from '@/components/shared/HistoryBackButton';
 import { formatPincodeInput, validatePincode } from '@/lib/validation/pincode';
 import { cn } from '@/lib/utils';
 
@@ -186,6 +187,7 @@ export function ConstructionFirmProjectWizard() {
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
+        <HistoryBackButton className="mb-2" />
         <h1 className="text-xl font-bold text-foreground">Post Construction Firm Project</h1>
         <p className="text-sm text-muted-foreground mt-1">
           Turnkey construction — firms bid a single ₹/sqft rate for the full project.

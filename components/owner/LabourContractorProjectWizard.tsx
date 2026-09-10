@@ -66,6 +66,7 @@ import {
   type MistriRccScopeOption,
   type MistriStartTimeType,
 } from '@/lib/mistriDetails';
+import { HistoryBackButton } from '@/components/shared/HistoryBackButton';
 import { cn } from '@/lib/utils';
 import { createProjectAction } from '@/app/actions/createProject';
 
@@ -895,6 +896,7 @@ export function LabourContractorProjectWizard() {
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
+        <HistoryBackButton className="mb-2" />
         <h1 className="text-xl font-bold text-foreground">Post Mistri Worker Project</h1>
         <p className="text-sm font-medium text-gray-700 dark:text-zinc-300 mt-1">
           Specify civil work scope clearly so mistri workers can bid without disputes.

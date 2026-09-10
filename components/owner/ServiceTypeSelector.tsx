@@ -2,6 +2,7 @@
 
 import { CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { HistoryBackButton } from '@/components/shared/HistoryBackButton';
 import type { ServiceType } from '@/lib/types';
 import { ALL_SERVICE_CATEGORIES, TRADE_SERVICE_OPTIONS } from '@/lib/trades';
 import { isConstructionFirmEnabled } from '@/lib/features';
@@ -89,6 +90,7 @@ export function ServiceTypeSelector({ value, onChange, onContinue }: ServiceType
   return (
     <div className={cn('space-y-6', value && 'pb-24')}>
       <div>
+        <HistoryBackButton className="mb-2" />
         <h2 className="text-xl font-bold text-foreground">What are you looking for?</h2>
         <p className="text-sm text-muted-foreground mt-1">
           Choose the type of construction service you need

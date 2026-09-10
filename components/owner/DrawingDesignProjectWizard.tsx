@@ -32,6 +32,7 @@ import {
   type DrawingSubmissionTimeType,
 } from '@/lib/drawingDesign';
 import { generateProjectTitle } from '@/lib/generateProjectTitle';
+import { HistoryBackButton } from '@/components/shared/HistoryBackButton';
 import { cn } from '@/lib/utils';
 import { createProjectAction } from '@/app/actions/createProject';
 
@@ -194,6 +195,7 @@ export function DrawingDesignProjectWizard() {
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
+        <HistoryBackButton className="mb-2" />
         <h1 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
           <span>✏️</span> Post Drawing and Design Project
         </h1>

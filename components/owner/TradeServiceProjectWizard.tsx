@@ -45,6 +45,7 @@ import {
   isCustomTradeWorkService,
   validateTradeDetailsInput,
 } from '@/lib/tradeWorkDetails';
+import { HistoryBackButton } from '@/components/shared/HistoryBackButton';
 import { cn } from '@/lib/utils';
 import { createProjectAction } from '@/app/actions/createProject';
 import type { TrackType, TradeServiceType } from '@/lib/types';
@@ -440,6 +441,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div>
+        <HistoryBackButton className="mb-2" />
         <h1 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
           <span>{tradeEmoji}</span> Post {tradeLabel} Project
         </h1>
