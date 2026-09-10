@@ -1,0 +1,19 @@
+import type { ServiceType } from '@/lib/types';
+
+export type ProjectServiceFilter = 'all' | ServiceType;
+
+export const PROJECT_SERVICE_FILTER_OPTIONS: { id: ProjectServiceFilter; label: string }[] = [
+  { id: 'all', label: 'All Projects' },
+  { id: 'labour_contractor', label: 'Mistri Worker' },
+  { id: 'drawing_design', label: 'Drawing and Design' },
+  { id: 'painter', label: 'Painter' },
+  { id: 'plumber', label: 'Plumber' },
+  { id: 'electrician', label: 'Electrician' },
+  { id: 'earthwork', label: 'Earthwork' },
+];
+
+export const PROJECT_SERVICE_FILTER_PILL_ACTIVE =
+  'bg-blue-600 text-white font-medium rounded-full px-4 py-1.5 text-sm';
+
+export const PROJECT_SERVICE_FILTER_PILL_INACTIVE =
+  'bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-full px-4 py-1.5 text-sm';

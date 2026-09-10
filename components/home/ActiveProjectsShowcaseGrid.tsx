@@ -20,8 +20,8 @@ import { isConstructionFirmEnabled } from '@/lib/features';
 import type { ServiceType } from '@/lib/types';
 import { useTranslation } from '@/lib/context/LanguageProvider';
 import { cn } from '@/lib/utils';
-
-type ServiceFilter = 'all' | ServiceType;
+import { ProjectServiceFilterPills } from '@/components/projects/ProjectServiceFilterPills';
+import type { ProjectServiceFilter } from '@/lib/projects/serviceFilterOptions';
 
 interface ActiveProjectsShowcaseGridProps {
   projects: ShowcaseProject[];
@@ -29,14 +29,6 @@ interface ActiveProjectsShowcaseGridProps {
   role: string | null;
   heroOverlay?: boolean;
 }
-
-const FILTER_OPTIONS: { id: ServiceFilter; label: string }[] = [
-  { id: 'all', label: 'All Projects' },
-  { id: 'labour_contractor', label: 'Mistri Worker' },
-  ...(isConstructionFirmEnabled()
-    ? [{ id: 'construction_firm' as const, label: 'Construction Firm' }]
-    : []),
-];
 
 /** Extra tokens so short searches like "mistri" / "firm" match the right category. */
 const CATEGORY_SEARCH_ALIASES: Partial<Record<ServiceType, string[]>> = {
@@ -91,7 +83,7 @@ export function ActiveProjectsShowcaseGrid({
 }: ActiveProjectsShowcaseGridProps) {
   const { t } = useTranslation();
   const [expiredIds, setExpiredIds] = useState<Set<string>>(() => new Set());
-  const [serviceFilter, setServiceFilter] = useState<ServiceFilter>('all');
+  const [serviceFilter, setServiceFilter] = useState<ProjectServiceFilter>('all');
   const [locationSearch, setLocationSearch] = useState('');
 
   const handleExpire = useCallback((projectId: string) => {
@@ -133,18 +125,6 @@ export function ActiveProjectsShowcaseGrid({
   const displayProjects = filteredProjects.slice(0, 6);
   const hasActiveSearch = locationSearch.trim().length > 0;
 
-  const filterButtonClass = (active: boolean) =>
-    cn(
-      'px-3 py-2 rounded-full text-xs font-semibold border transition-all',
-      active
-        ? heroOverlay
-          ? 'bg-emerald-400/20 border-emerald-300/40 text-emerald-100'
-          : 'bg-emerald-500/12 border-emerald-600/30 text-emerald-800 dark:border-emerald-500/35 dark:text-emerald-300'
-        : heroOverlay
-          ? 'bg-white/5 border-white/15 text-white/70 hover:text-white hover:border-white/25'
-          : 'border-border/70 bg-muted/30 text-muted-foreground hover:border-border hover:bg-card hover:text-foreground',
-    );
-
   return (
     <div className="relative">
       <div className="mb-5 flex flex-wrap items-center gap-2 sm:mb-6 sm:gap-3">
@@ -166,18 +146,10 @@ export function ActiveProjectsShowcaseGrid({
         )}
       >
         <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by service type">
-            {FILTER_OPTIONS.map(({ id, label }) => (
-              <button
-                key={id}
-                type="button"
-                onClick={() => setServiceFilter(id)}
-                className={filterButtonClass(serviceFilter === id)}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+          <ProjectServiceFilterPills
+            value={serviceFilter}
+            onChange={setServiceFilter}
+          />
           <div className="w-full lg:max-w-xs lg:shrink-0">
             <Input
               type="search"

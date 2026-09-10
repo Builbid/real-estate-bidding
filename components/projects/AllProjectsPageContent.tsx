@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Search, Sparkles } from 'lucide-react';
 import { Navbar } from '@/components/shared/Navbar';
@@ -12,6 +12,9 @@ import type { ShowcaseProject } from '@/lib/projectShowcase';
 import { NavLink } from '@/components/shared/NavLink';
 import { NAV_BACK_LINK } from '@/lib/navStyles';
 import { cn } from '@/lib/utils';
+import { ProjectServiceFilterPills } from '@/components/projects/ProjectServiceFilterPills';
+import { getProjectServiceType } from '@/lib/project/display';
+import type { ProjectServiceFilter } from '@/lib/projects/serviceFilterOptions';
 
 interface AllProjectsPageContentProps {
   initialProjects: ShowcaseProject[];
@@ -30,6 +33,7 @@ export function AllProjectsPageContent({
   const [total, setTotal] = useState(initialTotal);
   const [locationSearch, setLocationSearch] = useState('');
   const [activeSearch, setActiveSearch] = useState('');
+  const [serviceFilter, setServiceFilter] = useState<ProjectServiceFilter>('all');
   const [isPending, startTransition] = useTransition();
   const searchRequestId = useRef(0);
 
@@ -62,6 +66,16 @@ export function AllProjectsPageContent({
     setTotal((prev) => Math.max(0, prev - 1));
   }, []);
 
+  const filteredProjects = useMemo(
+    () =>
+      projects.filter(
+        (project) =>
+          serviceFilter === 'all' || getProjectServiceType(project) === serviceFilter,
+      ),
+    [projects, serviceFilter],
+  );
+  const hasActiveFilter = serviceFilter !== 'all' || Boolean(activeSearch);
+
   return (
     <>
       <Navbar />
@@ -77,8 +91,8 @@ export function AllProjectsPageContent({
             <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
               All Projects
             </h1>
-            <span className="rounded-full border border-emerald-600/25 bg-emerald-500/10 px-2 py-0.5 text-xs font-semibold text-emerald-800 dark:border-emerald-500/20 dark:text-emerald-400">
-              {total} open
+            <span className="rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-600">
+              {filteredProjects.length} open
             </span>
           </div>
           <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
@@ -86,25 +100,31 @@ export function AllProjectsPageContent({
           </p>
         </header>
 
-        <div className="mb-6 max-w-md">
-          <Input
-            type="search"
-            value={locationSearch}
-            onChange={(event) => setLocationSearch(event.target.value)}
-            placeholder="Search by specific location"
-            aria-label="Search by specific location"
-            prefix={<Search className="h-4 w-4" />}
+        <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <ProjectServiceFilterPills
+            value={serviceFilter}
+            onChange={setServiceFilter}
           />
+          <div className="w-full max-w-md lg:shrink-0">
+            <Input
+              type="search"
+              value={locationSearch}
+              onChange={(event) => setLocationSearch(event.target.value)}
+              placeholder="Search by specific location"
+              aria-label="Search by specific location"
+              prefix={<Search className="h-4 w-4" />}
+            />
+          </div>
         </div>
 
-        {projects.length > 0 ? (
+        {filteredProjects.length > 0 ? (
           <div
             className={cn(
               'grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3',
               isPending && 'opacity-70 transition-opacity',
             )}
           >
-            {projects.map((project) => (
+            {filteredProjects.map((project) => (
               <ShowcaseProjectCard
                 key={project.id}
                 project={project}
@@ -120,14 +140,14 @@ export function AllProjectsPageContent({
               <Sparkles className="h-6 w-6 text-emerald-500" />
             </div>
             <h2 className="mb-2 text-lg font-semibold text-foreground">
-              {activeSearch ? 'No matching projects' : 'No Active Projects'}
+              {hasActiveFilter ? 'No matching projects' : 'No Active Projects'}
             </h2>
             <p className="mx-auto mb-6 max-w-md text-sm text-muted-foreground">
-              {activeSearch
-                ? 'Try a different location or project name.'
+              {hasActiveFilter
+                ? 'Try a different category, location, or project name.'
                 : 'Be the first to post a project. The live feed will appear here.'}
             </p>
-            {!activeSearch && (
+            {!hasActiveFilter && (
               <Button asChild>
                 <Link href="/register?role=owner">Sign up as Project owner</Link>
               </Button>
