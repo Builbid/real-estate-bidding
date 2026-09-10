@@ -8,4 +8,5 @@ export const PUBLIC_NAV_LINKS = [
 export const PUBLIC_FOOTER_PLATFORM_LINKS = [
   { href: '/projects', labelKey: 'footer.allProjects' as const },
   { href: '/workers', labelKey: 'footer.workers' as const },
+  { href: '/admin/login', labelKey: 'footer.admin' as const },
 ] as const;

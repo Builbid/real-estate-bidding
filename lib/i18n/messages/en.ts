@@ -60,6 +60,7 @@ export const en = {
     forBuilders: 'For Builders',
     allProjects: 'All Projects',
     workers: 'Workers',
+    admin: 'Admin',
     aboutUs: 'About Us',
     contact: 'Contact',
     careers: 'Careers',

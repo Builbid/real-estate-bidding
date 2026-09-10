@@ -62,6 +62,7 @@ export const as: Messages = {
     forBuilders: 'Builders ৰ বাবে',
     allProjects: 'All Projects',
     workers: 'Workers',
+    admin: 'Admin',
     aboutUs: 'About Us',
     contact: 'Contact',
     careers: 'Careers',
