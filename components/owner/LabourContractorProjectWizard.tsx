@@ -28,6 +28,7 @@ import {
   MISTRI_ASSAM_FLOORING_MATERIAL_OPTIONS,
   MISTRI_ASSAM_ROOF_OPTIONS,
   MISTRI_ASSAM_ROOFING_SHEET_OPTIONS,
+  MISTRI_APPROXIMATE_AREA_LABEL,
   MISTRI_BRICKWORK_MATERIAL_OPTIONS,
   MISTRI_CONTRACT_TYPE_OPTIONS,
   MISTRI_CUSTOM_FLOOR_ID,
@@ -775,7 +776,7 @@ export function LabourContractorProjectWizard() {
     }
 
     if (parseApproximateAreaSqft(form.approximateArea) == null) {
-      errors.builtUpArea = 'Enter the approximate built-up area in sqft.';
+      errors.builtUpArea = 'Enter the approximate plinth area in sq. ft.';
     }
 
     if (!form.houseType) {
@@ -963,7 +964,7 @@ export function LabourContractorProjectWizard() {
               />
 
               <Input
-                label="Approximate built-up Area (Sqft)"
+                label={MISTRI_APPROXIMATE_AREA_LABEL}
                 type="text"
                 inputMode="decimal"
                 placeholder="e.g. 1200"
@@ -975,7 +976,7 @@ export function LabourContractorProjectWizard() {
                 error={step1ValidationAttempted ? step1Errors.builtUpArea : undefined}
               />
               <p className={HELPER_TEXT}>
-                This built-up area is used as the slab area for every selected floor when Mistris quote their civil rate.
+                * Note: Enter the estimated slab area for a single floor. This value will be used as the base area for each floor selected below.
               </p>
 
               <div className="flex flex-col gap-1.5">

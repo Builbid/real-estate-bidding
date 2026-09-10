@@ -201,7 +201,7 @@ export interface MistriDetails {
   brickworkDetails?: MistriBrickworkDetails | null;
   /** Required on new posts when civilWorkTypes includes boundary_wall_fencing. */
   boundaryWallDetails?: MistriBoundaryWallDetails | null;
-  /** Approximate project area in sq.ft. (rough estimate is fine). */
+  /** Approximate project area in sq.ft. (rough estimate is fine). Stored as approximateAreaSqft. */
   approximateAreaSqft: number;
   /**
    * Current construction floor plan — clean value e.g. "G+1", "G+2", "G+5".
@@ -265,6 +265,9 @@ export const MISTRI_CHOWKHAT_HINT =
   'Check this if you want the Mistri contractor to include carpenter work for door and window frame fitting.';
 export const MISTRI_CHOWKHAT_RATE_NOTE =
   'Carpentry rates are calculated based on the total sqft frame area (not per unit door/window count).';
+
+/** Display label for approximateAreaSqft. UI-only — do not rename the stored field. */
+export const MISTRI_APPROXIMATE_AREA_LABEL = 'Approximate Plinth Area (Sq. Ft.)';
 
 export const ASSAM_CIVIL_BID_LABEL = 'Civil Work';
 export const ASSAM_ROOF_BID_LABEL = 'Roof Work';
@@ -2504,7 +2507,7 @@ export function getMistriWorkRequirementBlocks(details: MistriDetails): {
     }));
 
     blocks.push({
-      label: 'Approximate built-up Area (Sqft)',
+      label: MISTRI_APPROXIMATE_AREA_LABEL,
       value: formatMistriArea(details.approximateAreaSqft),
     });
 
@@ -2623,7 +2626,7 @@ export function getMistriWorkRequirementBlocks(details: MistriDetails): {
   }
 
   blocks.push({
-    label: 'Approximate built-up Area (Sqft)',
+    label: MISTRI_APPROXIMATE_AREA_LABEL,
     value: formatMistriArea(details.approximateAreaSqft),
   });
 
@@ -2902,7 +2905,7 @@ export function validateMistriFloorWorkInput(input: {
 
   const area = parseApproximateAreaSqft(input.approximateArea);
   if (area == null) {
-    return { error: 'Enter the approximate built-up area in sqft.' };
+    return { error: 'Enter the approximate plinth area in sq. ft.' };
   }
 
   const currentFloorPlan = currentFloorPlanFromFloorWork(floorWork);

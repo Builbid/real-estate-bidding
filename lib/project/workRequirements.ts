@@ -4,6 +4,7 @@ import {
 } from '@/lib/drawingDesign';
 import {
   getMistriWorkRequirementBlocks,
+  MISTRI_APPROXIMATE_AREA_LABEL,
   parseMistriDetails,
 } from '@/lib/mistriDetails';
 import {
@@ -123,6 +124,7 @@ export function isWideRequirementLabel(label: string): boolean {
     label === 'Approx Built-Up Area' ||
     label === 'Built-Up Area' ||
     label === 'Approximate built-up Area (Sqft)' ||
+    label === MISTRI_APPROXIMATE_AREA_LABEL ||
     label === 'Bathroom Fittings Rate' ||
     label === 'Water Piping Rate' ||
     label === 'Waste Line Rate' ||
@@ -174,6 +176,7 @@ const BID_SUMMARY_LABELS = new Set([
   'Approx Built-Up Area',
   'Built-Up Area',
   'Approximate built-up Area (Sqft)',
+  MISTRI_APPROXIMATE_AREA_LABEL,
   'Approx. Area',
   'Approximate Paint Area',
   'Interior Area',

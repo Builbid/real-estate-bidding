@@ -10,6 +10,7 @@ import {
   getMistriWorkRequirementBlocks,
   hasAssamMistriFloorWork,
   isAssamMistriFloor,
+  MISTRI_APPROXIMATE_AREA_LABEL,
   parseMistriDetails,
   type MistriCivilWorkType,
   type MistriFloorWorkType,
@@ -48,6 +49,7 @@ const SCOPE_LABELS_EXCLUDED_FROM_AGREEMENT = new Set([
   'Approx. Area',
   'Approximate built-up Area (Sqft)',
   'Approximate Built-up Area (Sqft)',
+  MISTRI_APPROXIMATE_AREA_LABEL,
 ]);
 
 /** Blank line on the printed agreement so dates can be filled in by hand on site. */
