@@ -15,7 +15,8 @@ import {
 } from '@/components/shared/AssamDistrictAutocomplete';
 import { TradeWorkRequirementsFields, type TradeWorkFormFields } from '@/components/owner/TradeWorkRequirementsFields';
 import { OptionSelectGrid } from '@/components/owner/wizard/OptionSelectCard';
-import { FORM_CONTINUE_BTN, FORM_SECTION_CARD, FORM_TEXTAREA } from '@/components/owner/wizard/formTheme';
+import { FORM_CONTINUE_BTN, FORM_SECTION_CARD, FORM_SHELL_CARD, FORM_TEXTAREA } from '@/components/owner/wizard/formTheme';
+import { ReviewSummaryList, WizardStepper } from '@/components/owner/wizard/ReviewSummary';
 import { generateProjectTitle } from '@/lib/generateProjectTitle';
 import { hasContactInfo } from '@/lib/validation/projectContactInfo';
 import { formatPincodeInput, validatePincode } from '@/lib/validation/pincode';
@@ -457,35 +458,9 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
         </p>
       </div>
 
-      <div className="flex items-center gap-1 overflow-x-auto pb-1">
-        {progressLabels.map((label, i) => (
-          <div key={label} className="flex items-center gap-1 flex-1 min-w-0">
-            <div
-              className={cn(
-                'flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold flex-shrink-0',
-                i + 1 < step ? 'bg-blue-500 text-white' :
-                i + 1 === step ? 'bg-blue-500/20 border-2 border-blue-500 text-blue-600 dark:text-blue-400' :
-                'bg-secondary text-muted-foreground',
-              )}
-            >
-              {i + 1 < step ? '✓' : i + 1}
-            </div>
-            <span
-              className={cn(
-                'text-[10px] sm:text-xs truncate',
-                i + 1 === step ? 'text-gray-900 dark:text-white font-semibold' : 'text-slate-700 dark:text-slate-300',
-              )}
-            >
-              {label}
-            </span>
-            {i < progressLabels.length - 1 && (
-              <div className="h-px flex-1 bg-secondary mx-1 min-w-[8px]" />
-            )}
-          </div>
-        ))}
-      </div>
+      <WizardStepper labels={progressLabels} step={step} />
 
-      <Card>
+      <Card className={FORM_SHELL_CARD}>
         <CardContent className="pt-6 pb-6">
           {error && (
             <div className="flex items-start gap-3 mb-5 p-3.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400">
@@ -867,10 +842,10 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
 
           {step === 3 && (isCustomTrade || form.track_type) && (
             <div className="space-y-5">
-              <h2 className="text-base font-semibold text-gray-900 dark:text-white">Review & Launch Auction</h2>
+              <h2 className="text-base font-semibold text-slate-900">Review & Launch Auction</h2>
 
-              <div className="rounded-xl bg-secondary/50 border border-border divide-y divide-border">
-                {[
+              <ReviewSummaryList
+                items={[
                   { label: 'Service', value: `${tradeEmoji} ${tradeLabel}` },
                   { label: 'Project Title', value: previewTitle },
                   { label: 'District', value: form.location },
@@ -909,15 +884,8 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                         : '24 hours from launch',
                   },
                   { label: 'Selection Window', value: '5 minutes after bids close' },
-                ].map(({ label, value }) => (
-                  <div key={label} className="flex items-start justify-between gap-3 px-4 py-3">
-                    <span className="text-xs font-medium text-slate-700 dark:text-slate-300 flex-1 min-w-0">{label}</span>
-                    <div className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white text-right flex-shrink-0 max-w-[55%]">
-                    <div className="min-w-0 whitespace-pre-line text-right">{value}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                ]}
+              />
 
               <div className="flex gap-3">
                 <Button variant="outline" size="lg" className="flex-1" onClick={() => setStep(2)}>

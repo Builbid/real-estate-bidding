@@ -72,11 +72,11 @@ import {
   FORM_CHECKBOX,
   FORM_CONTINUE_BTN,
   FORM_NESTED_PANEL,
-  FORM_PROGRESS_CURRENT,
-  FORM_PROGRESS_DONE,
   FORM_SECTION_CARD,
+  FORM_SHELL_CARD,
   FORM_TEXTAREA,
 } from '@/components/owner/wizard/formTheme';
+import { ReviewSummaryList, WizardStepper } from '@/components/owner/wizard/ReviewSummary';
 import { cn } from '@/lib/utils';
 import { createProjectAction } from '@/app/actions/createProject';
 
@@ -855,37 +855,9 @@ export function LabourContractorProjectWizard() {
         </p>
       </div>
 
-      {step < 4 && (
-        <div className="flex items-center gap-1 overflow-x-auto pb-1">
-          {PROGRESS_LABELS.map((label, i) => (
-            <div key={label} className="flex items-center gap-1 flex-1 min-w-0">
-              <div
-                className={cn(
-                  'flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold flex-shrink-0',
-                  i + 1 < step ? FORM_PROGRESS_DONE :
-                  i + 1 === step ? FORM_PROGRESS_CURRENT :
-                  'bg-secondary text-muted-foreground',
-                )}
-              >
-                {i + 1 < step ? '✓' : i + 1}
-              </div>
-              <span
-                className={cn(
-                  'text-[10px] sm:text-xs truncate',
-                  i + 1 === step ? 'text-foreground font-semibold' : 'text-gray-700 dark:text-zinc-300 font-medium',
-                )}
-              >
-                {label}
-              </span>
-              {i < PROGRESS_LABELS.length - 1 && (
-                <div className="h-px flex-1 bg-secondary mx-1 min-w-[8px]" />
-              )}
-            </div>
-          ))}
-        </div>
-      )}
+      {step < 4 && <WizardStepper labels={PROGRESS_LABELS} step={step} />}
 
-      <Card>
+      <Card className={FORM_SHELL_CARD}>
         <CardContent className="pt-6 pb-6">
           {error && (
             <div className="flex items-start gap-3 mb-5 p-3.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400">
@@ -1382,10 +1354,10 @@ export function LabourContractorProjectWizard() {
 
           {step === 3 && (
             <div className="space-y-5">
-              <h2 className="text-base font-semibold text-foreground">Review & Launch Auction</h2>
+              <h2 className="text-base font-semibold text-slate-900">Review & Launch Auction</h2>
 
-              <div className="rounded-xl bg-secondary/50 border border-border divide-y divide-border">
-                {[
+              <ReviewSummaryList
+                items={[
                   { label: 'Project Title', value: previewTitle },
                   { label: 'District', value: form.location },
                   {
@@ -1401,15 +1373,8 @@ export function LabourContractorProjectWizard() {
                         : '24 hours from launch',
                   },
                   { label: 'Selection Window', value: '5 minutes after bids close' },
-                ].map(({ label, value }) => (
-                  <div key={label} className="flex items-start justify-between gap-3 px-4 py-3">
-                    <span className="text-xs font-medium text-gray-700 dark:text-zinc-300 flex-1 min-w-0">{label}</span>
-                    <div className="text-sm font-semibold text-foreground text-right flex-shrink-0 max-w-[55%]">
-                      {value}
-                    </div>
-                  </div>
-                ))}
-              </div>
+                ]}
+              />
 
               <div className="flex gap-3">
                 <Button variant="outline" size="lg" className="flex-1" onClick={() => setStep(2)}>

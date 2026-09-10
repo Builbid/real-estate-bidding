@@ -11,7 +11,8 @@ import {
 } from '@/components/ui/select';
 import { OptionSelectGrid } from '@/components/owner/wizard/OptionSelectCard';
 import { StartTimeAndNotes, WIZARD_SECTION_LABEL } from '@/components/owner/wizard/StartTimeAndNotes';
-import { FORM_CONTINUE_BTN, FORM_SECTION_CARD } from '@/components/owner/wizard/formTheme';
+import { FORM_CONTINUE_BTN, FORM_SECTION_CARD, FORM_SHELL_CARD } from '@/components/owner/wizard/formTheme';
+import { ReviewSummaryList, WizardStepper } from '@/components/owner/wizard/ReviewSummary';
 import {
   AssamDistrictAutocomplete,
   parseAssamDistrictSelection,
@@ -205,37 +206,9 @@ export function DrawingDesignProjectWizard() {
         </p>
       </div>
 
-      <div className="flex items-center gap-1 overflow-x-auto pb-1">
-        {PROGRESS_LABELS.map((label, i) => (
-          <div key={label} className="flex items-center gap-1 flex-1 min-w-0">
-            <div
-              className={cn(
-                'flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold',
-                i + 1 < step
-                  ? 'bg-blue-500 text-white'
-                  : i + 1 === step
-                    ? 'border-2 border-blue-500 bg-blue-500/20 text-blue-600 dark:text-blue-400'
-                    : 'bg-secondary text-muted-foreground',
-              )}
-            >
-              {i + 1 < step ? '✓' : i + 1}
-            </div>
-            <span
-              className={cn(
-                'truncate text-[10px] sm:text-xs',
-                i + 1 === step ? 'font-semibold text-gray-900 dark:text-white' : 'text-slate-700 dark:text-slate-300',
-              )}
-            >
-              {label}
-            </span>
-            {i < PROGRESS_LABELS.length - 1 && (
-              <div className="mx-1 h-px min-w-[8px] flex-1 bg-secondary" />
-            )}
-          </div>
-        ))}
-      </div>
+      <WizardStepper labels={PROGRESS_LABELS} step={step} />
 
-      <Card>
+      <Card className={FORM_SHELL_CARD}>
         <CardContent className="space-y-5 pt-6 pb-6">
           {error && (
             <div className="mb-1 flex items-start gap-3 rounded-lg border border-red-500/20 bg-red-500/10 p-3.5 text-red-400">
@@ -400,9 +373,9 @@ export function DrawingDesignProjectWizard() {
 
           {step === 3 && (
             <>
-              <h2 className="text-base font-semibold text-gray-900 dark:text-white">Review & Launch</h2>
-              <div className="overflow-hidden rounded-2xl border border-border/70 bg-card/60 divide-y divide-border/50">
-                {[
+              <h2 className="text-base font-semibold text-slate-900">Review & Launch</h2>
+              <ReviewSummaryList
+                items={[
                   { label: 'Service', value: '✏️ Drawing and Design' },
                   { label: 'Project title', value: previewTitle },
                   { label: 'District', value: form.location },
@@ -415,13 +388,8 @@ export function DrawingDesignProjectWizard() {
                         ? '7 minutes from launch'
                         : '24 hours from launch',
                   },
-                ].map((row) => (
-                  <div key={row.label} className="flex items-start justify-between gap-3 px-4 py-3">
-                    <span className="text-xs font-medium text-slate-700 dark:text-slate-300 flex-shrink-0">{row.label}</span>
-                    <span className="text-sm font-semibold text-gray-900 dark:text-white text-right">{row.value}</span>
-                  </div>
-                ))}
-              </div>
+                ]}
+              />
 
               <div className="flex gap-3">
                 <Button variant="outline" size="lg" className="flex-1" onClick={() => setStep(2)}>

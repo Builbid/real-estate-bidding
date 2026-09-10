@@ -12,7 +12,6 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { BuildingTypeSelector } from '@/components/construction/BuildingTypeSelector';
-import { BuildingConfigSummary } from '@/components/construction/BuildingConfigSummary';
 import { CountdownTicker } from '@/components/shared/CountdownTicker';
 import {
   AssamDistrictAutocomplete,
@@ -27,7 +26,8 @@ import {
 } from '@/lib/formatIndianCurrency';
 import { createProjectAction } from '@/app/actions/createProject';
 import { HistoryBackButton } from '@/components/shared/HistoryBackButton';
-import { FORM_CONTINUE_BTN, FORM_SECTION_CARD } from '@/components/owner/wizard/formTheme';
+import { FORM_CONTINUE_BTN, FORM_SECTION_CARD, FORM_SHELL_CARD } from '@/components/owner/wizard/formTheme';
+import { ReviewSummaryList, WizardStepper } from '@/components/owner/wizard/ReviewSummary';
 import { formatPincodeInput, validatePincode } from '@/lib/validation/pincode';
 import { cn } from '@/lib/utils';
 
@@ -178,13 +178,6 @@ export function ConstructionFirmProjectWizard() {
     setLoading(false);
   }
 
-  const reviewProject = {
-    building_types: form.building_types,
-    construction_types: {},
-    track_type: 'RCC' as const,
-    sub_configuration: {},
-  };
-
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
@@ -195,35 +188,9 @@ export function ConstructionFirmProjectWizard() {
         </p>
       </div>
 
-      {step < 4 && (
-        <div className="flex items-center gap-1 overflow-x-auto pb-1">
-          {PROGRESS_LABELS.map((label, i) => (
-            <div key={label} className="flex items-center gap-1 flex-1 min-w-0">
-              <div
-                className={cn(
-                  'flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold flex-shrink-0',
-                  i + 1 < step ? 'bg-indigo-500 text-white' :
-                  i + 1 === step ? 'bg-indigo-500/20 border-2 border-indigo-500 text-indigo-400' :
-                  'bg-secondary text-muted-foreground',
-                )}
-              >
-                {i + 1 < step ? '✓' : i + 1}
-              </div>
-              <span className={cn(
-                'text-[10px] sm:text-xs truncate',
-                i + 1 === step ? 'text-foreground font-semibold' : 'text-muted-foreground',
-              )}>
-                {label}
-              </span>
-              {i < PROGRESS_LABELS.length - 1 && (
-                <div className="h-px flex-1 bg-secondary mx-1 min-w-[8px]" />
-              )}
-            </div>
-          ))}
-        </div>
-      )}
+      {step < 4 && <WizardStepper labels={PROGRESS_LABELS} step={step} />}
 
-      <Card>
+      <Card className={FORM_SHELL_CARD}>
         <CardContent className="pt-6 pb-6">
           {error && (
             <div className="flex items-start gap-3 mb-5 p-3.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400">
@@ -365,113 +332,38 @@ export function ConstructionFirmProjectWizard() {
           {step === 3 && (
             <div className="space-y-5">
               <div>
-                <h2 className="text-lg font-bold tracking-tight text-foreground">Review & Submit</h2>
-                <p className="mt-1 text-sm text-muted-foreground">
+                <h2 className="text-lg font-bold tracking-tight text-slate-900">Review & Submit</h2>
+                <p className="mt-1 text-sm text-slate-500">
                   Confirm details before your project goes live for bidding
                 </p>
               </div>
 
-              {/* Service banner */}
-              <div className="relative overflow-hidden rounded-2xl border border-violet-500/25 bg-gradient-to-br from-violet-500/15 via-indigo-500/10 to-transparent px-4 py-3.5">
-                <div className="pointer-events-none absolute -right-6 -top-6 h-20 w-20 rounded-full bg-violet-500/20 blur-2xl" />
-                <div className="relative flex items-center gap-3">
-                  <span className="flex h-11 w-11 items-center justify-center rounded-xl border border-violet-500/30 bg-violet-500/15 text-2xl">
-                    🏢
-                  </span>
-                  <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-violet-600 dark:text-violet-300">
-                      Service
-                    </p>
-                    <p className="text-base font-bold text-foreground">Construction Firm</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Project overview */}
-              <section className="overflow-hidden rounded-2xl border border-border/70 bg-card/60 shadow-sm">
-                <div className="flex items-center justify-between border-b border-border/60 px-4 py-2.5">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Project overview
-                  </h3>
-                  <button
-                    type="button"
-                    onClick={() => setStep(1)}
-                    className="text-[11px] font-semibold text-blue-600 hover:underline dark:text-blue-400"
-                  >
-                    Edit
-                  </button>
-                </div>
-                <dl className="divide-y divide-border/50">
-                  {[
-                    { label: 'Project title', value: previewTitle },
-                    { label: 'District', value: form.location || '—' },
-                    { label: 'Pincode', value: form.pincode.trim() || 'Not specified' },
-                    { label: 'Max budget', value: budgetPreview ?? 'Not specified' },
-                    {
-                      label: 'Total slab area',
-                      value: form.floor_area_sqft ? `${form.floor_area_sqft} sqft` : 'Not specified',
-                    },
-                    {
-                      label: 'Bidding duration',
-                      value:
-                        form.bidding_minutes === '7'
-                          ? '7 minutes (Quick)'
-                          : '24 hours (Standard)',
-                    },
-                  ].map((row) => (
-                    <div key={row.label} className="flex items-center justify-between gap-3 px-4 py-3">
-                      <dt className="text-xs text-muted-foreground">{row.label}</dt>
-                      <dd className="text-sm font-semibold text-foreground text-right">{row.value}</dd>
-                    </div>
-                  ))}
-                </dl>
-              </section>
-
-              {/* Building types only — firm projects have no Skeleton/Full Finishing choice */}
-              <section className="overflow-hidden rounded-2xl border border-border/70 bg-card/60 shadow-sm">
-                <div className="flex items-center justify-between border-b border-border/60 px-4 py-2.5">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Type of building
-                  </h3>
-                  <button
-                    type="button"
-                    onClick={() => setStep(2)}
-                    className="text-[11px] font-semibold text-blue-600 hover:underline dark:text-blue-400"
-                  >
-                    Edit
-                  </button>
-                </div>
-                <div className="p-3.5">
-                  <BuildingConfigSummary project={reviewProject} hideConstructionTypes />
-                </div>
-              </section>
-
-              {/* Auction timing */}
-              <section className="rounded-2xl border border-blue-500/20 bg-gradient-to-br from-blue-500/[0.08] to-blue-500/[0.04] px-4 py-3.5">
-                <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-blue-700 dark:text-blue-400">
-                  Auction timing
-                </h3>
-                <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
-                  {[
-                    { label: 'Opens', value: 'On submit' },
-                    {
-                      label: 'Closes',
-                      value: form.bidding_minutes === '7' ? '7 min' : '24 hrs',
-                    },
-                    { label: 'Select firm', value: '5 min window' },
-                  ].map((item) => (
-                    <div
-                      key={item.label}
-                      className="rounded-xl border border-border/50 bg-background/50 px-3 py-2.5 text-center"
-                    >
-                      <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-                        {item.label}
-                      </p>
-                      <p className="mt-0.5 text-sm font-bold text-foreground">{item.value}</p>
-                    </div>
-                  ))}
-                </div>
-              </section>
+              <ReviewSummaryList
+                items={[
+                  { label: 'Service', value: '🏢 Construction Firm' },
+                  { label: 'Project title', value: previewTitle },
+                  { label: 'District', value: form.location || '—' },
+                  { label: 'Pincode', value: form.pincode.trim() || 'Not specified' },
+                  { label: 'Max budget', value: budgetPreview ?? 'Not specified' },
+                  {
+                    label: 'Total slab area',
+                    value: form.floor_area_sqft ? `${form.floor_area_sqft} sqft` : 'Not specified',
+                  },
+                  {
+                    label: 'Type of building',
+                    value: form.building_types.length > 0 ? form.building_types.join(', ') : '—',
+                    highlight: true,
+                  },
+                  {
+                    label: 'Bidding duration',
+                    value:
+                      form.bidding_minutes === '7'
+                        ? '7 minutes (Quick)'
+                        : '24 hours (Standard)',
+                  },
+                  { label: 'Select firm', value: '5 min window after bids close' },
+                ]}
+              />
 
               <div className="flex flex-col gap-3 pt-1">
                 <Button variant="outline" size="lg" className="w-full rounded-xl" onClick={() => setStep(2)}>
