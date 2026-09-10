@@ -30,15 +30,15 @@ export function OptionSelectCard({
       className={cn(
         'relative w-full rounded-xl border-2 p-4 pr-10 text-left transition-all duration-200',
         selected
-          ? 'border-emerald-500/70 bg-emerald-500/10 shadow-md shadow-emerald-500/15 scale-[1.01]'
-          : 'border-border bg-secondary/30 hover:border-muted-foreground/40',
+          ? 'border-blue-600 bg-blue-50 shadow-sm ring-1 ring-blue-500/30 dark:border-blue-500 dark:bg-blue-500/15'
+          : 'border-border bg-secondary/30 hover:border-blue-500/40',
         disabled && 'cursor-default disabled:opacity-100',
         className,
       )}
     >
       {selected && (
         <CheckCircle2
-          className="absolute top-2.5 right-2.5 h-5 w-5 flex-shrink-0 text-emerald-500 dark:text-emerald-400"
+          className="absolute top-2.5 right-2.5 h-5 w-5 flex-shrink-0 text-blue-600 dark:text-blue-400"
           aria-hidden
         />
       )}

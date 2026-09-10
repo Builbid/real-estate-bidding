@@ -2,6 +2,7 @@
 
 import { Input } from '@/components/ui/input';
 import { OptionSelectGrid } from '@/components/owner/wizard/OptionSelectCard';
+import { FORM_SECTION_CARD, FORM_TEXTAREA } from '@/components/owner/wizard/formTheme';
 import {
   PROJECT_START_TIME_OPTIONS,
   todayLocalDateString,
@@ -36,7 +37,7 @@ export function StartTimeAndNotes<T extends string = ProjectStartTimeType>({
 }) {
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-1.5">
+      <div className={FORM_SECTION_CARD}>
         <label className={WIZARD_SECTION_LABEL}>{title}</label>
         <OptionSelectGrid
           options={options}
@@ -56,7 +57,7 @@ export function StartTimeAndNotes<T extends string = ProjectStartTimeType>({
         )}
       </div>
 
-      <div className="flex flex-col gap-1.5">
+      <div className={FORM_SECTION_CARD}>
         <label className={WIZARD_SECTION_LABEL}>
           Additional Requirements <span className="normal-case tracking-normal">(optional)</span>
         </label>
@@ -68,7 +69,7 @@ export function StartTimeAndNotes<T extends string = ProjectStartTimeType>({
           }
           value={additionalRequirements}
           onChange={(e) => onNotesChange(e.target.value)}
-          className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm font-medium text-gray-900 dark:text-white placeholder:text-slate-600 dark:placeholder:text-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
+          className={FORM_TEXTAREA}
         />
       </div>
     </div>

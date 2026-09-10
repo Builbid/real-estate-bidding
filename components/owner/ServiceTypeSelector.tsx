@@ -3,6 +3,7 @@
 import { CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { HistoryBackButton } from '@/components/shared/HistoryBackButton';
+import { FORM_CONTINUE_BTN } from '@/components/owner/wizard/formTheme';
 import type { ServiceType } from '@/lib/types';
 import { ALL_SERVICE_CATEGORIES, TRADE_SERVICE_OPTIONS } from '@/lib/trades';
 import { isConstructionFirmEnabled } from '@/lib/features';
@@ -58,13 +59,13 @@ function ServiceCard({
       className={cn(
         'relative flex h-full min-h-0 w-full cursor-pointer flex-col justify-between rounded-xl border-2 p-3.5 text-left transition-all duration-200',
         selected
-          ? 'scale-[1.02] border-emerald-500/70 bg-emerald-500/8 shadow-md shadow-emerald-500/15'
-          : 'border-border bg-secondary/30 hover:border-emerald-500/50',
+          ? 'scale-[1.02] border-blue-500/70 bg-blue-500/8 shadow-md shadow-blue-500/15'
+          : 'border-border bg-secondary/30 hover:border-blue-500/50',
       )}
     >
       <div className="mb-1 flex items-center justify-between gap-2">
         <span className="text-xl leading-none">{option.emoji}</span>
-        {selected && <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-emerald-400" />}
+        {selected && <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-blue-400" />}
       </div>
       <p className="text-xs font-bold text-foreground">{option.title}</p>
       <p className="mt-0.5 flex-1 text-[10px] leading-snug text-muted-foreground">
@@ -121,7 +122,7 @@ export function ServiceTypeSelector({ value, onChange, onContinue }: ServiceType
             <p className="text-center text-[11px] text-muted-foreground">
               Selected: <span className="font-semibold text-foreground">{selectedLabel}</span>
             </p>
-            <Button size="lg" className="w-full" onClick={onContinue}>
+            <Button size="lg" className={cn('w-full', FORM_CONTINUE_BTN)} onClick={onContinue}>
               Continue →
             </Button>
           </div>

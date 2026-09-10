@@ -63,7 +63,7 @@ export function FinishingLevelSelector({ value, onChange }: FinishingLevelSelect
               )}
               <div className="flex items-start justify-between gap-2 mb-2">
                 <span className="text-2xl">{cfg.icon}</span>
-                {selected && <CheckCircle2 className="w-5 h-5 text-emerald-400" />}
+                {selected && <CheckCircle2 className="w-5 h-5 text-blue-400" />}
               </div>
               <h3 className="text-sm font-bold text-foreground">{cfg.title}</h3>
               <span className="inline-block mt-1 mb-2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-secondary border border-border">
@@ -72,7 +72,7 @@ export function FinishingLevelSelector({ value, onChange }: FinishingLevelSelect
               <ul className="space-y-1 mb-3">
                 {cfg.includes.map((item) => (
                   <li key={item} className="text-[10px] text-muted-foreground flex gap-1">
-                    <span className="text-emerald-500">•</span>{item}
+                    <span className="text-blue-500">•</span>{item}
                   </li>
                 ))}
               </ul>

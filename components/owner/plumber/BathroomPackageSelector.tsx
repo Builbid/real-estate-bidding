@@ -35,13 +35,13 @@ export function BathroomPackageSelector({
               className={cn(
                 'relative w-full rounded-xl border-2 px-2 py-3 sm:px-3 sm:py-4 text-center transition-all duration-200',
                 selected
-                  ? 'border-emerald-500/70 bg-emerald-500/10 shadow-md shadow-emerald-500/15'
+                  ? 'border-blue-500/70 bg-blue-500/10 shadow-md shadow-blue-500/15'
                   : 'border-border bg-secondary/30 hover:border-muted-foreground/40',
               )}
             >
               {selected && (
                 <CheckCircle2
-                  className="absolute top-2 right-2 h-4 w-4 text-emerald-500 dark:text-emerald-400"
+                  className="absolute top-2 right-2 h-4 w-4 text-blue-500 dark:text-blue-400"
                   aria-hidden
                 />
               )}
@@ -58,8 +58,8 @@ export function BathroomPackageSelector({
       >
         <div className="overflow-hidden">
           {selectedPackage && (
-            <ul className="mt-3 space-y-1.5 rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-3">
-              <li className="text-[10px] font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+            <ul className="mt-3 space-y-1.5 rounded-lg border border-blue-500/20 bg-blue-500/5 p-3">
+              <li className="text-[10px] font-semibold uppercase tracking-wider text-blue-700 dark:text-blue-400">
                 {selectedPackage.label} — included work scope
               </li>
               {selectedPackage.included.map((item) => (
@@ -67,7 +67,7 @@ export function BathroomPackageSelector({
                   key={item}
                   className="flex items-start gap-2 text-xs font-medium text-gray-800 dark:text-zinc-200"
                 >
-                  <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-emerald-500" />
+                  <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-blue-500" />
                   <span>{item}</span>
                 </li>
               ))}

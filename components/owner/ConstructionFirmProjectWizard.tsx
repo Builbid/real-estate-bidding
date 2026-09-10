@@ -27,6 +27,7 @@ import {
 } from '@/lib/formatIndianCurrency';
 import { createProjectAction } from '@/app/actions/createProject';
 import { HistoryBackButton } from '@/components/shared/HistoryBackButton';
+import { FORM_CONTINUE_BTN, FORM_SECTION_CARD } from '@/components/owner/wizard/formTheme';
 import { formatPincodeInput, validatePincode } from '@/lib/validation/pincode';
 import { cn } from '@/lib/utils';
 
@@ -287,7 +288,7 @@ export function ConstructionFirmProjectWizard() {
                 </p>
               </div>
 
-              <Button size="lg" className="w-full" onClick={tryGoStep2}>
+              <Button size="lg" className={cn('w-full', FORM_CONTINUE_BTN)} onClick={tryGoStep2}>
                 Continue <ArrowRight className="w-4 h-4" />
               </Button>
             </div>
@@ -296,13 +297,15 @@ export function ConstructionFirmProjectWizard() {
           {step === 2 && (
             <div className="space-y-5">
               <h2 className="text-base font-semibold text-foreground">Type of Building</h2>
-              <BuildingTypeSelector
-                value={form.building_types}
-                onChange={(v) => { update('building_types', v); setStep2Error(null); }}
-                error={step2Error}
-              />
+              <div className={FORM_SECTION_CARD}>
+                <BuildingTypeSelector
+                  value={form.building_types}
+                  onChange={(v) => { update('building_types', v); setStep2Error(null); }}
+                  error={step2Error}
+                />
+              </div>
 
-              <div>
+              <div className={FORM_SECTION_CARD}>
                 <div className="flex items-center gap-1.5 mb-1.5">
                   <label
                     htmlFor="floor-area-sqft"
@@ -352,7 +355,7 @@ export function ConstructionFirmProjectWizard() {
                 <Button variant="outline" size="lg" className="flex-1" onClick={() => setStep(1)}>
                   <ArrowLeft className="w-4 h-4" /> Back
                 </Button>
-                <Button size="lg" className="flex-1" onClick={tryGoStep3}>
+                <Button size="lg" className={cn('flex-1', FORM_CONTINUE_BTN)} onClick={tryGoStep3}>
                   Continue <ArrowRight className="w-4 h-4" />
                 </Button>
               </div>
@@ -393,7 +396,7 @@ export function ConstructionFirmProjectWizard() {
                   <button
                     type="button"
                     onClick={() => setStep(1)}
-                    className="text-[11px] font-semibold text-emerald-600 hover:underline dark:text-emerald-400"
+                    className="text-[11px] font-semibold text-blue-600 hover:underline dark:text-blue-400"
                   >
                     Edit
                   </button>
@@ -433,7 +436,7 @@ export function ConstructionFirmProjectWizard() {
                   <button
                     type="button"
                     onClick={() => setStep(2)}
-                    className="text-[11px] font-semibold text-emerald-600 hover:underline dark:text-emerald-400"
+                    className="text-[11px] font-semibold text-blue-600 hover:underline dark:text-blue-400"
                   >
                     Edit
                   </button>
@@ -444,8 +447,8 @@ export function ConstructionFirmProjectWizard() {
               </section>
 
               {/* Auction timing */}
-              <section className="rounded-2xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/[0.08] to-teal-500/[0.04] px-4 py-3.5">
-                <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+              <section className="rounded-2xl border border-blue-500/20 bg-gradient-to-br from-blue-500/[0.08] to-blue-500/[0.04] px-4 py-3.5">
+                <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-blue-700 dark:text-blue-400">
                   Auction timing
                 </h3>
                 <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
@@ -478,7 +481,7 @@ export function ConstructionFirmProjectWizard() {
                   size="lg"
                   disabled={loading}
                   onClick={handleSubmit}
-                  className="h-12 w-full rounded-2xl border-0 bg-gradient-to-r from-emerald-600 to-teal-500 text-base font-bold shadow-lg shadow-emerald-500/25 hover:from-emerald-500 hover:to-teal-400"
+                  className={cn('h-12 w-full rounded-2xl border-0', FORM_CONTINUE_BTN, 'text-base font-bold')}
                 >
                   {loading ? (
                     <span className="flex items-center gap-2">
@@ -514,7 +517,7 @@ export function ConstructionFirmProjectWizard() {
                 </div>
               )}
               <Button
-                className="w-full"
+                className={cn('w-full', FORM_CONTINUE_BTN)}
                 onClick={() => router.push(projectId ? `/dashboard/owner/project/${projectId}` : '/dashboard/owner')}
               >
                 View My Project <ArrowRight className="w-4 h-4" />

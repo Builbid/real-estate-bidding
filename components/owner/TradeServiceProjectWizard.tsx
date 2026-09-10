@@ -15,6 +15,7 @@ import {
 } from '@/components/shared/AssamDistrictAutocomplete';
 import { TradeWorkRequirementsFields, type TradeWorkFormFields } from '@/components/owner/TradeWorkRequirementsFields';
 import { OptionSelectGrid } from '@/components/owner/wizard/OptionSelectCard';
+import { FORM_CONTINUE_BTN, FORM_SECTION_CARD, FORM_TEXTAREA } from '@/components/owner/wizard/formTheme';
 import { generateProjectTitle } from '@/lib/generateProjectTitle';
 import { hasContactInfo } from '@/lib/validation/projectContactInfo';
 import { formatPincodeInput, validatePincode } from '@/lib/validation/pincode';
@@ -462,8 +463,8 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
             <div
               className={cn(
                 'flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold flex-shrink-0',
-                i + 1 < step ? 'bg-emerald-500 text-white' :
-                i + 1 === step ? 'bg-emerald-500/20 border-2 border-emerald-500 text-emerald-600 dark:text-emerald-400' :
+                i + 1 < step ? 'bg-blue-500 text-white' :
+                i + 1 === step ? 'bg-blue-500/20 border-2 border-blue-500 text-blue-600 dark:text-blue-400' :
                 'bg-secondary text-muted-foreground',
               )}
             >
@@ -555,12 +556,12 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                             className={cn(
                               'relative text-left rounded-xl border-2 p-4 pr-10 transition-all duration-200',
                               selected
-                                ? 'border-emerald-500/70 bg-emerald-500/8 shadow-md shadow-emerald-500/15'
+                                ? 'border-blue-500/70 bg-blue-500/8 shadow-md shadow-blue-500/15'
                                 : 'border-border bg-secondary/30 hover:border-muted-foreground/40',
                             )}
                           >
                             {selected && (
-                              <CheckCircle2 className="absolute top-2.5 right-2.5 w-5 h-5 text-emerald-500 dark:text-emerald-400 flex-shrink-0" />
+                              <CheckCircle2 className="absolute top-2.5 right-2.5 w-5 h-5 text-blue-500 dark:text-blue-400 flex-shrink-0" />
                             )}
                             <span className="text-sm font-bold text-gray-900 dark:text-white">{opt.label}</span>
                             <p className="text-xs font-medium text-gray-700 dark:text-zinc-300 mt-1">{opt.description}</p>
@@ -665,7 +666,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                 </p>
               </div>
 
-              <Button size="lg" className="w-full" onClick={tryGoStep2}>
+              <Button size="lg" className={cn('w-full', FORM_CONTINUE_BTN)} onClick={tryGoStep2}>
                 Continue <ArrowRight className="w-4 h-4" />
               </Button>
             </div>
@@ -714,12 +715,12 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                         className={cn(
                           'relative text-left rounded-xl border-2 p-4 pr-10 transition-all duration-200',
                           selected
-                            ? 'border-emerald-500/70 bg-emerald-500/8 shadow-md shadow-emerald-500/15 scale-[1.02]'
+                            ? 'border-blue-500/70 bg-blue-500/8 shadow-md shadow-blue-500/15 scale-[1.02]'
                             : 'border-border bg-secondary/30 hover:border-muted-foreground/40',
                         )}
                       >
                         {selected && (
-                          <CheckCircle2 className="absolute top-2.5 right-2.5 w-5 h-5 text-emerald-500 dark:text-emerald-400 flex-shrink-0" />
+                          <CheckCircle2 className="absolute top-2.5 right-2.5 w-5 h-5 text-blue-500 dark:text-blue-400 flex-shrink-0" />
                         )}
                         <span className="text-sm font-bold text-gray-900 dark:text-white">{opt.label}</span>
                         <p className="text-xs font-medium text-gray-700 dark:text-zinc-300 mt-1">{opt.description}</p>
@@ -798,31 +799,33 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                     columns={3}
                   />
 
-                  <PainterChoice
-                    label="Project Starting Time"
-                    options={PAINTER_START_TIME_OPTIONS}
-                    value={form.projectStartTimeType}
-                    onChange={(v) => {
-                      update('projectStartTimeType', v);
-                      if (v !== 'specific') update('projectStartTimeSpecificDate', '');
-                      setStep2Error(null);
-                    }}
-                    columns={2}
-                  />
-                  {form.projectStartTimeType === 'specific' && (
-                    <Input
-                      label="Specific Start Date"
-                      type="date"
-                      min={todayLocalDateString()}
-                      value={form.projectStartTimeSpecificDate}
-                      onChange={(e) => {
-                        update('projectStartTimeSpecificDate', e.target.value);
+                  <div className={FORM_SECTION_CARD}>
+                    <PainterChoice
+                      label="Project Starting Time"
+                      options={PAINTER_START_TIME_OPTIONS}
+                      value={form.projectStartTimeType}
+                      onChange={(v) => {
+                        update('projectStartTimeType', v);
+                        if (v !== 'specific') update('projectStartTimeSpecificDate', '');
                         setStep2Error(null);
                       }}
+                      columns={2}
                     />
-                  )}
+                    {form.projectStartTimeType === 'specific' && (
+                      <Input
+                        label="Specific Start Date"
+                        type="date"
+                        min={todayLocalDateString()}
+                        value={form.projectStartTimeSpecificDate}
+                        onChange={(e) => {
+                          update('projectStartTimeSpecificDate', e.target.value);
+                          setStep2Error(null);
+                        }}
+                      />
+                    )}
+                  </div>
 
-                  <div className="flex flex-col gap-1.5">
+                  <div className={FORM_SECTION_CARD}>
                     <label className="text-xs font-semibold text-gray-800 dark:text-zinc-100 uppercase tracking-wider">
                       Additional Requirements <span className="normal-case tracking-normal">(optional)</span>
                     </label>
@@ -834,7 +837,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                         update('additionalRequirements', e.target.value);
                         setStep2Error(null);
                       }}
-                      className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm font-medium text-gray-900 dark:text-white placeholder:text-slate-600 dark:placeholder:text-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
+                      className={FORM_TEXTAREA}
                     />
                   </div>
                 </div>
@@ -855,7 +858,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                 <Button variant="outline" size="lg" className="flex-1" onClick={() => setStep(1)}>
                   <ArrowLeft className="w-4 h-4" /> Back
                 </Button>
-                <Button size="lg" className="flex-1" onClick={tryGoStep3}>
+                <Button size="lg" className={cn('flex-1', FORM_CONTINUE_BTN)} onClick={tryGoStep3}>
                   Continue <ArrowRight className="w-4 h-4" />
                 </Button>
               </div>
@@ -920,7 +923,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                 <Button variant="outline" size="lg" className="flex-1" onClick={() => setStep(2)}>
                   <ArrowLeft className="w-4 h-4" /> Back
                 </Button>
-                <Button size="lg" className="flex-1" disabled={loading} onClick={handleSubmit}>
+                <Button size="lg" className={cn('flex-1', FORM_CONTINUE_BTN)} disabled={loading} onClick={handleSubmit}>
                   {loading ? (
                     <span className="flex items-center gap-2">
                       <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
@@ -978,12 +981,12 @@ function PainterChoice<T extends string>({
               className={cn(
                 'relative rounded-lg border px-3 py-2.5 pr-8 text-left text-xs font-semibold transition-colors',
                 selected
-                  ? 'border-emerald-500/70 bg-emerald-500/10 text-gray-900 dark:text-white'
+                  ? 'border-blue-500/70 bg-blue-500/10 text-gray-900 dark:text-white'
                   : 'border-border bg-card text-gray-800 dark:text-zinc-100 hover:border-muted-foreground/40',
               )}
             >
               {selected && (
-                <CheckCircle2 className="absolute top-2 right-2 h-4 w-4 text-emerald-500 dark:text-emerald-400" />
+                <CheckCircle2 className="absolute top-2 right-2 h-4 w-4 text-blue-500 dark:text-blue-400" />
               )}
               {opt.label}
             </button>

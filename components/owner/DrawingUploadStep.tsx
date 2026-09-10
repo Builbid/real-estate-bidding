@@ -79,7 +79,7 @@ export function DrawingUploadStep({
         >
           <div className="flex items-center justify-between mb-2">
             <span className="text-2xl">📐</span>
-            {choice === 'upload' && <CheckCircle2 className="w-5 h-5 text-emerald-400" />}
+            {choice === 'upload' && <CheckCircle2 className="w-5 h-5 text-blue-400" />}
           </div>
           <p className="text-sm font-bold text-foreground">Yes, I have a drawing</p>
         </button>
@@ -93,7 +93,7 @@ export function DrawingUploadStep({
         >
           <div className="flex items-center justify-between mb-2">
             <span className="text-2xl">✏️</span>
-            {choice === 'firm_creates' && <CheckCircle2 className="w-5 h-5 text-emerald-400" />}
+            {choice === 'firm_creates' && <CheckCircle2 className="w-5 h-5 text-blue-400" />}
           </div>
           <p className="text-sm font-bold text-foreground">No, let the firm create it</p>
           <p className="text-[11px] text-muted-foreground mt-1">
@@ -132,7 +132,7 @@ export function DrawingUploadStep({
                 </div>
               )}
               {uploadProgress === 100 && (
-                <CheckCircle2 className="w-5 h-5 mx-auto text-emerald-400" />
+                <CheckCircle2 className="w-5 h-5 mx-auto text-blue-400" />
               )}
               <button
                 type="button"

@@ -45,7 +45,6 @@ import {
   getMistriWorkRequirementBlocks,
   isAssamMistriFloor,
   mistriContractTypeRequiredForFloorWork,
-  mistriFloorUpperCount,
   mistriFoundationProvisionRequired,
   parseCustomFloorSequence,
   parseFoundationCustomFloorCount,
@@ -68,6 +67,16 @@ import {
   type MistriStartTimeType,
 } from '@/lib/mistriDetails';
 import { HistoryBackButton } from '@/components/shared/HistoryBackButton';
+import {
+  FORM_BADGE,
+  FORM_CHECKBOX,
+  FORM_CONTINUE_BTN,
+  FORM_NESTED_PANEL,
+  FORM_PROGRESS_CURRENT,
+  FORM_PROGRESS_DONE,
+  FORM_SECTION_CARD,
+  FORM_TEXTAREA,
+} from '@/components/owner/wizard/formTheme';
 import { cn } from '@/lib/utils';
 import { createProjectAction } from '@/app/actions/createProject';
 
@@ -79,64 +88,6 @@ const SECTION_LABEL =
   'text-xs font-semibold text-gray-800 dark:text-zinc-100 uppercase tracking-wider';
 const HELPER_TEXT =
   'text-[11px] font-medium text-gray-700 dark:text-zinc-300 leading-relaxed';
-
-const FORM_SECTION_CARD =
-  'rounded-xl border border-teal-500/30 bg-slate-50/50 p-5 space-y-3 dark:border-teal-500/25 dark:bg-slate-900/20';
-
-const FLOOR_CARD_THEMES = [
-  {
-    card: 'border-sky-300/90 bg-gradient-to-br from-sky-100 via-sky-50 to-white shadow-sky-200/50 dark:from-sky-950/50 dark:via-sky-950/20 dark:to-card dark:border-sky-500/35 dark:shadow-none',
-    bar: 'bg-sky-500',
-    badge: 'bg-sky-600 text-white',
-  },
-  {
-    card: 'border-violet-300/90 bg-gradient-to-br from-violet-100 via-violet-50 to-white shadow-violet-200/50 dark:from-violet-950/50 dark:via-violet-950/20 dark:to-card dark:border-violet-500/35 dark:shadow-none',
-    bar: 'bg-violet-500',
-    badge: 'bg-violet-600 text-white',
-  },
-  {
-    card: 'border-amber-300/90 bg-gradient-to-br from-amber-100 via-amber-50 to-white shadow-amber-200/50 dark:from-amber-950/50 dark:via-amber-950/20 dark:to-card dark:border-amber-500/35 dark:shadow-none',
-    bar: 'bg-amber-500',
-    badge: 'bg-amber-600 text-white',
-  },
-  {
-    card: 'border-rose-300/90 bg-gradient-to-br from-rose-100 via-rose-50 to-white shadow-rose-200/50 dark:from-rose-950/50 dark:via-rose-950/20 dark:to-card dark:border-rose-500/35 dark:shadow-none',
-    bar: 'bg-rose-500',
-    badge: 'bg-rose-600 text-white',
-  },
-  {
-    card: 'border-teal-300/90 bg-gradient-to-br from-teal-100 via-teal-50 to-white shadow-teal-200/50 dark:from-teal-950/50 dark:via-teal-950/20 dark:to-card dark:border-teal-500/35 dark:shadow-none',
-    bar: 'bg-teal-500',
-    badge: 'bg-teal-600 text-white',
-  },
-  {
-    card: 'border-indigo-300/90 bg-gradient-to-br from-indigo-100 via-indigo-50 to-white shadow-indigo-200/50 dark:from-indigo-950/50 dark:via-indigo-950/20 dark:to-card dark:border-indigo-500/35 dark:shadow-none',
-    bar: 'bg-indigo-500',
-    badge: 'bg-indigo-600 text-white',
-  },
-  {
-    card: 'border-orange-300/90 bg-gradient-to-br from-orange-100 via-orange-50 to-white shadow-orange-200/50 dark:from-orange-950/50 dark:via-orange-950/20 dark:to-card dark:border-orange-500/35 dark:shadow-none',
-    bar: 'bg-orange-500',
-    badge: 'bg-orange-600 text-white',
-  },
-  {
-    card: 'border-fuchsia-300/90 bg-gradient-to-br from-fuchsia-100 via-fuchsia-50 to-white shadow-fuchsia-200/50 dark:from-fuchsia-950/50 dark:via-fuchsia-950/20 dark:to-card dark:border-fuchsia-500/35 dark:shadow-none',
-    bar: 'bg-fuchsia-500',
-    badge: 'bg-fuchsia-600 text-white',
-  },
-] as const;
-
-const ASSAM_CARD_THEME = {
-  card: 'border-emerald-300/90 bg-gradient-to-br from-emerald-100 via-emerald-50 to-white shadow-emerald-200/50 dark:from-emerald-950/50 dark:via-emerald-950/20 dark:to-card dark:border-emerald-500/35 dark:shadow-none',
-  bar: 'bg-emerald-500',
-  badge: 'bg-emerald-600 text-white',
-} as const;
-
-function floorCardTheme(floorId: MistriFloorId, customFloorNumber?: number | null) {
-  if (isAssamMistriFloor(floorId)) return ASSAM_CARD_THEME;
-  const level = mistriFloorUpperCount(floorId, customFloorNumber);
-  return FLOOR_CARD_THEMES[Math.abs(level) % FLOOR_CARD_THEMES.length];
-}
 
 interface FloorWorkForm {
   workTypes: MistriFloorWorkType[];
@@ -240,8 +191,8 @@ function OptionCardButton({
       className={cn(
         'flex w-full items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3.5 text-left text-sm font-semibold transition-all',
         selected
-          ? 'border-emerald-600 bg-emerald-50 text-emerald-700 shadow-sm dark:border-emerald-500 dark:bg-emerald-500/15 dark:text-emerald-300'
-          : 'text-gray-800 hover:border-emerald-500 hover:bg-emerald-50/50 dark:border-border dark:bg-card dark:text-zinc-100 dark:hover:border-emerald-500 dark:hover:bg-emerald-500/10',
+          ? 'border-blue-600 bg-blue-50 text-blue-700 shadow-sm ring-1 ring-blue-500/30 dark:border-blue-500 dark:bg-blue-500/15 dark:text-blue-300'
+          : 'text-gray-800 hover:border-blue-500 hover:bg-blue-50/50 dark:border-border dark:bg-card dark:text-zinc-100 dark:hover:border-blue-500 dark:hover:bg-blue-500/10',
         disabled && 'cursor-not-allowed opacity-50 grayscale hover:border-gray-200 hover:bg-white dark:hover:border-border dark:hover:bg-card',
         className,
       )}
@@ -252,9 +203,9 @@ function OptionCardButton({
       ) : selected ? (
         <span
           aria-hidden
-          className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border-2 border-emerald-600 dark:border-emerald-400"
+          className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border-2 border-blue-600 dark:border-blue-400"
         >
-          <span className="h-2.5 w-2.5 rounded-full bg-emerald-600 dark:bg-emerald-400" />
+          <span className="h-2.5 w-2.5 rounded-full bg-blue-600 dark:bg-blue-400" />
         </span>
       ) : (
         <span
@@ -376,8 +327,8 @@ function HouseTypeCard({
       className={cn(
         'relative flex min-h-[5.75rem] w-full flex-col items-center justify-center gap-1.5 rounded-xl border px-3 py-3 text-center transition-all',
         selected
-          ? 'border-emerald-500/70 bg-emerald-500/15 shadow-sm shadow-emerald-500/10'
-          : 'border-border bg-card hover:border-emerald-400/60 hover:bg-emerald-500/5',
+          ? 'border-blue-600 bg-blue-50 shadow-sm ring-1 ring-blue-500/30 dark:border-blue-500 dark:bg-blue-500/15'
+          : 'border-border bg-card hover:border-blue-500 hover:bg-blue-50/50 dark:hover:border-blue-500 dark:hover:bg-blue-500/10',
       )}
     >
       <span
@@ -390,7 +341,7 @@ function HouseTypeCard({
       </span>
       <span className="text-xs font-semibold text-gray-900 dark:text-white">{label}</span>
       {selected ? (
-        <CheckCircle2 className="absolute right-2.5 top-2.5 h-4 w-4 text-emerald-500 dark:text-emerald-400" />
+        <CheckCircle2 className="absolute right-2.5 top-2.5 h-4 w-4 text-blue-600 dark:text-blue-400" />
       ) : (
         <span
           aria-hidden
@@ -911,8 +862,8 @@ export function LabourContractorProjectWizard() {
               <div
                 className={cn(
                   'flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold flex-shrink-0',
-                  i + 1 < step ? 'bg-emerald-500 text-white' :
-                  i + 1 === step ? 'bg-emerald-500/20 border-2 border-emerald-500 text-emerald-400' :
+                  i + 1 < step ? FORM_PROGRESS_DONE :
+                  i + 1 === step ? FORM_PROGRESS_CURRENT :
                   'bg-secondary text-muted-foreground',
                 )}
               >
@@ -979,7 +930,7 @@ export function LabourContractorProjectWizard() {
                 * Note: Enter the estimated slab area for a single floor. This value will be used as the base area for each floor selected below.
               </p>
 
-              <div className="flex flex-col gap-1.5">
+              <div className={FORM_SECTION_CARD}>
                 <label className={SECTION_LABEL}>House type</label>
                 <div className="mt-1 grid grid-cols-2 gap-3">
                   {MISTRI_HOUSE_TYPE_OPTIONS.map((opt) => (
@@ -1001,7 +952,7 @@ export function LabourContractorProjectWizard() {
               </div>
 
               {form.houseType === 'rcc' && (
-                <div className="flex flex-col gap-1.5">
+                <div className={FORM_SECTION_CARD}>
                   <label className={SECTION_LABEL}>Building / Floor Type</label>
                   <p className={HELPER_TEXT}>
                     Select only the RCC floors included in this project. Intermediate floors are not added automatically.
@@ -1022,7 +973,7 @@ export function LabourContractorProjectWizard() {
                 </div>
               )}
 
-              <div className="flex flex-col gap-1.5">
+              <div className={FORM_SECTION_CARD}>
                 <label className={SECTION_LABEL}>
                   Bidding Duration
                 </label>
@@ -1040,7 +991,7 @@ export function LabourContractorProjectWizard() {
                 </p>
               </div>
 
-              <Button size="lg" className="w-full" onClick={tryGoStep2}>
+              <Button size="lg" className={cn('w-full', FORM_CONTINUE_BTN)} onClick={tryGoStep2}>
                 Continue <ArrowRight className="w-4 h-4" />
               </Button>
             </div>
@@ -1070,27 +1021,14 @@ export function LabourContractorProjectWizard() {
                 const isAssam = isAssamMistriFloor(fw.floorId);
                 const selectedScope = rccScopeFromWorkTypes(entry.workTypes);
                 const title = formatMistriFloorWorkLabel(fw);
-                const theme = floorCardTheme(fw.floorId, fw.customFloorNumber);
 
                 return (
                   <div
                     key={key}
-                    className={cn(
-                      'relative overflow-hidden rounded-2xl border p-4 pl-5 space-y-3 shadow-md',
-                      theme.card,
-                    )}
+                    className={FORM_SECTION_CARD}
                   >
-                    <span
-                      aria-hidden
-                      className={cn('absolute inset-y-0 left-0 w-1.5 rounded-l-2xl', theme.bar)}
-                    />
                     <div className="space-y-1.5">
-                      <p
-                        className={cn(
-                          'inline-flex max-w-full items-center rounded-full px-2.5 py-1 text-xs font-bold tracking-wide',
-                          theme.badge,
-                        )}
-                      >
+                      <p className={FORM_BADGE}>
                         {title}
                       </p>
                       <p className={HELPER_TEXT}>
@@ -1102,7 +1040,7 @@ export function LabourContractorProjectWizard() {
 
                     {isAssam ? (
                       <div className="space-y-3">
-                        <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2.5">
+                        <div className="rounded-lg border border-blue-200 bg-blue-50/80 px-3 py-2.5 dark:border-blue-800 dark:bg-blue-950/40">
                           <p className="text-xs font-semibold text-gray-900 dark:text-white">
                             Full finishing upto Plastering and Roof work
                           </p>
@@ -1133,7 +1071,7 @@ export function LabourContractorProjectWizard() {
                           }
                         />
 
-                        <div className="space-y-3 rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-2.5">
+                        <div className={FORM_NESTED_PANEL}>
                           <NestedChoiceButtons
                             question="Do you also want flooring (Tile / Marble / Smooth Cement Finish)?"
                             options={MISTRI_YES_NO_OPTIONS}
@@ -1237,11 +1175,11 @@ export function LabourContractorProjectWizard() {
                                 </span>
                               </OptionCardButton>
                               {opt.value === 'full_construction' && selected && (
-                                <div className="ml-2 space-y-3 rounded-xl border border-emerald-500/20 bg-emerald-50/60 p-3 dark:bg-emerald-500/5">
+                                <div className={cn('ml-2', FORM_NESTED_PANEL)}>
                                   <label className="flex items-start gap-2 text-sm font-semibold text-gray-900 dark:text-zinc-100">
                                     <input
                                       type="checkbox"
-                                      className="mt-0.5 h-4 w-4 rounded border-border text-emerald-600 focus:ring-emerald-500"
+                                      className={FORM_CHECKBOX}
                                       checked={entry.includeFineFlooring === true}
                                       onChange={(e) =>
                                         patchFloorWork(
@@ -1287,7 +1225,7 @@ export function LabourContractorProjectWizard() {
                                 </div>
                               )}
                               {opt.value === 'wall_plaster_only' && selected && (
-                                <div className="ml-2 space-y-3 rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-2.5">
+                                <div className={cn('ml-2', FORM_NESTED_PANEL)}>
                                   <NestedChoiceButtons
                                     question="What type of wall material will be used?"
                                     options={MISTRI_BRICKWORK_MATERIAL_OPTIONS}
@@ -1367,10 +1305,6 @@ export function LabourContractorProjectWizard() {
                       <OptionCardButton
                         key={opt.value}
                         selected={form.contractType === opt.value}
-                        className={cn(
-                          form.contractType === opt.value &&
-                            'border-teal-600 bg-teal-50 text-teal-800 shadow-md ring-2 ring-teal-500/30 dark:border-teal-400 dark:bg-teal-500/15 dark:text-teal-200',
-                        )}
                         onClick={() => {
                           update('contractType', opt.value);
                           setStep2Error(null);
@@ -1383,7 +1317,7 @@ export function LabourContractorProjectWizard() {
                 </div>
               )}
 
-              <div className="flex flex-col gap-2">
+              <div className={FORM_SECTION_CARD}>
                 <label className={SECTION_LABEL}>
                   Project Starting Time
                 </label>
@@ -1419,7 +1353,7 @@ export function LabourContractorProjectWizard() {
                 )}
               </div>
 
-              <div className="flex flex-col gap-1.5">
+              <div className={FORM_SECTION_CARD}>
                 <label className={SECTION_LABEL}>
                   Additional Requirements <span className="normal-case tracking-normal">(optional)</span>
                 </label>
@@ -1431,7 +1365,7 @@ export function LabourContractorProjectWizard() {
                     update('additionalRequirements', e.target.value);
                     setStep2Error(null);
                   }}
-                  className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm text-gray-900 dark:text-zinc-100 placeholder:text-slate-600 dark:placeholder:text-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
+                  className={FORM_TEXTAREA}
                 />
               </div>
 
@@ -1439,7 +1373,7 @@ export function LabourContractorProjectWizard() {
                 <Button variant="outline" size="lg" className="flex-1" onClick={() => setStep(1)}>
                   <ArrowLeft className="w-4 h-4" /> Back
                 </Button>
-                <Button size="lg" className="flex-1" onClick={tryGoStep3}>
+                <Button size="lg" className={cn('flex-1', FORM_CONTINUE_BTN)} onClick={tryGoStep3}>
                   Continue <ArrowRight className="w-4 h-4" />
                 </Button>
               </div>
@@ -1481,7 +1415,7 @@ export function LabourContractorProjectWizard() {
                 <Button variant="outline" size="lg" className="flex-1" onClick={() => setStep(2)}>
                   <ArrowLeft className="w-4 h-4" /> Back
                 </Button>
-                <Button size="lg" className="flex-1" disabled={loading} onClick={handleSubmit}>
+                <Button size="lg" className={cn('flex-1', FORM_CONTINUE_BTN)} disabled={loading} onClick={handleSubmit}>
                   {loading ? (
                     <span className="flex items-center gap-2">
                       <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
@@ -1497,8 +1431,8 @@ export function LabourContractorProjectWizard() {
 
           {step === 4 && (
             <div className="flex flex-col items-center gap-5 py-6 text-center">
-              <div className="w-16 h-16 rounded-full bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center">
-                <CheckCircle2 className="w-8 h-8 text-emerald-400" />
+              <div className="w-16 h-16 rounded-full bg-blue-500/15 border border-blue-500/30 flex items-center justify-center">
+                <CheckCircle2 className="w-8 h-8 text-blue-500" />
               </div>
               <div>
                 <h2 className="text-xl font-bold text-foreground mb-2">Auction Launched! 🎉</h2>

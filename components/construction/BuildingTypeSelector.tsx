@@ -278,15 +278,15 @@ export function BuildingTypeSelector({
                 'flex items-center gap-3 w-full text-left rounded-xl border-2 px-4 py-3 transition-all',
                 disabled && 'opacity-45 cursor-not-allowed grayscale',
                 selected
-                  ? 'border-emerald-500/60 bg-emerald-500/10 shadow-sm'
-                  : 'border-border bg-card/80 hover:border-emerald-500/30 hover:bg-accent/40',
+                  ? 'border-blue-600 bg-blue-50 shadow-sm ring-1 ring-blue-500/30 dark:bg-blue-500/15'
+                  : 'border-border bg-card/80 hover:border-blue-500/40 hover:bg-accent/40',
               )}
             >
               <span
                 className={cn(
                   'flex h-5 w-5 flex-shrink-0 items-center justify-center rounded border-2 transition-colors',
                   selected
-                    ? 'border-emerald-500 bg-emerald-500 text-white'
+                    ? 'border-blue-600 bg-blue-600 text-white'
                     : 'border-muted-foreground/40 bg-background',
                 )}
               >
@@ -311,15 +311,15 @@ export function BuildingTypeSelector({
               'flex items-center gap-3 w-full text-left rounded-xl border-2 px-4 py-3 transition-all',
               customDisabled && 'opacity-45 cursor-not-allowed grayscale',
               customSelected && customSelectable
-                ? 'border-emerald-500/60 bg-emerald-500/10 shadow-sm'
-                : 'border-border bg-card/80 hover:border-emerald-500/30 hover:bg-accent/40',
+                ? 'border-blue-600 bg-blue-50 shadow-sm ring-1 ring-blue-500/30 dark:bg-blue-500/15'
+                : 'border-border bg-card/80 hover:border-blue-500/40 hover:bg-accent/40',
             )}
           >
             <span
               className={cn(
                 'flex h-5 w-5 flex-shrink-0 items-center justify-center rounded border-2 transition-colors',
                 customSelected && customSelectable
-                  ? 'border-emerald-500 bg-emerald-500 text-white'
+                  ? 'border-blue-600 bg-blue-600 text-white'
                   : 'border-muted-foreground/40 bg-background',
               )}
             >

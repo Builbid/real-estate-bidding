@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/select';
 import { OptionSelectGrid } from '@/components/owner/wizard/OptionSelectCard';
 import { StartTimeAndNotes, WIZARD_SECTION_LABEL } from '@/components/owner/wizard/StartTimeAndNotes';
+import { FORM_CONTINUE_BTN, FORM_SECTION_CARD } from '@/components/owner/wizard/formTheme';
 import {
   AssamDistrictAutocomplete,
   parseAssamDistrictSelection,
@@ -211,9 +212,9 @@ export function DrawingDesignProjectWizard() {
               className={cn(
                 'flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold',
                 i + 1 < step
-                  ? 'bg-emerald-500 text-white'
+                  ? 'bg-blue-500 text-white'
                   : i + 1 === step
-                    ? 'border-2 border-emerald-500 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+                    ? 'border-2 border-blue-500 bg-blue-500/20 text-blue-600 dark:text-blue-400'
                     : 'bg-secondary text-muted-foreground',
               )}
             >
@@ -274,7 +275,7 @@ export function DrawingDesignProjectWizard() {
                 </Select>
               </div>
 
-              <Button size="lg" className="w-full" onClick={tryGoStep2}>
+              <Button size="lg" className={cn('w-full', FORM_CONTINUE_BTN)} onClick={tryGoStep2}>
                 Continue <ArrowRight className="h-4 w-4" />
               </Button>
             </>
@@ -296,7 +297,7 @@ export function DrawingDesignProjectWizard() {
                 </div>
               )}
 
-              <div className="flex flex-col gap-1.5">
+              <div className={FORM_SECTION_CARD}>
                 <label className={WIZARD_SECTION_LABEL}>Package Selection</label>
                 <OptionSelectGrid
                   options={DRAWING_PACKAGE_OPTIONS}
@@ -313,7 +314,7 @@ export function DrawingDesignProjectWizard() {
                 />
               </div>
 
-              <div className="flex flex-col gap-1.5">
+              <div className={FORM_SECTION_CARD}>
                 <label className={WIZARD_SECTION_LABEL}>Number of Floors</label>
                 <OptionSelectGrid
                   options={DRAWING_FLOOR_OPTIONS}
@@ -339,18 +340,20 @@ export function DrawingDesignProjectWizard() {
                 )}
               </div>
 
-              <Input
-                label="Approximate Plot Dimensions (e.g. 30ft x 40ft)"
-                type="text"
-                placeholder="e.g. 30ft x 40ft"
-                value={form.plotDimensions}
-                onChange={(e) => {
-                  update('plotDimensions', e.target.value);
-                  setStep2Error(null);
-                }}
-              />
+              <div className={FORM_SECTION_CARD}>
+                <Input
+                  label="Approximate Plot Dimensions (e.g. 30ft x 40ft)"
+                  type="text"
+                  placeholder="e.g. 30ft x 40ft"
+                  value={form.plotDimensions}
+                  onChange={(e) => {
+                    update('plotDimensions', e.target.value);
+                    setStep2Error(null);
+                  }}
+                />
+              </div>
 
-              <div className="flex flex-col gap-1.5">
+              <div className={FORM_SECTION_CARD}>
                 <label className={WIZARD_SECTION_LABEL}>Deliverables Required</label>
                 <OptionSelectGrid
                   options={DRAWING_DELIVERABLE_OPTIONS}
@@ -388,7 +391,7 @@ export function DrawingDesignProjectWizard() {
                 <Button variant="outline" size="lg" className="flex-1" onClick={() => setStep(1)}>
                   <ArrowLeft className="h-4 w-4" /> Back
                 </Button>
-                <Button size="lg" className="flex-1" onClick={tryGoStep3}>
+                <Button size="lg" className={cn('flex-1', FORM_CONTINUE_BTN)} onClick={tryGoStep3}>
                   Continue <ArrowRight className="h-4 w-4" />
                 </Button>
               </div>
@@ -424,7 +427,7 @@ export function DrawingDesignProjectWizard() {
                 <Button variant="outline" size="lg" className="flex-1" onClick={() => setStep(2)}>
                   <ArrowLeft className="h-4 w-4" /> Back
                 </Button>
-                <Button size="lg" className="flex-1" disabled={loading} onClick={handleSubmit}>
+                <Button size="lg" className={cn('flex-1', FORM_CONTINUE_BTN)} disabled={loading} onClick={handleSubmit}>
                   {loading ? 'Launching…' : '🚀 Launch Auction'}
                 </Button>
               </div>
