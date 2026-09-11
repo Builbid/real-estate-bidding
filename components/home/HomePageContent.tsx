@@ -16,7 +16,7 @@ import { useTranslation } from '@/lib/context/LanguageProvider';
 import type { DemoFirm } from '@/lib/data/demoFirms';
 import type { Project } from '@/lib/types';
 import type { ShowcaseProject } from '@/lib/projectShowcase';
-import { STAT_ICON_STYLES, type StatIconColor } from '@/lib/dashboard/statIconStyles';
+import type { StatIconColor } from '@/lib/dashboard/statIconStyles';
 import { cn } from '@/lib/utils';
 
 interface HomePageContentProps {
@@ -93,24 +93,25 @@ export function HomePageContent({
 
           <ServiceCategoryBar isAuthenticated={isAuthenticated} role={role} />
 
-          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3.5">
+          <div className="grid grid-cols-2 gap-x-8 gap-y-6 sm:grid-cols-4">
             {STATS_CONFIG.map(({ key, label, icon: Icon, tone }) => (
-              <div
-                key={key}
-                className="rounded-xl border border-border/70 bg-card/80 px-2.5 py-2.5 shadow-sm backdrop-blur-sm sm:px-3 sm:py-3"
-              >
-                <div className="flex items-center gap-2 sm:gap-2.5">
-                  <div className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border', STAT_ICON_STYLES[tone].box)}>
-                    <Icon className={cn('h-3.5 w-3.5 sm:h-4 sm:w-4', STAT_ICON_STYLES[tone].icon)} />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-base font-bold tabular-nums text-foreground sm:text-lg leading-none">
-                      {statValues[key].toLocaleString()}
-                    </p>
-                    <p className="mt-0.5 truncate text-[10px] font-medium leading-tight text-slate-700 dark:text-slate-300 sm:text-[11px]">
-                      {label}
-                    </p>
-                  </div>
+              <div key={key} className="flex items-center gap-2 sm:gap-2.5">
+                <Icon
+                  className={cn(
+                    'h-4 w-4 shrink-0 sm:h-5 sm:w-5',
+                    tone === 'emerald' && 'text-emerald-600 dark:text-emerald-400',
+                    tone === 'violet' && 'text-violet-500 dark:text-violet-400',
+                    tone === 'teal' && 'text-teal-500 dark:text-teal-400',
+                    tone === 'amber' && 'text-amber-600 dark:text-amber-400',
+                  )}
+                />
+                <div className="min-w-0">
+                  <p className="text-base font-bold tabular-nums text-foreground sm:text-lg leading-none">
+                    {statValues[key].toLocaleString()}
+                  </p>
+                  <p className="mt-0.5 truncate text-[10px] font-medium leading-tight text-slate-700 dark:text-slate-300 sm:text-[11px]">
+                    {label}
+                  </p>
                 </div>
               </div>
             ))}
@@ -133,7 +134,7 @@ export function HomePageContent({
                 <h2 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
                   {t('home.auctions.selectionTitle')}
                 </h2>
-                <span className="rounded-full border border-violet-500/25 bg-violet-500/10 px-2.5 py-0.5 text-xs font-semibold text-violet-700 dark:text-violet-400">
+                <span className="text-xs font-semibold text-violet-700 dark:text-violet-400">
                   {t('home.auctions.projects', { count: filteredFrozenProjects.length })}
                 </span>
               </div>
@@ -157,7 +158,7 @@ export function HomePageContent({
                 ))}
               </div>
             ) : (
-              <div className="rounded-2xl border border-dashed border-border bg-card/40 px-6 py-12 text-center">
+              <div className="px-6 py-12 text-center">
                 <p className="text-sm text-muted-foreground">{t('home.auctions.noDistrictProjects')}</p>
               </div>
             )}
