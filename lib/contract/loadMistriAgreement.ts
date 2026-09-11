@@ -19,7 +19,7 @@ export async function loadMistriAgreementPayload(
   const { data: project, error: projectError } = await supabase
     .from('projects')
     .select(
-      'id, owner_id, title, district, state, pincode, description, track_type, sub_configuration, building_types, construction_types, total_floors, plot_area_sqft, floor_area_sqft, mistri_details, service_type, selected_builder_id',
+      'id, owner_id, title, district, state, pincode, description, track_type, sub_configuration, building_types, construction_types, total_floors, plot_area_sqft, floor_area_sqft, mistri_details, service_type, selected_builder_id, numeric_id',
     )
     .eq('id', projectId)
     .single();
@@ -120,6 +120,7 @@ export async function loadMistriAgreementPayload(
   const payload = buildMistriAgreementPayload({
     project: {
       id: project.id,
+      numeric_id: project.numeric_id,
       title: project.title,
       district: project.district,
       state: project.state,

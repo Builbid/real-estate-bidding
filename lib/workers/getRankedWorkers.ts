@@ -14,6 +14,7 @@ type PublicRow = {
   role: string;
   avatar_url?: string | null;
   is_verified?: boolean;
+  service_type?: string | null;
 };
 
 function mapRowToWorker(
@@ -44,7 +45,7 @@ async function fetchLiveWorkers(): Promise<RankedWorker[]> {
 
   const { data: profiles } = await supabase
     .from('profiles_public')
-    .select('id, full_name, role, avatar_url, is_verified')
+    .select('id, full_name, role, avatar_url, is_verified, service_type')
     .in('role', ['labour_contractor', 'service_provider'])
     .order('is_verified', { ascending: false })
     .order('created_at', { ascending: false })
@@ -54,10 +55,10 @@ async function fetchLiveWorkers(): Promise<RankedWorker[]> {
 
   const ids = profiles.map((p) => p.id);
 
-  const [{ data: ratingRows }, { data: serviceRows }] = await Promise.all([
-    supabase.from('builder_ratings').select('builder_id, rating').in('builder_id', ids),
-    supabase.from('profiles').select('id, service_type').in('id', ids),
-  ]);
+  const { data: ratingRows } = await supabase
+    .from('builder_ratings')
+    .select('builder_id, rating')
+    .in('builder_id', ids);
 
   const ratingsByBuilder = new Map<string, { rating: number }[]>();
   for (const row of ratingRows ?? []) {
@@ -66,16 +67,11 @@ async function fetchLiveWorkers(): Promise<RankedWorker[]> {
     ratingsByBuilder.set(row.builder_id, list);
   }
 
-  const serviceById = new Map<string, string | null>();
-  for (const row of serviceRows ?? []) {
-    serviceById.set(row.id, row.service_type ?? null);
-  }
-
   return profiles
     .map((row) => {
       const stats = computeRatingStats(ratingsByBuilder.get(row.id) ?? []);
       const rating = stats.total > 0 ? stats.average : 4.5;
-      return mapRowToWorker(row, rating, stats.total, serviceById.get(row.id));
+      return mapRowToWorker(row, rating, stats.total, row.service_type);
     })
     .filter((worker) => worker.category !== 'false_ceiling_work');
 }

@@ -14,6 +14,7 @@ import { getConstructionLabel } from '@/lib/utils'
 import { formatPackageRateRange } from '@/lib/firm/bidDisplay'
 import type { BidRates, PackageBidPrice, SubConfiguration, TrackType } from '@/lib/types'
 import type { ConstructionTypesMap } from '@/lib/buildingConfig'
+import { archiveAwardedProjectDocuments } from '@/lib/documents/archiveProjectDocuments'
 import { revalidatePath } from 'next/cache'
 
 export async function selectBuilderAction(
@@ -27,7 +28,7 @@ export async function selectBuilderAction(
   // 1. Confirm the project is still selectable (prevents double-select)
   const { data: existing, error: fetchError } = await supabase
     .from('projects')
-    .select('id, owner_id, title, district, state, pincode, description, track_type, sub_configuration, building_types, construction_types, total_floors, plot_area_sqft, floor_area_sqft, mistri_details, status, selected_builder_id, service_type')
+    .select('id, owner_id, title, district, state, pincode, description, track_type, sub_configuration, building_types, construction_types, total_floors, plot_area_sqft, floor_area_sqft, mistri_details, status, selected_builder_id, service_type, numeric_id, drawing_url')
     .eq('id', projectId)
     .single()
 
@@ -192,11 +193,13 @@ export async function selectBuilderAction(
     const isMistriProject = isMistriCivilService(existing.service_type)
     let agreementPayload = null as ReturnType<typeof buildMistriAgreementPayload> | null
     let agreementAttachment: Array<{ filename: string; content: Buffer; contentType: string }> | undefined
+    let agreementPdfBytes: Uint8Array | undefined
     if (isMistriProject) {
       try {
         agreementPayload = buildMistriAgreementPayload({
           project: {
             id: existing.id,
+            numeric_id: existing.numeric_id,
             title: existing.title,
             district: existing.district,
             state: existing.state,
@@ -238,9 +241,10 @@ export async function selectBuilderAction(
             platformId: builderId,
           },
         })
+        agreementPdfBytes = generateMistriAgreementPdfBytes(agreementPayload)
         agreementAttachment = [{
-          filename: mistriAgreementFileName(existing.id),
-          content: Buffer.from(generateMistriAgreementPdfBytes(agreementPayload)),
+          filename: mistriAgreementFileName(existing.id, agreementPayload.numericProjectId),
+          content: Buffer.from(agreementPdfBytes),
           contentType: 'application/pdf',
         }]
       } catch (pdfErr) {
@@ -291,6 +295,13 @@ export async function selectBuilderAction(
     console.error('Selection email failed (non-fatal):', err)
   }
 
+  try {
+    await archiveAwardedProjectDocuments({ projectId })
+  } catch (archiveErr) {
+    console.error('Project document archive failed (non-fatal):', archiveErr)
+  }
+
   revalidatePath(`/dashboard/owner/project/${projectId}`)
+  revalidatePath('/dashboard/profile')
   return { error: null }
 }

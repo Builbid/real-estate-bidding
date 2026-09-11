@@ -18,6 +18,7 @@ interface ProfileContextValue {
   profile: Profile | null;
   loading: boolean;
   updateAvatarUrl: (url: string | null) => void;
+  patchProfile: (patch: Partial<Profile>) => void;
   refreshProfile: () => Promise<void>;
   clearProfile: () => void;
 }
@@ -90,6 +91,10 @@ export function ProfileProvider({
     setProfile((prev) => (prev ? { ...prev, avatar_url: url } : prev));
   }, []);
 
+  const patchProfile = useCallback((patch: Partial<Profile>) => {
+    setProfile((prev) => (prev ? { ...prev, ...patch } : prev));
+  }, []);
+
   const clearProfile = useCallback(() => {
     setProfile(null);
     setLoading(false);
@@ -124,7 +129,7 @@ export function ProfileProvider({
   }, [refreshProfile]);
 
   return (
-    <ProfileContext.Provider value={{ profile, loading, updateAvatarUrl, refreshProfile, clearProfile }}>
+    <ProfileContext.Provider value={{ profile, loading, updateAvatarUrl, patchProfile, refreshProfile, clearProfile }}>
       {children}
     </ProfileContext.Provider>
   );

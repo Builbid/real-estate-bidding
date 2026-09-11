@@ -3,6 +3,9 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { AVATAR_BUCKET, AVATAR_MAX_BYTES } from '@/lib/avatar/constants';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { stripMobileDigits, validateMobile } from '@/lib/validation/mobile';
+import { formatPincodeInput, validatePincode } from '@/lib/validation/pincode';
 
 const ALLOWED_TYPES = new Set(['image/jpeg', 'image/jpg', 'image/png', 'image/webp']);
 
@@ -147,4 +150,78 @@ export async function removeBuilderAvatarAction(): Promise<{ error: string | nul
   revalidatePath('/dashboard/builder/bid', 'layout');
 
   return { error: null };
+}
+
+export async function updateAccountDetailsAction(input: {
+  email: string;
+  mobile: string;
+  physical_address: string;
+  pincode: string;
+}): Promise<{ error: string | null; warning?: string | null }> {
+  const supabase = await createClient();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return { error: 'You must be signed in to update account details.' };
+  }
+
+  const email = input.email.trim().toLowerCase();
+  const mobile = stripMobileDigits(input.mobile);
+  const address = input.physical_address.trim();
+  const pincode = formatPincodeInput(input.pincode);
+
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return { error: 'Enter a valid email address.' };
+  }
+
+  const mobileError = validateMobile(mobile);
+  if (mobileError) return { error: mobileError };
+
+  const pincodeError = validatePincode(pincode);
+  if (pincodeError) return { error: pincodeError };
+
+  try {
+    const admin = createAdminClient();
+    const { data: taken } = await admin
+      .from('profiles')
+      .select('id')
+      .ilike('email', email)
+      .neq('id', user.id)
+      .maybeSingle();
+    if (taken) {
+      return { error: 'That email is already in use on another BuilBid account.' };
+    }
+  } catch {
+    // Unique index on profiles.email is the fallback guard.
+  }
+
+  let warning: string | null = null;
+  const currentEmail = (user.email ?? '').trim().toLowerCase();
+  if (email !== currentEmail) {
+    const { error: emailError } = await supabase.auth.updateUser({ email });
+    if (emailError) {
+      warning = emailError.message || 'Email was saved on your profile. Confirm the change if BuilBid sent a verification link.';
+    }
+  }
+
+  const { error: updateError } = await supabase
+    .from('profiles')
+    .update({
+      email,
+      mobile,
+      physical_address: address || null,
+      pincode: pincode || null,
+    })
+    .eq('id', user.id);
+
+  if (updateError) {
+    if (/duplicate|unique/i.test(updateError.message)) {
+      return { error: 'That email is already in use on another BuilBid account.' };
+    }
+    return { error: updateError.message || 'Could not save account details.' };
+  }
+
+  revalidatePath('/dashboard/profile');
+  revalidatePath('/dashboard', 'layout');
+
+  return { error: null, warning };
 }

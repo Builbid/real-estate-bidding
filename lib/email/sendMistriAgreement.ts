@@ -37,7 +37,7 @@ function buildOfficialAgreementHtml(payload: MistriAgreementPayload): string {
         <span style="color:#fff;font-size:13px;font-weight:700;letter-spacing:.05em;text-transform:uppercase">Award summary</span>
       </div>
       <table style="width:100%;border-collapse:collapse">
-        ${row('Project ID', payload.projectId)}
+        ${row('Project ID', payload.numericProjectId || payload.projectId)}
         ${row('Project', payload.projectTitle)}
         ${row('Client name', payload.client.name)}
         ${row('Mistri name', payload.mistri.companyName || payload.mistri.name)}
@@ -64,7 +64,7 @@ function buildOfficialAgreementHtml(payload: MistriAgreementPayload): string {
 
 function buildOfficialAgreementText(payload: MistriAgreementPayload): string {
   return [
-    `Official Signed Agreement — Project #${payload.projectId} (Mistri / Civil Work)`,
+    `Official Signed Agreement — Project #${payload.numericProjectId || payload.projectId} (Mistri / Civil Work)`,
     `Project: ${payload.projectTitle}`,
     `Client Name: ${payload.client.name}`,
     `Mistri Name: ${payload.mistri.companyName || payload.mistri.name}`,
@@ -107,12 +107,12 @@ export async function sendOfficialMistriAgreementEmail(
   const info = await transporter.sendMail({
     from,
     to,
-    subject: mistriAgreementEmailSubject(payload.projectId),
+    subject: mistriAgreementEmailSubject(payload.projectId, payload.numericProjectId),
     text: buildOfficialAgreementText(payload),
     html: buildOfficialAgreementHtml(payload),
     attachments: [
       {
-        filename: mistriAgreementFileName(payload.projectId),
+        filename: mistriAgreementFileName(payload.projectId, payload.numericProjectId),
         content: Buffer.from(pdfBytes),
         contentType: 'application/pdf',
       },

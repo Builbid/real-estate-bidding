@@ -84,6 +84,8 @@ export function isMistriCivilService(serviceType?: string | null): boolean {
 
 export interface MistriAgreementProjectInput {
   id: string;
+  /** Short numeric-only project ID shared by all project documents. */
+  numeric_id?: string | null;
   title: string;
   district: string;
   state?: string | null;
@@ -126,6 +128,7 @@ export interface MistriAgreementRow {
 
 export interface MistriAgreementPayload {
   projectId: string;
+  numericProjectId: string;
   projectTitle: string;
   generatedAtLabel: string;
   isRccStructural: boolean;
@@ -330,6 +333,9 @@ export function buildMistriAgreementPayload(input: {
 
   return {
     projectId: project.id,
+    numericProjectId: project.numeric_id?.trim() && /^[0-9]{6}$/.test(project.numeric_id.trim())
+      ? project.numeric_id.trim()
+      : '',
     projectTitle: project.title,
     generatedAtLabel: new Date().toLocaleString('en-IN', {
       timeZone: 'Asia/Kolkata',
@@ -513,6 +519,7 @@ export function generateMistriAgreementPdfBytes(payload: MistriAgreementPayload)
     doc,
     [
       { label: 'Project title', value: payload.projectTitle },
+      { label: 'Project ID', value: payload.numericProjectId || '—' },
       { label: 'PARTY A — Homeowner', value: nonEmpty(payload.client.name) },
       { label: 'Phone / WhatsApp', value: nonEmpty(payload.client.mobile) },
       { label: 'Site address', value: payload.siteAddress },
@@ -617,11 +624,15 @@ export function generateMistriAgreementPdfBytes(payload: MistriAgreementPayload)
   return new Uint8Array(doc.output('arraybuffer') as ArrayBuffer);
 }
 
-export function mistriAgreementFileName(projectId: string): string {
-  const safe = projectId.replace(/[^a-zA-Z0-9-_]/g, '').slice(0, 36) || 'project';
+export function mistriAgreementFileName(projectId: string, numericId?: string | null): string {
+  const numeric = numericId?.trim();
+  const safe = numeric && /^[0-9]{6}$/.test(numeric)
+    ? numeric
+    : projectId.replace(/[^a-zA-Z0-9-_]/g, '').slice(0, 36) || 'project';
   return `Official-Signed-Agreement-${safe}.pdf`;
 }
 
-export function mistriAgreementEmailSubject(projectId: string): string {
-  return `Official Signed Agreement - Project #${projectId} (Mistri / Civil Work)`;
+export function mistriAgreementEmailSubject(projectId: string, numericId?: string | null): string {
+  const id = numericId?.trim() && /^[0-9]{6}$/.test(numericId.trim()) ? numericId.trim() : projectId;
+  return `Official Signed Agreement - Project #${id} (Mistri / Civil Work)`;
 }

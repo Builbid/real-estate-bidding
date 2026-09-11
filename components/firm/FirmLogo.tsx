@@ -46,7 +46,8 @@ export function FirmLogo({ companyName, logoUrl, size = 'md', className }: FirmL
     <div
       className={cn(
         'rounded-full flex items-center justify-center font-bold flex-shrink-0',
-        'bg-gradient-to-br from-violet-500 to-indigo-600 text-white border-2 border-violet-500/30',
+        'bg-sky-100 text-sky-800 border-2 border-sky-200/90',
+        'dark:bg-sky-900/50 dark:text-sky-100 dark:border-sky-800/70',
         sizeClass,
         className,
       )}

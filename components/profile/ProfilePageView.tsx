@@ -29,8 +29,10 @@ import { normalizeRole, getDashboardPath } from '@/lib/auth/roles';
 import { getProfileRoleLabel } from '@/lib/auth/profileRoleLabel';
 import { clientSignOut } from '@/lib/auth/clientSignOut';
 import { useDashboardProfile } from '@/lib/context/ProfileProvider';
+import { DocumentsSection } from '@/components/profile/DocumentsSection';
+import { EditAccountDetailsDialog } from '@/components/profile/EditAccountDetailsDialog';
 import { EMPTY_RATING_STATS, type BuilderRatingStats } from '@/lib/builderRatings';
-import type { Profile } from '@/lib/types';
+import type { Profile, ProjectDocument } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 const ROLE_BADGES: Record<string, 'amber' | 'teal' | 'indigo' | 'violet' | 'emerald'> = {
@@ -55,6 +57,7 @@ interface ProfilePageViewProps {
   profile: Profile;
   avatarGradient: string;
   metrics: ProfileActivityMetrics;
+  documents?: ProjectDocument[];
 }
 
 function MetricTile({
@@ -86,7 +89,7 @@ function MetricTile({
   );
 }
 
-export function ProfilePageView({ profile, avatarGradient, metrics }: ProfilePageViewProps) {
+export function ProfilePageView({ profile, avatarGradient, metrics, documents = [] }: ProfilePageViewProps) {
   const { t } = useTranslation();
   const router = useRouter();
   const { clearProfile } = useDashboardProfile();
@@ -178,7 +181,10 @@ export function ProfilePageView({ profile, avatarGradient, metrics }: ProfilePag
         {/* Account details */}
         <Card className="border-border bg-card/80 dark:bg-card/60">
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">Account Details</CardTitle>
+            <div className="flex items-center justify-between gap-3">
+              <CardTitle className="text-base">Account Details</CardTitle>
+              <EditAccountDetailsDialog profile={profile} />
+            </div>
           </CardHeader>
           <CardContent className="space-y-3">
             <DetailRow icon={Mail} label="Email" value={profile.email} />
@@ -244,6 +250,8 @@ export function ProfilePageView({ profile, avatarGradient, metrics }: ProfilePag
           </CardContent>
         </Card>
       </div>
+
+      <DocumentsSection documents={documents} />
 
       <SignOutConfirmDialog
         open={signOutOpen}

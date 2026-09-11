@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { getAuthUser } from '@/lib/supabase/getUser';
 import { ProfilePageView, type ProfileActivityMetrics } from '@/components/profile/ProfilePageView';
+import { listMyProjectDocumentsAction } from '@/app/actions/documents';
 import { normalizeRole } from '@/lib/auth/roles';
 import type { Profile, UserRole } from '@/lib/types';
 import { EMPTY_RATING_STATS, type BuilderRatingStats } from '@/lib/builderRatings';
@@ -107,6 +108,7 @@ export default async function DashboardProfilePage() {
   const normalizedRole = normalizeRole(profile.role);
   const avatarGradient = ROLE_AVATAR[normalizedRole] ?? ROLE_AVATAR.labour_contractor;
   const metrics = await getProfileMetrics(supabase, userId, normalizedRole);
+  const { documents } = await listMyProjectDocumentsAction();
 
   metrics.memberSince = new Date(profile.created_at).toLocaleDateString('en-IN', {
     year: 'numeric',
@@ -118,6 +120,7 @@ export default async function DashboardProfilePage() {
       profile={profile}
       avatarGradient={avatarGradient}
       metrics={metrics}
+      documents={documents}
     />
   );
 }

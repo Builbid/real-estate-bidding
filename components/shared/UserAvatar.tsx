@@ -1,6 +1,7 @@
 'use client';
 
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { AVATAR_INITIALS_CLASS, AVATAR_RING_CLASS } from '@/lib/avatar/theme';
 import { ownerInitials } from '@/lib/builderRatings';
 import { cn } from '@/lib/utils';
 
@@ -21,6 +22,7 @@ interface UserAvatarProps {
   /** @deprecated Profile photos are disabled — avatars always show the user's initial. */
   avatarUrl?: string | null;
   size?: UserAvatarSize;
+  /** @deprecated Initials use a universal light-blue theme for every account type. */
   gradient?: string;
   className?: string;
   /** @deprecated Profile photos are disabled — avatars always show the user's initial. */
@@ -30,15 +32,14 @@ interface UserAvatarProps {
 export function UserAvatar({
   name,
   size = 'md',
-  gradient = 'from-emerald-500 to-teal-600',
   className,
 }: UserAvatarProps) {
   const { className: sizeClass } = SIZE_MAP[size];
   const initials = ownerInitials(name);
 
   return (
-    <Avatar className={cn(sizeClass, 'ring-2 ring-border/80', className)}>
-      <AvatarFallback className={cn('bg-gradient-to-br font-bold text-white', gradient)}>
+    <Avatar className={cn(sizeClass, 'ring-2', AVATAR_RING_CLASS, className)}>
+      <AvatarFallback className={cn('font-bold', AVATAR_INITIALS_CLASS)}>
         {initials}
       </AvatarFallback>
     </Avatar>

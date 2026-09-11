@@ -176,9 +176,31 @@ export interface SubConfiguration {
   }>;
 }
 
+export type ProjectDocumentType = 'agreement' | 'estimate' | 'ai_design';
+
+export interface ProjectDocument {
+  id: string;
+  project_id: string;
+  numeric_project_id: string;
+  project_name: string;
+  document_type: ProjectDocumentType;
+  file_name: string;
+  storage_path?: string | null;
+  file_url?: string | null;
+  mime_type: string;
+  owner_id: string;
+  worker_id?: string | null;
+  owner_deleted: boolean;
+  worker_deleted: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Project {
   id: string;
   owner_id: string;
+  /** Short numeric-only public ID shared by all project documents (e.g. 849201). */
+  numeric_id?: string | null;
   title: string;
   description?: string | null;
   track_type: TrackType;

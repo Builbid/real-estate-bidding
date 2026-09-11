@@ -34,7 +34,7 @@ export async function GET(request: Request) {
     status: 200,
     headers: {
       'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="${mistriAgreementFileName(projectId)}"`,
+      'Content-Disposition': `attachment; filename="${mistriAgreementFileName(projectId, loaded.payload.numericProjectId)}"`,
     },
   });
 }
