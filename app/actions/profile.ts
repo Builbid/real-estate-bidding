@@ -152,65 +152,72 @@ export async function removeBuilderAvatarAction(): Promise<{ error: string | nul
   return { error: null };
 }
 
-export async function updateAccountDetailsAction(input: {
-  email: string;
-  mobile: string;
-  physical_address: string;
-  pincode: string;
-}): Promise<{ error: string | null; warning?: string | null }> {
+export async function updateAccountFieldAction(
+  field: 'email' | 'mobile' | 'location',
+  payload: {
+    email?: string;
+    mobile?: string;
+    physical_address?: string;
+    pincode?: string;
+  },
+): Promise<{ error: string | null; warning?: string | null }> {
   const supabase = await createClient();
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) {
     return { error: 'You must be signed in to update account details.' };
   }
 
-  const email = input.email.trim().toLowerCase();
-  const mobile = stripMobileDigits(input.mobile);
-  const address = input.physical_address.trim();
-  const pincode = formatPincodeInput(input.pincode);
-
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return { error: 'Enter a valid email address.' };
-  }
-
-  const mobileError = validateMobile(mobile);
-  if (mobileError) return { error: mobileError };
-
-  const pincodeError = validatePincode(pincode);
-  if (pincodeError) return { error: pincodeError };
-
-  try {
-    const admin = createAdminClient();
-    const { data: taken } = await admin
-      .from('profiles')
-      .select('id')
-      .ilike('email', email)
-      .neq('id', user.id)
-      .maybeSingle();
-    if (taken) {
-      return { error: 'That email is already in use on another BuilBid account.' };
-    }
-  } catch {
-    // Unique index on profiles.email is the fallback guard.
-  }
-
+  const patch: Record<string, string | null> = {};
   let warning: string | null = null;
-  const currentEmail = (user.email ?? '').trim().toLowerCase();
-  if (email !== currentEmail) {
-    const { error: emailError } = await supabase.auth.updateUser({ email });
-    if (emailError) {
-      warning = emailError.message || 'Email was saved on your profile. Confirm the change if BuilBid sent a verification link.';
+
+  if (field === 'email') {
+    const email = (payload.email ?? '').trim().toLowerCase();
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return { error: 'Enter a valid email address.' };
     }
+
+    try {
+      const admin = createAdminClient();
+      const { data: taken } = await admin
+        .from('profiles')
+        .select('id')
+        .ilike('email', email)
+        .neq('id', user.id)
+        .maybeSingle();
+      if (taken) {
+        return { error: 'That email is already in use on another BuilBid account.' };
+      }
+    } catch {
+      // Unique index on profiles.email is the fallback guard.
+    }
+
+    const currentEmail = (user.email ?? '').trim().toLowerCase();
+    if (email !== currentEmail) {
+      const { error: emailError } = await supabase.auth.updateUser({ email });
+      if (emailError) {
+        warning = emailError.message || 'Email was saved on your profile. Confirm the change if BuilBid sent a verification link.';
+      }
+    }
+    patch.email = email;
+  } else if (field === 'mobile') {
+    const mobile = stripMobileDigits(payload.mobile ?? '');
+    const mobileError = validateMobile(mobile);
+    if (mobileError) return { error: mobileError };
+    patch.mobile = mobile;
+  } else if (field === 'location') {
+    const address = (payload.physical_address ?? '').trim();
+    const pincode = formatPincodeInput(payload.pincode ?? '');
+    const pincodeError = validatePincode(pincode);
+    if (pincodeError) return { error: pincodeError };
+    patch.physical_address = address || null;
+    patch.pincode = pincode || null;
+  } else {
+    return { error: 'Unknown account field.' };
   }
 
   const { error: updateError } = await supabase
     .from('profiles')
-    .update({
-      email,
-      mobile,
-      physical_address: address || null,
-      pincode: pincode || null,
-    })
+    .update(patch)
     .eq('id', user.id);
 
   if (updateError) {

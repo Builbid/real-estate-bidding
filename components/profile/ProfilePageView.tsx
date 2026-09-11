@@ -6,10 +6,6 @@ import Link from 'next/link';
 import {
   ArrowLeft,
   LogOut,
-  Mail,
-  Phone,
-  MapPin,
-  BadgeCheck,
   ShieldCheck,
   TrendingUp,
   Building,
@@ -30,7 +26,7 @@ import { getProfileRoleLabel } from '@/lib/auth/profileRoleLabel';
 import { clientSignOut } from '@/lib/auth/clientSignOut';
 import { useDashboardProfile } from '@/lib/context/ProfileProvider';
 import { DocumentsSection } from '@/components/profile/DocumentsSection';
-import { EditAccountDetailsDialog } from '@/components/profile/EditAccountDetailsDialog';
+import { InlineAccountDetails } from '@/components/profile/InlineAccountDetails';
 import { EMPTY_RATING_STATS, type BuilderRatingStats } from '@/lib/builderRatings';
 import type { Profile, ProjectDocument } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -181,27 +177,14 @@ export function ProfilePageView({ profile, avatarGradient, metrics, documents = 
         {/* Account details */}
         <Card className="border-border bg-card/80 dark:bg-card/60">
           <CardHeader className="pb-3">
-            <div className="flex items-center justify-between gap-3">
-              <CardTitle className="text-base">Account Details</CardTitle>
-              <EditAccountDetailsDialog profile={profile} />
-            </div>
+            <CardTitle className="text-base">Account Details</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <DetailRow icon={Mail} label="Email" value={profile.email} />
-            <DetailRow icon={Phone} label="Mobile" value={profile.mobile ?? 'Not provided'} />
-            <DetailRow
-              icon={MapPin}
-              label="Location"
-              value={
-                profile.physical_address
-                  ? `${profile.physical_address}${profile.pincode ? ` — ${profile.pincode}` : ''}`
-                  : 'Not provided'
-              }
+          <CardContent>
+            <InlineAccountDetails
+              profile={profile}
+              roleLabel={roleLabel}
+              gstNumber={isFirm ? profile.gst_number : null}
             />
-            <DetailRow icon={BadgeCheck} label="Account Type" value={roleLabel} />
-            {isFirm && profile.gst_number && (
-              <DetailRow icon={ShieldCheck} label="GST Number" value={profile.gst_number} />
-            )}
           </CardContent>
         </Card>
 
@@ -258,26 +241,6 @@ export function ProfilePageView({ profile, avatarGradient, metrics, documents = 
         onOpenChange={setSignOutOpen}
         onConfirm={() => clientSignOut(router, { onClear: clearProfile })}
       />
-    </div>
-  );
-}
-
-function DetailRow({
-  icon: Icon,
-  label,
-  value,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="flex items-start gap-3 rounded-lg border border-border/60 bg-muted/20 px-3 py-3 dark:bg-muted/10">
-      <Icon className="mt-0.5 h-4 w-4 flex-shrink-0 text-muted-foreground" />
-      <div className="min-w-0">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
-        <p className="mt-0.5 text-sm text-foreground break-words">{value}</p>
-      </div>
     </div>
   );
 }
