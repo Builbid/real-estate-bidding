@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { backfillUserProjectDocuments } from '@/lib/documents/archiveProjectDocuments';
-import { PROJECT_DOCUMENTS_BUCKET, type ProjectDocumentType } from '@/lib/documents/constants';
+import { PROJECT_DOCUMENTS_BUCKET } from '@/lib/documents/constants';
 import type { ProjectDocument } from '@/lib/types';
 
 export async function listMyProjectDocumentsAction(): Promise<{
@@ -107,5 +107,3 @@ export async function getProjectDocumentDownloadUrl(
     };
   }
 }
-
-export type { ProjectDocumentType };

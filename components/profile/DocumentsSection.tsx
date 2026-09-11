@@ -7,8 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { hideProjectDocumentAction } from '@/app/actions/documents';
-import { PROJECT_DOCUMENT_TYPE_LABEL, type ProjectDocumentType } from '@/lib/documents/constants';
-import type { ProjectDocument } from '@/lib/types';
+import { PROJECT_DOCUMENT_TYPE_LABEL } from '@/lib/documents/constants';
+import type { ProjectDocument, ProjectDocumentType } from '@/lib/types';
 
 const TYPE_BADGE: Record<ProjectDocumentType, 'indigo' | 'teal' | 'violet'> = {
   agreement: 'indigo',
