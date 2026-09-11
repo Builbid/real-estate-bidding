@@ -89,7 +89,7 @@ export function TopBar({ profile, avatarGradient }: TopBarProps) {
         <NavLink
           href="/dashboard/profile"
           prefetch
-          className="rounded-full hover:ring-2 hover:ring-white/20 flex-shrink-0"
+          className="flex-shrink-0 rounded-xl hover:ring-2 hover:ring-sky-300/60"
           aria-label="Open profile"
         >
           {isFirm ? (

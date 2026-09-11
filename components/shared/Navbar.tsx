@@ -171,15 +171,14 @@ export function Navbar({ overlay = false, authHint }: NavbarProps) {
               <NavLink
                 href="/dashboard/profile"
                 prefetch
-                className="rounded-full hover:ring-2 hover:ring-border flex-shrink-0"
+                className="flex-shrink-0 rounded-xl hover:ring-2 hover:ring-sky-300/60"
                 aria-label="Open profile"
               >
                 <UserAvatar
                   name={profile?.full_name ?? 'User'}
                   avatarUrl={profile?.avatar_url}
-                  size="xs"
+                  size="header"
                   gradient={avatarGradient}
-                  className="!h-8 !w-8 text-xs ring-1 ring-border"
                 />
               </NavLink>
               <Button

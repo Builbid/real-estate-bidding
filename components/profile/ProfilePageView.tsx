@@ -116,7 +116,7 @@ export function ProfilePageView({ profile, avatarGradient, metrics, documents = 
       <Card className="overflow-hidden border-border bg-card/80 dark:bg-card/60">
         <CardContent className="p-6 sm:p-8">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-5">
+            <div className="flex items-center gap-4 sm:gap-5">
               {isFirm ? (
                 <FirmLogo
                   companyName={displayName}
@@ -129,12 +129,11 @@ export function ProfilePageView({ profile, avatarGradient, metrics, documents = 
                   name={profile.full_name}
                   size="xl"
                   gradient={avatarGradient}
-                  className="shadow-lg"
                 />
               )}
-              <div>
-                <h1 className="text-2xl font-bold tracking-tight text-foreground">{displayName}</h1>
-                <div className="mt-2 flex flex-wrap items-center gap-2">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                  <h1 className="text-2xl font-bold tracking-tight text-foreground">{displayName}</h1>
                   <Badge variant={badgeColor}>{roleLabel}</Badge>
                   {profile.is_verified && (
                     <Badge variant="emerald" className="gap-1">
@@ -143,7 +142,7 @@ export function ProfilePageView({ profile, avatarGradient, metrics, documents = 
                     </Badge>
                   )}
                 </div>
-                <p className="mt-2 text-sm text-muted-foreground inline-flex items-center gap-1.5">
+                <p className="mt-2 inline-flex items-center gap-1.5 text-sm text-muted-foreground">
                   <CalendarDays className="h-3.5 w-3.5" />
                   Member since {metrics.memberSince}
                 </p>

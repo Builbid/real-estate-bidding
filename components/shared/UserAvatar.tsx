@@ -1,18 +1,17 @@
 'use client';
 
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { AVATAR_INITIALS_CLASS, AVATAR_RING_CLASS } from '@/lib/avatar/theme';
+import { AVATAR_BLOCK_CLASS } from '@/lib/avatar/theme';
 import { ownerInitials } from '@/lib/builderRatings';
 import { cn } from '@/lib/utils';
 
 const SIZE_MAP = {
-  header: { className: 'h-9 w-9 text-sm' },
-  xs: { className: 'h-8 w-8 text-xs' },
-  sm: { className: 'h-10 w-10 text-sm' },
-  md: { className: 'h-11 w-11 text-sm' },
-  lg: { className: 'h-12 w-12 text-base' },
-  xl: { className: 'h-20 w-20 text-2xl' },
-  registration: { className: 'h-24 w-24 text-xl' },
+  header: { className: 'h-9 w-9 text-sm rounded-xl' },
+  xs: { className: 'h-8 w-8 text-xs rounded-lg' },
+  sm: { className: 'h-10 w-10 text-sm rounded-xl' },
+  md: { className: 'h-11 w-11 text-sm rounded-xl' },
+  lg: { className: 'h-12 w-12 text-base rounded-xl' },
+  xl: { className: 'h-20 w-20 text-3xl rounded-2xl' },
+  registration: { className: 'h-24 w-24 text-3xl rounded-2xl' },
 } as const;
 
 export type UserAvatarSize = keyof typeof SIZE_MAP;
@@ -22,7 +21,7 @@ interface UserAvatarProps {
   /** @deprecated Profile photos are disabled — avatars always show the user's initial. */
   avatarUrl?: string | null;
   size?: UserAvatarSize;
-  /** @deprecated Initials use a universal light-blue theme for every account type. */
+  /** @deprecated Initials use a universal sky logo-block theme for every account type. */
   gradient?: string;
   className?: string;
   /** @deprecated Profile photos are disabled — avatars always show the user's initial. */
@@ -35,13 +34,19 @@ export function UserAvatar({
   className,
 }: UserAvatarProps) {
   const { className: sizeClass } = SIZE_MAP[size];
-  const initials = ownerInitials(name);
+  const initial = ownerInitials(name);
 
   return (
-    <Avatar className={cn(sizeClass, 'ring-2', AVATAR_RING_CLASS, className)}>
-      <AvatarFallback className={cn('font-bold', AVATAR_INITIALS_CLASS)}>
-        {initials}
-      </AvatarFallback>
-    </Avatar>
+    <div
+      aria-hidden
+      className={cn(
+        'inline-flex shrink-0 select-none items-center justify-center font-bold leading-none tracking-tight',
+        AVATAR_BLOCK_CLASS,
+        sizeClass,
+        className,
+      )}
+    >
+      {initial}
+    </div>
   );
 }
