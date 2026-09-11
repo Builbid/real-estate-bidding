@@ -152,12 +152,12 @@ export function Navbar({ overlay = false, authHint }: NavbarProps) {
         </nav>
 
         {/* Right side */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="inline-flex items-center gap-x-3">
           <NavLink
             href="/estimate-calculator"
             prefetch
             className={cn(
-              'hidden items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-colors md:inline-flex',
+              'hidden h-9 items-center gap-1.5 rounded-lg px-2.5 text-sm font-medium transition-colors md:inline-flex',
               overlay
                 ? 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
                 : 'text-muted-foreground hover:bg-accent hover:text-foreground',
@@ -168,24 +168,29 @@ export function Navbar({ overlay = false, authHint }: NavbarProps) {
           </NavLink>
 
           {isLoggedIn ? (
-            <div className="hidden h-16 md:flex items-stretch gap-1">
+            <div className="hidden md:inline-flex items-center gap-x-3">
               <HeaderProfileLogo overlay={overlay} />
-              <Button
-                variant="ghost"
-                size="icon"
+              <button
+                type="button"
                 onClick={() => setSignOutOpen(true)}
                 title={t('common.signOut')}
-                className={overlay ? 'text-slate-700 hover:text-slate-900 hover:bg-slate-100' : undefined}
+                aria-label={t('common.signOut')}
+                className={cn(
+                  'inline-flex h-9 w-9 items-center justify-center rounded-lg',
+                  overlay
+                    ? 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+                    : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+                )}
               >
-                <LogOut className="w-4 h-4" />
-              </Button>
+                <LogOut className="h-4 w-4" />
+              </button>
             </div>
           ) : overlay ? (
-            <div className="hidden md:flex items-center gap-2">
+            <div className="hidden md:inline-flex items-center gap-2">
               <NavLink
                 href="/login"
                 prefetch
-                className="px-2 py-1 text-sm font-medium text-slate-700 hover:text-slate-900"
+                className="inline-flex h-9 items-center px-2 text-sm font-medium text-slate-700 hover:text-slate-900"
               >
                 {t('common.signIn')}
               </NavLink>
@@ -205,7 +210,7 @@ export function Navbar({ overlay = false, authHint }: NavbarProps) {
               asChild
               size="sm"
               variant="outline"
-              className="hidden h-8 rounded-full px-3 text-xs border-slate-300 text-slate-800 hover:bg-slate-100 hover:text-slate-900 min-[480px]:inline-flex lg:hidden"
+              className="hidden h-9 rounded-full px-3 text-xs border-slate-300 text-slate-800 hover:bg-slate-100 hover:text-slate-900 md:inline-flex"
             >
               <Link href={getDashboardPath(normalizedRole!)} prefetch>{t('common.dashboard')}</Link>
             </Button>

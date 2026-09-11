@@ -46,7 +46,7 @@ export function TopBar(_props: TopBarProps) {
   return (
     <>
       {/* ── Top header ─────────────────────────────────────────── */}
-      <header className="sticky top-0 z-40 flex items-center h-14 px-4 sm:px-6 border-b border-border bg-background/95 backdrop-blur gap-3">
+      <header className="sticky top-0 z-40 inline-flex w-full items-center h-14 px-4 sm:px-6 border-b border-border bg-background/95 backdrop-blur gap-x-3">
         {/* Mobile logo */}
         <NavLink
           href="/"

@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowLeft,
+  ChevronRight,
+  Folder,
   LogOut,
   ShieldCheck,
   TrendingUp,
@@ -12,9 +14,9 @@ import {
   Award,
   CalendarDays,
   Settings,
+  User,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { UserAvatar } from '@/components/shared/UserAvatar';
 import { FirmLogo } from '@/components/firm/FirmLogo';
 import { BuilderRatingBreakdown } from '@/components/shared/BuilderRatingBreakdown';
 import { SignOutConfirmDialog } from '@/components/shared/SignOutConfirmDialog';
@@ -23,10 +25,9 @@ import { normalizeRole, getDashboardPath } from '@/lib/auth/roles';
 import { getProfileRoleLabel } from '@/lib/auth/profileRoleLabel';
 import { clientSignOut } from '@/lib/auth/clientSignOut';
 import { useDashboardProfile } from '@/lib/context/ProfileProvider';
-import { DocumentsSection } from '@/components/profile/DocumentsSection';
 import { InlineAccountDetails } from '@/components/profile/InlineAccountDetails';
 import { EMPTY_RATING_STATS, type BuilderRatingStats } from '@/lib/builderRatings';
-import type { Profile, ProjectDocument } from '@/lib/types';
+import type { Profile } from '@/lib/types';
 
 export interface ProfileActivityMetrics {
   totalBids: number;
@@ -40,9 +41,7 @@ export interface ProfileActivityMetrics {
 
 interface ProfilePageViewProps {
   profile: Profile;
-  avatarGradient: string;
   metrics: ProfileActivityMetrics;
-  documents?: ProjectDocument[];
 }
 
 function MetricTile({
@@ -65,7 +64,7 @@ function MetricTile({
   );
 }
 
-export function ProfilePageView({ profile, avatarGradient, metrics, documents = [] }: ProfilePageViewProps) {
+export function ProfilePageView({ profile, metrics }: ProfilePageViewProps) {
   const { t } = useTranslation();
   const router = useRouter();
   const { clearProfile } = useDashboardProfile();
@@ -94,20 +93,16 @@ export function ProfilePageView({ profile, avatarGradient, metrics, documents = 
       {/* Header */}
       <section>
         <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-4 sm:gap-5">
+          <div className="flex items-center gap-3">
             {isFirm ? (
               <FirmLogo
                 companyName={displayName}
                 logoUrl={profile.logo_url}
                 size="lg"
-                className="h-20 w-20"
+                className="h-12 w-12"
               />
             ) : (
-              <UserAvatar
-                name={profile.full_name}
-                size="xl"
-                gradient={avatarGradient}
-              />
+              <User className="h-8 w-8 shrink-0 text-muted-foreground" strokeWidth={1.5} />
             )}
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
@@ -159,8 +154,18 @@ export function ProfilePageView({ profile, avatarGradient, metrics, documents = 
           />
         </section>
 
-        <section>
-          <h2 className="mb-4 text-base font-semibold text-foreground">Activity & Metrics</h2>
+        <div className="space-y-8">
+          <Link
+            href="/dashboard/profile/documents"
+            className="inline-flex items-center gap-2 text-base font-semibold text-foreground hover:text-sky-700 dark:hover:text-sky-400"
+          >
+            <Folder className="h-5 w-5 shrink-0 text-muted-foreground" />
+            Documents
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          </Link>
+
+          <section>
+            <h2 className="mb-4 text-base font-semibold text-foreground">Activity & Metrics</h2>
           <div className="space-y-4">
             {showBidMetrics && (
               <div className="grid grid-cols-2 gap-6">
@@ -199,10 +204,9 @@ export function ProfilePageView({ profile, avatarGradient, metrics, documents = 
               </p>
             )}
           </div>
-        </section>
+          </section>
+        </div>
       </div>
-
-      <DocumentsSection documents={documents} />
 
       <SignOutConfirmDialog
         open={signOutOpen}

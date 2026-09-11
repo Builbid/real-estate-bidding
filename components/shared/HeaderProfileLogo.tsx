@@ -1,6 +1,7 @@
 'use client';
 
 import { User } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 import { NavLink } from '@/components/shared/NavLink';
 import { cn } from '@/lib/utils';
 
@@ -14,12 +15,17 @@ export function HeaderProfileLogo({
   overlay?: boolean;
   className?: string;
 }) {
+  const pathname = usePathname();
+  if (pathname === '/dashboard/profile' || pathname.startsWith('/dashboard/profile/')) {
+    return null;
+  }
+
   return (
     <NavLink
       href={href}
       prefetch
       className={cn(
-        'flex h-full min-w-[52px] flex-col items-center justify-center gap-[3px] px-2 no-underline',
+        'inline-flex flex-col items-center justify-center gap-[3px] self-center px-2 no-underline',
         overlay
           ? 'text-[#282c3f] hover:text-[#ee5f73]'
           : 'text-foreground hover:text-sky-600 dark:hover:text-sky-400',

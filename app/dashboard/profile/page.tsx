@@ -2,18 +2,9 @@ export const dynamic = 'force-dynamic';
 
 import { getAuthUser } from '@/lib/supabase/getUser';
 import { ProfilePageView, type ProfileActivityMetrics } from '@/components/profile/ProfilePageView';
-import { listMyProjectDocumentsAction } from '@/app/actions/documents';
 import { normalizeRole } from '@/lib/auth/roles';
 import type { Profile, UserRole } from '@/lib/types';
 import { EMPTY_RATING_STATS, type BuilderRatingStats } from '@/lib/builderRatings';
-
-const ROLE_AVATAR: Record<UserRole, string> = {
-  owner: 'from-amber-400 to-orange-500',
-  labour_contractor: 'from-blue-400 to-cyan-500',
-  construction_firm: 'from-violet-400 to-indigo-600',
-  admin: 'from-violet-400 to-indigo-600',
-  service_provider: 'from-emerald-400 to-teal-500',
-};
 
 async function getProfileMetrics(
   supabase: Awaited<ReturnType<typeof getAuthUser>>['supabase'],
@@ -106,9 +97,7 @@ export default async function DashboardProfilePage() {
       };
 
   const normalizedRole = normalizeRole(profile.role);
-  const avatarGradient = ROLE_AVATAR[normalizedRole] ?? ROLE_AVATAR.labour_contractor;
   const metrics = await getProfileMetrics(supabase, userId, normalizedRole);
-  const { documents } = await listMyProjectDocumentsAction();
 
   metrics.memberSince = new Date(profile.created_at).toLocaleDateString('en-IN', {
     year: 'numeric',
@@ -118,9 +107,7 @@ export default async function DashboardProfilePage() {
   return (
     <ProfilePageView
       profile={profile}
-      avatarGradient={avatarGradient}
       metrics={metrics}
-      documents={documents}
     />
   );
 }
