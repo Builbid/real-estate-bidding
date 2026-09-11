@@ -106,6 +106,8 @@ export function Navbar({ overlay = false, authHint }: NavbarProps) {
   }
 
   const avatarGradient = normalizedRole ? (ROLE_AVATAR[normalizedRole] ?? ROLE_AVATAR.labour_contractor) : '';
+  const overlayNav =
+    'text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 dark:hover:text-slate-100';
 
   return (
     <>
@@ -113,8 +115,8 @@ export function Navbar({ overlay = false, authHint }: NavbarProps) {
       className={cn(
         'sticky top-0 z-[200] w-full isolate pointer-events-auto',
         overlay
-          ? 'border-b border-slate-200/80 bg-white/95 backdrop-blur-md text-slate-900'
-          : 'border-b border-border/70 bg-background/95 backdrop-blur-xl shadow-sm shadow-black/[0.04]'
+          ? 'border-b border-slate-200/80 bg-white/95 text-slate-900 backdrop-blur-md dark:border-slate-800 dark:bg-slate-950/95 dark:text-slate-100'
+          : 'border-b border-border/70 bg-background/95 text-foreground backdrop-blur-xl shadow-sm shadow-black/[0.04]'
       )}
     >
       <div className="relative mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
@@ -126,7 +128,7 @@ export function Navbar({ overlay = false, authHint }: NavbarProps) {
           aria-label="BuilBid Home"
           className={cn(
             NAV_LOGO_LINK,
-            overlay ? 'text-slate-900 hover:opacity-90' : 'text-foreground hover:opacity-90',
+            overlay ? 'text-slate-900 hover:opacity-90 dark:text-slate-100' : 'text-foreground hover:opacity-90',
           )}
         >
           <BuilBidLogo size="md" compact className="sm:hidden" />
@@ -142,7 +144,7 @@ export function Navbar({ overlay = false, authHint }: NavbarProps) {
               className={cn(
                 'rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                 overlay
-                  ? 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                  ? overlayNav
                   : 'text-muted-foreground hover:bg-accent hover:text-foreground',
               )}
             >
@@ -159,7 +161,7 @@ export function Navbar({ overlay = false, authHint }: NavbarProps) {
             className={cn(
               'hidden h-9 items-center gap-1.5 rounded-lg px-2.5 text-sm font-medium transition-colors md:inline-flex',
               overlay
-                ? 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+                ? overlayNav
                 : 'text-muted-foreground hover:bg-accent hover:text-foreground',
             )}
           >
@@ -177,9 +179,7 @@ export function Navbar({ overlay = false, authHint }: NavbarProps) {
                 aria-label={t('common.signOut')}
                 className={cn(
                   'inline-flex h-9 w-9 items-center justify-center rounded-lg',
-                  overlay
-                    ? 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
-                    : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+                  overlay ? overlayNav : 'text-muted-foreground hover:bg-accent hover:text-foreground',
                 )}
               >
                 <LogOut className="h-4 w-4" />
@@ -190,7 +190,7 @@ export function Navbar({ overlay = false, authHint }: NavbarProps) {
               <NavLink
                 href="/login"
                 prefetch
-                className="inline-flex h-9 items-center px-2 text-sm font-medium text-slate-700 hover:text-slate-900"
+                className="inline-flex h-9 items-center px-2 text-sm font-medium text-slate-700 hover:text-slate-900 dark:text-slate-200 dark:hover:text-slate-100"
               >
                 {t('common.signIn')}
               </NavLink>
@@ -210,7 +210,7 @@ export function Navbar({ overlay = false, authHint }: NavbarProps) {
               asChild
               size="sm"
               variant="outline"
-              className="hidden h-9 rounded-full px-3 text-xs border-slate-300 text-slate-800 hover:bg-slate-100 hover:text-slate-900 md:inline-flex"
+              className="hidden h-9 rounded-full px-3 text-xs border-slate-300 text-slate-800 hover:bg-slate-100 hover:text-slate-900 md:inline-flex dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800 dark:hover:text-white"
             >
               <Link href={getDashboardPath(normalizedRole!)} prefetch>{t('common.dashboard')}</Link>
             </Button>
@@ -219,7 +219,7 @@ export function Navbar({ overlay = false, authHint }: NavbarProps) {
           <ThemeToggle
             className={
               overlay
-                ? 'border-slate-300 bg-white text-slate-800 hover:bg-slate-50 hover:text-slate-900'
+                ? 'border-slate-300 bg-white text-slate-800 hover:bg-slate-50 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800 dark:hover:text-white'
                 : undefined
             }
           />
@@ -230,7 +230,7 @@ export function Navbar({ overlay = false, authHint }: NavbarProps) {
             className={cn(
               'inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg transition-colors md:hidden',
               overlay
-                ? 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+                ? overlayNav
                 : 'text-muted-foreground hover:bg-accent hover:text-foreground',
             )}
             onClick={() => setMenuOpen((open) => !open)}

@@ -27,7 +27,7 @@ export function HeaderProfileLogo({
       className={cn(
         'inline-flex flex-col items-center justify-center gap-[3px] self-center px-2 no-underline',
         overlay
-          ? 'text-[#282c3f] hover:text-[#ee5f73]'
+          ? 'text-slate-900 hover:text-[#ee5f73] dark:text-slate-100 dark:hover:text-sky-400'
           : 'text-foreground hover:text-sky-600 dark:hover:text-sky-400',
         className,
       )}

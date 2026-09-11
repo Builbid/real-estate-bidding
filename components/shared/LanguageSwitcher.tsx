@@ -24,7 +24,7 @@ const triggerVariants = {
   default:
     'border-slate-300 bg-white text-slate-800 hover:bg-slate-50 dark:border-border dark:bg-card dark:text-foreground dark:hover:bg-accent',
   overlay:
-    'border-slate-300 bg-white/95 text-slate-800 hover:bg-white hover:border-slate-400',
+    'border-slate-300 bg-white/95 text-slate-800 hover:bg-white hover:border-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800 dark:hover:border-slate-600',
 } as const;
 
 export function LanguageSwitcher({ overlay = false, className }: LanguageSwitcherProps) {
