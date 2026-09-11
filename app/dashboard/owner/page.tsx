@@ -4,33 +4,16 @@ import { getAuthUser } from '@/lib/supabase/getUser';
 import { processAuctionTransitions } from '@/app/actions/auction';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { Plus, Building, TrendingUp, Users, Clock, ArrowRight, Layers, ArrowLeft } from 'lucide-react';
-import { DeleteProjectButton } from './DeleteProjectButton';
+import { Plus, Building, TrendingUp, Clock, Layers, ArrowLeft } from 'lucide-react';
 import { OwnerLiveProjectCard } from './OwnerLiveProjectCard';
+import { CompletedProjectsPreview } from '@/components/dashboard/CompletedProjectsPreview';
+import { CompletedProjectRow } from '@/components/dashboard/CompletedProjectRow';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { NavLink } from '@/components/shared/NavLink';
 import { STAT_ICON_STYLES, type StatIconColor } from '@/lib/dashboard/statIconStyles';
 import { NAV_BACK_LINK } from '@/lib/navStyles';
-import { cn } from '@/lib/utils';
-import {
-  STATUS_CONFIG,
-  getProjectPhase,
-  isInteractiveProjectPhase,
-  type ProjectPhase,
-} from '@/lib/utils';
-import {
-  getProjectConfigOrDrawingMeta,
-  getProjectServiceBadgeLabel,
-} from '@/lib/project/display';
-import {
-  formatFloorSummary,
-  getProjectBuildingTypeLabel,
-  getProjectBuiltUpAreaLabel,
-  getProjectLocationLabel,
-} from '@/lib/project/formatFloorSummary';
-import { FloorScopeBadges } from '@/components/project/FloorScopeBadges';
+import { cn, getProjectPhase, isInteractiveProjectPhase, type ProjectPhase } from '@/lib/utils';
 import type { Project, Bid } from '@/lib/types';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
@@ -163,7 +146,7 @@ export default async function OwnerDashboard() {
         </NavLink>
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Client Dashboard</h1>
+            <h1 className="text-2xl font-bold text-foreground">Owner Dashboard</h1>
             <p className="text-sm text-muted-foreground mt-1">
               Welcome back, <span className="text-foreground font-semibold">{profile.full_name}</span>
             </p>
@@ -265,21 +248,14 @@ export default async function OwnerDashboard() {
         </Card>
       )}
 
-      {/* Completed — compact rows with View button, most recent first */}
-      {completed.length > 0 && (
-        <div>
-          <h2 className="text-base font-semibold text-muted-foreground mb-4">Completed Projects</h2>
-          <div className="space-y-3">
-            {completed.map((project) => (
-              <ArchivedProjectRow
-                key={project.id}
-                project={project}
-                bidCount={project.bids?.[0]?.count ?? 0}
-              />
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Completed — compact rows, 10 most recent, View All for the rest */}
+      <CompletedProjectsPreview
+        projects={completed}
+        totalCount={completed.length}
+        viewAllHref="/dashboard/owner/projects/completed"
+        viewHrefFor={(project) => `/dashboard/owner/project/${project.id}`}
+        showDelete
+      />
 
       {/* Cancelled — owners can remove expired / unused listings */}
       {cancelled.length > 0 && (
@@ -287,10 +263,13 @@ export default async function OwnerDashboard() {
           <h2 className="text-base font-semibold text-muted-foreground mb-4">Cancelled Projects</h2>
           <div className="space-y-3">
             {cancelled.map((project) => (
-              <ArchivedProjectRow
+              <CompletedProjectRow
                 key={project.id}
                 project={project}
                 bidCount={project.bids?.[0]?.count ?? 0}
+                viewHref={`/dashboard/owner/project/${project.id}`}
+                showDelete
+                plainTags={false}
               />
             ))}
           </div>
@@ -300,67 +279,3 @@ export default async function OwnerDashboard() {
   );
 }
 
-function ArchivedProjectRow({
-  project,
-  bidCount,
-}: {
-  project: Project;
-  bidCount: number;
-}) {
-  const serviceBadge = getProjectServiceBadgeLabel(project);
-  const locationLabel = getProjectLocationLabel(project);
-  const buildingTypeLabel = getProjectBuildingTypeLabel(project);
-  const builtUpLabel = getProjectBuiltUpAreaLabel(project);
-  const floorScopes = formatFloorSummary(project);
-  const configFallback = floorScopes.length === 0 ? getProjectConfigOrDrawingMeta(project) : null;
-
-  const metaParts = [
-    locationLabel || null,
-    buildingTypeLabel ?? configFallback,
-    builtUpLabel,
-    `${bidCount} bid${bidCount !== 1 ? 's' : ''}`,
-  ].filter(Boolean) as string[];
-
-  return (
-    <div className="flex items-center gap-4 p-4 rounded-xl border border-border bg-card/80 dark:bg-card/60 transition-colors hover:border-border">
-      <div className="flex-1 min-w-0">
-        <div className="flex flex-wrap items-center gap-2 mb-1">
-          <Badge variant="default">{STATUS_CONFIG[project.status].label}</Badge>
-          <Badge>{serviceBadge}</Badge>
-        </div>
-        <p className="text-sm font-semibold text-foreground truncate">{project.title}</p>
-        <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-          {metaParts.map((part, index) => (
-            <span key={`${part}-${index}`} className="inline-flex items-center gap-2">
-              {index > 0 ? (
-                <span className="text-muted-foreground/60" aria-hidden>
-                  •
-                </span>
-              ) : null}
-              {index === metaParts.length - 1 ? (
-                <span className="inline-flex items-center gap-1">
-                  <Users className="h-3 w-3" />
-                  {part}
-                </span>
-              ) : (
-                <span>{part}</span>
-              )}
-            </span>
-          ))}
-        </div>
-        {floorScopes.length > 0 ? (
-          <FloorScopeBadges items={floorScopes} className="mt-2" />
-        ) : null}
-      </div>
-
-      <div className="flex items-center gap-2 flex-shrink-0">
-        <DeleteProjectButton projectId={project.id} projectTitle={project.title} />
-        <Button size="sm" variant="outline" asChild>
-          <Link href={`/dashboard/owner/project/${project.id}`}>
-            View <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        </Button>
-      </div>
-    </div>
-  );
-}

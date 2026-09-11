@@ -11,6 +11,8 @@ import { formatBidUnitSuffix } from '@/lib/bid/earthworkBid';
 import { canWorkerBidOnProject } from '@/lib/bid/workerBidEligibility';
 import { AuctionRow } from './AuctionRow';
 import { PortfolioManager } from './PortfolioManager';
+import { CompletedProjectsPreview } from '@/components/dashboard/CompletedProjectsPreview';
+import { fetchWorkerCompletedPreview } from '@/lib/dashboard/completedProjects';
 import type { Project, Bid } from '@/lib/types';
 
 async function getData() {
@@ -50,21 +52,23 @@ async function getData() {
     (bidProjects ?? []).forEach((p) => bidProjectsMap.set(p.id, p as Project));
   }
 
-  return { profile, projects: (projects ?? []) as Project[], myBids: (myBids ?? []) as Bid[], bidProjectsMap, userId };
+  const completed = await fetchWorkerCompletedPreview(supabase, userId);
+
+  return { profile, projects: (projects ?? []) as Project[], myBids: (myBids ?? []) as Bid[], bidProjectsMap, userId, completed };
 }
 
 export default async function BuilderDashboard() {
-  const { profile, projects, myBids, bidProjectsMap, userId } = await getData();
+  const { profile, projects, myBids, bidProjectsMap, userId, completed } = await getData();
 
   const activeProjects = projects.filter((p) => p.status === 'active_24h');
   const myBidMap       = new Map(myBids.map((b) => [b.project_id, b]));
   const bidsPlaced     = myBids.filter((b) => !b.is_withdrawn);
-  const wins           = myBids.filter((b) => false); // wins would come from selected_builder_id checks
+  const wins           = completed.totalCount;
 
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Mistri Worker Console</h1>
+        <h1 className="text-2xl font-bold text-foreground">Worker Dashboard</h1>
         <p className="text-sm text-muted-foreground mt-1">Welcome, <span className="text-foreground font-semibold">{profile.full_name}</span></p>
       </div>
 
@@ -73,7 +77,7 @@ export default async function BuilderDashboard() {
         {[
           { label: 'Open Auctions', value: activeProjects.length, icon: Building, color: 'emerald' as StatIconColor },
           { label: 'My Active Bids', value: bidsPlaced.length, icon: TrendingUp, color: 'indigo' as StatIconColor },
-          { label: 'Contracts Won', value: wins.length, icon: Award, color: 'amber' as StatIconColor },
+          { label: 'Contracts Won', value: wins, icon: Award, color: 'amber' as StatIconColor },
           { label: 'Total Participated', value: myBids.length, icon: CheckCircle2, color: 'teal' as StatIconColor },
         ].map(({ label, value, icon: Icon, color }) => (
           <Card key={label}>
@@ -123,6 +127,13 @@ export default async function BuilderDashboard() {
           </Card>
         )}
       </div>
+
+      <CompletedProjectsPreview
+        projects={completed.projects}
+        totalCount={completed.totalCount}
+        viewAllHref="/dashboard/worker/projects/completed"
+        viewHrefFor={(project) => `/project/${project.id}`}
+      />
 
       {/* Portfolio management */}
       <PortfolioManager builderId={userId} />

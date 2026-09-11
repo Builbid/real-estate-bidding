@@ -235,7 +235,7 @@ export function BuilderPortfolioModal({
               <div className="flex items-center gap-2 mb-3">
                 <MessageSquare className="w-3.5 h-3.5 text-muted-foreground" />
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Client Feedback
+                  Owner Feedback
                 </p>
               </div>
               <BuilderReviewsFeed reviews={ratingStats.reviews} />

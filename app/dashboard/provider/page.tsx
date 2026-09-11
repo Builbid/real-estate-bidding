@@ -13,6 +13,8 @@ import { AuctionRow } from '../builder/AuctionRow';
 import { formatBidUnitSuffix } from '@/lib/bid/earthworkBid';
 import { canWorkerBidOnProject } from '@/lib/bid/workerBidEligibility';
 import { getProviderSpecialtyEmoji, getProviderSpecialtyLabel } from '@/lib/trades';
+import { CompletedProjectsPreview } from '@/components/dashboard/CompletedProjectsPreview';
+import { fetchWorkerCompletedPreview } from '@/lib/dashboard/completedProjects';
 import type { Project, Bid } from '@/lib/types';
 
 async function getData() {
@@ -50,11 +52,13 @@ async function getData() {
     (bidProjects ?? []).forEach((p) => bidProjectsMap.set(p.id, p as Project));
   }
 
-  return { profile, projects: (projects ?? []) as Project[], myBids: (myBids ?? []) as Bid[], bidProjectsMap, userId };
+  const completed = await fetchWorkerCompletedPreview(supabase, userId);
+
+  return { profile, projects: (projects ?? []) as Project[], myBids: (myBids ?? []) as Bid[], bidProjectsMap, userId, completed };
 }
 
 export default async function ProviderDashboard() {
-  const { profile, projects, myBids, bidProjectsMap } = await getData();
+  const { profile, projects, myBids, bidProjectsMap, completed } = await getData();
 
   const tradeLabel = getProviderSpecialtyLabel(profile.service_type);
   const tradeEmoji = getProviderSpecialtyEmoji(profile.service_type);
@@ -70,7 +74,7 @@ export default async function ProviderDashboard() {
           Back to Home
         </NavLink>
         <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-          <span>{tradeEmoji}</span> {tradeLabel} Console
+          <span>{tradeEmoji}</span> Worker Dashboard
         </h1>
         <p className="text-sm text-muted-foreground mt-1">Welcome, <span className="text-foreground font-semibold">{profile.full_name}</span></p>
       </div>
@@ -80,7 +84,7 @@ export default async function ProviderDashboard() {
         {[
           { label: 'Open Auctions', value: activeProjects.length, icon: Building, color: 'emerald' as StatIconColor },
           { label: 'My Active Bids', value: bidsPlaced.length, icon: TrendingUp, color: 'indigo' as StatIconColor },
-          { label: 'Contracts Won', value: 0, icon: Award, color: 'amber' as StatIconColor },
+          { label: 'Contracts Won', value: completed.totalCount, icon: Award, color: 'amber' as StatIconColor },
           { label: 'Total Participated', value: myBids.length, icon: CheckCircle2, color: 'teal' as StatIconColor },
         ].map(({ label, value, icon: Icon, color }) => (
           <Card key={label}>
@@ -131,6 +135,13 @@ export default async function ProviderDashboard() {
           </Card>
         )}
       </div>
+
+      <CompletedProjectsPreview
+        projects={completed.projects}
+        totalCount={completed.totalCount}
+        viewAllHref="/dashboard/worker/projects/completed"
+        viewHrefFor={(project) => `/project/${project.id}`}
+      />
 
       {/* My bid history */}
       {myBids.length > 0 && (

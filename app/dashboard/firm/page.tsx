@@ -15,6 +15,8 @@ import { STATUS_CONFIG } from '@/lib/utils';
 import { FirmAuctionRow } from './AuctionRow';
 import { getFirmPortfolioAction } from '@/app/actions/firm';
 import { formatPackageRateRange } from '@/lib/firm/bidDisplay';
+import { CompletedProjectsPreview } from '@/components/dashboard/CompletedProjectsPreview';
+import { fetchWorkerCompletedPreview } from '@/lib/dashboard/completedProjects';
 import type { Project, Bid } from '@/lib/types';
 
 async function getData() {
@@ -84,6 +86,8 @@ async function getData() {
     }
   }
 
+  const completed = await fetchWorkerCompletedPreview(supabase, userId);
+
   return {
     profile,
     projects: (projects ?? []) as Project[],
@@ -92,11 +96,12 @@ async function getData() {
     rankMap,
     bidProjectsMap,
     userId,
+    completed,
   };
 }
 
 export default async function FirmDashboardPage() {
-  const { profile, projects, myBids, wins, rankMap, bidProjectsMap } = await getData();
+  const { profile, projects, myBids, wins, rankMap, bidProjectsMap, completed } = await getData();
 
   const portfolio = await getFirmPortfolioAction();
   const showBanner = !profile.logo_url || portfolio.items.length === 0;
@@ -108,7 +113,7 @@ export default async function FirmDashboardPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Firm Console</h1>
+        <h1 className="text-2xl font-bold text-foreground">Worker Dashboard</h1>
         <p className="text-sm text-muted-foreground mt-1">
           Welcome,{' '}
           <span className="text-foreground font-semibold">
@@ -191,6 +196,13 @@ export default async function FirmDashboardPage() {
           </Card>
         )}
       </div>
+
+      <CompletedProjectsPreview
+        projects={completed.projects}
+        totalCount={completed.totalCount}
+        viewAllHref="/dashboard/worker/projects/completed"
+        viewHrefFor={(project) => `/project/${project.id}`}
+      />
 
       {myBids.length > 0 && (
         <div>

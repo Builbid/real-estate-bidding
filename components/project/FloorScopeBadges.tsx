@@ -8,12 +8,27 @@ export function FloorScopeBadges({
   items,
   className,
   badgeClassName,
+  variant = 'badge',
 }: {
   items: FloorSummaryItem[];
   className?: string;
   badgeClassName?: string;
+  variant?: 'badge' | 'plain';
 }) {
   if (items.length === 0) return null;
+
+  if (variant === 'plain') {
+    return (
+      <p className={cn('text-sm font-medium text-gray-600 dark:text-gray-400', className)}>
+        {items.map((item, index) => (
+          <span key={item.key} title={item.label}>
+            {index > 0 ? <span className="text-gray-400"> · </span> : null}
+            {item.floorCode}: {item.scope}
+          </span>
+        ))}
+      </p>
+    );
+  }
 
   return (
     <div className={cn('flex flex-wrap gap-1.5', className)}>

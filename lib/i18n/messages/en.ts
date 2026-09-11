@@ -19,7 +19,7 @@ export const en = {
     sqft: 'sqft',
   },
   roles: {
-    owner: 'Client',
+    owner: 'Owner',
     labour_contractor: 'Mistri Worker',
     construction_firm: 'Construction Firm',
     admin: 'Admin',

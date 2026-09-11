@@ -142,7 +142,7 @@ export default async function OwnerProjectPage({ params }: PageProps) {
       ? buildMistriAgreementPayload({
           project,
           bid: winningBid,
-          owner: { name: ownerName || 'Client' },
+          owner: { name: ownerName || 'Owner' },
           mistri: {
             name: selectedBuilder?.full_name ?? 'Head Mason',
             platformId: project.selected_builder_id,
