@@ -7,6 +7,7 @@ import { createPortal } from 'react-dom';
 import { Calculator, LayoutDashboard, LogOut, Menu, User, X } from 'lucide-react';
 import { BuilBidLogo } from '@/components/shared/BuilBidLogo';
 import { useProfile } from '@/lib/hooks/useProfile';
+import { HeaderProfileLogo } from '@/components/shared/HeaderProfileLogo';
 import { UserAvatar } from '@/components/shared/UserAvatar';
 import { SignOutConfirmDialog } from '@/components/shared/SignOutConfirmDialog';
 import { NavLink } from '@/components/shared/NavLink';
@@ -167,20 +168,8 @@ export function Navbar({ overlay = false, authHint }: NavbarProps) {
           </NavLink>
 
           {isLoggedIn ? (
-            <div className="hidden md:flex items-center gap-3">
-              <NavLink
-                href="/dashboard/profile"
-                prefetch
-                className="flex-shrink-0 rounded-xl hover:ring-2 hover:ring-sky-300/60"
-                aria-label="Open profile"
-              >
-                <UserAvatar
-                  name={profile?.full_name ?? 'User'}
-                  avatarUrl={profile?.avatar_url}
-                  size="header"
-                  gradient={avatarGradient}
-                />
-              </NavLink>
+            <div className="hidden h-16 md:flex items-stretch gap-1">
+              <HeaderProfileLogo overlay={overlay} />
               <Button
                 variant="ghost"
                 size="icon"

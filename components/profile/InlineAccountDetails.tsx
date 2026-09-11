@@ -225,7 +225,7 @@ function EditableDetailRow({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-lg border border-border/60 bg-muted/20 px-3 py-3 dark:bg-muted/10">
+    <div className="rounded-none border-0 bg-transparent px-0 py-3">
       <div className="flex items-start gap-3">
         <Icon className="mt-0.5 h-4 w-4 flex-shrink-0 text-muted-foreground" />
         <div className="min-w-0 flex-1">
@@ -276,7 +276,7 @@ function ReadOnlyDetailRow({
   value: string;
 }) {
   return (
-    <div className="flex items-start gap-3 rounded-lg border border-border/60 bg-muted/20 px-3 py-3 dark:bg-muted/10">
+    <div className="flex items-start gap-3 py-3">
       <Icon className="mt-0.5 h-4 w-4 flex-shrink-0 text-muted-foreground" />
       <div className="min-w-0">
         <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>

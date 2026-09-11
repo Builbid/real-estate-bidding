@@ -4,15 +4,12 @@ import { useState } from 'react'
 import {
   X, CheckCheck, Trophy, Award, Bell,
 } from 'lucide-react'
-import { UserAvatar } from '@/components/shared/UserAvatar'
-import { FirmLogo } from '@/components/firm/FirmLogo'
+import { HeaderProfileLogo } from '@/components/shared/HeaderProfileLogo'
 import { useNotifications, notificationText } from '@/lib/hooks/useNotifications'
-import { useDashboardProfile } from '@/lib/context/ProfileProvider'
 import { formatRelativeTime, cn } from '@/lib/utils'
 import { ThemeToggle } from '@/components/shared/ThemeToggle'
 import { NavLink } from '@/components/shared/NavLink'
 import { NavIconButton } from '@/components/shared/NavIconButton'
-import { normalizeRole } from '@/lib/auth/roles'
 import { BuilBidLogo } from '@/components/shared/BuilBidLogo'
 import { NAV_LOGO_LINK } from '@/lib/navStyles'
 
@@ -41,16 +38,10 @@ const NOTIF_ICONS: Record<string, React.ComponentType<{ className?: string }>> =
   builder_selected:  Award,
 }
 
-export function TopBar({ profile, avatarGradient }: TopBarProps) {
+export function TopBar(_props: TopBarProps) {
   const [notifOpen, setNotifOpen] = useState(false)
 
   const { notifications, unreadCount, markAllRead, markRead } = useNotifications()
-  const { profile: liveProfile } = useDashboardProfile()
-
-  const displayProfile = liveProfile ?? profile
-  const normalizedRole = normalizeRole(displayProfile.role)
-  const isFirm = normalizedRole === 'construction_firm'
-  const firmDisplayName = displayProfile.company_name ?? displayProfile.full_name
 
   return (
     <>
@@ -85,29 +76,7 @@ export function TopBar({ profile, avatarGradient }: TopBarProps) {
           )}
         </NavIconButton>
 
-        {/* Avatar */}
-        <NavLink
-          href="/dashboard/profile"
-          prefetch
-          className="flex-shrink-0 rounded-xl hover:ring-2 hover:ring-sky-300/60"
-          aria-label="Open profile"
-        >
-          {isFirm ? (
-            <FirmLogo
-              companyName={firmDisplayName}
-              logoUrl={displayProfile.logo_url}
-              size="sm"
-              className="w-9 h-9"
-            />
-          ) : (
-            <UserAvatar
-              name={displayProfile.full_name}
-              avatarUrl={displayProfile.avatar_url}
-              size="header"
-              gradient={avatarGradient}
-            />
-          )}
-        </NavLink>
+        <HeaderProfileLogo />
       </header>
 
       {/* ── Notifications panel ───────────────────────────────── */}

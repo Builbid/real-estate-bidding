@@ -13,9 +13,7 @@ import {
   CalendarDays,
   Settings,
 } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { UserAvatar } from '@/components/shared/UserAvatar';
 import { FirmLogo } from '@/components/firm/FirmLogo';
 import { BuilderRatingBreakdown } from '@/components/shared/BuilderRatingBreakdown';
@@ -29,15 +27,6 @@ import { DocumentsSection } from '@/components/profile/DocumentsSection';
 import { InlineAccountDetails } from '@/components/profile/InlineAccountDetails';
 import { EMPTY_RATING_STATS, type BuilderRatingStats } from '@/lib/builderRatings';
 import type { Profile, ProjectDocument } from '@/lib/types';
-import { cn } from '@/lib/utils';
-
-const ROLE_BADGES: Record<string, 'amber' | 'teal' | 'indigo' | 'violet' | 'emerald'> = {
-  owner: 'amber',
-  labour_contractor: 'teal',
-  construction_firm: 'violet',
-  admin: 'indigo',
-  service_provider: 'emerald',
-};
 
 export interface ProfileActivityMetrics {
   totalBids: number;
@@ -60,27 +49,18 @@ function MetricTile({
   label,
   value,
   icon: Icon,
-  color,
 }: {
   label: string;
   value: number | string;
   icon: React.ComponentType<{ className?: string }>;
-  color: 'emerald' | 'indigo' | 'amber' | 'teal';
 }) {
-  const colors = {
-    emerald: 'border-emerald-500/20 bg-emerald-500/5 text-emerald-600 dark:text-emerald-400',
-    indigo: 'border-indigo-500/20 bg-indigo-500/5 text-indigo-600 dark:text-indigo-400',
-    amber: 'border-amber-500/20 bg-amber-500/5 text-amber-600 dark:text-amber-400',
-    teal: 'border-teal-500/20 bg-teal-500/5 text-teal-600 dark:text-teal-400',
-  };
-
   return (
-    <div className={cn('rounded-xl border p-4', colors[color])}>
-      <div className="flex items-center gap-2 mb-2">
+    <div>
+      <div className="mb-1 flex items-center gap-2 text-muted-foreground">
         <Icon className="h-4 w-4" />
-        <p className="text-[10px] font-semibold uppercase tracking-wider opacity-80">{label}</p>
+        <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{label}</p>
       </div>
-      <p className="text-2xl font-bold text-foreground tabular-nums">{value}</p>
+      <p className="text-2xl font-bold tabular-nums text-foreground">{value}</p>
     </div>
   );
 }
@@ -93,7 +73,6 @@ export function ProfilePageView({ profile, avatarGradient, metrics, documents = 
 
   const normalizedRole = normalizeRole(profile.role);
   const isFirm = normalizedRole === 'construction_firm';
-  const badgeColor = ROLE_BADGES[normalizedRole] ?? 'teal';
   const roleLabel = getProfileRoleLabel(profile, t);
   const dashboardPath = getDashboardPath(normalizedRole);
   const displayName = isFirm ? (profile.company_name ?? profile.full_name) : profile.full_name;
@@ -102,7 +81,7 @@ export function ProfilePageView({ profile, avatarGradient, metrics, documents = 
   const ratingStats = metrics.ratingStats ?? EMPTY_RATING_STATS;
 
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-6">
+    <div className="mx-auto w-full max-w-4xl space-y-10">
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="sm" asChild className="gap-1.5 -ml-2">
           <Link href={dashboardPath}>
@@ -112,112 +91,102 @@ export function ProfilePageView({ profile, avatarGradient, metrics, documents = 
         </Button>
       </div>
 
-      {/* Header card */}
-      <Card className="overflow-hidden border-border bg-card/80 dark:bg-card/60">
-        <CardContent className="p-6 sm:p-8">
-          <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-4 sm:gap-5">
-              {isFirm ? (
-                <FirmLogo
-                  companyName={displayName}
-                  logoUrl={profile.logo_url}
-                  size="lg"
-                  className="h-20 w-20 shadow-lg ring-2 ring-border/80"
-                />
-              ) : (
-                <UserAvatar
-                  name={profile.full_name}
-                  size="xl"
-                  gradient={avatarGradient}
-                />
-              )}
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-                  <h1 className="text-2xl font-bold tracking-tight text-foreground">{displayName}</h1>
-                  <Badge variant={badgeColor}>{roleLabel}</Badge>
-                  {profile.is_verified && (
-                    <Badge variant="emerald" className="gap-1">
-                      <ShieldCheck className="h-3 w-3" />
-                      Verified
-                    </Badge>
-                  )}
-                </div>
-                <p className="mt-2 inline-flex items-center gap-1.5 text-sm text-muted-foreground">
-                  <CalendarDays className="h-3.5 w-3.5" />
-                  Member since {metrics.memberSince}
-                </p>
+      {/* Header */}
+      <section>
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-4 sm:gap-5">
+            {isFirm ? (
+              <FirmLogo
+                companyName={displayName}
+                logoUrl={profile.logo_url}
+                size="lg"
+                className="h-20 w-20"
+              />
+            ) : (
+              <UserAvatar
+                name={profile.full_name}
+                size="xl"
+                gradient={avatarGradient}
+              />
+            )}
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                <h1 className="text-2xl font-bold tracking-tight text-foreground">{displayName}</h1>
+                <span className="text-sm font-medium text-gray-600 dark:text-gray-400">{roleLabel}</span>
+                {profile.is_verified && (
+                  <span className="inline-flex items-center gap-1 text-sm font-medium text-gray-600 dark:text-gray-400">
+                    <ShieldCheck className="h-3.5 w-3.5" />
+                    Verified
+                  </span>
+                )}
               </div>
-            </div>
-
-            <div className="flex flex-wrap gap-2 sm:flex-col sm:items-stretch">
-              {normalizedRole === 'construction_firm' && (
-                <Button variant="outline" size="sm" asChild className="gap-1.5">
-                  <Link href="/dashboard/firm/settings">
-                    <Settings className="h-4 w-4" />
-                    Firm Settings
-                  </Link>
-                </Button>
-              )}
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1.5 text-red-400 border-red-500/20 hover:bg-red-500/10 hover:text-red-400"
-                onClick={() => setSignOutOpen(true)}
-              >
-                <LogOut className="h-4 w-4" />
-                {t('common.signOut')}
-              </Button>
+              <p className="mt-2 inline-flex items-center gap-1.5 text-sm text-muted-foreground">
+                <CalendarDays className="h-3.5 w-3.5" />
+                Member since {metrics.memberSince}
+              </p>
             </div>
           </div>
-        </CardContent>
-      </Card>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Account details */}
-        <Card className="border-border bg-card/80 dark:bg-card/60">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Account Details</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <InlineAccountDetails
-              profile={profile}
-              roleLabel={roleLabel}
-              gstNumber={isFirm ? profile.gst_number : null}
-            />
-          </CardContent>
-        </Card>
+          <div className="flex flex-wrap gap-2 sm:flex-col sm:items-stretch">
+            {normalizedRole === 'construction_firm' && (
+              <Button variant="outline" size="sm" asChild className="gap-1.5">
+                <Link href="/dashboard/firm/settings">
+                  <Settings className="h-4 w-4" />
+                  Firm Settings
+                </Link>
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 text-red-400 border-red-500/20 hover:bg-red-500/10 hover:text-red-400"
+              onClick={() => setSignOutOpen(true)}
+            >
+              <LogOut className="h-4 w-4" />
+              {t('common.signOut')}
+            </Button>
+          </div>
+        </div>
+      </section>
 
-        {/* Activity & metrics */}
-        <Card className="border-border bg-card/80 dark:bg-card/60">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Activity & Metrics</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+      <div className="grid gap-10 lg:grid-cols-2">
+        <section>
+          <h2 className="mb-4 text-base font-semibold text-foreground">Account Details</h2>
+          <InlineAccountDetails
+            profile={profile}
+            roleLabel={roleLabel}
+            gstNumber={isFirm ? profile.gst_number : null}
+          />
+        </section>
+
+        <section>
+          <h2 className="mb-4 text-base font-semibold text-foreground">Activity & Metrics</h2>
+          <div className="space-y-4">
             {showBidMetrics && (
-              <div className="grid grid-cols-2 gap-3">
-                <MetricTile label="Total Bids" value={metrics.totalBids} icon={TrendingUp} color="indigo" />
-                <MetricTile label="Active Bids" value={metrics.activeBids} icon={Award} color="emerald" />
-                <MetricTile label="Contracts Won" value={metrics.contractsWon} icon={Building} color="amber" />
+              <div className="grid grid-cols-2 gap-6">
+                <MetricTile label="Total Bids" value={metrics.totalBids} icon={TrendingUp} />
+                <MetricTile label="Active Bids" value={metrics.activeBids} icon={Award} />
+                <MetricTile label="Contracts Won" value={metrics.contractsWon} icon={Building} />
               </div>
             )}
 
             {showProjectMetrics && (
-              <div className="grid grid-cols-2 gap-3">
-                <MetricTile label="Total Projects" value={metrics.totalProjects} icon={Building} color="indigo" />
-                <MetricTile label="Live Projects" value={metrics.liveProjects} icon={TrendingUp} color="emerald" />
+              <div className="grid grid-cols-2 gap-6">
+                <MetricTile label="Total Projects" value={metrics.totalProjects} icon={Building} />
+                <MetricTile label="Live Projects" value={metrics.liveProjects} icon={TrendingUp} />
               </div>
             )}
 
             {normalizedRole === 'construction_firm' && (
-              <div className="grid grid-cols-2 gap-3">
-                <MetricTile label="Total Bids" value={metrics.totalBids} icon={TrendingUp} color="indigo" />
-                <MetricTile label="Active Bids" value={metrics.activeBids} icon={Award} color="emerald" />
+              <div className="grid grid-cols-2 gap-6">
+                <MetricTile label="Total Bids" value={metrics.totalBids} icon={TrendingUp} />
+                <MetricTile label="Active Bids" value={metrics.activeBids} icon={Award} />
               </div>
             )}
 
             {showBidMetrics && (
-              <div className="pt-2 border-t border-border">
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">
+              <div className="pt-2">
+                <p className="mb-3 text-sm font-medium text-gray-600 dark:text-gray-400">
                   Rating Breakdown
                 </p>
                 <BuilderRatingBreakdown stats={ratingStats} />
@@ -229,8 +198,8 @@ export function ProfilePageView({ profile, avatarGradient, metrics, documents = 
                 Platform administrator account — manage projects and users from the control center.
               </p>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </section>
       </div>
 
       <DocumentsSection documents={documents} />
