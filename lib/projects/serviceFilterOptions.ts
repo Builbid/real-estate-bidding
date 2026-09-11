@@ -16,4 +16,4 @@ export const PROJECT_SERVICE_FILTER_PILL_ACTIVE =
   'bg-blue-600 text-white font-medium rounded-full px-4 py-1.5 text-sm';
 
 export const PROJECT_SERVICE_FILTER_PILL_INACTIVE =
-  'bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-full px-4 py-1.5 text-sm';
+  'bg-slate-200 hover:bg-slate-300 text-slate-800 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 font-medium rounded-full px-4 py-1.5 text-sm';

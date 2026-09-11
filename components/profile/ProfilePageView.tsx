@@ -9,16 +9,12 @@ import {
   Folder,
   LogOut,
   ShieldCheck,
-  TrendingUp,
-  Building,
-  Award,
   CalendarDays,
   Settings,
   User,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { FirmLogo } from '@/components/firm/FirmLogo';
-import { BuilderRatingBreakdown } from '@/components/shared/BuilderRatingBreakdown';
 import { SignOutConfirmDialog } from '@/components/shared/SignOutConfirmDialog';
 import { useTranslation } from '@/lib/context/LanguageProvider';
 import { normalizeRole, getDashboardPath } from '@/lib/auth/roles';
@@ -26,8 +22,8 @@ import { getProfileRoleLabel } from '@/lib/auth/profileRoleLabel';
 import { clientSignOut } from '@/lib/auth/clientSignOut';
 import { useDashboardProfile } from '@/lib/context/ProfileProvider';
 import { InlineAccountDetails } from '@/components/profile/InlineAccountDetails';
-import { EMPTY_RATING_STATS, type BuilderRatingStats } from '@/lib/builderRatings';
 import type { Profile } from '@/lib/types';
+import type { BuilderRatingStats } from '@/lib/builderRatings';
 
 export interface ProfileActivityMetrics {
   totalBids: number;
@@ -44,26 +40,6 @@ interface ProfilePageViewProps {
   metrics: ProfileActivityMetrics;
 }
 
-function MetricTile({
-  label,
-  value,
-  icon: Icon,
-}: {
-  label: string;
-  value: number | string;
-  icon: React.ComponentType<{ className?: string }>;
-}) {
-  return (
-    <div>
-      <div className="mb-1 flex items-center gap-2 text-muted-foreground">
-        <Icon className="h-4 w-4" />
-        <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{label}</p>
-      </div>
-      <p className="text-2xl font-bold tabular-nums text-foreground">{value}</p>
-    </div>
-  );
-}
-
 export function ProfilePageView({ profile, metrics }: ProfilePageViewProps) {
   const { t } = useTranslation();
   const router = useRouter();
@@ -75,9 +51,6 @@ export function ProfilePageView({ profile, metrics }: ProfilePageViewProps) {
   const roleLabel = getProfileRoleLabel(profile, t);
   const dashboardPath = getDashboardPath(normalizedRole);
   const displayName = isFirm ? (profile.company_name ?? profile.full_name) : profile.full_name;
-  const showBidMetrics = normalizedRole === 'labour_contractor' || normalizedRole === 'service_provider';
-  const showProjectMetrics = normalizedRole === 'owner';
-  const ratingStats = metrics.ratingStats ?? EMPTY_RATING_STATS;
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-10">
@@ -163,48 +136,6 @@ export function ProfilePageView({ profile, metrics }: ProfilePageViewProps) {
             Documents
             <ChevronRight className="h-4 w-4 text-muted-foreground" />
           </Link>
-
-          <section>
-            <h2 className="mb-4 text-base font-semibold text-foreground">Activity & Metrics</h2>
-          <div className="space-y-4">
-            {showBidMetrics && (
-              <div className="grid grid-cols-2 gap-6">
-                <MetricTile label="Total Bids" value={metrics.totalBids} icon={TrendingUp} />
-                <MetricTile label="Active Bids" value={metrics.activeBids} icon={Award} />
-                <MetricTile label="Contracts Won" value={metrics.contractsWon} icon={Building} />
-              </div>
-            )}
-
-            {showProjectMetrics && (
-              <div className="grid grid-cols-2 gap-6">
-                <MetricTile label="Total Projects" value={metrics.totalProjects} icon={Building} />
-                <MetricTile label="Live Projects" value={metrics.liveProjects} icon={TrendingUp} />
-              </div>
-            )}
-
-            {normalizedRole === 'construction_firm' && (
-              <div className="grid grid-cols-2 gap-6">
-                <MetricTile label="Total Bids" value={metrics.totalBids} icon={TrendingUp} />
-                <MetricTile label="Active Bids" value={metrics.activeBids} icon={Award} />
-              </div>
-            )}
-
-            {showBidMetrics && (
-              <div className="pt-2">
-                <p className="mb-3 text-sm font-medium text-gray-600 dark:text-gray-400">
-                  Rating Breakdown
-                </p>
-                <BuilderRatingBreakdown stats={ratingStats} />
-              </div>
-            )}
-
-            {normalizedRole === 'admin' && (
-              <p className="text-sm text-muted-foreground">
-                Platform administrator account — manage projects and users from the control center.
-              </p>
-            )}
-          </div>
-          </section>
         </div>
       </div>
 

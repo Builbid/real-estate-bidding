@@ -142,7 +142,7 @@ export function ActiveProjectsShowcaseGrid({
           'rounded-2xl border p-4 sm:p-5',
           heroOverlay
             ? 'border-white/15 bg-white/5 backdrop-blur-sm'
-            : 'border-border/70 bg-muted/20 dark:bg-muted/10',
+            : 'border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900/40',
         )}
       >
         <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -203,7 +203,7 @@ export function ActiveProjectsShowcaseGrid({
         <div className="flex w-full items-center justify-center pt-6 pb-2">
           <Link
             href="/projects"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-6 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-slate-200 px-6 py-2 text-sm font-medium text-slate-800 transition-colors hover:bg-slate-300 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
           >
             {t('home.auctions.viewAllProjects')}
             <ArrowRight className="h-4 w-4" aria-hidden />

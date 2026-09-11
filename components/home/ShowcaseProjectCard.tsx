@@ -53,10 +53,10 @@ interface ShowcaseProjectCardProps {
   hideWhenExpired?: boolean;
 }
 
-const CARD_ICON_SHELL = 'bg-blue-50 text-blue-600';
+const CARD_ICON_SHELL = 'bg-blue-50 text-blue-600 dark:bg-slate-800 dark:text-sky-400';
 const CARD_BADGE =
-  'inline-flex items-center gap-0.5 rounded-md border border-blue-200 bg-blue-50 px-1.5 py-0 text-[10px] font-semibold text-blue-600';
-const CARD_ACCENT_BAR = 'bg-blue-400';
+  'inline-flex items-center gap-0.5 rounded-md border border-slate-200 bg-slate-50 px-1.5 py-0 text-[10px] font-semibold text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200';
+const CARD_ACCENT_BAR = 'bg-blue-400 dark:bg-sky-500';
 
 function getServiceIcon(serviceType: ServiceType) {
   if (serviceType === 'construction_firm') return Building2;
@@ -110,17 +110,17 @@ function StatCell({
   return (
     <div
       className={cn(
-        'relative overflow-hidden rounded-lg border border-blue-100 bg-white px-2 py-1.5',
+        'relative overflow-hidden rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 dark:border-slate-700 dark:bg-slate-800/60',
         className,
       )}
     >
       <span className={cn('absolute inset-y-1.5 left-0 w-0.5 rounded-full', accentClass)} />
-      <p className="pl-1.5 text-[9px] font-medium uppercase tracking-wider text-muted-foreground truncate">
+      <p className="pl-1.5 text-[9px] font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400 truncate">
         {label}
       </p>
       <p
         className={cn(
-          'pl-1.5 text-xs font-semibold text-foreground leading-tight break-words',
+          'pl-1.5 text-xs font-semibold text-slate-900 dark:text-slate-100 leading-tight break-words',
           allowWrap ? 'line-clamp-2' : 'truncate tabular-nums',
           (label === 'Additional Requirements' || label === 'Additional Notes') &&
             'line-clamp-3 font-medium',
@@ -153,13 +153,13 @@ function ShowcaseCountdownPill({
           'h-3 w-3 shrink-0',
           remaining.isUrgent
             ? 'animate-pulse text-red-500'
-            : 'text-blue-600',
+            : 'text-blue-600 dark:text-sky-400',
         )}
       />
       <span
         className={cn(
           'truncate text-[11px] font-semibold tabular-nums',
-          remaining.isUrgent ? 'text-red-600' : 'text-blue-600',
+          remaining.isUrgent ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-sky-400',
         )}
       >
         {remaining.label}
@@ -301,14 +301,14 @@ export function ShowcaseProjectCard({
       <div className="space-y-1.5">
         <FloorScopeBadges
           items={floorScopes}
-          badgeClassName="border-blue-200 bg-blue-50 text-blue-600 dark:border-blue-200 dark:bg-blue-50 dark:text-blue-600 [&_.font-semibold]:text-blue-700"
+          badgeClassName="border-slate-200 bg-slate-50 text-slate-800 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-200"
         />
         {project.description?.trim() ? (
-          <div className="min-w-0 rounded-lg border border-blue-100 bg-white px-2 py-1.5">
-            <p className="text-[9px] font-medium uppercase tracking-wider text-muted-foreground">
+          <div className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 dark:border-slate-700 dark:bg-slate-800/60">
+            <p className="text-[9px] font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
               Specific Details
             </p>
-            <p className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-foreground">
+            <p className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-slate-900 dark:text-slate-100">
               {project.description.trim()}
             </p>
           </div>
@@ -317,11 +317,11 @@ export function ShowcaseProjectCard({
     );
   } else if (requirementBlocks && project.description?.trim()) {
     metaBlock = (
-      <div className="min-w-0 rounded-lg border border-blue-100 bg-white px-2 py-1.5">
-        <p className="text-[9px] font-medium uppercase tracking-wider text-muted-foreground">
+      <div className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 dark:border-slate-700 dark:bg-slate-800/60">
+        <p className="text-[9px] font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
           Specific Details
         </p>
-        <p className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-foreground">
+        <p className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-slate-900 dark:text-slate-100">
           {project.description.trim()}
         </p>
       </div>
@@ -341,7 +341,7 @@ export function ShowcaseProjectCard({
 
   return (
     <article
-      className="group relative flex min-w-0 flex-col overflow-hidden rounded-2xl border border-blue-200 bg-white shadow-sm transition-colors hover:border-blue-400"
+      className="group relative flex min-w-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-colors hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-slate-700"
     >
       {/* Large watermark icon */}
       <ServiceIcon
@@ -353,12 +353,12 @@ export function ShowcaseProjectCard({
       <div className="relative flex flex-col gap-2 p-3 pl-3.5">
         <div className="flex flex-wrap items-center justify-between gap-1.5">
           <div className="flex min-w-0 flex-wrap items-center gap-1">
-            <Badge className="border-blue-200 bg-blue-50 px-1.5 py-0 text-[10px] text-blue-600">
+            <Badge className="border-slate-200 bg-slate-50 px-1.5 py-0 text-[10px] text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
               <span className="mr-1 h-1.5 w-1.5 animate-pulse rounded-full bg-blue-500" />
               {t('home.showcase.liveBadge')}
             </Badge>
             {finishingBadge && (
-              <Badge className="border-blue-200 bg-blue-50 px-1.5 py-0 text-[10px] text-blue-600">
+              <Badge className="border-slate-200 bg-slate-50 px-1.5 py-0 text-[10px] text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
                 {finishingBadge}
               </Badge>
             )}
@@ -380,13 +380,13 @@ export function ShowcaseProjectCard({
             <ServiceIcon className="relative h-4 w-4" strokeWidth={2.25} />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-bold tracking-tight leading-tight text-blue-600">
+            <p className="text-sm font-bold tracking-tight leading-tight text-slate-900 dark:text-slate-100">
               {serviceCategory.label}
             </p>
-            <h3 className="mt-0.5 line-clamp-2 text-sm font-semibold leading-snug text-foreground transition-colors group-hover:text-blue-700">
+            <h3 className="mt-0.5 line-clamp-2 text-sm font-semibold leading-snug text-slate-900 transition-colors group-hover:text-blue-700 dark:text-slate-100 dark:group-hover:text-sky-400">
               {getLiveAuctionDisplayTitle(project)}
             </h3>
-            <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+            <p className="mt-1 flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
               <MapPin className="h-3 w-3 shrink-0 opacity-80" />
               <span className="truncate">
                 {project.district}
@@ -436,7 +436,7 @@ export function ShowcaseProjectCard({
 
         <div className="flex items-center justify-between gap-2 pt-0.5">
           {postedDisplay ? (
-            <p className="flex min-w-0 items-center gap-1 text-[11px] text-muted-foreground">
+            <p className="flex min-w-0 items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400">
               <CalendarDays className="h-3 w-3 shrink-0" />
               <span className="truncate">{postedDisplay}</span>
             </p>
@@ -446,7 +446,7 @@ export function ShowcaseProjectCard({
           <Button
             variant="outline"
             size="sm"
-            className="h-8 shrink-0 rounded-lg border-blue-200 bg-blue-50 px-2.5 text-xs text-blue-600 hover:bg-blue-100 hover:text-blue-700"
+            className="h-8 shrink-0 rounded-lg border-slate-200 bg-slate-50 px-2.5 text-xs text-slate-800 hover:bg-slate-100 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 dark:hover:text-white"
             asChild
           >
             <Link href={href}>

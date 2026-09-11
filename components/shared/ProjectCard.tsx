@@ -73,7 +73,7 @@ export function ProjectCard({
 
   return (
     <Card className={cn(
-      'group relative flex h-full flex-col overflow-hidden transition-all duration-300 rounded-2xl',
+      'group relative flex h-full flex-col overflow-hidden transition-all duration-300 rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900',
       compact
         ? 'border-border/80 shadow-sm hover:shadow-md hover:-translate-y-0.5'
         : 'hover:shadow-xl hover:shadow-black/10 dark:hover:shadow-black/40 hover:-translate-y-0.5',
@@ -116,13 +116,13 @@ export function ProjectCard({
               {serviceCategory.label}
             </p>
             <h3 className={cn(
-              'font-semibold text-foreground leading-snug line-clamp-2 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors',
+              'font-semibold text-slate-900 dark:text-slate-100 leading-snug line-clamp-2 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors',
               compact ? 'text-base' : 'text-base',
             )}>
               {getLiveAuctionDisplayTitle(project)}
             </h3>
             {postedAt && (isActive || isFrozen) && (
-              <p className="text-[11px] text-muted-foreground mt-1 inline-flex items-center gap-1">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 inline-flex items-center gap-1">
                 <CalendarDays className="w-3 h-3" />
                 {t('project.postedOn')} {postedAt}
               </p>
@@ -147,13 +147,13 @@ export function ProjectCard({
         )}>
           {visibleDetailBlocks ? (
             <>
-              <div className="rounded-xl border border-border/60 bg-muted/25 px-3 py-2.5 dark:bg-muted/15">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{t('project.district')}</p>
-                <p className="text-sm font-semibold text-foreground truncate mt-0.5">{project.district}</p>
+              <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 dark:border-slate-700 dark:bg-slate-800/60">
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('project.district')}</p>
+                <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate mt-0.5">{project.district}</p>
               </div>
               {floorScopes.length > 0 ? (
-                <div className="col-span-2 rounded-xl border border-border/60 bg-muted/25 px-3 py-2.5 dark:bg-muted/15">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5">
+                <div className="col-span-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 dark:border-slate-700 dark:bg-slate-800/60">
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
                     Floor scope
                   </p>
                   <FloorScopeBadges items={floorScopes} />
@@ -163,13 +163,13 @@ export function ProjectCard({
                 <div
                   key={block.label}
                   className={cn(
-                    'rounded-xl border border-border/60 bg-muted/25 px-3 py-2.5 dark:bg-muted/15',
+                    'rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 dark:border-slate-700 dark:bg-slate-800/60',
                     isWideRequirementLabel(block.label) && 'col-span-2',
                   )}
                 >
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{block.label}</p>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider">{block.label}</p>
                   <p className={cn(
-                    'mt-0.5 text-sm font-semibold leading-snug text-foreground break-words',
+                    'mt-0.5 text-sm font-semibold leading-snug text-slate-900 dark:text-slate-100 break-words',
                     (block.label === 'Additional Requirements' || block.label === 'Additional Notes')
                       ? 'line-clamp-3 font-medium'
                       : block.label === 'Civil Work Type' || block.label === 'Included Work Scope'
@@ -181,9 +181,9 @@ export function ProjectCard({
                 </div>
               ))}
               {project.description?.trim() && (
-                <div className="col-span-2 rounded-xl border border-border/60 bg-muted/25 px-3 py-2.5 dark:bg-muted/15">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Specific Details</p>
-                  <p className="mt-0.5 text-sm font-medium leading-snug text-foreground line-clamp-3">
+                <div className="col-span-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 dark:border-slate-700 dark:bg-slate-800/60">
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider">Specific Details</p>
+                  <p className="mt-0.5 text-sm font-medium leading-snug text-slate-900 dark:text-slate-100 line-clamp-3">
                     {project.description.trim()}
                   </p>
                 </div>
@@ -191,49 +191,49 @@ export function ProjectCard({
             </>
           ) : (
             <>
-              <div className="rounded-xl border border-border/60 bg-muted/25 px-3 py-2.5 dark:bg-muted/15">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{t('project.district')}</p>
-                <p className="text-sm font-semibold text-foreground truncate mt-0.5">{project.district}</p>
+              <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 dark:border-slate-700 dark:bg-slate-800/60">
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('project.district')}</p>
+                <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate mt-0.5">{project.district}</p>
               </div>
-              <div className="rounded-xl border border-border/60 bg-muted/25 px-3 py-2.5 dark:bg-muted/15">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{t('project.totalBids')}</p>
-                <p className="text-sm font-semibold text-foreground mt-0.5">{bidCount}</p>
+              <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 dark:border-slate-700 dark:bg-slate-800/60">
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('project.totalBids')}</p>
+                <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 mt-0.5">{bidCount}</p>
               </div>
               {floorArea && (
-                <div className="rounded-xl border border-border/60 bg-muted/25 px-3 py-2.5 dark:bg-muted/15">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 dark:border-slate-700 dark:bg-slate-800/60">
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                     {isFirm ? 'Floor Area' : t('project.plotArea')}
                   </p>
-                  <p className="text-sm font-semibold text-foreground truncate mt-0.5">{floorArea}</p>
+                  <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate mt-0.5">{floorArea}</p>
                 </div>
               )}
               {budgetDisplay && (
-                <div className="rounded-xl border border-border/60 bg-muted/25 px-3 py-2.5 dark:bg-muted/15">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Budget</p>
-                  <p className="text-sm font-semibold text-foreground truncate mt-0.5">{budgetDisplay}</p>
+                <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 dark:border-slate-700 dark:bg-slate-800/60">
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider">Budget</p>
+                  <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate mt-0.5">{budgetDisplay}</p>
                 </div>
               )}
               {floorScopes.length > 0 ? (
-                <div className="col-span-2 rounded-xl border border-border/60 bg-muted/25 px-3 py-2.5 dark:bg-muted/15">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5">
+                <div className="col-span-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 dark:border-slate-700 dark:bg-slate-800/60">
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
                     Floor scope
                   </p>
                   <FloorScopeBadges items={floorScopes} />
                 </div>
               ) : !compact ? (
-                <div className="col-span-2 rounded-xl border border-border/60 bg-muted/25 px-3 py-2.5 dark:bg-muted/15">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{t('project.configuration')}</p>
+                <div className="col-span-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 dark:border-slate-700 dark:bg-slate-800/60">
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('project.configuration')}</p>
                   <BuildingConfigSummary
                     project={project}
                     compact
                     hideConstructionTypes={isFirm}
-                    className="text-sm font-medium text-foreground leading-snug mt-0.5"
+                    className="text-sm font-medium text-slate-900 dark:text-slate-100 leading-snug mt-0.5"
                   />
                 </div>
               ) : !isFirm ? (
-                <div className="rounded-xl border border-border/60 bg-muted/25 px-3 py-2.5 dark:bg-muted/15">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{t('project.configuration')}</p>
-                  <p className="text-sm font-semibold text-foreground truncate mt-0.5">{trackLabel}</p>
+                <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 dark:border-slate-700 dark:bg-slate-800/60">
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('project.configuration')}</p>
+                  <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate mt-0.5">{trackLabel}</p>
                 </div>
               ) : null}
             </>
