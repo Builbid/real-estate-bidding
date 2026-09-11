@@ -6,6 +6,10 @@ export const COMPLETED_HISTORY_PAGE_SIZE = 20;
 
 export type CompletedProjectWithBids = Project & { bids?: [{ count: number }] };
 
+export function isCancelledStatus(status: string | null | undefined): boolean {
+  return status === 'cancelled';
+}
+
 export function parseHistoryPage(raw: string | undefined): number {
   const page = Number(raw);
   if (!Number.isFinite(page) || page < 1) return 1;

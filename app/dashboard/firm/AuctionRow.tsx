@@ -3,10 +3,8 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Clock, ArrowRight, CalendarDays } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { CountdownTicker } from '@/components/shared/CountdownTicker';
-import { BuildingConfigSummary } from '@/components/construction/BuildingConfigSummary';
 import { useCountdown } from '@/lib/hooks/useCountdown';
 import {
   getFinishingBadge,
@@ -43,37 +41,37 @@ export function FirmAuctionRow({ project, myBid }: FirmAuctionRowProps) {
     router.push(bidHref);
   }
 
+  const statusParts = [
+    !isExpired ? 'Live' : null,
+    finishingBadge,
+    hasBid ? `Your Bid: ${formatPackageRateRange(myBid!.package_rates) ?? '—'}` : null,
+  ].filter(Boolean) as string[];
+
   return (
     <div
       onClick={handleRowClick}
-      className={`flex items-center gap-4 p-4 rounded-xl border bg-card/80 dark:bg-card/60 hover:border-violet-500/30 transition-colors ${
-        hasProjectId ? 'cursor-pointer' : 'cursor-not-allowed opacity-70'
-      } ${hasBid ? 'border-violet-500/30' : 'border-border'}`}
+      className={`flex items-center gap-4 py-4 transition-opacity ${
+        hasProjectId ? 'cursor-pointer hover:opacity-80' : 'cursor-not-allowed opacity-70'
+      }`}
     >
       <div className="flex-1 min-w-0">
-        <div className="flex flex-wrap items-center gap-2 mb-1">
-          {!isExpired && (
-            <Badge variant="emerald">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              Live
-            </Badge>
-          )}
-          {finishingBadge && (
-            <Badge className="text-[10px] border-slate-300 bg-slate-100 text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200">
-              {finishingBadge}
-            </Badge>
-          )}
-          {hasBid && (
-            <Badge variant="violet">
-              Your Bid: {formatPackageRateRange(myBid!.package_rates) ?? '—'}
-            </Badge>
-          )}
-        </div>
+        {statusParts.length > 0 ? (
+          <p className="mb-1 text-sm font-medium text-gray-600 dark:text-gray-400">
+            {statusParts.map((part, index) => (
+              <span key={`${part}-${index}`}>
+                {index > 0 ? <span className="text-gray-400"> · </span> : null}
+                <span className={index === 0 && !isExpired ? 'text-emerald-700 dark:text-emerald-400' : undefined}>
+                  {part}
+                </span>
+              </span>
+            ))}
+          </p>
+        ) : null}
         <p className="text-sm font-semibold text-foreground truncate">{project.title}</p>
         {project.building_types && project.building_types.length > 0 && (
-          <div className="mt-1">
-            <BuildingConfigSummary project={project} compact hideConstructionTypes />
-          </div>
+          <p className="mt-1 text-sm font-medium text-gray-600 dark:text-gray-400">
+            {project.building_types.join(' · ')}
+          </p>
         )}
         <div className="flex flex-wrap items-center gap-2 mt-1.5 text-xs text-muted-foreground">
           <span>{project.district}</span>

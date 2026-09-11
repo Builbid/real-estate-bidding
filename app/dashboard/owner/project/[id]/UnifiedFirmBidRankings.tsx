@@ -105,17 +105,9 @@ export function UnifiedFirmBidRankings({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.97 }}
               transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-              className={`relative flex flex-wrap items-center gap-x-4 gap-y-2 p-4 rounded-xl border transition-colors ${
-                isSelected
-                  ? 'border-emerald-500/40 bg-emerald-500/5'
-                  : isLowest
-                  ? 'border-violet-500/30 bg-violet-500/5'
-                  : 'border-border bg-card/80'
-              }`}
+              className="relative flex flex-wrap items-center gap-x-4 gap-y-2 py-3"
             >
-              <div className={`flex-shrink-0 w-8 h-8 rounded-lg border flex items-center justify-center text-sm font-bold ${
-                isSelected ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400' : 'bg-secondary border-border text-muted-foreground'
-              }`}>
+              <div className="flex-shrink-0 w-8 text-sm font-bold text-foreground">
                 {RANK_MEDAL[index] ?? index + 1}
               </div>
 

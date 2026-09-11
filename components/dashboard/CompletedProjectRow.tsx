@@ -2,7 +2,6 @@ import Link from 'next/link';
 import { ArrowRight, Users } from 'lucide-react';
 import { DeleteProjectButton } from '@/app/dashboard/owner/DeleteProjectButton';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { FloorScopeBadges } from '@/components/project/FloorScopeBadges';
 import {
   getProjectConfigOrDrawingMeta,
@@ -24,13 +23,11 @@ export function CompletedProjectRow({
   bidCount,
   viewHref,
   showDelete = false,
-  plainTags = true,
 }: {
   project: ProjectWithBidCount;
   bidCount?: number;
   viewHref: string;
   showDelete?: boolean;
-  plainTags?: boolean;
 }) {
   const resolvedBidCount = bidCount ?? project.bids?.[0]?.count ?? 0;
   const serviceBadge = getProjectServiceBadgeLabel(project);
@@ -49,20 +46,13 @@ export function CompletedProjectRow({
   ].filter(Boolean) as string[];
 
   return (
-    <div className="flex items-center gap-4 p-4 rounded-xl border border-border bg-card/80 dark:bg-card/60 transition-colors hover:border-border">
+    <div className="flex items-center gap-4 py-4">
       <div className="flex-1 min-w-0">
-        {plainTags ? (
-          <p className="mb-1 text-sm font-medium text-gray-600 dark:text-gray-400">
-            {statusLabel}
-            <span className="text-gray-400"> · </span>
-            {serviceBadge}
-          </p>
-        ) : (
-          <div className="mb-1 flex flex-wrap items-center gap-2">
-            <Badge variant="default">{statusLabel}</Badge>
-            <Badge>{serviceBadge}</Badge>
-          </div>
-        )}
+        <p className="mb-1 text-sm font-medium text-gray-600 dark:text-gray-400">
+          {statusLabel}
+          <span className="text-gray-400"> · </span>
+          {serviceBadge}
+        </p>
         <p className="truncate text-sm font-semibold text-foreground">{project.title}</p>
         <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
           {metaParts.map((part, index) => (
@@ -84,11 +74,7 @@ export function CompletedProjectRow({
           ))}
         </div>
         {floorScopes.length > 0 ? (
-          <FloorScopeBadges
-            items={floorScopes}
-            className="mt-2"
-            variant={plainTags ? 'plain' : 'badge'}
-          />
+          <FloorScopeBadges items={floorScopes} className="mt-2" variant="plain" />
         ) : null}
       </div>
 

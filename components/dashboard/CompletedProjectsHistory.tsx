@@ -58,7 +58,6 @@ export function CompletedProjectsHistory({
               bidCount={project.bids?.[0]?.count ?? 0}
               viewHref={viewHrefFor(project)}
               showDelete={showDelete}
-              plainTags
             />
           ))}
         </div>

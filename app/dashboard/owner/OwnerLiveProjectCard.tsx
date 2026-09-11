@@ -1,14 +1,12 @@
 'use client';
 
-import { Lock, Clock, Users, CalendarDays } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Lock, Users, CalendarDays } from 'lucide-react';
 import { AuctionCountdown } from './AuctionCountdown';
 import { DeleteProjectButton } from './DeleteProjectButton';
 import { UnifiedBidRankings } from './project/[id]/UnifiedBidRankings';
 import { UnifiedFirmBidRankings } from './project/[id]/UnifiedFirmBidRankings';
 import { OwnerProjectPhaseProvider, useOwnerProjectPhaseContext } from '@/lib/context/OwnerProjectPhaseContext';
-import { formatProjectPostedAt, cn } from '@/lib/utils';
+import { formatProjectPostedAt } from '@/lib/utils';
 import {
   getProjectServiceBadgeLabel,
   isFirmProject,
@@ -46,7 +44,6 @@ function OwnerLiveProjectCardBody({
   initialBuilders,
   initialFirms = {},
   userId,
-  priority,
 }: OwnerLiveProjectCardProps) {
   const { project, phase, canSelect } = useOwnerProjectPhaseContext();
   const isFirm = isFirmProject(project);
@@ -64,30 +61,30 @@ function OwnerLiveProjectCardBody({
     `${bidCount} bid${bidCount !== 1 ? 's' : ''}`,
   ].filter(Boolean) as string[];
 
+  const statusLabel =
+    phase === 'live'
+      ? 'Live Bidding'
+      : phase === 'select' && canSelect
+        ? isFirm
+          ? 'Select Firm'
+          : 'Select Builder'
+        : null;
+
   return (
-    <div
-      className={cn(
-        'rounded-xl border bg-card/80 dark:bg-card/60 overflow-hidden',
-        priority ? 'border-indigo-500/30 bg-indigo-500/5' : 'border-border'
-      )}
-    >
-      <div className="flex flex-wrap items-start gap-4 p-4 border-b border-border">
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-start gap-4">
         <div className="flex-1 min-w-0">
-          <div className="flex flex-wrap items-center gap-2 mb-1">
-            {phase === 'live' && (
-              <Badge variant="emerald" className="bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/80 dark:text-emerald-300 dark:border-emerald-700/60">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 dark:bg-emerald-400 animate-pulse" />
-                Live Bidding
-              </Badge>
-            )}
-            {phase === 'select' && canSelect && (
-              <Badge variant="indigo">
-                <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
-                {isFirm ? 'Select Firm' : 'Select Builder'}
-              </Badge>
-            )}
-            <Badge>{serviceBadge}</Badge>
-          </div>
+          <p className="mb-1 text-sm font-medium text-gray-600 dark:text-gray-400">
+            {statusLabel ? (
+              <>
+                <span className={phase === 'live' ? 'text-emerald-700 dark:text-emerald-400' : undefined}>
+                  {statusLabel}
+                </span>
+                <span className="text-gray-400"> · </span>
+              </>
+            ) : null}
+            {serviceBadge}
+          </p>
           <p className="text-sm font-semibold text-foreground">{project.title}</p>
           <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
             {metaParts.map((part, index) => (
@@ -120,7 +117,7 @@ function OwnerLiveProjectCardBody({
             ) : null}
           </div>
           {floorScopes.length > 0 ? (
-            <FloorScopeBadges items={floorScopes} className="mt-2.5" />
+            <FloorScopeBadges items={floorScopes} className="mt-2.5" variant="plain" />
           ) : null}
         </div>
 
@@ -143,87 +140,46 @@ function OwnerLiveProjectCardBody({
         </div>
       </div>
 
-      <div className="p-4 space-y-4">
-        {(phase === 'live' || canSelect) && (
-          <div className="flex flex-wrap items-start gap-4">
-            {phase === 'live' && (
-              <Card className="flex-shrink-0 border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800">
-                <CardHeader className="pb-1 pt-3 px-4">
-                  <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-                    Bidding Closes In
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="px-4 pb-3">
-                  <AuctionCountdown targetDateISO={project.bidding_ends_at} projectId={project.id} compact />
-                </CardContent>
-              </Card>
-            )}
-            {canSelect && project.selection_ends_at && (
-              <Card className="border-amber-500/20 flex-shrink-0">
-                <CardHeader className="pb-1 pt-3 px-4">
-                  <CardTitle className="text-[10px] text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
-                    <Clock className="w-3 h-3" />
-                    Selection Closes In
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="px-4 pb-3">
-                  <AuctionCountdown targetDateISO={project.selection_ends_at} projectId={project.id} compact />
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        )}
-
-        {canSelect && (
-          <div className="p-4 rounded-xl bg-indigo-500/5 border border-indigo-500/20 flex items-start gap-3">
-            <Lock className="w-4 h-4 text-indigo-400 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-semibold text-indigo-300 mb-1">
-                Bidding Closed — {isFirm ? 'Select Your Construction Firm' : 'Select Your Builder'}
-              </p>
-              <p className="text-xs text-indigo-400/70">
-                Choose a {isFirm ? 'firm' : 'builder'} before the timer expires. Contact details remain private until
-                you award the contract. If no selection is made, this project will be automatically
-                cancelled.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {phase === 'live' && (
-          <div className="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-800/60 dark:bg-emerald-950/50">
-            <div className="mt-1.5 h-2 w-2 flex-shrink-0 rounded-full bg-emerald-600 animate-pulse dark:bg-emerald-400" />
-            <p className="text-xs text-slate-700 dark:text-slate-200">
-              Live auction in progress. {isFirm ? 'Firm' : 'Builder'} names and profile photos are visible on the
-              leaderboard; contact details stay private. Rankings update in real-time.
+      {canSelect && (
+        <div className="flex items-start gap-3">
+          <Lock className="w-4 h-4 text-indigo-400 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold text-foreground mb-1">
+              Bidding Closed — {isFirm ? 'Select Your Construction Firm' : 'Select Your Builder'}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Choose a {isFirm ? 'firm' : 'builder'} before the timer expires. Contact details remain private until
+              you award the contract. If no selection is made, this listing will expire.
             </p>
           </div>
-        )}
+        </div>
+      )}
 
-        <Card className="border-border bg-card/80 dark:bg-card/60">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center justify-between">
-              <span>
-                Bid Rankings
-                <span className="ml-2 text-xs font-normal text-muted-foreground">({initialBids.length})</span>
-              </span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isFirm ? (
-              <UnifiedFirmBidRankings
-                initialBids={initialBids}
-                initialFirms={initialFirms}
-              />
-            ) : (
-              <UnifiedBidRankings
-                initialBids={initialBids}
-                initialBuilders={initialBuilders}
-                userId={userId}
-              />
-            )}
-          </CardContent>
-        </Card>
+      {phase === 'live' && (
+        <p className="text-xs text-muted-foreground">
+          <span className="mr-2 inline-block h-2 w-2 rounded-full bg-emerald-600 align-middle animate-pulse dark:bg-emerald-400" />
+          Live auction in progress. {isFirm ? 'Firm' : 'Builder'} names and profile photos are visible on the
+          leaderboard; contact details stay private. Rankings update in real-time.
+        </p>
+      )}
+
+      <div>
+        <p className="text-sm font-semibold text-foreground mb-3">
+          Bid Rankings
+          <span className="ml-2 text-xs font-normal text-muted-foreground">({initialBids.length})</span>
+        </p>
+        {isFirm ? (
+          <UnifiedFirmBidRankings
+            initialBids={initialBids}
+            initialFirms={initialFirms}
+          />
+        ) : (
+          <UnifiedBidRankings
+            initialBids={initialBids}
+            initialBuilders={initialBuilders}
+            userId={userId}
+          />
+        )}
       </div>
     </div>
   );

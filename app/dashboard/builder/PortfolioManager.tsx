@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { ImageIcon, Loader2, Plus, Trash2, X } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { BuilderPortfolioItem } from '@/lib/types';
 
 interface PortfolioManagerProps {
@@ -73,27 +72,27 @@ export function PortfolioManager({ builderId }: PortfolioManagerProps) {
   }
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-base">My Portfolio</CardTitle>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => {
-              loadItems();
-              setShowForm((v) => !v);
-            }}
-          >
-            {showForm ? <X className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
-            {showForm ? 'Cancel' : 'Add Work'}
-          </Button>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h2 className="text-base font-semibold text-foreground">My Portfolio</h2>
+          <p className="text-xs text-muted-foreground mt-1">
+            Showcase previous projects — visible to clients on your profile.
+          </p>
         </div>
-        <p className="text-xs text-muted-foreground mt-1">
-          Showcase previous projects — visible to clients on your profile.
-        </p>
-      </CardHeader>
-      <CardContent className="space-y-4">
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => {
+            loadItems();
+            setShowForm((v) => !v);
+          }}
+        >
+          {showForm ? <X className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
+          {showForm ? 'Cancel' : 'Add Work'}
+        </Button>
+      </div>
+      <div className="space-y-4">
         {!loaded && !showForm && (
           <Button size="sm" variant="ghost" onClick={loadItems} disabled={loading}>
             {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Load portfolio items'}
@@ -101,7 +100,7 @@ export function PortfolioManager({ builderId }: PortfolioManagerProps) {
         )}
 
         {showForm && (
-          <form onSubmit={handleAdd} className="space-y-3 p-4 rounded-xl bg-secondary/40 border border-border">
+          <form onSubmit={handleAdd} className="space-y-3">
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -138,12 +137,12 @@ export function PortfolioManager({ builderId }: PortfolioManagerProps) {
             {items.map((item) => (
               <div
                 key={item.id}
-                className="flex items-start gap-3 p-3 rounded-xl border border-border bg-card/80 dark:bg-card/60"
+                className="flex items-start gap-3 py-3"
               >
-                <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center flex-shrink-0">
+                <div className="w-10 h-10 flex items-center justify-center flex-shrink-0">
                   {item.photo_urls[0] ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={item.photo_urls[0]} alt="" className="w-full h-full object-cover rounded-lg" />
+                    <img src={item.photo_urls[0]} alt="" className="w-full h-full object-cover" />
                   ) : (
                     <ImageIcon className="w-4 h-4 text-muted-foreground" />
                   )}
@@ -167,7 +166,7 @@ export function PortfolioManager({ builderId }: PortfolioManagerProps) {
             ))}
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

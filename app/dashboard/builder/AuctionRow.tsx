@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Clock, ArrowRight, CalendarDays } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { CountdownTicker } from '@/components/shared/CountdownTicker';
 import { useCountdown } from '@/lib/hooks/useCountdown';
@@ -82,32 +81,32 @@ export function AuctionRow({
         ? t('home.auctions.bidNow')
         : t('common.viewDetails');
 
+  const statusParts = [
+    !isExpired ? 'Live' : null,
+    serviceBadge,
+    isTrade && !isDrawing ? TRACK_LABELS[project.track_type] : null,
+    hasBid && canBid
+      ? `Your Bid: ₹${myBid!.total_sum_metric.toLocaleString('en-IN')}${formatBidUnitSuffix(myBid!.rates, undefined, project.service_type)}`
+      : null,
+  ].filter(Boolean) as string[];
+
   return (
     <div
       onClick={() => router.push(destinationHref)}
-      className={`flex items-center gap-4 p-4 rounded-xl border bg-card/80 dark:bg-card/60 hover:border-border transition-colors cursor-pointer ${
-        hasBid && canBid ? 'border-indigo-500/30' : 'border-border'
-      }`}
+      className="flex cursor-pointer items-center gap-4 py-4 transition-opacity hover:opacity-80"
     >
       {/* Project info */}
       <div className="flex-1 min-w-0">
-        <div className="flex flex-wrap items-center gap-2 mb-1">
-          {!isExpired && (
-            <Badge variant="emerald">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              Live
-            </Badge>
-          )}
-          <Badge>{serviceBadge}</Badge>
-          {isTrade && !isDrawing && (
-            <Badge>{TRACK_LABELS[project.track_type]}</Badge>
-          )}
-          {hasBid && canBid && (
-            <Badge variant="indigo">
-              Your Bid: ₹{myBid!.total_sum_metric.toLocaleString('en-IN')}{formatBidUnitSuffix(myBid!.rates, undefined, project.service_type)}
-            </Badge>
-          )}
-        </div>
+        <p className="mb-1 text-sm font-medium text-gray-600 dark:text-gray-400">
+          {statusParts.map((part, index) => (
+            <span key={`${part}-${index}`}>
+              {index > 0 ? <span className="text-gray-400"> · </span> : null}
+              <span className={index === 0 && !isExpired ? 'text-emerald-700 dark:text-emerald-400' : undefined}>
+                {part}
+              </span>
+            </span>
+          ))}
+        </p>
         <p className="text-sm font-semibold text-foreground truncate">{project.title}</p>
         <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
           {metaParts.map((part, index) => (
@@ -133,7 +132,7 @@ export function AuctionRow({
           )}
         </div>
         {floorScopes.length > 0 ? (
-          <FloorScopeBadges items={floorScopes} className="mt-2" />
+          <FloorScopeBadges items={floorScopes} className="mt-2" variant="plain" />
         ) : null}
 
         {/* Countdown — mobile only, shown inline under project meta */}

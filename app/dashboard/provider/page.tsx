@@ -2,11 +2,8 @@ export const dynamic = 'force-dynamic'
 
 import { getAuthUser } from '@/lib/supabase/getUser';
 import { redirect } from 'next/navigation';
-import { ArrowLeft, TrendingUp, Award, CheckCircle2, Building } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { ArrowLeft, Building } from 'lucide-react';
 import { NavLink } from '@/components/shared/NavLink';
-import { STAT_ICON_STYLES, type StatIconColor } from '@/lib/dashboard/statIconStyles';
 import { NAV_BACK_LINK } from '@/lib/navStyles';
 import { STATUS_CONFIG, cn } from '@/lib/utils';
 import { AuctionRow } from '../builder/AuctionRow';
@@ -14,7 +11,8 @@ import { formatBidUnitSuffix } from '@/lib/bid/earthworkBid';
 import { canWorkerBidOnProject } from '@/lib/bid/workerBidEligibility';
 import { getProviderSpecialtyEmoji, getProviderSpecialtyLabel } from '@/lib/trades';
 import { CompletedProjectsPreview } from '@/components/dashboard/CompletedProjectsPreview';
-import { fetchWorkerCompletedPreview } from '@/lib/dashboard/completedProjects';
+import { DashboardStatTiles } from '@/components/dashboard/DashboardStatTiles';
+import { fetchWorkerCompletedPreview, isCancelledStatus } from '@/lib/dashboard/completedProjects';
 import type { Project, Bid } from '@/lib/types';
 
 async function getData() {
@@ -47,14 +45,30 @@ async function getData() {
     const { data: bidProjects } = await supabase
       .from('projects')
       .select('*')
-      .in('id', bidProjectIds);
+      .in('id', bidProjectIds)
+      .neq('status', 'cancelled');
 
-    (bidProjects ?? []).forEach((p) => bidProjectsMap.set(p.id, p as Project));
+    (bidProjects ?? [])
+      .filter((p) => !isCancelledStatus(p.status))
+      .forEach((p) => bidProjectsMap.set(p.id, p as Project));
   }
 
   const completed = await fetchWorkerCompletedPreview(supabase, userId);
 
-  return { profile, projects: (projects ?? []) as Project[], myBids: (myBids ?? []) as Bid[], bidProjectsMap, userId, completed };
+  const visibleBids = ((myBids ?? []) as Bid[]).filter((bid) => {
+    const project = bidProjectsMap.get(bid.project_id)
+      ?? (projects ?? []).find((p) => p.id === bid.project_id);
+    return project != null && !isCancelledStatus(project.status);
+  });
+
+  return {
+    profile,
+    projects: (projects ?? []) as Project[],
+    myBids: visibleBids,
+    bidProjectsMap,
+    userId,
+    completed,
+  };
 }
 
 export default async function ProviderDashboard() {
@@ -79,42 +93,24 @@ export default async function ProviderDashboard() {
         <p className="text-sm text-muted-foreground mt-1">Welcome, <span className="text-foreground font-semibold">{profile.full_name}</span></p>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { label: 'Open Auctions', value: activeProjects.length, icon: Building, color: 'emerald' as StatIconColor },
-          { label: 'My Active Bids', value: bidsPlaced.length, icon: TrendingUp, color: 'indigo' as StatIconColor },
-          { label: 'Contracts Won', value: completed.totalCount, icon: Award, color: 'amber' as StatIconColor },
-          { label: 'Total Participated', value: myBids.length, icon: CheckCircle2, color: 'teal' as StatIconColor },
-        ].map(({ label, value, icon: Icon, color }) => (
-          <Card key={label}>
-            <CardContent className="pt-5 pb-5">
-              <div className="flex items-center gap-3">
-                <div className={cn('flex h-9 w-9 items-center justify-center rounded-lg border', STAT_ICON_STYLES[color].box)}>
-                  <Icon className={cn('h-4.5 w-4.5', STAT_ICON_STYLES[color].icon)} />
-                </div>
-                <div>
-                  <p className="text-xl font-bold text-foreground">{value}</p>
-                  <p className="text-xs text-muted-foreground">{label}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      <DashboardStatTiles
+        items={[
+          { label: 'Open Auctions', value: activeProjects.length },
+          { label: 'My Active Bids', value: bidsPlaced.length },
+          { label: 'Contracts Won', value: completed.totalCount },
+          { label: 'Total Participated', value: myBids.length },
+        ]}
+      />
 
-      {/* Active Auctions */}
       <div>
         <div className="flex items-center gap-2 mb-4">
           <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
           <h2 className="text-base font-semibold text-foreground">Open {tradeLabel} Auctions</h2>
-          <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-            {activeProjects.length}
-          </span>
+          <span className="text-xs text-muted-foreground">{activeProjects.length}</span>
         </div>
 
         {activeProjects.length > 0 ? (
-          <div className="space-y-3">
+          <div>
             {activeProjects.map((project) => (
               <AuctionRow
                 key={project.id}
@@ -126,13 +122,11 @@ export default async function ProviderDashboard() {
             ))}
           </div>
         ) : (
-          <Card className="border-dashed">
-            <CardContent className="pt-10 pb-10 text-center">
-              <Building className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-              <p className="text-sm font-semibold text-foreground mb-1">No Open Auctions</p>
-              <p className="text-xs text-muted-foreground">Check back soon — new {tradeLabel.toLowerCase()} projects are posted regularly.</p>
-            </CardContent>
-          </Card>
+          <div className="py-10 text-center">
+            <Building className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+            <p className="text-sm font-semibold text-foreground mb-1">No Open Auctions</p>
+            <p className="text-xs text-muted-foreground">Check back soon — new {tradeLabel.toLowerCase()} projects are posted regularly.</p>
+          </div>
         )}
       </div>
 
@@ -143,17 +137,16 @@ export default async function ProviderDashboard() {
         viewHrefFor={(project) => `/project/${project.id}`}
       />
 
-      {/* My bid history */}
       {myBids.length > 0 && (
         <div>
           <h2 className="text-base font-semibold text-muted-foreground mb-4">My Bid History</h2>
-          <div className="space-y-2">
+          <div>
             {myBids.slice(0, 10).map((bid) => {
               const project =
                 bidProjectsMap.get(bid.project_id) ??
                 projects.find((p) => p.id === bid.project_id);
               return (
-                <div key={bid.id} className="flex items-center gap-4 px-4 py-3 rounded-xl border border-border bg-card/80 dark:bg-card/60">
+                <div key={bid.id} className="flex items-center gap-4 py-3">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-foreground truncate">{project?.title ?? 'Untitled Project'}</p>
                     <p className="text-xs text-muted-foreground">{project?.district ?? ''}</p>
@@ -163,9 +156,9 @@ export default async function ProviderDashboard() {
                     <p className="text-[10px] text-muted-foreground">{new Date(bid.created_at).toLocaleDateString('en-IN')}</p>
                   </div>
                   {project && (
-                    <Badge variant={project.status === 'active_24h' ? 'emerald' : project.status === 'frozen_24h' ? 'indigo' : 'default'}>
+                    <p className="text-xs font-medium text-muted-foreground">
                       {STATUS_CONFIG[project.status].label}
-                    </Badge>
+                    </p>
                   )}
                 </div>
               );

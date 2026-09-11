@@ -199,31 +199,10 @@ export function UnifiedBidRankings({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.97 }}
               transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-              className={`relative flex flex-wrap items-center gap-x-4 gap-y-2 p-4 rounded-xl border transition-colors ${
-                isSelected
-                  ? 'border-emerald-500/40 bg-emerald-500/5'
-                  : isLowest
-                  ? 'border-indigo-500/30 bg-indigo-500/5'
-                  : 'border-border bg-card/80 dark:bg-card/60'
-              }`}
+              className="relative flex flex-wrap items-center gap-x-4 gap-y-2 py-3"
             >
-              {/* Top green line for lowest bid */}
-              {isLowest && !isSelected && (
-                <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-emerald-500 to-teal-400 rounded-t-xl" />
-              )}
-
               {/* Rank */}
-              <div className={`flex-shrink-0 w-8 h-8 rounded-lg border flex items-center justify-center text-sm font-bold ${
-                isSelected
-                  ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400'
-                  : index === 0
-                  ? 'bg-amber-500/20 border-amber-500/30 text-amber-400'
-                  : index === 1
-                  ? 'bg-muted/50 border-border/30 text-foreground'
-                  : index === 2
-                  ? 'bg-orange-500/10 border-orange-500/20 text-orange-400'
-                  : 'bg-secondary border-border text-muted-foreground'
-              }`}>
+              <div className="flex-shrink-0 w-8 text-sm font-bold text-foreground">
                 {RANK_MEDAL[index] ?? index + 1}
               </div>
 
@@ -241,12 +220,12 @@ export function UnifiedBidRankings({
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="text-sm font-semibold text-foreground">{builder.full_name}</p>
                       {builder.is_verified && (
-                        <span className="text-[9px] font-semibold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">
+                        <span className="text-[9px] font-semibold text-emerald-600 dark:text-emerald-400">
                           ✓ Verified
                         </span>
                       )}
                       {isMe && (
-                        <span className="text-[9px] font-semibold text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5 rounded">
+                        <span className="text-[9px] font-semibold text-indigo-500">
                           You
                         </span>
                       )}
@@ -305,14 +284,14 @@ export function UnifiedBidRankings({
                         : formatBidUnitSuffix(bid.rates, undefined, project.service_type))}
                 </p>
                 {isPlumbingPointRateBid && parsePlumbingRunningFootRate(bid.rates) != null && (
-                  <p className="mt-1 inline-flex rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-800 dark:text-amber-300">
+                  <p className="mt-1 text-[10px] font-semibold text-amber-800 dark:text-amber-300">
                     ₹{parsePlumbingRunningFootRate(bid.rates)!.toLocaleString('en-IN')}/ft
                   </p>
                 )}
                 {isMistriCivilBid && getMistriFlooringRateDisplayEntries(bid.rates, mistriCivilFloors).map((entry) => (
                   <p
                     key={entry.floorId}
-                    className="mt-1 inline-flex rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-800 dark:text-amber-300"
+                    className="mt-1 text-[10px] font-semibold text-amber-800 dark:text-amber-300"
                   >
                     {entry.floorLabel} · {entry.materialLabel} ₹{entry.rate.toLocaleString('en-IN')}/sqft
                   </p>
