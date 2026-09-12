@@ -34,7 +34,7 @@ export function ServiceCategoryBar({ isAuthenticated, role }: ServiceCategoryBar
 
       <div
         className={cn(
-          'mx-auto mt-5 grid w-full items-stretch justify-items-center gap-3 sm:mt-6 sm:gap-4',
+          'mx-auto my-8 grid w-full items-stretch justify-items-center gap-3 sm:gap-4',
           count <= 6
             ? 'max-w-5xl grid-cols-2 sm:grid-cols-3 lg:grid-cols-6'
             : count === 7
@@ -47,10 +47,10 @@ export function ServiceCategoryBar({ isAuthenticated, role }: ServiceCategoryBar
             key={cat.value}
             type="button"
             onClick={() => handleSelect(cat.value)}
-            className="group flex h-full w-full max-w-[9.5rem] flex-col items-center gap-2 text-center sm:max-w-none"
+            className="group flex h-full w-full max-w-[9.5rem] cursor-pointer flex-col items-center gap-2 rounded-xl p-4 text-center transition-all duration-200 hover:bg-slate-100 dark:hover:bg-slate-800/60 sm:max-w-none"
           >
-            <span className="flex h-16 w-16 shrink-0 items-center justify-center leading-none sm:h-[4.5rem] sm:w-[4.5rem]">
-              <span className="text-3xl transition-transform duration-200 group-hover:scale-110 sm:text-4xl">
+            <span className="flex h-16 w-16 shrink-0 items-center justify-center bg-transparent leading-none sm:h-[4.5rem] sm:w-[4.5rem]">
+              <span className="bg-transparent text-3xl leading-none transition-transform duration-200 group-hover:scale-110 sm:text-4xl">
                 {cat.emoji}
               </span>
             </span>

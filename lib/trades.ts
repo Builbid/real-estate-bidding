@@ -27,7 +27,7 @@ export const TRADE_SERVICE_OPTIONS: TradeServiceOption[] = [
   {
     value: 'plumber',
     label: 'Plumber',
-    emoji: '🚰',
+    emoji: '🔧',
     description: 'Plumbing & pipefitting work',
   },
   {

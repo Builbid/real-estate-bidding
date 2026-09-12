@@ -73,7 +73,7 @@ export function HomePageContent({
       <section className="relative overflow-x-hidden border-b border-border/60">
         <HeroBackgroundSlideshow />
 
-        <div className="relative mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 pb-6 pt-3 sm:gap-8 sm:px-6 sm:pb-8 sm:pt-5">
+        <div className="relative mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 pb-6 pt-3 sm:gap-8 sm:pb-8 sm:pt-5">
           <div className="mx-auto max-w-3xl text-center">
             <h1 className="text-xl font-extrabold leading-[1.15] tracking-tight sm:text-3xl">
               <span className="text-foreground">{t('home.hero.titlePrefix')}</span>{' '}
