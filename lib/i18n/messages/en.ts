@@ -61,11 +61,13 @@ export const en = {
     allProjects: 'All Projects',
     workers: 'Workers',
     admin: 'Admin',
+    materials: 'Materials',
     aboutUs: 'About Us',
     contact: 'Contact',
     careers: 'Careers',
     privacyPolicy: 'Privacy Policy',
     termsOfService: 'Terms of Service',
+    connectWithUs: 'Connect with us',
     copyright: '© 2026 BuilBid. All rights reserved.',
   },
   home: {

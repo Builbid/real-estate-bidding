@@ -41,24 +41,37 @@ interface FooterProps {
   compact?: boolean;
 }
 
+const SECTION_HEADING =
+  'font-semibold text-xs tracking-wider uppercase text-slate-900 dark:text-slate-100 mb-4';
+const SECTION_LINK =
+  'font-normal text-sm text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 transition-colors';
+
+function sortLinksByLabel<T extends { label: string }>(links: readonly T[]): T[] {
+  return [...links].sort((a, b) =>
+    a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }),
+  );
+}
+
 export function Footer({ compact }: FooterProps) {
   const { t } = useTranslation();
 
-  const PLATFORM_LINKS = PUBLIC_FOOTER_PLATFORM_LINKS.map(({ href, labelKey }) => ({
-    label: t(labelKey),
-    href,
-  }));
+  const PLATFORM_LINKS = sortLinksByLabel(
+    PUBLIC_FOOTER_PLATFORM_LINKS.map(({ href, labelKey }) => ({
+      label: t(labelKey),
+      href,
+    })),
+  );
 
-  const COMPANY_LINKS = [
+  const COMPANY_LINKS = sortLinksByLabel([
     { label: t('footer.aboutUs'), href: '/about' },
     { label: t('footer.contact'), href: '/contact' },
     { label: t('footer.careers'), href: '/careers' },
-  ] as const;
+  ]);
 
-  const LEGAL_LINKS = [
+  const LEGAL_LINKS = sortLinksByLabel([
     { label: t('footer.privacyPolicy'), href: '/privacy' },
     { label: t('footer.termsOfService'), href: '/terms' },
-  ] as const;
+  ]);
 
   const SOCIAL_LINKS = [
     { label: 'Facebook', href: 'https://facebook.com', icon: FacebookIcon },
@@ -85,13 +98,11 @@ export function Footer({ compact }: FooterProps) {
           </div>
 
           <div>
-            <h3 className="text-xs font-semibold text-slate-800 dark:text-slate-200 uppercase tracking-wider mb-4">
-              {t('footer.platform')}
-            </h3>
+            <h3 className={SECTION_HEADING}>{t('footer.platform')}</h3>
             <ul className="space-y-3">
               {PLATFORM_LINKS.map(({ label, href }) => (
                 <li key={href}>
-                  <Link href={href} className="text-sm font-medium text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors">
+                  <Link href={href} className={SECTION_LINK}>
                     {label}
                   </Link>
                 </li>
@@ -100,13 +111,11 @@ export function Footer({ compact }: FooterProps) {
           </div>
 
           <div>
-            <h3 className="text-xs font-semibold text-slate-800 dark:text-slate-200 uppercase tracking-wider mb-4">
-              {t('footer.company')}
-            </h3>
+            <h3 className={SECTION_HEADING}>{t('footer.company')}</h3>
             <ul className="space-y-3">
               {COMPANY_LINKS.map(({ label, href }) => (
                 <li key={href}>
-                  <Link href={href} className="text-sm font-medium text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors">
+                  <Link href={href} className={SECTION_LINK}>
                     {label}
                   </Link>
                 </li>
@@ -115,13 +124,11 @@ export function Footer({ compact }: FooterProps) {
           </div>
 
           <div>
-            <h3 className="text-xs font-semibold text-slate-800 dark:text-slate-200 uppercase tracking-wider mb-4">
-              {t('footer.legal')}
-            </h3>
+            <h3 className={SECTION_HEADING}>{t('footer.legal')}</h3>
             <ul className="space-y-3">
               {LEGAL_LINKS.map(({ label, href }) => (
                 <li key={href}>
-                  <Link href={href} className="text-sm font-medium text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors">
+                  <Link href={href} className={SECTION_LINK}>
                     {label}
                   </Link>
                 </li>
@@ -134,7 +141,10 @@ export function Footer({ compact }: FooterProps) {
           <p className="text-xs font-medium text-slate-700 dark:text-slate-300 text-center sm:text-left order-2 sm:order-1">
             {t('footer.copyright')}
           </p>
-          <div className="flex items-center justify-center gap-3 order-1 sm:order-2">
+          <div className="flex flex-wrap items-center justify-center gap-3 order-1 sm:order-2">
+            <span className="text-xs text-slate-500 dark:text-slate-400 font-medium mr-2">
+              {t('footer.connectWithUs')}
+            </span>
             {SOCIAL_LINKS.map(({ label, href, icon: Icon }) => (
               <a
                 key={label}
