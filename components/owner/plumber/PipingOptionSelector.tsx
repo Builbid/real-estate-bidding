@@ -182,12 +182,12 @@ export function PipingOptionSelector({
         )}
       </div>
 
-      <div className="rounded-xl border border-blue-500/25 bg-blue-500/5 p-3.5 space-y-2">
+      <div className="rounded-xl border border-brand/25 bg-brand/5 p-3.5 space-y-2">
         <div className="flex items-center justify-between gap-2">
           <p className={cn(WIZARD_SECTION_LABEL, 'normal-case tracking-normal')}>
             Bidding options ({optionCount}/{MAX_PLUMBING_BID_OPTIONS})
           </p>
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-blue-700 dark:text-blue-400">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-brand">
             Lowest average wins
           </span>
         </div>
@@ -202,7 +202,7 @@ export function PipingOptionSelector({
                 key={option.id}
                 className="flex items-start gap-2 rounded-lg border border-border/70 bg-background/60 px-3 py-2 text-xs font-medium text-gray-800 dark:text-zinc-200"
               >
-                <Ruler className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-blue-500" />
+                <Ruler className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-brand" />
                 <span>
                   {option.label}
                   <span className="ml-1 text-slate-700 dark:text-slate-400">· ₹ / Running Foot</span>

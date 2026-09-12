@@ -255,7 +255,7 @@ function EditableDetailRow({
           <button
             type="button"
             onClick={onEdit}
-            className="inline-flex flex-shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-semibold text-sky-700 hover:bg-sky-50 hover:text-sky-800 dark:text-sky-400 dark:hover:bg-sky-950/40 dark:hover:text-sky-300"
+            className="inline-flex flex-shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-semibold text-brand hover:bg-brand/10 hover:text-brand-hover"
           >
             <Pencil className="h-3 w-3" />
             Edit

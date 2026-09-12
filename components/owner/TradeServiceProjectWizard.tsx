@@ -531,12 +531,12 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                             className={cn(
                               'relative text-left rounded-xl border-2 p-4 pr-10 transition-all duration-200',
                               selected
-                                ? 'border-blue-500/70 bg-blue-500/8 shadow-md shadow-blue-500/15'
+                                ? 'border-brand bg-brand/10 shadow-md shadow-brand/15'
                                 : 'border-border bg-secondary/30 hover:border-muted-foreground/40',
                             )}
                           >
                             {selected && (
-                              <CheckCircle2 className="absolute top-2.5 right-2.5 w-5 h-5 text-blue-500 dark:text-blue-400 flex-shrink-0" />
+                              <CheckCircle2 className="absolute top-2.5 right-2.5 w-5 h-5 text-brand flex-shrink-0" />
                             )}
                             <span className="text-sm font-bold text-gray-900 dark:text-white">{opt.label}</span>
                             <p className="text-xs font-medium text-gray-700 dark:text-zinc-300 mt-1">{opt.description}</p>
@@ -636,7 +636,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                     <SelectItem value="1440">24 Hours (Standard)</SelectItem>
                   </SelectContent>
                 </Select>
-                <p className="text-[11px] font-medium text-gray-700 dark:text-zinc-300">
+                <p className="text-[11px] font-medium text-brand">
                   After bidding closes you have 5 minutes to select a {tradeLabel.toLowerCase()}.
                 </p>
               </div>
@@ -690,12 +690,12 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                         className={cn(
                           'relative text-left rounded-xl border-2 p-4 pr-10 transition-all duration-200',
                           selected
-                            ? 'border-blue-500/70 bg-blue-500/8 shadow-md shadow-blue-500/15 scale-[1.02]'
+                            ? 'border-brand bg-brand/10 shadow-md shadow-brand/15 scale-[1.02]'
                             : 'border-border bg-secondary/30 hover:border-muted-foreground/40',
                         )}
                       >
                         {selected && (
-                          <CheckCircle2 className="absolute top-2.5 right-2.5 w-5 h-5 text-blue-500 dark:text-blue-400 flex-shrink-0" />
+                          <CheckCircle2 className="absolute top-2.5 right-2.5 w-5 h-5 text-brand flex-shrink-0" />
                         )}
                         <span className="text-sm font-bold text-gray-900 dark:text-white">{opt.label}</span>
                         <p className="text-xs font-medium text-gray-700 dark:text-zinc-300 mt-1">{opt.description}</p>
@@ -949,12 +949,12 @@ function PainterChoice<T extends string>({
               className={cn(
                 'relative rounded-lg border px-3 py-2.5 pr-8 text-left text-xs font-semibold transition-colors',
                 selected
-                  ? 'border-blue-500/70 bg-blue-500/10 text-gray-900 dark:text-white'
+                  ? 'border-brand bg-brand/10 text-gray-900 dark:text-white'
                   : 'border-border bg-card text-gray-800 dark:text-zinc-100 hover:border-muted-foreground/40',
               )}
             >
               {selected && (
-                <CheckCircle2 className="absolute top-2 right-2 h-4 w-4 text-blue-500 dark:text-blue-400" />
+                <CheckCircle2 className="absolute top-2 right-2 h-4 w-4 text-brand" />
               )}
               {opt.label}
             </button>

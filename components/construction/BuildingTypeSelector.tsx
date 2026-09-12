@@ -236,7 +236,7 @@ export function BuildingTypeSelector({
         </p>
       )}
       {hasRcc && !hasAssam && !rccOnly && (
-        <p className="text-xs text-blue-600 dark:text-blue-400 bg-blue-500/10 border border-blue-500/20 rounded-lg px-3 py-2">
+        <p className="text-xs text-brand bg-brand/10 border border-brand/20 rounded-lg px-3 py-2">
           Deselect all RCC floors to choose Assam Type
         </p>
       )}
@@ -278,15 +278,15 @@ export function BuildingTypeSelector({
                 'flex items-center gap-3 w-full text-left rounded-xl border-2 px-4 py-3 transition-all',
                 disabled && 'opacity-45 cursor-not-allowed grayscale',
                 selected
-                  ? 'border-blue-600 bg-blue-50 shadow-sm ring-1 ring-blue-500/30 dark:bg-blue-500/15'
-                  : 'border-border bg-card/80 hover:border-blue-500/40 hover:bg-accent/40',
+                  ? 'border-brand bg-brand/10 shadow-sm ring-1 ring-brand/30 dark:bg-brand/15'
+                  : 'border-border bg-card/80 hover:border-brand/40 hover:bg-accent/40',
               )}
             >
               <span
                 className={cn(
                   'flex h-5 w-5 flex-shrink-0 items-center justify-center rounded border-2 transition-colors',
                   selected
-                    ? 'border-blue-600 bg-blue-600 text-white'
+                    ? 'border-brand bg-brand text-white'
                     : 'border-muted-foreground/40 bg-background',
                 )}
               >
@@ -311,15 +311,15 @@ export function BuildingTypeSelector({
               'flex items-center gap-3 w-full text-left rounded-xl border-2 px-4 py-3 transition-all',
               customDisabled && 'opacity-45 cursor-not-allowed grayscale',
               customSelected && customSelectable
-                ? 'border-blue-600 bg-blue-50 shadow-sm ring-1 ring-blue-500/30 dark:bg-blue-500/15'
-                : 'border-border bg-card/80 hover:border-blue-500/40 hover:bg-accent/40',
+                ? 'border-brand bg-brand/10 shadow-sm ring-1 ring-brand/30 dark:bg-brand/15'
+                : 'border-border bg-card/80 hover:border-brand/40 hover:bg-accent/40',
             )}
           >
             <span
               className={cn(
                 'flex h-5 w-5 flex-shrink-0 items-center justify-center rounded border-2 transition-colors',
                 customSelected && customSelectable
-                  ? 'border-blue-600 bg-blue-600 text-white'
+                  ? 'border-brand bg-brand text-white'
                   : 'border-muted-foreground/40 bg-background',
               )}
             >

@@ -9,17 +9,17 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          'bg-gradient-to-b from-emerald-500 to-emerald-600 text-white hover:from-emerald-400 hover:to-emerald-500 btn-glow-emerald active:scale-[0.98]',
+          'bg-brand text-white hover:bg-brand-hover btn-glow-brand active:scale-[0.98]',
         destructive:
           'bg-gradient-to-b from-red-500 to-red-600 text-white hover:from-red-400 hover:to-red-500 shadow-lg shadow-red-500/20 active:scale-[0.98]',
         outline:
-          'border border-border/80 bg-card/50 text-foreground shadow-sm hover:bg-accent/80 hover:border-emerald-500/30 hover:text-foreground backdrop-blur-sm active:opacity-70 active:scale-[0.98] active:bg-accent',
+          'border border-border/80 bg-card/50 text-foreground shadow-sm hover:bg-accent/80 hover:border-brand/40 hover:text-foreground backdrop-blur-sm active:opacity-70 active:scale-[0.98] active:bg-accent',
         secondary:
           'bg-secondary/80 text-secondary-foreground border border-border/50 shadow-sm hover:bg-secondary active:opacity-70 active:scale-[0.98]',
         ghost:
           'text-muted-foreground hover:text-foreground hover:bg-accent/70 active:opacity-70 active:scale-[0.97] active:bg-accent/90',
         link:
-          'text-emerald-600 dark:text-emerald-400 underline-offset-4 hover:underline p-0 h-auto',
+          'text-brand underline-offset-4 hover:underline hover:text-brand-hover p-0 h-auto',
         indigo:
           'bg-gradient-to-b from-indigo-500 to-indigo-600 text-white hover:from-indigo-400 hover:to-indigo-500 shadow-lg shadow-indigo-500/20 active:scale-[0.98]',
       },

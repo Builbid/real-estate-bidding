@@ -21,7 +21,7 @@ const TIER_HEADER_STYLE = {
   g_plus_1: {
     icon: '🏢',
     className:
-      'bg-slate-800 dark:bg-slate-700 border-l-blue-600 dark:border-l-blue-400 text-slate-50 ring-1 ring-black/5 dark:ring-white/10',
+      'bg-slate-800 dark:bg-slate-700 border-l-brand dark:border-l-brand text-slate-50 ring-1 ring-black/5 dark:ring-white/10',
   },
   g_plus_2: {
     icon: '🏗️',

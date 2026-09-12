@@ -41,7 +41,7 @@ export function CompletedProjectsPreview({
         <div className="mt-4 flex justify-center">
           <Link
             href={viewAllHref}
-            className="inline-flex items-center gap-1.5 text-sm font-semibold text-sky-700 hover:text-sky-800 hover:underline dark:text-sky-400 dark:hover:text-sky-300"
+            className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand hover:text-brand-hover hover:underline"
           >
             View All Completed Projects
             <ArrowRight className="h-4 w-4" />

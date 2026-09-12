@@ -74,12 +74,12 @@ export function DrawingUploadStep({
           onClick={() => { onChoiceChange('upload'); setError(null); }}
           className={cn(
             'text-left rounded-xl border-2 p-4 transition-all',
-            choice === 'upload' ? 'border-indigo-500/60 bg-indigo-500/8' : 'border-border bg-secondary/30',
+            choice === 'upload' ? 'border-brand bg-brand/10' : 'border-border bg-secondary/30',
           )}
         >
           <div className="flex items-center justify-between mb-2">
             <span className="text-2xl">📐</span>
-            {choice === 'upload' && <CheckCircle2 className="w-5 h-5 text-blue-400" />}
+            {choice === 'upload' && <CheckCircle2 className="w-5 h-5 text-brand" />}
           </div>
           <p className="text-sm font-bold text-foreground">Yes, I have a drawing</p>
         </button>
@@ -88,12 +88,12 @@ export function DrawingUploadStep({
           onClick={() => { onChoiceChange('firm_creates'); onFileChange(null); setError(null); setUploadProgress(null); }}
           className={cn(
             'text-left rounded-xl border-2 p-4 transition-all',
-            choice === 'firm_creates' ? 'border-indigo-500/60 bg-indigo-500/8' : 'border-border bg-secondary/30',
+            choice === 'firm_creates' ? 'border-brand bg-brand/10' : 'border-border bg-secondary/30',
           )}
         >
           <div className="flex items-center justify-between mb-2">
             <span className="text-2xl">✏️</span>
-            {choice === 'firm_creates' && <CheckCircle2 className="w-5 h-5 text-blue-400" />}
+            {choice === 'firm_creates' && <CheckCircle2 className="w-5 h-5 text-brand" />}
           </div>
           <p className="text-sm font-bold text-foreground">No, let the firm create it</p>
           <p className="text-[11px] text-muted-foreground mt-1">
@@ -109,7 +109,7 @@ export function DrawingUploadStep({
           onDrop={(e) => { e.preventDefault(); setDragOver(false); handleFiles(e.dataTransfer.files); }}
           className={cn(
             'rounded-xl border-2 border-dashed p-6 text-center transition-colors',
-            dragOver ? 'border-indigo-400 bg-indigo-500/5' : 'border-border',
+            dragOver ? 'border-brand bg-brand/10' : 'border-border',
           )}
         >
           <input
@@ -128,11 +128,11 @@ export function DrawingUploadStep({
               </div>
               {uploadProgress != null && uploadProgress < 100 && (
                 <div className="h-1.5 rounded-full bg-secondary overflow-hidden max-w-xs mx-auto">
-                  <div className="h-full bg-indigo-500 transition-all" style={{ width: `${uploadProgress}%` }} />
+                  <div className="h-full bg-brand transition-all" style={{ width: `${uploadProgress}%` }} />
                 </div>
               )}
               {uploadProgress === 100 && (
-                <CheckCircle2 className="w-5 h-5 mx-auto text-blue-400" />
+                <CheckCircle2 className="w-5 h-5 mx-auto text-brand" />
               )}
               <button
                 type="button"
@@ -149,7 +149,7 @@ export function DrawingUploadStep({
               <button
                 type="button"
                 onClick={() => inputRef.current?.click()}
-                className="text-xs font-semibold text-indigo-400 hover:text-indigo-300"
+                className="text-xs font-semibold text-brand hover:text-brand-hover"
               >
                 Choose file
               </button>

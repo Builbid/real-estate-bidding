@@ -76,10 +76,10 @@ export function ReviewSummaryList({ items }: { items: ReviewSummaryItem[] }) {
             key={item.label}
             className={cn(FORM_REVIEW_ROW, highlight && FORM_REVIEW_HIGHLIGHT)}
           >
-            <span className={cn(FORM_REVIEW_LABEL, highlight && 'text-blue-800')}>
+            <span className={cn(FORM_REVIEW_LABEL, highlight && 'text-brand')}>
               {item.label}
             </span>
-            <div className={cn(FORM_REVIEW_VALUE, highlight && 'text-blue-900')}>
+            <div className={cn(FORM_REVIEW_VALUE, highlight && 'text-brand')}>
               {item.value}
             </div>
           </div>

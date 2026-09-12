@@ -91,7 +91,7 @@ export function AllProjectsPageContent({
             <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
               All Projects
             </h1>
-            <span className="rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-600">
+            <span className="rounded-full border border-brand/25 bg-brand/10 px-2 py-0.5 text-xs font-semibold text-brand">
               {filteredProjects.length} open
             </span>
           </div>

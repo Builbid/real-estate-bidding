@@ -130,7 +130,7 @@ export function ProfilePageView({ profile, metrics }: ProfilePageViewProps) {
         <div className="space-y-8">
           <Link
             href="/dashboard/profile/documents"
-            className="inline-flex items-center gap-2 text-base font-semibold text-foreground hover:text-sky-700 dark:hover:text-sky-400"
+            className="inline-flex items-center gap-2 text-base font-semibold text-foreground hover:text-brand"
           >
             <Folder className="h-5 w-5 shrink-0 text-muted-foreground" />
             Documents

@@ -11,6 +11,8 @@
   --color-popover-foreground: hsl(var(--popover-foreground));
   --color-primary: hsl(var(--primary));
   --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-brand: #387ed1;
+  --color-brand-hover: #2e6bb4;
   --color-secondary: hsl(var(--secondary));
   --color-secondary-foreground: hsl(var(--secondary-foreground));
   --color-muted: hsl(var(--muted));
@@ -35,7 +37,7 @@
     --card-foreground: 222.2 47.4% 11.2%;
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 47.4% 11.2%;
-    --primary: 160 84% 39%;
+    --primary: 211 62% 52%; /* Zerodha blue #387ed1 */
     --primary-foreground: 0 0% 100%;
     --secondary: 214 32% 91%;
     --secondary-foreground: 222.2 47.4% 11.2%;
@@ -47,7 +49,7 @@
     --destructive-foreground: 0 0% 100%;
     --border: 214 32% 86%;
     --input: 214 32% 88%;
-    --ring: 160 84% 39%;
+    --ring: 211 62% 52%;
     --radius: 0.625rem;
   }
 
@@ -58,7 +60,7 @@
     --card-foreground: 210 40% 96%;
     --popover: 222 47% 6%;
     --popover-foreground: 210 40% 96%;
-    --primary: 160 84% 39%;
+    --primary: 211 62% 52%; /* Zerodha blue #387ed1 */
     --primary-foreground: 0 0% 100%;
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
@@ -70,7 +72,7 @@
     --destructive-foreground: 210 40% 98%;
     --border: 217.2 32.6% 20%;
     --input: 217.2 32.6% 17.5%;
-    --ring: 160 84% 45%;
+    --ring: 211 62% 58%;
   }
 }
 
@@ -110,7 +112,7 @@
     -moz-osx-font-smoothing: auto;
     background-image:
       radial-gradient(ellipse 90% 60% at 50% -30%, hsl(263 90% 55% / 0.07), transparent 55%),
-      radial-gradient(ellipse 70% 50% at 100% 0%, hsl(160 84% 39% / 0.05), transparent 50%),
+      radial-gradient(ellipse 70% 50% at 100% 0%, hsl(211 62% 52% / 0.06), transparent 50%),
       radial-gradient(ellipse 60% 40% at 0% 100%, hsl(38 92% 50% / 0.04), transparent 45%);
     background-attachment: fixed;
   }
@@ -118,7 +120,7 @@
   .dark body {
     background-image:
       radial-gradient(ellipse 90% 60% at 50% -30%, hsl(263 90% 55% / 0.12), transparent 55%),
-      radial-gradient(ellipse 70% 50% at 100% 0%, hsl(160 84% 39% / 0.08), transparent 50%),
+      radial-gradient(ellipse 70% 50% at 100% 0%, hsl(211 62% 52% / 0.12), transparent 50%),
       radial-gradient(ellipse 60% 40% at 0% 100%, hsl(38 92% 50% / 0.05), transparent 45%);
   }
 
@@ -146,7 +148,7 @@
   }
 
   ::selection {
-    background: hsl(160 84% 39% / 0.22);
+    background: hsl(211 62% 52% / 0.22);
     @apply text-foreground;
   }
 
@@ -230,7 +232,7 @@
     @apply rounded-2xl border border-border/80 bg-card text-card-foreground shadow-sm shadow-black/[0.04] backdrop-blur-sm;
     @apply dark:bg-card/75 dark:shadow-black/25 dark:ring-1 dark:ring-white/[0.06];
     @apply transition-all duration-300 ease-out;
-    @apply hover:-translate-y-1 hover:shadow-lg hover:shadow-emerald-500/[0.08] hover:border-emerald-500/30;
+    @apply hover:-translate-y-1 hover:shadow-lg hover:shadow-brand/15 hover:border-brand/40;
   }
 
   .surface-panel {
@@ -246,6 +248,12 @@
     box-shadow:
       0 1px 2px hsl(160 84% 39% / 0.12),
       0 4px 14px hsl(160 84% 39% / 0.18);
+  }
+
+  .btn-glow-brand {
+    box-shadow:
+      0 1px 2px rgb(56 126 209 / 0.16),
+      0 4px 14px rgb(56 126 209 / 0.22);
   }
 
   /* Raise contrast of faint gray text utilities without remapping background colors */

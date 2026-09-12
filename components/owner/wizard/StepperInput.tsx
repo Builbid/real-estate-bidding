@@ -32,7 +32,7 @@ export function StepperInput({
           disabled={value <= min}
           className={cn(
             'flex h-11 w-11 items-center justify-center rounded-xl border-2 border-border bg-card text-gray-900 dark:text-white',
-            'hover:border-blue-500/50 disabled:opacity-40 disabled:hover:border-border',
+            'hover:border-brand/50 disabled:opacity-40 disabled:hover:border-border',
           )}
           aria-label={`Decrease ${label}`}
         >
@@ -47,7 +47,7 @@ export function StepperInput({
           disabled={value >= max}
           className={cn(
             'flex h-11 w-11 items-center justify-center rounded-xl border-2 border-border bg-card text-gray-900 dark:text-white',
-            'hover:border-blue-500/50 disabled:opacity-40 disabled:hover:border-border',
+            'hover:border-brand/50 disabled:opacity-40 disabled:hover:border-border',
           )}
           aria-label={`Increase ${label}`}
         >

@@ -14,9 +14,9 @@ const ACCENT = {
     ring: 'ring-slate-500/20',
   },
   blue: {
-    border: 'border-blue-500/60',
-    bg: 'bg-blue-500/8',
-    ring: 'ring-blue-500/20',
+    border: 'border-brand/60',
+    bg: 'bg-brand/10',
+    ring: 'ring-brand/20',
   },
   amber: {
     border: 'border-amber-500/60',
@@ -57,13 +57,13 @@ export function FinishingLevelSelector({ value, onChange }: FinishingLevelSelect
               )}
             >
               {cfg.popular && (
-                <span className="absolute -top-2 right-3 text-[9px] font-bold uppercase px-2 py-0.5 rounded-full bg-blue-500 text-white">
+                <span className="absolute -top-2 right-3 text-[9px] font-bold uppercase px-2 py-0.5 rounded-full bg-brand text-white">
                   Most Popular
                 </span>
               )}
               <div className="flex items-start justify-between gap-2 mb-2">
                 <span className="text-2xl">{cfg.icon}</span>
-                {selected && <CheckCircle2 className="w-5 h-5 text-blue-400" />}
+                {selected && <CheckCircle2 className="w-5 h-5 text-brand" />}
               </div>
               <h3 className="text-sm font-bold text-foreground">{cfg.title}</h3>
               <span className="inline-block mt-1 mb-2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-secondary border border-border">
@@ -72,7 +72,7 @@ export function FinishingLevelSelector({ value, onChange }: FinishingLevelSelect
               <ul className="space-y-1 mb-3">
                 {cfg.includes.map((item) => (
                   <li key={item} className="text-[10px] text-muted-foreground flex gap-1">
-                    <span className="text-blue-500">•</span>{item}
+                    <span className="text-brand">•</span>{item}
                   </li>
                 ))}
               </ul>

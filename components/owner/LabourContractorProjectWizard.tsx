@@ -191,8 +191,8 @@ function OptionCardButton({
       className={cn(
         'flex w-full items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3.5 text-left text-sm font-semibold transition-all',
         selected
-          ? 'border-blue-600 bg-blue-50 text-blue-700 shadow-sm ring-1 ring-blue-500/30 dark:border-blue-500 dark:bg-blue-500/15 dark:text-blue-300'
-          : 'text-gray-800 hover:border-blue-500 hover:bg-blue-50/50 dark:border-border dark:bg-card dark:text-zinc-100 dark:hover:border-blue-500 dark:hover:bg-blue-500/10',
+          ? 'border-brand bg-brand/10 text-brand shadow-sm ring-1 ring-brand/30 dark:border-brand dark:bg-brand/15 dark:text-brand'
+          : 'text-gray-800 hover:border-brand/50 hover:bg-brand/[0.06] dark:border-border dark:bg-card dark:text-zinc-100 dark:hover:border-brand dark:hover:bg-brand/10',
         disabled && 'cursor-not-allowed opacity-50 grayscale hover:border-gray-200 hover:bg-white dark:hover:border-border dark:hover:bg-card',
         className,
       )}
@@ -203,9 +203,9 @@ function OptionCardButton({
       ) : selected ? (
         <span
           aria-hidden
-          className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border-2 border-blue-600 dark:border-blue-400"
+          className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border-2 border-brand"
         >
-          <span className="h-2.5 w-2.5 rounded-full bg-blue-600 dark:bg-blue-400" />
+          <span className="h-2.5 w-2.5 rounded-full bg-brand" />
         </span>
       ) : (
         <span
@@ -327,8 +327,8 @@ function HouseTypeCard({
       className={cn(
         'relative flex min-h-[5.75rem] w-full flex-col items-center justify-center gap-1.5 rounded-xl border px-3 py-3 text-center transition-all',
         selected
-          ? 'border-blue-600 bg-blue-50 shadow-sm ring-1 ring-blue-500/30 dark:border-blue-500 dark:bg-blue-500/15'
-          : 'border-border bg-card hover:border-blue-500 hover:bg-blue-50/50 dark:hover:border-blue-500 dark:hover:bg-blue-500/10',
+          ? 'border-brand bg-brand/10 shadow-sm ring-1 ring-brand/30 dark:border-brand dark:bg-brand/15'
+          : 'border-border bg-card hover:border-brand/50 hover:bg-brand/[0.06] dark:hover:border-brand dark:hover:bg-brand/10',
       )}
     >
       <span
@@ -341,7 +341,7 @@ function HouseTypeCard({
       </span>
       <span className="text-xs font-semibold text-gray-900 dark:text-white">{label}</span>
       {selected ? (
-        <CheckCircle2 className="absolute right-2.5 top-2.5 h-4 w-4 text-blue-600 dark:text-blue-400" />
+        <CheckCircle2 className="absolute right-2.5 top-2.5 h-4 w-4 text-brand" />
       ) : (
         <span
           aria-hidden
@@ -958,7 +958,7 @@ export function LabourContractorProjectWizard() {
                     <SelectItem value="1440">24 Hours (Standard)</SelectItem>
                   </SelectContent>
                 </Select>
-                <p className="text-[11px] font-medium text-indigo-700 dark:text-indigo-300">
+                <p className="text-[11px] font-medium text-brand">
                   After bidding closes you have 5 minutes to select a mistri worker.
                 </p>
               </div>
@@ -1012,7 +1012,7 @@ export function LabourContractorProjectWizard() {
 
                     {isAssam ? (
                       <div className="space-y-3">
-                        <div className="rounded-lg border border-blue-200 bg-blue-50/80 px-3 py-2.5 dark:border-blue-800 dark:bg-blue-950/40">
+                        <div className="rounded-lg border border-brand/25 bg-brand/10 px-3 py-2.5">
                           <p className="text-xs font-semibold text-gray-900 dark:text-white">
                             Full finishing upto Plastering and Roof work
                           </p>
@@ -1396,8 +1396,8 @@ export function LabourContractorProjectWizard() {
 
           {step === 4 && (
             <div className="flex flex-col items-center gap-5 py-6 text-center">
-              <div className="w-16 h-16 rounded-full bg-blue-500/15 border border-blue-500/30 flex items-center justify-center">
-                <CheckCircle2 className="w-8 h-8 text-blue-500" />
+              <div className="w-16 h-16 rounded-full bg-brand/15 border border-brand/30 flex items-center justify-center">
+                <CheckCircle2 className="w-8 h-8 text-brand" />
               </div>
               <div>
                 <h2 className="text-xl font-bold text-foreground mb-2">Auction Launched! 🎉</h2>

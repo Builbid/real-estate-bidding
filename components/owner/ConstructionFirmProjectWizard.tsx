@@ -250,7 +250,7 @@ export function ConstructionFirmProjectWizard() {
                     <SelectItem value="1440">24 Hours (Standard)</SelectItem>
                   </SelectContent>
                 </Select>
-                <p className="text-[11px] text-muted-foreground">
+                <p className="text-[11px] font-medium text-brand">
                   Choose how long construction firms can bid. After bidding closes you have 5 minutes to select a firm.
                 </p>
               </div>

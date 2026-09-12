@@ -59,13 +59,13 @@ function ServiceCard({
       className={cn(
         'relative flex h-full min-h-0 w-full cursor-pointer flex-col justify-between rounded-xl border-2 p-3.5 text-left transition-all duration-200',
         selected
-          ? 'scale-[1.02] border-blue-500/70 bg-blue-500/8 shadow-md shadow-blue-500/15'
-          : 'border-border bg-secondary/30 hover:border-blue-500/50',
+          ? 'scale-[1.02] border-brand bg-brand/10 shadow-md shadow-brand/15'
+          : 'border-border bg-secondary/30 hover:border-brand/50',
       )}
     >
       <div className="mb-1 flex items-center justify-between gap-2">
         <span className="text-xl leading-none">{option.emoji}</span>
-        {selected && <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-blue-400" />}
+        {selected && <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-brand" />}
       </div>
       <p className="text-xs font-bold text-foreground">{option.title}</p>
       <p className="mt-0.5 flex-1 text-[10px] leading-snug text-muted-foreground">

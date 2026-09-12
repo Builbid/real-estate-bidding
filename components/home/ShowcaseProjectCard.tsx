@@ -53,10 +53,10 @@ interface ShowcaseProjectCardProps {
   hideWhenExpired?: boolean;
 }
 
-const CARD_ICON_SHELL = 'bg-blue-50 text-blue-600 dark:bg-slate-800 dark:text-sky-400';
+const CARD_ICON_SHELL = 'bg-brand/10 text-brand dark:bg-slate-800 dark:text-brand';
 const CARD_BADGE =
   'inline-flex items-center gap-0.5 rounded-md border border-slate-200 bg-slate-50 px-1.5 py-0 text-[10px] font-semibold text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200';
-const CARD_ACCENT_BAR = 'bg-blue-400 dark:bg-sky-500';
+const CARD_ACCENT_BAR = 'bg-brand';
 
 function getServiceIcon(serviceType: ServiceType) {
   if (serviceType === 'construction_firm') return Building2;
@@ -153,13 +153,13 @@ function ShowcaseCountdownPill({
           'h-3 w-3 shrink-0',
           remaining.isUrgent
             ? 'animate-pulse text-red-500'
-            : 'text-blue-600 dark:text-sky-400',
+            : 'text-brand',
         )}
       />
       <span
         className={cn(
           'truncate text-[11px] font-semibold tabular-nums',
-          remaining.isUrgent ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-sky-400',
+          remaining.isUrgent ? 'text-red-600 dark:text-red-400' : 'text-brand',
         )}
       >
         {remaining.label}
@@ -345,7 +345,7 @@ export function ShowcaseProjectCard({
     >
       {/* Large watermark icon */}
       <ServiceIcon
-        className="pointer-events-none absolute -right-1 top-6 h-20 w-20 rotate-12 text-blue-600/[0.06]"
+        className="pointer-events-none absolute -right-1 top-6 h-20 w-20 rotate-12 text-brand/[0.08]"
         strokeWidth={1.25}
         aria-hidden
       />
@@ -354,7 +354,7 @@ export function ShowcaseProjectCard({
         <div className="flex flex-wrap items-center justify-between gap-1.5">
           <div className="flex min-w-0 flex-wrap items-center gap-1">
             <Badge className="border-slate-200 bg-slate-50 px-1.5 py-0 text-[10px] text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
-              <span className="mr-1 h-1.5 w-1.5 animate-pulse rounded-full bg-blue-500" />
+              <span className="mr-1 h-1.5 w-1.5 animate-pulse rounded-full bg-brand" />
               {t('home.showcase.liveBadge')}
             </Badge>
             {finishingBadge && (
@@ -383,7 +383,7 @@ export function ShowcaseProjectCard({
             <p className="text-sm font-bold tracking-tight leading-tight text-slate-900 dark:text-slate-100">
               {serviceCategory.label}
             </p>
-            <h3 className="mt-0.5 line-clamp-2 text-sm font-semibold leading-snug text-slate-900 transition-colors group-hover:text-blue-700 dark:text-slate-100 dark:group-hover:text-sky-400">
+            <h3 className="mt-0.5 line-clamp-2 text-sm font-semibold leading-snug text-slate-900 transition-colors group-hover:text-brand dark:text-slate-100 dark:group-hover:text-brand">
               {getLiveAuctionDisplayTitle(project)}
             </h3>
             <p className="mt-1 flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
