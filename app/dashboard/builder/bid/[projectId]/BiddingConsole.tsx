@@ -39,6 +39,10 @@ import {
 } from '@/lib/validation/bidRates';
 import { submitBidAction } from '@/app/actions/bid';
 import { BidWorkItemCard, getBidFloorCardTone } from '@/components/bid/BidWorkItemCard';
+import {
+  ProjectLocationWithMapsLink,
+  isLocationSpecLabel,
+} from '@/components/project/ProjectLocationWithMapsLink';
 import { ASSAM_BUILDING_TYPE } from '@/lib/buildingConfig';
 import { UserAvatar } from '@/components/shared/UserAvatar';
 import { BidFloorRatesBreakdown } from '@/components/shared/BidFloorRatesBreakdown';
@@ -1022,7 +1026,14 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                   {block.label}
                 </dt>
                 <dd className="mt-0.5 text-sm font-semibold leading-snug text-foreground whitespace-pre-line">
-                  {block.value}
+                  {isLocationSpecLabel(block.label) ? (
+                    <ProjectLocationWithMapsLink
+                      placeName={block.value}
+                      pincode={project.pincode}
+                    />
+                  ) : (
+                    block.value
+                  )}
                 </dd>
               </div>
             ))}

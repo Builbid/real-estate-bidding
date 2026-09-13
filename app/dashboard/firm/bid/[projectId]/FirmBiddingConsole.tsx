@@ -18,6 +18,7 @@ import { BuildingConfigSummary } from '@/components/construction/BuildingConfigS
 import { FirmLogo } from '@/components/firm/FirmLogo';
 import { PackageInfoButton } from '@/components/firm/PackageInfoButton';
 import { PackageBidPriceList } from '@/components/firm/PackageBidPriceList';
+import { ProjectLocationWithMapsLink } from '@/components/project/ProjectLocationWithMapsLink';
 import { useRealtimeFirmBids } from '@/lib/hooks/useRealtimeFirmBids';
 import { createClient } from '@/lib/supabase/client';
 import {
@@ -276,7 +277,16 @@ export function FirmBiddingConsole({
                   Floor area: {floorAreaDisplay ?? 'Not specified'}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Location: {project?.district ?? 'Location not specified'}
+                  Location:{' '}
+                  {project?.district ? (
+                    <ProjectLocationWithMapsLink
+                      placeName={project.district}
+                      pincode={project.pincode}
+                      className="text-foreground"
+                    />
+                  ) : (
+                    'Location not specified'
+                  )}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   Budget: {budgetDisplay ?? 'Not specified'}
