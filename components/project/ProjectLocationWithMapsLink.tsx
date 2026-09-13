@@ -1,3 +1,4 @@
+import { MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 /** Google Maps search URL for a pincode or place name. */
@@ -5,12 +6,13 @@ export function googleMapsSearchUrl(query: string): string {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
 }
 
-const PIN_LINK_CLASS =
-  'text-[#387ed1] hover:underline cursor-pointer font-medium';
+const CHECK_LOCATION_CLASS =
+  'text-[#387ed1] hover:underline cursor-pointer font-medium text-sm inline-flex items-center gap-1';
 
 /**
- * Location display with a clickable Google Maps pincode link.
- * Example: Barpeta (781301) — pincode opens Maps in a new tab.
+ * Location display with a "Check Location" Google Maps link.
+ * Pincode stays in the href only — never shown as raw digits in the UI.
+ * Example: Barpeta • Check Location
  */
 export function ProjectLocationWithMapsLink({
   placeName,
@@ -28,18 +30,22 @@ export function ProjectLocationWithMapsLink({
 
   const href = googleMapsSearchUrl(mapsQuery);
 
-  if (place && pin) {
+  if (place) {
     return (
-      <span className={cn('inline', className)}>
-        {place}{' '}
+      <span className={cn('inline-flex flex-wrap items-center gap-x-1.5 gap-y-0.5', className)}>
+        <span>{place}</span>
+        <span className="text-muted-foreground" aria-hidden>
+          •
+        </span>
         <a
           href={href}
           target="_blank"
           rel="noopener noreferrer"
-          className={PIN_LINK_CLASS}
-          title={`Open ${pin} on Google Maps`}
+          className={CHECK_LOCATION_CLASS}
+          title="Open location on Google Maps"
         >
-          ({pin})
+          <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden />
+          Check Location
         </a>
       </span>
     );
@@ -50,10 +56,11 @@ export function ProjectLocationWithMapsLink({
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className={cn(PIN_LINK_CLASS, className)}
-      title="Open on Google Maps"
+      className={cn(CHECK_LOCATION_CLASS, className)}
+      title="Open location on Google Maps"
     >
-      {place || pin}
+      <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden />
+      Check Location
     </a>
   );
 }
