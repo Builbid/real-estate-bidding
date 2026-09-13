@@ -7,11 +7,13 @@ export function googleMapsSearchUrl(query: string): string {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
 }
 
+const CHECK_LOCATION_LABEL = 'Check Location in google map';
+
 const CHECK_LOCATION_CLASS =
   'text-[#387ed1] hover:underline cursor-pointer font-medium text-sm inline-flex items-center gap-1';
 
 const CHECK_LOCATION_CARD_CLASS =
-  'text-[#387ed1] hover:underline text-xs font-medium ml-2 inline-flex items-center gap-1 shrink-0';
+  'relative z-10 text-[#387ed1] hover:underline text-xs font-medium ml-2 inline-flex items-center gap-1 shrink-0';
 
 function mapsHref(pincode?: string | null, placeName?: string | null): string | null {
   const query = (pincode ?? '').trim() || (placeName ?? '').trim();
@@ -19,13 +21,17 @@ function mapsHref(pincode?: string | null, placeName?: string | null): string | 
   return googleMapsSearchUrl(query);
 }
 
-function stopCardNavigation(event: MouseEvent) {
-  event.preventDefault();
+/**
+ * Stop parent card/link navigation without blocking the Maps href itself.
+ * Calling preventDefault() here previously broke Google Maps opens.
+ */
+function onMapsLinkClick(event: MouseEvent<HTMLAnchorElement>) {
   event.stopPropagation();
+  // Do NOT preventDefault — the browser must follow href / target=_blank.
 }
 
 /**
- * Compact "Check Location" control for feed/project cards.
+ * Compact Maps control for feed/project cards.
  * Uses pincode (preferred) or place name for Maps; never shows raw pincode digits.
  */
 export function CheckLocationLink({
@@ -46,19 +52,18 @@ export function CheckLocationLink({
       target="_blank"
       rel="noopener noreferrer"
       className={cn(CHECK_LOCATION_CARD_CLASS, className)}
-      title="Open location on Google Maps"
-      onClick={stopCardNavigation}
+      title={CHECK_LOCATION_LABEL}
+      onClick={onMapsLinkClick}
     >
       <MapPin className="h-3 w-3 shrink-0" aria-hidden />
-      Check Location
+      {CHECK_LOCATION_LABEL}
     </a>
   );
 }
 
 /**
- * Location display with a "Check Location" Google Maps link.
+ * Location display with a Google Maps link.
  * Pincode stays in the href only — never shown as raw digits in the UI.
- * Example: Barpeta • Check Location
  */
 export function ProjectLocationWithMapsLink({
   placeName,
@@ -86,12 +91,12 @@ export function ProjectLocationWithMapsLink({
           href={href}
           target="_blank"
           rel="noopener noreferrer"
-          className={CHECK_LOCATION_CLASS}
-          title="Open location on Google Maps"
-          onClick={stopCardNavigation}
+          className={cn(CHECK_LOCATION_CLASS, 'relative z-10')}
+          title={CHECK_LOCATION_LABEL}
+          onClick={onMapsLinkClick}
         >
           <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden />
-          Check Location
+          {CHECK_LOCATION_LABEL}
         </a>
       </span>
     );
@@ -102,12 +107,12 @@ export function ProjectLocationWithMapsLink({
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className={cn(CHECK_LOCATION_CLASS, className)}
-      title="Open location on Google Maps"
-      onClick={stopCardNavigation}
+      className={cn(CHECK_LOCATION_CLASS, 'relative z-10', className)}
+      title={CHECK_LOCATION_LABEL}
+      onClick={onMapsLinkClick}
     >
       <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden />
-      Check Location
+      {CHECK_LOCATION_LABEL}
     </a>
   );
 }
