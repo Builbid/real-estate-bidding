@@ -19,12 +19,10 @@ const geistMono = Geist_Mono({
 });
 
 /** Defer floating CTA — not needed for first paint / DOMContentLoaded. */
-const FloatingPostProjectButton = dynamic(
-  () =>
-    import('@/components/FloatingPostProjectButton').then(
-      (mod) => mod.FloatingPostProjectButton,
-    ),
-  { ssr: false },
+const FloatingPostProjectButton = dynamic(() =>
+  import('@/components/FloatingPostProjectButton').then(
+    (mod) => mod.FloatingPostProjectButton,
+  ),
 );
 
 export const metadata: Metadata = {
