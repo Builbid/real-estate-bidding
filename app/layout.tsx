@@ -1,20 +1,31 @@
 import type { Metadata, Viewport } from 'next';
+import dynamic from 'next/dynamic';
 import { Geist, Geist_Mono } from 'next/font/google';
 import { AppProviders } from '@/components/providers/AppProviders';
-import { FloatingPostProjectButton } from '@/components/FloatingPostProjectButton';
 import './globals.css';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
   subsets: ['latin'],
   display: 'swap',
+  preload: true,
 });
 
 const geistMono = Geist_Mono({
   variable: '--font-geist-mono',
   subsets: ['latin'],
   display: 'swap',
+  preload: false,
 });
+
+/** Defer floating CTA — not needed for first paint / DOMContentLoaded. */
+const FloatingPostProjectButton = dynamic(
+  () =>
+    import('@/components/FloatingPostProjectButton').then(
+      (mod) => mod.FloatingPostProjectButton,
+    ),
+  { ssr: false },
+);
 
 export const metadata: Metadata = {
   title: {
