@@ -1,3 +1,4 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/server';
 import {
   DEMO_CONSTRUCTION_FIRMS,
@@ -27,9 +28,12 @@ function mapProfileToDemoFirm(
   };
 }
 
-async function fetchPartners(role: DemoPartnerType, limit = 8): Promise<DemoFirm[]> {
-  const supabase = await createClient();
-  const { data } = await supabase
+async function fetchPartners(
+  client: SupabaseClient,
+  role: DemoPartnerType,
+  limit = 8,
+): Promise<DemoFirm[]> {
+  const { data } = await client
     .from('profiles_public')
     .select('id, full_name, role, avatar_url, is_verified')
     .eq('role', role)
@@ -42,11 +46,12 @@ async function fetchPartners(role: DemoPartnerType, limit = 8): Promise<DemoFirm
   return data.map((row) => mapProfileToDemoFirm(row, role));
 }
 
-export async function getFeaturedPartners(): Promise<{
+export async function getFeaturedPartners(client?: SupabaseClient): Promise<{
   labour: DemoFirm[];
   firms: DemoFirm[];
 }> {
-  const firms = await fetchPartners('construction_firm');
+  const db = client ?? (await createClient());
+  const firms = await fetchPartners(db, 'construction_firm');
 
   return {
     labour: [],

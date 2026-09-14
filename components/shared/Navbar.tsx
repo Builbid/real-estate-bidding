@@ -47,7 +47,7 @@ interface NavbarProps {
 
 export function Navbar({ overlay = false, authHint }: NavbarProps) {
   const router      = useRouter();
-  const { profile, loading, clearProfile, refreshProfile } = useProfile();
+  const { profile, clearProfile, refreshProfile } = useProfile();
   const { t }       = useTranslation();
   const [menuOpen, setMenuOpen] = useState(false);
   const [signOutOpen, setSignOutOpen] = useState(false);
@@ -85,7 +85,7 @@ export function Navbar({ overlay = false, authHint }: NavbarProps) {
   }, [menuOpen]);
 
   const isLoggedIn = !signedOut && (
-    Boolean(profile) || (Boolean(authHint?.isAuthenticated) && loading)
+    Boolean(profile) || Boolean(authHint?.isAuthenticated)
   );
   const normalizedRole = profile
     ? normalizeRole(profile.role)

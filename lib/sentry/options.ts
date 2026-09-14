@@ -20,7 +20,7 @@ export function getSentrySharedOptions(): Pick<
     dsn,
     // Never send telemetry from local/dev — avoids envelope noise during development.
     enabled: isProduction && Boolean(dsn),
-    tracesSampleRate: 0.1,
+    tracesSampleRate: 0.02,
     profilesSampleRate: 0,
     sendDefaultPii: false,
     environment: process.env.NODE_ENV,

@@ -7,8 +7,27 @@ const nextConfig: NextConfig = {
       // Allow server actions from both local dev and the production domain
       allowedOrigins: ['localhost:3000', 'builbid.in', '*.vercel.app'],
     },
+    optimizePackageImports: [
+      'lucide-react',
+      'date-fns',
+      'framer-motion',
+      '@radix-ui/react-dialog',
+      '@radix-ui/react-dropdown-menu',
+      '@radix-ui/react-select',
+      '@radix-ui/react-tabs',
+      '@radix-ui/react-popover',
+    ],
+    staleTimes: {
+      dynamic: 30,
+      static: 180,
+    },
+  },
+  compiler: {
+    removeConsole:
+      process.env.NODE_ENV === 'production' ? { exclude: ['error', 'warn'] } : false,
   },
   images: {
+    formats: ['image/avif', 'image/webp'],
     remotePatterns: [
       {
         protocol: 'https',

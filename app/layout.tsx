@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import dynamic from 'next/dynamic';
-import { Geist, Geist_Mono } from 'next/font/google';
+import { Geist } from 'next/font/google';
 import { AppProviders } from '@/components/providers/AppProviders';
 import './globals.css';
 
@@ -9,13 +9,6 @@ const geistSans = Geist({
   subsets: ['latin'],
   display: 'swap',
   preload: true,
-});
-
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
-  subsets: ['latin'],
-  display: 'swap',
-  preload: false,
 });
 
 /** Defer floating CTA — not needed for first paint / DOMContentLoaded. */
@@ -55,7 +48,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable}`}
+      className={geistSans.variable}
     >
       <body className="min-h-screen overflow-x-clip bg-white text-slate-900 transition-colors duration-200 dark:bg-slate-950 dark:text-slate-100">
         <AppProviders>

@@ -16,7 +16,13 @@ interface DashboardLayoutProps {
 async function getUser() {
   const { supabase, userId, email, role, fullName } = await getAuthUser();
 
-  const { data: profile } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select(
+      'id, email, full_name, role, mobile, physical_address, pincode, avatar_url, is_verified, created_at, updated_at, company_name, logo_url, service_type, gst_number',
+    )
+    .eq('id', userId)
+    .maybeSingle();
 
   if (profile) return { ...(profile as Profile), role: normalizeRole((profile as Profile).role) };
 

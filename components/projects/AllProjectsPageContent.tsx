@@ -27,14 +27,19 @@ interface AllProjectsPageContentProps {
 export function AllProjectsPageContent({
   initialProjects,
   initialTotal,
+  initialHasMore,
+  initialNextOffset,
   role,
 }: AllProjectsPageContentProps) {
   const [projects, setProjects] = useState(initialProjects);
   const [total, setTotal] = useState(initialTotal);
+  const [hasMore, setHasMore] = useState(initialHasMore);
+  const [nextOffset, setNextOffset] = useState(initialNextOffset);
   const [locationSearch, setLocationSearch] = useState('');
   const [activeSearch, setActiveSearch] = useState('');
   const [serviceFilter, setServiceFilter] = useState<ProjectServiceFilter>('all');
   const [isPending, startTransition] = useTransition();
+  const [loadingMore, setLoadingMore] = useState(false);
   const searchRequestId = useRef(0);
 
   const runSearch = useCallback((query: string) => {
@@ -47,6 +52,8 @@ export function AllProjectsPageContent({
       if (requestId !== searchRequestId.current) return;
       setProjects(result.projects);
       setTotal(result.total);
+      setHasMore(result.hasMore);
+      setNextOffset(result.nextOffset);
       setActiveSearch(query.trim());
     });
   }, []);
@@ -65,6 +72,23 @@ export function AllProjectsPageContent({
     setProjects((prev) => prev.filter((project) => project.id !== projectId));
     setTotal((prev) => Math.max(0, prev - 1));
   }, []);
+
+  const loadMore = useCallback(async () => {
+    if (!hasMore || loadingMore || isPending) return;
+    setLoadingMore(true);
+    try {
+      const result = await loadActiveProjectsPage({
+        offset: nextOffset,
+        search: activeSearch,
+      });
+      setProjects((prev) => [...prev, ...result.projects]);
+      setTotal(result.total);
+      setHasMore(result.hasMore);
+      setNextOffset(result.nextOffset);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [activeSearch, hasMore, isPending, loadingMore, nextOffset]);
 
   const filteredProjects = useMemo(
     () =>
@@ -92,7 +116,7 @@ export function AllProjectsPageContent({
               All Projects
             </h1>
             <span className="rounded-full border border-brand/25 bg-brand/10 px-2 py-0.5 text-xs font-semibold text-brand">
-              {filteredProjects.length} open
+              {hasActiveFilter ? filteredProjects.length : total} open
             </span>
           </div>
           <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
@@ -118,6 +142,7 @@ export function AllProjectsPageContent({
         </div>
 
         {filteredProjects.length > 0 ? (
+          <>
           <div
             className={cn(
               'grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3',
@@ -134,6 +159,19 @@ export function AllProjectsPageContent({
               />
             ))}
           </div>
+          {hasMore && serviceFilter === 'all' && (
+            <div className="mt-8 flex justify-center">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => void loadMore()}
+                disabled={loadingMore}
+              >
+                {loadingMore ? 'Loading…' : 'Load more projects'}
+              </Button>
+            </div>
+          )}
+          </>
         ) : (
           <div className="rounded-2xl border border-dashed border-border bg-card/40 px-6 py-16 text-center">
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-emerald-500/20 bg-emerald-500/10">

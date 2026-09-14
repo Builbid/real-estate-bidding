@@ -1,5 +1,6 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useMemo, useState } from 'react';
 import {
   Activity, BadgeCheck, Building2, Clock, Gavel, Star,
@@ -9,7 +10,6 @@ import { HeroBackgroundSlideshow } from '@/components/shared/HeroBackgroundSlide
 import { ProjectCard } from '@/components/shared/ProjectCard';
 import { ActiveProjectsShowcaseGrid } from '@/components/home/ActiveProjectsShowcaseGrid';
 import { ServiceCategoryBar } from '@/components/home/ServiceCategoryBar';
-import { FeaturedFirmsSection } from '@/components/home/FeaturedFirmsSection';
 import { ProjectDistrictFilter, type DistrictFilterValue } from '@/components/shared/ProjectDistrictFilter';
 import { getUniqueDistrictsFromProjects, matchesDistrictFilter } from '@/lib/project/districtFilter';
 import { useTranslation } from '@/lib/context/LanguageProvider';
@@ -18,6 +18,11 @@ import type { Project } from '@/lib/types';
 import type { ShowcaseProject } from '@/lib/projectShowcase';
 import type { StatIconColor } from '@/lib/dashboard/statIconStyles';
 import { cn } from '@/lib/utils';
+
+const FeaturedFirmsSection = dynamic(
+  () => import('@/components/home/FeaturedFirmsSection').then((mod) => mod.FeaturedFirmsSection),
+  { ssr: true },
+);
 
 interface HomePageContentProps {
   showcaseProjects: ShowcaseProject[];

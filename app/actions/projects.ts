@@ -11,6 +11,8 @@ export async function loadActiveProjectsPage(input: {
   limit?: number;
 }): Promise<ActiveProjectsPageResult> {
   return fetchActiveProjectsPage({
+    offset: input.offset,
+    limit: input.limit,
     search: input.search,
     expireStale: true,
   });
