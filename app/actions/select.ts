@@ -4,17 +4,25 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient }      from '@/lib/supabase/server'
 import { sendSelectionNotification, sendUserNotificationEmail } from '@/lib/email/sendNotification'
 import { sendOfficialMistriAgreementEmail } from '@/lib/email/sendMistriAgreement'
+import { sendOfficialPlumberAgreementEmail } from '@/lib/email/sendPlumberAgreement'
 import {
   buildMistriAgreementPayload,
   generateMistriAgreementPdfBytes,
   isMistriCivilService,
   mistriAgreementFileName,
 } from '@/lib/contract/mistriAgreement'
+import {
+  buildPlumberAgreementPayload,
+  generatePlumberAgreementPdfBytes,
+  isPlumberService,
+  plumberAgreementFileName,
+} from '@/lib/contract/plumberAgreement'
 import { getConstructionLabel } from '@/lib/utils'
 import { formatPackageRateRange } from '@/lib/firm/bidDisplay'
 import type { BidRates, PackageBidPrice, SubConfiguration, TrackType } from '@/lib/types'
 import type { ConstructionTypesMap } from '@/lib/buildingConfig'
 import { archiveAwardedProjectDocuments } from '@/lib/documents/archiveProjectDocuments'
+import { missingProjectsColumn } from '@/lib/project/storedDetails'
 import { revalidatePath } from 'next/cache'
 
 export async function selectBuilderAction(
@@ -26,11 +34,26 @@ export async function selectBuilderAction(
   const supabase = await createClient()
 
   // 1. Confirm the project is still selectable (prevents double-select)
-  const { data: existing, error: fetchError } = await supabase
+  const PROJECT_SELECT =
+    'id, owner_id, title, district, state, pincode, description, track_type, sub_configuration, building_types, construction_types, total_floors, plot_area_sqft, floor_area_sqft, mistri_details, trade_details, status, selected_builder_id, service_type, numeric_id, drawing_url'
+
+  const firstLookup = await supabase
     .from('projects')
-    .select('id, owner_id, title, district, state, pincode, description, track_type, sub_configuration, building_types, construction_types, total_floors, plot_area_sqft, floor_area_sqft, mistri_details, status, selected_builder_id, service_type, numeric_id, drawing_url')
+    .select(PROJECT_SELECT)
     .eq('id', projectId)
     .single()
+
+  let existing = firstLookup.data
+  let fetchError = firstLookup.error
+  if (fetchError && missingProjectsColumn(fetchError.message) === 'trade_details') {
+    const retry = await supabase
+      .from('projects')
+      .select('id, owner_id, title, district, state, pincode, description, track_type, sub_configuration, building_types, construction_types, total_floors, plot_area_sqft, floor_area_sqft, mistri_details, status, selected_builder_id, service_type, numeric_id, drawing_url')
+      .eq('id', projectId)
+      .single()
+    existing = retry.data ? { ...retry.data, trade_details: undefined } : retry.data
+    fetchError = retry.error
+  }
 
   if (fetchError || !existing) return { error: 'Project not found.' }
   if (existing.selected_builder_id) {
@@ -191,12 +214,39 @@ export async function selectBuilderAction(
     }
 
     const isMistriProject = isMistriCivilService(existing.service_type)
-    let agreementPayload = null as ReturnType<typeof buildMistriAgreementPayload> | null
+    const isPlumberProject = isPlumberService(existing.service_type)
+    let mistriAgreementPayload = null as ReturnType<typeof buildMistriAgreementPayload> | null
+    let plumberAgreementPayload = null as ReturnType<typeof buildPlumberAgreementPayload> | null
     let agreementAttachment: Array<{ filename: string; content: Buffer; contentType: string }> | undefined
-    let agreementPdfBytes: Uint8Array | undefined
+    const winningBidInput = winningBid
+      ? {
+          id: winningBid.id,
+          single_rate: winningBid.single_rate,
+          total_sum_metric: winningBid.total_sum_metric,
+          rates: winningBid.rates as BidRates | null,
+        }
+      : null
+    const ownerParty = {
+      name: ownerProfile?.full_name ?? 'Client',
+      email: ownerProfile?.email,
+      mobile: ownerProfile?.mobile,
+      address: ownerProfile?.physical_address,
+    }
+    const contractorParty = {
+      name: builderFull?.full_name ?? builderLabel,
+      email: builderFull?.email,
+      mobile: builderFull?.mobile,
+      address: builderFull?.physical_address,
+      companyName: builderFull?.company_name,
+      gstNumber: builderFull?.gst_number ?? null,
+      yearsInBusiness: builderFull?.years_in_business ?? null,
+      isVerified: builderFull?.is_verified ?? null,
+      platformId: builderId,
+    }
+
     if (isMistriProject) {
       try {
-        agreementPayload = buildMistriAgreementPayload({
+        mistriAgreementPayload = buildMistriAgreementPayload({
           project: {
             id: existing.id,
             numeric_id: existing.numeric_id,
@@ -215,40 +265,46 @@ export async function selectBuilderAction(
             mistri_details: existing.mistri_details,
             service_type: existing.service_type,
           },
-          bid: winningBid
-            ? {
-                id: winningBid.id,
-                single_rate: winningBid.single_rate,
-                total_sum_metric: winningBid.total_sum_metric,
-                rates: winningBid.rates as BidRates | null,
-              }
-            : null,
-          owner: {
-            name: ownerProfile?.full_name ?? 'Client',
-            email: ownerProfile?.email,
-            mobile: ownerProfile?.mobile,
-            address: ownerProfile?.physical_address,
-          },
-          mistri: {
-            name: builderFull?.full_name ?? builderLabel,
-            email: builderFull?.email,
-            mobile: builderFull?.mobile,
-            address: builderFull?.physical_address,
-            companyName: builderFull?.company_name,
-            gstNumber: builderFull?.gst_number ?? null,
-            yearsInBusiness: builderFull?.years_in_business ?? null,
-            isVerified: builderFull?.is_verified ?? null,
-            platformId: builderId,
-          },
+          bid: winningBidInput,
+          owner: ownerParty,
+          mistri: contractorParty,
         })
-        agreementPdfBytes = generateMistriAgreementPdfBytes(agreementPayload)
+        const pdfBytes = generateMistriAgreementPdfBytes(mistriAgreementPayload)
         agreementAttachment = [{
-          filename: mistriAgreementFileName(existing.id, agreementPayload.numericProjectId),
-          content: Buffer.from(agreementPdfBytes),
+          filename: mistriAgreementFileName(existing.id, mistriAgreementPayload.numericProjectId),
+          content: Buffer.from(pdfBytes),
           contentType: 'application/pdf',
         }]
       } catch (pdfErr) {
         console.error('Mistri agreement PDF generation failed (non-fatal):', pdfErr)
+      }
+    } else if (isPlumberProject) {
+      try {
+        plumberAgreementPayload = buildPlumberAgreementPayload({
+          project: {
+            id: existing.id,
+            numeric_id: existing.numeric_id,
+            title: existing.title,
+            district: existing.district,
+            state: existing.state,
+            pincode: existing.pincode,
+            description: existing.description,
+            trade_details: existing.trade_details,
+            sub_configuration: existing.sub_configuration,
+            service_type: existing.service_type,
+          },
+          bid: winningBidInput,
+          owner: ownerParty,
+          plumber: contractorParty,
+        })
+        const pdfBytes = generatePlumberAgreementPdfBytes(plumberAgreementPayload)
+        agreementAttachment = [{
+          filename: plumberAgreementFileName(existing.id, plumberAgreementPayload.numericProjectId),
+          content: Buffer.from(pdfBytes),
+          contentType: 'application/pdf',
+        }]
+      } catch (pdfErr) {
+        console.error('Plumber agreement PDF generation failed (non-fatal):', pdfErr)
       }
     }
 
@@ -284,11 +340,17 @@ export async function selectBuilderAction(
       }),
     ])
 
-    if (agreementPayload) {
+    if (mistriAgreementPayload) {
       try {
-        await sendOfficialMistriAgreementEmail(agreementPayload)
+        await sendOfficialMistriAgreementEmail(mistriAgreementPayload)
       } catch (agreementErr) {
         console.error('Official mistri agreement email failed (non-fatal):', agreementErr)
+      }
+    } else if (plumberAgreementPayload) {
+      try {
+        await sendOfficialPlumberAgreementEmail(plumberAgreementPayload)
+      } catch (agreementErr) {
+        console.error('Official plumber agreement email failed (non-fatal):', agreementErr)
       }
     }
   } catch (err) {

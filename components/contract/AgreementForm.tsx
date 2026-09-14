@@ -4,37 +4,52 @@ import { useState } from 'react';
 import { Download, FileText, Mail, ShieldCheck } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { BUILBID_OFFICIAL_AGREEMENT_EMAILS } from '@/lib/contract/mistriAgreement';
+import { BUILBID_OFFICIAL_AGREEMENT_EMAILS } from '@/lib/contract/agreementPdf';
 
 export interface AgreementFormProps {
   projectId: string;
   projectTitle: string;
   clientName: string;
-  mistriName: string;
+  contractorName: string;
+  contractorRoleLabel?: string;
+  title?: string;
   siteAddress: string;
   acceptedRateLabel: string;
+  acceptedRateHeading?: string;
   rateRows: { label: string; value: string }[];
   scopePreview: { label: string; value: string }[];
   agreedStartDate: string;
   agreedCompletionDate: string;
+  serviceKind?: 'mistri' | 'plumber';
 }
 
 export function AgreementForm({
   projectId,
   projectTitle,
   clientName,
-  mistriName,
+  contractorName,
+  contractorRoleLabel,
+  title,
   siteAddress,
   acceptedRateLabel,
+  acceptedRateHeading,
   rateRows,
   scopePreview,
   agreedStartDate,
   agreedCompletionDate,
+  serviceKind = 'mistri',
 }: AgreementFormProps) {
   const [downloading, setDownloading] = useState(false);
   const [sending, setSending] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const isPlumber = serviceKind === 'plumber';
+  const heading = title ?? (isPlumber ? 'Official Plumber Work Agreement' : 'Official Mistri / Civil Work Agreement');
+  const roleLabel = contractorRoleLabel ?? (isPlumber ? 'Plumber' : 'Head Mason (Mistri)');
+  const rateHeading = acceptedRateHeading ?? (isPlumber ? 'Accepted plumbing rates' : 'Accepted civil work rates');
+  const workerNoun = isPlumber ? 'Plumber' : 'Mistri';
+  const workerNounLower = isPlumber ? 'plumber' : 'mistri';
 
   async function downloadPdf() {
     setDownloading(true);
@@ -88,7 +103,7 @@ export function AgreementForm({
       <CardHeader className="pb-2">
         <CardTitle className="text-base flex items-center gap-2">
           <FileText className="w-4 h-4 text-emerald-500" />
-          Official Mistri / Civil Work Agreement
+          {heading}
         </CardTitle>
         <p className="text-xs text-muted-foreground mt-1">{projectTitle}</p>
       </CardHeader>
@@ -102,9 +117,9 @@ export function AgreementForm({
           </div>
           <div>
             <dt className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Head Mason (Mistri)
+              {roleLabel}
             </dt>
-            <dd className="font-medium text-foreground">{mistriName}</dd>
+            <dd className="font-medium text-foreground">{contractorName}</dd>
           </div>
           <div className="sm:col-span-2">
             <dt className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -124,7 +139,7 @@ export function AgreementForm({
           ) : (
             <div>
               <dt className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Accepted civil work rates
+                {rateHeading}
               </dt>
               <dd className="font-semibold text-foreground">{acceptedRateLabel}</dd>
             </div>
@@ -145,8 +160,8 @@ export function AgreementForm({
 
         <div className="rounded-lg border border-red-500/25 bg-red-500/5 px-3 py-2.5 text-xs text-foreground leading-relaxed">
           <p className="font-semibold mb-1">Mandatory BuilBid payment gateway</p>
-          All project funds must flow exclusively through BuilBid (Homeowner gateway → Mistri). Cash
-          paid directly to the Mistri is prohibited and voids platform guarantees. The accepted rate
+          All project funds must flow exclusively through BuilBid (Homeowner gateway → {workerNoun}). Cash
+          paid directly to the {workerNoun} is prohibited and voids platform guarantees. The accepted rate
           is fixed and non-negotiable after award.
         </div>
 
@@ -168,7 +183,7 @@ export function AgreementForm({
         <p className="flex items-start gap-2 text-[11px] text-muted-foreground leading-relaxed">
           <ShieldCheck className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-emerald-600" />
           An official copy is emailed to {BUILBID_OFFICIAL_AGREEMENT_EMAILS.join(', ')} when
-          the Head Mason is selected. It is not sent to the client or mistri from this dispatch.
+          the {roleLabel} is selected. It is not sent to the client or {workerNounLower} from this dispatch.
         </p>
 
         <div className="flex flex-wrap gap-2">
