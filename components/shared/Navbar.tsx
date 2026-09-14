@@ -21,7 +21,6 @@ import { normalizeRole, getDashboardPath } from '@/lib/auth/roles';
 import { getProfileRoleLabel } from '@/lib/auth/profileRoleLabel';
 import { clientSignOut } from '@/lib/auth/clientSignOut';
 import { NAV_LOGO_LINK, NAV_MENU_ITEM } from '@/lib/navStyles';
-import { PUBLIC_NAV_LINKS } from '@/lib/nav/publicLinks';
 
 const ROLE_BADGES: Record<string, 'amber' | 'teal' | 'indigo' | 'violet' | 'emerald'> = {
   owner: 'amber',
@@ -119,7 +118,7 @@ export function Navbar({ overlay = false, authHint }: NavbarProps) {
           : 'border-b border-border/70 bg-background/95 text-foreground backdrop-blur-xl shadow-sm shadow-black/[0.04]'
       )}
     >
-      <div className="relative mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
 
         {/* Logo */}
         <NavLink
@@ -134,24 +133,6 @@ export function Navbar({ overlay = false, authHint }: NavbarProps) {
           <BuilBidLogo size="md" compact className="sm:hidden" />
           <BuilBidLogo size="md" className="hidden sm:inline-flex" />
         </NavLink>
-
-        <nav className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-0.5 lg:flex">
-          {PUBLIC_NAV_LINKS.map(({ href, labelKey }) => (
-            <NavLink
-              key={href}
-              href={href}
-              prefetch
-              className={cn(
-                'rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                overlay
-                  ? overlayNav
-                  : 'text-muted-foreground hover:bg-accent hover:text-foreground',
-              )}
-            >
-              {t(labelKey)}
-            </NavLink>
-          ))}
-        </nav>
 
         {/* Right side */}
         <div className="inline-flex items-center gap-x-3">
@@ -291,17 +272,6 @@ export function Navbar({ overlay = false, authHint }: NavbarProps) {
             <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
               {t('nav.navigation')}
             </p>
-            {PUBLIC_NAV_LINKS.map(({ href, labelKey }) => (
-              <NavLink
-                key={href}
-                href={href}
-                prefetch
-                onClick={() => setMenuOpen(false)}
-                className={cn(NAV_MENU_ITEM, 'flex min-h-11 items-center px-3 py-3 text-sm text-foreground hover:bg-accent')}
-              >
-                {t(labelKey)}
-              </NavLink>
-            ))}
             <NavLink
               href="/estimate-calculator"
               prefetch

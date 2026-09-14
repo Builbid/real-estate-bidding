@@ -1,10 +1,4 @@
-/** Primary marketing navigation — shared by Navbar and Footer. */
-export const PUBLIC_NAV_LINKS = [
-  { href: '/#live-auctions', labelKey: 'nav.liveProjects' as const },
-  { href: '/projects', labelKey: 'nav.allProjects' as const },
-  { href: '/about', labelKey: 'nav.about' as const },
-] as const;
-
+/** Footer platform links. */
 export const PUBLIC_FOOTER_PLATFORM_LINKS = [
   { href: '/admin/login', labelKey: 'footer.admin' as const },
   { href: '/projects', labelKey: 'footer.allProjects' as const },
