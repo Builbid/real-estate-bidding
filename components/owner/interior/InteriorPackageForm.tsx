@@ -125,7 +125,7 @@ export function InteriorPackageForm({
                             </span>
                           ) : (
                             <span className="text-[11px] font-medium text-slate-700 dark:text-slate-300">
-                              Labour rate {option.unitSuffix}
+                              Interior designer rate {option.unitSuffix}
                             </span>
                           )}
                         </span>

@@ -111,7 +111,7 @@ const LABOUR_EXTRAS: Record<
         id: 'kiw-1',
         title: 'G+1 RCC Residence — Beltola',
         description:
-          'Complete labour contract for a 2,400 sqft G+1 RCC home. Ground floor full finishing and first floor structural slab with brickwork.',
+          'Complete Mistri contract for a 2,400 sqft G+1 RCC home. Ground floor full finishing and first floor structural slab with brickwork.',
         photo_urls: [PHOTOS.rccFrame, PHOTOS.rccSlab, PHOTOS.brickwork, PHOTOS.modernHome],
         sort_order: 0,
       },
@@ -127,7 +127,7 @@ const LABOUR_EXTRAS: Record<
         id: 'kiw-3',
         title: 'G+2 Structural Package — Six Mile',
         description:
-          'Multi-floor RCC structural labour for a developer plot. Column, beam, and slab casting across three levels with quality checks at each pour.',
+          'Multi-floor RCC structural Mistri work for a developer plot. Column, beam, and slab casting across three levels with quality checks at each pour.',
         photo_urls: [PHOTOS.crane, PHOTOS.rccSlab, PHOTOS.rccFrame, PHOTOS.apartment],
         sort_order: 2,
       },
@@ -144,7 +144,7 @@ const LABOUR_EXTRAS: Record<
         id: 'hs-1',
         title: 'Assam Type Home — Dibrugarh Town',
         description:
-          'Traditional Assam-type frame, roof, and full finishing labour for a family bungalow on a 1,800 sqft plot.',
+          'Traditional Assam-type frame, roof, and full finishing Mistri work for a family bungalow on a 1,800 sqft plot.',
         photo_urls: [PHOTOS.assamHouse, PHOTOS.bungalow, PHOTOS.brickwork, PHOTOS.finishing],
         sort_order: 0,
       },
@@ -152,7 +152,7 @@ const LABOUR_EXTRAS: Record<
         id: 'hs-2',
         title: 'RCC Extension — Chabua',
         description:
-          'Rear RCC extension labour added to an existing Assam-type core. Foundation tie-in, column casting, and slab work.',
+          'Rear RCC extension Mistri work added to an existing Assam-type core. Foundation tie-in, column casting, and slab work.',
         photo_urls: [PHOTOS.foundation, PHOTOS.rccFrame, PHOTOS.rccSite, PHOTOS.modernHome],
         sort_order: 1,
       },
@@ -160,7 +160,7 @@ const LABOUR_EXTRAS: Record<
         id: 'hs-3',
         title: 'Assam Type Duplex — Tinsukia',
         description:
-          'Two-unit Assam-type labour package including roofing, verandah columns, and complete plaster & paint scope.',
+          'Two-unit Assam-type Mistri package including roofing, verandah columns, and complete plaster & paint scope.',
         photo_urls: [PHOTOS.bungalow, PHOTOS.plaster, PHOTOS.assamHouse, PHOTOS.interior],
         sort_order: 2,
       },
@@ -171,13 +171,13 @@ const LABOUR_EXTRAS: Record<
     projectsCompleted: 64,
     isVerified: true,
     about:
-      'Sonitpur Labour Solutions deploys trained mason and bar-bender teams for RCC projects in Tezpur and across Sonitpur district. We are known for disciplined site attendance and rate-transparent labour-only contracts.',
+      'Sonitpur Mistri Solutions deploys trained mason and bar-bender teams for RCC projects in Tezpur and across Sonitpur district. We are known for disciplined site attendance and rate-transparent Mistri contracts.',
     portfolio: labourPortfolio('sonitpur-labour-solutions', [
       {
         id: 'sls-1',
         title: 'RCC Bungalow — Tezpur Cantonment',
         description:
-          'Ground-floor RCC labour with full finishing for a 1,450 sqft residential plot near cantonment road.',
+          'Ground-floor RCC Mistri work with full finishing for a 1,450 sqft residential plot near cantonment road.',
         photo_urls: [PHOTOS.rccFrame, PHOTOS.brickwork, PHOTOS.modernHome, PHOTOS.interior],
         sort_order: 0,
       },
@@ -185,7 +185,7 @@ const LABOUR_EXTRAS: Record<
         id: 'sls-2',
         title: 'G+1 RCC — Biswanath Chariali',
         description:
-          'Two-storey RCC labour contract: structural first floor and full finishing ground floor delivered ahead of schedule.',
+          'Two-storey RCC Mistri contract: structural first floor and full finishing ground floor delivered ahead of schedule.',
         photo_urls: [PHOTOS.rccSlab, PHOTOS.rccSite, PHOTOS.plaster, PHOTOS.villa],
         sort_order: 1,
       },
@@ -193,7 +193,7 @@ const LABOUR_EXTRAS: Record<
         id: 'sls-3',
         title: 'Column & Slab Package — Rangapara',
         description:
-          'Upper-floor structural-only labour for an owner-managed material supply project. Three slab pours with QA sign-off.',
+          'Upper-floor structural-only Mistri work for an owner-managed material supply project. Three slab pours with QA sign-off.',
         photo_urls: [PHOTOS.crane, PHOTOS.rccSlab, PHOTOS.foundation, PHOTOS.rccFrame],
         sort_order: 2,
       },
@@ -204,7 +204,7 @@ const LABOUR_EXTRAS: Record<
     projectsCompleted: 73,
     isVerified: true,
     about:
-      'Jorhat Mason Crew is a specialist masonry and RCC labour team serving Jorhat, Majuli, and Golaghat. Our foremen bring decades of trowel-level craftsmanship to plaster, brickwork, and finishing stages.',
+      'Jorhat Mason Crew is a specialist masonry and RCC Mistri team serving Jorhat, Majuli, and Golaghat. Our foremen bring decades of trowel-level craftsmanship to plaster, brickwork, and finishing stages.',
     portfolio: labourPortfolio('jorhat-mason-crew', [
       {
         id: 'jmc-1',
@@ -218,7 +218,7 @@ const LABOUR_EXTRAS: Record<
         id: 'jmc-2',
         title: 'G+1 Family Home — Titabor',
         description:
-          'Full masonry and finishing labour for a 2,100 sqft RCC home including compound wall and gate pillars.',
+          'Full masonry and finishing Mistri work for a 2,100 sqft RCC home including compound wall and gate pillars.',
         photo_urls: [PHOTOS.rccFrame, PHOTOS.brickwork, PHOTOS.modernHome, PHOTOS.interior],
         sort_order: 1,
       },
@@ -226,7 +226,7 @@ const LABOUR_EXTRAS: Record<
         id: 'jmc-3',
         title: 'RCC Ground Floor — Mariani',
         description:
-          'Compact 980 sqft ground-floor RCC labour with owner-supplied materials and weekly progress photos.',
+          'Compact 980 sqft ground-floor RCC Mistri work with owner-supplied materials and weekly progress photos.',
         photo_urls: [PHOTOS.foundation, PHOTOS.rccSite, PHOTOS.rccSlab, PHOTOS.villa],
         sort_order: 2,
       },
@@ -246,7 +246,7 @@ interface FirmExtra {
 const FIRM_EXTRAS: Record<string, FirmExtra> = {
   'assam-builders-co': {
     about:
-      'Assam Builders Co. is a Guwahati turnkey construction firm delivering RCC residential and small commercial projects end-to-end — drawings, materials, labour, and handover. GST registered with in-house site engineers.',
+      'Assam Builders Co. is a Guwahati turnkey construction firm delivering RCC residential and small commercial projects end-to-end — drawings, materials, Mistri work, and handover. GST registered with in-house site engineers.',
     yearsInBusiness: 18,
     gstMasked: '18AABCA****A1Z5',
     address: 'Six Mile, Guwahati, Assam',

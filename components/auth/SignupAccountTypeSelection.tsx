@@ -17,7 +17,7 @@ const ACCOUNT_TYPE_OPTIONS = [
     href: '/signup/provider',
     emoji: '🔧',
     title: 'Service Provider',
-    subtitle: 'Offer labour, turnkey construction, or local trade services',
+    subtitle: 'Offer Mistri work, turnkey construction, or local trade services',
     accent: 'emerald' as const,
   },
 ] as const;

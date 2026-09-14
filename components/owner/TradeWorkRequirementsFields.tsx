@@ -9,7 +9,10 @@ import {
   EARTHWORK_SOIL_VEHICLE_OPTIONS,
   EARTHWORK_TYPE_OPTIONS,
   ELECTRICIAN_WIRING_TYPE_OPTIONS,
+  ELECTRICIAN_LABOUR_ONLY_DISCLAIMER,
+  INTERIOR_DESIGNER_LABOUR_ONLY_DISCLAIMER,
   PLUMBING_FITTING_TYPE_OPTIONS,
+  PLUMBING_LABOUR_ONLY_DISCLAIMER,
   type BathroomPackage,
   type BathroomPackageSelection,
   type BathroomRoomSize,
@@ -106,7 +109,7 @@ export function TradeWorkRequirementsFields({
       {trade === 'plumber' && (
         <>
           <p className="text-xs font-medium leading-relaxed rounded-xl border border-amber-500/25 bg-amber-500/5 px-3 py-2.5 text-gray-800 dark:text-zinc-200">
-            All bids are strictly for LABOUR CHARGES. Materials must be supplied by the Property Owner.
+            {PLUMBING_LABOUR_ONLY_DISCLAIMER}
           </p>
         <PlumbingFloorFixtureForm
           targetFloors={form.targetFloors}
@@ -135,7 +138,7 @@ export function TradeWorkRequirementsFields({
       {trade === 'electrician' && (
         <>
           <p className="text-xs font-medium leading-relaxed rounded-xl border border-amber-500/25 bg-amber-500/5 px-3 py-2.5 text-gray-800 dark:text-zinc-200">
-            All bids are strictly for LABOUR CHARGES. Materials must be supplied by the Property Owner.
+            {ELECTRICIAN_LABOUR_ONLY_DISCLAIMER}
           </p>
           <ElectricianFloorFixtureForm
             targetFloors={form.targetFloors}
@@ -157,7 +160,7 @@ export function TradeWorkRequirementsFields({
       {trade === 'false_ceiling_work' && (
         <>
           <p className="text-xs font-medium leading-relaxed rounded-xl border border-amber-500/25 bg-amber-500/5 px-3 py-2.5 text-gray-800 dark:text-zinc-200">
-            All bids are strictly for LABOUR CHARGES. Materials must be supplied by the Property Owner.
+            {INTERIOR_DESIGNER_LABOUR_ONLY_DISCLAIMER}
           </p>
           <InteriorPackageForm
             selectedPackages={form.interiorPackages}

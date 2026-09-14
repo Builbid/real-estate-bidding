@@ -64,7 +64,7 @@ export function ElectricianPackageForm({
                   selected={selectedSubOptions.includes(option.id)}
                   onClick={() => toggleSubOption(pkg.id, option.id)}
                   title={option.label}
-                  subtitle={option.note ?? `Labour rate ${option.unitSuffix}`}
+                  subtitle={option.note ?? `Electrician rate ${option.unitSuffix}`}
                   imageUrl={ELECTRICIAN_WORK_IMAGES[option.id]}
                   imageAlt={option.label}
                 />

@@ -934,7 +934,7 @@ function RccEstimateCalculator({ onChangeType }: { onChangeType: () => void }) {
                     value={inputs.rates.mistriPerSqft}
                     suffix="₹/sqft"
                     onChange={(n) => updateRate('mistriPerSqft', Math.max(0, n))}
-                    hint="Labour = total slab area (sqft) × this rate"
+                    hint="Mistri = total slab area (sqft) × this rate"
                   />
                   <NumField
                     label="Cement rate"

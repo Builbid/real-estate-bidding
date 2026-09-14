@@ -450,9 +450,9 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
         <p className="text-sm text-gray-700 dark:text-zinc-300 mt-1">
           Registered {tradeLabel.toLowerCase()}s will bid their rate{' '}
           {trade === 'plumber'
-            ? 'as per-unit labour rates for basin, taps, shower, commode, and geyser on each selected floor'
+            ? 'as plumber rates per fixture for basin, taps, shower, commode, and geyser on each selected floor'
             : trade === 'electrician'
-              ? 'as per-point labour rates for ceiling lights, fans, ACs, refrigerators, and inverters on each selected floor'
+              ? 'as electrician rates per point for ceiling lights, fans, ACs, refrigerators, and inverters on each selected floor'
               : 'per sqft'}{' '}
           on your project.
         </p>
@@ -664,7 +664,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                     : trade === 'electrician'
                       ? 'Enter how many ceiling lights, ceiling fans, ACs, refrigerators, and inverters you need on each selected floor.'
                       : trade === 'false_ceiling_work'
-                        ? 'Check the interior design categories you need, then pick the sub-options designers should quote as labour unit rates.'
+                        ? 'Check the interior design categories you need, then pick the sub-options designers should quote as interior designer unit rates.'
                     : `Describe the ${tradeLabel.toLowerCase()} work so bidders can quote without scope conflicts.`}
               </p>
 

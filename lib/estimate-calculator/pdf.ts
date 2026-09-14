@@ -229,7 +229,7 @@ export function downloadEstimatePdf(inputs: EstimateInputs, results: EstimateRes
   y = renderTable4(
     doc,
     y,
-    '4. Material & Labour Cost (your rates)',
+    '4. Material & Mistri Cost (your rates)',
     ['Item', 'Qty', 'Rate', 'Amount'],
     materialCostRows,
     margin,
@@ -251,7 +251,7 @@ export function downloadEstimatePdf(inputs: EstimateInputs, results: EstimateRes
     ['Head', 'Amount', ''],
     [
       ['Materials', formatInr(costs.materialTotal), ''],
-      ['Mistri / labour', formatInr(costs.mistriLabour.amount), ''],
+      ['Mistri', formatInr(costs.mistriLabour.amount), ''],
       ['Finishing & allied', formatInr(costs.finishingTotal), ''],
       ['GRAND TOTAL (approx)', formatInr(costs.grandTotal), ''],
       [
