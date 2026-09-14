@@ -6,6 +6,7 @@ import {
   cleanAgreementText,
   drawOfficialHeader,
   drawBlankColumnTable,
+  drawFillInPrompt,
   drawParagraph,
   drawRows,
   drawSectionTitle,
@@ -335,6 +336,7 @@ export function generatePlumberAgreementPdfBytes(payload: PlumberAgreementPayloa
     margin,
     [0.7, 2.2, 1.1, 1.2, 1.5, 1.3, 1.2],
   );
+  y = drawFillInPrompt(doc, 'Total cost', '', y, margin);
 
   y = drawSectionTitle(doc, '4. Timelines, Delays & Penalty Terms', y, margin);
   y = drawRows(
