@@ -5,6 +5,21 @@ import {
   isMistriCivilService,
 } from '@/lib/contract/mistriAgreement';
 import {
+  buildPlumberAgreementPayload,
+  generatePlumberAgreementPdfBytes,
+  isPlumberService,
+} from '@/lib/contract/plumberAgreement';
+import {
+  buildElectricianAgreementPayload,
+  generateElectricianAgreementPdfBytes,
+  isElectricianService,
+} from '@/lib/contract/electricianAgreement';
+import {
+  buildPainterAgreementPayload,
+  generatePainterAgreementPdfBytes,
+  isPainterService,
+} from '@/lib/contract/painterAgreement';
+import {
   documentFileName,
   documentStoragePath,
   isNumericProjectId,
@@ -14,6 +29,7 @@ import {
 import { generateProjectDocumentPdfBytes } from '@/lib/documents/pdf';
 import { generateNumericProjectId } from '@/lib/project/numericId';
 import { formatPackageRateRange } from '@/lib/firm/bidDisplay';
+import { missingProjectsColumn, readNestedProjectDetail } from '@/lib/project/storedDetails';
 import type { BidRates, PackageBidPrice, SubConfiguration, TrackType } from '@/lib/types';
 import type { ConstructionTypesMap } from '@/lib/buildingConfig';
 
@@ -132,13 +148,38 @@ export async function archiveAwardedProjectDocuments(options: {
 }): Promise<void> {
   const admin = createAdminClient();
 
-  const { data: project, error: projectError } = await admin
+  const ARCHIVE_SELECT =
+    'id, owner_id, title, district, state, pincode, description, track_type, sub_configuration, building_types, construction_types, total_floors, plot_area_sqft, floor_area_sqft, mistri_details, trade_details, painter_details, service_type, selected_builder_id, selected_package, drawing_url, numeric_id';
+
+  let { data: project, error: projectError } = await admin
     .from('projects')
-    .select(
-      'id, owner_id, title, district, state, pincode, description, track_type, sub_configuration, building_types, construction_types, total_floors, plot_area_sqft, floor_area_sqft, mistri_details, service_type, selected_builder_id, selected_package, drawing_url, numeric_id',
-    )
+    .select(ARCHIVE_SELECT)
     .eq('id', options.projectId)
     .maybeSingle();
+
+  if (projectError && missingProjectsColumn(projectError.message) === 'trade_details') {
+    const retry = await admin
+      .from('projects')
+      .select(
+        'id, owner_id, title, district, state, pincode, description, track_type, sub_configuration, building_types, construction_types, total_floors, plot_area_sqft, floor_area_sqft, mistri_details, painter_details, service_type, selected_builder_id, selected_package, drawing_url, numeric_id',
+      )
+      .eq('id', options.projectId)
+      .maybeSingle();
+    project = retry.data ? { ...retry.data, trade_details: undefined } : retry.data;
+    projectError = retry.error;
+  }
+
+  if (projectError && missingProjectsColumn(projectError.message) === 'painter_details') {
+    const retry = await admin
+      .from('projects')
+      .select(
+        'id, owner_id, title, district, state, pincode, description, track_type, sub_configuration, building_types, construction_types, total_floors, plot_area_sqft, floor_area_sqft, mistri_details, trade_details, service_type, selected_builder_id, selected_package, drawing_url, numeric_id',
+      )
+      .eq('id', options.projectId)
+      .maybeSingle();
+    project = retry.data ? { ...retry.data, painter_details: undefined } : retry.data;
+    projectError = retry.error;
+  }
 
   if (projectError || !project?.owner_id || !project.selected_builder_id) return;
 
@@ -238,6 +279,140 @@ export async function archiveAwardedProjectDocuments(options: {
         agreementBytes = generateMistriAgreementPdfBytes(payload);
       } catch (err) {
         console.error('Agreement PDF archive failed (falling back to award record):', err);
+      }
+    } else if (!agreementBytes && isPlumberService(project.service_type)) {
+      try {
+        const payload = buildPlumberAgreementPayload({
+          project: {
+            id: project.id,
+            numeric_id: numericId,
+            title: project.title,
+            district: project.district,
+            state: project.state,
+            pincode: project.pincode,
+            description: project.description,
+            trade_details: readNestedProjectDetail(project, 'trade_details'),
+            sub_configuration: project.sub_configuration,
+            service_type: project.service_type,
+          },
+          bid: winningBid
+            ? {
+                id: winningBid.id,
+                single_rate: winningBid.single_rate,
+                total_sum_metric: winningBid.total_sum_metric,
+                rates: winningBid.rates as BidRates | null,
+              }
+            : null,
+          owner: {
+            name: ownerRow?.full_name ?? 'Client',
+            email: ownerRow?.email,
+            mobile: ownerRow?.mobile,
+            address: ownerRow?.physical_address,
+          },
+          plumber: {
+            name: workerRow?.full_name ?? 'Plumber',
+            email: workerRow?.email,
+            mobile: workerRow?.mobile,
+            address: workerRow?.physical_address,
+            companyName: workerRow?.company_name,
+            gstNumber: workerRow?.gst_number ?? null,
+            yearsInBusiness: workerRow?.years_in_business ?? null,
+            isVerified: workerRow?.is_verified ?? null,
+            platformId: workerId,
+          },
+        });
+        agreementBytes = generatePlumberAgreementPdfBytes(payload);
+      } catch (err) {
+        console.error('Plumber agreement PDF archive failed (falling back to award record):', err);
+      }
+    } else if (!agreementBytes && isElectricianService(project.service_type)) {
+      try {
+        const payload = buildElectricianAgreementPayload({
+          project: {
+            id: project.id,
+            numeric_id: numericId,
+            title: project.title,
+            district: project.district,
+            state: project.state,
+            pincode: project.pincode,
+            description: project.description,
+            trade_details: readNestedProjectDetail(project, 'trade_details'),
+            sub_configuration: project.sub_configuration,
+            service_type: project.service_type,
+          },
+          bid: winningBid
+            ? {
+                id: winningBid.id,
+                single_rate: winningBid.single_rate,
+                total_sum_metric: winningBid.total_sum_metric,
+                rates: winningBid.rates as BidRates | null,
+              }
+            : null,
+          owner: {
+            name: ownerRow?.full_name ?? 'Client',
+            email: ownerRow?.email,
+            mobile: ownerRow?.mobile,
+            address: ownerRow?.physical_address,
+          },
+          electrician: {
+            name: workerRow?.full_name ?? 'Electrician',
+            email: workerRow?.email,
+            mobile: workerRow?.mobile,
+            address: workerRow?.physical_address,
+            companyName: workerRow?.company_name,
+            gstNumber: workerRow?.gst_number ?? null,
+            yearsInBusiness: workerRow?.years_in_business ?? null,
+            isVerified: workerRow?.is_verified ?? null,
+            platformId: workerId,
+          },
+        });
+        agreementBytes = generateElectricianAgreementPdfBytes(payload);
+      } catch (err) {
+        console.error('Electrician agreement PDF archive failed (falling back to award record):', err);
+      }
+    } else if (!agreementBytes && isPainterService(project.service_type)) {
+      try {
+        const payload = buildPainterAgreementPayload({
+          project: {
+            id: project.id,
+            numeric_id: numericId,
+            title: project.title,
+            district: project.district,
+            state: project.state,
+            pincode: project.pincode,
+            description: project.description,
+            painter_details: readNestedProjectDetail(project, 'painter_details'),
+            service_type: project.service_type,
+          },
+          bid: winningBid
+            ? {
+                id: winningBid.id,
+                single_rate: winningBid.single_rate,
+                total_sum_metric: winningBid.total_sum_metric,
+                rates: winningBid.rates as BidRates | null,
+              }
+            : null,
+          owner: {
+            name: ownerRow?.full_name ?? 'Client',
+            email: ownerRow?.email,
+            mobile: ownerRow?.mobile,
+            address: ownerRow?.physical_address,
+          },
+          painter: {
+            name: workerRow?.full_name ?? 'Painter',
+            email: workerRow?.email,
+            mobile: workerRow?.mobile,
+            address: workerRow?.physical_address,
+            companyName: workerRow?.company_name,
+            gstNumber: workerRow?.gst_number ?? null,
+            yearsInBusiness: workerRow?.years_in_business ?? null,
+            isVerified: workerRow?.is_verified ?? null,
+            platformId: workerId,
+          },
+        });
+        agreementBytes = generatePainterAgreementPdfBytes(payload);
+      } catch (err) {
+        console.error('Painter agreement PDF archive failed (falling back to award record):', err);
       }
     }
 

@@ -46,12 +46,11 @@ export function CompletedProjectRow({
   ].filter(Boolean) as string[];
 
   return (
-    <div className="flex items-center gap-4 py-4">
+    <div className="flex items-center gap-4 py-3.5 first:pt-0 last:pb-0">
       <div className="flex-1 min-w-0">
-        <p className="mb-1 text-sm font-medium text-gray-600 dark:text-gray-400">
+        <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
           {statusLabel}
-          <span className="text-gray-400"> · </span>
-          {serviceBadge}
+          <span className="font-normal text-muted-foreground"> · {serviceBadge}</span>
         </p>
         <p className="truncate text-sm font-semibold text-foreground">{project.title}</p>
         <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">

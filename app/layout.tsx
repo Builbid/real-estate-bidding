@@ -1,20 +1,22 @@
 import type { Metadata, Viewport } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
+import dynamic from 'next/dynamic';
+import { Geist } from 'next/font/google';
 import { AppProviders } from '@/components/providers/AppProviders';
-import { FloatingPostProjectButton } from '@/components/FloatingPostProjectButton';
 import './globals.css';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
   subsets: ['latin'],
   display: 'swap',
+  preload: true,
 });
 
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
-  subsets: ['latin'],
-  display: 'swap',
-});
+/** Defer floating CTA — not needed for first paint / DOMContentLoaded. */
+const FloatingPostProjectButton = dynamic(() =>
+  import('@/components/FloatingPostProjectButton').then(
+    (mod) => mod.FloatingPostProjectButton,
+  ),
+);
 
 export const metadata: Metadata = {
   title: {
@@ -46,7 +48,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable}`}
+      className={geistSans.variable}
     >
       <body className="min-h-screen overflow-x-clip bg-white text-slate-900 transition-colors duration-200 dark:bg-slate-950 dark:text-slate-100">
         <AppProviders>

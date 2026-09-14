@@ -5,6 +5,7 @@ import { TopBar } from './TopBar';
 import { Footer } from '@/components/shared/Footer';
 import { ProfileProvider } from '@/lib/context/ProfileProvider';
 import { DashboardSidebar } from '@/components/dashboard/DashboardSidebar';
+import { AppToaster } from '@/components/shared/AppToaster';
 import type { Profile, UserRole } from '@/lib/types';
 import { normalizeRole } from '@/lib/auth/roles';
 
@@ -15,7 +16,13 @@ interface DashboardLayoutProps {
 async function getUser() {
   const { supabase, userId, email, role, fullName } = await getAuthUser();
 
-  const { data: profile } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select(
+      'id, email, full_name, role, mobile, physical_address, pincode, avatar_url, is_verified, created_at, updated_at, company_name, logo_url, service_type, gst_number',
+    )
+    .eq('id', userId)
+    .maybeSingle();
 
   if (profile) return { ...(profile as Profile), role: normalizeRole((profile as Profile).role) };
 
@@ -53,6 +60,7 @@ export default async function DashboardLayout({ children }: DashboardLayoutProps
   return (
     <ProfileProvider initialProfile={profile as Profile}>
       <div className="min-h-screen flex bg-background">
+        <AppToaster />
         <DashboardSidebar
           role={role}
           roleColor={roleConfig.color}

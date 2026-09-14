@@ -37,11 +37,11 @@ export const DEMO_LABOUR_CONTRACTORS: DemoFirm[] = [
   },
   {
     id: 'sonitpur-labour-solutions',
-    name: 'Sonitpur Labour Solutions',
+    name: 'Sonitpur Mistri Solutions',
     location: 'Tezpur',
     rating: 4.6,
     reviewCount: 27,
-    specialty: 'RCC Labour',
+    specialty: 'RCC Mistri',
     logoUrl: 'https://api.dicebear.com/7.x/initials/svg?seed=SonitpurLabour',
     portfolioLink: '/builder/sonitpur-labour-solutions',
     partnerType: 'labour_contractor',

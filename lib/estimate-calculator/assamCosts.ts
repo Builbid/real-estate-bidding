@@ -166,7 +166,7 @@ export function calculateAssamCostBreakdown(
   const mistriAmt = totalBuiltUpSqft * rates.mistriPerSqft;
   const mistriLabour: CostLineItem = {
     key: 'mistri',
-    label: 'Mistri / labour (built-up)',
+    label: 'Mistri (built-up)',
     quantityLabel: `${fmtQty(totalBuiltUpSqft, 0)} sqft`,
     rateLabel: rsRate(rates.mistriPerSqft, 'sqft'),
     amount: inr(mistriAmt),

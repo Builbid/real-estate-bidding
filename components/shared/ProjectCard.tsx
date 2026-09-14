@@ -26,6 +26,7 @@ import {
   isFloorScopeRequirementLabel,
 } from '@/lib/project/formatFloorSummary';
 import { FloorScopeBadges } from '@/components/project/FloorScopeBadges';
+import { CheckLocationLink } from '@/components/project/ProjectLocationWithMapsLink';
 import { getLiveAuctionDisplayTitle } from '@/lib/generateProjectTitle';
 import { useTranslation } from '@/lib/context/LanguageProvider';
 import type { Project, ProjectStatus } from '@/lib/types';
@@ -149,7 +150,13 @@ export function ProjectCard({
             <>
               <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 dark:border-slate-700 dark:bg-slate-800/60">
                 <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('project.district')}</p>
-                <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate mt-0.5">{project.district}</p>
+                <p className="mt-0.5 flex min-w-0 flex-wrap items-center text-sm font-semibold text-slate-900 dark:text-slate-100">
+                  <span className="truncate">{project.district}</span>
+                  <CheckLocationLink
+                    placeName={[project.district, project.state].filter(Boolean).join(', ')}
+                    pincode={project.pincode}
+                  />
+                </p>
               </div>
               {floorScopes.length > 0 ? (
                 <div className="col-span-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 dark:border-slate-700 dark:bg-slate-800/60">
@@ -193,7 +200,13 @@ export function ProjectCard({
             <>
               <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 dark:border-slate-700 dark:bg-slate-800/60">
                 <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('project.district')}</p>
-                <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate mt-0.5">{project.district}</p>
+                <p className="mt-0.5 flex min-w-0 flex-wrap items-center text-sm font-semibold text-slate-900 dark:text-slate-100">
+                  <span className="truncate">{project.district}</span>
+                  <CheckLocationLink
+                    placeName={[project.district, project.state].filter(Boolean).join(', ')}
+                    pincode={project.pincode}
+                  />
+                </p>
               </div>
               <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 dark:border-slate-700 dark:bg-slate-800/60">
                 <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('project.totalBids')}</p>

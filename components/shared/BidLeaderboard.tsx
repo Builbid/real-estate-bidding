@@ -235,7 +235,7 @@ export function BidLeaderboard({
     <div className="space-y-1.5">
       {isTradeUnitRateBid && (
         <p className="px-2 pb-1 text-[11px] font-medium text-muted-foreground">
-          Ranked by lowest Weighted Index (equal-weight average of labour unit rates).
+          Ranked by lowest Weighted Index (equal-weight average of unit rates).
         </p>
       )}
       {trackType && subConfiguration && (

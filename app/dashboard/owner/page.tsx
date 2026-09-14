@@ -8,6 +8,7 @@ import { Plus, Building, ArrowLeft } from 'lucide-react';
 import { OwnerLiveProjectCard } from './OwnerLiveProjectCard';
 import { CompletedProjectsPreview } from '@/components/dashboard/CompletedProjectsPreview';
 import { DashboardStatTiles } from '@/components/dashboard/DashboardStatTiles';
+import { DashboardWorkSection } from '@/components/dashboard/DashboardWorkSection';
 import { Button } from '@/components/ui/button';
 import { NavLink } from '@/components/shared/NavLink';
 import { NAV_BACK_LINK } from '@/lib/navStyles';
@@ -112,9 +113,11 @@ async function getData() {
     interactiveProjects.map((p) => enrichLiveProject(supabase, p))
   );
 
-  const selectionRequired = liveBundles.filter((b) => b.phase === 'select');
+  const selectionRequired = liveBundles.filter(
+    (b) => b.phase === 'select' || b.phase === 'transitioning' || b.biddingHasEnded,
+  );
   const liveAuctions = liveBundles.filter(
-    (b) => b.phase === 'live' || b.phase === 'transitioning'
+    (b) => b.phase === 'live' && !b.biddingHasEnded,
   );
 
   const completed = allProjects
@@ -130,6 +133,7 @@ export default async function OwnerDashboard() {
   const { profile, userId, selectionRequired, liveAuctions, completed } = await getData();
 
   const totalLive = selectionRequired.length + liveAuctions.length;
+  const hasAnyProject = totalLive > 0 || completed.length > 0;
 
   return (
     <div className="space-y-8 pb-24">
@@ -155,20 +159,21 @@ export default async function OwnerDashboard() {
 
       <DashboardStatTiles
         items={[
-          { label: 'Live Auctions', value: liveAuctions.length },
-          { label: 'Awaiting Selection', value: selectionRequired.length },
-          { label: 'Completed', value: completed.length },
-          { label: 'Active on Dashboard', value: totalLive },
+          { label: 'Live bidding', value: liveAuctions.length, hint: 'Open auctions', tone: 'live' },
+          { label: 'Needs selection', value: selectionRequired.length, hint: 'Award a worker', tone: 'select' },
+          { label: 'Completed', value: completed.length, hint: 'Awarded & closed', tone: 'done' },
+          { label: 'In progress', value: totalLive, hint: 'Live + awaiting award', tone: 'neutral' },
         ]}
       />
 
       {selectionRequired.length > 0 && (
-        <div>
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse" />
-            <h2 className="text-base font-semibold text-foreground">Action Required — Select a Builder</h2>
-          </div>
-          <div className="space-y-8">
+        <DashboardWorkSection
+          tone="select"
+          title="Needs your decision"
+          count={selectionRequired.length}
+          description="Bidding has closed. Select a worker to award the contract."
+        >
+          <div className="space-y-4">
             {selectionRequired.map((bundle) => (
               <OwnerLiveProjectCard
                 key={bundle.project.id}
@@ -181,16 +186,18 @@ export default async function OwnerDashboard() {
               />
             ))}
           </div>
-        </div>
+        </DashboardWorkSection>
       )}
 
-      {liveAuctions.length > 0 && (
-        <div>
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-2 h-2 rounded-full bg-emerald-600 dark:bg-emerald-400 animate-pulse" />
-            <h2 className="text-base font-bold text-emerald-600 dark:text-emerald-400">Live Auctions</h2>
-          </div>
-          <div className="space-y-8">
+      {hasAnyProject && (
+      <DashboardWorkSection
+        tone="live"
+        title="Live bidding"
+        count={liveAuctions.length}
+        description="Auctions still receiving bids. Rankings update in real time."
+      >
+        {liveAuctions.length > 0 ? (
+          <div className="space-y-4">
             {liveAuctions.map((bundle) => (
               <OwnerLiveProjectCard
                 key={bundle.project.id}
@@ -202,10 +209,15 @@ export default async function OwnerDashboard() {
               />
             ))}
           </div>
-        </div>
+        ) : (
+          <p className="py-6 text-center text-sm text-muted-foreground">
+            No live auctions right now.
+          </p>
+        )}
+      </DashboardWorkSection>
       )}
 
-      {totalLive === 0 && completed.length === 0 && (
+      {!hasAnyProject && (
         <div className="flex flex-col items-center gap-4 py-10 text-center">
           <Building className="w-10 h-10 text-muted-foreground" />
           <div>

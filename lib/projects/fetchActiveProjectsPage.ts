@@ -55,6 +55,17 @@ async function attachLowestRates(
   }));
 }
 
+async function expireStaleProjects(supabase: Awaited<ReturnType<typeof createClient>>) {
+  void supabase.rpc('expire_active_projects').then(
+    ({ error }) => {
+      if (error) console.warn('expire_active_projects (background):', error.message);
+    },
+    (err) => {
+      console.warn('expire_active_projects (background):', err);
+    },
+  );
+}
+
 export async function fetchActiveProjectsPage(options: {
   offset?: number;
   limit?: number;
@@ -62,21 +73,23 @@ export async function fetchActiveProjectsPage(options: {
   expireStale?: boolean;
 }): Promise<ActiveProjectsPageResult> {
   const search = sanitizeSearchTerm(options.search ?? '');
+  const limit = options.limit ?? PROJECTS_PAGE_SIZE;
+  const offset = options.offset ?? 0;
 
   const supabase = await createClient();
 
   if (options.expireStale !== false) {
-    await supabase.rpc('expire_active_projects');
+    expireStaleProjects(supabase);
   }
 
-  // Return every active_24h row — intentionally no .limit() / .single() / .range().
   let query = supabase
     .from('projects')
     .select('*, owner:profiles_public!owner_id(id, full_name), bids(count)', {
       count: 'exact',
     })
     .eq('status', 'active_24h')
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1);
 
   if (search) {
     query = query.or(
@@ -84,7 +97,7 @@ export async function fetchActiveProjectsPage(options: {
     );
   }
 
-  const { data, count, error } = await query; // unrestricted result set
+  const { data, count, error } = await query;
 
   if (error) {
     console.error('fetchActiveProjectsPage:', error.message);
@@ -94,11 +107,12 @@ export async function fetchActiveProjectsPage(options: {
   const rows = (data ?? []) as ProjectRow[];
   const projects = await attachLowestRates(rows);
   const total = count ?? projects.length;
+  const nextOffset = offset + projects.length;
 
   return {
     projects,
     total,
-    hasMore: false,
-    nextOffset: projects.length,
+    hasMore: nextOffset < total,
+    nextOffset,
   };
 }

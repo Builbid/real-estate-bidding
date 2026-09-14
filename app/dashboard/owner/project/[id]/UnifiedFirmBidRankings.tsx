@@ -105,7 +105,7 @@ export function UnifiedFirmBidRankings({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.97 }}
               transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-              className="relative flex flex-wrap items-center gap-x-4 gap-y-2 py-3"
+              className="relative flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-border/60 py-3 last:border-b-0"
             >
               <div className="flex-shrink-0 w-8 text-sm font-bold text-foreground">
                 {RANK_MEDAL[index] ?? index + 1}

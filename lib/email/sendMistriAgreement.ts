@@ -49,7 +49,7 @@ function buildOfficialAgreementHtml(payload: MistriAgreementPayload): string {
       </table>
     </div>
     <p style="color:#fecaca;font-size:13px;line-height:1.5;margin:0 0 16px">
-      All funds must flow through the BuilBid payment gateway. Direct cash to the Mistri is prohibited and voids platform guarantees. Accepted rate is fixed. Delay beyond a 10-day grace period: 5% deduction from labour payout.
+      All funds must flow through the BuilBid payment gateway. Direct cash to the Mistri is prohibited and voids platform guarantees. Accepted rate is fixed. Delay beyond a 10-day grace period: 5% deduction from Mistri payout.
     </p>
     <p style="color:#94a3b8;font-size:13px;line-height:1.6;margin:0">
       The generated PDF agreement is attached. This message is sent only to BuilBid official inboxes.

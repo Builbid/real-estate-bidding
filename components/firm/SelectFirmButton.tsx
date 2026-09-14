@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { UserCheck } from 'lucide-react';
-import { selectBuilderAction } from '@/app/actions/select';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { PackageInfoButton } from '@/components/firm/PackageInfoButton';
 import type { PackageBidPrice } from '@/lib/types';
@@ -37,15 +37,36 @@ export function SelectFirmButton({ projectId, firmId, companyName, packageRates 
     setLoading(true);
     setError(null);
 
-    const result = await selectBuilderAction(projectId, firmId, companyName, packageId ?? undefined);
-    if (result.error) {
-      setError(result.error);
-      setLoading(false);
-      return;
-    }
+    try {
+      const res = await fetch('/api/projects/select-builder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          projectId,
+          builderId: firmId,
+          builderName: companyName,
+          packageId: packageId ?? undefined,
+        }),
+      });
+      const body = (await res.json().catch(() => null)) as { error?: string } | null;
+      if (!res.ok || body?.error) {
+        const message = body?.error || 'Could not select this firm. Please try again.';
+        setError(message);
+        toast.error(message);
+        setLoading(false);
+        return;
+      }
 
-    router.refresh();
-    setLoading(false);
+      toast.success('Builder Selected Successfully');
+      setOpen(false);
+      router.refresh();
+    } catch {
+      const message = 'Could not select this firm. Please try again.';
+      setError(message);
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
   }
 
   function handleCancel() {

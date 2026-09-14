@@ -130,7 +130,7 @@ export const ALL_SERVICE_CATEGORIES: ServiceCategoryOption[] = [
     value: 'labour_contractor',
     label: 'Mistri Worker',
     emoji: '👷',
-    description: 'Labour-only ₹/sqft bidding, including door & window frames',
+    description: 'Mistri ₹/sqft bidding, including door & window frames',
   },
   {
     value: 'construction_firm',

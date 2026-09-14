@@ -40,7 +40,7 @@ export const DEMO_RANKED_WORKERS: RankedWorker[] = [
   },
   {
     id: 'sonitpur-labour-solutions',
-    name: 'Sonitpur Labour Solutions',
+    name: 'Sonitpur Mistri Solutions',
     location: 'Tezpur',
     rating: 4.6,
     reviewsCount: 27,

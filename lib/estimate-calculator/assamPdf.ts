@@ -240,7 +240,7 @@ export function downloadAssamEstimatePdf(
   y = renderTable4(
     doc,
     y,
-    '4. Material & Labour Cost (your rates)',
+    '4. Material & Mistri Cost (your rates)',
     ['Item', 'Qty', 'Rate', 'Amount'],
     costRows(
       [...costs.materialLines, costs.mistriLabour],
@@ -266,7 +266,7 @@ export function downloadAssamEstimatePdf(
     ['Head', 'Amount', ''],
     [
       ['Materials', formatInr(costs.materialTotal), ''],
-      ['Mistri / labour', formatInr(costs.mistriLabour.amount), ''],
+      ['Mistri', formatInr(costs.mistriLabour.amount), ''],
       ['Finishing & allied', formatInr(costs.finishingTotal), ''],
       ['GRAND TOTAL (approx)', formatInr(costs.grandTotal), ''],
       [

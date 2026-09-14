@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useState, type FormEvent } from 'react'
 import Link from 'next/link'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { Mail, Lock, Eye, EyeOff, ArrowRight, ArrowLeft, AlertCircle } from 'lucide-react'
 import { BuilBidLogo } from '@/components/shared/BuilBidLogo'
 import { clientSignIn } from '@/lib/auth/clientSignIn'
@@ -22,21 +22,12 @@ function parseRoleParam(value: string | null): RoleParam {
 }
 
 function LoginForm({ roleParam }: { roleParam: RoleParam }) {
-  const router = useRouter()
   const searchParams = useSearchParams()
   const nextPath = searchParams.get('next') ?? (roleParam === 'owner' ? '/dashboard/owner' : '')
 
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
   const [showPw, setShowPw] = useState(false)
-
-  useEffect(() => {
-    router.prefetch('/dashboard/owner')
-    router.prefetch('/dashboard/builder')
-    router.prefetch('/dashboard/firm')
-    router.prefetch('/dashboard/admin')
-    router.prefetch('/dashboard/provider')
-  }, [router])
 
   useEffect(() => {
     if (searchParams.get('error') === 'confirmation_failed') {
@@ -69,8 +60,7 @@ function LoginForm({ roleParam }: { roleParam: RoleParam }) {
     const destination =
       nextPath && nextPath.startsWith('/') ? nextPath : result.redirectPath
 
-    router.replace(destination)
-    router.refresh()
+    window.location.assign(destination)
   }
 
   return (

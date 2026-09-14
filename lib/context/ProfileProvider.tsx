@@ -9,7 +9,6 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import type { Profile } from '@/lib/types';
 import { normalizeRole } from '@/lib/auth/roles';
@@ -58,33 +57,54 @@ export function ProfileProvider({
   const [profile, setProfile] = useState<Profile | null>(initialProfile ?? null);
   const [loading, setLoading] = useState(!initialProfile);
   const supabaseRef = useRef(createClient());
-  const pathname = usePathname();
+  const inFlightRef = useRef<Promise<void> | null>(null);
 
   const refreshProfile = useCallback(async () => {
-    const supabase = supabaseRef.current;
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      setProfile(null);
-      setLoading(false);
+    // Coalesce concurrent refresh calls (Strict Mode / auth events).
+    if (inFlightRef.current) {
+      await inFlightRef.current;
       return;
     }
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
+    const run = (async () => {
+      const supabase = supabaseRef.current;
+      // Prefer session cookie read — avoids an extra /auth/v1/user round-trip on every refresh.
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session?.user) {
+        setProfile(null);
+        setLoading(false);
+        return;
+      }
+
+      const user = session.user;
+      const { data: row } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (row) {
+        setProfile({
+          ...(row as Profile),
+          role: normalizeRole((row as Profile).role),
+        });
+        setLoading(false);
+        return;
+      }
+
+      setProfile(buildFallbackProfile(user));
       setLoading(false);
-      return;
+    })();
+
+    inFlightRef.current = run;
+    try {
+      await run;
+    } finally {
+      inFlightRef.current = null;
     }
-
-    const { data: row } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
-
-    if (row) {
-      setProfile({ ...(row as Profile), role: normalizeRole((row as Profile).role) });
-      setLoading(false);
-      return;
-    }
-
-    setProfile(buildFallbackProfile(user));
-    setLoading(false);
   }, []);
 
   const updateAvatarUrl = useCallback((url: string | null) => {
@@ -100,9 +120,14 @@ export function ProfileProvider({
     setLoading(false);
   }, []);
 
+  // Load once on mount — do NOT refetch on every route change (was causing duplicate user/profiles calls).
   useEffect(() => {
+    if (initialProfile) {
+      setLoading(false);
+      return;
+    }
     void refreshProfile();
-  }, [pathname, refreshProfile]);
+  }, [initialProfile, refreshProfile]);
 
   useEffect(() => {
     function onAppSignOut() {
@@ -124,12 +149,22 @@ export function ProfileProvider({
       } else if (event === 'SIGNED_IN') {
         void refreshProfile();
       }
+      // Ignore TOKEN_REFRESHED / INITIAL_SESSION to avoid redundant profile fetches.
     });
     return () => subscription.unsubscribe();
   }, [refreshProfile]);
 
   return (
-    <ProfileContext.Provider value={{ profile, loading, updateAvatarUrl, patchProfile, refreshProfile, clearProfile }}>
+    <ProfileContext.Provider
+      value={{
+        profile,
+        loading,
+        updateAvatarUrl,
+        patchProfile,
+        refreshProfile,
+        clearProfile,
+      }}
+    >
       {children}
     </ProfileContext.Provider>
   );

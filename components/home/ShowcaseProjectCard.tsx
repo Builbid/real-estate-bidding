@@ -35,6 +35,7 @@ import {
   isFloorScopeRequirementLabel,
 } from '@/lib/project/formatFloorSummary';
 import { FloorScopeBadges } from '@/components/project/FloorScopeBadges';
+import { CheckLocationLink } from '@/components/project/ProjectLocationWithMapsLink';
 import {
   formatShowcaseRemaining,
   getShowcaseCardAction,
@@ -386,12 +387,17 @@ export function ShowcaseProjectCard({
             <h3 className="mt-0.5 line-clamp-2 text-sm font-semibold leading-snug text-slate-900 transition-colors group-hover:text-brand dark:text-slate-100 dark:group-hover:text-brand">
               {getLiveAuctionDisplayTitle(project)}
             </h3>
-            <p className="mt-1 flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+            <p className="mt-1 flex min-w-0 flex-wrap items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
               <MapPin className="h-3 w-3 shrink-0 opacity-80" />
               <span className="truncate">
                 {project.district}
                 {project.state ? `, ${project.state}` : ''}
               </span>
+              <CheckLocationLink
+                placeName={[project.district, project.state].filter(Boolean).join(', ')}
+                pincode={project.pincode}
+                className="ml-1"
+              />
             </p>
           </div>
         </div>

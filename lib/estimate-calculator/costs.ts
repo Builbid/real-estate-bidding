@@ -189,7 +189,7 @@ export function calculateCostBreakdown(
   const mistriAmt = totalSlabSqft * rates.mistriPerSqft;
   const mistriLabour: CostLineItem = {
     key: 'mistri',
-    label: 'Mistri / labour (slab area)',
+    label: 'Mistri (slab area)',
     quantityLabel: `${fmtQty(totalSlabSqft, 0)} sqft slab`,
     rateLabel: rsRate(rates.mistriPerSqft, 'sqft'),
     amount: inr(mistriAmt),

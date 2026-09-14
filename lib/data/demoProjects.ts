@@ -64,7 +64,7 @@ const LABOUR_TEMPLATES: DemoProjectTemplate[] = [
   {
     id: 'demo-labour-3',
     title: 'G+2 RCC Residential — Dibrugarh',
-    description: 'Three-floor RCC build; client supplies materials. Labour-only contract.',
+    description: 'Three-floor RCC build; client supplies materials. Mistri contract.',
     district: 'Dibrugarh',
     service_type: 'labour_contractor',
     building_types: ['RCC Ground Floor', 'RCC 1st Floor', 'RCC 2nd Floor'],
@@ -82,7 +82,7 @@ const LABOUR_TEMPLATES: DemoProjectTemplate[] = [
   {
     id: 'demo-labour-4',
     title: 'Single Floor RCC — Nagaon Residential Plot',
-    description: 'Compact ground-floor RCC home with full finishing labour scope.',
+    description: 'Compact ground-floor RCC home with full finishing Mistri scope.',
     district: 'Nagaon',
     service_type: 'labour_contractor',
     building_types: ['RCC Ground Floor'],
@@ -118,7 +118,7 @@ const FIRM_TEMPLATES: DemoProjectTemplate[] = [
   {
     id: 'demo-firm-1',
     title: 'Turnkey 3BHK — Six Mile, Guwahati',
-    description: 'Complete turnkey construction including materials, labour, and standard finishes.',
+    description: 'Complete turnkey construction including materials, Mistri work, and standard finishes.',
     district: 'Kamrup Metropolitan',
     service_type: 'construction_firm',
     building_types: ['RCC Ground Floor', 'RCC 1st Floor'],

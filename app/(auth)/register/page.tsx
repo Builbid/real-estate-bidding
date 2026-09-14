@@ -63,9 +63,9 @@ const ROLE_CARDS = [
     role: 'labour_contractor' as const,
     emoji: '👷',
     title: 'Mistri Worker',
-    subtitle: 'I provide construction labour & skilled workers',
+    subtitle: 'I provide Mistri work and skilled site teams',
     bullets: [
-      'Browse live labour contract auctions',
+      'Browse live Mistri auctions',
       'Bid your best ₹/sqft rate',
       'Win construction contracts',
     ],
@@ -76,7 +76,7 @@ const ROLE_CARDS = [
     role: 'construction_firm' as const,
     emoji: '🏢',
     title: 'Construction Firm',
-    subtitle: 'We handle everything — material, labour & finishing',
+    subtitle: 'We handle everything — material, Mistri work & finishing',
     bullets: [
       'Browse turnkey construction projects',
       'Bid your complete ₹/sqft rate',

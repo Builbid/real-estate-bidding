@@ -12,7 +12,9 @@ export function missingProjectsColumn(message: string): string | null {
   const match = message.match(
     /Could not find the '([^']+)' column of 'projects'/i,
   );
-  return match?.[1] ?? null;
+  if (match?.[1]) return match[1];
+  const postgres = message.match(/column projects\.([a-z_]+) does not exist/i);
+  return postgres?.[1] ?? null;
 }
 
 export function readNestedProjectDetail(

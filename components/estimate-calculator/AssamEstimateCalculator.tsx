@@ -640,7 +640,7 @@ export function AssamEstimateCalculator({ onChangeType }: { onChangeType: () => 
                   value={inputs.rates.mistriPerSqft}
                   suffix="₹/sqft"
                   onChange={(n) => updateRate('mistriPerSqft', Math.max(0, n))}
-                  hint="Labour = built-up sqft × this rate"
+                  hint="Mistri = built-up sqft × this rate"
                 />
                 <NumField
                   label="Cement rate"

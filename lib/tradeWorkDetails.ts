@@ -440,8 +440,8 @@ const LEGACY_PLUMBER_SCOPE_LABELS: Record<PlumberScopeType, string> = {
 };
 
 export const PLUMBER_MATERIAL_OPTIONS: { value: PlumberMaterialScope; label: string }[] = [
-  { value: 'labour_only', label: 'Labour Only (Client provides materials)' },
-  { value: 'labour_plus_pipes', label: 'Labour + Pipes & Fittings' },
+  { value: 'labour_only', label: 'Plumber charges only (Client provides materials)' },
+  { value: 'labour_plus_pipes', label: 'Plumber charges + Pipes & Fittings' },
 ];
 
 export const BATHROOM_PACKAGE_OPTIONS: {
@@ -728,7 +728,7 @@ export const LEGACY_PLUMBING_SUB_OPTIONS: PlumbingSubOptionDef[] = [
 ];
 
 export const PLUMBING_LABOUR_ONLY_DISCLAIMER =
-  'All bids are strictly for LABOUR CHARGES. Materials must be supplied by the Property Owner.';
+  'All bids are strictly for PLUMBER CHARGES. Materials must be supplied by the Property Owner.';
 
 export const ALL_PLUMBING_SUB_OPTIONS = [
   ...PLUMBING_SCOPE_PACKAGES.flatMap((pkg) => pkg.options),
@@ -878,12 +878,12 @@ export const ELECTRICIAN_MATERIAL_OPTIONS: {
   value: ElectricianMaterialScope;
   label: string;
 }[] = [
-  { value: 'labour_only', label: 'Labour Only' },
-  { value: 'labour_plus_wire', label: 'Labour + Wire/Conduits' },
+  { value: 'labour_only', label: 'Electrician charges only' },
+  { value: 'labour_plus_wire', label: 'Electrician charges + Wire/Conduits' },
 ];
 
 export const ELECTRICIAN_LABOUR_ONLY_DISCLAIMER =
-  'All bids are strictly for LABOUR CHARGES. Materials must be supplied by the Property Owner.';
+  'All bids are strictly for ELECTRICIAN CHARGES. Materials must be supplied by the Property Owner.';
 
 export const ELECTRICIAN_SCOPE_PACKAGES: {
   id: ElectricianPackageKind;
@@ -1002,7 +1002,7 @@ export const ELECTRICIAN_SCOPE_PACKAGES: {
 ];
 
 export const INTERIOR_DESIGNER_LABOUR_ONLY_DISCLAIMER =
-  'All bids are strictly for LABOUR CHARGES. Materials must be supplied by the Property Owner.';
+  'All bids are strictly for INTERIOR DESIGNER CHARGES. Materials must be supplied by the Property Owner.';
 
 export const INTERIOR_DESIGNER_SCOPE_PACKAGES: {
   id: InteriorDesignerPackageKind;
@@ -1183,7 +1183,7 @@ const LEGACY_EARTHWORK_TYPE_LABELS: Record<EarthworkType, string> = {
 export const EARTHWORK_MACHINE_OPTIONS: { value: EarthworkMachine; label: string }[] = [
   { value: 'jcb_excavator', label: 'JCB / Excavator Required' },
   { value: 'tractor_dumper', label: 'Tractor / Dumper Required' },
-  { value: 'manual_labour', label: 'Manual Labour Only' },
+  { value: 'manual_labour', label: 'Manual work only' },
   { value: 'tractor', label: 'Tractor' },
   { value: 'dumper', label: 'Dumper' },
 ];

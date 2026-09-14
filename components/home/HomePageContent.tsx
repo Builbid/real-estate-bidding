@@ -1,5 +1,6 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useMemo, useState } from 'react';
 import {
   Activity, BadgeCheck, Building2, Clock, Gavel, Star,
@@ -9,7 +10,6 @@ import { HeroBackgroundSlideshow } from '@/components/shared/HeroBackgroundSlide
 import { ProjectCard } from '@/components/shared/ProjectCard';
 import { ActiveProjectsShowcaseGrid } from '@/components/home/ActiveProjectsShowcaseGrid';
 import { ServiceCategoryBar } from '@/components/home/ServiceCategoryBar';
-import { FeaturedFirmsSection } from '@/components/home/FeaturedFirmsSection';
 import { ProjectDistrictFilter, type DistrictFilterValue } from '@/components/shared/ProjectDistrictFilter';
 import { getUniqueDistrictsFromProjects, matchesDistrictFilter } from '@/lib/project/districtFilter';
 import { useTranslation } from '@/lib/context/LanguageProvider';
@@ -18,13 +18,17 @@ import type { Project } from '@/lib/types';
 import type { ShowcaseProject } from '@/lib/projectShowcase';
 import type { StatIconColor } from '@/lib/dashboard/statIconStyles';
 import { cn } from '@/lib/utils';
+import { useClientAuthHint } from '@/lib/auth/useClientAuthHint';
+
+const FeaturedFirmsSection = dynamic(
+  () => import('@/components/home/FeaturedFirmsSection').then((mod) => mod.FeaturedFirmsSection),
+  { ssr: true },
+);
 
 interface HomePageContentProps {
   showcaseProjects: ShowcaseProject[];
   frozenProjects: Project[];
   statValues: Record<string, number>;
-  isAuthenticated: boolean;
-  role: string | null;
   featuredFirms: DemoFirm[];
 }
 
@@ -32,11 +36,10 @@ export function HomePageContent({
   showcaseProjects,
   frozenProjects,
   statValues,
-  isAuthenticated,
-  role,
   featuredFirms,
 }: HomePageContentProps) {
   const { t } = useTranslation();
+  const { isAuthenticated, role } = useClientAuthHint();
   const [frozenDistrictFilter, setFrozenDistrictFilter] = useState<DistrictFilterValue>('all');
 
   const frozenDistricts = useMemo(

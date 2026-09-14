@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { isOfficialAdminEmail } from '@/lib/admin/constants'
+import { hasSupabaseAuthCookie } from '@/lib/auth/authCookie'
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -52,11 +53,36 @@ export async function proxy(request: NextRequest) {
     return supabaseResponse;
   }
 
+  // Dashboard: local JWT/session only. getUser() always hits Auth over the network.
+  if (
+    (pathname.startsWith('/dashboard') || pathname.startsWith('/provider')) &&
+    !isAdminRoute
+  ) {
+    if (!hasSupabaseAuthCookie(request.cookies.getAll())) {
+      const loginUrl = request.nextUrl.clone();
+      loginUrl.pathname = '/login';
+      loginUrl.searchParams.set('next', pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    if (!session?.user) {
+      const loginUrl = request.nextUrl.clone();
+      loginUrl.pathname = '/login';
+      loginUrl.searchParams.set('next', pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+
+    return supabaseResponse;
+  }
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Official admin portal — email-gated (except login page)
   if (isAdminRoute) {
     if (isAdminLogin) {
       if (user && isOfficialAdminEmail(user.email)) {
@@ -75,16 +101,6 @@ export async function proxy(request: NextRequest) {
     }
 
     return supabaseResponse;
-  }
-
-  if (
-    (pathname.startsWith('/dashboard') || pathname.startsWith('/provider')) &&
-    !user
-  ) {
-    const loginUrl = request.nextUrl.clone();
-    loginUrl.pathname = '/login';
-    loginUrl.searchParams.set('next', pathname);
-    return NextResponse.redirect(loginUrl);
   }
 
   return supabaseResponse;

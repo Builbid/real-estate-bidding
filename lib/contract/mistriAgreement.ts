@@ -23,12 +23,35 @@ import {
   getMistriFlooringRateDisplayEntries,
   resolveMistriCivilFloors,
 } from '@/lib/bid/mistriCivilCost';
+import {
+  AGREEMENT_MANUAL_DATE_BLANK,
+  BUILBID_CORP_GMAIL,
+  BUILBID_OFFICIAL_AGREEMENT_EMAILS,
+  PAGE_MARGIN_MM,
+  cleanAgreementText,
+  drawOfficialHeader,
+  drawFillInPrompt,
+  drawParagraph,
+  drawRows,
+  drawSectionTitle,
+  drawSignatureBlock,
+  ensurePage,
+  formatBuilbidPublicId,
+  formatInrAmount,
+  nonEmpty,
+  numericProjectId,
+  officialAgreementEmailSubject,
+  officialAgreementFileName,
+  type AgreementParty,
+  type AgreementRow,
+} from '@/lib/contract/agreementPdf';
 
-/** Official mailbox that already receives selection notices (GMAIL_USER). */
-export const BUILBID_CORP_GMAIL = 'builbidcorp@gmail.com';
-
-/** Default official recipients for mistri agreement PDFs. */
-export const BUILBID_OFFICIAL_AGREEMENT_EMAILS = [BUILBID_CORP_GMAIL] as const;
+export {
+  AGREEMENT_MANUAL_DATE_BLANK,
+  BUILBID_CORP_GMAIL,
+  BUILBID_OFFICIAL_AGREEMENT_EMAILS,
+  formatBuilbidPublicId,
+};
 
 const STRUCTURAL_CIVIL_TYPES: ReadonlySet<string> = new Set<MistriCivilWorkType | string>([
   'complete_full_structure',
@@ -51,31 +74,6 @@ const SCOPE_LABELS_EXCLUDED_FROM_AGREEMENT = new Set([
   'Approximate Built-up Area (Sqft)',
   MISTRI_APPROXIMATE_AREA_LABEL,
 ]);
-
-/** Blank line on the printed agreement so dates can be filled in by hand on site. */
-export const AGREEMENT_MANUAL_DATE_BLANK = '________________________';
-
-/** Table / box border — slate-200. */
-const BORDER_RGB: [number, number, number] = [226, 232, 240];
-const PAGE_MARGIN_MM = 14;
-
-/**
- * Short public BuilBid ID for agreements (e.g. BB-FBC030A1).
- * Deterministic from the profile UUID — not a separate DB column.
- */
-export function formatBuilbidPublicId(id: string | null | undefined): string {
-  const raw = id?.trim();
-  if (!raw) return '—';
-  // Already a short public code
-  if (/^BB-[0-9A-Z]{6,10}$/i.test(raw)) return raw.toUpperCase();
-  const hex = raw.replace(/-/g, '').toUpperCase();
-  if (/^[0-9A-F]{8,}$/.test(hex)) {
-    return `BB-${hex.slice(0, 8)}`;
-  }
-  const compact = raw.replace(/[^0-9A-Za-z]/g, '').toUpperCase();
-  if (compact.length >= 6) return `BB-${compact.slice(0, 8)}`;
-  return `BB-${compact || 'UNKNOWN'}`;
-}
 
 export function isMistriCivilService(serviceType?: string | null): boolean {
   const value = (serviceType ?? 'labour_contractor').toLowerCase();
@@ -102,17 +100,7 @@ export interface MistriAgreementProjectInput {
   service_type?: ServiceType | string | null;
 }
 
-export interface MistriAgreementParty {
-  name: string;
-  email?: string | null;
-  mobile?: string | null;
-  address?: string | null;
-  companyName?: string | null;
-  gstNumber?: string | null;
-  yearsInBusiness?: number | null;
-  isVerified?: boolean | null;
-  platformId?: string | null;
-}
+export type MistriAgreementParty = AgreementParty;
 
 export interface MistriAgreementBidInput {
   id?: string | null;
@@ -121,10 +109,7 @@ export interface MistriAgreementBidInput {
   rates?: BidRates | Partial<BidRates> | null;
 }
 
-export interface MistriAgreementRow {
-  label: string;
-  value: string;
-}
+export type MistriAgreementRow = AgreementRow;
 
 export interface MistriAgreementPayload {
   projectId: string;
@@ -147,16 +132,6 @@ export interface MistriAgreementPayload {
   agreedCompletionDate: string;
 }
 
-/** Platform currency uses ₹; Helvetica cannot draw it — PDF draw path maps to Rs. */
-function formatInrAmount(value: number): string {
-  if (!Number.isFinite(value) || value <= 0) return '₹—';
-  return `₹${Math.round(value).toLocaleString('en-IN')}`;
-}
-
-function pdfSafeText(text: string): string {
-  return text.replace(/₹/g, 'Rs.');
-}
-
 function formatCivilRatePerSlab(value: number): string {
   return `${formatInrAmount(value)} / sq. ft. of slab area`;
 }
@@ -167,20 +142,6 @@ function formatWallRatePerWall(value: number): string {
 
 function formatFlooringRatePerFloor(value: number): string {
   return `${formatInrAmount(value)} / sq. ft. of floor area`;
-}
-
-/** Strip accidental trailing punctuation like ". ." from formatted strings. */
-function cleanAgreementText(value: string): string {
-  return value
-    .replace(/\s+\.\s*\./g, '.')
-    .replace(/\.\s+\./g, '.')
-    .replace(/\s{2,}/g, ' ')
-    .trim();
-}
-
-function nonEmpty(value: string | null | undefined, fallback = '—'): string {
-  const trimmed = value?.trim();
-  return trimmed ? trimmed : fallback;
 }
 
 function hasRccBuildingContext(project: MistriAgreementProjectInput): boolean {
@@ -333,9 +294,7 @@ export function buildMistriAgreementPayload(input: {
 
   return {
     projectId: project.id,
-    numericProjectId: project.numeric_id?.trim() && /^[0-9]{6}$/.test(project.numeric_id.trim())
-      ? project.numeric_id.trim()
-      : '',
+    numericProjectId: numericProjectId(project.numeric_id),
     projectTitle: project.title,
     generatedAtLabel: new Date().toLocaleString('en-IN', {
       timeZone: 'Asia/Kolkata',
@@ -359,130 +318,6 @@ export function buildMistriAgreementPayload(input: {
   };
 }
 
-function ensurePage(doc: jsPDF, y: number, need: number, margin: number): number {
-  const pageH = doc.internal.pageSize.getHeight();
-  if (y + need > pageH - margin) {
-    doc.addPage();
-    return margin;
-  }
-  return y;
-}
-
-function drawSectionTitle(doc: jsPDF, title: string, y: number, margin: number): number {
-  y = ensurePage(doc, y, 10, margin);
-  const usable = doc.internal.pageSize.getWidth() - margin * 2;
-  doc.setFillColor(15, 118, 110);
-  doc.rect(margin, y, usable, 6.5, 'F');
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8.5);
-  doc.setTextColor(255);
-  doc.text(title.toUpperCase(), margin + 2.5, y + 4.5);
-  doc.setTextColor(20);
-  return y + 9;
-}
-
-function drawRows(
-  doc: jsPDF,
-  rows: MistriAgreementRow[],
-  startY: number,
-  margin: number,
-): number {
-  const pageW = doc.internal.pageSize.getWidth();
-  const usable = pageW - margin * 2;
-  const labelW = usable * 0.38;
-  const valueW = usable - labelW;
-  const padX = 2.5;
-  let y = startY;
-
-  for (const row of rows) {
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8);
-    const labelLines = doc.splitTextToSize(pdfSafeText(row.label), labelW - padX * 2) as string[];
-    doc.setFont('helvetica', 'normal');
-    const valueLines = doc.splitTextToSize(pdfSafeText(row.value || '—'), valueW - padX * 2) as string[];
-    const rowH = Math.max(7, Math.max(labelLines.length, valueLines.length) * 3.8 + 3.5);
-    y = ensurePage(doc, y, rowH + 0.5, margin);
-    doc.setDrawColor(...BORDER_RGB);
-    doc.setLineWidth(0.3);
-    doc.rect(margin, y, usable, rowH);
-    doc.line(margin + labelW, y, margin + labelW, y + rowH);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8);
-    doc.setTextColor(40);
-    doc.text(labelLines, margin + padX, y + 4.2);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(20);
-    doc.text(valueLines, margin + labelW + padX, y + 4.2);
-    y += rowH;
-  }
-  return y + 3.5;
-}
-
-function drawParagraph(
-  doc: jsPDF,
-  text: string,
-  startY: number,
-  margin: number,
-  opts?: { bold?: boolean; fill?: [number, number, number]; bordered?: boolean },
-): number {
-  const pageW = doc.internal.pageSize.getWidth();
-  const usable = pageW - margin * 2;
-  const padX = 3.5;
-  const padY = 3.2;
-  doc.setFont('helvetica', opts?.bold ? 'bold' : 'normal');
-  doc.setFontSize(8);
-  const lines = doc.splitTextToSize(pdfSafeText(text), usable - padX * 2) as string[];
-  const boxH = lines.length * 3.7 + padY * 2;
-  const y = ensurePage(doc, startY, boxH + 1.5, margin);
-  if (opts?.fill) {
-    doc.setFillColor(...opts.fill);
-    doc.rect(margin, y, usable, boxH, 'F');
-  }
-  if (opts?.bordered || opts?.fill) {
-    doc.setDrawColor(...BORDER_RGB);
-    doc.setLineWidth(0.35);
-    doc.rect(margin, y, usable, boxH, 'S');
-  }
-  doc.setTextColor(30);
-  doc.text(lines, margin + padX, y + padY + 2.2);
-  return y + boxH + 2.5;
-}
-
-function drawSignatureBlock(doc: jsPDF, startY: number, margin: number): number {
-  const pageW = doc.internal.pageSize.getWidth();
-  const usable = pageW - margin * 2;
-  const gap = 3;
-  const boxW = (usable - gap * 2) / 3;
-  const boxH = 32;
-  const y = ensurePage(doc, startY, boxH + 2, margin);
-  const labels = [
-    ['PARTY A: HOMEOWNER', 'Signature / Thumb'],
-    ['PARTY B: HEAD MASON', 'Signature / Thumb'],
-    ['WITNESS / BUILBID', 'Coordinator Signature'],
-  ];
-  labels.forEach((pair, i) => {
-    const x = margin + i * (boxW + gap);
-    doc.setDrawColor(...BORDER_RGB);
-    doc.setLineWidth(0.35);
-    doc.rect(x, y, boxW, boxH);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(6.5);
-    doc.setTextColor(20);
-    const title = doc.splitTextToSize(pair[0], boxW - 4) as string[];
-    doc.text(title, x + 2, y + 4.5);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(6.5);
-    doc.setTextColor(80);
-    const sub = doc.splitTextToSize(pair[1], boxW - 4) as string[];
-    doc.text(sub, x + 2, y + 10);
-    doc.setDrawColor(120);
-    doc.line(x + 3, y + 22, x + boxW - 3, y + 22);
-    doc.setFontSize(6.5);
-    doc.text('Date: ____ / ____ / 20__', x + 2, y + 28);
-  });
-  return y + boxH + 4;
-}
-
 /**
  * Official signed mistri agreement PDF.
  * Currency uses "Rs." (Helvetica-safe). On-screen/email copy may show ₹.
@@ -491,20 +326,12 @@ export function generateMistriAgreementPdfBytes(payload: MistriAgreementPayload)
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const margin = PAGE_MARGIN_MM;
   const pageW = doc.internal.pageSize.getWidth();
-  let y = margin;
-
-  doc.setFillColor(15, 23, 42);
-  doc.rect(0, 0, pageW, 22, 'F');
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(13);
-  doc.setTextColor(255);
-  doc.text('BUILBID', margin, 9);
-  doc.setFontSize(9);
-  doc.text('DIGITAL CONSTRUCTION & LABOUR AGREEMENT', margin, 14.5);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7.5);
-  doc.text('Head Mason (Mistri / RCC Civil Work)  |  Official platform record', margin, 19);
-  y = 26;
+  let y = drawOfficialHeader(
+    doc,
+    margin,
+    'Head Mason (Mistri / RCC Civil Work)  |  Official platform record',
+    'DIGITAL CONSTRUCTION & MISTRI AGREEMENT',
+  );
 
   y = drawParagraph(
     doc,
@@ -547,9 +374,10 @@ export function generateMistriAgreementPdfBytes(payload: MistriAgreementPayload)
     y,
     margin,
   );
+  y = drawFillInPrompt(doc, 'Plinth Area', 'sqft', y, margin);
   y = drawParagraph(
     doc,
-    'Excluded Extra / Decorative Work: This agreement covers primary structural labour accepted during bidding only. Decorative plastering, complex moulding, or elevation designs are excluded and must be negotiated separately without BuilBid involvement.',
+    'Excluded Extra / Decorative Work: This agreement covers primary structural Mistri work accepted during bidding only. Decorative plastering, complex moulding, or elevation designs are excluded and must be negotiated separately without BuilBid involvement.',
     y,
     margin,
   );
@@ -596,7 +424,7 @@ export function generateMistriAgreementPdfBytes(payload: MistriAgreementPayload)
   );
   y = drawParagraph(
     doc,
-    'Mistri Delay Penalty (5%): If the project extends beyond the 10-day grace period due to unexcused Mistri delay or absenteeism, a 5% penalty is deducted from the labour payout through BuilBid.',
+    'Mistri Delay Penalty (5%): If the project extends beyond the 10-day grace period due to unexcused Mistri delay or absenteeism, a 5% penalty is deducted from the Mistri payout through BuilBid.',
     y,
     margin,
     { bold: true, fill: [254, 226, 226], bordered: true },
@@ -625,14 +453,9 @@ export function generateMistriAgreementPdfBytes(payload: MistriAgreementPayload)
 }
 
 export function mistriAgreementFileName(projectId: string, numericId?: string | null): string {
-  const numeric = numericId?.trim();
-  const safe = numeric && /^[0-9]{6}$/.test(numeric)
-    ? numeric
-    : projectId.replace(/[^a-zA-Z0-9-_]/g, '').slice(0, 36) || 'project';
-  return `Official-Signed-Agreement-${safe}.pdf`;
+  return officialAgreementFileName(projectId, numericId);
 }
 
 export function mistriAgreementEmailSubject(projectId: string, numericId?: string | null): string {
-  const id = numericId?.trim() && /^[0-9]{6}$/.test(numericId.trim()) ? numericId.trim() : projectId;
-  return `Official Signed Agreement - Project #${id} (Mistri / Civil Work)`;
+  return officialAgreementEmailSubject(projectId, numericId, 'Mistri / Civil Work');
 }
