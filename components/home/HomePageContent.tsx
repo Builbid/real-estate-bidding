@@ -18,6 +18,7 @@ import type { Project } from '@/lib/types';
 import type { ShowcaseProject } from '@/lib/projectShowcase';
 import type { StatIconColor } from '@/lib/dashboard/statIconStyles';
 import { cn } from '@/lib/utils';
+import { useClientAuthHint } from '@/lib/auth/useClientAuthHint';
 
 const FeaturedFirmsSection = dynamic(
   () => import('@/components/home/FeaturedFirmsSection').then((mod) => mod.FeaturedFirmsSection),
@@ -28,8 +29,6 @@ interface HomePageContentProps {
   showcaseProjects: ShowcaseProject[];
   frozenProjects: Project[];
   statValues: Record<string, number>;
-  isAuthenticated: boolean;
-  role: string | null;
   featuredFirms: DemoFirm[];
 }
 
@@ -37,11 +36,10 @@ export function HomePageContent({
   showcaseProjects,
   frozenProjects,
   statValues,
-  isAuthenticated,
-  role,
   featuredFirms,
 }: HomePageContentProps) {
   const { t } = useTranslation();
+  const { isAuthenticated, role } = useClientAuthHint();
   const [frozenDistrictFilter, setFrozenDistrictFilter] = useState<DistrictFilterValue>('all');
 
   const frozenDistricts = useMemo(

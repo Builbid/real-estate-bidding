@@ -18,6 +18,7 @@ import { CreateAccountButton } from '@/components/shared/CreateAccountButton';
 import { useTranslation } from '@/lib/context/LanguageProvider';
 import { cn } from '@/lib/utils';
 import { normalizeRole, getDashboardPath } from '@/lib/auth/roles';
+import { useClientAuthHint } from '@/lib/auth/useClientAuthHint';
 import { getProfileRoleLabel } from '@/lib/auth/profileRoleLabel';
 import { clientSignOut } from '@/lib/auth/clientSignOut';
 import { NAV_LOGO_LINK, NAV_MENU_ITEM } from '@/lib/navStyles';
@@ -49,6 +50,7 @@ export function Navbar({ overlay = false, authHint }: NavbarProps) {
   const router      = useRouter();
   const { profile, clearProfile, refreshProfile } = useProfile();
   const { t }       = useTranslation();
+  const sessionHint = useClientAuthHint(authHint);
   const [menuOpen, setMenuOpen] = useState(false);
   const [signOutOpen, setSignOutOpen] = useState(false);
   const [signedOut, setSignedOut] = useState(false);
@@ -60,10 +62,10 @@ export function Navbar({ overlay = false, authHint }: NavbarProps) {
 
   useEffect(() => {
     if (signedOut) return;
-    if (authHint?.isAuthenticated && !profile) {
+    if (sessionHint.isAuthenticated && !profile) {
       void refreshProfile();
     }
-  }, [authHint, profile, refreshProfile, signedOut]);
+  }, [sessionHint.isAuthenticated, profile, refreshProfile, signedOut]);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -85,12 +87,12 @@ export function Navbar({ overlay = false, authHint }: NavbarProps) {
   }, [menuOpen]);
 
   const isLoggedIn = !signedOut && (
-    Boolean(profile) || Boolean(authHint?.isAuthenticated)
+    Boolean(profile) || sessionHint.isAuthenticated
   );
   const normalizedRole = profile
     ? normalizeRole(profile.role)
-    : !signedOut && authHint?.role
-      ? normalizeRole(authHint.role)
+    : !signedOut && sessionHint.role
+      ? normalizeRole(sessionHint.role)
       : null;
   const roleLabel = profile
     ? getProfileRoleLabel(profile, t)

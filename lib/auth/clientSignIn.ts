@@ -1,7 +1,11 @@
 'use client';
 
 import { createClient } from '@/lib/supabase/client';
-import { getDashboardPath } from '@/lib/auth/roles';
+import {
+  getDashboardPath,
+  needsServiceProviderLookup,
+  roleFromUserMetadata,
+} from '@/lib/auth/roles';
 
 export async function clientSignIn(
   email: string,
@@ -18,19 +22,23 @@ export async function clientSignIn(
     return { error: error.message, redirectPath: '/dashboard' };
   }
 
-  const userId = data.user.id;
+  const meta = (data.user.user_metadata ?? {}) as Record<string, unknown>;
+  const metaRole = roleFromUserMetadata(meta);
+
+  if (metaRole && !needsServiceProviderLookup(metaRole)) {
+    return { error: null, redirectPath: getDashboardPath(metaRole) };
+  }
 
   const { data: provider } = await supabase
     .from('service_providers')
     .select('id')
-    .eq('id', userId)
+    .eq('id', data.user.id)
     .maybeSingle();
 
   if (provider) {
-    return { error: null, redirectPath: '/provider/dashboard' };
+    return { error: null, redirectPath: getDashboardPath('service_provider') };
   }
 
-  const metaRole = data.user.user_metadata?.role as string | undefined;
   if (metaRole) {
     return { error: null, redirectPath: getDashboardPath(metaRole) };
   }
@@ -39,7 +47,7 @@ export async function clientSignIn(
     .from('profiles')
     .select('role')
     .eq('id', data.user.id)
-    .single();
+    .maybeSingle();
 
   return { error: null, redirectPath: getDashboardPath(profile?.role) };
 }

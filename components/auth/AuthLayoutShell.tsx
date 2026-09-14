@@ -5,23 +5,26 @@ import { Navbar } from '@/components/shared/Navbar';
 import { Footer } from '@/components/shared/Footer';
 import { AuthSimpleHeader } from '@/components/auth/AuthSimpleHeader';
 
-function isMinimalSignupPath(pathname: string) {
+function isMinimalAuthPath(pathname: string) {
   return (
+    pathname === '/login' ||
     pathname === '/signup' ||
     pathname.startsWith('/signup/') ||
-    pathname === '/register'
+    pathname === '/register' ||
+    pathname === '/forgot-password' ||
+    pathname === '/reset-password'
   );
 }
 
 export function AuthLayoutShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? '';
-  const minimalSignup = isMinimalSignupPath(pathname);
+  const minimal = isMinimalAuthPath(pathname);
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
-      {minimalSignup ? <AuthSimpleHeader /> : <Navbar />}
+      {minimal ? <AuthSimpleHeader hideSignIn={pathname === '/login'} /> : <Navbar />}
       <main className="flex-1 flex flex-col">{children}</main>
-      {!minimalSignup && <Footer compact />}
+      {!minimal && <Footer compact />}
     </div>
   );
 }
