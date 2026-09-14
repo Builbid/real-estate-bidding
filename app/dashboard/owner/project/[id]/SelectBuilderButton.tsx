@@ -3,34 +3,61 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { UserCheck } from 'lucide-react';
-import { selectBuilderAction } from '@/app/actions/select';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 
 interface Props {
-  projectId:   string;
-  builderId:   string;
+  projectId: string;
+  builderId: string;
   builderName?: string;
 }
 
 export function SelectBuilderButton({ projectId, builderId, builderName }: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [error,   setError]   = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   async function handleSelect() {
-    if (!confirm(`Select ${builderName ?? 'this builder'} for your project?\n\nA confirmation email will be sent to builbidcorp@gmail.com.`)) return;
+    const pid = projectId?.trim();
+    const bid = builderId?.trim();
+    if (!pid || !bid) {
+      setError('Project or builder is missing. Refresh the page and try again.');
+      return;
+    }
+    if (!confirm(`Select ${builderName ?? 'this builder'} for your project?\n\nA confirmation email will be sent to builbidcorp@gmail.com.`)) {
+      return;
+    }
     setLoading(true);
     setError(null);
 
-    const result = await selectBuilderAction(projectId, builderId, builderName);
-    if (result.error) {
-      setError(result.error);
-      setLoading(false);
-      return;
-    }
+    try {
+      const res = await fetch('/api/projects/select-builder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          projectId: pid,
+          builderId: bid,
+          builderName,
+        }),
+      });
+      const body = (await res.json().catch(() => null)) as { error?: string; success?: boolean } | null;
+      if (!res.ok || body?.error) {
+        const message = body?.error || 'Could not select this builder. Please try again.';
+        setError(message);
+        toast.error(message);
+        setLoading(false);
+        return;
+      }
 
-    router.refresh();
-    setLoading(false);
+      toast.success('Builder Selected Successfully');
+      router.refresh();
+    } catch {
+      const message = 'Could not select this builder. Please try again.';
+      setError(message);
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (

@@ -5,6 +5,7 @@ import { TopBar } from './TopBar';
 import { Footer } from '@/components/shared/Footer';
 import { ProfileProvider } from '@/lib/context/ProfileProvider';
 import { DashboardSidebar } from '@/components/dashboard/DashboardSidebar';
+import { AppToaster } from '@/components/shared/AppToaster';
 import type { Profile, UserRole } from '@/lib/types';
 import { normalizeRole } from '@/lib/auth/roles';
 
@@ -53,6 +54,7 @@ export default async function DashboardLayout({ children }: DashboardLayoutProps
   return (
     <ProfileProvider initialProfile={profile as Profile}>
       <div className="min-h-screen flex bg-background">
+        <AppToaster />
         <DashboardSidebar
           role={role}
           roleColor={roleConfig.color}
