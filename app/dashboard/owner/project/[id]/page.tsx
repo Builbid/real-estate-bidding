@@ -17,6 +17,8 @@ import { UnifiedFirmBidRankings } from './UnifiedFirmBidRankings';
 import { isFirmProject } from '@/lib/project/display';
 import { isMistriCivilService, buildMistriAgreementPayload } from '@/lib/contract/mistriAgreement';
 import { isPlumberService, buildPlumberAgreementPayload } from '@/lib/contract/plumberAgreement';
+import { isElectricianService, buildElectricianAgreementPayload } from '@/lib/contract/electricianAgreement';
+import { isPainterService, buildPainterAgreementPayload } from '@/lib/contract/painterAgreement';
 import { AgreementForm } from '@/components/contract/AgreementForm';
 
 interface BuilderInfo {
@@ -119,6 +121,8 @@ export default async function OwnerProjectPage({ params }: PageProps) {
   const isFirm = isFirmProject(project);
   const isMistri = isMistriCivilService(project.service_type);
   const isPlumber = isPlumberService(project.service_type);
+  const isElectrician = isElectricianService(project.service_type);
+  const isPainter = isPainterService(project.service_type);
 
   const configSummary = (
     <ConstructionMatrixSummary
@@ -160,6 +164,32 @@ export default async function OwnerProjectPage({ params }: PageProps) {
           owner: { name: ownerName || 'Owner' },
           plumber: {
             name: selectedBuilder?.full_name ?? 'Plumber',
+            platformId: project.selected_builder_id,
+          },
+        })
+      : null;
+
+  const electricianAgreement =
+    isElectrician && project.selected_builder_id
+      ? buildElectricianAgreementPayload({
+          project,
+          bid: winningBid,
+          owner: { name: ownerName || 'Owner' },
+          electrician: {
+            name: selectedBuilder?.full_name ?? 'Electrician',
+            platformId: project.selected_builder_id,
+          },
+        })
+      : null;
+
+  const painterAgreement =
+    isPainter && project.selected_builder_id
+      ? buildPainterAgreementPayload({
+          project,
+          bid: winningBid,
+          owner: { name: ownerName || 'Owner' },
+          painter: {
+            name: selectedBuilder?.full_name ?? 'Painter',
             platformId: project.selected_builder_id,
           },
         })
@@ -222,6 +252,38 @@ export default async function OwnerProjectPage({ params }: PageProps) {
             agreedStartDate={plumberAgreement.agreedStartDate}
             agreedCompletionDate={plumberAgreement.agreedCompletionDate}
             serviceKind="plumber"
+          />
+        )}
+
+        {electricianAgreement && (
+          <AgreementForm
+            projectId={project.id}
+            projectTitle={project.title}
+            clientName={electricianAgreement.client.name}
+            contractorName={electricianAgreement.electrician.companyName || electricianAgreement.electrician.name}
+            siteAddress={electricianAgreement.siteAddress}
+            acceptedRateLabel={electricianAgreement.acceptedRateLabel}
+            rateRows={electricianAgreement.bidRows}
+            scopePreview={electricianAgreement.scopeRows}
+            agreedStartDate={electricianAgreement.agreedStartDate}
+            agreedCompletionDate={electricianAgreement.agreedCompletionDate}
+            serviceKind="electrician"
+          />
+        )}
+
+        {painterAgreement && (
+          <AgreementForm
+            projectId={project.id}
+            projectTitle={project.title}
+            clientName={painterAgreement.client.name}
+            contractorName={painterAgreement.painter.companyName || painterAgreement.painter.name}
+            siteAddress={painterAgreement.siteAddress}
+            acceptedRateLabel={painterAgreement.acceptedRateLabel}
+            rateRows={painterAgreement.bidRows}
+            scopePreview={painterAgreement.scopeRows}
+            agreedStartDate={painterAgreement.agreedStartDate}
+            agreedCompletionDate={painterAgreement.agreedCompletionDate}
+            serviceKind="painter"
           />
         )}
 

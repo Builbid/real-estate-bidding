@@ -5,6 +5,8 @@ import { createClient }      from '@/lib/supabase/server'
 import { sendSelectionNotification, sendUserNotificationEmail } from '@/lib/email/sendNotification'
 import { sendOfficialMistriAgreementEmail } from '@/lib/email/sendMistriAgreement'
 import { sendOfficialPlumberAgreementEmail } from '@/lib/email/sendPlumberAgreement'
+import { sendOfficialElectricianAgreementEmail } from '@/lib/email/sendElectricianAgreement'
+import { sendOfficialPainterAgreementEmail } from '@/lib/email/sendPainterAgreement'
 import {
   buildMistriAgreementPayload,
   generateMistriAgreementPdfBytes,
@@ -17,6 +19,18 @@ import {
   isPlumberService,
   plumberAgreementFileName,
 } from '@/lib/contract/plumberAgreement'
+import {
+  buildElectricianAgreementPayload,
+  generateElectricianAgreementPdfBytes,
+  isElectricianService,
+  electricianAgreementFileName,
+} from '@/lib/contract/electricianAgreement'
+import {
+  buildPainterAgreementPayload,
+  generatePainterAgreementPdfBytes,
+  isPainterService,
+  painterAgreementFileName,
+} from '@/lib/contract/painterAgreement'
 import { getConstructionLabel } from '@/lib/utils'
 import { formatPackageRateRange } from '@/lib/firm/bidDisplay'
 import type { BidRates, PackageBidPrice, SubConfiguration, TrackType } from '@/lib/types'
@@ -311,8 +325,12 @@ export async function selectBuilderAction(
 
     const isMistriProject = isMistriCivilService(existing.service_type as string)
     const isPlumberProject = isPlumberService(existing.service_type as string)
+    const isElectricianProject = isElectricianService(existing.service_type as string)
+    const isPainterProject = isPainterService(existing.service_type as string)
     let mistriAgreementPayload = null as ReturnType<typeof buildMistriAgreementPayload> | null
     let plumberAgreementPayload = null as ReturnType<typeof buildPlumberAgreementPayload> | null
+    let electricianAgreementPayload = null as ReturnType<typeof buildElectricianAgreementPayload> | null
+    let painterAgreementPayload = null as ReturnType<typeof buildPainterAgreementPayload> | null
     let agreementAttachment: Array<{ filename: string; content: Buffer; contentType: string }> | undefined
     const winningBidInput = winningBid
       ? {
@@ -402,6 +420,61 @@ export async function selectBuilderAction(
       } catch (pdfErr) {
         console.error('Plumber agreement PDF generation failed (non-fatal):', pdfErr)
       }
+    } else if (isElectricianProject) {
+      try {
+        electricianAgreementPayload = buildElectricianAgreementPayload({
+          project: {
+            id: projectId,
+            numeric_id: typeof existing.numeric_id === 'string' ? existing.numeric_id : null,
+            title: projectTitle,
+            district: projectDistrict,
+            state: typeof existing.state === 'string' ? existing.state : null,
+            pincode: typeof existing.pincode === 'string' ? existing.pincode : null,
+            description: typeof existing.description === 'string' ? existing.description : null,
+            trade_details: readNestedProjectDetail(existing, 'trade_details'),
+            sub_configuration: existing.sub_configuration,
+            service_type: existing.service_type as string | null,
+          },
+          bid: winningBidInput,
+          owner: ownerParty,
+          electrician: contractorParty,
+        })
+        const pdfBytes = generateElectricianAgreementPdfBytes(electricianAgreementPayload)
+        agreementAttachment = [{
+          filename: electricianAgreementFileName(projectId, electricianAgreementPayload.numericProjectId),
+          content: Buffer.from(pdfBytes),
+          contentType: 'application/pdf',
+        }]
+      } catch (pdfErr) {
+        console.error('Electrician agreement PDF generation failed (non-fatal):', pdfErr)
+      }
+    } else if (isPainterProject) {
+      try {
+        painterAgreementPayload = buildPainterAgreementPayload({
+          project: {
+            id: projectId,
+            numeric_id: typeof existing.numeric_id === 'string' ? existing.numeric_id : null,
+            title: projectTitle,
+            district: projectDistrict,
+            state: typeof existing.state === 'string' ? existing.state : null,
+            pincode: typeof existing.pincode === 'string' ? existing.pincode : null,
+            description: typeof existing.description === 'string' ? existing.description : null,
+            painter_details: readNestedProjectDetail(existing, 'painter_details'),
+            service_type: existing.service_type as string | null,
+          },
+          bid: winningBidInput,
+          owner: ownerParty,
+          painter: contractorParty,
+        })
+        const pdfBytes = generatePainterAgreementPdfBytes(painterAgreementPayload)
+        agreementAttachment = [{
+          filename: painterAgreementFileName(projectId, painterAgreementPayload.numericProjectId),
+          content: Buffer.from(pdfBytes),
+          contentType: 'application/pdf',
+        }]
+      } catch (pdfErr) {
+        console.error('Painter agreement PDF generation failed (non-fatal):', pdfErr)
+      }
     }
 
     await sendSelectionNotification({
@@ -447,6 +520,18 @@ export async function selectBuilderAction(
         await sendOfficialPlumberAgreementEmail(plumberAgreementPayload)
       } catch (agreementErr) {
         console.error('Official plumber agreement email failed (non-fatal):', agreementErr)
+      }
+    } else if (electricianAgreementPayload) {
+      try {
+        await sendOfficialElectricianAgreementEmail(electricianAgreementPayload)
+      } catch (agreementErr) {
+        console.error('Official electrician agreement email failed (non-fatal):', agreementErr)
+      }
+    } else if (painterAgreementPayload) {
+      try {
+        await sendOfficialPainterAgreementEmail(painterAgreementPayload)
+      } catch (agreementErr) {
+        console.error('Official painter agreement email failed (non-fatal):', agreementErr)
       }
     }
   } catch (err) {

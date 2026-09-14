@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { loadMistriAgreementPayload } from '@/lib/contract/loadMistriAgreement';
 import { loadPlumberAgreementPayload } from '@/lib/contract/loadPlumberAgreement';
+import { loadElectricianAgreementPayload } from '@/lib/contract/loadElectricianAgreement';
+import { loadPainterAgreementPayload } from '@/lib/contract/loadPainterAgreement';
 import {
   generateMistriAgreementPdfBytes,
   isMistriCivilService,
@@ -12,6 +14,16 @@ import {
   isPlumberService,
   plumberAgreementFileName,
 } from '@/lib/contract/plumberAgreement';
+import {
+  generateElectricianAgreementPdfBytes,
+  isElectricianService,
+  electricianAgreementFileName,
+} from '@/lib/contract/electricianAgreement';
+import {
+  generatePainterAgreementPdfBytes,
+  isPainterService,
+  painterAgreementFileName,
+} from '@/lib/contract/painterAgreement';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -48,6 +60,36 @@ export async function GET(request: Request) {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="${plumberAgreementFileName(projectId, loaded.payload.numericProjectId)}"`,
+      },
+    });
+  }
+
+  if (isElectricianService(project?.service_type)) {
+    const loaded = await loadElectricianAgreementPayload(projectId, user.id);
+    if ('error' in loaded) {
+      return NextResponse.json({ error: loaded.error }, { status: loaded.status });
+    }
+    const bytes = generateElectricianAgreementPdfBytes(loaded.payload);
+    return new NextResponse(Buffer.from(bytes), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="${electricianAgreementFileName(projectId, loaded.payload.numericProjectId)}"`,
+      },
+    });
+  }
+
+  if (isPainterService(project?.service_type)) {
+    const loaded = await loadPainterAgreementPayload(projectId, user.id);
+    if ('error' in loaded) {
+      return NextResponse.json({ error: loaded.error }, { status: loaded.status });
+    }
+    const bytes = generatePainterAgreementPdfBytes(loaded.payload);
+    return new NextResponse(Buffer.from(bytes), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="${painterAgreementFileName(projectId, loaded.payload.numericProjectId)}"`,
       },
     });
   }

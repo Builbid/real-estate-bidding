@@ -20,8 +20,39 @@ export interface AgreementFormProps {
   scopePreview: { label: string; value: string }[];
   agreedStartDate: string;
   agreedCompletionDate: string;
-  serviceKind?: 'mistri' | 'plumber';
+  serviceKind?: 'mistri' | 'plumber' | 'electrician' | 'painter';
 }
+
+const SERVICE_COPY = {
+  mistri: {
+    heading: 'Official Mistri / Civil Work Agreement',
+    role: 'Head Mason (Mistri)',
+    rateHeading: 'Accepted civil work rates',
+    noun: 'Mistri',
+    nounLower: 'mistri',
+  },
+  plumber: {
+    heading: 'Official Plumber Work Agreement',
+    role: 'Plumber',
+    rateHeading: 'Accepted plumbing rates',
+    noun: 'Plumber',
+    nounLower: 'plumber',
+  },
+  electrician: {
+    heading: 'Official Electrician Work Agreement',
+    role: 'Electrician',
+    rateHeading: 'Accepted electrical rates',
+    noun: 'Electrician',
+    nounLower: 'electrician',
+  },
+  painter: {
+    heading: 'Official Painter Work Agreement',
+    role: 'Painter',
+    rateHeading: 'Accepted painting rates',
+    noun: 'Painter',
+    nounLower: 'painter',
+  },
+} as const;
 
 export function AgreementForm({
   projectId,
@@ -44,12 +75,12 @@ export function AgreementForm({
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const isPlumber = serviceKind === 'plumber';
-  const heading = title ?? (isPlumber ? 'Official Plumber Work Agreement' : 'Official Mistri / Civil Work Agreement');
-  const roleLabel = contractorRoleLabel ?? (isPlumber ? 'Plumber' : 'Head Mason (Mistri)');
-  const rateHeading = acceptedRateHeading ?? (isPlumber ? 'Accepted plumbing rates' : 'Accepted civil work rates');
-  const workerNoun = isPlumber ? 'Plumber' : 'Mistri';
-  const workerNounLower = isPlumber ? 'plumber' : 'mistri';
+  const copy = SERVICE_COPY[serviceKind];
+  const heading = title ?? copy.heading;
+  const roleLabel = contractorRoleLabel ?? copy.role;
+  const rateHeading = acceptedRateHeading ?? copy.rateHeading;
+  const workerNoun = copy.noun;
+  const workerNounLower = copy.nounLower;
 
   async function downloadPdf() {
     setDownloading(true);
