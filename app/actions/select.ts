@@ -22,7 +22,7 @@ import { formatPackageRateRange } from '@/lib/firm/bidDisplay'
 import type { BidRates, PackageBidPrice, SubConfiguration, TrackType } from '@/lib/types'
 import type { ConstructionTypesMap } from '@/lib/buildingConfig'
 import { archiveAwardedProjectDocuments } from '@/lib/documents/archiveProjectDocuments'
-import { missingProjectsColumn } from '@/lib/project/storedDetails'
+import { readNestedProjectDetail } from '@/lib/project/storedDetails'
 import { revalidatePath } from 'next/cache'
 
 export async function selectBuilderAction(
@@ -33,29 +33,20 @@ export async function selectBuilderAction(
 ): Promise<{ error: string | null }> {
   const supabase = await createClient()
 
-  // 1. Confirm the project is still selectable (prevents double-select)
-  const PROJECT_SELECT =
-    'id, owner_id, title, district, state, pincode, description, track_type, sub_configuration, building_types, construction_types, total_floors, plot_area_sqft, floor_area_sqft, mistri_details, trade_details, status, selected_builder_id, service_type, numeric_id, drawing_url'
-
-  const firstLookup = await supabase
+  // 1. Confirm the project is still selectable (prevents double-select).
+  // Keep this column list stable — extra JSONB columns (e.g. trade_details)
+  // are missing on some production DBs and previously made Select fail with
+  // "Project not found" for Mistri jobs.
+  const { data: existing, error: fetchError } = await supabase
     .from('projects')
-    .select(PROJECT_SELECT)
+    .select('id, owner_id, title, district, state, pincode, description, track_type, sub_configuration, building_types, construction_types, total_floors, plot_area_sqft, floor_area_sqft, mistri_details, status, selected_builder_id, service_type, numeric_id, drawing_url')
     .eq('id', projectId)
     .single()
 
-  let existing = firstLookup.data
-  let fetchError = firstLookup.error
-  if (fetchError && missingProjectsColumn(fetchError.message) === 'trade_details') {
-    const retry = await supabase
-      .from('projects')
-      .select('id, owner_id, title, district, state, pincode, description, track_type, sub_configuration, building_types, construction_types, total_floors, plot_area_sqft, floor_area_sqft, mistri_details, status, selected_builder_id, service_type, numeric_id, drawing_url')
-      .eq('id', projectId)
-      .single()
-    existing = retry.data ? { ...retry.data, trade_details: undefined } : retry.data
-    fetchError = retry.error
+  if (fetchError || !existing) {
+    console.error('selectBuilderAction project lookup failed:', fetchError)
+    return { error: 'Project not found.' }
   }
-
-  if (fetchError || !existing) return { error: 'Project not found.' }
   if (existing.selected_builder_id) {
     return { error: 'A builder has already been selected for this project.' }
   }
@@ -289,7 +280,7 @@ export async function selectBuilderAction(
             state: existing.state,
             pincode: existing.pincode,
             description: existing.description,
-            trade_details: existing.trade_details,
+            trade_details: readNestedProjectDetail(existing, 'trade_details'),
             sub_configuration: existing.sub_configuration,
             service_type: existing.service_type,
           },

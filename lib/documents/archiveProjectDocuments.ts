@@ -19,6 +19,7 @@ import {
 import { generateProjectDocumentPdfBytes } from '@/lib/documents/pdf';
 import { generateNumericProjectId } from '@/lib/project/numericId';
 import { formatPackageRateRange } from '@/lib/firm/bidDisplay';
+import { missingProjectsColumn, readNestedProjectDetail } from '@/lib/project/storedDetails';
 import type { BidRates, PackageBidPrice, SubConfiguration, TrackType } from '@/lib/types';
 import type { ConstructionTypesMap } from '@/lib/buildingConfig';
 
@@ -137,13 +138,26 @@ export async function archiveAwardedProjectDocuments(options: {
 }): Promise<void> {
   const admin = createAdminClient();
 
-  const { data: project, error: projectError } = await admin
+  const ARCHIVE_SELECT =
+    'id, owner_id, title, district, state, pincode, description, track_type, sub_configuration, building_types, construction_types, total_floors, plot_area_sqft, floor_area_sqft, mistri_details, trade_details, service_type, selected_builder_id, selected_package, drawing_url, numeric_id';
+
+  let { data: project, error: projectError } = await admin
     .from('projects')
-    .select(
-      'id, owner_id, title, district, state, pincode, description, track_type, sub_configuration, building_types, construction_types, total_floors, plot_area_sqft, floor_area_sqft, mistri_details, trade_details, service_type, selected_builder_id, selected_package, drawing_url, numeric_id',
-    )
+    .select(ARCHIVE_SELECT)
     .eq('id', options.projectId)
     .maybeSingle();
+
+  if (projectError && missingProjectsColumn(projectError.message) === 'trade_details') {
+    const retry = await admin
+      .from('projects')
+      .select(
+        'id, owner_id, title, district, state, pincode, description, track_type, sub_configuration, building_types, construction_types, total_floors, plot_area_sqft, floor_area_sqft, mistri_details, service_type, selected_builder_id, selected_package, drawing_url, numeric_id',
+      )
+      .eq('id', options.projectId)
+      .maybeSingle();
+    project = retry.data ? { ...retry.data, trade_details: undefined } : retry.data;
+    projectError = retry.error;
+  }
 
   if (projectError || !project?.owner_id || !project.selected_builder_id) return;
 
@@ -255,7 +269,7 @@ export async function archiveAwardedProjectDocuments(options: {
             state: project.state,
             pincode: project.pincode,
             description: project.description,
-            trade_details: project.trade_details,
+            trade_details: readNestedProjectDetail(project, 'trade_details'),
             sub_configuration: project.sub_configuration,
             service_type: project.service_type,
           },

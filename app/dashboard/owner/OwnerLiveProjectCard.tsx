@@ -6,7 +6,8 @@ import { DeleteProjectButton } from './DeleteProjectButton';
 import { UnifiedBidRankings } from './project/[id]/UnifiedBidRankings';
 import { UnifiedFirmBidRankings } from './project/[id]/UnifiedFirmBidRankings';
 import { OwnerProjectPhaseProvider, useOwnerProjectPhaseContext } from '@/lib/context/OwnerProjectPhaseContext';
-import { formatProjectPostedAt } from '@/lib/utils';
+import { cn, formatProjectPostedAt } from '@/lib/utils';
+import { Card, CardContent } from '@/components/ui/card';
 import {
   getProjectServiceBadgeLabel,
   isFirmProject,
@@ -18,6 +19,7 @@ import {
   getProjectLocationLabel,
 } from '@/lib/project/formatFloorSummary';
 import { FloorScopeBadges } from '@/components/project/FloorScopeBadges';
+import { Badge } from '@/components/ui/badge';
 import type { Project, Bid, PublicFirmProfile } from '@/lib/types';
 
 interface BuilderInfo {
@@ -61,30 +63,30 @@ function OwnerLiveProjectCardBody({
     `${bidCount} bid${bidCount !== 1 ? 's' : ''}`,
   ].filter(Boolean) as string[];
 
-  const statusLabel =
-    phase === 'live'
+  const statusLabel = canSelect
+    ? isFirm
+      ? 'Select Firm'
+      : 'Select Builder'
+    : phase === 'live'
       ? 'Live Bidding'
-      : phase === 'select' && canSelect
-        ? isFirm
-          ? 'Select Firm'
-          : 'Select Builder'
-        : null;
+      : null;
 
   return (
-    <div className="space-y-4">
+    <Card
+      className={cn(
+        'overflow-hidden shadow-none',
+        canSelect ? 'border-l-[3px] border-l-amber-500' : 'border-l-[3px] border-l-emerald-500',
+      )}
+    >
+      <CardContent className="space-y-4 p-4 sm:p-5">
       <div className="flex flex-wrap items-start gap-4">
         <div className="flex-1 min-w-0">
-          <p className="mb-1 text-sm font-medium text-gray-600 dark:text-gray-400">
+          <div className="mb-1.5 flex flex-wrap items-center gap-2">
+            <Badge variant={canSelect ? 'amber' : 'emerald'}>{statusLabel ?? serviceBadge}</Badge>
             {statusLabel ? (
-              <>
-                <span className={phase === 'live' ? 'text-emerald-700 dark:text-emerald-400' : undefined}>
-                  {statusLabel}
-                </span>
-                <span className="text-gray-400"> · </span>
-              </>
+              <span className="text-sm font-medium text-muted-foreground">{serviceBadge}</span>
             ) : null}
-            {serviceBadge}
-          </p>
+          </div>
           <p className="text-sm font-semibold text-foreground">{project.title}</p>
           <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
             {metaParts.map((part, index) => (
@@ -163,11 +165,7 @@ function OwnerLiveProjectCardBody({
         </p>
       )}
 
-      <div>
-        <p className="text-sm font-semibold text-foreground mb-3">
-          Bid Rankings
-          <span className="ml-2 text-xs font-normal text-muted-foreground">({initialBids.length})</span>
-        </p>
+      <div className="rounded-xl border border-border/70 bg-background/70 p-3 sm:p-4">
         {isFirm ? (
           <UnifiedFirmBidRankings
             initialBids={initialBids}
@@ -181,7 +179,8 @@ function OwnerLiveProjectCardBody({
           />
         )}
       </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
 

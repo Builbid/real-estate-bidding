@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { CompletedProjectRow } from '@/components/dashboard/CompletedProjectRow';
+import { DashboardWorkSection } from '@/components/dashboard/DashboardWorkSection';
 import { DASHBOARD_COMPLETED_LIMIT } from '@/lib/dashboard/completedProjects';
 import type { Project } from '@/lib/types';
 
@@ -24,9 +25,13 @@ export function CompletedProjectsPreview({
   const preview = projects.slice(0, DASHBOARD_COMPLETED_LIMIT);
 
   return (
-    <div>
-      <h2 className="mb-4 text-base font-semibold text-muted-foreground">Completed Projects</h2>
-      <div className="space-y-3">
+    <DashboardWorkSection
+      tone="done"
+      title="Completed projects"
+      count={totalCount}
+      description="Awarded jobs. Closed — not part of live bidding."
+    >
+      <div className="divide-y divide-border/70">
         {preview.map((project) => (
           <CompletedProjectRow
             key={project.id}
@@ -38,16 +43,16 @@ export function CompletedProjectsPreview({
         ))}
       </div>
       {totalCount > DASHBOARD_COMPLETED_LIMIT ? (
-        <div className="mt-4 flex justify-center">
+        <div className="mt-3 flex justify-center border-t border-border/70 pt-3">
           <Link
             href={viewAllHref}
             className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand hover:text-brand-hover hover:underline"
           >
-            View All Completed Projects
+            View all completed projects
             <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
       ) : null}
-    </div>
+    </DashboardWorkSection>
   );
 }
