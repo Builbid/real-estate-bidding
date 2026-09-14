@@ -30,6 +30,7 @@ import {
   PAGE_MARGIN_MM,
   cleanAgreementText,
   drawOfficialHeader,
+  drawFillInPrompt,
   drawParagraph,
   drawRows,
   drawSectionTitle,
@@ -329,6 +330,7 @@ export function generateMistriAgreementPdfBytes(payload: MistriAgreementPayload)
     doc,
     margin,
     'Head Mason (Mistri / RCC Civil Work)  |  Official platform record',
+    'DIGITAL CONSTRUCTION & MISTRI AGREEMENT',
   );
 
   y = drawParagraph(
@@ -372,9 +374,10 @@ export function generateMistriAgreementPdfBytes(payload: MistriAgreementPayload)
     y,
     margin,
   );
+  y = drawFillInPrompt(doc, 'Plinth Area', 'sqft', y, margin);
   y = drawParagraph(
     doc,
-    'Excluded Extra / Decorative Work: This agreement covers primary structural labour accepted during bidding only. Decorative plastering, complex moulding, or elevation designs are excluded and must be negotiated separately without BuilBid involvement.',
+    'Excluded Extra / Decorative Work: This agreement covers primary structural Mistri work accepted during bidding only. Decorative plastering, complex moulding, or elevation designs are excluded and must be negotiated separately without BuilBid involvement.',
     y,
     margin,
   );
@@ -421,7 +424,7 @@ export function generateMistriAgreementPdfBytes(payload: MistriAgreementPayload)
   );
   y = drawParagraph(
     doc,
-    'Mistri Delay Penalty (5%): If the project extends beyond the 10-day grace period due to unexcused Mistri delay or absenteeism, a 5% penalty is deducted from the labour payout through BuilBid.',
+    'Mistri Delay Penalty (5%): If the project extends beyond the 10-day grace period due to unexcused Mistri delay or absenteeism, a 5% penalty is deducted from the Mistri payout through BuilBid.',
     y,
     margin,
     { bold: true, fill: [254, 226, 226], bordered: true },

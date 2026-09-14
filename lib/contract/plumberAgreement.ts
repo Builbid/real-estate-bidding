@@ -5,6 +5,7 @@ import {
   PAGE_MARGIN_MM,
   cleanAgreementText,
   drawOfficialHeader,
+  drawBlankColumnTable,
   drawParagraph,
   drawRows,
   drawSectionTitle,
@@ -24,7 +25,6 @@ import { readNestedProjectDetail } from '@/lib/project/storedDetails';
 import {
   getTradeWorkRequirementBlocks,
   parseTradeDetails,
-  PLUMBING_LABOUR_ONLY_DISCLAIMER,
 } from '@/lib/tradeWorkDetails';
 import {
   getPlumbingPointRateDisplayEntries,
@@ -179,7 +179,7 @@ function buildPlumberBidRows(
           : '';
     return [
       {
-        label: 'Accepted plumbing labour rate',
+        label: 'Accepted plumber rate',
         value: cleanAgreementText(formatRateWithSuffix(amount, unit)),
       },
     ];
@@ -245,7 +245,8 @@ export function generatePlumberAgreementPdfBytes(payload: PlumberAgreementPayloa
   let y = drawOfficialHeader(
     doc,
     margin,
-    'Plumber (Plumbing Labour Work)  |  Official platform record',
+    'Plumber (Plumbing Work)  |  Official platform record',
+    'DIGITAL CONSTRUCTION & PLUMBER AGREEMENT',
   );
 
   y = drawParagraph(
@@ -291,7 +292,7 @@ export function generatePlumberAgreementPdfBytes(payload: PlumberAgreementPayloa
   );
   y = drawParagraph(
     doc,
-    `Labour-Only Scope: ${PLUMBING_LABOUR_ONLY_DISCLAIMER} Extra bathrooms, decorative fixtures, or work outside the awarded bid must be negotiated separately without BuilBid involvement.`,
+    'Plumber-Only Scope: All bids are strictly for PLUMBER CHARGES. Materials must be supplied by the Property Owner. Extra bathrooms, decorative fixtures, or work outside the awarded bid must be negotiated separately without BuilBid involvement.',
     y,
     margin,
   );
@@ -312,6 +313,28 @@ export function generatePlumberAgreementPdfBytes(payload: PlumberAgreementPayloa
     { bold: true, fill: [254, 226, 226], bordered: true },
   );
   y = drawRows(doc, payload.bidRows, y, margin);
+  y = drawParagraph(
+    doc,
+    'Site measurement sheet: Fill the table below on site. Leave unused rows blank.',
+    y,
+    margin,
+  );
+  y = drawBlankColumnTable(
+    doc,
+    [
+      'Sl no.',
+      'Items',
+      'Quantity',
+      'No. of points',
+      'Rate per point (Rs.)',
+      'Cost (in Rs.)',
+      'Remarks',
+    ],
+    10,
+    y,
+    margin,
+    [0.7, 2.2, 1.1, 1.2, 1.5, 1.3, 1.2],
+  );
 
   y = drawSectionTitle(doc, '4. Timelines, Delays & Penalty Terms', y, margin);
   y = drawRows(
@@ -326,7 +349,7 @@ export function generatePlumberAgreementPdfBytes(payload: PlumberAgreementPayloa
   );
   y = drawParagraph(
     doc,
-    'Timeline: Start Date is when physical plumbing work begins after materials are confirmed on site. Completion Date is the mutually agreed handover deadline for 100% of the awarded plumbing labour.',
+    'Timeline: Start Date is when physical plumbing work begins after materials are confirmed on site. Completion Date is the mutually agreed handover deadline for 100% of the awarded Plumber work.',
     y,
     margin,
   );
@@ -338,7 +361,7 @@ export function generatePlumberAgreementPdfBytes(payload: PlumberAgreementPayloa
   );
   y = drawParagraph(
     doc,
-    'Plumber Delay Penalty (5%): If the project extends beyond the 10-day grace period due to unexcused Plumber delay or absenteeism, a 5% penalty is deducted from the labour payout through BuilBid.',
+    'Plumber Delay Penalty (5%): If the project extends beyond the 10-day grace period due to unexcused Plumber delay or absenteeism, a 5% penalty is deducted from the Plumber payout through BuilBid.',
     y,
     margin,
     { bold: true, fill: [254, 226, 226], bordered: true },
@@ -363,7 +386,7 @@ export function generatePlumberAgreementPdfBytes(payload: PlumberAgreementPayloa
   doc.setTextColor(100);
   const footer = doc.splitTextToSize(
     pdfSafeText(
-      'Official BuilBid digital agreement for awarded Plumber / plumbing labour work. Cash payments outside the BuilBid gateway void platform guarantees.',
+      'Official BuilBid digital agreement for awarded Plumber work. Cash payments outside the BuilBid gateway void platform guarantees.',
     ),
     pageW - margin * 2,
   ) as string[];

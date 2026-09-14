@@ -224,6 +224,7 @@ export function drawOfficialHeader(
   doc: jsPDF,
   margin: number,
   subtitle: string,
+  title = 'DIGITAL CONSTRUCTION AGREEMENT',
 ): number {
   const pageW = doc.internal.pageSize.getWidth();
   doc.setFillColor(15, 23, 42);
@@ -233,9 +234,105 @@ export function drawOfficialHeader(
   doc.setTextColor(255);
   doc.text('BUILBID', margin, 9);
   doc.setFontSize(9);
-  doc.text('DIGITAL CONSTRUCTION & LABOUR AGREEMENT', margin, 14.5);
+  doc.text(title, margin, 14.5);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7.5);
   doc.text(subtitle, margin, 19);
   return 26;
+}
+
+/** Handwritten fill-in line, e.g. Plinth Area ................ sqft */
+export function drawFillInPrompt(
+  doc: jsPDF,
+  label: string,
+  suffix: string,
+  startY: number,
+  margin: number,
+): number {
+  const pageW = doc.internal.pageSize.getWidth();
+  const usable = pageW - margin * 2;
+  const boxH = 12;
+  const y = ensurePage(doc, startY, boxH + 2, margin);
+  doc.setDrawColor(...BORDER_RGB);
+  doc.setLineWidth(0.35);
+  doc.rect(margin, y, usable, boxH);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.setTextColor(20);
+  doc.text(label, margin + 3.5, y + 7.5);
+  const suffixW = doc.getTextWidth(suffix);
+  doc.setDrawColor(80);
+  doc.setLineWidth(0.4);
+  const lineStart = margin + 3.5 + doc.getTextWidth(`${label}  `);
+  const lineEnd = margin + usable - suffixW - 8;
+  doc.line(lineStart, y + 8, Math.max(lineStart + 40, lineEnd), y + 8);
+  doc.setFont('helvetica', 'bold');
+  doc.text(suffix, margin + usable - suffixW - 3.5, y + 7.5);
+  return y + boxH + 3;
+}
+
+export function drawBlankColumnTable(
+  doc: jsPDF,
+  headers: string[],
+  rowCount: number,
+  startY: number,
+  margin: number,
+  colWeights?: number[],
+): number {
+  const pageW = doc.internal.pageSize.getWidth();
+  const usable = pageW - margin * 2;
+  const weights = colWeights && colWeights.length === headers.length
+    ? colWeights
+    : headers.map(() => 1);
+  const weightSum = weights.reduce((sum, w) => sum + w, 0);
+  const colWidths = weights.map((w) => (usable * w) / weightSum);
+  const headerH = 12;
+  const rowH = 8;
+  let y = ensurePage(doc, startY, headerH + rowH + 2, margin);
+
+  const drawHeader = (atY: number) => {
+    doc.setFillColor(15, 118, 110);
+    doc.rect(margin, atY, usable, headerH, 'F');
+    doc.setDrawColor(...BORDER_RGB);
+    doc.setLineWidth(0.3);
+    doc.rect(margin, atY, usable, headerH);
+    let x = margin;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(6);
+    doc.setTextColor(255);
+    headers.forEach((header, i) => {
+      const w = colWidths[i] ?? 0;
+      if (i > 0) doc.line(x, atY, x, atY + headerH);
+      const lines = doc.splitTextToSize(pdfSafeText(header), w - 2.4) as string[];
+      doc.text(lines, x + 1.2, atY + 4);
+      x += w;
+    });
+    doc.setTextColor(20);
+    return atY + headerH;
+  };
+
+  y = drawHeader(y);
+
+  for (let i = 0; i < rowCount; i += 1) {
+    if (y + rowH > doc.internal.pageSize.getHeight() - margin) {
+      doc.addPage();
+      y = margin;
+      y = drawHeader(y);
+    }
+    doc.setDrawColor(...BORDER_RGB);
+    doc.setLineWidth(0.3);
+    doc.rect(margin, y, usable, rowH);
+    let x = margin;
+    colWidths.forEach((w) => {
+      if (x > margin) doc.line(x, y, x, y + rowH);
+      x += w;
+    });
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.setTextColor(80);
+    doc.text(String(i + 1), margin + 2, y + 5.4);
+    y += rowH;
+  }
+
+  return y + 3.5;
 }
