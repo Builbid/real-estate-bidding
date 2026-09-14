@@ -73,7 +73,7 @@ export function HomePageContent({
     <div className="min-h-screen bg-background text-foreground">
       <Navbar overlay authHint={{ isAuthenticated, role }} />
 
-      <section className="relative overflow-x-hidden border-b border-border/60">
+      <section className="relative overflow-x-hidden border-b border-border/60 bg-white dark:bg-background">
         <HeroBackgroundSlideshow />
 
         <div className="relative mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 pb-6 pt-3 sm:gap-8 sm:pb-8 sm:pt-5">
