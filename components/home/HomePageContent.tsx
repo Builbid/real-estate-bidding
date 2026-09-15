@@ -43,6 +43,7 @@ export function HomePageContent({
     { key: 'active', label: t('home.stats.activeAuctions'), icon: Activity, tone: 'emerald' },
     { key: 'frozen', label: t('home.stats.pendingSelection'), icon: Clock, tone: 'violet' },
     { key: 'total', label: t('home.stats.totalProjects'), icon: Building2, tone: 'teal' },
+    { key: 'approved', label: t('home.stats.projectsApproved'), icon: BadgeCheck, tone: 'indigo' },
     { key: 'bids', label: t('home.stats.bidsSubmitted'), icon: Gavel, tone: 'amber' },
   ];
 
@@ -78,7 +79,7 @@ export function HomePageContent({
 
           <ServiceCategoryBar isAuthenticated={isAuthenticated} role={role} />
 
-          <div className="grid grid-cols-2 gap-x-8 gap-y-6 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-x-8 gap-y-6 sm:grid-cols-3 lg:grid-cols-5">
             {STATS_CONFIG.map(({ key, label, icon: Icon, tone }) => (
               <div key={key} className="flex items-center gap-2 sm:gap-2.5">
                 <Icon
@@ -87,12 +88,13 @@ export function HomePageContent({
                     tone === 'emerald' && 'text-emerald-600 dark:text-emerald-400',
                     tone === 'violet' && 'text-violet-500 dark:text-violet-400',
                     tone === 'teal' && 'text-teal-500 dark:text-teal-400',
+                    tone === 'indigo' && 'text-indigo-500 dark:text-indigo-400',
                     tone === 'amber' && 'text-amber-600 dark:text-amber-400',
                   )}
                 />
                 <div className="min-w-0">
                   <p className="text-base font-bold tabular-nums text-foreground sm:text-lg leading-none">
-                    {statValues[key].toLocaleString()}
+                    {(statValues[key] ?? 0).toLocaleString()}
                   </p>
                   <p className="mt-0.5 truncate text-[10px] font-medium leading-tight text-slate-700 dark:text-slate-300 sm:text-[11px]">
                     {label}

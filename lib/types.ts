@@ -218,6 +218,8 @@ export interface Project {
   bidding_ends_at: string;
   selection_ends_at?: string | null;
   selected_builder_id?: string | null;
+  /** True only after contractual approval / signed agreement. New posts stay false. */
+  agreement_completed?: boolean | null;
   service_type?: ServiceType;
   floor_area_sqft?: number | null;
   finishing_level?: FinishingLevel | null;

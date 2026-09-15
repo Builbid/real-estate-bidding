@@ -40,6 +40,7 @@ import {
   type MistriDetails,
 } from '@/lib/mistriDetails'
 import { sendNewProjectAnnouncementEmails } from '@/lib/email/newProjectAnnouncement'
+import { revalidateHomePublic } from '@/lib/home/revalidateHomePublic'
 import {
   embedDetailsInSubConfiguration,
   missingProjectsColumn,
@@ -379,6 +380,8 @@ export async function createProjectAction(
   }
 
   if (error || !project) return { error: error?.message ?? 'Failed to create project.' }
+
+  revalidateHomePublic()
 
   try {
     await sendNewProjectAnnouncementEmails({

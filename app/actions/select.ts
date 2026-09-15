@@ -38,6 +38,7 @@ import type { ConstructionTypesMap } from '@/lib/buildingConfig'
 import { archiveAwardedProjectDocuments } from '@/lib/documents/archiveProjectDocuments'
 import { missingProjectsColumn, readNestedProjectDetail } from '@/lib/project/storedDetails'
 import { revalidatePath } from 'next/cache'
+import { revalidateHomePublic } from '@/lib/home/revalidateHomePublic'
 
 const CORE_PROJECT_COLUMNS =
   'id, owner_id, title, district, state, pincode, description, track_type, sub_configuration, total_floors, plot_area_sqft, status, selected_builder_id, service_type, bidding_ends_at, selection_ends_at'
@@ -158,6 +159,7 @@ export async function selectBuilderAction(
   const awardPatch: Record<string, unknown> = {
     selected_builder_id: builderId,
     status: 'completed',
+    agreement_completed: true,
   }
   if (selectedPackage) awardPatch.selected_package = selectedPackage
 
@@ -190,8 +192,14 @@ export async function selectBuilderAction(
     updateError = awarded.error ?? updateError
   }
 
-  if (updateError && missingProjectsColumn(updateError.message) === 'selected_package') {
-    delete awardPatch.selected_package
+  let missingAwardColumn = updateError
+    ? missingProjectsColumn(updateError.message)
+    : null
+  while (
+    updateError &&
+    (missingAwardColumn === 'selected_package' || missingAwardColumn === 'agreement_completed')
+  ) {
+    delete awardPatch[missingAwardColumn]
     try {
       const admin = createAdminClient()
       const awarded = await applyAward(admin)
@@ -202,6 +210,7 @@ export async function selectBuilderAction(
       updated = awarded.data
       updateError = awarded.error
     }
+    missingAwardColumn = updateError ? missingProjectsColumn(updateError.message) : null
   }
 
   if (updateError) return { error: updateError.message }
@@ -547,5 +556,6 @@ export async function selectBuilderAction(
   revalidatePath(`/dashboard/owner/project/${projectId}`)
   revalidatePath('/dashboard/owner')
   revalidatePath('/dashboard/profile')
+  revalidateHomePublic()
   return { error: null, success: true }
 }

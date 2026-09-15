@@ -92,6 +92,7 @@ export const en = {
       activeAuctions: 'Active Auctions',
       pendingSelection: 'Pending Selection',
       totalProjects: 'Total Projects',
+      projectsApproved: 'Projects Approved',
       bidsSubmitted: 'Bids Submitted',
     },
     featuredFirms: {

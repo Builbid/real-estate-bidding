@@ -94,6 +94,7 @@ export const as: Messages = {
       activeAuctions: 'Active Auctions',
       pendingSelection: 'Selection বাকী',
       totalProjects: 'Total Projects',
+      projectsApproved: 'Projects Approved',
       bidsSubmitted: 'Bids দিয়া হৈছে',
     },
     featuredFirms: {

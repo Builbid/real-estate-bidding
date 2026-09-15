@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { revalidateHomePublic } from '@/lib/home/revalidateHomePublic'
 
 export async function deleteOwnerProjectAction(
   projectId: string,
@@ -37,6 +38,7 @@ export async function deleteOwnerProjectAction(
   if (!deleteError && deleted && deleted.length > 0) {
     revalidatePath('/dashboard/owner')
     revalidatePath(`/dashboard/owner/project/${projectId}`)
+    revalidateHomePublic()
     return { error: null }
   }
 
@@ -60,6 +62,7 @@ export async function deleteOwnerProjectAction(
 
     revalidatePath('/dashboard/owner')
     revalidatePath(`/dashboard/owner/project/${projectId}`)
+    revalidateHomePublic()
     return { error: null }
   } catch {
     return {
