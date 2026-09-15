@@ -57,7 +57,7 @@ function NewProjectPageContent() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-6">
+    <div className="mx-auto w-full space-y-6">
       <ServiceTypeSelector
         value={serviceType}
         onChange={setServiceType}

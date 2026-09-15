@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { usePathname } from 'next/navigation'
 import {
   X, CheckCheck, Trophy, Award, Bell,
 } from 'lucide-react'
@@ -12,6 +13,7 @@ import { NavLink } from '@/components/shared/NavLink'
 import { NavIconButton } from '@/components/shared/NavIconButton'
 import { BuilBidLogo } from '@/components/shared/BuilBidLogo'
 import { NAV_LOGO_LINK } from '@/lib/navStyles'
+import { isNewProjectPath } from '@/lib/dashboard/paths'
 
 interface ProfileData {
   id: string
@@ -40,43 +42,43 @@ const NOTIF_ICONS: Record<string, React.ComponentType<{ className?: string }>> =
 
 export function TopBar(_props: TopBarProps) {
   const [notifOpen, setNotifOpen] = useState(false)
+  const pathname = usePathname()
+  const showHeaderLogo = isNewProjectPath(pathname)
 
   const { notifications, unreadCount, markAllRead, markRead } = useNotifications()
 
   return (
     <>
       {/* ── Top header ─────────────────────────────────────────── */}
-      <header className="sticky top-0 z-40 inline-flex h-14 w-full items-center gap-x-3 border-b border-slate-200 bg-white/95 px-4 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95 sm:px-6">
-        {/* Mobile logo */}
+      <header className="sticky top-0 z-40 flex h-14 w-full items-center justify-between border-b border-slate-200 bg-white/95 px-4 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95 sm:px-6">
         <NavLink
           href="/"
           prefetch
           aria-label="BuilBid Home"
-          className={cn(NAV_LOGO_LINK, 'lg:hidden hover:opacity-90')}
+          className={cn(NAV_LOGO_LINK, !showHeaderLogo && 'lg:hidden', 'hover:opacity-90')}
         >
           <BuilBidLogo size="sm" compact className="sm:hidden" />
           <BuilBidLogo size="sm" className="hidden sm:inline-flex" />
         </NavLink>
 
-        <div className="flex-1" />
+        <div className="inline-flex items-center gap-x-3">
+          <ThemeToggle />
 
-        <ThemeToggle />
+          <NavIconButton
+            onClick={() => { setNotifOpen(true); }}
+            className="relative w-9 h-9 border border-border text-muted-foreground hover:text-foreground hover:border-border"
+            aria-label="Notifications"
+          >
+            <Bell className="w-4 h-4" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-0.5 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center leading-none">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
+          </NavIconButton>
 
-        {/* Bell */}
-        <NavIconButton
-          onClick={() => { setNotifOpen(true); }}
-          className="relative w-9 h-9 border border-border text-muted-foreground hover:text-foreground hover:border-border"
-          aria-label="Notifications"
-        >
-          <Bell className="w-4 h-4" />
-          {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-0.5 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center leading-none">
-              {unreadCount > 9 ? '9+' : unreadCount}
-            </span>
-          )}
-        </NavIconButton>
-
-        <HeaderProfileLogo />
+          <HeaderProfileLogo />
+        </div>
       </header>
 
       {/* ── Notifications panel ───────────────────────────────── */}

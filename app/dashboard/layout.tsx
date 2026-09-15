@@ -2,10 +2,9 @@ export const dynamic = 'force-dynamic'
 
 import { getAuthUser } from '@/lib/supabase/getUser';
 import { TopBar } from './TopBar';
-import { Footer } from '@/components/shared/Footer';
 import { ProfileProvider } from '@/lib/context/ProfileProvider';
 import { DashboardSidebar } from '@/components/dashboard/DashboardSidebar';
-import { AppToaster } from '@/components/shared/AppToaster';
+import { DashboardFrame } from '@/components/dashboard/DashboardFrame';
 import type { Profile, UserRole } from '@/lib/types';
 import { normalizeRole } from '@/lib/auth/roles';
 
@@ -59,16 +58,16 @@ export default async function DashboardLayout({ children }: DashboardLayoutProps
 
   return (
     <ProfileProvider initialProfile={profile as Profile}>
-      <div className="min-h-screen flex bg-background">
-        <AppToaster />
-        <DashboardSidebar
-          role={role}
-          roleColor={roleConfig.color}
-          avatarGradient={avatarGradient}
-          serviceType={profile.service_type}
-        />
-
-        <div className="flex-1 flex flex-col min-w-0">
+      <DashboardFrame
+        sidebar={
+          <DashboardSidebar
+            role={role}
+            roleColor={roleConfig.color}
+            avatarGradient={avatarGradient}
+            serviceType={profile.service_type}
+          />
+        }
+        topbar={
           <TopBar
             profile={{
               id:               profile.id,
@@ -86,11 +85,10 @@ export default async function DashboardLayout({ children }: DashboardLayoutProps
             roleColor={roleConfig.color}
             avatarGradient={avatarGradient}
           />
-
-          <main className="p-4 sm:p-6 lg:p-8">{children}</main>
-          <Footer compact />
-        </div>
-      </div>
+        }
+      >
+        {children}
+      </DashboardFrame>
     </ProfileProvider>
   );
 }
