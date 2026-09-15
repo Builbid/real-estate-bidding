@@ -83,8 +83,7 @@ export function Footer({ compact }: FooterProps) {
   return (
     <footer className="border-t border-border/80 bg-gradient-to-b from-background to-secondary/30">
       <div className={`max-w-7xl mx-auto px-6 ${compact ? 'py-8' : 'py-12'}`}>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-8">
-          <div className="sm:col-span-2 lg:col-span-1">
+        <div className="mb-10">
             <Link
               href="/"
               aria-label="BuilBid Home"
@@ -97,45 +96,46 @@ export function Footer({ compact }: FooterProps) {
             </p>
           </div>
 
-          <div>
-            <h3 className={SECTION_HEADING}>{t('footer.platform')}</h3>
-            <ul className="space-y-3">
-              {PLATFORM_LINKS.map(({ label, href }) => (
-                <li key={href}>
-                  <Link href={href} className={SECTION_LINK}>
-                    {label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div>
+              <h3 className={SECTION_HEADING}>{t('footer.platform')}</h3>
+              <ul className="space-y-3">
+                {PLATFORM_LINKS.map(({ label, href }) => (
+                  <li key={href}>
+                    <Link href={href} className={SECTION_LINK}>
+                      {label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
 
-          <div>
-            <h3 className={SECTION_HEADING}>{t('footer.company')}</h3>
-            <ul className="space-y-3">
-              {COMPANY_LINKS.map(({ label, href }) => (
-                <li key={href}>
-                  <Link href={href} className={SECTION_LINK}>
-                    {label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
+            <div>
+              <h3 className={SECTION_HEADING}>{t('footer.company')}</h3>
+              <ul className="space-y-3">
+                {COMPANY_LINKS.map(({ label, href }) => (
+                  <li key={href}>
+                    <Link href={href} className={SECTION_LINK}>
+                      {label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
 
-          <div>
-            <h3 className={SECTION_HEADING}>{t('footer.legal')}</h3>
-            <ul className="space-y-3">
-              {LEGAL_LINKS.map(({ label, href }) => (
-                <li key={href}>
-                  <Link href={href} className={SECTION_LINK}>
-                    {label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            <div>
+              <h3 className={SECTION_HEADING}>{t('footer.legal')}</h3>
+              <ul className="space-y-3">
+                {LEGAL_LINKS.map(({ label, href }) => (
+                  <li key={href}>
+                    <Link href={href} className={SECTION_LINK}>
+                      {label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
-        </div>
 
         <div className="mt-10 pt-6 border-t border-border grid grid-cols-1 sm:grid-cols-3 items-center gap-4">
           <p className="text-xs font-medium text-slate-700 dark:text-slate-300 text-center sm:text-left order-2 sm:order-1">
