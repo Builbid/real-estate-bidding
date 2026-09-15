@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { usePathname } from 'next/navigation'
 import {
   X, CheckCheck, Trophy, Award, Bell,
 } from 'lucide-react'
@@ -13,7 +12,6 @@ import { NavLink } from '@/components/shared/NavLink'
 import { NavIconButton } from '@/components/shared/NavIconButton'
 import { BuilBidLogo } from '@/components/shared/BuilBidLogo'
 import { NAV_LOGO_LINK } from '@/lib/navStyles'
-import { isNewProjectPath } from '@/lib/dashboard/paths'
 
 interface ProfileData {
   id: string
@@ -42,8 +40,6 @@ const NOTIF_ICONS: Record<string, React.ComponentType<{ className?: string }>> =
 
 export function TopBar(_props: TopBarProps) {
   const [notifOpen, setNotifOpen] = useState(false)
-  const pathname = usePathname()
-  const showHeaderLogo = isNewProjectPath(pathname)
 
   const { notifications, unreadCount, markAllRead, markRead } = useNotifications()
 
@@ -55,7 +51,7 @@ export function TopBar(_props: TopBarProps) {
           href="/"
           prefetch
           aria-label="BuilBid Home"
-          className={cn(NAV_LOGO_LINK, !showHeaderLogo && 'lg:hidden', 'hover:opacity-90')}
+          className={cn(NAV_LOGO_LINK, 'hover:opacity-90')}
         >
           <BuilBidLogo size="sm" compact className="sm:hidden" />
           <BuilBidLogo size="sm" className="hidden sm:inline-flex" />

@@ -3,7 +3,6 @@ export const dynamic = 'force-dynamic'
 import { getAuthUser } from '@/lib/supabase/getUser';
 import { TopBar } from './TopBar';
 import { ProfileProvider } from '@/lib/context/ProfileProvider';
-import { DashboardSidebar } from '@/components/dashboard/DashboardSidebar';
 import { DashboardFrame } from '@/components/dashboard/DashboardFrame';
 import type { Profile, UserRole } from '@/lib/types';
 import { normalizeRole } from '@/lib/auth/roles';
@@ -59,14 +58,6 @@ export default async function DashboardLayout({ children }: DashboardLayoutProps
   return (
     <ProfileProvider initialProfile={profile as Profile}>
       <DashboardFrame
-        sidebar={
-          <DashboardSidebar
-            role={role}
-            roleColor={roleConfig.color}
-            avatarGradient={avatarGradient}
-            serviceType={profile.service_type}
-          />
-        }
         topbar={
           <TopBar
             profile={{

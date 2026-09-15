@@ -7,30 +7,24 @@ import { AppToaster } from '@/components/shared/AppToaster';
 import { isNewProjectPath } from '@/lib/dashboard/paths';
 
 interface DashboardFrameProps {
-  sidebar: ReactNode;
   topbar: ReactNode;
   children: ReactNode;
 }
 
-export function DashboardFrame({ sidebar, topbar, children }: DashboardFrameProps) {
+export function DashboardFrame({ topbar, children }: DashboardFrameProps) {
   const pathname = usePathname();
   const focusLayout = isNewProjectPath(pathname);
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-screen flex-col bg-background">
       <AppToaster />
-      {focusLayout ? null : sidebar}
-      <div className="flex min-h-screen min-w-0 flex-1 flex-col">
-        {topbar}
-        <main className={focusLayout ? 'flex-1 px-4 py-8' : 'p-4 sm:p-6 lg:p-8'}>
-          {focusLayout ? (
-            <div className="mx-auto w-full max-w-3xl">{children}</div>
-          ) : (
-            children
-          )}
-        </main>
-        {focusLayout ? null : <Footer compact />}
-      </div>
+      {topbar}
+      <main className={`flex-1 ${focusLayout ? 'px-4 py-8' : 'px-4 py-6 sm:px-6'}`}>
+        <div className={`mx-auto w-full ${focusLayout ? 'max-w-3xl' : 'max-w-7xl'}`}>
+          {children}
+        </div>
+      </main>
+      {focusLayout ? null : <Footer compact />}
     </div>
   );
 }
