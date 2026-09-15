@@ -39,6 +39,7 @@ import { CheckLocationLink } from '@/components/project/ProjectLocationWithMapsL
 import {
   formatShowcaseRemaining,
   getShowcaseCardAction,
+  isProjectSelectionWindow,
   type ShowcaseProject,
 } from '@/lib/projectShowcase';
 import { getLiveAuctionDisplayTitle } from '@/lib/generateProjectTitle';
@@ -189,6 +190,9 @@ export function ShowcaseProjectCard({
     formatShowcaseRemaining(project.bidding_ends_at),
   );
   const expiredRef = useRef(false);
+  const biddingClosed = isProjectSelectionWindow(project) || remaining.isExpired;
+  const cardAction = biddingClosed ? 'viewDetails' : action;
+  const cardHref = biddingClosed ? `/project/${project.id}` : href;
 
   useEffect(() => {
     expiredRef.current = false;
@@ -198,7 +202,12 @@ export function ShowcaseProjectCard({
       const next = formatShowcaseRemaining(project.bidding_ends_at);
       setRemaining(next);
 
-      if (next.isExpired && !expiredRef.current) {
+      const selectionEnded = project.selection_ends_at
+        ? new Date(project.selection_ends_at).getTime() <= Date.now()
+        : false;
+      const leaveGrid = next.isExpired && selectionEnded;
+
+      if (leaveGrid && !expiredRef.current) {
         expiredRef.current = true;
         if (hideWhenExpired) {
           onExpire?.(project.id);
@@ -212,9 +221,12 @@ export function ShowcaseProjectCard({
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [project.bidding_ends_at, project.id, onExpire, hideWhenExpired]);
+  }, [project.bidding_ends_at, project.selection_ends_at, project.id, onExpire, hideWhenExpired]);
 
-  if (hideWhenExpired && remaining.isExpired) return null;
+  const selectionEnded = project.selection_ends_at
+    ? new Date(project.selection_ends_at).getTime() <= Date.now()
+    : false;
+  if (hideWhenExpired && remaining.isExpired && selectionEnded) return null;
 
   const isFirm = isFirmProject(project);
   const serviceType = getProjectServiceType(project);
@@ -354,9 +366,17 @@ export function ShowcaseProjectCard({
       <div className="relative flex flex-col gap-2 p-3 pl-3.5">
         <div className="flex flex-wrap items-center justify-between gap-1.5">
           <div className="flex min-w-0 flex-wrap items-center gap-1">
-            <Badge className="border-slate-200 bg-slate-50 px-1.5 py-0 text-[10px] text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
-              <span className="mr-1 h-1.5 w-1.5 animate-pulse rounded-full bg-brand" />
-              {t('home.showcase.liveBadge')}
+            <Badge className={cn(
+              'px-1.5 py-0 text-[10px]',
+              biddingClosed
+                ? 'border-violet-200 bg-violet-50 text-violet-800 dark:border-violet-800 dark:bg-violet-950/60 dark:text-violet-200'
+                : 'border-slate-200 bg-slate-50 text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200',
+            )}>
+              <span className={cn(
+                'mr-1 h-1.5 w-1.5 rounded-full',
+                biddingClosed ? 'bg-violet-500' : 'animate-pulse bg-brand',
+              )} />
+              {biddingClosed ? t('home.showcase.selectionBadge') : t('home.showcase.liveBadge')}
             </Badge>
             {finishingBadge && (
               <Badge className="border-slate-200 bg-slate-50 px-1.5 py-0 text-[10px] text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
@@ -364,7 +384,13 @@ export function ShowcaseProjectCard({
               </Badge>
             )}
           </div>
-          <ShowcaseCountdownPill remaining={remaining} />
+          {biddingClosed ? (
+            <span className="inline-flex max-w-full shrink-0 items-center rounded-full border border-violet-200 bg-violet-50 px-2 py-0.5 text-[11px] font-semibold text-violet-800 dark:border-violet-800 dark:bg-violet-950/60 dark:text-violet-200">
+              {t('home.showcase.biddingFrozen')}
+            </span>
+          ) : (
+            <ShowcaseCountdownPill remaining={remaining} />
+          )}
         </div>
 
         <div className="flex min-w-0 items-start gap-2.5">
@@ -455,8 +481,8 @@ export function ShowcaseProjectCard({
             className="h-8 shrink-0 rounded-lg border-slate-200 bg-slate-50 px-2.5 text-xs text-slate-800 hover:bg-slate-100 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 dark:hover:text-white"
             asChild
           >
-            <Link href={href}>
-              <span>{action === 'bidNow' ? t('home.auctions.bidNow') : t('common.viewDetails')}</span>
+            <Link href={cardHref}>
+              <span>{cardAction === 'bidNow' ? t('home.auctions.bidNow') : t('common.viewDetails')}</span>
               <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
             </Link>
           </Button>

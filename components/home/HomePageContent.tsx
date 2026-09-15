@@ -1,20 +1,15 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useMemo, useState } from 'react';
 import {
   Activity, BadgeCheck, Building2, Clock, Gavel, Star,
 } from 'lucide-react';
 import { Navbar } from '@/components/shared/Navbar';
 import { HeroBackgroundSlideshow } from '@/components/shared/HeroBackgroundSlideshow';
-import { ProjectCard } from '@/components/shared/ProjectCard';
 import { ActiveProjectsShowcaseGrid } from '@/components/home/ActiveProjectsShowcaseGrid';
 import { ServiceCategoryBar } from '@/components/home/ServiceCategoryBar';
-import { ProjectDistrictFilter, type DistrictFilterValue } from '@/components/shared/ProjectDistrictFilter';
-import { getUniqueDistrictsFromProjects, matchesDistrictFilter } from '@/lib/project/districtFilter';
 import { useTranslation } from '@/lib/context/LanguageProvider';
 import type { DemoFirm } from '@/lib/data/demoFirms';
-import type { Project } from '@/lib/types';
 import type { ShowcaseProject } from '@/lib/projectShowcase';
 import type { StatIconColor } from '@/lib/dashboard/statIconStyles';
 import { cn } from '@/lib/utils';
@@ -27,30 +22,17 @@ const FeaturedFirmsSection = dynamic(
 
 interface HomePageContentProps {
   showcaseProjects: ShowcaseProject[];
-  frozenProjects: Project[];
   statValues: Record<string, number>;
   featuredFirms: DemoFirm[];
 }
 
 export function HomePageContent({
   showcaseProjects,
-  frozenProjects,
   statValues,
   featuredFirms,
 }: HomePageContentProps) {
   const { t } = useTranslation();
   const { isAuthenticated, role } = useClientAuthHint();
-  const [frozenDistrictFilter, setFrozenDistrictFilter] = useState<DistrictFilterValue>('all');
-
-  const frozenDistricts = useMemo(
-    () => getUniqueDistrictsFromProjects(frozenProjects),
-    [frozenProjects],
-  );
-
-  const filteredFrozenProjects = useMemo(
-    () => frozenProjects.filter((project) => matchesDistrictFilter(project.district, frozenDistrictFilter)),
-    [frozenProjects, frozenDistrictFilter],
-  );
 
   const STATS_CONFIG: Array<{
     key: string;
@@ -128,45 +110,6 @@ export function HomePageContent({
           isAuthenticated={isAuthenticated}
           role={role}
         />
-
-        {frozenProjects.length > 0 && (
-          <div className="mt-12 border-t border-border/60 pt-10 sm:mt-14 sm:pt-12">
-            <div className="mb-5 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                <span className="flex h-2 w-2 shrink-0 rounded-full bg-violet-500" />
-                <h2 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
-                  {t('home.auctions.selectionTitle')}
-                </h2>
-                <span className="text-xs font-semibold text-violet-700 dark:text-violet-400">
-                  {t('home.auctions.projects', { count: filteredFrozenProjects.length })}
-                </span>
-              </div>
-              {frozenDistricts.length > 0 && (
-                <ProjectDistrictFilter
-                  value={frozenDistrictFilter}
-                  onChange={setFrozenDistrictFilter}
-                  districts={frozenDistricts}
-                />
-              )}
-            </div>
-            {filteredFrozenProjects.length > 0 ? (
-              <div className="grid grid-cols-1 gap-4 auto-rows-fr sm:grid-cols-2 sm:gap-5 xl:grid-cols-3 xl:gap-6">
-                {filteredFrozenProjects.map((project) => (
-                  <ProjectCard
-                    key={project.id}
-                    project={project}
-                    isAuthenticated={isAuthenticated}
-                    variant="compact"
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="px-6 py-12 text-center">
-                <p className="text-sm text-muted-foreground">{t('home.auctions.noDistrictProjects')}</p>
-              </div>
-            )}
-          </div>
-        )}
       </section>
 
       <FeaturedFirmsSection constructionFirms={featuredFirms} />

@@ -126,6 +126,8 @@ export const en = {
     },
     showcase: {
       liveBadge: 'Live Bidding',
+      selectionBadge: 'Selection Window',
+      biddingFrozen: 'Bidding Frozen',
       projectOwner: 'Client',
       leadingRate: 'Leading Rate',
       activeBids: 'Active Bids',

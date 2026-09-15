@@ -7,7 +7,7 @@ import { ShowcaseProjectCard } from './ShowcaseProjectCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
-  isProjectBiddingLive,
+  isHomeAuctionProject,
   sortShowcaseProjectsByLatest,
   type ShowcaseProject,
 } from '@/lib/projectShowcase';
@@ -99,7 +99,7 @@ export function ActiveProjectsShowcaseGrid({
     () =>
       sortShowcaseProjectsByLatest(
         initialProjects.filter((project) => {
-          if (!isProjectBiddingLive(project) || expiredIds.has(project.id)) return false;
+          if (!isHomeAuctionProject(project) || expiredIds.has(project.id)) return false;
           if (
             !isConstructionFirmEnabled() &&
             getProjectServiceType(project) === 'construction_firm'

@@ -9,7 +9,6 @@ export default async function HomePage() {
   return (
     <HomePageContent
       showcaseProjects={publicData.showcaseProjects}
-      frozenProjects={publicData.frozenProjects}
       statValues={publicData.statValues}
       featuredFirms={publicData.featuredFirms}
     />

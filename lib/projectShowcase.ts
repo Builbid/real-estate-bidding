@@ -24,7 +24,7 @@ export function getShowcaseCardAction(
   role: string | null,
   options?: {
     isDemo?: boolean;
-    project?: Pick<Project, 'service_type'>;
+    project?: Pick<Project, 'service_type' | 'status' | 'bidding_ends_at'>;
     workerServiceType?: ServiceType | null;
   },
 ): { href: string; action: ShowcaseCardAction } {
@@ -53,7 +53,11 @@ export function getShowcaseCardAction(
     !!options?.project &&
     canWorkerBidOnProject(normalized, workerServiceType, options.project);
 
-  if (canBid) {
+  const biddingLive = options?.project
+    ? isProjectBiddingLive(options.project)
+    : true;
+
+  if (canBid && biddingLive) {
     return {
       href: getWorkerBidHref(normalized, projectId),
       action: 'bidNow',
@@ -122,6 +126,26 @@ export function formatShowcaseRemaining(targetDateISO: string): {
 
 export function isProjectBiddingLive(project: Pick<Project, 'status' | 'bidding_ends_at'>): boolean {
   return project.status === 'active_24h' && new Date(project.bidding_ends_at) > new Date();
+}
+
+/** Bidding ended; owner is still choosing a winner. */
+export function isProjectSelectionWindow(
+  project: Pick<Project, 'status' | 'bidding_ends_at' | 'selection_ends_at'>,
+): boolean {
+  if (project.status === 'completed' || project.status === 'cancelled') return false;
+  if (isProjectBiddingLive(project)) return false;
+  if (project.status !== 'active_24h' && project.status !== 'frozen_24h') return false;
+  if (project.selection_ends_at && new Date(project.selection_ends_at) <= new Date()) {
+    return false;
+  }
+  return true;
+}
+
+/** Open bidding or selection-window projects shown on the homepage Live Auctions grid. */
+export function isHomeAuctionProject(
+  project: Pick<Project, 'status' | 'bidding_ends_at' | 'selection_ends_at'>,
+): boolean {
+  return isProjectBiddingLive(project) || isProjectSelectionWindow(project);
 }
 
 export function sortShowcaseProjectsByLatest(projects: ShowcaseProject[]): ShowcaseProject[] {

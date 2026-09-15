@@ -22,7 +22,6 @@ type ProjectRow = Project & {
 
 export interface HomePublicData {
   showcaseProjects: ShowcaseProject[];
-  frozenProjects: Project[];
   statValues: Record<string, number>;
   featuredFirms: DemoFirm[];
 }
@@ -90,11 +89,13 @@ async function loadHomePublicDataWithClient(client: SupabaseClient): Promise<Hom
 
   const showcaseRows = (showcaseResult.data ?? []) as unknown as ProjectRow[];
   const frozenRows = (frozenResult.data ?? []) as unknown as ProjectRow[];
-  const showcaseProjects = await attachLowestRates(client, showcaseRows);
+  const mergedRows = [...showcaseRows, ...frozenRows].filter(
+    (row, index, rows) => rows.findIndex((item) => item.id === row.id) === index,
+  );
+  const showcaseProjects = await attachLowestRates(client, mergedRows);
 
   return {
     showcaseProjects,
-    frozenProjects: frozenRows as Project[],
     statValues: {
       active: liveCount.count ?? showcaseProjects.filter(isProjectBiddingLive).length,
       frozen: frozenCount.count ?? 0,
@@ -107,7 +108,7 @@ async function loadHomePublicDataWithClient(client: SupabaseClient): Promise<Hom
 
 const getCachedHomePublicData = unstable_cache(
   async () => loadHomePublicDataWithClient(createAdminClient()),
-  ['home-public-v3'],
+  ['home-public-v4'],
   { revalidate: HOME_DATA_REVALIDATE_SECONDS },
 );
 

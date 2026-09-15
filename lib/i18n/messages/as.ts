@@ -128,6 +128,8 @@ export const as: Messages = {
     },
     showcase: {
       liveBadge: 'Live Bidding',
+      selectionBadge: 'Selection Window',
+      biddingFrozen: 'Bidding Frozen',
       projectOwner: 'Client',
       leadingRate: 'Leading Rate',
       activeBids: 'Active Bids',
