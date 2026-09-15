@@ -18,7 +18,7 @@ export function ProjectServiceFilterPills({
   onChange,
 }: ProjectServiceFilterPillsProps) {
   return (
-    <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by service type">
+    <div className="flex w-full flex-wrap gap-2" role="group" aria-label="Filter by service type">
       {PROJECT_SERVICE_FILTER_OPTIONS.map(({ id, label }) => (
         <button
           key={id}

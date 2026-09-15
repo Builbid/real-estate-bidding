@@ -138,12 +138,12 @@ export function ActiveProjectsShowcaseGrid({
       </div>
 
       <div>
-        <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="mb-6 flex w-full flex-col gap-4">
           <ProjectServiceFilterPills
             value={serviceFilter}
             onChange={setServiceFilter}
           />
-          <div className="w-full lg:max-w-xs lg:shrink-0">
+          <div className="w-full">
             <Input
               type="search"
               value={locationSearch}
@@ -160,7 +160,7 @@ export function ActiveProjectsShowcaseGrid({
         </div>
 
         {displayProjects.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="mx-auto grid w-full max-w-5xl grid-cols-1 justify-items-center gap-6 md:grid-cols-2">
             {displayProjects.map((project) => (
               <ShowcaseProjectCard
                 key={project.id}

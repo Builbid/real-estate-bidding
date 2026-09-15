@@ -13,7 +13,7 @@ export const PROJECT_SERVICE_FILTER_OPTIONS: { id: ProjectServiceFilter; label: 
 ];
 
 export const PROJECT_SERVICE_FILTER_PILL_ACTIVE =
-  'bg-brand text-white font-medium rounded-full px-4 py-1.5 text-sm';
+  'border border-brand bg-brand text-white font-medium rounded-full px-4 py-1.5 text-sm';
 
 export const PROJECT_SERVICE_FILTER_PILL_INACTIVE =
-  'bg-slate-200 hover:bg-slate-300 text-slate-800 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 font-medium rounded-full px-4 py-1.5 text-sm';
+  'border border-gray-200 bg-white text-slate-800 hover:bg-gray-50 dark:border-slate-600 dark:bg-transparent dark:text-slate-200 dark:hover:bg-slate-800/40 font-medium rounded-full px-4 py-1.5 text-sm';

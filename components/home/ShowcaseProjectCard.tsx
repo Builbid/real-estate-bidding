@@ -354,7 +354,7 @@ export function ShowcaseProjectCard({
 
   return (
     <article
-      className="group relative flex min-w-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-colors hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-slate-700"
+      className="group relative flex w-full max-w-[550px] min-w-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-colors hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-slate-700"
     >
       {/* Large watermark icon */}
       <ServiceIcon

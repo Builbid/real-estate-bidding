@@ -103,7 +103,7 @@ export function AllProjectsPageContent({
   return (
     <>
       <Navbar />
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10 pb-16">
+      <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-10 pb-16">
         <NavLink href="/" prefetch className={cn(NAV_BACK_LINK, 'mb-6')}>
           <ArrowLeft className="w-4 h-4" />
           Back to Home
@@ -124,12 +124,12 @@ export function AllProjectsPageContent({
           </p>
         </header>
 
-        <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="mb-6 flex w-full flex-col gap-4">
           <ProjectServiceFilterPills
             value={serviceFilter}
             onChange={setServiceFilter}
           />
-          <div className="w-full max-w-md lg:shrink-0">
+          <div className="w-full">
             <Input
               type="search"
               value={locationSearch}
@@ -145,7 +145,7 @@ export function AllProjectsPageContent({
           <>
           <div
             className={cn(
-              'grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3',
+              'mx-auto grid w-full max-w-5xl grid-cols-1 justify-items-center gap-5 md:grid-cols-2',
               isPending && 'opacity-70 transition-opacity',
             )}
           >
