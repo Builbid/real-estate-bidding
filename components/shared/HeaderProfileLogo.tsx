@@ -5,10 +5,10 @@ import { usePathname } from 'next/navigation';
 import { NavLink } from '@/components/shared/NavLink';
 import { cn } from '@/lib/utils';
 
-/** Myntra-style header Profile control: outline person icon with a label underneath. */
+/** Header Profile control: outline person icon with a label underneath. */
 export function HeaderProfileLogo({
   href = '/dashboard/profile',
-  overlay = false,
+  overlay: _overlay = false,
   className,
 }: {
   href?: string;
@@ -25,10 +25,9 @@ export function HeaderProfileLogo({
       href={href}
       prefetch
       className={cn(
-        'inline-flex flex-col items-center justify-center gap-[3px] self-center px-2 no-underline',
-        overlay
-          ? 'text-slate-900 hover:text-[#ee5f73] dark:text-slate-100 dark:hover:text-sky-400'
-          : 'text-foreground hover:text-sky-600 dark:hover:text-sky-400',
+        'inline-flex cursor-pointer flex-col items-center justify-center gap-[3px] self-center px-2 no-underline',
+        'text-gray-700 dark:text-slate-200',
+        'transition-transform duration-200 hover:scale-105 hover:text-gray-900 dark:hover:text-slate-100',
         className,
       )}
     >
