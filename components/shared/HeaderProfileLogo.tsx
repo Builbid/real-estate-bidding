@@ -8,7 +8,6 @@ import { cn } from '@/lib/utils';
 /** Header Profile control: outline person icon with a label underneath. */
 export function HeaderProfileLogo({
   href = '/dashboard/profile',
-  overlay: _overlay = false,
   className,
 }: {
   href?: string;

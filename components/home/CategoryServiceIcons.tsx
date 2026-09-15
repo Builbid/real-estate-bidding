@@ -119,7 +119,7 @@ function ConstructionFirmIcon() {
   );
 }
 
-const CATEGORY_ICONS: Record<ServiceType, () => JSX.Element> = {
+const CATEGORY_ICONS: Record<ServiceType, () => ReactNode> = {
   labour_contractor: MistriHelmetIcon,
   construction_firm: ConstructionFirmIcon,
   drawing_design: DrawingCompassIcon,
