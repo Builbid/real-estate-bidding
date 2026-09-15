@@ -191,9 +191,9 @@ function OptionCardButton({
       className={cn(
         'flex w-full items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3.5 text-left text-sm font-semibold transition-all',
         selected
-          ? 'border-brand bg-brand/10 text-brand shadow-sm ring-1 ring-brand/30 dark:border-brand dark:bg-brand/15 dark:text-brand'
-          : 'text-gray-800 hover:border-brand/50 hover:bg-brand/[0.06] dark:border-border dark:bg-card dark:text-zinc-100 dark:hover:border-brand dark:hover:bg-brand/10',
-        disabled && 'cursor-not-allowed opacity-50 grayscale hover:border-gray-200 hover:bg-white dark:hover:border-border dark:hover:bg-card',
+          ? 'border-brand bg-white text-brand shadow-sm ring-1 ring-brand/30 dark:border-brand dark:bg-white dark:text-brand'
+          : 'text-gray-800 hover:border-gray-300 bg-white dark:border-gray-200 dark:bg-white dark:text-zinc-100 dark:hover:border-gray-300',
+        disabled && 'cursor-not-allowed opacity-50 grayscale hover:border-gray-200 hover:bg-white dark:hover:border-gray-200 dark:hover:bg-white',
         className,
       )}
     >
@@ -327,14 +327,13 @@ function HouseTypeCard({
       className={cn(
         'relative flex min-h-[5.75rem] w-full flex-col items-center justify-center gap-1.5 rounded-xl border px-3 py-3 text-center transition-all',
         selected
-          ? 'border-brand bg-brand/10 shadow-sm ring-1 ring-brand/30 dark:border-brand dark:bg-brand/15'
-          : 'border-border bg-card hover:border-brand/50 hover:bg-brand/[0.06] dark:hover:border-brand dark:hover:bg-brand/10',
+          ? 'border-brand bg-white shadow-sm ring-1 ring-brand/30 dark:border-brand dark:bg-white'
+          : 'border-gray-200 bg-white hover:border-gray-300 dark:hover:border-gray-300',
       )}
     >
       <span
         className={cn(
-          'flex h-10 w-12 items-center justify-center rounded-lg',
-          type === 'assam' ? 'bg-amber-100 dark:bg-amber-500/15' : 'bg-sky-100 dark:bg-sky-500/15',
+          'flex h-10 w-12 items-center justify-center rounded-lg border border-gray-200 bg-white',
         )}
       >
         {type === 'assam' ? <AssamTypeGraphic /> : <RccStructureGraphic />}
@@ -1012,7 +1011,7 @@ export function LabourContractorProjectWizard() {
 
                     {isAssam ? (
                       <div className="space-y-3">
-                        <div className="rounded-lg border border-brand/25 bg-brand/10 px-3 py-2.5">
+                        <div className="rounded-lg border border-gray-200 bg-white px-3 py-2.5">
                           <p className="text-xs font-semibold text-gray-900 dark:text-white">
                             Full finishing upto Plastering and Roof work
                           </p>

@@ -531,8 +531,8 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                             className={cn(
                               'relative text-left rounded-xl border-2 p-4 pr-10 transition-all duration-200',
                               selected
-                                ? 'border-brand bg-brand/10 shadow-md shadow-brand/15'
-                                : 'border-border bg-secondary/30 hover:border-muted-foreground/40',
+                                ? 'border-brand bg-white shadow-md'
+                                : 'border-gray-200 bg-white hover:border-gray-300',
                             )}
                           >
                             {selected && (
@@ -690,8 +690,8 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                         className={cn(
                           'relative text-left rounded-xl border-2 p-4 pr-10 transition-all duration-200',
                           selected
-                            ? 'border-brand bg-brand/10 shadow-md shadow-brand/15 scale-[1.02]'
-                            : 'border-border bg-secondary/30 hover:border-muted-foreground/40',
+                            ? 'border-brand bg-white shadow-md scale-[1.02]'
+                            : 'border-gray-200 bg-white hover:border-gray-300',
                         )}
                       >
                         {selected && (
@@ -706,7 +706,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
               )}
 
               {isPainter && (
-                <div className="space-y-4 rounded-xl border border-border/70 bg-secondary/20 p-4">
+                <div className="space-y-4 rounded-xl border border-gray-200 bg-white p-4">
                   <Input
                     label="Approximate Paint Area"
                     type="number"
@@ -949,8 +949,8 @@ function PainterChoice<T extends string>({
               className={cn(
                 'relative rounded-lg border px-3 py-2.5 pr-8 text-left text-xs font-semibold transition-colors',
                 selected
-                  ? 'border-brand bg-brand/10 text-gray-900 dark:text-white'
-                  : 'border-border bg-card text-gray-800 dark:text-zinc-100 hover:border-muted-foreground/40',
+                  ? 'border-brand bg-white text-gray-900 shadow-sm ring-1 ring-brand/30 dark:text-white'
+                  : 'border-gray-200 bg-white text-gray-800 hover:border-gray-300 dark:text-zinc-100',
               )}
             >
               {selected && (

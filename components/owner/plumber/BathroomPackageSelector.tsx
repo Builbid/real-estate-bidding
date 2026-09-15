@@ -35,8 +35,8 @@ export function BathroomPackageSelector({
               className={cn(
                 'relative w-full rounded-xl border-2 px-2 py-3 sm:px-3 sm:py-4 text-center transition-all duration-200',
                 selected
-                  ? 'border-brand bg-brand/10 shadow-md shadow-brand/15'
-                  : 'border-border bg-secondary/30 hover:border-muted-foreground/40',
+                  ? 'border-brand bg-white shadow-sm ring-1 ring-brand/30'
+                  : 'border-gray-200 bg-white hover:border-gray-300',
               )}
             >
               {selected && (
@@ -58,7 +58,7 @@ export function BathroomPackageSelector({
       >
         <div className="overflow-hidden">
           {selectedPackage && (
-            <ul className="mt-3 space-y-1.5 rounded-lg border border-brand/20 bg-brand/5 p-3">
+            <ul className="mt-3 space-y-1.5 rounded-lg border border-gray-200 bg-white p-3">
               <li className="text-[10px] font-semibold uppercase tracking-wider text-brand">
                 {selectedPackage.label} — included work scope
               </li>

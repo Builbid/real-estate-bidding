@@ -59,8 +59,8 @@ function ServiceCard({
       className={cn(
         'relative flex h-full min-h-0 w-full cursor-pointer flex-col justify-between rounded-xl border-2 p-3.5 text-left transition-all duration-200',
         selected
-          ? 'scale-[1.02] border-brand bg-brand/10 shadow-md shadow-brand/15'
-          : 'border-border bg-secondary/30 hover:border-brand/50',
+          ? 'scale-[1.02] border-brand bg-white shadow-sm ring-1 ring-brand/30'
+          : 'border-gray-200 bg-white hover:border-gray-300',
       )}
     >
       <div className="mb-1 flex items-center justify-between gap-2">

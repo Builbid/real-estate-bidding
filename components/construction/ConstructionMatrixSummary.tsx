@@ -52,15 +52,15 @@ export function ConstructionMatrixSummary({
         {floors.map((f: FloorStage) => (
           <li
             key={f.floor}
-            className="rounded-lg border border-border/60 bg-secondary/30 p-3.5"
+            className="rounded-lg border border-gray-200 bg-white p-3.5"
           >
             <div className="mb-1.5 flex flex-wrap items-center gap-2">
               <span className="text-sm font-semibold text-foreground">{floorLabel(f.floor)}</span>
               <span className={cn(
                 'inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide',
                 f.stage === 'full'
-                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                  : 'bg-amber-500/10 text-amber-400 border border-amber-500/20',
+                  ? 'bg-white text-emerald-700 border border-emerald-500/40'
+                  : 'bg-white text-amber-700 border border-amber-500/40',
               )}>
                 {stageLabel(f.stage, false)}
               </span>

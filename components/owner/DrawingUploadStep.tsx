@@ -74,7 +74,7 @@ export function DrawingUploadStep({
           onClick={() => { onChoiceChange('upload'); setError(null); }}
           className={cn(
             'text-left rounded-xl border-2 p-4 transition-all',
-            choice === 'upload' ? 'border-brand bg-brand/10' : 'border-border bg-secondary/30',
+            choice === 'upload' ? 'border-brand bg-white shadow-sm ring-1 ring-brand/30' : 'border-gray-200 bg-white',
           )}
         >
           <div className="flex items-center justify-between mb-2">
@@ -88,7 +88,7 @@ export function DrawingUploadStep({
           onClick={() => { onChoiceChange('firm_creates'); onFileChange(null); setError(null); setUploadProgress(null); }}
           className={cn(
             'text-left rounded-xl border-2 p-4 transition-all',
-            choice === 'firm_creates' ? 'border-brand bg-brand/10' : 'border-border bg-secondary/30',
+            choice === 'firm_creates' ? 'border-brand bg-white shadow-sm ring-1 ring-brand/30' : 'border-gray-200 bg-white',
           )}
         >
           <div className="flex items-center justify-between mb-2">
@@ -109,7 +109,7 @@ export function DrawingUploadStep({
           onDrop={(e) => { e.preventDefault(); setDragOver(false); handleFiles(e.dataTransfer.files); }}
           className={cn(
             'rounded-xl border-2 border-dashed p-6 text-center transition-colors',
-            dragOver ? 'border-brand bg-brand/10' : 'border-border',
+            dragOver ? 'border-brand bg-white' : 'border-gray-200 bg-white',
           )}
         >
           <input

@@ -182,7 +182,7 @@ export function PipingOptionSelector({
         )}
       </div>
 
-      <div className="rounded-xl border border-brand/25 bg-brand/5 p-3.5 space-y-2">
+      <div className="rounded-xl border border-gray-200 bg-white p-3.5 space-y-2">
         <div className="flex items-center justify-between gap-2">
           <p className={cn(WIZARD_SECTION_LABEL, 'normal-case tracking-normal')}>
             Bidding options ({optionCount}/{MAX_PLUMBING_BID_OPTIONS})
@@ -200,7 +200,7 @@ export function PipingOptionSelector({
             {bidOptions.map((option) => (
               <li
                 key={option.id}
-                className="flex items-start gap-2 rounded-lg border border-border/70 bg-background/60 px-3 py-2 text-xs font-medium text-gray-800 dark:text-zinc-200"
+                className="flex items-start gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-800 dark:text-zinc-200"
               >
                 <Ruler className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-brand" />
                 <span>
@@ -217,7 +217,7 @@ export function PipingOptionSelector({
         </p>
       </div>
 
-      <div className="flex items-start gap-2 rounded-xl border border-amber-500/25 bg-amber-500/5 p-3">
+      <div className="flex items-start gap-2 rounded-xl border border-amber-500/40 bg-white p-3">
         <Info className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-500" />
         <p className="text-xs font-medium leading-relaxed text-gray-800 dark:text-zinc-200">
           {PLUMBING_TAPE_MEASURE_DISCLAIMER}

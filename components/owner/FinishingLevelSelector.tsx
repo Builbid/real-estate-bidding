@@ -10,17 +10,17 @@ const LEVELS: FinishingLevel[] = ['basic', 'standard', 'premium'];
 const ACCENT = {
   slate: {
     border: 'border-slate-500/60',
-    bg: 'bg-slate-500/8',
+    bg: 'bg-white',
     ring: 'ring-slate-500/20',
   },
   blue: {
     border: 'border-brand/60',
-    bg: 'bg-brand/10',
+    bg: 'bg-white',
     ring: 'ring-brand/20',
   },
   amber: {
     border: 'border-amber-500/60',
-    bg: 'bg-amber-500/8',
+    bg: 'bg-white',
     ring: 'ring-amber-500/20',
   },
 };
@@ -53,7 +53,7 @@ export function FinishingLevelSelector({ value, onChange }: FinishingLevelSelect
               className={cn(
                 'relative text-left rounded-2xl border-2 p-4 transition-all duration-200',
                 selected && `${accent.border} ${accent.bg} shadow-lg ring-2 ${accent.ring}`,
-                !selected && 'border-border bg-secondary/30 hover:border-muted-foreground/30',
+                !selected && 'border-gray-200 bg-white hover:border-gray-300',
               )}
             >
               {cfg.popular && (
@@ -66,7 +66,7 @@ export function FinishingLevelSelector({ value, onChange }: FinishingLevelSelect
                 {selected && <CheckCircle2 className="w-5 h-5 text-brand" />}
               </div>
               <h3 className="text-sm font-bold text-foreground">{cfg.title}</h3>
-              <span className="inline-block mt-1 mb-2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-secondary border border-border">
+              <span className="inline-block mt-1 mb-2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-white border border-gray-200">
                 {cfg.classBadge}
               </span>
               <ul className="space-y-1 mb-3">

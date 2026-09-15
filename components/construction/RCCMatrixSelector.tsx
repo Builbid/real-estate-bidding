@@ -102,8 +102,8 @@ function MatrixOptionCard({
       className={cn(
         'w-full text-left rounded-xl border-2 p-4 transition-all',
         selected
-          ? 'border-emerald-500/60 bg-emerald-500/10 shadow-sm'
-          : 'border-border bg-card/80 hover:border-emerald-500/30 hover:bg-accent/40',
+          ? 'border-emerald-500 bg-white shadow-sm ring-1 ring-emerald-500/30'
+          : 'border-gray-200 bg-white hover:border-gray-300',
       )}
     >
       <div className="flex items-center justify-between gap-2 mb-3">

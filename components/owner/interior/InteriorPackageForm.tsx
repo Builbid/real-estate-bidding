@@ -56,8 +56,8 @@ export function InteriorPackageForm({
             className={cn(
               'rounded-xl border-2 overflow-hidden',
               open
-                ? 'border-brand/50 bg-secondary/10'
-                : 'border-border bg-secondary/15',
+                ? 'border-brand bg-white'
+                : 'border-gray-200 bg-white',
             )}
           >
             <label className="flex w-full cursor-pointer items-start gap-3 p-4">
@@ -102,8 +102,8 @@ export function InteriorPackageForm({
                         className={cn(
                           'flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-2.5',
                           checked
-                            ? 'border-brand/40 bg-brand/10'
-                            : 'border-border/70 bg-background/40',
+                            ? 'border-brand bg-white ring-1 ring-brand/30'
+                            : 'border-gray-200 bg-white',
                         )}
                       >
                         <input

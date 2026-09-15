@@ -25,14 +25,14 @@ export function ElectricianWorkCard({
       onClick={onClick}
       aria-pressed={selected}
       className={cn(
-        'group relative flex w-full flex-col overflow-hidden rounded-lg border-2 bg-card text-left transition-all duration-150',
+        'group relative flex w-full flex-col overflow-hidden rounded-lg border-2 bg-white text-left transition-all duration-150',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/50 focus-visible:ring-offset-1',
         selected
-          ? 'border-amber-500 bg-amber-500/5 shadow-sm'
-          : 'border-border hover:border-muted-foreground/50 hover:shadow-sm',
+          ? 'border-amber-500 bg-white shadow-sm'
+          : 'border-gray-200 hover:border-gray-300 hover:shadow-sm',
       )}
     >
-      <div className="relative h-32 w-full overflow-hidden bg-secondary/30 sm:h-36">
+      <div className="relative h-32 w-full overflow-hidden bg-white sm:h-36">
         <Image
           src={imageUrl}
           alt={imageAlt}

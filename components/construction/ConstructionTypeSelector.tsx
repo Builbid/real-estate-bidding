@@ -152,17 +152,17 @@ const LabourFloorBlock = forwardRef<HTMLDivElement, LabourFloorBlockProps>(
     );
 
     const greenSelected =
-      'border-2 border-[#22c55e] bg-[#1c2f1a] shadow-[0_0_16px_rgba(34,197,94,0.12)]';
+      'border-2 border-[#22c55e] bg-white shadow-sm';
     const purpleSelected =
-      'border-2 border-[#818cf8] bg-[#1a1f3a] shadow-[0_0_16px_rgba(129,140,248,0.12)]';
+      'border-2 border-[#818cf8] bg-white shadow-sm';
     const selectedShell = accent === 'green' ? greenSelected : purpleSelected;
 
-    const greenLabel = 'text-[#86efac]';
-    const purpleLabel = 'text-[#a5b4fc]';
+    const greenLabel = 'text-emerald-700';
+    const purpleLabel = 'text-indigo-700';
     const selectedLabel = accent === 'green' ? greenLabel : purpleLabel;
 
-    const greenSub = 'text-[#4ade80]/80';
-    const purpleSub = 'text-[#a5b4fc]/70';
+    const greenSub = 'text-gray-600';
+    const purpleSub = 'text-gray-600';
     const selectedSub = accent === 'green' ? greenSub : purpleSub;
 
     const checkBg = accent === 'green' ? 'bg-[#22c55e]' : 'bg-[#818cf8]';
@@ -199,7 +199,7 @@ const LabourFloorBlock = forwardRef<HTMLDivElement, LabourFloorBlockProps>(
           </span>
         </div>
 
-        <div className="bg-[#f1f5f9] dark:bg-[#0e1520] p-3.5">
+        <div className="bg-white p-3.5">
           {hasError && (
             <p className="text-xs text-red-500 dark:text-red-400 mb-2.5 font-medium">
               Please choose a construction type for this floor
@@ -316,13 +316,13 @@ function RadioOption({
       className={cn(
         'relative w-full min-h-[44px] rounded-xl p-3 text-left transition-all',
         disabled
-          ? 'cursor-not-allowed opacity-45 border-[1.5px] border-[#e2e8f0] dark:border-gray-700 bg-gray-100/80 dark:bg-gray-900/40'
+          ? 'cursor-not-allowed opacity-45 border-[1.5px] border-gray-200 bg-white'
           : isSelected
             ? cn(selectedShell, 'active:scale-[0.99]')
             : cn(
-                'border-[1.5px] border-[#e2e8f0] dark:border-gray-600',
-                'bg-white dark:bg-gray-800/40',
-                'hover:bg-gray-50 dark:hover:bg-gray-800/70',
+                'border-[1.5px] border-gray-200',
+                'bg-white',
+                'hover:border-gray-300',
                 'active:scale-[0.99]',
               ),
       )}
@@ -457,12 +457,12 @@ const FirmFloorBlock = forwardRef<HTMLDivElement, FirmFloorBlockProps>(function 
   const tooltipSteps = getConstructionTooltipSteps(buildingType, infoContext, serviceType);
 
   const greenSelected =
-    'border-2 border-[#22c55e] bg-[#1c2f1a] shadow-[0_0_16px_rgba(34,197,94,0.12)]';
+    'border-2 border-[#22c55e] bg-white shadow-sm';
   const purpleSelected =
-    'border-2 border-[#818cf8] bg-[#1a1f3a] shadow-[0_0_16px_rgba(129,140,248,0.12)]';
+    'border-2 border-[#818cf8] bg-white shadow-sm';
   const selectedShell = accent === 'green' ? greenSelected : purpleSelected;
-  const selectedLabel = accent === 'green' ? 'text-[#86efac]' : 'text-[#a5b4fc]';
-  const selectedSub = accent === 'green' ? 'text-[#4ade80]/80' : 'text-[#a5b4fc]/70';
+  const selectedLabel = accent === 'green' ? 'text-emerald-700' : 'text-indigo-700';
+  const selectedSub = 'text-gray-600';
   const checkBg = accent === 'green' ? 'bg-[#22c55e]' : 'bg-[#818cf8]';
 
   return (
@@ -487,7 +487,7 @@ const FirmFloorBlock = forwardRef<HTMLDivElement, FirmFloorBlockProps>(function 
         </div>
       </div>
 
-      <div className="bg-[#f1f5f9] dark:bg-[#0e1520] p-3.5">
+      <div className="bg-white p-3.5">
         <div className="flex gap-3">
           <button
             type="button"
@@ -497,7 +497,7 @@ const FirmFloorBlock = forwardRef<HTMLDivElement, FirmFloorBlockProps>(function 
               'relative flex-1 min-h-[44px] rounded-xl p-3 text-left transition-all active:scale-[0.98]',
               selected === skeletonValue
                 ? selectedShell
-                : 'border-[1.5px] border-[#e2e8f0] dark:border-gray-600 bg-gray-50 dark:bg-gray-800/40',
+                : 'border-[1.5px] border-gray-200 bg-white hover:border-gray-300',
             )}
           >
             {selected === skeletonValue && (
@@ -536,7 +536,7 @@ const FirmFloorBlock = forwardRef<HTMLDivElement, FirmFloorBlockProps>(function 
               'relative flex-1 min-h-[44px] rounded-xl p-3 text-left transition-all active:scale-[0.98]',
               selected === CONSTRUCTION_TYPE_FULL
                 ? selectedShell
-                : 'border-[1.5px] border-[#e2e8f0] dark:border-gray-600 bg-gray-50 dark:bg-gray-800/40',
+                : 'border-[1.5px] border-gray-200 bg-white hover:border-gray-300',
             )}
           >
             {selected === CONSTRUCTION_TYPE_FULL && (
@@ -620,7 +620,7 @@ function SelectionSummary({
   const ordered = sortBuildingTypes(buildingTypes);
 
   return (
-    <div className="rounded-xl border border-emerald-500/30 bg-[#f0fdf4] dark:bg-[#0d1a12] p-4">
+    <div className="rounded-xl border border-gray-200 bg-white p-4">
       <p className="text-sm font-bold text-foreground mb-3">📋 Your Selection Summary</p>
       <ul className="space-y-2">
         {ordered.map((type) => {

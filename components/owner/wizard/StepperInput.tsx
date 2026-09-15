@@ -31,7 +31,7 @@ export function StepperInput({
           onClick={() => onChange(Math.max(min, value - 1))}
           disabled={value <= min}
           className={cn(
-            'flex h-11 w-11 items-center justify-center rounded-xl border-2 border-border bg-card text-gray-900 dark:text-white',
+            'flex h-11 w-11 items-center justify-center rounded-xl border-2 border-gray-200 bg-white text-gray-900 dark:text-white',
             'hover:border-brand/50 disabled:opacity-40 disabled:hover:border-border',
           )}
           aria-label={`Decrease ${label}`}
@@ -46,7 +46,7 @@ export function StepperInput({
           onClick={() => onChange(Math.min(max, value + 1))}
           disabled={value >= max}
           className={cn(
-            'flex h-11 w-11 items-center justify-center rounded-xl border-2 border-border bg-card text-gray-900 dark:text-white',
+            'flex h-11 w-11 items-center justify-center rounded-xl border-2 border-gray-200 bg-white text-gray-900 dark:text-white',
             'hover:border-brand/50 disabled:opacity-40 disabled:hover:border-border',
           )}
           aria-label={`Increase ${label}`}

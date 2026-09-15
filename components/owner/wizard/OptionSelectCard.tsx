@@ -30,8 +30,8 @@ export function OptionSelectCard({
       className={cn(
         'relative w-full rounded-xl border-2 p-4 pr-10 text-left transition-all duration-200',
         selected
-          ? 'border-brand bg-brand/10 shadow-sm ring-1 ring-brand/30 dark:border-brand dark:bg-brand/15'
-          : 'border-border bg-secondary/30 hover:border-brand/40',
+          ? 'border-brand bg-white shadow-sm ring-1 ring-brand/30 dark:border-brand dark:bg-white'
+          : 'border-gray-200 bg-white hover:border-gray-300',
         disabled && 'cursor-default disabled:opacity-100',
         className,
       )}
