@@ -11,8 +11,11 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 export const HOME_SHOWCASE_LIMIT = 12;
 export const HOME_FROZEN_LIMIT = 6;
 export const HOME_DATA_REVALIDATE_SECONDS = 60;
-/** Public homepage floor so Bids Submitted never displays as 0. */
-export const BIDS_SUBMITTED_BASE_OFFSET = 100;
+/** Public homepage floor so Bids Submitted never displays below this value. */
+export const BIDS_SUBMITTED_BASE_OFFSET = 95;
+
+/** In-process high-water mark so a failed/empty count cannot drop the public counter. */
+let bidsSubmittedHighWater = BIDS_SUBMITTED_BASE_OFFSET;
 
 const HOME_PROJECT_SELECT =
   'id, owner_id, title, district, state, pincode, description, status, service_type, track_type, sub_configuration, total_floors, plot_area_sqft, floor_area_sqft, finishing_level, budget_range_min, budget_range_max, bidding_ends_at, selection_ends_at, created_at, updated_at, trade_details, painter_details, mistri_details, drawing_details, drawing_types, building_types, construction_types, owner:profiles_public!owner_id(id, full_name), bids(count)';
@@ -60,7 +63,7 @@ async function attachLowestRates(
 async function loadHomePublicDataWithClient(client: SupabaseClient): Promise<HomePublicData> {
   const now = new Date().toISOString();
 
-  const [showcaseResult, frozenResult, totalProjects, liveCount, frozenCount, totalBids, featured] =
+  const [showcaseResult, frozenResult, totalProjects, liveCount, frozenCount, bidsCountResult, featured] =
     await Promise.all([
       client
         .from('projects')
@@ -85,7 +88,10 @@ async function loadHomePublicDataWithClient(client: SupabaseClient): Promise<Hom
         .from('projects')
         .select('*', { count: 'estimated', head: true })
         .eq('status', 'frozen_24h'),
-      client.from('bids').select('id', { count: 'exact', head: true }),
+      client
+        .from('bids')
+        .select('id', { count: 'exact', head: true })
+        .eq('is_withdrawn', false),
       getFeaturedPartners(client),
     ]);
 
@@ -96,13 +102,19 @@ async function loadHomePublicDataWithClient(client: SupabaseClient): Promise<Hom
   );
   const showcaseProjects = await attachLowestRates(client, mergedRows);
 
+  const realBidsFromSupabase =
+    bidsCountResult.error || bidsCountResult.count == null || bidsCountResult.count <= 0
+      ? 0
+      : bidsCountResult.count;
+  const totalBidsSubmitted = BIDS_SUBMITTED_BASE_OFFSET + realBidsFromSupabase;
+
   return {
     showcaseProjects,
     statValues: {
       active: liveCount.count ?? showcaseProjects.filter(isProjectBiddingLive).length,
       frozen: frozenCount.count ?? 0,
       total: totalProjects.count ?? 0,
-      bids: BIDS_SUBMITTED_BASE_OFFSET + (totalBids.count ?? 0),
+      bids: totalBidsSubmitted,
     },
     featuredFirms: featured.firms,
   };
@@ -110,19 +122,33 @@ async function loadHomePublicDataWithClient(client: SupabaseClient): Promise<Hom
 
 const getCachedHomePublicData = unstable_cache(
   async () => loadHomePublicDataWithClient(createAdminClient()),
-  ['home-public-v5'],
+  ['home-public-v6'],
   { revalidate: HOME_DATA_REVALIDATE_SECONDS },
 );
+
+function withMonotonicBidsSubmitted(data: HomePublicData): HomePublicData {
+  const bids = Math.max(
+    BIDS_SUBMITTED_BASE_OFFSET,
+    bidsSubmittedHighWater,
+    data.statValues.bids,
+  );
+  bidsSubmittedHighWater = bids;
+  if (bids === data.statValues.bids) return data;
+  return {
+    ...data,
+    statValues: { ...data.statValues, bids },
+  };
+}
 
 export async function loadHomePublicData(): Promise<HomePublicData> {
   if (process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()) {
     try {
-      return await getCachedHomePublicData();
+      return withMonotonicBidsSubmitted(await getCachedHomePublicData());
     } catch (err) {
       console.warn('Cached homepage data failed, falling back:', err);
     }
   }
 
   const supabase = await createClient();
-  return loadHomePublicDataWithClient(supabase);
+  return withMonotonicBidsSubmitted(await loadHomePublicDataWithClient(supabase));
 }
