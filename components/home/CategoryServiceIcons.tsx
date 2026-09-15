@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import Image from 'next/image';
 import type { ServiceType } from '@/lib/types';
 
 const ICON_CLASS = 'h-10 w-10 sm:h-11 sm:w-11';
@@ -32,6 +33,18 @@ function MistriHelmetIcon() {
       <path d="M28 12h8c1.7 0 3 1.3 3 3v8h-14v-8c0-1.7 1.3-3 3-3Z" fill="#C2410C" />
       <path d="M14 42h36" stroke="#9A3412" strokeWidth="2" strokeLinecap="round" />
     </Svg>
+  );
+}
+
+function MistriWorkerPhoto() {
+  return (
+    <Image
+      src="/mistri-worker.jpg"
+      alt="Mistri Worker"
+      width={64}
+      height={64}
+      className="h-14 w-14 shrink-0 rounded-lg object-cover object-[28%_40%] sm:h-16 sm:w-16"
+    />
   );
 }
 
@@ -120,7 +133,7 @@ function ConstructionFirmIcon() {
 }
 
 const CATEGORY_ICONS: Record<ServiceType, () => ReactNode> = {
-  labour_contractor: MistriHelmetIcon,
+  labour_contractor: MistriWorkerPhoto,
   construction_firm: ConstructionFirmIcon,
   drawing_design: DrawingCompassIcon,
   painter: PainterPaletteIcon,
