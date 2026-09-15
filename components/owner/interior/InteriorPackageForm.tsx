@@ -6,6 +6,7 @@ import {
   type InteriorDesignerPackageKind,
   type InteriorDesignerSubOptionId,
 } from '@/lib/tradeWorkDetails';
+import { FORM_NOTE } from '@/components/owner/wizard/formTheme';
 import { cn } from '@/lib/utils';
 
 export function InteriorPackageForm({
@@ -97,8 +98,8 @@ export function InteriorPackageForm({
                   {pkg.options.map((option) => {
                     const checked = selectedSubOptions.includes(option.id);
                     return (
+                      <div key={option.id} className="space-y-1.5">
                       <label
-                        key={option.id}
                         className={cn(
                           'flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-2.5',
                           checked
@@ -119,17 +120,17 @@ export function InteriorPackageForm({
                               <CheckCircle2 className="h-3.5 w-3.5 text-brand" aria-hidden />
                             )}
                           </span>
-                          {option.note ? (
-                            <span className="mt-0.5 block text-[11px] font-medium italic text-slate-700 dark:text-slate-300">
-                              ({option.note})
-                            </span>
-                          ) : (
+                          {!option.note ? (
                             <span className="text-[11px] font-medium text-slate-700 dark:text-slate-300">
                               Interior designer rate {option.unitSuffix}
                             </span>
-                          )}
+                          ) : null}
                         </span>
                       </label>
+                      {option.note ? (
+                        <p className={FORM_NOTE}>Note: {option.note}</p>
+                      ) : null}
+                      </div>
                     );
                   })}
                 </div>

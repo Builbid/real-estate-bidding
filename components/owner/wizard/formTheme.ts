@@ -40,3 +40,6 @@ export const FORM_SELECTED_CARD =
 
 export const FORM_OPTION_IDLE =
   'border-gray-200 bg-white hover:border-gray-300 dark:border-gray-200 dark:bg-white';
+
+export const FORM_NOTE =
+  'w-full text-[11px] font-medium leading-snug text-orange-600 dark:text-orange-500';

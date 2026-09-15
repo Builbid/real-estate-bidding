@@ -72,7 +72,10 @@ import {
   FORM_CHECKBOX,
   FORM_CONTINUE_BTN,
   FORM_NESTED_PANEL,
+  FORM_NOTE,
+  FORM_OPTION_IDLE,
   FORM_SECTION_CARD,
+  FORM_SELECTED_CARD,
   FORM_SHELL_CARD,
   FORM_TEXTAREA,
 } from '@/components/owner/wizard/formTheme';
@@ -173,6 +176,7 @@ function OptionCardButton({
   className,
   disabled,
   locked,
+  note,
 }: {
   selected: boolean;
   onClick: () => void;
@@ -180,40 +184,44 @@ function OptionCardButton({
   className?: string;
   disabled?: boolean;
   locked?: boolean;
+  note?: string;
 }) {
   return (
-    <button
-      type="button"
-      disabled={disabled}
-      onClick={() => {
-        if (!disabled) onClick();
-      }}
-      className={cn(
-        'flex w-full items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3.5 text-left text-sm font-semibold transition-all',
-        selected
-          ? 'border-brand bg-white text-brand shadow-sm ring-1 ring-brand/30 dark:border-brand dark:bg-white dark:text-brand'
-          : 'text-gray-800 hover:border-gray-300 bg-white dark:border-gray-200 dark:bg-white dark:text-zinc-100 dark:hover:border-gray-300',
-        disabled && 'cursor-not-allowed opacity-50 grayscale hover:border-gray-200 hover:bg-white dark:hover:border-gray-200 dark:hover:bg-white',
-        className,
-      )}
-    >
-      <span className="min-w-0">{children}</span>
-      {locked ? (
-        <Lock className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-      ) : selected ? (
-        <span
-          aria-hidden
-          className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border-2 border-brand"
-        >
-          <span className="h-2.5 w-2.5 rounded-full bg-brand" />
-        </span>
-      ) : (
-        <span
-          aria-hidden
-          className="h-5 w-5 flex-shrink-0 rounded-full border-2 border-gray-300 dark:border-zinc-500"
-        />
-      )}
-    </button>
+    <div className="w-full space-y-1.5">
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => {
+          if (!disabled) onClick();
+        }}
+        className={cn(
+          'flex w-full items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3.5 text-left text-sm font-semibold transition-all',
+          selected
+            ? 'border-brand bg-white text-brand shadow-sm ring-1 ring-brand/30 dark:border-brand dark:bg-white dark:text-brand'
+            : 'text-gray-800 hover:border-gray-300 bg-white dark:border-gray-200 dark:bg-white dark:text-zinc-100 dark:hover:border-gray-300',
+          disabled && 'cursor-not-allowed opacity-50 grayscale hover:border-gray-200 hover:bg-white dark:hover:border-gray-200 dark:hover:bg-white',
+          className,
+        )}
+      >
+        <span className="min-w-0">{children}</span>
+        {locked ? (
+          <Lock className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+        ) : selected ? (
+          <span
+            aria-hidden
+            className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border-2 border-brand"
+          >
+            <span className="h-2.5 w-2.5 rounded-full bg-brand" />
+          </span>
+        ) : (
+          <span
+            aria-hidden
+            className="h-5 w-5 flex-shrink-0 rounded-full border-2 border-gray-300 dark:border-zinc-500"
+          />
+        )}
+      </button>
+      {note ? <p className={FORM_NOTE}>{note}</p> : null}
+    </div>
   );
 }
 
@@ -682,15 +690,10 @@ export function LabourContractorProjectWizard() {
             brickMaterial: option === 'wall_plaster_only' ? current.brickMaterial : null,
             plasterScope: option === 'wall_plaster_only' ? (current.plasterScope ?? 'both') : null,
             flooringMaterial:
-              option === 'full_construction' && current.includeFineFlooring
-                ? current.flooringMaterial
-                : null,
-            includeFineFlooring:
-              option === 'full_construction' ? current.includeFineFlooring === true : null,
+              option === 'full_construction' ? current.flooringMaterial : null,
+            includeFineFlooring: option === 'full_construction' ? true : null,
             flooringAreaSqft:
-              option === 'full_construction' && current.includeFineFlooring
-                ? current.flooringAreaSqft
-                : '',
+              option === 'full_construction' ? current.flooringAreaSqft : '',
             wallAreaSqft: option === 'wall_plaster_only' ? current.wallAreaSqft : '',
           },
         },
@@ -897,7 +900,7 @@ export function LabourContractorProjectWizard() {
                 }}
                 error={step1ValidationAttempted ? step1Errors.builtUpArea : undefined}
               />
-              <p className={HELPER_TEXT}>
+              <p className={FORM_NOTE}>
                 * Note: Enter the estimated slab area for a single floor. This value will be used as the base area for each floor selected below.
               </p>
 
@@ -1123,10 +1126,118 @@ export function LabourContractorProjectWizard() {
                       <div className="grid grid-cols-1 gap-2">
                         {MISTRI_RCC_SCOPE_OPTIONS.map((opt) => {
                           const selected = selectedScope === opt.value;
+                          const scopeNote =
+                            opt.value === 'wall_plaster_only'
+                              ? 'Note: Requires columns and slab to already be cast on this floor.'
+                              : undefined;
+
+                          if (opt.value === 'full_construction') {
+                            return (
+                              <div key={opt.value} className="w-full space-y-1.5">
+                                <div
+                                  className={cn(
+                                    'w-full overflow-hidden rounded-xl border bg-white transition-all',
+                                    selected ? FORM_SELECTED_CARD : FORM_OPTION_IDLE,
+                                  )}
+                                >
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setRccScope(fw.floorId, opt.value, fw.customFloorNumber)
+                                    }
+                                    className={cn(
+                                      'flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left text-sm font-semibold',
+                                      selected ? 'text-brand' : 'text-gray-800',
+                                    )}
+                                  >
+                                    <span className="min-w-0">
+                                      <span className="block">
+                                        Option {opt.optionNumber}: {opt.title}
+                                      </span>
+                                      <span className="mt-1 block text-[10px] font-medium leading-snug text-muted-foreground normal-case tracking-normal">
+                                        {getMistriRccScopeLabel(fw.floorId, opt.value)}
+                                      </span>
+                                    </span>
+                                    {selected ? (
+                                      <span
+                                        aria-hidden
+                                        className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border-2 border-brand"
+                                      >
+                                        <span className="h-2.5 w-2.5 rounded-full bg-brand" />
+                                      </span>
+                                    ) : (
+                                      <span
+                                        aria-hidden
+                                        className="h-5 w-5 flex-shrink-0 rounded-full border-2 border-gray-300 dark:border-zinc-500"
+                                      />
+                                    )}
+                                  </button>
+                                  {selected && (
+                                    <div className="w-full space-y-3 border-t border-gray-200 px-4 pb-4 pt-3">
+                                      <label className="flex items-start gap-2 text-sm font-semibold text-gray-900 dark:text-zinc-100">
+                                        <input
+                                          type="checkbox"
+                                          className={FORM_CHECKBOX}
+                                          checked={entry.includeFineFlooring === true}
+                                          onChange={(e) =>
+                                            patchFloorWork(
+                                              fw.floorId,
+                                              {
+                                                includeFineFlooring: e.target.checked,
+                                                flooringMaterial: e.target.checked
+                                                  ? entry.flooringMaterial
+                                                  : null,
+                                                flooringAreaSqft: e.target.checked
+                                                  ? entry.flooringAreaSqft
+                                                  : '',
+                                              },
+                                              fw.customFloorNumber,
+                                            )
+                                          }
+                                        />
+                                        <span>Include Flooring Work?</span>
+                                      </label>
+                                      <NestedChoiceButtons
+                                        question="Flooring material"
+                                        options={MISTRI_FLOORING_MATERIAL_OPTIONS}
+                                        value={entry.flooringMaterial}
+                                        columns={3}
+                                        onChange={(v) =>
+                                          patchFloorWork(
+                                            fw.floorId,
+                                            {
+                                              includeFineFlooring: true,
+                                              flooringMaterial: v,
+                                            },
+                                            fw.customFloorNumber,
+                                          )
+                                        }
+                                      />
+                                      <FlooringAreaField
+                                        value={entry.flooringAreaSqft}
+                                        onChange={(value) =>
+                                          patchFloorWork(
+                                            fw.floorId,
+                                            {
+                                              includeFineFlooring: true,
+                                              flooringAreaSqft: value,
+                                            },
+                                            fw.customFloorNumber,
+                                          )
+                                        }
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          }
+
                           return (
-                            <div key={opt.value} className="space-y-2">
+                            <div key={opt.value} className="w-full space-y-2">
                               <OptionCardButton
                                 selected={selected}
+                                note={scopeNote}
                                 onClick={() =>
                                   setRccScope(fw.floorId, opt.value, fw.customFloorNumber)
                                 }
@@ -1138,65 +1249,10 @@ export function LabourContractorProjectWizard() {
                                   <span className="mt-1 block text-[10px] font-medium leading-snug text-muted-foreground normal-case tracking-normal">
                                     {getMistriRccScopeLabel(fw.floorId, opt.value)}
                                   </span>
-                                  {opt.value === 'wall_plaster_only' ? (
-                                    <span className="mt-1.5 block text-[10px] font-medium leading-snug text-amber-800/90 dark:text-amber-200/90 normal-case tracking-normal">
-                                      Note: Requires columns and slab to already be cast on this floor.
-                                    </span>
-                                  ) : null}
                                 </span>
                               </OptionCardButton>
-                              {opt.value === 'full_construction' && selected && (
-                                <div className={cn('ml-2', FORM_NESTED_PANEL)}>
-                                  <label className="flex items-start gap-2 text-sm font-semibold text-gray-900 dark:text-zinc-100">
-                                    <input
-                                      type="checkbox"
-                                      className={FORM_CHECKBOX}
-                                      checked={entry.includeFineFlooring === true}
-                                      onChange={(e) =>
-                                        patchFloorWork(
-                                          fw.floorId,
-                                          {
-                                            includeFineFlooring: e.target.checked,
-                                            flooringMaterial: null,
-                                            flooringAreaSqft: e.target.checked ? entry.flooringAreaSqft : '',
-                                          },
-                                          fw.customFloorNumber,
-                                        )
-                                      }
-                                    />
-                                    <span>Include Flooring Work?</span>
-                                  </label>
-                                  {entry.includeFineFlooring === true && (
-                                    <>
-                                    <NestedChoiceButtons
-                                      question="Flooring material"
-                                      options={MISTRI_FLOORING_MATERIAL_OPTIONS}
-                                      value={entry.flooringMaterial}
-                                      columns={3}
-                                      onChange={(v) =>
-                                        patchFloorWork(
-                                          fw.floorId,
-                                          { flooringMaterial: v },
-                                          fw.customFloorNumber,
-                                        )
-                                      }
-                                    />
-                                    <FlooringAreaField
-                                      value={entry.flooringAreaSqft}
-                                      onChange={(value) =>
-                                        patchFloorWork(
-                                          fw.floorId,
-                                          { flooringAreaSqft: value },
-                                          fw.customFloorNumber,
-                                        )
-                                      }
-                                    />
-                                    </>
-                                  )}
-                                </div>
-                              )}
                               {opt.value === 'wall_plaster_only' && selected && (
-                                <div className={cn('ml-2', FORM_NESTED_PANEL)}>
+                                <div className="w-full space-y-3">
                                   <NestedChoiceButtons
                                     question="What type of wall material will be used?"
                                     options={MISTRI_BRICKWORK_MATERIAL_OPTIONS}
@@ -1259,7 +1315,7 @@ export function LabourContractorProjectWizard() {
                     )}
                   </div>
 
-                  <p className={cn(HELPER_TEXT, 'border-l-2 border-amber-500/50 pl-2.5')}>
+                  <p className={FORM_NOTE}>
                     * Note: Higher foundation provision needs stronger foundations, thicker columns,
                     and more steel today — this affects labor and material costs.
                   </p>
