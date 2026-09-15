@@ -50,7 +50,7 @@ export function ServiceCategoryBar({ isAuthenticated, role }: ServiceCategoryBar
             onClick={() => handleSelect(cat.value)}
             className="group flex h-full w-full max-w-[9.5rem] cursor-pointer flex-col items-center gap-2 rounded-xl bg-white p-4 text-center transition-all duration-200 hover:bg-slate-50 dark:bg-transparent dark:hover:bg-slate-800/60 sm:max-w-none"
           >
-            <span className="flex h-16 w-16 shrink-0 items-center justify-center bg-transparent transition-transform duration-200 group-hover:scale-110 sm:h-[4.5rem] sm:w-[4.5rem]">
+            <span className="flex h-20 w-20 shrink-0 items-center justify-center bg-transparent transition-transform duration-200 group-hover:scale-110">
               <CategoryServiceIcon service={cat.value} />
             </span>
             <span className="line-clamp-2 min-h-[2.5em] px-1 text-xs font-semibold leading-snug text-slate-800 transition-colors group-hover:text-emerald-700 dark:text-slate-100 dark:group-hover:text-emerald-400 sm:text-sm">
