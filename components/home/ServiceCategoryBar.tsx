@@ -3,7 +3,6 @@
 import { useRouter } from 'next/navigation';
 import { CategoryServiceIcon } from '@/components/home/CategoryServiceIcons';
 import { getVisibleServiceCategories } from '@/lib/trades';
-import { cn } from '@/lib/utils';
 import type { ServiceType } from '@/lib/types';
 
 interface ServiceCategoryBarProps {
@@ -11,12 +10,11 @@ interface ServiceCategoryBarProps {
   role: string | null;
 }
 
-/** Homepage service picker — sized for the active category count (no Interior Work). */
+/** Homepage service picker — fixed 3×2 grid on every viewport and zoom level. */
 export function ServiceCategoryBar({ isAuthenticated, role }: ServiceCategoryBarProps) {
   const router = useRouter();
   const isOwner = role === 'owner';
   const categories = getVisibleServiceCategories();
-  const count = categories.length;
 
   function handleSelect(service: ServiceType) {
     const target = `/dashboard/owner/new-project?service=${service}`;
@@ -33,27 +31,18 @@ export function ServiceCategoryBar({ isAuthenticated, role }: ServiceCategoryBar
         Post your project and receive competitive bids from verified professionals.
       </p>
 
-      <div
-        className={cn(
-          'mx-auto my-8 grid w-full items-stretch justify-items-center gap-3 sm:gap-4',
-          count <= 6
-            ? 'max-w-5xl grid-cols-2 sm:grid-cols-3 lg:grid-cols-6'
-            : count === 7
-              ? 'max-w-6xl grid-cols-2 sm:grid-cols-4 lg:grid-cols-7'
-              : 'max-w-6xl grid-cols-2 sm:grid-cols-4 lg:grid-cols-8',
-        )}
-      >
+      <div className="mx-auto my-8 grid w-full max-w-4xl grid-cols-3 items-stretch justify-items-center gap-3 sm:gap-6">
         {categories.map((cat) => (
           <button
             key={cat.value}
             type="button"
             onClick={() => handleSelect(cat.value)}
-            className="group flex h-full w-full max-w-[9.5rem] cursor-pointer flex-col items-center gap-2 rounded-xl bg-white p-4 text-center transition-all duration-200 hover:bg-slate-50 dark:bg-transparent dark:hover:bg-slate-800/60 sm:max-w-none"
+            className="group flex h-full w-full max-w-[10.5rem] cursor-pointer flex-col items-center gap-2 rounded-xl bg-white p-3 text-center transition-all duration-200 hover:bg-slate-50 dark:bg-transparent dark:hover:bg-slate-800/60 sm:p-4"
           >
             <span className="flex h-20 w-20 shrink-0 items-center justify-center bg-transparent transition-transform duration-200 group-hover:scale-110">
               <CategoryServiceIcon service={cat.value} />
             </span>
-            <span className="line-clamp-2 min-h-[2.5em] px-1 text-xs font-semibold leading-snug text-slate-800 transition-colors group-hover:text-emerald-700 dark:text-slate-100 dark:group-hover:text-emerald-400 sm:text-sm">
+            <span className="line-clamp-2 min-h-[2.5em] px-1 text-xs font-semibold leading-snug text-slate-800 dark:text-slate-100 sm:text-sm">
               {cat.label}
             </span>
           </button>

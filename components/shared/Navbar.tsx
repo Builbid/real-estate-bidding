@@ -120,7 +120,7 @@ export function Navbar({ overlay = false, authHint }: NavbarProps) {
           : 'border-b border-border/70 bg-background/95 text-foreground backdrop-blur-xl shadow-sm shadow-black/[0.04]'
       )}
     >
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-8 lg:px-10">
 
         {/* Logo */}
         <NavLink
@@ -137,12 +137,12 @@ export function Navbar({ overlay = false, authHint }: NavbarProps) {
         </NavLink>
 
         {/* Right side */}
-        <div className="inline-flex items-center gap-x-3">
+        <div className="inline-flex items-center gap-x-6 sm:gap-x-8">
           <NavLink
             href="/estimate-calculator"
             prefetch
             className={cn(
-              'hidden h-9 items-center gap-1.5 rounded-lg px-2.5 text-sm font-medium transition-colors md:inline-flex',
+              'hidden h-9 items-center gap-2 rounded-lg px-4 text-sm font-medium transition-colors md:inline-flex',
               overlay
                 ? overlayNav
                 : 'text-muted-foreground hover:bg-accent hover:text-foreground',
@@ -153,7 +153,7 @@ export function Navbar({ overlay = false, authHint }: NavbarProps) {
           </NavLink>
 
           {isLoggedIn ? (
-            <div className="hidden md:inline-flex items-center gap-x-3">
+            <div className="hidden md:inline-flex items-center gap-x-6">
               <HeaderProfileLogo overlay={overlay} />
               <button
                 type="button"
@@ -169,11 +169,11 @@ export function Navbar({ overlay = false, authHint }: NavbarProps) {
               </button>
             </div>
           ) : overlay ? (
-            <div className="hidden md:inline-flex items-center gap-2">
+            <div className="hidden md:inline-flex items-center gap-6">
               <NavLink
                 href="/login"
                 prefetch
-                className="inline-flex h-9 items-center px-2 text-sm font-medium text-slate-700 hover:text-slate-900 dark:text-slate-200 dark:hover:text-slate-100"
+                className="inline-flex h-9 items-center px-4 text-sm font-medium text-slate-700 hover:text-slate-900 dark:text-slate-200 dark:hover:text-slate-100"
               >
                 {t('common.signIn')}
               </NavLink>
@@ -193,7 +193,7 @@ export function Navbar({ overlay = false, authHint }: NavbarProps) {
               asChild
               size="sm"
               variant="outline"
-              className="hidden h-9 rounded-full px-3 text-xs border-slate-300 text-slate-800 hover:bg-slate-100 hover:text-slate-900 md:inline-flex dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800 dark:hover:text-white"
+              className="hidden h-9 rounded-full px-4 text-xs border-slate-300 text-slate-800 hover:bg-slate-100 hover:text-slate-900 md:inline-flex dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800 dark:hover:text-white"
             >
               <Link href={getDashboardPath(normalizedRole!)} prefetch>{t('common.dashboard')}</Link>
             </Button>

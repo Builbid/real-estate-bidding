@@ -24,7 +24,7 @@ export function HeaderProfileLogo({
       href={href}
       prefetch
       className={cn(
-        'inline-flex cursor-pointer flex-col items-center justify-center gap-[3px] self-center px-2 no-underline',
+        'inline-flex cursor-pointer flex-col items-center justify-center gap-[3px] self-center px-4 no-underline',
         'text-gray-700 dark:text-slate-200',
         'transition-transform duration-200 hover:scale-105 hover:text-gray-900 dark:hover:text-slate-100',
         className,
