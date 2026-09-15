@@ -203,19 +203,12 @@ export function BuildingTypeSelector({
             </p>
           </>
         ) : purpose === 'mistri' ? (
-          <p className="text-sm text-muted-foreground">
-            {rccOnly ? (
-              <>
-                Select the RCC floor(s) included in this project. You can select any mix of
-                floors, including non-consecutive floors (for example 2nd, 4th, and 7th).
-              </>
-            ) : (
-              <>
-                Select Assam Type <span className="font-semibold">or</span> RCC floor(s) for this
-                project. Assam Type and RCC cannot be mixed.
-              </>
-            )}
-          </p>
+          rccOnly ? null : (
+            <p className="text-sm text-muted-foreground">
+              Select Assam Type <span className="font-semibold">or</span> RCC floor(s) for this
+              project. Assam Type and RCC cannot be mixed.
+            </p>
+          )
         ) : (
           <>
             <p className="text-sm text-muted-foreground">

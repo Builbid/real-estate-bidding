@@ -51,7 +51,7 @@ export function OptionSelectCard({
   const split = splitDescriptionNote(description, note);
 
   return (
-    <div className="w-full space-y-1.5">
+    <div className="w-full">
       <button
         type="button"
         onClick={onClick}

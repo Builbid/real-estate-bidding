@@ -2857,6 +2857,11 @@ export function validateMistriFloorWorkInput(input: {
       };
     }
     if (fw.workTypes.includes('full_finished') && !isAssamMistriFloor(fw.floorId)) {
+      if (fw.includeFineFlooring !== true && fw.includeFineFlooring !== false) {
+        return {
+          error: `Select Tiles, Marble, Granite, or No Flooring Work for ${label}.`,
+        };
+      }
       if (fw.includeFineFlooring === true) {
         const material = normalizeFlooringMaterial(fw.flooringMaterial);
         if (!material || material === 'smooth_cement_finish') {
@@ -2868,17 +2873,6 @@ export function validateMistriFloorWorkInput(input: {
       } else {
         fw.includeFineFlooring = false;
         if (!fw.workTypes.includes('flooring')) fw.flooringMaterial = null;
-      }
-    } else if (fw.workTypes.includes('full_finished')) {
-      if (fw.includeFineFlooring !== true && fw.includeFineFlooring !== false) {
-        return {
-          error: `Choose whether you want flooring (Tile / Marble / Granite) for ${label}.`,
-        };
-      }
-      if (fw.includeFineFlooring && !fw.flooringMaterial) {
-        return {
-          error: `Select flooring material (Tile, Marble, or Granite) for ${label}.`,
-        };
       }
     }
   }

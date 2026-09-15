@@ -27,13 +27,13 @@ export const FORM_SHELL_CARD =
   'border border-gray-200 rounded-2xl shadow-sm bg-white dark:bg-white dark:border-gray-200';
 
 export const FORM_REVIEW_ROW =
-  'flex items-start justify-between gap-3 py-4 border-b border-gray-200 last:border-b-0';
+  'grid grid-cols-12 gap-4 items-start py-4 border-b border-gray-200 last:border-b-0';
 
-export const FORM_REVIEW_LABEL = 'text-slate-500 font-medium text-sm flex-1 min-w-0';
+export const FORM_REVIEW_LABEL = 'col-span-5 sm:col-span-4 text-gray-900 font-medium text-sm min-w-0';
 export const FORM_REVIEW_VALUE =
-  'text-slate-900 font-semibold text-base text-right flex-shrink-0 max-w-[55%] whitespace-pre-line';
+  'col-span-7 sm:col-span-8 text-gray-900 font-semibold text-sm text-right whitespace-pre-line break-words min-w-0';
 
-export const FORM_REVIEW_HIGHLIGHT = 'border border-gray-200 bg-white text-brand rounded-lg p-3';
+export const FORM_REVIEW_HIGHLIGHT = 'border border-gray-200 bg-white rounded-lg px-3';
 
 export const FORM_SELECTED_CARD =
   'border-brand bg-white shadow-sm ring-1 ring-brand/30 dark:border-brand dark:bg-white';
@@ -42,4 +42,4 @@ export const FORM_OPTION_IDLE =
   'border-gray-200 bg-white hover:border-gray-300 dark:border-gray-200 dark:bg-white';
 
 export const FORM_NOTE =
-  'w-full text-[11px] font-medium leading-snug text-orange-600 dark:text-orange-500';
+  'mt-1.5 w-full text-left text-[11px] font-medium leading-snug text-gray-900';

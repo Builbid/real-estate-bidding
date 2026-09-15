@@ -32,7 +32,6 @@ import {
   MISTRI_BRICKWORK_MATERIAL_OPTIONS,
   MISTRI_CONTRACT_TYPE_OPTIONS,
   MISTRI_CUSTOM_FLOOR_ID,
-  MISTRI_FLOORING_MATERIAL_OPTIONS,
   MISTRI_RCC_SCOPE_OPTIONS,
   MISTRI_START_TIME_OPTIONS,
   MISTRI_YES_NO_OPTIONS,
@@ -69,7 +68,6 @@ import {
 import { HistoryBackButton } from '@/components/shared/HistoryBackButton';
 import {
   FORM_BADGE,
-  FORM_CHECKBOX,
   FORM_CONTINUE_BTN,
   FORM_NESTED_PANEL,
   FORM_NOTE,
@@ -187,7 +185,7 @@ function OptionCardButton({
   note?: string;
 }) {
   return (
-    <div className="w-full space-y-1.5">
+    <div className="w-full">
       <button
         type="button"
         disabled={disabled}
@@ -236,7 +234,7 @@ function NestedChoiceButtons<T extends string>({
   options: { value: T; label: string }[];
   value: T | null;
   onChange: (value: T) => void;
-  columns?: 1 | 2 | 3;
+  columns?: 1 | 2 | 3 | 4;
 }) {
   return (
     <div className="space-y-1.5">
@@ -244,7 +242,10 @@ function NestedChoiceButtons<T extends string>({
       <div
         className={cn(
           'grid gap-2',
-          columns === 3 ? 'grid-cols-3' : columns === 2 ? 'grid-cols-2' : 'grid-cols-1',
+          columns === 4 && 'grid-cols-2 sm:grid-cols-4',
+          columns === 3 && 'grid-cols-3',
+          columns === 2 && 'grid-cols-2',
+          columns === 1 && 'grid-cols-1',
         )}
       >
         {options.map((opt) => (
@@ -275,6 +276,13 @@ const MISTRI_HOUSE_TYPE_OPTIONS: {
 }[] = [
   { value: 'assam', label: 'Assam Type' },
   { value: 'rcc', label: 'RCC Structure' },
+];
+
+const RCC_FLOORING_CHOICE_OPTIONS: { value: 'tile' | 'marble' | 'granite' | 'none'; label: string }[] = [
+  { value: 'tile', label: 'Tiles' },
+  { value: 'marble', label: 'Marble' },
+  { value: 'granite', label: 'Granite' },
+  { value: 'none', label: 'No Flooring Work' },
 ];
 
 function AssamTypeGraphic() {
@@ -691,7 +699,8 @@ export function LabourContractorProjectWizard() {
             plasterScope: option === 'wall_plaster_only' ? (current.plasterScope ?? 'both') : null,
             flooringMaterial:
               option === 'full_construction' ? current.flooringMaterial : null,
-            includeFineFlooring: option === 'full_construction' ? true : null,
+            includeFineFlooring:
+              option === 'full_construction' ? current.includeFineFlooring : null,
             flooringAreaSqft:
               option === 'full_construction' ? current.flooringAreaSqft : '',
             wallAreaSqft: option === 'wall_plaster_only' ? current.wallAreaSqft : '',
@@ -1174,58 +1183,48 @@ export function LabourContractorProjectWizard() {
                                   </button>
                                   {selected && (
                                     <div className="w-full space-y-3 border-t border-gray-200 px-4 pb-4 pt-3">
-                                      <label className="flex items-start gap-2 text-sm font-semibold text-gray-900 dark:text-zinc-100">
-                                        <input
-                                          type="checkbox"
-                                          className={FORM_CHECKBOX}
-                                          checked={entry.includeFineFlooring === true}
-                                          onChange={(e) =>
+                                      <NestedChoiceButtons
+                                        question="Flooring material"
+                                        options={RCC_FLOORING_CHOICE_OPTIONS}
+                                        value={
+                                          entry.includeFineFlooring === false
+                                            ? 'none'
+                                            : entry.flooringMaterial === 'tile' ||
+                                                entry.flooringMaterial === 'marble' ||
+                                                entry.flooringMaterial === 'granite'
+                                              ? entry.flooringMaterial
+                                              : null
+                                        }
+                                        columns={4}
+                                        onChange={(v) =>
+                                          patchFloorWork(
+                                            fw.floorId,
+                                            v === 'none'
+                                              ? {
+                                                  includeFineFlooring: false,
+                                                  flooringMaterial: null,
+                                                  flooringAreaSqft: '',
+                                                }
+                                              : {
+                                                  includeFineFlooring: true,
+                                                  flooringMaterial: v,
+                                                },
+                                            fw.customFloorNumber,
+                                          )
+                                        }
+                                      />
+                                      {entry.includeFineFlooring === true && (
+                                        <FlooringAreaField
+                                          value={entry.flooringAreaSqft}
+                                          onChange={(value) =>
                                             patchFloorWork(
                                               fw.floorId,
-                                              {
-                                                includeFineFlooring: e.target.checked,
-                                                flooringMaterial: e.target.checked
-                                                  ? entry.flooringMaterial
-                                                  : null,
-                                                flooringAreaSqft: e.target.checked
-                                                  ? entry.flooringAreaSqft
-                                                  : '',
-                                              },
+                                              { flooringAreaSqft: value },
                                               fw.customFloorNumber,
                                             )
                                           }
                                         />
-                                        <span>Include Flooring Work?</span>
-                                      </label>
-                                      <NestedChoiceButtons
-                                        question="Flooring material"
-                                        options={MISTRI_FLOORING_MATERIAL_OPTIONS}
-                                        value={entry.flooringMaterial}
-                                        columns={3}
-                                        onChange={(v) =>
-                                          patchFloorWork(
-                                            fw.floorId,
-                                            {
-                                              includeFineFlooring: true,
-                                              flooringMaterial: v,
-                                            },
-                                            fw.customFloorNumber,
-                                          )
-                                        }
-                                      />
-                                      <FlooringAreaField
-                                        value={entry.flooringAreaSqft}
-                                        onChange={(value) =>
-                                          patchFloorWork(
-                                            fw.floorId,
-                                            {
-                                              includeFineFlooring: true,
-                                              flooringAreaSqft: value,
-                                            },
-                                            fw.customFloorNumber,
-                                          )
-                                        }
-                                      />
+                                      )}
                                     </div>
                                   )}
                                 </div>
@@ -1287,7 +1286,7 @@ export function LabourContractorProjectWizard() {
               })}
 
               {showFoundationProvision && (
-                <div className="flex flex-col gap-3">
+                <div>
                   <div className={FORM_SECTION_CARD}>
                     <p className="text-xs font-semibold text-gray-900 dark:text-zinc-100">
                       Foundation provision for
