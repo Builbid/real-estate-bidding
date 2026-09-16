@@ -10,10 +10,10 @@ export function googleMapsSearchUrl(query: string): string {
 const CHECK_LOCATION_LABEL = 'Check Location in google map';
 
 const CHECK_LOCATION_CLASS =
-  'text-[#387ed1] hover:underline cursor-pointer font-medium text-sm inline-flex items-center gap-1';
+  'relative z-10 appearance-none bg-transparent p-0 border-0 text-[#387ed1] hover:underline cursor-pointer font-medium text-sm inline-flex items-center gap-1';
 
 const CHECK_LOCATION_CARD_CLASS =
-  'relative z-10 text-[#387ed1] hover:underline text-xs font-medium ml-2 inline-flex items-center gap-1 shrink-0';
+  'relative z-10 appearance-none bg-transparent p-0 border-0 text-[#387ed1] hover:underline cursor-pointer text-xs font-medium ml-2 inline-flex items-center gap-1 shrink-0';
 
 function mapsHref(pincode?: string | null, placeName?: string | null): string | null {
   const query = (pincode ?? '').trim() || (placeName ?? '').trim();
@@ -21,18 +21,15 @@ function mapsHref(pincode?: string | null, placeName?: string | null): string | 
   return googleMapsSearchUrl(query);
 }
 
-/**
- * Stop parent card/link navigation without blocking the Maps href itself.
- * Calling preventDefault() here previously broke Google Maps opens.
- */
-function onMapsLinkClick(event: MouseEvent<HTMLAnchorElement>) {
+function openMaps(event: MouseEvent<HTMLButtonElement>, href: string) {
+  event.preventDefault();
   event.stopPropagation();
-  // Do NOT preventDefault — the browser must follow href / target=_blank.
+  window.open(href, '_blank', 'noopener,noreferrer');
 }
 
 /**
  * Compact Maps control for feed/project cards.
- * Uses pincode (preferred) or place name for Maps; never shows raw pincode digits.
+ * Button (not <a>) so hover never shows a native title/URL tooltip overlay.
  */
 export function CheckLocationLink({
   placeName,
@@ -47,23 +44,21 @@ export function CheckLocationLink({
   if (!href) return null;
 
   return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
+    <button
+      type="button"
       className={cn(CHECK_LOCATION_CARD_CLASS, className)}
-      title={CHECK_LOCATION_LABEL}
-      onClick={onMapsLinkClick}
+      aria-label={CHECK_LOCATION_LABEL}
+      onClick={(event) => openMaps(event, href)}
     >
       <MapPin className="h-3 w-3 shrink-0" aria-hidden />
       {CHECK_LOCATION_LABEL}
-    </a>
+    </button>
   );
 }
 
 /**
- * Location display with a Google Maps link.
- * Pincode stays in the href only — never shown as raw digits in the UI.
+ * Location display with a Google Maps control.
+ * Pincode stays in the Maps query only — never shown as raw digits in the UI.
  */
 export function ProjectLocationWithMapsLink({
   placeName,
@@ -87,33 +82,29 @@ export function ProjectLocationWithMapsLink({
         <span className="text-muted-foreground" aria-hidden>
           •
         </span>
-        <a
-          href={href}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={cn(CHECK_LOCATION_CLASS, 'relative z-10')}
-          title={CHECK_LOCATION_LABEL}
-          onClick={onMapsLinkClick}
+        <button
+          type="button"
+          className={CHECK_LOCATION_CLASS}
+          aria-label={CHECK_LOCATION_LABEL}
+          onClick={(event) => openMaps(event, href)}
         >
           <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden />
           {CHECK_LOCATION_LABEL}
-        </a>
+        </button>
       </span>
     );
   }
 
   return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      className={cn(CHECK_LOCATION_CLASS, 'relative z-10', className)}
-      title={CHECK_LOCATION_LABEL}
-      onClick={onMapsLinkClick}
+    <button
+      type="button"
+      className={cn(CHECK_LOCATION_CLASS, className)}
+      aria-label={CHECK_LOCATION_LABEL}
+      onClick={(event) => openMaps(event, href)}
     >
       <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden />
       {CHECK_LOCATION_LABEL}
-    </a>
+    </button>
   );
 }
 

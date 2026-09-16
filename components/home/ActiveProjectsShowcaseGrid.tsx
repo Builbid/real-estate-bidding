@@ -128,7 +128,10 @@ export function ActiveProjectsShowcaseGrid({
   return (
     <div className="relative">
       <div className="mb-5 flex flex-wrap items-center gap-2 sm:mb-6 sm:gap-3">
-        <span className="flex h-2 w-2 shrink-0 rounded-full bg-emerald-400 animate-pulse" />
+        <span className="relative inline-flex h-2 w-2 shrink-0" aria-hidden>
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_10px_#22c55e]" />
+        </span>
         <h2 className={cn('text-xl font-bold tracking-tight sm:text-2xl', heroOverlay ? 'text-white' : 'text-foreground')}>
           {t('home.auctions.liveTitle')}
         </h2>
@@ -152,8 +155,10 @@ export function ActiveProjectsShowcaseGrid({
               aria-label="Search by category, location, or title"
               prefix={<Search className="h-4 w-4" />}
               className={cn(
+                'border-zinc-200 bg-white text-slate-900 placeholder:text-zinc-500',
+                'dark:border-zinc-800 dark:bg-zinc-900 dark:text-white dark:placeholder:text-zinc-400',
                 heroOverlay &&
-                  'border-white/20 bg-white/10 text-white placeholder:text-white/55 focus:border-emerald-300/50',
+                  'border-white/20 bg-white/10 text-white placeholder:text-white/55 focus:border-emerald-300/50 dark:border-white/20 dark:bg-white/10',
               )}
             />
           </div>

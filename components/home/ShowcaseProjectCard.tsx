@@ -354,15 +354,8 @@ export function ShowcaseProjectCard({
 
   return (
     <article
-      className="group relative flex w-full max-w-[550px] min-w-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-colors hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-slate-700"
+      className="group relative flex w-full max-w-[550px] min-w-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-colors hover:border-slate-300 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700"
     >
-      {/* Large watermark icon */}
-      <ServiceIcon
-        className="pointer-events-none absolute -right-1 top-6 h-20 w-20 rotate-12 text-brand/[0.08]"
-        strokeWidth={1.25}
-        aria-hidden
-      />
-
       <div className="relative flex flex-col gap-2 p-3 pl-3.5">
         <div className="flex flex-wrap items-center justify-between gap-1.5">
           <div className="flex min-w-0 flex-wrap items-center gap-1">
@@ -372,10 +365,14 @@ export function ShowcaseProjectCard({
                 ? 'border-violet-200 bg-violet-50 text-violet-800 dark:border-violet-800 dark:bg-violet-950/60 dark:text-violet-200'
                 : 'border-slate-200 bg-slate-50 text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200',
             )}>
-              <span className={cn(
-                'mr-1 h-1.5 w-1.5 rounded-full',
-                biddingClosed ? 'bg-violet-500' : 'animate-pulse bg-brand',
-              )} />
+              {biddingClosed ? (
+                <span className="mr-1 h-1.5 w-1.5 rounded-full bg-violet-500" />
+              ) : (
+                <span className="relative mr-1 inline-flex h-1.5 w-1.5 shrink-0" aria-hidden>
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_10px_#22c55e]" />
+                </span>
+              )}
               {biddingClosed ? t('home.showcase.selectionBadge') : t('home.showcase.liveBadge')}
             </Badge>
             {finishingBadge && (

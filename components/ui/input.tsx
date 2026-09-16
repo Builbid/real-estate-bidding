@@ -19,16 +19,17 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
         )}
         <div className="relative flex items-center">
           {prefix && (
-            <div className="absolute left-3 text-muted-foreground text-sm">{prefix}</div>
+            <div className="absolute left-3 text-muted-foreground text-sm dark:text-zinc-400">{prefix}</div>
           )}
           <input
             type={type}
             className={cn(
-              'flex h-11 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-base md:text-sm text-foreground placeholder:text-slate-600 dark:placeholder:text-slate-300 shadow-sm',
+              'flex h-11 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-base md:text-sm text-foreground placeholder:text-slate-600 shadow-sm appearance-none',
+              'dark:border-zinc-800 dark:bg-zinc-900 dark:text-white dark:placeholder:text-zinc-400 dark:shadow-none dark:[color-scheme:dark]',
               'ring-offset-background transition-all duration-150',
               'focus:outline-none focus:ring-2 focus:ring-brand/50 focus:border-brand',
               'disabled:cursor-not-allowed disabled:opacity-50',
-              'dark:bg-white',
+              '[&::-webkit-search-decoration]:appearance-none [&::-webkit-search-cancel-button]:appearance-none',
               prefix && 'pl-8',
               suffix && 'pr-8',
               error && 'border-red-500/70 focus:ring-red-500/40',
