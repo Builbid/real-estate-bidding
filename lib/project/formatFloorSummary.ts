@@ -94,6 +94,11 @@ export function formatFloorScopeShort(fw: MistriFloorWork): string {
     return 'Frame / Slab Casting Only';
   }
 
+  if (scope === 'flooring_only' || fw.workTypes.includes('flooring')) {
+    if (fw.includeFineFlooring === false) return 'No Flooring Work';
+    return flooringLabel ? `Flooring Work (${flooringLabel})` : 'Flooring Work Only';
+  }
+
   if (scope === 'wall_plaster_only') {
     return 'Wall Construction & Plastering Only';
   }

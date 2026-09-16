@@ -3,6 +3,7 @@ import {
   formatMistriFloorWorkLabel,
   getMistriRccScopeTitle,
   isAssamMistriFloor,
+  isMistriFlooringOnlyFloor,
   isMistriWallPlasterOnlyFloor,
   MISTRI_ASSAM_FLOORING_MATERIAL_OPTIONS,
   MISTRI_FLOORING_MATERIAL_OPTIONS,
@@ -107,7 +108,9 @@ function resolveFlooringMaterialLabel(
 }
 
 function floorHasFlooringWork(fw: MistriFloorWork): boolean {
-  return fw.includeFineFlooring === true || fw.workTypes.includes('flooring');
+  if (fw.includeFineFlooring === false) return false;
+  if (fw.includeFineFlooring === true) return true;
+  return fw.workTypes.includes('flooring') && !!fw.flooringMaterial;
 }
 
 export function isMistriCivilCostProject(
@@ -182,6 +185,7 @@ export function resolveMistriCivilFloors(project: MistriCivilCostProject): Mistr
         ? (fw.flooringAreaSqft && fw.flooringAreaSqft > 0 ? fw.flooringAreaSqft : builtUpAreaSqft)
         : 0;
       const isWall = isMistriWallPlasterOnlyFloor(fw);
+      const isFlooringOnly = isMistriFlooringOnlyFloor(fw);
       const wallAreaSqft = isWall
         ? (fw.wallAreaSqft && fw.wallAreaSqft > 0 ? fw.wallAreaSqft : 0)
         : 0;
@@ -191,7 +195,7 @@ export function resolveMistriCivilFloors(project: MistriCivilCostProject): Mistr
             ? `custom:${fw.customFloorNumber ?? index}`
             : fw.floorId,
         label: toRateInputLabel(formatMistriFloorWorkLabel(fw)),
-        slabAreaSqft: builtUpAreaSqft,
+        slabAreaSqft: isFlooringOnly ? 0 : builtUpAreaSqft,
         rateKey: FLOOR_RATE_KEYS[index],
         costKind: isWall ? 'wall' : 'civil',
         wallAreaSqft,

@@ -272,7 +272,7 @@ function NestedChoiceButtons<T extends string>({
       <div
         className={cn(
           'grid gap-2',
-          columns === 4 && 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 lg:items-center',
+          columns === 4 && 'grid-cols-2 gap-2 sm:grid-cols-4 sm:items-stretch',
           columns === 3 && 'grid-cols-1 sm:grid-cols-3',
           columns === 2 && 'grid-cols-2',
           columns === 1 && 'grid-cols-1',
@@ -287,14 +287,14 @@ function NestedChoiceButtons<T extends string>({
                 type="button"
                 onClick={() => onChange(opt.value)}
                 className={cn(
-                  'flex min-h-0 w-full items-center gap-2 rounded-xl border px-2 py-2 text-left text-xs font-semibold transition-all',
+                  'flex min-h-[2.5rem] w-full min-w-0 items-start gap-1.5 overflow-visible rounded-xl border px-1.5 py-2 text-left text-[10px] font-semibold leading-snug transition-all sm:items-center sm:px-2 sm:text-[11px]',
                   selected
                     ? 'border-brand bg-white text-brand shadow-sm ring-1 ring-brand/30 dark:border-brand dark:bg-slate-900 dark:text-brand'
                     : 'border-gray-200 bg-white text-gray-800 hover:border-gray-300 dark:border-zinc-700 dark:bg-slate-900 dark:text-zinc-100 dark:hover:border-zinc-600',
                 )}
               >
                 <ChoiceRadio selected={selected} />
-                <span className="leading-snug">{opt.label}</span>
+                <span className="min-w-0 leading-snug break-words">{opt.label}</span>
               </button>
             );
           }
@@ -846,11 +846,11 @@ export function LabourContractorProjectWizard() {
             brickMaterial: option === 'wall_plaster_only' ? current.brickMaterial : null,
             plasterScope: option === 'wall_plaster_only' ? (current.plasterScope ?? 'both') : null,
             flooringMaterial:
-              option === 'full_construction' ? current.flooringMaterial : null,
+              option === 'flooring_only' ? current.flooringMaterial : null,
             includeFineFlooring:
-              option === 'full_construction' ? current.includeFineFlooring : null,
+              option === 'flooring_only' ? current.includeFineFlooring : null,
             flooringAreaSqft:
-              option === 'full_construction' ? current.flooringAreaSqft : '',
+              option === 'flooring_only' ? current.flooringAreaSqft : '',
             wallAreaSqft: option === 'wall_plaster_only' ? current.wallAreaSqft : '',
           },
         },
@@ -1389,12 +1389,12 @@ export function LabourContractorProjectWizard() {
                               ? 'Note: Requires columns and slab to already be cast on this floor.'
                               : undefined;
 
-                          if (opt.value === 'full_construction') {
+                          if (opt.value === 'flooring_only') {
                             return (
                               <div key={opt.value} className="w-full">
                                 <div
                                   className={cn(
-                                    'w-full overflow-hidden rounded-xl border transition-all',
+                                    'w-full overflow-visible rounded-xl border transition-all',
                                     selected ? FORM_SELECTED_CARD : FORM_OPTION_IDLE,
                                   )}
                                 >
@@ -1459,6 +1459,9 @@ export function LabourContractorProjectWizard() {
                                               : {
                                                   includeFineFlooring: true,
                                                   flooringMaterial: v,
+                                                  flooringAreaSqft:
+                                                    entry.flooringAreaSqft.trim() ||
+                                                    form.approximateArea,
                                                 },
                                             fw.customFloorNumber,
                                           )
