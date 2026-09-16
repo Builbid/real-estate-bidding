@@ -473,9 +473,8 @@ export function ShowcaseProjectCard({
             <span />
           )}
           <Button
-            variant="outline"
             size="sm"
-            className="h-8 shrink-0 rounded-lg border-slate-200 bg-slate-50 px-2.5 text-xs text-slate-800 hover:bg-slate-100 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 dark:hover:text-white"
+            className="h-8 shrink-0 rounded-lg border-0 bg-brand px-2.5 text-xs font-medium text-white shadow-none hover:bg-brand-hover hover:text-white dark:bg-brand dark:text-white dark:hover:bg-brand-hover"
             asChild
           >
             <Link href={cardHref}>

@@ -37,12 +37,12 @@ export function ServiceCategoryBar({ isAuthenticated, role }: ServiceCategoryBar
             key={cat.value}
             type="button"
             onClick={() => handleSelect(cat.value)}
-            className="group flex h-full w-full max-w-[10.5rem] cursor-pointer flex-col items-center gap-2 rounded-xl bg-white p-3 text-center transition-all duration-200 hover:bg-slate-50 dark:bg-transparent dark:hover:bg-slate-800/60 sm:p-4"
+            className="group flex h-full w-full max-w-[10.5rem] cursor-pointer flex-col items-center gap-2 bg-transparent p-3 text-center sm:p-4"
           >
-            <span className="flex h-20 w-20 shrink-0 items-center justify-center bg-transparent transition-transform duration-200 group-hover:scale-110">
+            <span className="flex h-20 w-20 shrink-0 items-center justify-center bg-transparent transition-transform duration-200 ease-out group-hover:scale-110">
               <CategoryServiceIcon service={cat.value} />
             </span>
-            <span className="line-clamp-2 min-h-[2.5em] px-1 text-xs font-semibold leading-snug text-slate-800 dark:text-slate-100 sm:text-sm">
+            <span className="line-clamp-2 min-h-[2.5em] px-1 text-xs font-semibold leading-snug text-slate-800 transition-transform duration-200 ease-out group-hover:scale-105 dark:text-slate-100 sm:text-sm">
               {cat.label}
             </span>
           </button>
