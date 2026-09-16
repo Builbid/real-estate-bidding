@@ -9,7 +9,9 @@ import {
 } from './projectStartTime';
 import {
   ASSAM_BUILDING_TYPE,
+  BOUNDARY_WALL_BUILDING_TYPE,
   BUILDING_TYPE_OPTIONS,
+  CONSTRUCTION_TYPE_BRICK,
   CONSTRUCTION_TYPE_FULL,
   CONSTRUCTION_TYPE_GROUND,
   CONSTRUCTION_TYPE_UPPER,
@@ -39,14 +41,35 @@ export type MistriBoundaryWallThickness = '5_inch' | '3_inch';
 
 export type MistriBoundaryWallStructure = 'full_solid' | 'half_grill';
 
+export type MistriBoundaryWallMaterial =
+  | 'red_clay_brick'
+  | 'aac_block'
+  | 'concrete_solid_block';
+
+export type MistriBoundaryWallColumnType = 'brick_pillar' | 'rcc_casted_column';
+
+export type MistriBoundaryWallTimeline = '1week' | '2weeks' | '3weeks' | '4weeks';
+
 export interface MistriBrickworkDetails {
   materialType: MistriBrickworkMaterial;
   plasteringScope: MistriWallPlasteringScope;
 }
 
 export interface MistriBoundaryWallDetails {
-  thickness: MistriBoundaryWallThickness;
-  structureType: MistriBoundaryWallStructure;
+  /** Compact Boundary Wall workflow — length of the wall in feet. */
+  lengthFt?: number | null;
+  /** Compact Boundary Wall workflow — height of the wall in feet. */
+  heightFt?: number | null;
+  /** Compact Boundary Wall workflow — brick / block material. */
+  materialType?: MistriBoundaryWallMaterial | null;
+  /** Compact Boundary Wall workflow — pillar / column construction. */
+  columnType?: MistriBoundaryWallColumnType | null;
+  /** Compact Boundary Wall workflow — execution window. */
+  executionTimeline?: MistriBoundaryWallTimeline | null;
+  /** Legacy posts only — wall thickness. */
+  thickness?: MistriBoundaryWallThickness | null;
+  /** Legacy posts only — full solid vs half grill. */
+  structureType?: MistriBoundaryWallStructure | null;
   plasteringFinish: MistriWallPlasteringScope;
 }
 
@@ -81,7 +104,7 @@ export type MistriContractType =
 /** Legacy contract type no longer collected on the form. */
 type LegacyMistriContractType = 'full_material_labor';
 
-export type MistriStartTimeType = '1week' | '2week' | '1month' | 'specific';
+export type MistriStartTimeType = '1week' | '2week' | '3week' | '4week' | '1month' | 'specific';
 
 /** Multi-select floors for brickwork / plastering work area. */
 export type MistriWorkAreaFloor =
@@ -461,6 +484,42 @@ export const MISTRI_BOUNDARY_WALL_STRUCTURE_OPTIONS: {
 }[] = [
   { value: 'full_solid', label: 'Full Solid Complete Wall' },
   { value: 'half_grill', label: 'Half Wall with Half Grill/Fencing Mounted' },
+];
+
+export const MISTRI_BOUNDARY_WALL_MATERIAL_OPTIONS: {
+  value: MistriBoundaryWallMaterial;
+  label: string;
+}[] = [
+  { value: 'red_clay_brick', label: 'Red Clay Brick' },
+  { value: 'aac_block', label: 'AAC Block' },
+  { value: 'concrete_solid_block', label: 'Concrete Solid Block' },
+];
+
+export const MISTRI_BOUNDARY_WALL_PLASTER_OPTIONS: {
+  value: MistriWallPlasteringScope;
+  label: string;
+}[] = [
+  { value: 'both', label: 'Both Sides Plaster' },
+  { value: 'single', label: 'Single Side Plaster' },
+  { value: 'none', label: 'Without Plastering (No Plaster)' },
+];
+
+export const MISTRI_BOUNDARY_WALL_COLUMN_OPTIONS: {
+  value: MistriBoundaryWallColumnType;
+  label: string;
+}[] = [
+  { value: 'brick_pillar', label: 'Brick Pillar' },
+  { value: 'rcc_casted_column', label: 'RCC Casted Column' },
+];
+
+export const MISTRI_BOUNDARY_WALL_TIMELINE_OPTIONS: {
+  value: MistriBoundaryWallTimeline;
+  label: string;
+}[] = [
+  { value: '1week', label: 'Within 1 Week' },
+  { value: '2weeks', label: '2 Weeks' },
+  { value: '3weeks', label: '3 Weeks' },
+  { value: '4weeks', label: '4 Weeks' },
 ];
 
 /** Current construction floor buttons (Box 1). */
@@ -1008,9 +1067,20 @@ const BOUNDARY_WALL_THICKNESS_SET = new Set<string>(
 const BOUNDARY_WALL_STRUCTURE_SET = new Set<string>(
   MISTRI_BOUNDARY_WALL_STRUCTURE_OPTIONS.map((o) => o.value),
 );
+const BOUNDARY_WALL_MATERIAL_SET = new Set<string>(
+  MISTRI_BOUNDARY_WALL_MATERIAL_OPTIONS.map((o) => o.value),
+);
+const BOUNDARY_WALL_COLUMN_SET = new Set<string>(
+  MISTRI_BOUNDARY_WALL_COLUMN_OPTIONS.map((o) => o.value),
+);
+const BOUNDARY_WALL_TIMELINE_SET = new Set<string>(
+  MISTRI_BOUNDARY_WALL_TIMELINE_OPTIONS.map((o) => o.value),
+);
 const START_TIME_TYPES = new Set<MistriStartTimeType>([
   '1week',
   '2week',
+  '3week',
+  '4week',
   '1month',
   'specific',
 ]);
@@ -1138,6 +1208,53 @@ function normalizeBoundaryWallStructure(
   return null;
 }
 
+function normalizeBoundaryWallMaterial(
+  value: unknown,
+): MistriBoundaryWallMaterial | null {
+  if (typeof value !== 'string') return null;
+  if (BOUNDARY_WALL_MATERIAL_SET.has(value)) return value as MistriBoundaryWallMaterial;
+  return null;
+}
+
+function normalizeBoundaryWallColumnType(
+  value: unknown,
+): MistriBoundaryWallColumnType | null {
+  if (typeof value !== 'string') return null;
+  if (BOUNDARY_WALL_COLUMN_SET.has(value)) return value as MistriBoundaryWallColumnType;
+  return null;
+}
+
+function normalizeBoundaryWallTimeline(
+  value: unknown,
+): MistriBoundaryWallTimeline | null {
+  if (typeof value !== 'string') return null;
+  if (BOUNDARY_WALL_TIMELINE_SET.has(value)) return value as MistriBoundaryWallTimeline;
+  return null;
+}
+
+export function boundaryWallTimelineToStartTime(
+  timeline: MistriBoundaryWallTimeline,
+): MistriStartTimeType {
+  switch (timeline) {
+    case '1week':
+      return '1week';
+    case '2weeks':
+      return '2week';
+    case '3weeks':
+      return '3week';
+    case '4weeks':
+      return '4week';
+  }
+}
+
+export function isBoundaryWallMistriDetails(
+  details: Pick<MistriDetails, 'civilWorkTypes' | 'floorWork' | 'boundaryWallDetails'> | null | undefined,
+): boolean {
+  if (!details) return false;
+  if (details.floorWork && details.floorWork.length > 0) return false;
+  return details.civilWorkTypes.includes('boundary_wall_fencing');
+}
+
 export function normalizeBrickworkDetails(raw: unknown): MistriBrickworkDetails | null {
   if (!raw || typeof raw !== 'object') return null;
   const v = raw as Record<string, unknown>;
@@ -1152,11 +1269,40 @@ export function normalizeBoundaryWallDetails(
 ): MistriBoundaryWallDetails | null {
   if (!raw || typeof raw !== 'object') return null;
   const v = raw as Record<string, unknown>;
+  const plasteringFinish = normalizeWallPlasteringScope(v.plasteringFinish);
+  if (!plasteringFinish) return null;
+
+  const lengthFt = parseFoundationDepthFt(v.lengthFt);
+  const heightFt = parseFoundationDepthFt(v.heightFt);
+  const materialType = normalizeBoundaryWallMaterial(v.materialType);
+  const columnType = normalizeBoundaryWallColumnType(v.columnType);
+  const executionTimeline = normalizeBoundaryWallTimeline(v.executionTimeline);
+  if (lengthFt && heightFt && materialType && columnType && executionTimeline) {
+    return {
+      lengthFt,
+      heightFt,
+      materialType,
+      columnType,
+      executionTimeline,
+      plasteringFinish,
+      thickness: normalizeBoundaryWallThickness(v.thickness),
+      structureType: normalizeBoundaryWallStructure(v.structureType),
+    };
+  }
+
   const thickness = normalizeBoundaryWallThickness(v.thickness);
   const structureType = normalizeBoundaryWallStructure(v.structureType);
-  const plasteringFinish = normalizeWallPlasteringScope(v.plasteringFinish);
-  if (!thickness || !structureType || !plasteringFinish) return null;
-  return { thickness, structureType, plasteringFinish };
+  if (!thickness || !structureType) return null;
+  return {
+    thickness,
+    structureType,
+    plasteringFinish,
+    lengthFt,
+    heightFt,
+    materialType,
+    columnType,
+    executionTimeline,
+  };
 }
 
 function normalizeWorkAreaFloor(value: unknown): MistriWorkAreaFloor | null {
@@ -2480,11 +2626,21 @@ export function formatMistriFloorLevel(details: MistriDetails): string {
 }
 
 export function formatMistriStartTime(details: MistriDetails): string {
+  if (details.boundaryWallDetails?.executionTimeline) {
+    return optionLabel(
+      MISTRI_BOUNDARY_WALL_TIMELINE_OPTIONS,
+      details.boundaryWallDetails.executionTimeline,
+    );
+  }
   switch (details.projectStartTimeType) {
     case '1week':
       return 'Within one week';
     case '2week':
       return 'Within two week';
+    case '3week':
+      return 'Within 3 weeks';
+    case '4week':
+      return 'Within 4 weeks';
     case '1month':
       return 'Within 1 month';
     case 'specific':
@@ -2600,37 +2756,67 @@ export function getMistriWorkRequirementBlocks(details: MistriDetails): {
   }
 
   if (details.boundaryWallDetails) {
-    blocks.push(
-      {
-        label: 'Boundary Wall Thickness',
-        value: optionLabel(
-          MISTRI_BOUNDARY_WALL_THICKNESS_OPTIONS,
-          details.boundaryWallDetails.thickness,
-        ),
-      },
-      {
-        label: 'Boundary Wall Structure',
-        value: optionLabel(
-          MISTRI_BOUNDARY_WALL_STRUCTURE_OPTIONS,
-          details.boundaryWallDetails.structureType,
-        ),
-      },
-      {
-        label: 'Boundary Wall Plastering',
-        value: optionLabel(
-          MISTRI_WALL_PLASTERING_SCOPE_OPTIONS,
-          details.boundaryWallDetails.plasteringFinish,
-        ),
-      },
-    );
+    const wall = details.boundaryWallDetails;
+    if (wall.lengthFt && wall.heightFt && wall.materialType && wall.columnType && wall.executionTimeline) {
+      blocks.push(
+        {
+          label: 'Wall Length',
+          value: `${wall.lengthFt} ft`,
+        },
+        {
+          label: 'Wall Height',
+          value: `${wall.heightFt} ft`,
+        },
+        {
+          label: 'Wall Material',
+          value: optionLabel(MISTRI_BOUNDARY_WALL_MATERIAL_OPTIONS, wall.materialType),
+        },
+        {
+          label: 'Boundary Wall Plastering',
+          value: optionLabel(MISTRI_BOUNDARY_WALL_PLASTER_OPTIONS, wall.plasteringFinish),
+        },
+        {
+          label: 'Column / Pillar',
+          value: optionLabel(MISTRI_BOUNDARY_WALL_COLUMN_OPTIONS, wall.columnType),
+        },
+        {
+          label: 'Work Execution Timeline',
+          value: optionLabel(MISTRI_BOUNDARY_WALL_TIMELINE_OPTIONS, wall.executionTimeline),
+        },
+      );
+    } else {
+      blocks.push(
+        {
+          label: 'Boundary Wall Thickness',
+          value: optionLabel(
+            MISTRI_BOUNDARY_WALL_THICKNESS_OPTIONS,
+            wall.thickness as MistriBoundaryWallThickness,
+          ),
+        },
+        {
+          label: 'Boundary Wall Structure',
+          value: optionLabel(
+            MISTRI_BOUNDARY_WALL_STRUCTURE_OPTIONS,
+            wall.structureType as MistriBoundaryWallStructure,
+          ),
+        },
+        {
+          label: 'Boundary Wall Plastering',
+          value: optionLabel(
+            MISTRI_WALL_PLASTERING_SCOPE_OPTIONS,
+            wall.plasteringFinish,
+          ),
+        },
+      );
+    }
   }
 
   blocks.push({
-    label: MISTRI_APPROXIMATE_AREA_LABEL,
+    label: isBoundaryWallMistriDetails(details) ? 'Wall Area (approx.)' : MISTRI_APPROXIMATE_AREA_LABEL,
     value: formatMistriArea(details.approximateAreaSqft),
   });
 
-  if (details.currentFloorPlan || details.futureFloorPlan) {
+  if (!isBoundaryWallMistriDetails(details) && (details.currentFloorPlan || details.futureFloorPlan)) {
     blocks.push({
       label: 'Current Build Floors',
       value: formatMistriFloorPlan(details.currentFloorPlan),
@@ -2639,7 +2825,7 @@ export function getMistriWorkRequirementBlocks(details: MistriDetails): {
       label: 'Foundation Provision For',
       value: formatMistriFloorPlan(details.futureFloorPlan),
     });
-  } else if (details.floorLevel) {
+  } else if (!isBoundaryWallMistriDetails(details) && details.floorLevel) {
     blocks.push({
       label: 'Floor Level',
       value: formatMistriFloorLevel(details),
@@ -2663,10 +2849,12 @@ export function getMistriWorkRequirementBlocks(details: MistriDetails): {
     });
   }
 
-  blocks.push({
-    label: 'Work Start Time',
-    value: formatMistriStartTime(details),
-  });
+  if (!details.boundaryWallDetails?.executionTimeline) {
+    blocks.push({
+      label: 'Work Start Time',
+      value: formatMistriStartTime(details),
+    });
+  }
 
   if (hasMistriChowkhat(details)) {
     blocks.push({
@@ -2723,6 +2911,9 @@ export function buildingTypesFromMistriDetails(details: MistriDetails): Building
   if (details.floorWork && details.floorWork.length > 0) {
     return buildingTypesFromFloorWork(details.floorWork);
   }
+  if (isBoundaryWallMistriDetails(details)) {
+    return [BOUNDARY_WALL_BUILDING_TYPE];
+  }
   if (details.currentFloorPlan || details.futureFloorPlan) {
     return buildingTypesFromFloorPlan(details.futureFloorPlan ?? details.currentFloorPlan);
   }
@@ -2749,6 +2940,10 @@ export function constructionTypesFromMistriDetails(
     return map;
   }
 
+  if (isBoundaryWallMistriDetails(details)) {
+    return { [BOUNDARY_WALL_BUILDING_TYPE]: CONSTRUCTION_TYPE_BRICK };
+  }
+
   const plan = details.futureFloorPlan ?? details.currentFloorPlan;
   const buildingTypes = plan
     ? buildingTypesFromFloorPlan(plan)
@@ -2766,6 +2961,75 @@ export function constructionTypesFromMistriDetails(
     }
   }
   return map;
+}
+
+export function validateMistriBoundaryWallInput(input: {
+  lengthFt: string | number;
+  heightFt: string | number;
+  materialType: MistriBoundaryWallMaterial | null;
+  plasteringFinish: MistriWallPlasteringScope | null;
+  columnType: MistriBoundaryWallColumnType | null;
+  executionTimeline: MistriBoundaryWallTimeline | null;
+  additionalRequirements: string;
+}): { error: string } | { details: MistriDetails } {
+  const lengthFt = parseFoundationDepthFt(input.lengthFt);
+  if (lengthFt == null) {
+    return { error: 'Enter the boundary wall length in feet.' };
+  }
+  const heightFt = parseFoundationDepthFt(input.heightFt);
+  if (heightFt == null) {
+    return { error: 'Enter the boundary wall height in feet.' };
+  }
+  const materialType = normalizeBoundaryWallMaterial(input.materialType);
+  if (!materialType) {
+    return { error: 'Select a wall material: Red Clay Brick, AAC Block, or Concrete Solid Block.' };
+  }
+  const plasteringFinish = normalizeWallPlasteringScope(input.plasteringFinish);
+  if (!plasteringFinish) {
+    return { error: 'Select a plastering option for the boundary wall.' };
+  }
+  const columnType = normalizeBoundaryWallColumnType(input.columnType);
+  if (!columnType) {
+    return { error: 'Select Brick Pillar or RCC Casted Column.' };
+  }
+  const executionTimeline = normalizeBoundaryWallTimeline(input.executionTimeline);
+  if (!executionTimeline) {
+    return { error: 'Select the work execution timeline.' };
+  }
+
+  const additional = input.additionalRequirements.trim() || null;
+  const approximateAreaSqft = Math.round(lengthFt * heightFt * 100) / 100;
+  const boundaryWallDetails: MistriBoundaryWallDetails = {
+    lengthFt,
+    heightFt,
+    materialType,
+    plasteringFinish,
+    columnType,
+    executionTimeline,
+  };
+
+  return {
+    details: {
+      floorWork: null,
+      civilWorkTypes: ['boundary_wall_fencing'],
+      plasterSide: plasteringFinish === 'both' ? 'both' : plasteringFinish === 'single' ? 'single' : null,
+      brickworkDetails: null,
+      boundaryWallDetails,
+      approximateAreaSqft,
+      currentFloorPlan: null,
+      futureFloorPlan: null,
+      workAreaFloors: null,
+      workAreaCustomFloors: null,
+      floorLevel: null,
+      customFloorCount: null,
+      contractType: null,
+      additionalRequirements: additional,
+      includeDoorWindowFrames: false,
+      doorWindowFramesQuantity: null,
+      projectStartTimeType: boundaryWallTimelineToStartTime(executionTimeline),
+      projectStartTimeSpecificDate: null,
+    },
+  };
 }
 
 export function validateMistriFloorWorkInput(input: {
@@ -3210,7 +3474,7 @@ export function mistriNestedDetailsCreateError(details: MistriDetails): string |
     details.civilWorkTypes.includes('boundary_wall_fencing') &&
     !normalizeBoundaryWallDetails(details.boundaryWallDetails)
   ) {
-    return 'Answer all boundary wall questions (thickness, structure, and plastering).';
+    return 'Complete all Boundary Wall work details (dimensions, material, plastering, column type, and timeline).';
   }
   return null;
 }

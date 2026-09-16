@@ -6,6 +6,7 @@ import {
 } from '@/lib/buildingConfig';
 import {
   formatMistriFloorWorkLabel,
+  isBoundaryWallMistriDetails,
   parseMistriDetails,
   sortMistriFloorWork,
 } from '@/lib/mistriDetails';
@@ -131,6 +132,13 @@ export function resolveProjectBidFloors(project: {
   const mistri = parseMistriDetails(
     readNestedProjectDetail(project, 'mistri_details'),
   );
+  if (isBoundaryWallMistriDetails(mistri)) {
+    return {
+      labels: ['Boundary Wall'],
+      count: 1,
+      isAssamType: false,
+    };
+  }
   if (mistri?.floorWork && mistri.floorWork.length > 0) {
     const labels = sortMistriFloorWork(mistri.floorWork)
       .map((fw) => toRateInputLabel(formatMistriFloorWorkLabel(fw)));

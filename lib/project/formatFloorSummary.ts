@@ -1,5 +1,6 @@
 import {
   isAssamMistriFloor,
+  isBoundaryWallMistriDetails,
   mistriFloorUpperCount,
   ordinalFloorSuffix,
   parseMistriDetails,
@@ -135,6 +136,7 @@ function fromBuildingConstructionTypes(project: {
     const ct = constructionTypes[type];
     let floorCode = 'Ground Floor';
     if (type === 'Assam Type') floorCode = 'Assam Type';
+    else if (type === 'Boundary Wall') floorCode = 'Boundary Wall';
     else if (type === 'RCC Ground Floor') floorCode = 'Ground Floor';
     else {
       const m = type.match(/RCC\s+(\d+)/i);
@@ -145,7 +147,9 @@ function fromBuildingConstructionTypes(project: {
         floorCode = type.replace(/^RCC\s+/i, '');
       }
     }
-    const scope = ct
+    const scope = type === 'Boundary Wall'
+      ? 'Boundary Wall Work'
+      : ct
       ? getConstructionDisplayShortLabel(ct)
           .replace('Full Finished Structure', 'Full Construction')
           .replace('Frame (Skeleton) only', 'Frame / Slab Casting Only')
@@ -235,6 +239,16 @@ export function formatFloorSummary(project: FloorSummaryProject): FloorSummaryIt
     if (details?.floorWork && details.floorWork.length > 0) {
       return fromMistriFloorWork(details.floorWork);
     }
+    if (isBoundaryWallMistriDetails(details)) {
+      return [
+        {
+          key: 'boundary-wall',
+          floorCode: 'Boundary Wall',
+          scope: 'Boundary Wall Work',
+          label: 'Boundary Wall: Boundary Wall Work',
+        },
+      ];
+    }
   }
 
   const fromBuilding = fromBuildingConstructionTypes(project);
@@ -295,6 +309,7 @@ export function isFloorScopeRequirementLabel(label: string): boolean {
   return (
     trimmed.startsWith('RCC ') ||
     trimmed.startsWith('Assam Type') ||
+    trimmed === 'Boundary Wall' ||
     /^Custom Floor/i.test(trimmed) ||
     /^\d+(st|nd|rd|th) Floor$/i.test(trimmed)
   );

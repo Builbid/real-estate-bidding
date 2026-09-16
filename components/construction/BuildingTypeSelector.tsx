@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { Check } from 'lucide-react';
 import {
   ASSAM_BUILDING_TYPE,
+  BOUNDARY_WALL_BUILDING_TYPE,
   BUILDING_TYPE_OPTIONS,
   RCC_BUILDING_TYPES,
   type BuildingType,
@@ -236,7 +237,9 @@ export function BuildingTypeSelector({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {BUILDING_TYPE_OPTIONS.filter(
-          (type) => !(rccOnly && type === ASSAM_BUILDING_TYPE),
+          (type) =>
+            type !== BOUNDARY_WALL_BUILDING_TYPE &&
+            !(rccOnly && type === ASSAM_BUILDING_TYPE),
         ).map((type) => {
           const selected = value.includes(type);
           const isAssamOption = type === ASSAM_BUILDING_TYPE;

@@ -8,14 +8,16 @@ export const BUILDING_TYPE_OPTIONS = [
   'RCC 2nd Floor',
   'RCC 3rd Floor',
   'RCC 4th Floor',
+  'Boundary Wall',
 ] as const;
 
 export type BuildingType = (typeof BUILDING_TYPE_OPTIONS)[number];
 
 export const ASSAM_BUILDING_TYPE: BuildingType = 'Assam Type';
+export const BOUNDARY_WALL_BUILDING_TYPE: BuildingType = 'Boundary Wall';
 
 export const RCC_BUILDING_TYPES: BuildingType[] = BUILDING_TYPE_OPTIONS.filter(
-  (t) => t !== ASSAM_BUILDING_TYPE,
+  (t) => t !== ASSAM_BUILDING_TYPE && t !== BOUNDARY_WALL_BUILDING_TYPE,
 );
 
 /** Display order for Step 2 groups and summaries. */
@@ -376,6 +378,7 @@ export function hasNewBuildingConfig(project: {
 
 export function getFloorDisplayName(type: BuildingType): string {
   if (type === ASSAM_BUILDING_TYPE) return 'Assam Type';
+  if (type === BOUNDARY_WALL_BUILDING_TYPE) return 'Boundary Wall';
   return type.replace('RCC ', '');
 }
 
@@ -383,6 +386,8 @@ export function getFloorBadge(type: BuildingType): string {
   switch (type) {
     case ASSAM_BUILDING_TYPE:
       return 'A';
+    case BOUNDARY_WALL_BUILDING_TYPE:
+      return 'W';
     case 'RCC Ground Floor':
       return 'G';
     case 'RCC 1st Floor':

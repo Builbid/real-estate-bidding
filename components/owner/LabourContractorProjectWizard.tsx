@@ -29,6 +29,10 @@ import {
   MISTRI_ASSAM_ROOF_OPTIONS,
   MISTRI_ASSAM_ROOFING_SHEET_OPTIONS,
   MISTRI_APPROXIMATE_AREA_LABEL,
+  MISTRI_BOUNDARY_WALL_COLUMN_OPTIONS,
+  MISTRI_BOUNDARY_WALL_MATERIAL_OPTIONS,
+  MISTRI_BOUNDARY_WALL_PLASTER_OPTIONS,
+  MISTRI_BOUNDARY_WALL_TIMELINE_OPTIONS,
   MISTRI_BRICKWORK_MATERIAL_OPTIONS,
   MISTRI_CONTRACT_TYPE_OPTIONS,
   MISTRI_CUSTOM_FLOOR_ID,
@@ -51,10 +55,14 @@ import {
   parseFoundationDepthFt,
   rccScopeFromWorkTypes,
   sortMistriFloorWork,
+  validateMistriBoundaryWallInput,
   validateMistriFloorWorkInput,
   workTypesFromRccScope,
   type MistriAssamRoofType,
   type MistriAssamRoofingSheet,
+  type MistriBoundaryWallColumnType,
+  type MistriBoundaryWallMaterial,
+  type MistriBoundaryWallTimeline,
   type MistriBrickworkMaterial,
   type MistriContractType,
   type MistriFloorId,
@@ -64,6 +72,7 @@ import {
   type MistriPlasterScope,
   type MistriRccScopeOption,
   type MistriStartTimeType,
+  type MistriWallPlasteringScope,
 } from '@/lib/mistriDetails';
 import { HistoryBackButton } from '@/components/shared/HistoryBackButton';
 import {
@@ -255,7 +264,7 @@ function NestedChoiceButtons<T extends string>({
   onChange: (value: T) => void;
   columns?: 1 | 2 | 3 | 4;
 }) {
-  const inlineRow = columns === 4;
+  const inlineRow = columns === 3 || columns === 4;
 
   return (
     <div className="space-y-1.5">
@@ -264,7 +273,7 @@ function NestedChoiceButtons<T extends string>({
         className={cn(
           'grid gap-2',
           columns === 4 && 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 lg:items-center',
-          columns === 3 && 'grid-cols-3',
+          columns === 3 && 'grid-cols-1 sm:grid-cols-3',
           columns === 2 && 'grid-cols-2',
           columns === 1 && 'grid-cols-1',
         )}
@@ -278,14 +287,14 @@ function NestedChoiceButtons<T extends string>({
                 type="button"
                 onClick={() => onChange(opt.value)}
                 className={cn(
-                  'flex min-h-0 w-full items-center gap-2 whitespace-nowrap rounded-xl border px-2 py-2 text-left text-xs font-semibold transition-all',
+                  'flex min-h-0 w-full items-center gap-2 rounded-xl border px-2 py-2 text-left text-xs font-semibold transition-all',
                   selected
                     ? 'border-brand bg-white text-brand shadow-sm ring-1 ring-brand/30 dark:border-brand dark:bg-slate-900 dark:text-brand'
                     : 'border-gray-200 bg-white text-gray-800 hover:border-gray-300 dark:border-zinc-700 dark:bg-slate-900 dark:text-zinc-100 dark:hover:border-zinc-600',
                 )}
               >
                 <ChoiceRadio selected={selected} />
-                <span className="whitespace-nowrap leading-none">{opt.label}</span>
+                <span className="leading-snug">{opt.label}</span>
               </button>
             );
           }
@@ -310,7 +319,7 @@ const PROGRESS_LABELS = [
   'Review & Launch',
 ] as const;
 
-type MistriHouseType = 'assam' | 'rcc';
+type MistriHouseType = 'assam' | 'rcc' | 'boundary_wall';
 
 const MISTRI_HOUSE_TYPE_OPTIONS: {
   value: MistriHouseType;
@@ -318,6 +327,7 @@ const MISTRI_HOUSE_TYPE_OPTIONS: {
 }[] = [
   { value: 'assam', label: 'Assam Type' },
   { value: 'rcc', label: 'RCC Structure' },
+  { value: 'boundary_wall', label: 'Boundary Wall' },
 ];
 
 const RCC_FLOORING_CHOICE_OPTIONS: { value: 'tile' | 'marble' | 'granite' | 'none'; label: string }[] = [
@@ -329,7 +339,7 @@ const RCC_FLOORING_CHOICE_OPTIONS: { value: 'tile' | 'marble' | 'granite' | 'non
 
 function AssamTypeGraphic() {
   return (
-    <svg viewBox="0 0 128 96" className="h-10 w-[3.25rem]" aria-hidden>
+    <svg viewBox="0 0 128 96" className="h-7 w-9" aria-hidden>
       <ellipse cx="64" cy="88" rx="50" ry="8" fill="#86efac" opacity="0.55" />
       <rect x="26" y="46" width="76" height="38" rx="3" fill="#fde68a" />
       <rect x="26" y="46" width="76" height="10" fill="#fcd34d" />
@@ -349,7 +359,7 @@ function AssamTypeGraphic() {
 
 function RccStructureGraphic() {
   return (
-    <svg viewBox="0 0 128 96" className="h-10 w-[3.25rem]" aria-hidden>
+    <svg viewBox="0 0 128 96" className="h-7 w-9" aria-hidden>
       <ellipse cx="64" cy="88" rx="48" ry="8" fill="#93c5fd" opacity="0.5" />
       <rect x="28" y="14" width="72" height="70" rx="4" fill="#64748b" />
       <rect x="28" y="14" width="72" height="8" rx="4" fill="#475569" />
@@ -363,6 +373,52 @@ function RccStructureGraphic() {
       <rect x="36" y="62" width="14" height="12" rx="1.5" fill="#38bdf8" />
       <rect x="76" y="62" width="14" height="12" rx="1.5" fill="#38bdf8" />
       <rect x="54" y="68" width="20" height="16" rx="1.5" fill="#1e293b" />
+    </svg>
+  );
+}
+
+function BoundaryWallGraphic() {
+  return (
+    <svg viewBox="0 0 128 96" className="h-7 w-9" aria-hidden>
+      <ellipse cx="64" cy="88" rx="50" ry="7" fill="#86efac" opacity="0.45" />
+      <rect x="14" y="34" width="12" height="48" rx="2" fill="#78716c" />
+      <rect x="58" y="28" width="12" height="54" rx="2" fill="#57534e" />
+      <rect x="102" y="34" width="12" height="48" rx="2" fill="#78716c" />
+      <rect x="24" y="46" width="36" height="28" rx="1.5" fill="#a8a29e" />
+      <rect x="68" y="46" width="36" height="28" rx="1.5" fill="#a8a29e" />
+      <rect x="26" y="50" width="10" height="8" rx="0.5" fill="#d6d3d1" />
+      <rect x="38" y="50" width="10" height="8" rx="0.5" fill="#e7e5e4" />
+      <rect x="48" y="50" width="10" height="8" rx="0.5" fill="#d6d3d1" />
+      <rect x="26" y="60" width="10" height="8" rx="0.5" fill="#e7e5e4" />
+      <rect x="38" y="60" width="10" height="8" rx="0.5" fill="#d6d3d1" />
+      <rect x="48" y="60" width="10" height="8" rx="0.5" fill="#e7e5e4" />
+      <rect x="70" y="50" width="10" height="8" rx="0.5" fill="#d6d3d1" />
+      <rect x="82" y="50" width="10" height="8" rx="0.5" fill="#e7e5e4" />
+      <rect x="92" y="50" width="10" height="8" rx="0.5" fill="#d6d3d1" />
+      <rect x="70" y="60" width="10" height="8" rx="0.5" fill="#e7e5e4" />
+      <rect x="82" y="60" width="10" height="8" rx="0.5" fill="#d6d3d1" />
+      <rect x="92" y="60" width="10" height="8" rx="0.5" fill="#e7e5e4" />
+      <path
+        d="M20 34 L20 22 L26 16 L32 22 L32 34"
+        fill="none"
+        stroke="#57534e"
+        strokeWidth="3"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M64 28 L64 14 L70 8 L76 14 L76 28"
+        fill="none"
+        stroke="#44403c"
+        strokeWidth="3"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M108 34 L108 22 L114 16 L120 22 L120 34"
+        fill="none"
+        stroke="#57534e"
+        strokeWidth="3"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -383,7 +439,7 @@ function HouseTypeCard({
       type="button"
       onClick={onClick}
       className={cn(
-        'relative flex min-h-[5.75rem] w-full flex-col items-center justify-center gap-1.5 rounded-xl border px-3 py-3 text-center transition-all',
+        'relative flex min-h-[4.25rem] w-full flex-col items-center justify-center gap-1 rounded-lg border px-1.5 py-2 text-center transition-all',
         selected
           ? 'border-brand bg-white shadow-sm ring-1 ring-brand/30 dark:border-brand dark:bg-slate-900'
           : 'border-gray-200 bg-white hover:border-gray-300 dark:border-zinc-700 dark:bg-slate-900 dark:hover:border-zinc-600',
@@ -391,23 +447,49 @@ function HouseTypeCard({
     >
       <span
         className={cn(
-          'flex h-10 w-12 items-center justify-center rounded-lg border border-gray-200 bg-white dark:border-zinc-700 dark:bg-slate-800',
+          'flex h-8 w-10 items-center justify-center rounded-md border border-gray-200 bg-white dark:border-zinc-700 dark:bg-slate-800',
         )}
       >
-        {type === 'assam' ? <AssamTypeGraphic /> : <RccStructureGraphic />}
+        {type === 'assam' ? (
+          <AssamTypeGraphic />
+        ) : type === 'boundary_wall' ? (
+          <BoundaryWallGraphic />
+        ) : (
+          <RccStructureGraphic />
+        )}
       </span>
-      <span className="text-xs font-semibold text-gray-900 dark:text-white">{label}</span>
+      <span className="text-[11px] font-semibold leading-tight text-gray-900 dark:text-white">
+        {label}
+      </span>
       {selected ? (
-        <CheckCircle2 className="absolute right-2.5 top-2.5 h-4 w-4 text-brand" />
+        <CheckCircle2 className="absolute right-1.5 top-1.5 h-3.5 w-3.5 text-brand" />
       ) : (
         <span
           aria-hidden
-          className="absolute right-2.5 top-2.5 h-4 w-4 rounded-full border border-gray-300 dark:border-zinc-500"
+          className="absolute right-1.5 top-1.5 h-3.5 w-3.5 rounded-full border border-gray-300 dark:border-zinc-500"
         />
       )}
     </button>
   );
 }
+
+interface BoundaryWallForm {
+  lengthFt: string;
+  heightFt: string;
+  materialType: MistriBoundaryWallMaterial | null;
+  plasteringFinish: MistriWallPlasteringScope | null;
+  columnType: MistriBoundaryWallColumnType | null;
+  executionTimeline: MistriBoundaryWallTimeline | null;
+}
+
+const EMPTY_BOUNDARY_WALL: BoundaryWallForm = {
+  lengthFt: '',
+  heightFt: '',
+  materialType: null,
+  plasteringFinish: null,
+  columnType: null,
+  executionTimeline: null,
+};
 
 interface FormState {
   location: string;
@@ -426,6 +508,7 @@ interface FormState {
   projectStartTimeSpecificDate: string;
   additionalRequirements: string;
   includeDoorWindowFrames: boolean;
+  boundaryWall: BoundaryWallForm;
 }
 
 const EMPTY_FORM: FormState = {
@@ -444,6 +527,7 @@ const EMPTY_FORM: FormState = {
   projectStartTimeSpecificDate: '',
   additionalRequirements: '',
   includeDoorWindowFrames: false,
+  boundaryWall: { ...EMPTY_BOUNDARY_WALL },
 };
 
 function selectedFloorEntries(form: FormState): Array<{
@@ -602,6 +686,11 @@ export function LabourContractorProjectWizard() {
     }
   }
 
+  function patchBoundaryWall(patch: Partial<BoundaryWallForm>) {
+    setForm((f) => ({ ...f, boundaryWall: { ...f.boundaryWall, ...patch } }));
+    setStep2Error(null);
+  }
+
   function setHouseType(next: MistriHouseType) {
     setForm((f) => {
       if (f.houseType === next) return f;
@@ -617,6 +706,22 @@ export function LabourContractorProjectWizard() {
           },
           futureFloorCustom: '',
           contractType: 'labor_only',
+          boundaryWall: { ...EMPTY_BOUNDARY_WALL },
+        };
+      }
+      if (next === 'boundary_wall') {
+        return {
+          ...f,
+          houseType: 'boundary_wall',
+          buildingTypes: [],
+          customFloorSelected: false,
+          customFloorNumber: '',
+          floorWorkById: {},
+          futureFloorCustom: '',
+          contractType: 'labor_only',
+          projectStartTimeType: null,
+          projectStartTimeSpecificDate: '',
+          boundaryWall: { ...EMPTY_BOUNDARY_WALL },
         };
       }
       return {
@@ -628,6 +733,7 @@ export function LabourContractorProjectWizard() {
         floorWorkById: {},
         futureFloorCustom: '',
         contractType: null,
+        boundaryWall: { ...EMPTY_BOUNDARY_WALL },
       };
     });
     setStep1Errors((errors) => {
@@ -779,12 +885,12 @@ export function LabourContractorProjectWizard() {
       errors.pincode = pincodeError;
     }
 
-    if (parseApproximateAreaSqft(form.approximateArea) == null) {
+    if (form.houseType !== 'boundary_wall' && parseApproximateAreaSqft(form.approximateArea) == null) {
       errors.builtUpArea = 'Enter the approximate plinth area in sq. ft.';
     }
 
     if (!form.houseType) {
-      errors.houseType = 'Select Assam Type or RCC Structure.';
+      errors.houseType = 'Select Assam Type, RCC Structure, or Boundary Wall.';
     }
 
     if (form.houseType === 'rcc') {
@@ -814,7 +920,29 @@ export function LabourContractorProjectWizard() {
     setStep(2);
   }
 
+  function boundaryWallValidationInput() {
+    return {
+      lengthFt: form.boundaryWall.lengthFt,
+      heightFt: form.boundaryWall.heightFt,
+      materialType: form.boundaryWall.materialType,
+      plasteringFinish: form.boundaryWall.plasteringFinish,
+      columnType: form.boundaryWall.columnType,
+      executionTimeline: form.boundaryWall.executionTimeline,
+      additionalRequirements: form.additionalRequirements,
+    };
+  }
+
   function tryGoStep3() {
+    if (form.houseType === 'boundary_wall') {
+      const validated = validateMistriBoundaryWallInput(boundaryWallValidationInput());
+      if ('error' in validated) {
+        setStep2Error(validated.error);
+        return;
+      }
+      setStep2Error(null);
+      setStep(3);
+      return;
+    }
     const validated = validateMistriFloorWorkInput(mistriValidationInput());
     if ('error' in validated) {
       setStep2Error(validated.error);
@@ -842,7 +970,10 @@ export function LabourContractorProjectWizard() {
       return;
     }
 
-    const validated = validateMistriFloorWorkInput(mistriValidationInput());
+    const validated =
+      form.houseType === 'boundary_wall'
+        ? validateMistriBoundaryWallInput(boundaryWallValidationInput())
+        : validateMistriFloorWorkInput(mistriValidationInput());
     if ('error' in validated) {
       setError(validated.error);
       setLoading(false);
@@ -875,7 +1006,10 @@ export function LabourContractorProjectWizard() {
   }
 
   const reviewBlocks = (() => {
-    const validated = validateMistriFloorWorkInput(mistriValidationInput());
+    const validated =
+      form.houseType === 'boundary_wall'
+        ? validateMistriBoundaryWallInput(boundaryWallValidationInput())
+        : validateMistriFloorWorkInput(mistriValidationInput());
     return 'details' in validated ? getMistriWorkRequirementBlocks(validated.details) : [];
   })();
 
@@ -947,25 +1081,29 @@ export function LabourContractorProjectWizard() {
                 error={step1ValidationAttempted ? step1Errors.pincode : undefined}
               />
 
-              <Input
-                label={MISTRI_APPROXIMATE_AREA_LABEL}
-                type="text"
-                inputMode="decimal"
-                placeholder="e.g. 1200"
-                value={form.approximateArea}
-                onChange={(e) => {
-                  update('approximateArea', e.target.value);
-                  setStep1Errors((prev) => ({ ...prev, builtUpArea: undefined }));
-                }}
-                error={step1ValidationAttempted ? step1Errors.builtUpArea : undefined}
-              />
-              <p className={FORM_NOTE}>
-                * Note: Enter the estimated slab area for a single floor. This value will be used as the base area for each floor selected below.
-              </p>
+              {form.houseType !== 'boundary_wall' && (
+                <>
+                  <Input
+                    label={MISTRI_APPROXIMATE_AREA_LABEL}
+                    type="text"
+                    inputMode="decimal"
+                    placeholder="e.g. 1200"
+                    value={form.approximateArea}
+                    onChange={(e) => {
+                      update('approximateArea', e.target.value);
+                      setStep1Errors((prev) => ({ ...prev, builtUpArea: undefined }));
+                    }}
+                    error={step1ValidationAttempted ? step1Errors.builtUpArea : undefined}
+                  />
+                  <p className={FORM_NOTE}>
+                    * Note: Enter the estimated slab area for a single floor. This value will be used as the base area for each floor selected below.
+                  </p>
+                </>
+              )}
 
               <div className={FORM_SECTION_CARD}>
                 <label className={SECTION_LABEL}>Construction type</label>
-                <div className="mt-1 grid grid-cols-2 gap-3">
+                <div className="mt-1 grid grid-cols-3 gap-2">
                   {MISTRI_HOUSE_TYPE_OPTIONS.map((opt) => (
                     <HouseTypeCard
                       key={opt.value}
@@ -1035,7 +1173,9 @@ export function LabourContractorProjectWizard() {
               <div>
                 <h2 className="text-base font-semibold text-foreground">Work Requirements</h2>
                 <p className="text-xs font-medium text-gray-700 dark:text-zinc-300 mt-1">
-                  {form.buildingTypes.includes(ASSAM_BUILDING_TYPE)
+                  {form.houseType === 'boundary_wall'
+                    ? 'Enter boundary wall dimensions, material, plastering, column type, and execution timeline.'
+                    : form.buildingTypes.includes(ASSAM_BUILDING_TYPE)
                     ? 'Assam Type — Full finishing upto Plastering and Roof work is included. Choose roof truss, roofing sheet, flooring, and foundation depth.'
                     : "Choose one Scope of Work for each selected floor based on your site's current status."}
                 </p>
@@ -1048,6 +1188,65 @@ export function LabourContractorProjectWizard() {
                 </div>
               )}
 
+              {form.houseType === 'boundary_wall' ? (
+                <div className={FORM_SECTION_CARD}>
+                  <label className={SECTION_LABEL}>Boundary Wall Work Details</label>
+                  <p className={HELPER_TEXT}>
+                    These details are used so mistri workers can bid on the wall length, height, and finish.
+                  </p>
+
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <Input
+                      label="Length (ft)"
+                      type="text"
+                      inputMode="decimal"
+                      placeholder="e.g. 80"
+                      value={form.boundaryWall.lengthFt}
+                      onChange={(e) => patchBoundaryWall({ lengthFt: e.target.value })}
+                    />
+                    <Input
+                      label="Height (ft)"
+                      type="text"
+                      inputMode="decimal"
+                      placeholder="e.g. 6"
+                      value={form.boundaryWall.heightFt}
+                      onChange={(e) => patchBoundaryWall({ heightFt: e.target.value })}
+                    />
+                  </div>
+
+                  <NestedChoiceButtons
+                    question="Material / Brick Selection"
+                    options={MISTRI_BOUNDARY_WALL_MATERIAL_OPTIONS}
+                    value={form.boundaryWall.materialType}
+                    columns={3}
+                    onChange={(v) => patchBoundaryWall({ materialType: v })}
+                  />
+
+                  <NestedChoiceButtons
+                    question="Plastering Options"
+                    options={MISTRI_BOUNDARY_WALL_PLASTER_OPTIONS}
+                    value={form.boundaryWall.plasteringFinish}
+                    onChange={(v) => patchBoundaryWall({ plasteringFinish: v })}
+                  />
+
+                  <NestedChoiceButtons
+                    question="Column / Pillar Specification"
+                    options={MISTRI_BOUNDARY_WALL_COLUMN_OPTIONS}
+                    value={form.boundaryWall.columnType}
+                    columns={2}
+                    onChange={(v) => patchBoundaryWall({ columnType: v })}
+                  />
+
+                  <NestedChoiceButtons
+                    question="Work Execution Timeline"
+                    options={MISTRI_BOUNDARY_WALL_TIMELINE_OPTIONS}
+                    value={form.boundaryWall.executionTimeline}
+                    columns={4}
+                    onChange={(v) => patchBoundaryWall({ executionTimeline: v })}
+                  />
+                </div>
+              ) : (
+                <>
               {assembledFloorWork.map((fw) => {
                 const key = floorWorkKey(fw.floorId, fw.customFloorNumber);
                 const entry = form.floorWorkById[key] ?? EMPTY_FLOOR_WORK;
@@ -1394,7 +1593,10 @@ export function LabourContractorProjectWizard() {
                   </div>
                 </div>
               )}
+                </>
+              )}
 
+              {form.houseType !== 'boundary_wall' && (
               <div className={FORM_SECTION_CARD}>
                 <label className={SECTION_LABEL}>
                   Project Starting Time
@@ -1430,6 +1632,7 @@ export function LabourContractorProjectWizard() {
                   />
                 )}
               </div>
+              )}
 
               <div className={FORM_SECTION_CARD}>
                 <label className={SECTION_LABEL}>
@@ -1465,6 +1668,15 @@ export function LabourContractorProjectWizard() {
               <ReviewSummaryList
                 items={[
                   { label: 'Project Title', value: previewTitle },
+                  {
+                    label: 'Construction Type',
+                    value:
+                      form.houseType === 'assam'
+                        ? 'Assam Type'
+                        : form.houseType === 'boundary_wall'
+                          ? 'Boundary Wall'
+                          : 'RCC Structure',
+                  },
                   { label: 'District', value: form.location },
                   {
                     label: 'Pincode',
