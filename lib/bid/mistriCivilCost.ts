@@ -205,7 +205,7 @@ export function resolveMistriCivilFloors(project: MistriCivilCostProject): Mistr
         flooringMaterialLabel: includeFlooring
           ? resolveFlooringMaterialLabel(fw.flooringMaterial, sourceFloorId)
           : null,
-        scopeTitle: getMistriRccScopeTitle(fw.workTypes, fw.scopeOption),
+        scopeTitle: getMistriRccScopeTitle(fw.workTypes, fw.scopeOption, fw.includeFineFlooring),
       };
     });
   }

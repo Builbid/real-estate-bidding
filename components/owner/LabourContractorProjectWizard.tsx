@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, ArrowLeft, CheckCircle2, AlertCircle, Lock } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Check, CheckCircle2, AlertCircle, Lock } from 'lucide-react';
 import { useProfile } from '@/lib/hooks/useProfile';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,10 +36,12 @@ import {
   MISTRI_BRICKWORK_MATERIAL_OPTIONS,
   MISTRI_CONTRACT_TYPE_OPTIONS,
   MISTRI_CUSTOM_FLOOR_ID,
+  MISTRI_FLOORING_MATERIAL_OPTIONS,
   MISTRI_RCC_SCOPE_OPTIONS,
   MISTRI_START_TIME_OPTIONS,
   MISTRI_WALL_PLASTER_WORK_OPTIONS,
   MISTRI_YES_NO_OPTIONS,
+  applyRccScopeToggle,
   currentFloorPlanFromFloorWork,
   floorPlanUpperCount,
   formatMistriFloorWorkLabel,
@@ -48,6 +50,7 @@ import {
   getMistriRccScopeLabel,
   getMistriWorkRequirementBlocks,
   isAssamMistriFloor,
+  isRccScopeDisabled,
   mistriContractTypeRequiredForFloorWork,
   mistriFoundationProvisionRequired,
   parseCustomFloorSequence,
@@ -55,11 +58,12 @@ import {
   parseApproximateAreaSqft,
   parseFoundationDepthFt,
   rccScopeFromWorkTypes,
+  rccScopesFromWorkTypes,
   sortMistriFloorWork,
   validateMistriBoundaryWallInput,
   validateMistriFloorWorkInput,
   wallPlasterWorkModeFromWorkTypes,
-  workTypesFromRccScope,
+  workTypesFromRccScopes,
   workTypesFromWallPlasterMode,
   type MistriAssamRoofType,
   type MistriAssamRoofingSheet,
@@ -84,9 +88,7 @@ import {
   FORM_CONTINUE_BTN,
   FORM_NESTED_PANEL,
   FORM_NOTE,
-  FORM_OPTION_IDLE,
   FORM_SECTION_CARD,
-  FORM_SELECTED_CARD,
   FORM_SHELL_CARD,
   FORM_TEXTAREA,
 } from '@/components/owner/wizard/formTheme';
@@ -188,6 +190,7 @@ function OptionCardButton({
   disabled,
   locked,
   note,
+  marker = 'radio',
 }: {
   selected: boolean;
   onClick: () => void;
@@ -196,6 +199,7 @@ function OptionCardButton({
   disabled?: boolean;
   locked?: boolean;
   note?: string;
+  marker?: 'radio' | 'checkbox';
 }) {
   return (
     <div className="w-full">
@@ -217,6 +221,20 @@ function OptionCardButton({
         <span className="min-w-0">{children}</span>
         {locked ? (
           <Lock className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+        ) : marker === 'checkbox' ? (
+          selected ? (
+            <span
+              aria-hidden
+              className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-[4px] border-2 border-brand bg-brand text-white"
+            >
+              <Check className="h-3 w-3" strokeWidth={3} />
+            </span>
+          ) : (
+            <span
+              aria-hidden
+              className="h-5 w-5 flex-shrink-0 rounded-[4px] border-2 border-gray-300 dark:border-zinc-500"
+            />
+          )
         ) : selected ? (
           <span
             aria-hidden
@@ -332,13 +350,6 @@ const MISTRI_HOUSE_TYPE_OPTIONS: {
   { value: 'assam', label: 'Assam Type' },
   { value: 'rcc', label: 'RCC Structure' },
   { value: 'boundary_wall', label: 'Boundary Wall' },
-];
-
-const RCC_FLOORING_CHOICE_OPTIONS: { value: 'tile' | 'marble' | 'granite' | 'none'; label: string }[] = [
-  { value: 'tile', label: 'Tiles' },
-  { value: 'marble', label: 'Marble' },
-  { value: 'granite', label: 'Granite' },
-  { value: 'none', label: 'No Flooring Work' },
 ];
 
 const HOUSE_TYPE_ICON_CLASS = 'h-8 w-10';
@@ -827,7 +838,7 @@ export function LabourContractorProjectWizard() {
     setStep2Error(null);
   }
 
-  function setRccScope(
+  function toggleRccScope(
     floorId: MistriFloorId,
     option: MistriRccScopeOption,
     customFloorNumber?: number | null,
@@ -835,16 +846,19 @@ export function LabourContractorProjectWizard() {
     setForm((f) => {
       const key = floorWorkKey(floorId, customFloorNumber);
       const current = f.floorWorkById[key] ?? EMPTY_FLOOR_WORK;
-      const preservedWallMode =
-        option === 'wall_plaster_only'
-          ? wallPlasterWorkModeFromWorkTypes(current.workTypes) ?? 'both'
-          : null;
-      const workTypes =
-        option === 'wall_plaster_only' && preservedWallMode
-          ? workTypesFromWallPlasterMode(preservedWallMode)
-          : workTypesFromRccScope(option);
-      const keepWallFields = option === 'wall_plaster_only';
-      const keepFlooringFields = option === 'flooring_only';
+      const currentScopes = rccScopesFromWorkTypes(
+        current.workTypes,
+        current.includeFineFlooring,
+      );
+      if (isRccScopeDisabled(currentScopes, option)) {
+        return f;
+      }
+      const nextScopes = applyRccScopeToggle(currentScopes, option);
+      const wallMode =
+        wallPlasterWorkModeFromWorkTypes(current.workTypes) ?? 'both';
+      const workTypes = workTypesFromRccScopes(nextScopes, wallMode);
+      const keepWallFields = nextScopes.includes('wall_plaster_only');
+      const keepFlooringFields = nextScopes.includes('flooring_only');
       return {
         ...f,
         floorWorkById: {
@@ -853,13 +867,13 @@ export function LabourContractorProjectWizard() {
             ...current,
             workTypes,
             brickMaterial:
-              keepWallFields && preservedWallMode !== 'plastering' ? current.brickMaterial : null,
+              keepWallFields && wallMode !== 'plastering' ? current.brickMaterial : null,
             plasterScope:
-              keepWallFields && preservedWallMode !== 'wall'
+              keepWallFields && wallMode !== 'wall'
                 ? (current.plasterScope ?? 'both')
                 : null,
             flooringMaterial: keepFlooringFields ? current.flooringMaterial : null,
-            includeFineFlooring: keepFlooringFields ? current.includeFineFlooring : null,
+            includeFineFlooring: keepFlooringFields ? true : null,
             flooringAreaSqft: keepFlooringFields ? current.flooringAreaSqft : '',
             wallAreaSqft: keepWallFields ? current.wallAreaSqft : '',
           },
@@ -877,13 +891,20 @@ export function LabourContractorProjectWizard() {
     setForm((f) => {
       const key = floorWorkKey(floorId, customFloorNumber);
       const current = f.floorWorkById[key] ?? EMPTY_FLOOR_WORK;
+      const nextTypes = workTypesFromWallPlasterMode(mode);
+      if (
+        current.workTypes.includes('flooring') ||
+        current.includeFineFlooring === true
+      ) {
+        nextTypes.push('flooring');
+      }
       return {
         ...f,
         floorWorkById: {
           ...f.floorWorkById,
           [key]: {
             ...current,
-            workTypes: workTypesFromWallPlasterMode(mode),
+            workTypes: nextTypes,
             brickMaterial: mode === 'plastering' ? null : current.brickMaterial,
             plasterScope: mode === 'wall' ? null : (current.plasterScope ?? 'both'),
           },
@@ -1285,7 +1306,10 @@ export function LabourContractorProjectWizard() {
                 const key = floorWorkKey(fw.floorId, fw.customFloorNumber);
                 const entry = form.floorWorkById[key] ?? EMPTY_FLOOR_WORK;
                 const isAssam = isAssamMistriFloor(fw.floorId);
-                const selectedScope = rccScopeFromWorkTypes(entry.workTypes);
+                const selectedScopes = rccScopesFromWorkTypes(
+                  entry.workTypes,
+                  entry.includeFineFlooring,
+                );
                 const wallPlasterMode = wallPlasterWorkModeFromWorkTypes(entry.workTypes);
                 const title = formatMistriFloorWorkLabel(fw);
 
@@ -1301,7 +1325,7 @@ export function LabourContractorProjectWizard() {
                       <p className={HELPER_TEXT}>
                         {isAssam
                           ? 'Full finishing upto Plastering and Roof work is included. Select roof truss, roofing sheet, flooring, and foundation depth.'
-                          : 'Select one Scope of Work for this floor.'}
+                          : 'Select the scope of work for this floor. Flooring can be combined with Full Construction or Wall Brick Work.'}
                       </p>
                     </div>
 
@@ -1418,116 +1442,25 @@ export function LabourContractorProjectWizard() {
                     ) : (
                       <div className="grid grid-cols-1 gap-2">
                         {MISTRI_RCC_SCOPE_OPTIONS.map((opt) => {
-                          const selected = selectedScope === opt.value;
+                          const selected = selectedScopes.includes(opt.value);
+                          const disabled = isRccScopeDisabled(selectedScopes, opt.value);
                           const scopeNote =
                             opt.value === 'wall_plaster_only'
                               ? 'Note: Requires columns and slab to already be cast on this floor.'
-                              : undefined;
-
-                          if (opt.value === 'flooring_only') {
-                            return (
-                              <div key={opt.value} className="w-full">
-                                <div
-                                  className={cn(
-                                    'w-full overflow-visible rounded-xl border transition-all',
-                                    selected ? FORM_SELECTED_CARD : FORM_OPTION_IDLE,
-                                  )}
-                                >
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      setRccScope(fw.floorId, opt.value, fw.customFloorNumber)
-                                    }
-                                    className={cn(
-                                      'flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left text-sm font-semibold',
-                                      selected
-                                        ? 'text-brand'
-                                        : 'text-gray-800 dark:text-zinc-100',
-                                    )}
-                                  >
-                                    <span className="min-w-0">
-                                      <span className="block">
-                                        Option {opt.optionNumber}: {opt.title}
-                                      </span>
-                                      <span className="mt-0.5 block text-[10px] font-medium leading-snug text-muted-foreground normal-case tracking-normal">
-                                        {getMistriRccScopeLabel(fw.floorId, opt.value)}
-                                      </span>
-                                    </span>
-                                    {selected ? (
-                                      <span
-                                        aria-hidden
-                                        className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border-2 border-brand"
-                                      >
-                                        <span className="h-2.5 w-2.5 rounded-full bg-brand" />
-                                      </span>
-                                    ) : (
-                                      <span
-                                        aria-hidden
-                                        className="h-5 w-5 flex-shrink-0 rounded-full border-2 border-gray-300 dark:border-zinc-500"
-                                      />
-                                    )}
-                                  </button>
-                                  {selected && (
-                                    <div className="w-full space-y-2 border-t border-gray-200 px-4 pb-3 pt-2 dark:border-zinc-700">
-                                      <NestedChoiceButtons
-                                        question="Need Flooring Work?"
-                                        options={RCC_FLOORING_CHOICE_OPTIONS}
-                                        value={
-                                          entry.includeFineFlooring === false
-                                            ? 'none'
-                                            : entry.flooringMaterial === 'tile' ||
-                                                entry.flooringMaterial === 'marble' ||
-                                                entry.flooringMaterial === 'granite'
-                                              ? entry.flooringMaterial
-                                              : null
-                                        }
-                                        columns={4}
-                                        onChange={(v) =>
-                                          patchFloorWork(
-                                            fw.floorId,
-                                            v === 'none'
-                                              ? {
-                                                  includeFineFlooring: false,
-                                                  flooringMaterial: null,
-                                                  flooringAreaSqft: '',
-                                                }
-                                              : {
-                                                  includeFineFlooring: true,
-                                                  flooringMaterial: v,
-                                                  flooringAreaSqft:
-                                                    entry.flooringAreaSqft.trim() ||
-                                                    form.approximateArea,
-                                                },
-                                            fw.customFloorNumber,
-                                          )
-                                        }
-                                      />
-                                      {entry.includeFineFlooring === true && (
-                                        <FlooringAreaField
-                                          value={entry.flooringAreaSqft}
-                                          onChange={(value) =>
-                                            patchFloorWork(
-                                              fw.floorId,
-                                              { flooringAreaSqft: value },
-                                              fw.customFloorNumber,
-                                            )
-                                          }
-                                        />
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            );
-                          }
+                              : opt.value === 'frame_only'
+                                ? 'Cannot be combined with Full Construction, Wall Brick Work, or Flooring Work.'
+                                : undefined;
 
                           return (
                             <div key={opt.value} className="w-full space-y-2">
                               <OptionCardButton
                                 selected={selected}
+                                disabled={disabled}
+                                locked={disabled}
+                                marker="checkbox"
                                 note={scopeNote}
                                 onClick={() =>
-                                  setRccScope(fw.floorId, opt.value, fw.customFloorNumber)
+                                  toggleRccScope(fw.floorId, opt.value, fw.customFloorNumber)
                                 }
                               >
                                 <span className="block">
@@ -1573,6 +1506,45 @@ export function LabourContractorProjectWizard() {
                                       patchFloorWork(
                                         fw.floorId,
                                         { wallAreaSqft: value },
+                                        fw.customFloorNumber,
+                                      )
+                                    }
+                                  />
+                                </div>
+                              )}
+                              {opt.value === 'flooring_only' && selected && (
+                                <div className="w-full space-y-2 rounded-xl border border-gray-200 px-4 py-3 dark:border-zinc-700">
+                                  <NestedChoiceButtons
+                                    question="What flooring material will be used?"
+                                    options={MISTRI_FLOORING_MATERIAL_OPTIONS}
+                                    value={
+                                      entry.flooringMaterial === 'tile' ||
+                                      entry.flooringMaterial === 'marble' ||
+                                      entry.flooringMaterial === 'granite'
+                                        ? entry.flooringMaterial
+                                        : null
+                                    }
+                                    columns={3}
+                                    onChange={(v) =>
+                                      patchFloorWork(
+                                        fw.floorId,
+                                        {
+                                          includeFineFlooring: true,
+                                          flooringMaterial: v,
+                                          flooringAreaSqft:
+                                            entry.flooringAreaSqft.trim() ||
+                                            form.approximateArea,
+                                        },
+                                        fw.customFloorNumber,
+                                      )
+                                    }
+                                  />
+                                  <FlooringAreaField
+                                    value={entry.flooringAreaSqft}
+                                    onChange={(value) =>
+                                      patchFloorWork(
+                                        fw.floorId,
+                                        { flooringAreaSqft: value },
                                         fw.customFloorNumber,
                                       )
                                     }

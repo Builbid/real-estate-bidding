@@ -233,7 +233,8 @@ function buildScopeRows(project: MistriAgreementProjectInput): MistriAgreementRo
       value: cleanAgreementText(
         block.value.replace(/\bStructure\s*\/\s*Frame Only\b/gi, 'Frame / Slab Casting Work')
           .replace(/\bFrame \/ Slab Casting Only\b/gi, 'Frame / Slab Casting Work')
-          .replace(/\bWall Construction & Plastering Only\b/gi, 'Wall Construction & Plastering Work')
+          .replace(/\bWall Construction & Plastering Only\b/gi, 'Wall Brick Work & Plastering Work')
+          .replace(/\bWall Construction & Plastering Work\b/gi, 'Wall Brick Work & Plastering Work')
           .replace(/\bFlooring Work Only\b/gi, 'Flooring Work'),
       ),
     });

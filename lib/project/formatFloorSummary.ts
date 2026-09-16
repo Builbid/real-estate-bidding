@@ -84,7 +84,7 @@ export function formatFloorScopeShort(fw: MistriFloorWork): string {
 
   if (scope === 'full_construction' || fw.workTypes.includes('full_finished')) {
     let label = 'Full Construction';
-    if (fw.includeFineFlooring) {
+    if (fw.includeFineFlooring || fw.workTypes.includes('flooring')) {
       label = flooringLabel
         ? `Full Construction + ${flooringLabel}`
         : 'Full Construction + Flooring';
@@ -96,16 +96,20 @@ export function formatFloorScopeShort(fw: MistriFloorWork): string {
     return 'Frame / Slab Casting Work';
   }
 
+  if (scope === 'wall_plaster_only' || fw.workTypes.includes('brick_aac') || fw.workTypes.includes('plastering')) {
+    const mode = wallPlasterWorkModeFromWorkTypes(fw.workTypes);
+    let label = mode
+      ? formatWallPlasterWorkModeSummary(mode)
+      : 'Wall Brick Work & Plastering Work';
+    if (fw.includeFineFlooring || fw.workTypes.includes('flooring')) {
+      label = flooringLabel ? `${label} + ${flooringLabel}` : `${label} + Flooring`;
+    }
+    return label;
+  }
+
   if (scope === 'flooring_only' || fw.workTypes.includes('flooring')) {
     if (fw.includeFineFlooring === false) return 'No Flooring Work';
     return flooringLabel ? `Flooring Work (${flooringLabel})` : 'Flooring Work';
-  }
-
-  if (scope === 'wall_plaster_only') {
-    const mode = wallPlasterWorkModeFromWorkTypes(fw.workTypes);
-    return mode
-      ? formatWallPlasterWorkModeSummary(mode)
-      : 'Wall Construction & Plastering Work';
   }
 
   const parts: string[] = [];
