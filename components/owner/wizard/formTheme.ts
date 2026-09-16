@@ -1,6 +1,6 @@
 /** Shared new-project form surfaces — light cards, dark theme shells, brand accents on actions. */
 export const FORM_SECTION_CARD =
-  'rounded-xl border border-gray-200 bg-white p-6 shadow-sm space-y-3 dark:border-zinc-700 dark:bg-slate-900';
+  'rounded-xl border border-gray-200 bg-white p-4 shadow-sm space-y-3 dark:border-zinc-700 dark:bg-slate-900';
 
 export const FORM_BADGE =
   'inline-flex max-w-full items-center rounded-full px-2.5 py-1 text-xs font-bold tracking-wide bg-brand text-white';

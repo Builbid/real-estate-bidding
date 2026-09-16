@@ -57,8 +57,8 @@ export function TopBar(_props: TopBarProps) {
           <BuilBidLogo size="sm" className="hidden sm:inline-flex" />
         </NavLink>
 
-        <div className="inline-flex items-center gap-x-3">
-          <ThemeToggle />
+        <div className="inline-flex items-center gap-4 sm:gap-6">
+          <HeaderProfileLogo />
 
           <NavIconButton
             onClick={() => { setNotifOpen(true); }}
@@ -73,7 +73,7 @@ export function TopBar(_props: TopBarProps) {
             )}
           </NavIconButton>
 
-          <HeaderProfileLogo />
+          <ThemeToggle />
         </div>
       </header>
 

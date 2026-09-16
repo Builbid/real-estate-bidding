@@ -20,7 +20,7 @@ export function DashboardFrame({ topbar, children }: DashboardFrameProps) {
       <AppToaster />
       {topbar}
       <main className={`flex-1 ${focusLayout ? 'px-4 py-8' : 'px-4 py-6 sm:px-6'}`}>
-        <div className={`mx-auto w-full ${focusLayout ? 'max-w-5xl' : 'max-w-7xl'}`}>
+        <div className={`mx-auto w-full ${focusLayout ? 'max-w-4xl' : 'max-w-7xl'}`}>
           {children}
         </div>
       </main>

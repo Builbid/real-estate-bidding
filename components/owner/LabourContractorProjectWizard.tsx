@@ -263,7 +263,7 @@ function NestedChoiceButtons<T extends string>({
       <div
         className={cn(
           'grid gap-2',
-          columns === 4 && 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4',
+          columns === 4 && 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 lg:items-center',
           columns === 3 && 'grid-cols-3',
           columns === 2 && 'grid-cols-2',
           columns === 1 && 'grid-cols-1',
@@ -278,7 +278,7 @@ function NestedChoiceButtons<T extends string>({
                 type="button"
                 onClick={() => onChange(opt.value)}
                 className={cn(
-                  'flex min-h-0 w-full items-center gap-2 rounded-xl border px-2.5 py-2 text-left text-xs font-semibold transition-all',
+                  'flex min-h-0 w-full items-center gap-2 whitespace-nowrap rounded-xl border px-2 py-2 text-left text-xs font-semibold transition-all',
                   selected
                     ? 'border-brand bg-white text-brand shadow-sm ring-1 ring-brand/30 dark:border-brand dark:bg-slate-900 dark:text-brand'
                     : 'border-gray-200 bg-white text-gray-800 hover:border-gray-300 dark:border-zinc-700 dark:bg-slate-900 dark:text-zinc-100 dark:hover:border-zinc-600',
@@ -898,10 +898,18 @@ export function LabourContractorProjectWizard() {
   const minFoundationFloors =
     currentUpper != null ? currentUpper + 1 : 1;
 
+  function goWizardBack() {
+    if (step === 3 || step === 2) {
+      setStep((current) => (current === 3 ? 2 : 1));
+      return;
+    }
+    router.push('/dashboard');
+  }
+
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-6">
+    <div className="mx-auto w-full max-w-4xl space-y-6">
       <div>
-        <HistoryBackButton className="mb-2" />
+        <HistoryBackButton className="mb-2" onClick={goWizardBack} />
         <h1 className="text-xl font-bold text-foreground">Post Mistri Worker Project</h1>
         <p className="text-sm font-medium text-gray-700 dark:text-zinc-300 mt-1">
           Specify civil work scope clearly so mistri workers can bid without disputes.
@@ -911,7 +919,7 @@ export function LabourContractorProjectWizard() {
       {step < 4 && <WizardStepper labels={PROGRESS_LABELS} step={step} />}
 
       <Card className={FORM_SHELL_CARD}>
-        <CardContent className="pt-6 pb-6">
+        <CardContent className="px-5 pt-5 pb-5">
           {error && (
             <div className="flex items-start gap-3 mb-5 p-3.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400">
               <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />

@@ -5,13 +5,25 @@ import { ArrowLeft } from 'lucide-react';
 import { NAV_BACK_LINK, NAV_PRESSABLE } from '@/lib/navStyles';
 import { cn } from '@/lib/utils';
 
-export function HistoryBackButton({ className }: { className?: string }) {
+export function HistoryBackButton({
+  className,
+  onClick,
+}: {
+  className?: string;
+  onClick?: () => void;
+}) {
   const router = useRouter();
 
   return (
     <button
       type="button"
-      onClick={() => router.back()}
+      onClick={() => {
+        if (onClick) {
+          onClick();
+          return;
+        }
+        router.back();
+      }}
       className={cn(
         NAV_PRESSABLE,
         NAV_BACK_LINK,
