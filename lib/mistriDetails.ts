@@ -124,12 +124,15 @@ export type MistriFloorWorkType =
   | 'plastering'
   | 'flooring';
 
-/** RCC Scope of Work card: full construction, frame only, wall + plaster, or flooring only. */
+/** RCC Scope of Work card: full construction, frame, wall + plaster, or flooring. */
 export type MistriRccScopeOption =
   | 'full_construction'
   | 'frame_only'
   | 'wall_plaster_only'
   | 'flooring_only';
+
+/** Nested Option 3 selection: wall, plastering, or combined work. */
+export type MistriWallPlasterWorkMode = 'wall' | 'plastering' | 'both';
 
 /** Top-level activity bucket on the Work Requirements step. */
 export type MistriActivityCategory = 'major' | 'minor';
@@ -190,15 +193,15 @@ export interface MistriFloorWork {
   plasterScope?: MistriPlasterScope | null;
   flooringMaterial?: MistriFlooringMaterial | null;
   /**
-   * Flooring Work Only (Option 4), or Assam Type: whether the client wants
+   * Flooring Work (Option 4), or Assam Type: whether the client wants
    * Tile / Marble / Granite (or Assam Smooth Cement Finish). False = No Flooring Work.
    */
   includeFineFlooring?: boolean | null;
   /** Approximate flooring work area in sq. ft. when flooring work is included. */
   flooringAreaSqft?: number | null;
-  /** Approximate wall area in sq. ft. when Option 3 (wall + plaster only) is selected. */
+  /** Approximate wall area in sq. ft. when Option 3 (wall + plaster) is selected. */
   wallAreaSqft?: number | null;
-  /** RCC Scope of Work card: full construction, frame only, or wall + plaster. */
+  /** RCC Scope of Work card: full construction, frame, wall + plaster, or flooring. */
   scopeOption?: MistriRccScopeOption | null;
   /** Canonical scope sentence stored for the agreement PDF. */
   scopeLabel?: string | null;
@@ -701,7 +704,7 @@ export const UPPER_FLOOR_STRUCTURAL_REQUIRES_LOWER_FRAME =
   'Requires structural frame on the floor below.';
 
 export const UPPER_FLOOR_WALL_LOCKED_BY_LOWER_STRUCTURE =
-  'Option 3 (Wall Construction Only) is unavailable because lower floors require new structural framing. You must select Option 1 or Option 2 to cast the slab/frame first.';
+  'Option 3 (Wall Construction) is unavailable because lower floors require new structural framing. You must select Option 1 or Option 2 to cast the slab/frame first.';
 
 export const OPTION_3_REQUIRES_EXISTING_SLAB =
   'Option 3 requires an existing structural slab on this floor from prior construction.';
@@ -712,10 +715,54 @@ export const MISTRI_RCC_SCOPE_OPTIONS: {
   title: string;
 }[] = [
   { value: 'full_construction', optionNumber: 1, title: 'Full Construction' },
-  { value: 'frame_only', optionNumber: 2, title: 'Frame / Slab Casting Only' },
-  { value: 'wall_plaster_only', optionNumber: 3, title: 'Wall Construction & Plastering Only' },
-  { value: 'flooring_only', optionNumber: 4, title: 'Flooring Work Only' },
+  { value: 'frame_only', optionNumber: 2, title: 'Frame / Slab Casting Work' },
+  { value: 'wall_plaster_only', optionNumber: 3, title: 'Wall Construction & Plastering Work' },
+  { value: 'flooring_only', optionNumber: 4, title: 'Flooring Work' },
 ];
+
+export const MISTRI_WALL_PLASTER_WORK_OPTIONS: {
+  value: MistriWallPlasterWorkMode;
+  label: string;
+}[] = [
+  { value: 'wall', label: 'Wall Construction' },
+  { value: 'plastering', label: 'Plastering Work' },
+  { value: 'both', label: 'Both Wall Construction & Plastering' },
+];
+
+export function wallPlasterWorkModeFromWorkTypes(
+  workTypes: readonly MistriFloorWorkType[],
+): MistriWallPlasterWorkMode | null {
+  const hasWall = workTypes.includes('brick_aac');
+  const hasPlaster = workTypes.includes('plastering');
+  if (hasWall && hasPlaster) return 'both';
+  if (hasWall) return 'wall';
+  if (hasPlaster) return 'plastering';
+  return null;
+}
+
+export function workTypesFromWallPlasterMode(
+  mode: MistriWallPlasterWorkMode,
+): MistriFloorWorkType[] {
+  switch (mode) {
+    case 'wall':
+      return ['brick_aac'];
+    case 'plastering':
+      return ['plastering'];
+    case 'both':
+      return ['brick_aac', 'plastering'];
+  }
+}
+
+export function formatWallPlasterWorkModeSummary(mode: MistriWallPlasterWorkMode): string {
+  switch (mode) {
+    case 'wall':
+      return 'Wall Construction Without Plastering';
+    case 'plastering':
+      return 'Plastering Work Without Wall Construction';
+    case 'both':
+      return 'Combined Wall & Plastering Work';
+  }
+}
 
 export function getMistriRccScopeTitle(
   workTypes: readonly MistriFloorWorkType[] = [],
@@ -742,23 +789,26 @@ export function getMistriRccScopeLabel(
         : 'Full Construction (Beam, column, slab, wall and plastering, rough flooring, staircase)';
     case 'frame_only':
       return ground
-        ? 'Frame / Slab Casting Only (Foundation, column, beam, staircase, slab casting). No Wall construction.'
-        : 'Frame / Slab Casting Only (Column, beam, staircase, slab casting). No Wall construction.';
+        ? 'Frame / Slab Casting Work (Foundation, column, beam, staircase, slab casting). No Wall construction.'
+        : 'Frame / Slab Casting Work (Column, beam, staircase, slab casting). No Wall construction.';
     case 'wall_plaster_only':
-      return 'Wall Construction & Plastering Only (Brick / AAC Block)';
+      return 'Wall Construction & Plastering Work (Brick / AAC Block)';
     case 'flooring_only':
-      return 'Flooring Work Only (Tiles / Marble / Granite). No structural or wall construction.';
+      return 'Flooring Work (Tiles / Marble / Granite). No structural or wall construction.';
   }
 }
 
-export function workTypesFromRccScope(option: MistriRccScopeOption): MistriFloorWorkType[] {
+export function workTypesFromRccScope(
+  option: MistriRccScopeOption,
+  wallPlasterMode: MistriWallPlasterWorkMode = 'both',
+): MistriFloorWorkType[] {
   switch (option) {
     case 'full_construction':
       return ['full_finished'];
     case 'frame_only':
       return ['frame_skeleton'];
     case 'wall_plaster_only':
-      return ['brick_aac', 'plastering'];
+      return workTypesFromWallPlasterMode(wallPlasterMode);
     case 'flooring_only':
       return ['flooring'];
   }
@@ -805,10 +855,19 @@ export function formatMistriRccScopeDescription(
   includeTileFitting: boolean,
   brickMaterial?: MistriBrickworkMaterial | null,
   flooringMaterial?: MistriFlooringMaterial | null,
+  wallPlasterMode?: MistriWallPlasterWorkMode | null,
+  wallAreaSqft?: number | null,
 ): string {
   let label = getMistriRccScopeLabel(floorId, option);
-  if (option === 'wall_plaster_only' && brickMaterial) {
-    label = `${label} — ${optionLabel(MISTRI_BRICKWORK_MATERIAL_OPTIONS, brickMaterial)}`;
+  if (option === 'wall_plaster_only') {
+    const mode = wallPlasterMode ?? 'both';
+    label = `${label} — ${formatWallPlasterWorkModeSummary(mode)}`;
+    if (brickMaterial && mode !== 'plastering') {
+      label = `${label} (${optionLabel(MISTRI_BRICKWORK_MATERIAL_OPTIONS, brickMaterial)})`;
+    }
+    if (wallAreaSqft && wallAreaSqft > 0) {
+      label = `${label} · ${formatMistriArea(wallAreaSqft)} wall`;
+    }
   }
   if (option === 'flooring_only') {
     if (includeTileFitting && flooringMaterial) {
@@ -947,7 +1006,7 @@ export function structuralFramingLevels(floorWork: readonly MistriScopeFloor[]):
 
 /**
  * Lowest selected floor that uses Option 1 (Full Construction) or
- * Option 2 (Frame / Slab Casting Only).
+ * Option 2 (Frame / Slab Casting Work).
  */
 export function firstNewStructureFloorLevel(
   floorWork: readonly MistriScopeFloor[],
@@ -1923,13 +1982,18 @@ export function formatMistriFloorWorkTypes(
       extras.includeFineFlooring === true,
       extras.brickMaterial,
       extras.flooringMaterial,
+      wallPlasterWorkModeFromWorkTypes(workTypes),
+      extras.wallAreaSqft,
     );
   }
 
   if (extras?.scopeLabel?.trim()) {
     return extras.scopeLabel
       .trim()
-      .replace(/\bStructure\s*\/\s*Frame Only\b/gi, 'Frame / Slab Casting Only');
+      .replace(/\bStructure\s*\/\s*Frame Only\b/gi, 'Frame / Slab Casting Work')
+      .replace(/\bFrame \/ Slab Casting Only\b/gi, 'Frame / Slab Casting Work')
+      .replace(/\bWall Construction & Plastering Only\b/gi, 'Wall Construction & Plastering Work')
+      .replace(/\bFlooring Work Only\b/gi, 'Flooring Work');
   }
 
   const flooringOptions = isAssam
@@ -1963,13 +2027,13 @@ export function formatMistriFloorWorkTypes(
     if (t === 'frame_skeleton') {
       return extras?.floorId
         ? getMistriRccScopeLabel(extras.floorId, 'frame_only')
-        : 'Frame / Slab Casting Only (Column, beam, staircase, slab casting). No Wall construction.';
+        : 'Frame / Slab Casting Work (Column, beam, staircase, slab casting). No Wall construction.';
     }
     if (t === 'brick_aac' || t === 'plastering') {
       if (t === 'plastering' && workTypes.includes('brick_aac')) return null;
       let wall = extras?.floorId
         ? getMistriRccScopeLabel(extras.floorId, 'wall_plaster_only')
-        : 'Wall Construction & Plastering Only (Brick / AAC Block)';
+        : 'Wall Construction & Plastering Work (Brick / AAC Block)';
       if (extras?.brickMaterial) {
         wall = `${wall} — ${optionLabel(MISTRI_BRICKWORK_MATERIAL_OPTIONS, extras.brickMaterial)}`;
       }
@@ -2215,6 +2279,8 @@ function normalizeSingleFloorWork(raw: unknown): MistriFloorWork | null {
             includeTile,
             brickMaterial,
             flooringMaterial,
+            wallPlasterWorkModeFromWorkTypes(workTypes),
+            wallAreaSqft,
           )
         : null;
 
@@ -2290,7 +2356,9 @@ function constructionTypeFromFloorWork(
   if (fw?.workTypes.includes('flooring') && !fw.workTypes.includes('brick_aac')) {
     return CONSTRUCTION_TYPE_FLOORING;
   }
-  if (fw?.workTypes.includes('brick_aac')) return CONSTRUCTION_TYPE_BRICK;
+  if (fw?.workTypes.includes('brick_aac') || fw?.workTypes.includes('plastering')) {
+    return CONSTRUCTION_TYPE_BRICK;
+  }
   if (buildingType === ASSAM_BUILDING_TYPE || buildingType === 'RCC Ground Floor') {
     return CONSTRUCTION_TYPE_GROUND;
   }
@@ -3150,6 +3218,14 @@ export function validateMistriFloorWorkInput(input: {
     }
     if (
       isMistriWallPlasterOnlyFloor(fw) &&
+      !wallPlasterWorkModeFromWorkTypes(fw.workTypes)
+    ) {
+      return {
+        error: `Select Wall Construction, Plastering Work, or Both for ${label}.`,
+      };
+    }
+    if (
+      isMistriWallPlasterOnlyFloor(fw) &&
       parseApproximateAreaSqft(fw.wallAreaSqft ?? '') == null
     ) {
       return {
@@ -3218,6 +3294,8 @@ export function validateMistriFloorWorkInput(input: {
         fw.includeFineFlooring === true,
         fw.brickMaterial,
         fw.flooringMaterial,
+        wallPlasterWorkModeFromWorkTypes(fw.workTypes),
+        fw.wallAreaSqft,
       );
     }
   }

@@ -6,6 +6,8 @@ import {
   parseMistriDetails,
   rccScopeFromWorkTypes,
   sortMistriFloorWork,
+  wallPlasterWorkModeFromWorkTypes,
+  formatWallPlasterWorkModeSummary,
   type MistriFloorWork,
   type MistriFlooringMaterial,
   MISTRI_ASSAM_FLOORING_MATERIAL_OPTIONS,
@@ -62,7 +64,7 @@ export function formatFloorCode(
 
 /**
  * Concise floor scope for cards — keeps trade titles, strips long parentheses.
- * Examples: "Full Construction + Tiles", "Frame / Slab Casting Only".
+ * Examples: "Full Construction + Tiles", "Frame / Slab Casting Work".
  */
 export function formatFloorScopeShort(fw: MistriFloorWork): string {
   const isAssam = isAssamMistriFloor(fw.floorId);
@@ -91,16 +93,19 @@ export function formatFloorScopeShort(fw: MistriFloorWork): string {
   }
 
   if (scope === 'frame_only' || fw.workTypes.includes('frame_skeleton')) {
-    return 'Frame / Slab Casting Only';
+    return 'Frame / Slab Casting Work';
   }
 
   if (scope === 'flooring_only' || fw.workTypes.includes('flooring')) {
     if (fw.includeFineFlooring === false) return 'No Flooring Work';
-    return flooringLabel ? `Flooring Work (${flooringLabel})` : 'Flooring Work Only';
+    return flooringLabel ? `Flooring Work (${flooringLabel})` : 'Flooring Work';
   }
 
   if (scope === 'wall_plaster_only') {
-    return 'Wall Construction & Plastering Only';
+    const mode = wallPlasterWorkModeFromWorkTypes(fw.workTypes);
+    return mode
+      ? formatWallPlasterWorkModeSummary(mode)
+      : 'Wall Construction & Plastering Work';
   }
 
   const parts: string[] = [];
@@ -157,7 +162,7 @@ function fromBuildingConstructionTypes(project: {
       : ct
       ? getConstructionDisplayShortLabel(ct)
           .replace('Full Finished Structure', 'Full Construction')
-          .replace('Frame (Skeleton) only', 'Frame / Slab Casting Only')
+          .replace('Frame (Skeleton) only', 'Frame / Slab Casting Work')
       : 'Full Construction';
     return {
       key: type,
@@ -206,7 +211,7 @@ function fromLegacyMatrix(project: {
             ? '2nd Floor'
             : f.floor;
     const scope =
-      f.stage === 'full' ? 'Full Construction' : 'Frame / Slab Casting Only';
+      f.stage === 'full' ? 'Full Construction' : 'Frame / Slab Casting Work';
     return {
       key: f.floor,
       floorCode,

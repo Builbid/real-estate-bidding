@@ -38,6 +38,7 @@ import {
   MISTRI_CUSTOM_FLOOR_ID,
   MISTRI_RCC_SCOPE_OPTIONS,
   MISTRI_START_TIME_OPTIONS,
+  MISTRI_WALL_PLASTER_WORK_OPTIONS,
   MISTRI_YES_NO_OPTIONS,
   currentFloorPlanFromFloorWork,
   floorPlanUpperCount,
@@ -57,7 +58,9 @@ import {
   sortMistriFloorWork,
   validateMistriBoundaryWallInput,
   validateMistriFloorWorkInput,
+  wallPlasterWorkModeFromWorkTypes,
   workTypesFromRccScope,
+  workTypesFromWallPlasterMode,
   type MistriAssamRoofType,
   type MistriAssamRoofingSheet,
   type MistriBoundaryWallColumnType,
@@ -73,6 +76,7 @@ import {
   type MistriRccScopeOption,
   type MistriStartTimeType,
   type MistriWallPlasteringScope,
+  type MistriWallPlasterWorkMode,
 } from '@/lib/mistriDetails';
 import { HistoryBackButton } from '@/components/shared/HistoryBackButton';
 import {
@@ -626,6 +630,8 @@ export function LabourContractorProjectWizard() {
                   work.includeFineFlooring === true,
                   work.brickMaterial,
                   work.flooringMaterial,
+                  wallPlasterWorkModeFromWorkTypes(workTypes),
+                  parseApproximateAreaSqft(work.wallAreaSqft),
                 )
               : null,
           assamRoofType: isAssam ? work.assamRoofType : null,
@@ -835,7 +841,16 @@ export function LabourContractorProjectWizard() {
     setForm((f) => {
       const key = floorWorkKey(floorId, customFloorNumber);
       const current = f.floorWorkById[key] ?? EMPTY_FLOOR_WORK;
-      const workTypes = workTypesFromRccScope(option);
+      const preservedWallMode =
+        option === 'wall_plaster_only'
+          ? wallPlasterWorkModeFromWorkTypes(current.workTypes) ?? 'both'
+          : null;
+      const workTypes =
+        option === 'wall_plaster_only' && preservedWallMode
+          ? workTypesFromWallPlasterMode(preservedWallMode)
+          : workTypesFromRccScope(option);
+      const keepWallFields = option === 'wall_plaster_only';
+      const keepFlooringFields = option === 'flooring_only';
       return {
         ...f,
         floorWorkById: {
@@ -843,15 +858,40 @@ export function LabourContractorProjectWizard() {
           [key]: {
             ...current,
             workTypes,
-            brickMaterial: option === 'wall_plaster_only' ? current.brickMaterial : null,
-            plasterScope: option === 'wall_plaster_only' ? (current.plasterScope ?? 'both') : null,
-            flooringMaterial:
-              option === 'flooring_only' ? current.flooringMaterial : null,
-            includeFineFlooring:
-              option === 'flooring_only' ? current.includeFineFlooring : null,
-            flooringAreaSqft:
-              option === 'flooring_only' ? current.flooringAreaSqft : '',
-            wallAreaSqft: option === 'wall_plaster_only' ? current.wallAreaSqft : '',
+            brickMaterial:
+              keepWallFields && preservedWallMode !== 'plastering' ? current.brickMaterial : null,
+            plasterScope:
+              keepWallFields && preservedWallMode !== 'wall'
+                ? (current.plasterScope ?? 'both')
+                : null,
+            flooringMaterial: keepFlooringFields ? current.flooringMaterial : null,
+            includeFineFlooring: keepFlooringFields ? current.includeFineFlooring : null,
+            flooringAreaSqft: keepFlooringFields ? current.flooringAreaSqft : '',
+            wallAreaSqft: keepWallFields ? current.wallAreaSqft : '',
+          },
+        },
+      };
+    });
+    setStep2Error(null);
+  }
+
+  function setWallPlasterWorkMode(
+    floorId: MistriFloorId,
+    mode: MistriWallPlasterWorkMode,
+    customFloorNumber?: number | null,
+  ) {
+    setForm((f) => {
+      const key = floorWorkKey(floorId, customFloorNumber);
+      const current = f.floorWorkById[key] ?? EMPTY_FLOOR_WORK;
+      return {
+        ...f,
+        floorWorkById: {
+          ...f.floorWorkById,
+          [key]: {
+            ...current,
+            workTypes: workTypesFromWallPlasterMode(mode),
+            brickMaterial: mode === 'plastering' ? null : current.brickMaterial,
+            plasterScope: mode === 'wall' ? null : (current.plasterScope ?? 'both'),
           },
         },
       };
@@ -1252,6 +1292,7 @@ export function LabourContractorProjectWizard() {
                 const entry = form.floorWorkById[key] ?? EMPTY_FLOOR_WORK;
                 const isAssam = isAssamMistriFloor(fw.floorId);
                 const selectedScope = rccScopeFromWorkTypes(entry.workTypes);
+                const wallPlasterMode = wallPlasterWorkModeFromWorkTypes(entry.workTypes);
                 const title = formatMistriFloorWorkLabel(fw);
 
                 return (
@@ -1507,17 +1548,31 @@ export function LabourContractorProjectWizard() {
                               {opt.value === 'wall_plaster_only' && selected && (
                                 <div className="w-full space-y-3">
                                   <NestedChoiceButtons
-                                    question="What type of wall material will be used?"
-                                    options={MISTRI_BRICKWORK_MATERIAL_OPTIONS}
-                                    value={entry.brickMaterial}
+                                    question="Select the work required on this floor"
+                                    options={MISTRI_WALL_PLASTER_WORK_OPTIONS}
+                                    value={wallPlasterMode}
                                     onChange={(v) =>
-                                      patchFloorWork(
+                                      setWallPlasterWorkMode(
                                         fw.floorId,
-                                        { brickMaterial: v, plasterScope: 'both' },
+                                        v,
                                         fw.customFloorNumber,
                                       )
                                     }
                                   />
+                                  {wallPlasterMode !== 'plastering' && (
+                                    <NestedChoiceButtons
+                                      question="What type of wall material will be used?"
+                                      options={MISTRI_BRICKWORK_MATERIAL_OPTIONS}
+                                      value={entry.brickMaterial}
+                                      onChange={(v) =>
+                                        patchFloorWork(
+                                          fw.floorId,
+                                          { brickMaterial: v },
+                                          fw.customFloorNumber,
+                                        )
+                                      }
+                                    />
+                                  )}
                                   <WallAreaField
                                     value={entry.wallAreaSqft}
                                     onChange={(value) =>
