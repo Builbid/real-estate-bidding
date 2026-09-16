@@ -341,9 +341,11 @@ const RCC_FLOORING_CHOICE_OPTIONS: { value: 'tile' | 'marble' | 'granite' | 'non
   { value: 'none', label: 'No Flooring Work' },
 ];
 
+const HOUSE_TYPE_ICON_CLASS = 'h-8 w-10';
+
 function AssamTypeGraphic() {
   return (
-    <svg viewBox="0 0 128 96" className="h-7 w-9" aria-hidden>
+    <svg viewBox="0 0 128 96" className={HOUSE_TYPE_ICON_CLASS} aria-hidden>
       <ellipse cx="64" cy="88" rx="50" ry="8" fill="#86efac" opacity="0.55" />
       <rect x="26" y="46" width="76" height="38" rx="3" fill="#fde68a" />
       <rect x="26" y="46" width="76" height="10" fill="#fcd34d" />
@@ -363,7 +365,7 @@ function AssamTypeGraphic() {
 
 function RccStructureGraphic() {
   return (
-    <svg viewBox="0 0 128 96" className="h-7 w-9" aria-hidden>
+    <svg viewBox="0 0 128 96" className={HOUSE_TYPE_ICON_CLASS} aria-hidden>
       <ellipse cx="64" cy="88" rx="48" ry="8" fill="#93c5fd" opacity="0.5" />
       <rect x="28" y="14" width="72" height="70" rx="4" fill="#64748b" />
       <rect x="28" y="14" width="72" height="8" rx="4" fill="#475569" />
@@ -382,47 +384,39 @@ function RccStructureGraphic() {
 }
 
 function BoundaryWallGraphic() {
+  const mortar = '#f3e0cf';
+  const bricks = [
+    { x: 16, y: 20, w: 30, fill: '#c2410c' },
+    { x: 48, y: 20, w: 32, fill: '#b91c1c' },
+    { x: 82, y: 20, w: 30, fill: '#c2410c' },
+    { x: 16, y: 36, w: 16, fill: '#9a3412' },
+    { x: 34, y: 36, w: 32, fill: '#ea580c' },
+    { x: 68, y: 36, w: 30, fill: '#b45309' },
+    { x: 100, y: 36, w: 12, fill: '#c2410c' },
+    { x: 16, y: 52, w: 30, fill: '#b91c1c' },
+    { x: 48, y: 52, w: 32, fill: '#c2410c' },
+    { x: 82, y: 52, w: 30, fill: '#9a3412' },
+    { x: 16, y: 68, w: 16, fill: '#b45309' },
+    { x: 34, y: 68, w: 32, fill: '#c2410c' },
+    { x: 68, y: 68, w: 30, fill: '#ea580c' },
+    { x: 100, y: 68, w: 12, fill: '#b91c1c' },
+  ];
+
   return (
-    <svg viewBox="0 0 128 96" className="h-7 w-9" aria-hidden>
-      <ellipse cx="64" cy="88" rx="50" ry="7" fill="#86efac" opacity="0.45" />
-      <rect x="14" y="34" width="12" height="48" rx="2" fill="#78716c" />
-      <rect x="58" y="28" width="12" height="54" rx="2" fill="#57534e" />
-      <rect x="102" y="34" width="12" height="48" rx="2" fill="#78716c" />
-      <rect x="24" y="46" width="36" height="28" rx="1.5" fill="#a8a29e" />
-      <rect x="68" y="46" width="36" height="28" rx="1.5" fill="#a8a29e" />
-      <rect x="26" y="50" width="10" height="8" rx="0.5" fill="#d6d3d1" />
-      <rect x="38" y="50" width="10" height="8" rx="0.5" fill="#e7e5e4" />
-      <rect x="48" y="50" width="10" height="8" rx="0.5" fill="#d6d3d1" />
-      <rect x="26" y="60" width="10" height="8" rx="0.5" fill="#e7e5e4" />
-      <rect x="38" y="60" width="10" height="8" rx="0.5" fill="#d6d3d1" />
-      <rect x="48" y="60" width="10" height="8" rx="0.5" fill="#e7e5e4" />
-      <rect x="70" y="50" width="10" height="8" rx="0.5" fill="#d6d3d1" />
-      <rect x="82" y="50" width="10" height="8" rx="0.5" fill="#e7e5e4" />
-      <rect x="92" y="50" width="10" height="8" rx="0.5" fill="#d6d3d1" />
-      <rect x="70" y="60" width="10" height="8" rx="0.5" fill="#e7e5e4" />
-      <rect x="82" y="60" width="10" height="8" rx="0.5" fill="#d6d3d1" />
-      <rect x="92" y="60" width="10" height="8" rx="0.5" fill="#e7e5e4" />
-      <path
-        d="M20 34 L20 22 L26 16 L32 22 L32 34"
-        fill="none"
-        stroke="#57534e"
-        strokeWidth="3"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M64 28 L64 14 L70 8 L76 14 L76 28"
-        fill="none"
-        stroke="#44403c"
-        strokeWidth="3"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M108 34 L108 22 L114 16 L120 22 L120 34"
-        fill="none"
-        stroke="#57534e"
-        strokeWidth="3"
-        strokeLinejoin="round"
-      />
+    <svg viewBox="0 0 128 96" className={HOUSE_TYPE_ICON_CLASS} aria-hidden>
+      <rect x="14" y="16" width="100" height="70" rx="3" fill={mortar} />
+      <rect x="12" y="14" width="104" height="7" rx="1.5" fill="#9a3412" />
+      {bricks.map((brick, i) => (
+        <rect
+          key={i}
+          x={brick.x}
+          y={brick.y}
+          width={brick.w}
+          height={12}
+          rx="1.2"
+          fill={brick.fill}
+        />
+      ))}
     </svg>
   );
 }
@@ -443,7 +437,7 @@ function HouseTypeCard({
       type="button"
       onClick={onClick}
       className={cn(
-        'relative flex min-h-[4.25rem] w-full flex-col items-center justify-center gap-1 rounded-lg border px-1.5 py-2 text-center transition-all',
+        'relative flex min-h-[5.75rem] w-full flex-col items-center justify-center gap-1.5 rounded-xl border px-2 py-3 text-center transition-all sm:min-h-[6.25rem]',
         selected
           ? 'border-brand bg-white shadow-sm ring-1 ring-brand/30 dark:border-brand dark:bg-slate-900'
           : 'border-gray-200 bg-white hover:border-gray-300 dark:border-zinc-700 dark:bg-slate-900 dark:hover:border-zinc-600',
@@ -451,7 +445,7 @@ function HouseTypeCard({
     >
       <span
         className={cn(
-          'flex h-8 w-10 items-center justify-center rounded-md border border-gray-200 bg-white dark:border-zinc-700 dark:bg-slate-800',
+          'flex h-10 w-12 items-center justify-center rounded-md border border-gray-200 bg-white dark:border-zinc-700 dark:bg-slate-800',
         )}
       >
         {type === 'assam' ? (
@@ -462,7 +456,7 @@ function HouseTypeCard({
           <RccStructureGraphic />
         )}
       </span>
-      <span className="text-[11px] font-semibold leading-tight text-gray-900 dark:text-white">
+      <span className="text-[11px] font-semibold leading-tight text-gray-900 dark:text-white sm:text-xs">
         {label}
       </span>
       {selected ? (
@@ -1081,7 +1075,7 @@ export function LabourContractorProjectWizard() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-6">
+    <div className="mx-auto w-full max-w-3xl space-y-6">
       <div>
         <HistoryBackButton className="mb-2" onClick={goWizardBack} />
         <h1 className="text-xl font-bold text-foreground">Post Mistri Worker Project</h1>
@@ -1093,7 +1087,7 @@ export function LabourContractorProjectWizard() {
       {step < 4 && <WizardStepper labels={PROGRESS_LABELS} step={step} />}
 
       <Card className={FORM_SHELL_CARD}>
-        <CardContent className="px-5 pt-5 pb-5">
+        <CardContent className="px-4 pt-5 pb-5 sm:px-6">
           {error && (
             <div className="flex items-start gap-3 mb-5 p-3.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400">
               <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
@@ -1143,7 +1137,7 @@ export function LabourContractorProjectWizard() {
 
               <div className={FORM_SECTION_CARD}>
                 <label className={SECTION_LABEL}>Construction type</label>
-                <div className="mt-1 grid grid-cols-3 gap-2">
+                <div className="mx-auto mt-1 grid max-w-md grid-cols-3 gap-2 sm:max-w-lg sm:gap-3">
                   {MISTRI_HOUSE_TYPE_OPTIONS.map((opt) => (
                     <HouseTypeCard
                       key={opt.value}
