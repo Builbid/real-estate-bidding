@@ -39,7 +39,9 @@ export function WizardStepper({
           <span
             className={cn(
               'truncate text-[10px] sm:text-xs',
-              i + 1 === step ? 'font-semibold text-slate-900' : 'font-medium text-slate-500',
+              i + 1 === step
+                ? 'font-semibold text-slate-900 dark:text-zinc-100'
+                : 'font-medium text-slate-500 dark:text-zinc-400',
             )}
           >
             {label}

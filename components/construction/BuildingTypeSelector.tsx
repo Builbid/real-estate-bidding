@@ -224,12 +224,12 @@ export function BuildingTypeSelector({
       </div>
 
       {hasAssam && (
-        <p className="text-xs text-amber-700 bg-white border border-amber-500/40 rounded-lg px-3 py-2">
+        <p className="text-xs text-amber-700 bg-white border border-amber-500/40 rounded-lg px-3 py-2 dark:bg-slate-900 dark:text-amber-300 dark:border-amber-500/40">
           Assam Type cannot be combined with RCC floors
         </p>
       )}
       {hasRcc && !hasAssam && !rccOnly && (
-        <p className="text-xs text-brand bg-white border border-brand/30 rounded-lg px-3 py-2">
+        <p className="text-xs text-brand bg-white border border-brand/30 rounded-lg px-3 py-2 dark:bg-slate-900">
           Deselect all RCC floors to choose Assam Type
         </p>
       )}
@@ -271,8 +271,8 @@ export function BuildingTypeSelector({
                 'flex items-center gap-3 w-full text-left rounded-xl border-2 px-4 py-3 transition-all',
                 disabled && 'opacity-45 cursor-not-allowed grayscale',
                 selected
-                  ? 'border-brand bg-white shadow-sm ring-1 ring-brand/30'
-                  : 'border-gray-200 bg-white hover:border-gray-300',
+                  ? 'border-brand bg-white shadow-sm ring-1 ring-brand/30 dark:bg-slate-900 dark:border-brand'
+                  : 'border-gray-200 bg-white hover:border-gray-300 dark:border-zinc-700 dark:bg-slate-900 dark:hover:border-zinc-600',
               )}
             >
               <span
@@ -280,7 +280,7 @@ export function BuildingTypeSelector({
                   'flex h-5 w-5 flex-shrink-0 items-center justify-center rounded border-2 transition-colors',
                   selected
                     ? 'border-brand bg-brand text-white'
-                    : 'border-gray-300 bg-white',
+                    : 'border-gray-300 bg-white dark:border-zinc-500 dark:bg-slate-900',
                 )}
               >
                 {selected && <Check className="h-3 w-3" strokeWidth={3} />}
@@ -304,8 +304,8 @@ export function BuildingTypeSelector({
               'flex items-center gap-3 w-full text-left rounded-xl border-2 px-4 py-3 transition-all',
               customDisabled && 'opacity-45 cursor-not-allowed grayscale',
               customSelected && customSelectable
-                ? 'border-brand bg-white shadow-sm ring-1 ring-brand/30'
-                : 'border-gray-200 bg-white hover:border-gray-300',
+                ? 'border-brand bg-white shadow-sm ring-1 ring-brand/30 dark:bg-slate-900 dark:border-brand'
+                : 'border-gray-200 bg-white hover:border-gray-300 dark:border-zinc-700 dark:bg-slate-900 dark:hover:border-zinc-600',
             )}
           >
             <span
@@ -313,7 +313,7 @@ export function BuildingTypeSelector({
                 'flex h-5 w-5 flex-shrink-0 items-center justify-center rounded border-2 transition-colors',
                 customSelected && customSelectable
                   ? 'border-brand bg-brand text-white'
-                  : 'border-gray-300 bg-white',
+                  : 'border-gray-300 bg-white dark:border-zinc-500 dark:bg-slate-900',
               )}
             >
               {customSelected && customSelectable && (

@@ -193,11 +193,11 @@ function OptionCardButton({
           if (!disabled) onClick();
         }}
         className={cn(
-          'flex w-full items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3.5 text-left text-sm font-semibold transition-all',
+          'flex w-full items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 text-left text-sm font-semibold transition-all dark:border-zinc-700 dark:bg-slate-900',
           selected
-            ? 'border-brand bg-white text-brand shadow-sm ring-1 ring-brand/30 dark:border-brand dark:bg-white dark:text-brand'
-            : 'text-gray-800 hover:border-gray-300 bg-white dark:border-gray-200 dark:bg-white dark:text-zinc-100 dark:hover:border-gray-300',
-          disabled && 'cursor-not-allowed opacity-50 grayscale hover:border-gray-200 hover:bg-white dark:hover:border-gray-200 dark:hover:bg-white',
+            ? 'border-brand bg-white text-brand shadow-sm ring-1 ring-brand/30 dark:border-brand dark:bg-slate-900 dark:text-brand'
+            : 'text-gray-800 hover:border-gray-300 bg-white dark:border-zinc-700 dark:bg-slate-900 dark:text-zinc-100 dark:hover:border-zinc-600',
+          disabled && 'cursor-not-allowed opacity-50 grayscale hover:border-gray-200 hover:bg-white dark:hover:border-zinc-700 dark:hover:bg-slate-900',
           className,
         )}
       >
@@ -223,6 +223,25 @@ function OptionCardButton({
   );
 }
 
+function ChoiceRadio({ selected }: { selected: boolean }) {
+  if (selected) {
+    return (
+      <span
+        aria-hidden
+        className="flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full border-2 border-brand"
+      >
+        <span className="h-2 w-2 rounded-full bg-brand" />
+      </span>
+    );
+  }
+  return (
+    <span
+      aria-hidden
+      className="h-4 w-4 flex-shrink-0 rounded-full border-2 border-gray-300 dark:border-zinc-500"
+    />
+  );
+}
+
 function NestedChoiceButtons<T extends string>({
   question,
   options,
@@ -236,27 +255,50 @@ function NestedChoiceButtons<T extends string>({
   onChange: (value: T) => void;
   columns?: 1 | 2 | 3 | 4;
 }) {
+  const inlineRow = columns === 4;
+
   return (
     <div className="space-y-1.5">
       <p className="text-xs font-semibold text-gray-900 dark:text-zinc-100">{question}</p>
       <div
         className={cn(
           'grid gap-2',
-          columns === 4 && 'grid-cols-2 sm:grid-cols-4',
+          columns === 4 && 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4',
           columns === 3 && 'grid-cols-3',
           columns === 2 && 'grid-cols-2',
           columns === 1 && 'grid-cols-1',
         )}
       >
-        {options.map((opt) => (
-          <OptionCardButton
-            key={opt.value}
-            selected={value === opt.value}
-            onClick={() => onChange(opt.value)}
-          >
-            {opt.label}
-          </OptionCardButton>
-        ))}
+        {options.map((opt) => {
+          const selected = value === opt.value;
+          if (inlineRow) {
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => onChange(opt.value)}
+                className={cn(
+                  'flex min-h-0 w-full items-center gap-2 rounded-xl border px-2.5 py-2 text-left text-xs font-semibold transition-all',
+                  selected
+                    ? 'border-brand bg-white text-brand shadow-sm ring-1 ring-brand/30 dark:border-brand dark:bg-slate-900 dark:text-brand'
+                    : 'border-gray-200 bg-white text-gray-800 hover:border-gray-300 dark:border-zinc-700 dark:bg-slate-900 dark:text-zinc-100 dark:hover:border-zinc-600',
+                )}
+              >
+                <ChoiceRadio selected={selected} />
+                <span className="whitespace-nowrap leading-none">{opt.label}</span>
+              </button>
+            );
+          }
+          return (
+            <OptionCardButton
+              key={opt.value}
+              selected={selected}
+              onClick={() => onChange(opt.value)}
+            >
+              {opt.label}
+            </OptionCardButton>
+          );
+        })}
       </div>
     </div>
   );
@@ -343,13 +385,13 @@ function HouseTypeCard({
       className={cn(
         'relative flex min-h-[5.75rem] w-full flex-col items-center justify-center gap-1.5 rounded-xl border px-3 py-3 text-center transition-all',
         selected
-          ? 'border-brand bg-white shadow-sm ring-1 ring-brand/30 dark:border-brand dark:bg-white'
-          : 'border-gray-200 bg-white hover:border-gray-300 dark:hover:border-gray-300',
+          ? 'border-brand bg-white shadow-sm ring-1 ring-brand/30 dark:border-brand dark:bg-slate-900'
+          : 'border-gray-200 bg-white hover:border-gray-300 dark:border-zinc-700 dark:bg-slate-900 dark:hover:border-zinc-600',
       )}
     >
       <span
         className={cn(
-          'flex h-10 w-12 items-center justify-center rounded-lg border border-gray-200 bg-white',
+          'flex h-10 w-12 items-center justify-center rounded-lg border border-gray-200 bg-white dark:border-zinc-700 dark:bg-slate-800',
         )}
       >
         {type === 'assam' ? <AssamTypeGraphic /> : <RccStructureGraphic />}
@@ -857,7 +899,7 @@ export function LabourContractorProjectWizard() {
     currentUpper != null ? currentUpper + 1 : 1;
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="mx-auto w-full max-w-5xl space-y-6">
       <div>
         <HistoryBackButton className="mb-2" />
         <h1 className="text-xl font-bold text-foreground">Post Mistri Worker Project</h1>
@@ -1023,7 +1065,7 @@ export function LabourContractorProjectWizard() {
 
                     {isAssam ? (
                       <div className="space-y-3">
-                        <div className="rounded-lg border border-gray-200 bg-white px-3 py-2.5">
+                        <div className="rounded-lg border border-gray-200 bg-white px-3 py-2.5 dark:border-zinc-700 dark:bg-slate-900">
                           <p className="text-xs font-semibold text-gray-900 dark:text-white">
                             Full finishing upto Plastering and Roof work
                           </p>
@@ -1142,10 +1184,10 @@ export function LabourContractorProjectWizard() {
 
                           if (opt.value === 'full_construction') {
                             return (
-                              <div key={opt.value} className="w-full space-y-1.5">
+                              <div key={opt.value} className="w-full">
                                 <div
                                   className={cn(
-                                    'w-full overflow-hidden rounded-xl border bg-white transition-all',
+                                    'w-full overflow-hidden rounded-xl border transition-all',
                                     selected ? FORM_SELECTED_CARD : FORM_OPTION_IDLE,
                                   )}
                                 >
@@ -1155,15 +1197,17 @@ export function LabourContractorProjectWizard() {
                                       setRccScope(fw.floorId, opt.value, fw.customFloorNumber)
                                     }
                                     className={cn(
-                                      'flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left text-sm font-semibold',
-                                      selected ? 'text-brand' : 'text-gray-800',
+                                      'flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left text-sm font-semibold',
+                                      selected
+                                        ? 'text-brand'
+                                        : 'text-gray-800 dark:text-zinc-100',
                                     )}
                                   >
                                     <span className="min-w-0">
                                       <span className="block">
                                         Option {opt.optionNumber}: {opt.title}
                                       </span>
-                                      <span className="mt-1 block text-[10px] font-medium leading-snug text-muted-foreground normal-case tracking-normal">
+                                      <span className="mt-0.5 block text-[10px] font-medium leading-snug text-muted-foreground normal-case tracking-normal">
                                         {getMistriRccScopeLabel(fw.floorId, opt.value)}
                                       </span>
                                     </span>
@@ -1182,7 +1226,7 @@ export function LabourContractorProjectWizard() {
                                     )}
                                   </button>
                                   {selected && (
-                                    <div className="w-full space-y-3 border-t border-gray-200 px-4 pb-4 pt-3">
+                                    <div className="w-full space-y-2 border-t border-gray-200 px-4 pb-3 pt-2 dark:border-zinc-700">
                                       <NestedChoiceButtons
                                         question="Flooring material"
                                         options={RCC_FLOORING_CHOICE_OPTIONS}
@@ -1408,7 +1452,7 @@ export function LabourContractorProjectWizard() {
 
           {step === 3 && (
             <div className="space-y-5">
-              <h2 className="text-base font-semibold text-slate-900">Review & Launch Auction</h2>
+              <h2 className="text-base font-semibold text-foreground">Review & Launch Auction</h2>
 
               <ReviewSummaryList
                 items={[
