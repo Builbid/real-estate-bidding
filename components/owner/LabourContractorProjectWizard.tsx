@@ -903,7 +903,7 @@ export function LabourContractorProjectWizard() {
       setStep((current) => (current === 3 ? 2 : 1));
       return;
     }
-    router.push('/dashboard');
+    router.push('/');
   }
 
   return (

@@ -62,7 +62,7 @@ export function TopBar(_props: TopBarProps) {
 
           <NavIconButton
             onClick={() => { setNotifOpen(true); }}
-            className="relative w-9 h-9 border border-border text-muted-foreground hover:text-foreground hover:border-border"
+            className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800 dark:hover:text-white"
             aria-label="Notifications"
           >
             <Bell className="w-4 h-4" />
