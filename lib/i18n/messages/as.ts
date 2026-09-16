@@ -95,7 +95,6 @@ export const as: Messages = {
       pendingSelection: 'Selection বাকী',
       totalProjects: 'Total Projects',
       projectsApproved: 'Projects Approved',
-      bidsSubmitted: 'Bids দিয়া হৈছে',
     },
     featuredFirms: {
       labourTitle: 'Top Mistri Workers',

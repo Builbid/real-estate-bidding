@@ -93,7 +93,6 @@ export const en = {
       pendingSelection: 'Pending Selection',
       totalProjects: 'Total Projects',
       projectsApproved: 'Projects Approved',
-      bidsSubmitted: 'Bids Submitted',
     },
     featuredFirms: {
       labourTitle: 'Top Mistri Workers',

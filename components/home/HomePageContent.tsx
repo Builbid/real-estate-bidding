@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import {
-  Activity, BadgeCheck, Building2, Clock, Gavel, Star,
+  Activity, BadgeCheck, Building2, Clock, Star,
 } from 'lucide-react';
 import { Navbar } from '@/components/shared/Navbar';
 import { HeroBackgroundSlideshow } from '@/components/shared/HeroBackgroundSlideshow';
@@ -44,7 +44,6 @@ export function HomePageContent({
     { key: 'frozen', label: t('home.stats.pendingSelection'), icon: Clock, tone: 'violet' },
     { key: 'total', label: t('home.stats.totalProjects'), icon: Building2, tone: 'teal' },
     { key: 'approved', label: t('home.stats.projectsApproved'), icon: BadgeCheck, tone: 'indigo' },
-    { key: 'bids', label: t('home.stats.bidsSubmitted'), icon: Gavel, tone: 'amber' },
   ];
 
   const TRUST_BADGES = [
@@ -79,7 +78,7 @@ export function HomePageContent({
 
           <ServiceCategoryBar isAuthenticated={isAuthenticated} role={role} />
 
-          <div className="grid grid-cols-2 gap-x-8 gap-y-6 sm:grid-cols-3 lg:grid-cols-5">
+          <div className="grid grid-cols-2 gap-x-8 gap-y-6 sm:grid-cols-4">
             {STATS_CONFIG.map(({ key, label, icon: Icon, tone }) => (
               <div key={key} className="flex items-center gap-2 sm:gap-2.5">
                 <Icon
@@ -89,7 +88,6 @@ export function HomePageContent({
                     tone === 'violet' && 'text-violet-500 dark:text-violet-400',
                     tone === 'teal' && 'text-teal-500 dark:text-teal-400',
                     tone === 'indigo' && 'text-indigo-500 dark:text-indigo-400',
-                    tone === 'amber' && 'text-amber-600 dark:text-amber-400',
                   )}
                 />
                 <div className="min-w-0">
