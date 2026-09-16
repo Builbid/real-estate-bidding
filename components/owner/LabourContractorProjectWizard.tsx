@@ -964,7 +964,7 @@ export function LabourContractorProjectWizard() {
               </p>
 
               <div className={FORM_SECTION_CARD}>
-                <label className={SECTION_LABEL}>House type</label>
+                <label className={SECTION_LABEL}>Construction type</label>
                 <div className="mt-1 grid grid-cols-2 gap-3">
                   {MISTRI_HOUSE_TYPE_OPTIONS.map((opt) => (
                     <HouseTypeCard
@@ -1236,7 +1236,7 @@ export function LabourContractorProjectWizard() {
                                   {selected && (
                                     <div className="w-full space-y-2 border-t border-gray-200 px-4 pb-3 pt-2 dark:border-zinc-700">
                                       <NestedChoiceButtons
-                                        question="Flooring material"
+                                        question="Need Flooring Work?"
                                         options={RCC_FLOORING_CHOICE_OPTIONS}
                                         value={
                                           entry.includeFineFlooring === false
