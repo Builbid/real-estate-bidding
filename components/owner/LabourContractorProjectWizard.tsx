@@ -59,6 +59,7 @@ import {
   flooringAreaExceedsPlinthError,
   parseFoundationDepthFt,
   computeBoundaryWallAreaSqft,
+  computeBoundaryWallPlasteringAreaSqft,
   rccScopeFromWorkTypes,
   rccScopesFromWorkTypes,
   sortMistriFloorWork,
@@ -491,6 +492,7 @@ interface BoundaryWallForm {
   heightFt: string;
   materialType: MistriBoundaryWallMaterial | null;
   plasteringFinish: MistriWallPlasteringScope | null;
+  plasteringAreaSqft: string;
   columnType: MistriBoundaryWallColumnType | null;
   executionTimeline: MistriBoundaryWallTimeline | null;
 }
@@ -500,6 +502,7 @@ const EMPTY_BOUNDARY_WALL: BoundaryWallForm = {
   heightFt: '',
   materialType: null,
   plasteringFinish: null,
+  plasteringAreaSqft: '',
   columnType: null,
   executionTimeline: null,
 };
@@ -985,6 +988,7 @@ export function LabourContractorProjectWizard() {
       heightFt: form.boundaryWall.heightFt,
       materialType: form.boundaryWall.materialType,
       plasteringFinish: form.boundaryWall.plasteringFinish,
+      plasteringAreaSqft: form.boundaryWall.plasteringAreaSqft,
       columnType: form.boundaryWall.columnType,
       executionTimeline: form.boundaryWall.executionTimeline,
       additionalRequirements: form.additionalRequirements,
@@ -1106,6 +1110,14 @@ export function LabourContractorProjectWizard() {
     form.boundaryWall.lengthFt,
     form.boundaryWall.heightFt,
   );
+  const autoPlasteringAreaSqft = computeBoundaryWallPlasteringAreaSqft(
+    boundaryWallAreaSqft,
+    form.boundaryWall.plasteringFinish,
+  );
+  const showManualPlasteringArea =
+    form.boundaryWall.plasteringFinish != null &&
+    form.boundaryWall.plasteringFinish !== 'none' &&
+    autoPlasteringAreaSqft == null;
 
   const futureCustomError = (() => {
     if (!showFoundationProvision) return null;
@@ -1320,6 +1332,28 @@ export function LabourContractorProjectWizard() {
                     value={form.boundaryWall.plasteringFinish}
                     onChange={(v) => patchBoundaryWall({ plasteringFinish: v })}
                   />
+                  {autoPlasteringAreaSqft != null && (
+                    <p className="text-sm font-semibold text-slate-900 dark:text-zinc-100">
+                      Estimated Plastering Surface Area:{' '}
+                      {autoPlasteringAreaSqft.toLocaleString('en-IN')} sq. ft.
+                    </p>
+                  )}
+                  {showManualPlasteringArea && (
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-gray-900 dark:text-zinc-100">
+                        Approximate Plastering Area (sq. ft.)
+                      </label>
+                      <Input
+                        type="text"
+                        inputMode="decimal"
+                        placeholder="e.g. 500"
+                        value={form.boundaryWall.plasteringAreaSqft}
+                        onChange={(e) =>
+                          patchBoundaryWall({ plasteringAreaSqft: e.target.value })
+                        }
+                      />
+                    </div>
+                  )}
 
                   <NestedChoiceButtons
                     question="Column / Pillar Specification"

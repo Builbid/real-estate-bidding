@@ -67,6 +67,12 @@ export interface MistriBoundaryWallDetails {
   columnType?: MistriBoundaryWallColumnType | null;
   /** Compact Boundary Wall workflow — execution window. */
   executionTimeline?: MistriBoundaryWallTimeline | null;
+  /**
+   * Plastering surface area in sq. ft.
+   * Single side = wall area; both sides = wall area × 2; no plaster = 0.
+   * Manual when length/height are not available.
+   */
+  plasteringAreaSqft?: number | null;
   /** Legacy posts only — wall thickness. */
   thickness?: MistriBoundaryWallThickness | null;
   /** Legacy posts only — full solid vs half grill. */
@@ -1465,6 +1471,12 @@ export function normalizeBoundaryWallDetails(
   const materialType = normalizeBoundaryWallMaterial(v.materialType);
   const columnType = normalizeBoundaryWallColumnType(v.columnType);
   const executionTimeline = normalizeBoundaryWallTimeline(v.executionTimeline);
+  const plasteringAreaSqft = resolveBoundaryWallPlasteringAreaSqft({
+    lengthFt,
+    heightFt,
+    plasteringFinish,
+    plasteringAreaSqft: v.plasteringAreaSqft ?? v.plastering_area_sqft,
+  });
   if (lengthFt && heightFt && materialType && columnType && executionTimeline) {
     return {
       lengthFt,
@@ -1473,6 +1485,7 @@ export function normalizeBoundaryWallDetails(
       columnType,
       executionTimeline,
       plasteringFinish,
+      plasteringAreaSqft,
       thickness: normalizeBoundaryWallThickness(v.thickness),
       structureType: normalizeBoundaryWallStructure(v.structureType),
     };
@@ -1485,6 +1498,7 @@ export function normalizeBoundaryWallDetails(
     thickness,
     structureType,
     plasteringFinish,
+    plasteringAreaSqft,
     lengthFt,
     heightFt,
     materialType,
@@ -2292,6 +2306,32 @@ export function computeBoundaryWallAreaSqft(
   return Math.round(length * height * 100) / 100;
 }
 
+export function computeBoundaryWallPlasteringAreaSqft(
+  wallAreaSqft: number | null | undefined,
+  plasteringFinish: MistriWallPlasteringScope | null | undefined,
+): number | null {
+  if (!plasteringFinish) return null;
+  if (plasteringFinish === 'none') return 0;
+  if (wallAreaSqft == null || !(wallAreaSqft > 0)) return null;
+  const multiplier = plasteringFinish === 'both' ? 2 : 1;
+  return Math.round(wallAreaSqft * multiplier * 100) / 100;
+}
+
+export function resolveBoundaryWallPlasteringAreaSqft(input: {
+  lengthFt?: string | number | null;
+  heightFt?: string | number | null;
+  plasteringFinish: MistriWallPlasteringScope | null | undefined;
+  plasteringAreaSqft?: string | number | null;
+}): number | null {
+  const wallArea = computeBoundaryWallAreaSqft(input.lengthFt, input.heightFt);
+  const auto = computeBoundaryWallPlasteringAreaSqft(wallArea, input.plasteringFinish);
+  if (auto != null) return auto;
+  if (!input.plasteringFinish || input.plasteringFinish === 'none') {
+    return input.plasteringFinish === 'none' ? 0 : null;
+  }
+  return parseApproximateAreaSqft(input.plasteringAreaSqft ?? '');
+}
+
 function normalizeSingleFloorWork(raw: unknown): MistriFloorWork | null {
   if (!raw || typeof raw !== 'object') return null;
   const v = raw as Record<string, unknown>;
@@ -3021,6 +3061,18 @@ export function getMistriWorkRequirementBlocks(details: MistriDetails): {
           value: optionLabel(MISTRI_BOUNDARY_WALL_PLASTER_OPTIONS, wall.plasteringFinish),
         },
         {
+          label: 'Estimated Plastering Surface Area',
+          value: `${Number(
+            wall.plasteringAreaSqft ??
+              resolveBoundaryWallPlasteringAreaSqft({
+                lengthFt: wall.lengthFt,
+                heightFt: wall.heightFt,
+                plasteringFinish: wall.plasteringFinish,
+              }) ??
+              0,
+          ).toLocaleString('en-IN')} sq. ft.`,
+        },
+        {
           label: 'Column / Pillar',
           value: optionLabel(MISTRI_BOUNDARY_WALL_COLUMN_OPTIONS, wall.columnType),
         },
@@ -3213,6 +3265,7 @@ export function validateMistriBoundaryWallInput(input: {
   heightFt: string | number;
   materialType: MistriBoundaryWallMaterial | null;
   plasteringFinish: MistriWallPlasteringScope | null;
+  plasteringAreaSqft?: string | number | null;
   columnType: MistriBoundaryWallColumnType | null;
   executionTimeline: MistriBoundaryWallTimeline | null;
   additionalRequirements: string;
@@ -3233,6 +3286,15 @@ export function validateMistriBoundaryWallInput(input: {
   if (!plasteringFinish) {
     return { error: 'Select a plastering option for the boundary wall.' };
   }
+  const plasteringAreaSqft = resolveBoundaryWallPlasteringAreaSqft({
+    lengthFt,
+    heightFt,
+    plasteringFinish,
+    plasteringAreaSqft: input.plasteringAreaSqft,
+  });
+  if (plasteringFinish !== 'none' && plasteringAreaSqft == null) {
+    return { error: 'Enter the approximate plastering area (sq. ft.).' };
+  }
   const columnType = normalizeBoundaryWallColumnType(input.columnType);
   if (!columnType) {
     return { error: 'Select Brick Pillar or RCC Casted Column.' };
@@ -3249,6 +3311,7 @@ export function validateMistriBoundaryWallInput(input: {
     heightFt,
     materialType,
     plasteringFinish,
+    plasteringAreaSqft: plasteringAreaSqft ?? 0,
     columnType,
     executionTimeline,
   };
