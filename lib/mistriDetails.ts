@@ -1734,6 +1734,17 @@ export function parseApproximateAreaSqft(input: string | number): number | null 
   return Number.isFinite(area) && area > 0 ? area : null;
 }
 
+export function flooringAreaExceedsPlinthError(
+  flooringArea: string | number | null | undefined,
+  plinthArea: string | number | null | undefined,
+): string | null {
+  const flooring = parseApproximateAreaSqft(flooringArea ?? '');
+  const plinth = parseApproximateAreaSqft(plinthArea ?? '');
+  if (flooring == null || plinth == null) return null;
+  if (flooring <= plinth) return null;
+  return `Flooring work area cannot exceed the total plinth area of ${plinth.toLocaleString('en-IN')} sq. ft.`;
+}
+
 function extractFloorPlans(raw: Record<string, unknown>): {
   currentFloorPlan: string | null;
   futureFloorPlan: string | null;
@@ -3309,6 +3320,11 @@ export function validateMistriFloorWorkInput(input: {
           error: 'Enter the approximate flooring work area (sq. ft.) for Assam Type.',
         };
       }
+      const assamFlooringCap = flooringAreaExceedsPlinthError(
+        fw.flooringAreaSqft,
+        input.approximateArea,
+      );
+      if (assamFlooringCap) return { error: assamFlooringCap };
       continue;
     }
 
@@ -3381,6 +3397,8 @@ export function validateMistriFloorWorkInput(input: {
         fw.flooringAreaSqft = null;
       }
     }
+    const flooringCap = flooringAreaExceedsPlinthError(fw.flooringAreaSqft, input.approximateArea);
+    if (flooringCap) return { error: flooringCap };
   }
 
   for (const fw of input.floorWork) {

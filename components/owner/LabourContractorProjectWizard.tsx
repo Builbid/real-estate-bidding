@@ -56,6 +56,7 @@ import {
   parseCustomFloorSequence,
   parseFoundationCustomFloorCount,
   parseApproximateAreaSqft,
+  flooringAreaExceedsPlinthError,
   parseFoundationDepthFt,
   rccScopeFromWorkTypes,
   rccScopesFromWorkTypes,
@@ -139,9 +140,11 @@ const ASSAM_FULL_FINISHED_WORK: FloorWorkForm = {
 function FlooringAreaField({
   value,
   onChange,
+  error,
 }: {
   value: string;
   onChange: (value: string) => void;
+  error?: string | null;
 }) {
   return (
     <div className="space-y-1.5">
@@ -153,6 +156,7 @@ function FlooringAreaField({
         inputMode="decimal"
         placeholder="e.g., 1800"
         value={value}
+        error={error ?? undefined}
         onChange={(e) => onChange(e.target.value)}
       />
     </div>
@@ -987,6 +991,17 @@ export function LabourContractorProjectWizard() {
     };
   }
 
+  function flooringPlinthCapError(): string | null {
+    for (const entry of selectedFloorEntries(form)) {
+      const key = floorWorkKey(entry.floorId, entry.customFloorNumber);
+      const work = form.floorWorkById[key] ?? EMPTY_FLOOR_WORK;
+      if (work.includeFineFlooring !== true && !work.workTypes.includes('flooring')) continue;
+      const error = flooringAreaExceedsPlinthError(work.flooringAreaSqft, form.approximateArea);
+      if (error) return error;
+    }
+    return null;
+  }
+
   function tryGoStep3() {
     if (form.houseType === 'boundary_wall') {
       const validated = validateMistriBoundaryWallInput(boundaryWallValidationInput());
@@ -996,6 +1011,11 @@ export function LabourContractorProjectWizard() {
       }
       setStep2Error(null);
       setStep(3);
+      return;
+    }
+    const flooringCap = flooringPlinthCapError();
+    if (flooringCap) {
+      setStep2Error(flooringCap);
       return;
     }
     const validated = validateMistriFloorWorkInput(mistriValidationInput());
@@ -1023,6 +1043,15 @@ export function LabourContractorProjectWizard() {
       setError('Remove contact details from additional requirements before submitting.');
       setLoading(false);
       return;
+    }
+
+    if (form.houseType !== 'boundary_wall') {
+      const flooringCap = flooringPlinthCapError();
+      if (flooringCap) {
+        setError(flooringCap);
+        setLoading(false);
+        return;
+      }
     }
 
     const validated =
@@ -1403,6 +1432,10 @@ export function LabourContractorProjectWizard() {
                             />
                             <FlooringAreaField
                               value={entry.flooringAreaSqft}
+                              error={flooringAreaExceedsPlinthError(
+                                entry.flooringAreaSqft,
+                                form.approximateArea,
+                              )}
                               onChange={(value) =>
                                 patchFloorWork(
                                   fw.floorId,
@@ -1534,6 +1567,10 @@ export function LabourContractorProjectWizard() {
                                   />
                                   <FlooringAreaField
                                     value={entry.flooringAreaSqft}
+                                    error={flooringAreaExceedsPlinthError(
+                                      entry.flooringAreaSqft,
+                                      form.approximateArea,
+                                    )}
                                     onChange={(value) =>
                                       patchFloorWork(
                                         fw.floorId,
@@ -1554,38 +1591,31 @@ export function LabourContractorProjectWizard() {
               })}
 
               {showFoundationProvision && (
-                <div>
-                  <div className={FORM_SECTION_CARD}>
-                    <p className="text-xs font-semibold text-gray-900 dark:text-zinc-100">
-                      Foundation provision for
-                    </p>
-                    <Input
-                      label="No. of floors"
-                      type="text"
-                      inputMode="numeric"
-                      placeholder={`e.g. ${minFoundationFloors}`}
-                      value={form.futureFloorCustom}
-                      onChange={(e) => {
-                        update('futureFloorCustom', e.target.value.replace(/\D/g, ''));
-                        setStep2Error(null);
-                      }}
-                    />
-                    <p className={HELPER_TEXT}>
-                      Enter the number of floors the foundation must support. It must be greater
-                      than your highest constructing floor.
-                    </p>
-                    {futureCustomError && (
-                      <p className="text-xs text-destructive flex items-center gap-1">
-                        <AlertCircle className="h-3 w-3 shrink-0" />
-                        {futureCustomError}
-                      </p>
-                    )}
-                  </div>
-
-                  <p className={FORM_NOTE}>
-                    * Note: Higher foundation provision needs stronger foundations, thicker columns,
-                    and more steel today — this affects labor and material costs.
+                <div className={FORM_SECTION_CARD}>
+                  <p className="text-xs font-semibold text-gray-900 dark:text-zinc-100">
+                    Foundation provision for
                   </p>
+                  <Input
+                    label="No. of floors"
+                    type="text"
+                    inputMode="numeric"
+                    placeholder={`e.g. ${minFoundationFloors}`}
+                    value={form.futureFloorCustom}
+                    onChange={(e) => {
+                      update('futureFloorCustom', e.target.value.replace(/\D/g, ''));
+                      setStep2Error(null);
+                    }}
+                  />
+                  <p className={HELPER_TEXT}>
+                    Enter the total number of floors this foundation must support for present and
+                    future construction.
+                  </p>
+                  {futureCustomError && (
+                    <p className="text-xs text-destructive flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3 shrink-0" />
+                      {futureCustomError}
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -1671,7 +1701,12 @@ export function LabourContractorProjectWizard() {
                 <Button variant="outline" size="lg" className="flex-1" onClick={() => setStep(1)}>
                   <ArrowLeft className="w-4 h-4" /> Back
                 </Button>
-                <Button size="lg" className={cn('flex-1', FORM_CONTINUE_BTN)} onClick={tryGoStep3}>
+                <Button
+                  size="lg"
+                  className={cn('flex-1', FORM_CONTINUE_BTN)}
+                  disabled={Boolean(flooringPlinthCapError())}
+                  onClick={tryGoStep3}
+                >
                   Continue <ArrowRight className="w-4 h-4" />
                 </Button>
               </div>
