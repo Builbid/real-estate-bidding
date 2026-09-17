@@ -2,7 +2,7 @@
 
 import { Info, Ruler } from 'lucide-react';
 import { OptionSelectCard } from '@/components/owner/wizard/OptionSelectCard';
-import { WIZARD_SECTION_LABEL } from '@/components/owner/wizard/StartTimeAndNotes';
+import { WIZARD_SECTION_LABEL, withSectionColon } from '@/components/owner/wizard/StartTimeAndNotes';
 import {
   buildPlumbingBidOptions,
   countPlumbingBidOptions,
@@ -84,7 +84,7 @@ export function PipingOptionSelector({
   return (
     <div className="space-y-5">
       <div className="flex flex-col gap-1.5">
-        <label className={WIZARD_SECTION_LABEL}>Water Supply Lines (CPVC)</label>
+        <label className={WIZARD_SECTION_LABEL}>{withSectionColon('Water Supply Lines (CPVC)')}</label>
         <p className="text-xs font-medium text-slate-700 dark:text-slate-300 -mt-0.5">
           Select every pipe size plumbers should quote. Each size × installation method becomes a
           bidding option at ₹ / Running Foot.
@@ -111,7 +111,7 @@ export function PipingOptionSelector({
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <label className={WIZARD_SECTION_LABEL}>Water Installation Method</label>
+        <label className={WIZARD_SECTION_LABEL}>{withSectionColon('Water Installation Method')}</label>
         <p className="text-xs font-medium text-slate-700 dark:text-slate-300 -mt-0.5">
           Select one or both methods so contractors can bid concealed (higher) and open (lower)
           rates.
@@ -139,7 +139,7 @@ export function PipingOptionSelector({
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <label className={WIZARD_SECTION_LABEL}>Soil & Waste Drainage Lines (SWR/PVC)</label>
+        <label className={WIZARD_SECTION_LABEL}>{withSectionColon('Soil & Waste Drainage Lines (SWR/PVC)')}</label>
         <OptionSelectCard
           selected={includeToiletWastePipe}
           multi

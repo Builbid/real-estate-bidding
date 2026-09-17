@@ -499,7 +499,6 @@ export const MISTRI_BOUNDARY_WALL_MATERIAL_OPTIONS: {
 }[] = [
   { value: 'red_clay_brick', label: 'Red Clay Brick' },
   { value: 'aac_block', label: 'AAC Block' },
-  { value: 'concrete_solid_block', label: 'Concrete Solid Block' },
 ];
 
 export const MISTRI_BOUNDARY_WALL_PLASTER_OPTIONS: {
@@ -1255,9 +1254,10 @@ const BOUNDARY_WALL_THICKNESS_SET = new Set<string>(
 const BOUNDARY_WALL_STRUCTURE_SET = new Set<string>(
   MISTRI_BOUNDARY_WALL_STRUCTURE_OPTIONS.map((o) => o.value),
 );
-const BOUNDARY_WALL_MATERIAL_SET = new Set<string>(
-  MISTRI_BOUNDARY_WALL_MATERIAL_OPTIONS.map((o) => o.value),
-);
+const BOUNDARY_WALL_MATERIAL_SET = new Set<string>([
+  ...MISTRI_BOUNDARY_WALL_MATERIAL_OPTIONS.map((o) => o.value),
+  'concrete_solid_block',
+]);
 const BOUNDARY_WALL_COLUMN_SET = new Set<string>(
   MISTRI_BOUNDARY_WALL_COLUMN_OPTIONS.map((o) => o.value),
 );
@@ -2282,6 +2282,16 @@ export function parseFoundationDepthFt(value: unknown): number | null {
   return null;
 }
 
+export function computeBoundaryWallAreaSqft(
+  lengthFt: string | number | null | undefined,
+  heightFt: string | number | null | undefined,
+): number | null {
+  const length = parseFoundationDepthFt(lengthFt);
+  const height = parseFoundationDepthFt(heightFt);
+  if (length == null || height == null) return null;
+  return Math.round(length * height * 100) / 100;
+}
+
 function normalizeSingleFloorWork(raw: unknown): MistriFloorWork | null {
   if (!raw || typeof raw !== 'object') return null;
   const v = raw as Record<string, unknown>;
@@ -2996,8 +3006,15 @@ export function getMistriWorkRequirementBlocks(details: MistriDetails): {
           value: `${wall.heightFt} ft`,
         },
         {
+          label: 'Approximate Total Wall Area',
+          value: `${computeBoundaryWallAreaSqft(wall.lengthFt, wall.heightFt)?.toLocaleString('en-IN') ?? '—'} sq. ft.`,
+        },
+        {
           label: 'Wall Material',
-          value: optionLabel(MISTRI_BOUNDARY_WALL_MATERIAL_OPTIONS, wall.materialType),
+          value:
+            wall.materialType === 'concrete_solid_block'
+              ? 'Concrete Solid Block'
+              : optionLabel(MISTRI_BOUNDARY_WALL_MATERIAL_OPTIONS, wall.materialType),
         },
         {
           label: 'Boundary Wall Plastering',
@@ -3209,8 +3226,8 @@ export function validateMistriBoundaryWallInput(input: {
     return { error: 'Enter the boundary wall height in feet.' };
   }
   const materialType = normalizeBoundaryWallMaterial(input.materialType);
-  if (!materialType) {
-    return { error: 'Select a wall material: Red Clay Brick, AAC Block, or Concrete Solid Block.' };
+  if (!materialType || materialType === 'concrete_solid_block') {
+    return { error: 'Select a wall material: Red Clay Brick or AAC Block.' };
   }
   const plasteringFinish = normalizeWallPlasteringScope(input.plasteringFinish);
   if (!plasteringFinish) {
@@ -3226,7 +3243,7 @@ export function validateMistriBoundaryWallInput(input: {
   }
 
   const additional = input.additionalRequirements.trim() || null;
-  const approximateAreaSqft = Math.round(lengthFt * heightFt * 100) / 100;
+  const approximateAreaSqft = computeBoundaryWallAreaSqft(lengthFt, heightFt) ?? 0;
   const boundaryWallDetails: MistriBoundaryWallDetails = {
     lengthFt,
     heightFt,

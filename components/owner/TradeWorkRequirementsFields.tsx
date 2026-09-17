@@ -4,7 +4,7 @@ import { PlumbingFloorFixtureForm } from '@/components/owner/plumber/PlumbingFlo
 import { ElectricianFloorFixtureForm } from '@/components/owner/electrician/ElectricianFloorFixtureForm';
 import { InteriorPackageForm } from '@/components/owner/interior/InteriorPackageForm';
 import { OptionSelectGrid } from '@/components/owner/wizard/OptionSelectCard';
-import { StartTimeAndNotes, WIZARD_SECTION_LABEL } from '@/components/owner/wizard/StartTimeAndNotes';
+import { StartTimeAndNotes, WIZARD_SECTION_LABEL, withSectionColon } from '@/components/owner/wizard/StartTimeAndNotes';
 import {
   EARTHWORK_SOIL_VEHICLE_OPTIONS,
   EARTHWORK_TYPE_OPTIONS,
@@ -233,7 +233,7 @@ function FieldGroup({
   return (
     <div className="flex flex-col gap-1.5">
       <label className={WIZARD_SECTION_LABEL}>
-        {label}
+        {withSectionColon(label)}
         {hint ? (
           <span className="ml-1.5 normal-case tracking-normal font-medium text-slate-700 dark:text-slate-300">
             {hint}

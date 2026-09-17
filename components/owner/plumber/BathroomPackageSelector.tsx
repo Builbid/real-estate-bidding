@@ -6,7 +6,7 @@ import {
   BATHROOM_PACKAGE_OPTIONS,
   type BathroomPackage,
 } from '@/lib/tradeWorkDetails';
-import { WIZARD_SECTION_LABEL } from '@/components/owner/wizard/StartTimeAndNotes';
+import { WIZARD_SECTION_LABEL, withSectionColon } from '@/components/owner/wizard/StartTimeAndNotes';
 
 export function BathroomPackageSelector({
   value,
@@ -19,7 +19,7 @@ export function BathroomPackageSelector({
 
   return (
     <div className="flex flex-col gap-1.5">
-      <label className={WIZARD_SECTION_LABEL}>Type</label>
+      <label className={WIZARD_SECTION_LABEL}>{withSectionColon('Type')}</label>
       <p className="text-xs font-medium text-slate-700 dark:text-slate-300 -mt-0.5 mb-1">
         Choose Common, Master, or Luxury. Included fittings appear below.
       </p>

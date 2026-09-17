@@ -58,6 +58,7 @@ import {
   parseApproximateAreaSqft,
   flooringAreaExceedsPlinthError,
   parseFoundationDepthFt,
+  computeBoundaryWallAreaSqft,
   rccScopeFromWorkTypes,
   rccScopesFromWorkTypes,
   sortMistriFloorWork,
@@ -102,9 +103,16 @@ type Step = 1 | 2 | 3 | 4;
 const BIDDING_MINUTES = 7;
 
 const SECTION_LABEL =
-  'text-xs font-semibold text-gray-800 dark:text-zinc-100 uppercase tracking-wider';
+  'text-xs font-bold text-slate-900 dark:text-zinc-100 uppercase tracking-wider';
 const HELPER_TEXT =
   'text-[11px] font-medium text-gray-700 dark:text-zinc-300 leading-relaxed';
+const NESTED_SECTION_LABEL = 'text-xs font-bold text-slate-900 dark:text-zinc-100';
+
+function withSectionColon(label: string): string {
+  const trimmed = label.trim();
+  if (!trimmed || /[?:]$/.test(trimmed)) return trimmed;
+  return `${trimmed}:`;
+}
 
 interface FloorWorkForm {
   workTypes: MistriFloorWorkType[];
@@ -290,11 +298,11 @@ function NestedChoiceButtons<T extends string>({
   onChange: (value: T) => void;
   columns?: 1 | 2 | 3 | 4;
 }) {
-  const inlineRow = columns === 3 || columns === 4;
+  const inlineRow = columns !== 1;
 
   return (
     <div className="space-y-1.5">
-      <p className="text-xs font-semibold text-gray-900 dark:text-zinc-100">{question}</p>
+      <p className={NESTED_SECTION_LABEL}>{withSectionColon(question)}</p>
       <div
         className={cn(
           'grid gap-2',
@@ -356,7 +364,7 @@ const MISTRI_HOUSE_TYPE_OPTIONS: {
   { value: 'boundary_wall', label: 'Boundary Wall' },
 ];
 
-const HOUSE_TYPE_ICON_CLASS = 'h-8 w-10';
+const HOUSE_TYPE_ICON_CLASS = 'h-12 w-12';
 
 function AssamTypeGraphic() {
   return (
@@ -451,37 +459,29 @@ function HouseTypeCard({
     <button
       type="button"
       onClick={onClick}
+      aria-pressed={selected}
       className={cn(
-        'relative flex min-h-[5.75rem] w-full flex-col items-center justify-center gap-1.5 rounded-xl border px-2 py-3 text-center transition-all sm:min-h-[6.25rem]',
+        'flex w-full cursor-pointer flex-col items-center justify-center space-y-3 rounded-xl p-6 text-center transition-all',
         selected
-          ? 'border-brand bg-white shadow-sm ring-1 ring-brand/30 dark:border-brand dark:bg-slate-900'
-          : 'border-gray-200 bg-white hover:border-gray-300 dark:border-zinc-700 dark:bg-slate-900 dark:hover:border-zinc-600',
+          ? 'border-2 border-blue-600 bg-blue-50/10 shadow-md dark:border-blue-500 dark:bg-blue-500/10'
+          : 'border border-slate-300 bg-white shadow-sm hover:border-blue-500 hover:shadow-md dark:border-zinc-600 dark:bg-slate-900 dark:hover:border-blue-500',
       )}
     >
+      {type === 'assam' ? (
+        <AssamTypeGraphic />
+      ) : type === 'boundary_wall' ? (
+        <BoundaryWallGraphic />
+      ) : (
+        <RccStructureGraphic />
+      )}
       <span
         className={cn(
-          'flex h-10 w-12 items-center justify-center rounded-md border border-gray-200 bg-white dark:border-zinc-700 dark:bg-slate-800',
+          'font-medium',
+          selected ? 'text-slate-900 dark:text-white' : 'text-slate-800 dark:text-zinc-100',
         )}
       >
-        {type === 'assam' ? (
-          <AssamTypeGraphic />
-        ) : type === 'boundary_wall' ? (
-          <BoundaryWallGraphic />
-        ) : (
-          <RccStructureGraphic />
-        )}
-      </span>
-      <span className="text-[11px] font-semibold leading-tight text-gray-900 dark:text-white sm:text-xs">
         {label}
       </span>
-      {selected ? (
-        <CheckCircle2 className="absolute right-1.5 top-1.5 h-3.5 w-3.5 text-brand" />
-      ) : (
-        <span
-          aria-hidden
-          className="absolute right-1.5 top-1.5 h-3.5 w-3.5 rounded-full border border-gray-300 dark:border-zinc-500"
-        />
-      )}
     </button>
   );
 }
@@ -1102,6 +1102,10 @@ export function LabourContractorProjectWizard() {
     form.houseType === 'rcc' && mistriContractTypeRequiredForFloorWork(assembledFloorWork);
   const currentFloorPlan = currentFloorPlanFromFloorWork(assembledFloorWork);
   const currentUpper = floorPlanUpperCount(currentFloorPlan);
+  const boundaryWallAreaSqft = computeBoundaryWallAreaSqft(
+    form.boundaryWall.lengthFt,
+    form.boundaryWall.heightFt,
+  );
 
   const futureCustomError = (() => {
     if (!showFoundationProvision) return null;
@@ -1186,8 +1190,8 @@ export function LabourContractorProjectWizard() {
               )}
 
               <div className={FORM_SECTION_CARD}>
-                <label className={SECTION_LABEL}>Construction type</label>
-                <div className="mx-auto mt-1 grid max-w-md grid-cols-3 gap-2 sm:max-w-lg sm:gap-3">
+                <label className={SECTION_LABEL}>{withSectionColon('Construction type')}</label>
+                <div className="mt-1 grid grid-cols-1 gap-4 md:grid-cols-3">
                   {MISTRI_HOUSE_TYPE_OPTIONS.map((opt) => (
                     <HouseTypeCard
                       key={opt.value}
@@ -1208,7 +1212,7 @@ export function LabourContractorProjectWizard() {
 
               {form.houseType === 'rcc' && (
                 <div className={FORM_SECTION_CARD}>
-                  <label className={SECTION_LABEL}>Building / Floor Type</label>
+                  <label className={SECTION_LABEL}>{withSectionColon('Building / Floor Type')}</label>
                   <p className={HELPER_TEXT}>
                     Select only the RCC floors included in this project. Intermediate floors are not added automatically.
                   </p>
@@ -1230,7 +1234,7 @@ export function LabourContractorProjectWizard() {
 
               <div className={FORM_SECTION_CARD}>
                 <label className={SECTION_LABEL}>
-                  Bidding Duration
+                  {withSectionColon('Bidding Duration')}
                 </label>
                 <Select value={form.bidding_minutes} onValueChange={(v) => update('bidding_minutes', v)}>
                   <SelectTrigger>
@@ -1274,14 +1278,13 @@ export function LabourContractorProjectWizard() {
 
               {form.houseType === 'boundary_wall' ? (
                 <div className={FORM_SECTION_CARD}>
-                  <label className={SECTION_LABEL}>Boundary Wall Work Details</label>
-                  <p className={HELPER_TEXT}>
-                    These details are used so mistri workers can bid on the wall length, height, and finish.
-                  </p>
+                  <label className={SECTION_LABEL}>
+                    {withSectionColon('Boundary Wall Work Details')}
+                  </label>
 
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <Input
-                      label="Length (ft)"
+                      label="Approximate Length (ft)"
                       type="text"
                       inputMode="decimal"
                       placeholder="e.g. 80"
@@ -1297,12 +1300,17 @@ export function LabourContractorProjectWizard() {
                       onChange={(e) => patchBoundaryWall({ heightFt: e.target.value })}
                     />
                   </div>
+                  {boundaryWallAreaSqft != null && (
+                    <p className="text-sm font-semibold text-slate-900 dark:text-zinc-100">
+                      Approximate Total Wall Area: {boundaryWallAreaSqft.toLocaleString('en-IN')} sq. ft.
+                    </p>
+                  )}
 
                   <NestedChoiceButtons
                     question="Material / Brick Selection"
                     options={MISTRI_BOUNDARY_WALL_MATERIAL_OPTIONS}
                     value={form.boundaryWall.materialType}
-                    columns={3}
+                    columns={2}
                     onChange={(v) => patchBoundaryWall({ materialType: v })}
                   />
 
@@ -1592,8 +1600,8 @@ export function LabourContractorProjectWizard() {
 
               {showFoundationProvision && (
                 <div className={FORM_SECTION_CARD}>
-                  <p className="text-xs font-semibold text-gray-900 dark:text-zinc-100">
-                    Foundation provision for
+                  <p className={SECTION_LABEL}>
+                    {withSectionColon('Foundation provision for')}
                   </p>
                   <Input
                     label="No. of floors"
@@ -1622,7 +1630,7 @@ export function LabourContractorProjectWizard() {
               {showContractType && (
                 <div className={FORM_SECTION_CARD}>
                   <label className={SECTION_LABEL}>
-                    Contract Type (Work Scope)
+                    {withSectionColon('Contract Type (Work Scope)')}
                   </label>
                   <div className="grid grid-cols-1 gap-2.5">
                     {MISTRI_CONTRACT_TYPE_OPTIONS.map((opt) => (
@@ -1646,7 +1654,7 @@ export function LabourContractorProjectWizard() {
               {form.houseType !== 'boundary_wall' && (
               <div className={FORM_SECTION_CARD}>
                 <label className={SECTION_LABEL}>
-                  Project Starting Time
+                  {withSectionColon('Project Starting Time')}
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   {MISTRI_START_TIME_OPTIONS.map((opt) => (
@@ -1683,7 +1691,8 @@ export function LabourContractorProjectWizard() {
 
               <div className={FORM_SECTION_CARD}>
                 <label className={SECTION_LABEL}>
-                  Additional Requirements <span className="normal-case tracking-normal">(optional)</span>
+                  Additional Requirements:{' '}
+                  <span className="normal-case tracking-normal">(optional)</span>
                 </label>
                 <textarea
                   rows={3}

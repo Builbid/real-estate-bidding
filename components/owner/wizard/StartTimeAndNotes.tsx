@@ -10,7 +10,13 @@ import {
 } from '@/lib/projectStartTime';
 
 export const WIZARD_SECTION_LABEL =
-  'text-xs font-semibold text-gray-800 dark:text-zinc-100 uppercase tracking-wider';
+  'text-xs font-bold text-slate-900 dark:text-zinc-100 uppercase tracking-wider';
+
+export function withSectionColon(label: string): string {
+  const trimmed = label.trim();
+  if (!trimmed || /[?:]$/.test(trimmed)) return trimmed;
+  return `${trimmed}:`;
+}
 
 export function StartTimeAndNotes<T extends string = ProjectStartTimeType>({
   startTimeType,
@@ -38,7 +44,7 @@ export function StartTimeAndNotes<T extends string = ProjectStartTimeType>({
   return (
     <div className="space-y-4">
       <div className={FORM_SECTION_CARD}>
-        <label className={WIZARD_SECTION_LABEL}>{title}</label>
+        <label className={WIZARD_SECTION_LABEL}>{withSectionColon(title)}</label>
         <OptionSelectGrid
           options={options}
           value={startTimeType}
@@ -59,7 +65,8 @@ export function StartTimeAndNotes<T extends string = ProjectStartTimeType>({
 
       <div className={FORM_SECTION_CARD}>
         <label className={WIZARD_SECTION_LABEL}>
-          Additional Requirements <span className="normal-case tracking-normal">(optional)</span>
+          Additional Requirements:{' '}
+          <span className="normal-case tracking-normal">(optional)</span>
         </label>
         <textarea
           rows={3}

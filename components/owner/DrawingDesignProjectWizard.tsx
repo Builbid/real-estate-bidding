@@ -10,7 +10,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { OptionSelectGrid } from '@/components/owner/wizard/OptionSelectCard';
-import { StartTimeAndNotes, WIZARD_SECTION_LABEL } from '@/components/owner/wizard/StartTimeAndNotes';
+import { StartTimeAndNotes, WIZARD_SECTION_LABEL, withSectionColon } from '@/components/owner/wizard/StartTimeAndNotes';
 import { FORM_CONTINUE_BTN, FORM_SECTION_CARD, FORM_SHELL_CARD } from '@/components/owner/wizard/formTheme';
 import { ReviewSummaryList, WizardStepper } from '@/components/owner/wizard/ReviewSummary';
 import {
@@ -237,7 +237,7 @@ export function DrawingDesignProjectWizard() {
               />
               <div className="flex flex-col gap-1.5">
                 <label className={WIZARD_SECTION_LABEL}>
-                  Bidding Duration
+                  {withSectionColon('Bidding Duration')}
                 </label>
                 <Select value={form.bidding_minutes} onValueChange={(v) => update('bidding_minutes', v)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
@@ -271,7 +271,7 @@ export function DrawingDesignProjectWizard() {
               )}
 
               <div className={FORM_SECTION_CARD}>
-                <label className={WIZARD_SECTION_LABEL}>Package Selection</label>
+                <label className={WIZARD_SECTION_LABEL}>{withSectionColon('Package Selection')}</label>
                 <OptionSelectGrid
                   options={DRAWING_PACKAGE_OPTIONS}
                   values={form.packages}
@@ -288,7 +288,7 @@ export function DrawingDesignProjectWizard() {
               </div>
 
               <div className={FORM_SECTION_CARD}>
-                <label className={WIZARD_SECTION_LABEL}>Number of Floors</label>
+                <label className={WIZARD_SECTION_LABEL}>{withSectionColon('Number of Floors')}</label>
                 <OptionSelectGrid
                   options={DRAWING_FLOOR_OPTIONS}
                   value={form.floorOption}
@@ -327,7 +327,7 @@ export function DrawingDesignProjectWizard() {
               </div>
 
               <div className={FORM_SECTION_CARD}>
-                <label className={WIZARD_SECTION_LABEL}>Deliverables Required</label>
+                <label className={WIZARD_SECTION_LABEL}>{withSectionColon('Deliverables Required')}</label>
                 <OptionSelectGrid
                   options={DRAWING_DELIVERABLE_OPTIONS}
                   values={form.deliverables}
