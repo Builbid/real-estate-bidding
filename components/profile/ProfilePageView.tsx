@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button';
 import { FirmLogo } from '@/components/firm/FirmLogo';
 import { SignOutConfirmDialog } from '@/components/shared/SignOutConfirmDialog';
 import { useTranslation } from '@/lib/context/LanguageProvider';
-import { normalizeRole, getDashboardPath } from '@/lib/auth/roles';
+import { normalizeRole } from '@/lib/auth/roles';
 import { getProfileRoleLabel } from '@/lib/auth/profileRoleLabel';
 import { clientSignOut } from '@/lib/auth/clientSignOut';
 import { useDashboardProfile } from '@/lib/context/ProfileProvider';
@@ -49,16 +49,15 @@ export function ProfilePageView({ profile, metrics }: ProfilePageViewProps) {
   const normalizedRole = normalizeRole(profile.role);
   const isFirm = normalizedRole === 'construction_firm';
   const roleLabel = getProfileRoleLabel(profile, t);
-  const dashboardPath = getDashboardPath(normalizedRole);
   const displayName = isFirm ? (profile.company_name ?? profile.full_name) : profile.full_name;
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-10">
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="sm" asChild className="gap-1.5 -ml-2">
-          <Link href={dashboardPath}>
+          <Link href="/">
             <ArrowLeft className="h-4 w-4" />
-            Back to Dashboard
+            Back
           </Link>
         </Button>
       </div>
