@@ -892,10 +892,15 @@ export function isRccScopeDisabled(
   current: readonly MistriRccScopeOption[],
   option: MistriRccScopeOption,
 ): boolean {
-  if (option === 'frame_only') return false;
-  if (current.includes('frame_only')) return true;
-  if (option === 'full_construction' && current.includes('wall_plaster_only')) return true;
-  if (option === 'wall_plaster_only' && current.includes('full_construction')) return true;
+  if (current.includes('full_construction')) {
+    return option === 'frame_only' || option === 'wall_plaster_only';
+  }
+  if (current.includes('frame_only')) {
+    return option !== 'frame_only';
+  }
+  if (option === 'full_construction' && current.includes('wall_plaster_only')) {
+    return true;
+  }
   return false;
 }
 

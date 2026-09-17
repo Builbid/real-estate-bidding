@@ -1444,10 +1444,6 @@ export function LabourContractorProjectWizard() {
                         {MISTRI_RCC_SCOPE_OPTIONS.map((opt) => {
                           const selected = selectedScopes.includes(opt.value);
                           const disabled = isRccScopeDisabled(selectedScopes, opt.value);
-                          const scopeNote =
-                            opt.value === 'frame_only'
-                              ? 'Cannot be combined with Full Construction, Wall Brick Work, or Flooring Work.'
-                              : undefined;
 
                           return (
                             <div key={opt.value} className="w-full space-y-2">
@@ -1456,7 +1452,6 @@ export function LabourContractorProjectWizard() {
                                 disabled={disabled}
                                 locked={disabled}
                                 marker="checkbox"
-                                note={scopeNote}
                                 onClick={() =>
                                   toggleRccScope(fw.floorId, opt.value, fw.customFloorNumber)
                                 }
