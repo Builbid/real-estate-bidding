@@ -81,7 +81,7 @@ export function Footer({ compact }: FooterProps) {
   ] as const;
 
   return (
-    <footer className="border-t border-border/80 bg-gradient-to-b from-background to-secondary/30">
+    <footer className="mt-0 shrink-0 border-t border-border/80 bg-gradient-to-b from-background to-secondary/30">
       <div className={`max-w-7xl mx-auto px-6 ${compact ? 'py-8' : 'py-12'}`}>
         <div className="mb-10">
             <Link
