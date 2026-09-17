@@ -15,7 +15,7 @@ import {
 } from '@/components/shared/AssamDistrictAutocomplete';
 import { TradeWorkRequirementsFields, type TradeWorkFormFields } from '@/components/owner/TradeWorkRequirementsFields';
 import { OptionSelectGrid } from '@/components/owner/wizard/OptionSelectCard';
-import { FORM_CONTINUE_BTN, FORM_SECTION_CARD, FORM_SHELL_CARD, FORM_TEXTAREA } from '@/components/owner/wizard/formTheme';
+import { FORM_CONTINUE_BTN, FORM_OPTION_SELECTED, FORM_OPTION_UNSELECTED, FORM_SECTION_CARD, FORM_SHELL_CARD, FORM_TEXTAREA } from '@/components/owner/wizard/formTheme';
 import { WIZARD_SECTION_LABEL, withSectionColon } from '@/components/owner/wizard/StartTimeAndNotes';
 import { ReviewSummaryList, WizardStepper } from '@/components/owner/wizard/ReviewSummary';
 import { generateProjectTitle } from '@/lib/generateProjectTitle';
@@ -471,7 +471,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
           )}
 
           {step === 1 && (
-            <div className="space-y-5">
+            <div className="space-y-4">
               <h2 className="text-base font-semibold text-gray-900 dark:text-white">Project Information</h2>
 
               <AssamDistrictAutocomplete
@@ -530,17 +530,15 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                               });
                             }}
                             className={cn(
-                              'relative text-left rounded-xl border-2 p-4 pr-10 transition-all duration-200',
-                              selected
-                                ? 'border-brand bg-white shadow-md'
-                                : 'border-gray-200 bg-white hover:border-gray-300',
+                              'relative text-left rounded-xl p-4 pr-10 transition-all duration-200',
+                              selected ? FORM_OPTION_SELECTED : FORM_OPTION_UNSELECTED,
                             )}
                           >
                             {selected && (
-                              <CheckCircle2 className="absolute top-2.5 right-2.5 w-5 h-5 text-brand flex-shrink-0" />
+                              <CheckCircle2 className="absolute top-2.5 right-2.5 w-5 h-5 text-blue-600 flex-shrink-0" />
                             )}
-                            <span className="text-sm font-bold text-gray-900 dark:text-white">{opt.label}</span>
-                            <p className="text-xs font-medium text-gray-700 dark:text-zinc-300 mt-1">{opt.description}</p>
+                            <span className={cn('text-sm', selected ? 'font-semibold text-slate-900' : 'font-medium text-slate-700')}>{opt.label}</span>
+                            <p className="text-xs font-medium text-slate-500 mt-1">{opt.description}</p>
                           </button>
                         );
                       })}
@@ -649,7 +647,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
           )}
 
           {step === 2 && (
-            <div className="space-y-5">
+            <div className="space-y-4">
               <h2 className="text-base font-semibold text-gray-900 dark:text-white">
                 {isPainter
                   ? 'Building Type & Work Requirements'
@@ -689,17 +687,15 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                           setStep2Error(null);
                         }}
                         className={cn(
-                          'relative text-left rounded-xl border-2 p-4 pr-10 transition-all duration-200',
-                          selected
-                            ? 'border-brand bg-white shadow-md scale-[1.02]'
-                            : 'border-gray-200 bg-white hover:border-gray-300',
+                          'relative text-left rounded-xl p-4 pr-10 transition-all duration-200',
+                          selected ? FORM_OPTION_SELECTED : FORM_OPTION_UNSELECTED,
                         )}
                       >
                         {selected && (
-                          <CheckCircle2 className="absolute top-2.5 right-2.5 w-5 h-5 text-brand flex-shrink-0" />
+                          <CheckCircle2 className="absolute top-2.5 right-2.5 w-5 h-5 text-blue-600 flex-shrink-0" />
                         )}
-                        <span className="text-sm font-bold text-gray-900 dark:text-white">{opt.label}</span>
-                        <p className="text-xs font-medium text-gray-700 dark:text-zinc-300 mt-1">{opt.description}</p>
+                        <span className={cn('text-sm', selected ? 'font-semibold text-slate-900' : 'font-medium text-slate-700')}>{opt.label}</span>
+                        <p className="text-xs font-medium text-slate-500 mt-1">{opt.description}</p>
                       </button>
                     );
                   })}
@@ -707,7 +703,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
               )}
 
               {isPainter && (
-                <div className="space-y-4 rounded-xl border border-gray-200 bg-white p-4">
+                <div className="space-y-4">
                   <Input
                     label="Approximate Paint Area"
                     type="number"
@@ -842,7 +838,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
           )}
 
           {step === 3 && (isCustomTrade || form.track_type) && (
-            <div className="space-y-5">
+            <div className="space-y-4">
               <h2 className="text-base font-semibold text-slate-900">Review & Launch Auction</h2>
 
               <ReviewSummaryList
@@ -928,11 +924,11 @@ function PainterChoice<T extends string>({
     typeof opt === 'string' ? { value: opt, label: opt } : opt,
   );
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="space-y-4">
       <label className={WIZARD_SECTION_LABEL}>{withSectionColon(label)}</label>
       <div
         className={cn(
-          'grid gap-2',
+          'grid gap-3',
           columns === 3 && 'grid-cols-1 sm:grid-cols-3',
           columns === 2 && 'grid-cols-1 sm:grid-cols-2',
           columns === 1 && 'grid-cols-1',
@@ -946,14 +942,12 @@ function PainterChoice<T extends string>({
               type="button"
               onClick={() => onChange(opt.value)}
               className={cn(
-                'relative rounded-lg border px-3 py-2.5 pr-8 text-left text-xs font-semibold transition-colors',
-                selected
-                  ? 'border-brand bg-white text-gray-900 shadow-sm ring-1 ring-brand/30 dark:text-white'
-                  : 'border-gray-200 bg-white text-gray-800 hover:border-gray-300 dark:text-zinc-100',
+                'relative rounded-xl px-3 py-2.5 pr-8 text-left text-xs transition-all',
+                selected ? FORM_OPTION_SELECTED : FORM_OPTION_UNSELECTED,
               )}
             >
               {selected && (
-                <CheckCircle2 className="absolute top-2 right-2 h-4 w-4 text-brand" />
+                <CheckCircle2 className="absolute top-2 right-2 h-4 w-4 text-blue-600" />
               )}
               {opt.label}
             </button>

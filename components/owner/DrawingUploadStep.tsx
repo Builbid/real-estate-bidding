@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react';
 import { CheckCircle2, FileText, Upload, X } from 'lucide-react';
+import { FORM_OPTION_SELECTED, FORM_OPTION_UNSELECTED } from '@/components/owner/wizard/formTheme';
 import { cn } from '@/lib/utils';
 
 export type DrawingChoice = 'upload' | 'firm_creates' | null;
@@ -60,7 +61,7 @@ export function DrawingUploadStep({
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <div>
         <h2 className="text-xl font-bold text-foreground">Do you have an engineering drawing?</h2>
         <p className="text-sm text-muted-foreground mt-1">
@@ -73,29 +74,29 @@ export function DrawingUploadStep({
           type="button"
           onClick={() => { onChoiceChange('upload'); setError(null); }}
           className={cn(
-            'text-left rounded-xl border-2 p-4 transition-all',
-            choice === 'upload' ? 'border-brand bg-white shadow-sm ring-1 ring-brand/30' : 'border-gray-200 bg-white',
+            'text-left rounded-xl p-4 transition-all',
+            choice === 'upload' ? FORM_OPTION_SELECTED : FORM_OPTION_UNSELECTED,
           )}
         >
           <div className="flex items-center justify-between mb-2">
             <span className="text-2xl">📐</span>
-            {choice === 'upload' && <CheckCircle2 className="w-5 h-5 text-brand" />}
+            {choice === 'upload' && <CheckCircle2 className="w-5 h-5 text-blue-600" />}
           </div>
-          <p className="text-sm font-bold text-foreground">Yes, I have a drawing</p>
+          <p className={cn('text-sm', choice === 'upload' ? 'font-semibold text-slate-900' : 'font-medium text-slate-700')}>Yes, I have a drawing</p>
         </button>
         <button
           type="button"
           onClick={() => { onChoiceChange('firm_creates'); onFileChange(null); setError(null); setUploadProgress(null); }}
           className={cn(
-            'text-left rounded-xl border-2 p-4 transition-all',
-            choice === 'firm_creates' ? 'border-brand bg-white shadow-sm ring-1 ring-brand/30' : 'border-gray-200 bg-white',
+            'text-left rounded-xl p-4 transition-all',
+            choice === 'firm_creates' ? FORM_OPTION_SELECTED : FORM_OPTION_UNSELECTED,
           )}
         >
           <div className="flex items-center justify-between mb-2">
             <span className="text-2xl">✏️</span>
-            {choice === 'firm_creates' && <CheckCircle2 className="w-5 h-5 text-brand" />}
+            {choice === 'firm_creates' && <CheckCircle2 className="w-5 h-5 text-blue-600" />}
           </div>
-          <p className="text-sm font-bold text-foreground">No, let the firm create it</p>
+          <p className={cn('text-sm', choice === 'firm_creates' ? 'font-semibold text-slate-900' : 'font-medium text-slate-700')}>No, let the firm create it</p>
           <p className="text-[11px] text-muted-foreground mt-1">
             The construction firm will design a drawing based on your requirements
           </p>
@@ -109,7 +110,7 @@ export function DrawingUploadStep({
           onDrop={(e) => { e.preventDefault(); setDragOver(false); handleFiles(e.dataTransfer.files); }}
           className={cn(
             'rounded-xl border-2 border-dashed p-6 text-center transition-colors',
-            dragOver ? 'border-brand bg-white' : 'border-gray-200 bg-white',
+            dragOver ? 'border-blue-600 bg-blue-50/30' : 'border-slate-200 bg-white',
           )}
         >
           <input

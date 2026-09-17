@@ -209,7 +209,7 @@ export function DrawingDesignProjectWizard() {
       <WizardStepper labels={PROGRESS_LABELS} step={step} />
 
       <Card className={FORM_SHELL_CARD}>
-        <CardContent className="space-y-5 pt-6 pb-6">
+        <CardContent className="space-y-4 pt-6 pb-6">
           {error && (
             <div className="mb-1 flex items-start gap-3 rounded-lg border border-red-500/20 bg-red-500/10 p-3.5 text-red-400">
               <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />

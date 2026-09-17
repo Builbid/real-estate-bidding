@@ -50,7 +50,7 @@ export function ElectricianFloorFixtureForm({
         return (
           <div
             key={floor}
-            className="rounded-xl border-2 border-gray-200 bg-white overflow-hidden"
+            className="rounded-xl border border-slate-100 bg-white overflow-hidden"
           >
             <div className="border-b border-border/70 px-4 py-3">
               <h3 className="text-sm font-bold text-gray-900 dark:text-white">

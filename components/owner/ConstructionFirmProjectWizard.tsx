@@ -200,7 +200,7 @@ export function ConstructionFirmProjectWizard() {
           )}
 
           {step === 1 && (
-            <div className="space-y-5">
+            <div className="space-y-4">
               <h2 className="text-base font-semibold text-foreground">Project Information</h2>
 
               <AssamDistrictAutocomplete
@@ -262,7 +262,7 @@ export function ConstructionFirmProjectWizard() {
           )}
 
           {step === 2 && (
-            <div className="space-y-5">
+            <div className="space-y-4">
               <h2 className="text-base font-semibold text-foreground">Type of Building</h2>
               <div className={FORM_SECTION_CARD}>
                 <BuildingTypeSelector
@@ -330,7 +330,7 @@ export function ConstructionFirmProjectWizard() {
           )}
 
           {step === 3 && (
-            <div className="space-y-5">
+            <div className="space-y-4">
               <div>
                 <h2 className="text-lg font-bold tracking-tight text-slate-900">Review & Submit</h2>
                 <p className="mt-1 text-sm text-slate-500">

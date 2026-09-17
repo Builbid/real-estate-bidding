@@ -89,6 +89,8 @@ import {
   FORM_CONTINUE_BTN,
   FORM_NESTED_PANEL,
   FORM_NOTE,
+  FORM_OPTION_SELECTED,
+  FORM_OPTION_UNSELECTED,
   FORM_SECTION_CARD,
   FORM_SHELL_CARD,
   FORM_TEXTAREA,
@@ -104,7 +106,7 @@ const BIDDING_MINUTES = 7;
 
 const SECTION_LABEL = WIZARD_SECTION_LABEL;
 const HELPER_TEXT =
-  'text-[11px] font-medium text-gray-700 dark:text-zinc-300 leading-relaxed';
+  'text-[11px] font-medium text-slate-500 leading-relaxed';
 
 interface FloorWorkForm {
   workTypes: MistriFloorWorkType[];
@@ -214,42 +216,40 @@ function OptionCardButton({
           if (!disabled) onClick();
         }}
         className={cn(
-          'flex w-full items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 text-left text-sm font-semibold transition-all dark:border-zinc-700 dark:bg-slate-900',
-          selected
-            ? 'border-brand bg-white text-brand shadow-sm ring-1 ring-brand/30 dark:border-brand dark:bg-slate-900 dark:text-brand'
-            : 'text-gray-800 hover:border-gray-300 bg-white dark:border-zinc-700 dark:bg-slate-900 dark:text-zinc-100 dark:hover:border-zinc-600',
-          disabled && 'cursor-not-allowed opacity-50 grayscale hover:border-gray-200 hover:bg-white dark:hover:border-zinc-700 dark:hover:bg-slate-900',
+          'flex w-full items-center justify-between gap-3 rounded-xl px-4 py-3.5 text-left text-sm transition-all',
+          selected ? FORM_OPTION_SELECTED : FORM_OPTION_UNSELECTED,
+          disabled && 'cursor-not-allowed opacity-50 grayscale hover:border-slate-200 hover:bg-white',
           className,
         )}
       >
         <span className="min-w-0">{children}</span>
         {locked ? (
-          <Lock className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+          <Lock className="w-4 h-4 text-slate-400 flex-shrink-0" />
         ) : marker === 'checkbox' ? (
           selected ? (
             <span
               aria-hidden
-              className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-[4px] border-2 border-brand bg-brand text-white"
+              className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-[4px] border-2 border-blue-600 bg-blue-600 text-white"
             >
               <Check className="h-3 w-3" strokeWidth={3} />
             </span>
           ) : (
             <span
               aria-hidden
-              className="h-5 w-5 flex-shrink-0 rounded-[4px] border-2 border-gray-300 dark:border-zinc-500"
+              className="h-5 w-5 flex-shrink-0 rounded-[4px] border-2 border-slate-300"
             />
           )
         ) : selected ? (
           <span
             aria-hidden
-            className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border-2 border-brand"
+            className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border-2 border-blue-600"
           >
-            <span className="h-2.5 w-2.5 rounded-full bg-brand" />
+            <span className="h-2.5 w-2.5 rounded-full bg-blue-600" />
           </span>
         ) : (
           <span
             aria-hidden
-            className="h-5 w-5 flex-shrink-0 rounded-full border-2 border-gray-300 dark:border-zinc-500"
+            className="h-5 w-5 flex-shrink-0 rounded-full border-2 border-slate-300"
           />
         )}
       </button>
@@ -263,16 +263,16 @@ function ChoiceRadio({ selected }: { selected: boolean }) {
     return (
       <span
         aria-hidden
-        className="flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full border-2 border-brand"
+        className="flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full border-2 border-blue-600"
       >
-        <span className="h-2 w-2 rounded-full bg-brand" />
+        <span className="h-2 w-2 rounded-full bg-blue-600" />
       </span>
     );
   }
   return (
     <span
       aria-hidden
-      className="h-4 w-4 flex-shrink-0 rounded-full border-2 border-gray-300 dark:border-zinc-500"
+      className="h-4 w-4 flex-shrink-0 rounded-full border-2 border-slate-300"
     />
   );
 }
@@ -293,12 +293,12 @@ function NestedChoiceButtons<T extends string>({
   const inlineRow = columns !== 1;
 
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-4">
       <p className={SECTION_LABEL}>{withSectionColon(question)}</p>
       <div
         className={cn(
-          'grid gap-2',
-          columns === 4 && 'grid-cols-2 gap-2 sm:grid-cols-4 sm:items-stretch',
+          'grid gap-3',
+          columns === 4 && 'grid-cols-2 sm:grid-cols-4 sm:items-stretch',
           columns === 3 && 'grid-cols-1 sm:grid-cols-3',
           columns === 2 && 'grid-cols-2',
           columns === 1 && 'grid-cols-1',
@@ -313,10 +313,8 @@ function NestedChoiceButtons<T extends string>({
                 type="button"
                 onClick={() => onChange(opt.value)}
                 className={cn(
-                  'flex min-h-[2.5rem] w-full min-w-0 items-start gap-1.5 overflow-visible rounded-xl border px-1.5 py-2 text-left text-[10px] font-semibold leading-snug transition-all sm:items-center sm:px-2 sm:text-[11px]',
-                  selected
-                    ? 'border-brand bg-white text-brand shadow-sm ring-1 ring-brand/30 dark:border-brand dark:bg-slate-900 dark:text-brand'
-                    : 'border-gray-200 bg-white text-gray-800 hover:border-gray-300 dark:border-zinc-700 dark:bg-slate-900 dark:text-zinc-100 dark:hover:border-zinc-600',
+                  'flex min-h-[2.75rem] w-full min-w-0 items-start gap-2 overflow-visible rounded-xl px-3 py-2.5 text-left text-xs leading-snug transition-all sm:items-center',
+                  selected ? FORM_OPTION_SELECTED : FORM_OPTION_UNSELECTED,
                 )}
               >
                 <ChoiceRadio selected={selected} />
@@ -454,9 +452,7 @@ function HouseTypeCard({
       aria-pressed={selected}
       className={cn(
         'flex w-full cursor-pointer flex-col items-center justify-center space-y-3 rounded-xl p-6 text-center transition-all',
-        selected
-          ? 'border-2 border-blue-600 bg-blue-50/10 shadow-md dark:border-blue-500 dark:bg-blue-500/10'
-          : 'border border-slate-300 bg-white shadow-sm hover:border-blue-500 hover:shadow-md dark:border-zinc-600 dark:bg-slate-900 dark:hover:border-blue-500',
+        selected ? FORM_OPTION_SELECTED : FORM_OPTION_UNSELECTED,
       )}
     >
       {type === 'assam' ? (
@@ -466,12 +462,7 @@ function HouseTypeCard({
       ) : (
         <RccStructureGraphic />
       )}
-      <span
-        className={cn(
-          'font-medium',
-          selected ? 'text-slate-900 dark:text-white' : 'text-slate-800 dark:text-zinc-100',
-        )}
-      >
+      <span className={cn(selected ? 'font-semibold text-slate-900' : 'font-medium text-slate-700')}>
         {label}
       </span>
     </button>
@@ -1132,7 +1123,7 @@ export function LabourContractorProjectWizard() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-6">
+    <div className="mx-auto w-full max-w-3xl space-y-6 text-slate-900">
       <div>
         <HistoryBackButton className="mb-2" onClick={goWizardBack} />
         <h1 className="text-xl font-bold text-foreground">Post Mistri Worker Project</h1>
@@ -1153,8 +1144,8 @@ export function LabourContractorProjectWizard() {
           )}
 
           {step === 1 && (
-            <div className="space-y-5">
-              <h2 className="text-base font-semibold text-foreground">Project Information</h2>
+            <div className="space-y-4">
+              <h2 className="text-base font-bold text-slate-900">Project Information</h2>
 
               <AssamDistrictAutocomplete
                 value={form.location}
@@ -1248,7 +1239,7 @@ export function LabourContractorProjectWizard() {
                     <SelectItem value="1440">24 Hours (Standard)</SelectItem>
                   </SelectContent>
                 </Select>
-                <p className="text-[11px] font-medium text-brand">
+                <p className="text-[11px] font-medium text-blue-600">
                   After bidding closes you have 5 minutes to select a mistri worker.
                 </p>
               </div>
@@ -1260,12 +1251,12 @@ export function LabourContractorProjectWizard() {
           )}
 
           {step === 2 && (
-            <div className="space-y-5">
+            <div className="space-y-4">
               <div>
-                <h2 className="text-base font-semibold text-foreground">Work Requirements</h2>
-                <p className="text-xs font-medium text-gray-700 dark:text-zinc-300 mt-1">
+                <h2 className="text-base font-bold text-slate-900">Work Requirements</h2>
+                <p className="text-xs font-medium text-slate-500 mt-1">
                   {form.houseType === 'boundary_wall'
-                    ? 'Enter boundary wall dimensions, material, plastering, column type, and execution timeline.'
+                    ? 'Enter boundary wall dimensions, material, plastering, and execution timeline.'
                     : form.buildingTypes.includes(ASSAM_BUILDING_TYPE)
                     ? 'Assam Type — Full finishing upto Plastering and Roof work is included. Choose roof truss, roofing sheet, flooring, and foundation depth.'
                     : "Choose one Scope of Work for each selected floor based on your site's current status."}
@@ -1373,6 +1364,7 @@ export function LabourContractorProjectWizard() {
                 </div>
               ) : (
                 <>
+              <div className="space-y-6">
               {assembledFloorWork.map((fw) => {
                 const key = floorWorkKey(fw.floorId, fw.customFloorNumber);
                 const entry = form.floorWorkById[key] ?? EMPTY_FLOOR_WORK;
@@ -1387,7 +1379,7 @@ export function LabourContractorProjectWizard() {
                 return (
                   <div
                     key={key}
-                    className={FORM_SECTION_CARD}
+                    className={cn(FORM_SECTION_CARD, 'border-b border-slate-100 pb-6 last:border-b-0 last:pb-0')}
                   >
                     <div className="space-y-1.5">
                       <p className={FORM_BADGE}>
@@ -1402,8 +1394,8 @@ export function LabourContractorProjectWizard() {
 
                     {isAssam ? (
                       <div className="space-y-3">
-                        <div className="rounded-lg border border-gray-200 bg-white px-3 py-2.5 dark:border-zinc-700 dark:bg-slate-900">
-                          <p className="text-xs font-semibold text-gray-900 dark:text-white">
+                        <div className="space-y-1">
+                          <p className="text-sm font-semibold text-slate-900">
                             Full finishing upto Plastering and Roof work
                           </p>
                           <p className={cn('mt-1', HELPER_TEXT)}>
@@ -1490,9 +1482,9 @@ export function LabourContractorProjectWizard() {
                           )}
                         </div>
 
-                        <div className="space-y-1.5">
-                          <label className="text-xs font-semibold text-gray-900 dark:text-zinc-100">
-                            Foundation depth (ft)
+                        <div className="space-y-3">
+                          <label className={SECTION_LABEL}>
+                            {withSectionColon('Foundation depth (ft)')}
                           </label>
                           <Input
                             type="number"
@@ -1515,7 +1507,7 @@ export function LabourContractorProjectWizard() {
                         </div>
                       </div>
                     ) : (
-                      <div className="grid grid-cols-1 gap-2">
+                      <div className="grid grid-cols-1 gap-3">
                         {MISTRI_RCC_SCOPE_OPTIONS.map((opt) => {
                           const selected = selectedScopes.includes(opt.value);
                           const disabled = isRccScopeDisabled(selectedScopes, opt.value);
@@ -1535,7 +1527,7 @@ export function LabourContractorProjectWizard() {
                                   <span className="block">
                                     Option {opt.optionNumber}: {opt.title}
                                   </span>
-                                  <span className="mt-1 block text-[10px] font-medium leading-snug text-muted-foreground normal-case tracking-normal">
+                                  <span className="mt-1 block text-[11px] font-medium leading-snug text-slate-500">
                                     {getMistriRccScopeLabel(fw.floorId, opt.value)}
                                   </span>
                                 </span>
@@ -1581,7 +1573,7 @@ export function LabourContractorProjectWizard() {
                                 </div>
                               )}
                               {opt.value === 'flooring_only' && selected && (
-                                <div className="w-full space-y-2 rounded-xl border border-gray-200 px-4 py-3 dark:border-zinc-700">
+                                <div className="w-full space-y-4">
                                   <NestedChoiceButtons
                                     question="What flooring material will be used?"
                                     options={MISTRI_FLOORING_MATERIAL_OPTIONS}
@@ -1631,6 +1623,7 @@ export function LabourContractorProjectWizard() {
                   </div>
                 );
               })}
+              </div>
 
               {showFoundationProvision && (
                 <div className={FORM_SECTION_CARD}>
@@ -1756,8 +1749,8 @@ export function LabourContractorProjectWizard() {
           )}
 
           {step === 3 && (
-            <div className="space-y-5">
-              <h2 className="text-base font-semibold text-foreground">Review & Launch Auction</h2>
+            <div className="space-y-4">
+              <h2 className="text-base font-bold text-slate-900">Review & Launch Auction</h2>
 
               <ReviewSummaryList
                 items={[
@@ -1808,12 +1801,12 @@ export function LabourContractorProjectWizard() {
 
           {step === 4 && (
             <div className="flex flex-col items-center gap-5 py-6 text-center">
-              <div className="w-16 h-16 rounded-full bg-brand/15 border border-brand/30 flex items-center justify-center">
-                <CheckCircle2 className="w-8 h-8 text-brand" />
+              <div className="w-16 h-16 rounded-full bg-blue-50 border-2 border-blue-600 flex items-center justify-center">
+                <CheckCircle2 className="w-8 h-8 text-blue-600" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-foreground mb-2">Auction Launched! 🎉</h2>
-                <p className="text-sm font-medium text-gray-700 dark:text-zinc-300">
+                <h2 className="text-xl font-bold text-slate-900 mb-2">Auction Launched! 🎉</h2>
+                <p className="text-sm font-medium text-slate-600">
                   Your project <strong className="text-foreground">&quot;{submittedTitle}&quot;</strong> is now live.
                 </p>
               </div>

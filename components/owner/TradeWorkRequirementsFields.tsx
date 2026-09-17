@@ -105,7 +105,7 @@ export function TradeWorkRequirementsFields({
   onChange: <K extends keyof TradeWorkFormFields>(key: K, value: TradeWorkFormFields[K]) => void;
 }) {
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       {trade === 'plumber' && (
         <>
           <p className="text-xs font-medium leading-relaxed rounded-xl border border-amber-500/40 bg-white px-3 py-2.5 text-gray-800 dark:text-zinc-200">
@@ -231,7 +231,7 @@ function FieldGroup({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="space-y-4">
       <label className={WIZARD_SECTION_LABEL}>
         {withSectionColon(label)}
         {hint ? (

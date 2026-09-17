@@ -16,6 +16,7 @@ import {
   mistriFloorUpperCount,
   parseCustomFloorSequence,
 } from '@/lib/mistriDetails';
+import { FORM_OPTION_SELECTED, FORM_OPTION_UNSELECTED } from '@/components/owner/wizard/formTheme';
 import { cn } from '@/lib/utils';
 
 const RCC_4TH_FLOOR: BuildingType = 'RCC 4th Floor';
@@ -225,12 +226,12 @@ export function BuildingTypeSelector({
       </div>
 
       {hasAssam && (
-        <p className="text-xs text-amber-700 bg-white border border-amber-500/40 rounded-lg px-3 py-2 dark:bg-slate-900 dark:text-amber-300 dark:border-amber-500/40">
+        <p className="text-xs text-amber-700 bg-amber-50/50 border border-amber-200 rounded-lg px-3 py-2">
           Assam Type cannot be combined with RCC floors
         </p>
       )}
       {hasRcc && !hasAssam && !rccOnly && (
-        <p className="text-xs text-brand bg-white border border-brand/30 rounded-lg px-3 py-2 dark:bg-slate-900">
+        <p className="text-xs text-blue-700 bg-blue-50/50 border border-blue-200 rounded-lg px-3 py-2">
           Deselect all RCC floors to choose Assam Type
         </p>
       )}
@@ -271,19 +272,17 @@ export function BuildingTypeSelector({
                     : undefined
               }
               className={cn(
-                'flex items-center gap-3 w-full text-left rounded-xl border-2 px-4 py-3 transition-all',
+                'flex items-center gap-3 w-full text-left rounded-xl px-4 py-3 transition-all',
                 disabled && 'opacity-45 cursor-not-allowed grayscale',
-                selected
-                  ? 'border-brand bg-white shadow-sm ring-1 ring-brand/30 dark:bg-slate-900 dark:border-brand'
-                  : 'border-gray-200 bg-white hover:border-gray-300 dark:border-zinc-700 dark:bg-slate-900 dark:hover:border-zinc-600',
+                selected ? FORM_OPTION_SELECTED : FORM_OPTION_UNSELECTED,
               )}
             >
               <span
                 className={cn(
                   'flex h-5 w-5 flex-shrink-0 items-center justify-center rounded border-2 transition-colors',
                   selected
-                    ? 'border-brand bg-brand text-white'
-                    : 'border-gray-300 bg-white dark:border-zinc-500 dark:bg-slate-900',
+                    ? 'border-blue-600 bg-blue-600 text-white'
+                    : 'border-slate-300 bg-white',
                 )}
               >
                 {selected && <Check className="h-3 w-3" strokeWidth={3} />}
@@ -304,19 +303,19 @@ export function BuildingTypeSelector({
                 : undefined
             }
             className={cn(
-              'flex items-center gap-3 w-full text-left rounded-xl border-2 px-4 py-3 transition-all',
+              'flex items-center gap-3 w-full text-left rounded-xl px-4 py-3 transition-all',
               customDisabled && 'opacity-45 cursor-not-allowed grayscale',
               customSelected && customSelectable
-                ? 'border-brand bg-white shadow-sm ring-1 ring-brand/30 dark:bg-slate-900 dark:border-brand'
-                : 'border-gray-200 bg-white hover:border-gray-300 dark:border-zinc-700 dark:bg-slate-900 dark:hover:border-zinc-600',
+                ? FORM_OPTION_SELECTED
+                : FORM_OPTION_UNSELECTED,
             )}
           >
             <span
               className={cn(
                 'flex h-5 w-5 flex-shrink-0 items-center justify-center rounded border-2 transition-colors',
                 customSelected && customSelectable
-                  ? 'border-brand bg-brand text-white'
-                  : 'border-gray-300 bg-white dark:border-zinc-500 dark:bg-slate-900',
+                  ? 'border-blue-600 bg-blue-600 text-white'
+                  : 'border-slate-300 bg-white',
               )}
             >
               {customSelected && customSelectable && (

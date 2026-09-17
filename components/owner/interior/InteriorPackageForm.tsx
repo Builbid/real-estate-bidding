@@ -6,7 +6,7 @@ import {
   type InteriorDesignerPackageKind,
   type InteriorDesignerSubOptionId,
 } from '@/lib/tradeWorkDetails';
-import { FORM_NOTE } from '@/components/owner/wizard/formTheme';
+import { FORM_CHECKBOX, FORM_NOTE, FORM_OPTION_SELECTED, FORM_OPTION_UNSELECTED } from '@/components/owner/wizard/formTheme';
 import { cn } from '@/lib/utils';
 
 export function InteriorPackageForm({
@@ -44,8 +44,8 @@ export function InteriorPackageForm({
   }
 
   return (
-    <div className="space-y-3">
-      <p className="text-xs font-medium text-gray-700 dark:text-zinc-300">
+    <div className="space-y-4">
+      <p className="text-xs font-medium text-slate-500">
         Check a category to reveal its sub-options. Interior designers bid a labour rate only for the items you select.
       </p>
       {INTERIOR_DESIGNER_SCOPE_PACKAGES.map((pkg) => {
@@ -55,10 +55,8 @@ export function InteriorPackageForm({
           <div
             key={pkg.id}
             className={cn(
-              'rounded-xl border-2 overflow-hidden',
-              open
-                ? 'border-brand bg-white'
-                : 'border-gray-200 bg-white',
+              'rounded-xl overflow-hidden',
+              open ? FORM_OPTION_SELECTED : FORM_OPTION_UNSELECTED,
             )}
           >
             <label className="flex w-full cursor-pointer items-start gap-3 p-4">
@@ -66,11 +64,11 @@ export function InteriorPackageForm({
                 type="checkbox"
                 checked={open}
                 onChange={() => togglePackage(pkg.id)}
-                className="mt-1 h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand"
+                className={FORM_CHECKBOX}
               />
               <span className="flex-1 min-w-0">
                 <span className="flex items-center justify-between gap-2">
-                  <span className="text-sm font-bold text-gray-900 dark:text-white">{pkg.label}</span>
+                  <span className={cn('text-sm', open ? 'font-semibold text-slate-900' : 'font-medium text-slate-700')}>{pkg.label}</span>
                   <ChevronDown
                     className={cn(
                       'h-4 w-4 flex-shrink-0 text-slate-700 transition-transform',
@@ -78,7 +76,7 @@ export function InteriorPackageForm({
                     )}
                   />
                 </span>
-                <span className="mt-1 block text-xs font-medium text-slate-700 dark:text-slate-300">
+                <span className="mt-1 block text-xs font-medium text-slate-500">
                   {open
                     ? pickedCount > 0
                       ? `${pickedCount} sub-option${pickedCount === 1 ? '' : 's'} selected`
@@ -94,34 +92,32 @@ export function InteriorPackageForm({
               )}
             >
               <div className="overflow-hidden">
-                <div className="space-y-2 border-t border-border/70 px-4 pb-4 pt-3">
+                <div className="space-y-3 border-t border-slate-100 px-4 pb-4 pt-3">
                   {pkg.options.map((option) => {
                     const checked = selectedSubOptions.includes(option.id);
                     return (
                       <div key={option.id} className="space-y-1.5">
                       <label
                         className={cn(
-                          'flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-2.5',
-                          checked
-                            ? 'border-brand bg-white ring-1 ring-brand/30'
-                            : 'border-gray-200 bg-white',
+                          'flex cursor-pointer items-start gap-3 rounded-xl px-3 py-2.5',
+                          checked ? FORM_OPTION_SELECTED : FORM_OPTION_UNSELECTED,
                         )}
                       >
                         <input
                           type="checkbox"
                           checked={checked}
                           onChange={() => toggleSubOption(pkg.id, option.id)}
-                          className="mt-0.5 h-4 w-4 rounded border-gray-300 text-brand focus:ring-brand"
+                          className={FORM_CHECKBOX}
                         />
                         <span className="flex-1">
-                          <span className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white">
+                          <span className={cn('flex items-center gap-2 text-sm', checked ? 'font-semibold text-slate-900' : 'font-medium text-slate-700')}>
                             {option.label}
                             {checked && (
-                              <CheckCircle2 className="h-3.5 w-3.5 text-brand" aria-hidden />
+                              <CheckCircle2 className="h-3.5 w-3.5 text-blue-600" aria-hidden />
                             )}
                           </span>
                           {!option.note ? (
-                            <span className="text-[11px] font-medium text-slate-700 dark:text-slate-300">
+                            <span className="text-[11px] font-medium text-slate-500">
                               Interior designer rate {option.unitSuffix}
                             </span>
                           ) : null}

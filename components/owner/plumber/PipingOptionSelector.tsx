@@ -82,10 +82,10 @@ export function PipingOptionSelector({
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <div className="flex flex-col gap-1.5">
         <label className={WIZARD_SECTION_LABEL}>{withSectionColon('Water Supply Lines (CPVC)')}</label>
-        <p className="text-xs font-medium text-slate-700 dark:text-slate-300 -mt-0.5">
+        <p className="text-xs font-medium text-slate-500 -mt-1">
           Select every pipe size plumbers should quote. Each size × installation method becomes a
           bidding option at ₹ / Running Foot.
         </p>
@@ -112,7 +112,7 @@ export function PipingOptionSelector({
 
       <div className="flex flex-col gap-1.5">
         <label className={WIZARD_SECTION_LABEL}>{withSectionColon('Water Installation Method')}</label>
-        <p className="text-xs font-medium text-slate-700 dark:text-slate-300 -mt-0.5">
+        <p className="text-xs font-medium text-slate-500 -mt-1">
           Select one or both methods so contractors can bid concealed (higher) and open (lower)
           rates.
         </p>
@@ -182,7 +182,7 @@ export function PipingOptionSelector({
         )}
       </div>
 
-      <div className="rounded-xl border border-gray-200 bg-white p-3.5 space-y-2">
+      <div className="space-y-2">
         <div className="flex items-center justify-between gap-2">
           <p className={cn(WIZARD_SECTION_LABEL, 'normal-case tracking-normal')}>
             Bidding options ({optionCount}/{MAX_PLUMBING_BID_OPTIONS})

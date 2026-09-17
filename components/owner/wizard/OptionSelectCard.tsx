@@ -1,7 +1,7 @@
 'use client';
 
 import { CheckCircle2 } from 'lucide-react';
-import { FORM_NOTE } from '@/components/owner/wizard/formTheme';
+import { FORM_NOTE, FORM_OPTION_SELECTED, FORM_OPTION_UNSELECTED } from '@/components/owner/wizard/formTheme';
 import { cn } from '@/lib/utils';
 
 function formatOptionNote(text: string) {
@@ -59,31 +59,33 @@ export function OptionSelectCard({
         aria-pressed={selected}
         aria-disabled={disabled || undefined}
         className={cn(
-          'relative w-full rounded-xl border-2 p-4 pr-10 text-left transition-all duration-200',
-          selected
-            ? 'border-brand bg-white shadow-sm ring-1 ring-brand/30 dark:border-brand dark:bg-white'
-            : 'border-gray-200 bg-white hover:border-gray-300',
+          'relative w-full rounded-xl p-4 pr-10 text-left transition-all duration-200',
+          selected ? FORM_OPTION_SELECTED : FORM_OPTION_UNSELECTED,
           disabled && 'cursor-default disabled:opacity-100',
           className,
         )}
       >
-        {selected && (
+        {selected ? (
           <CheckCircle2
-            className="absolute top-2.5 right-2.5 h-5 w-5 flex-shrink-0 text-brand"
+            className="absolute top-2.5 right-2.5 h-5 w-5 flex-shrink-0 text-blue-600"
             aria-hidden
           />
-        )}
-        <p className="text-sm font-bold text-gray-900 dark:text-white leading-snug">{label}</p>
-        {split.description && (
-          <p className="mt-1 text-xs font-medium text-gray-700 dark:text-zinc-300 leading-snug">
-            {split.description}
-          </p>
-        )}
-        {multi && !selected && (
+        ) : multi ? (
           <span
             aria-hidden
-            className="absolute top-3 right-3 h-4 w-4 rounded-full border border-gray-300 dark:border-zinc-500"
+            className="absolute top-3 right-3 h-4 w-4 rounded-full border-2 border-slate-300"
           />
+        ) : (
+          <span
+            aria-hidden
+            className="absolute top-3 right-3 h-4 w-4 rounded-full border-2 border-slate-300"
+          />
+        )}
+        <p className={cn('text-sm leading-snug', selected ? 'font-semibold text-slate-900' : 'font-medium text-slate-700')}>{label}</p>
+        {split.description && (
+          <p className="mt-1 text-xs font-medium leading-snug text-slate-500">
+            {split.description}
+          </p>
         )}
       </button>
       {split.note ? <p className={FORM_NOTE}>{split.note}</p> : null}

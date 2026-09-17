@@ -1,6 +1,7 @@
 'use client';
 
 import { CheckCircle2 } from 'lucide-react';
+import { FORM_OPTION_SELECTED, FORM_OPTION_UNSELECTED } from '@/components/owner/wizard/formTheme';
 import { cn } from '@/lib/utils';
 import {
   BATHROOM_PACKAGE_OPTIONS,
@@ -18,12 +19,12 @@ export function BathroomPackageSelector({
   const selectedPackage = BATHROOM_PACKAGE_OPTIONS.find((pkg) => pkg.value === value) ?? null;
 
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="space-y-4">
       <label className={WIZARD_SECTION_LABEL}>{withSectionColon('Type')}</label>
-      <p className="text-xs font-medium text-slate-700 dark:text-slate-300 -mt-0.5 mb-1">
+      <p className="text-xs font-medium text-slate-500 -mt-1">
         Choose Common, Master, or Luxury. Included fittings appear below.
       </p>
-      <div className="grid grid-cols-3 gap-2 sm:gap-3">
+      <div className="grid grid-cols-3 gap-3">
         {BATHROOM_PACKAGE_OPTIONS.map((pkg) => {
           const selected = value === pkg.value;
           return (
@@ -33,19 +34,17 @@ export function BathroomPackageSelector({
               onClick={() => onChange(pkg.value)}
               aria-pressed={selected}
               className={cn(
-                'relative w-full rounded-xl border-2 px-2 py-3 sm:px-3 sm:py-4 text-center transition-all duration-200',
-                selected
-                  ? 'border-brand bg-white shadow-sm ring-1 ring-brand/30'
-                  : 'border-gray-200 bg-white hover:border-gray-300',
+                'relative w-full rounded-xl px-2 py-3 sm:px-3 sm:py-4 text-center transition-all duration-200',
+                selected ? FORM_OPTION_SELECTED : FORM_OPTION_UNSELECTED,
               )}
             >
               {selected && (
                 <CheckCircle2
-                  className="absolute top-2 right-2 h-4 w-4 text-brand"
+                  className="absolute top-2 right-2 h-4 w-4 text-blue-600"
                   aria-hidden
                 />
               )}
-              <p className="text-sm font-bold text-gray-900 dark:text-white">{pkg.shortLabel}</p>
+              <p className={cn('text-sm', selected ? 'font-semibold text-slate-900' : 'font-medium text-slate-700')}>{pkg.shortLabel}</p>
             </button>
           );
         })}
@@ -58,16 +57,16 @@ export function BathroomPackageSelector({
       >
         <div className="overflow-hidden">
           {selectedPackage && (
-            <ul className="mt-3 space-y-1.5 rounded-lg border border-gray-200 bg-white p-3">
-              <li className="text-[10px] font-semibold uppercase tracking-wider text-brand">
+            <ul className="mt-3 space-y-1.5 rounded-lg border border-slate-100 bg-white p-3">
+              <li className="text-[10px] font-semibold uppercase tracking-wider text-blue-600">
                 {selectedPackage.label} — included work scope
               </li>
               {selectedPackage.included.map((item) => (
                 <li
                   key={item}
-                  className="flex items-start gap-2 text-xs font-medium text-gray-800 dark:text-zinc-200"
+                  className="flex items-start gap-2 text-xs font-medium text-slate-700"
                 >
-                  <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-brand" />
+                  <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-blue-600" />
                   <span>{item}</span>
                 </li>
               ))}

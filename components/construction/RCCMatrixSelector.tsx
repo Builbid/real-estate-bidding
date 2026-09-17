@@ -5,6 +5,7 @@ import { getMatrixTierGroups, type MatrixOption } from '@/lib/constructionMatrix
 import type { RCCConfig } from '@/lib/types';
 import { FloorStageInfoButton } from '@/components/construction/FloorStageInfoButton';
 import { useConstructionI18n } from '@/lib/hooks/useConstructionI18n';
+import { FORM_OPTION_SELECTED, FORM_OPTION_UNSELECTED } from '@/components/owner/wizard/formTheme';
 import { cn } from '@/lib/utils';
 
 interface RCCMatrixSelectorProps {
@@ -15,18 +16,15 @@ interface RCCMatrixSelectorProps {
 const TIER_HEADER_STYLE = {
   ground: {
     icon: '🏠',
-    className:
-      'bg-stone-800 dark:bg-stone-700 border-l-stone-500 dark:border-l-stone-400 text-stone-50 ring-1 ring-black/5 dark:ring-white/10',
+    className: 'bg-white border-l-slate-400 text-slate-900 border border-slate-200',
   },
   g_plus_1: {
     icon: '🏢',
-    className:
-      'bg-slate-800 dark:bg-slate-700 border-l-brand dark:border-l-brand text-slate-50 ring-1 ring-black/5 dark:ring-white/10',
+    className: 'bg-white border-l-blue-600 text-slate-900 border border-slate-200',
   },
   g_plus_2: {
     icon: '🏗️',
-    className:
-      'bg-teal-950 dark:bg-teal-900 border-l-teal-600 dark:border-l-teal-400 text-teal-50 ring-1 ring-black/5 dark:ring-white/10',
+    className: 'bg-white border-l-teal-600 text-slate-900 border border-slate-200',
   },
 } as const;
 
@@ -37,7 +35,7 @@ function MatrixTierHeader({ tier }: { tier: keyof typeof TIER_HEADER_STYLE }) {
   return (
     <div
       className={cn(
-        'w-full flex items-center gap-2.5 rounded-xl border-l-4 px-5 py-2.5 shadow-sm',
+        'w-full flex items-center gap-2.5 rounded-xl border-l-4 px-5 py-2.5',
         'text-sm sm:text-base font-bold tracking-wide',
         className,
       )}
@@ -57,7 +55,7 @@ export function RCCMatrixSelector({ value, onChange }: RCCMatrixSelectorProps) {
   const groups = getMatrixTierGroups();
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <div className="space-y-1">
         <p className="text-sm text-muted-foreground">{t('construction.matrixHelper')}</p>
         <p className="text-xs text-muted-foreground">{t('construction.matrixHelperAs')}</p>
@@ -100,17 +98,15 @@ function MatrixOptionCard({
       type="button"
       onClick={onSelect}
       className={cn(
-        'w-full text-left rounded-xl border-2 p-4 transition-all',
-        selected
-          ? 'border-emerald-500 bg-white shadow-sm ring-1 ring-emerald-500/30'
-          : 'border-gray-200 bg-white hover:border-gray-300',
+        'w-full text-left rounded-xl p-4 transition-all',
+        selected ? FORM_OPTION_SELECTED : FORM_OPTION_UNSELECTED,
       )}
     >
       <div className="flex items-center justify-between gap-2 mb-3">
-        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+        <span className="text-xs font-semibold tracking-wide text-slate-500">
           {t('construction.option', { n: option.optionNumber })}
         </span>
-        {selected && <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />}
+        {selected && <CheckCircle2 className="w-4 h-4 text-blue-600 flex-shrink-0" />}
       </div>
 
       <ul className="space-y-2">

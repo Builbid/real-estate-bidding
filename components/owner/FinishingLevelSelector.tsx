@@ -2,28 +2,11 @@
 
 import { CheckCircle2 } from 'lucide-react';
 import { FINISHING_LEVEL_CONFIG } from '@/lib/firm/finishingLevel';
+import { FORM_OPTION_SELECTED, FORM_OPTION_UNSELECTED } from '@/components/owner/wizard/formTheme';
 import type { FinishingLevel } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 const LEVELS: FinishingLevel[] = ['basic', 'standard', 'premium'];
-
-const ACCENT = {
-  slate: {
-    border: 'border-slate-500/60',
-    bg: 'bg-white',
-    ring: 'ring-slate-500/20',
-  },
-  blue: {
-    border: 'border-brand/60',
-    bg: 'bg-white',
-    ring: 'ring-brand/20',
-  },
-  amber: {
-    border: 'border-amber-500/60',
-    bg: 'bg-white',
-    ring: 'ring-amber-500/20',
-  },
-};
 
 interface FinishingLevelSelectorProps {
   value: FinishingLevel | null;
@@ -43,7 +26,6 @@ export function FinishingLevelSelector({ value, onChange }: FinishingLevelSelect
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {LEVELS.map((level) => {
           const cfg = FINISHING_LEVEL_CONFIG[level];
-          const accent = ACCENT[cfg.accent];
           const selected = value === level;
           return (
             <button
@@ -51,28 +33,27 @@ export function FinishingLevelSelector({ value, onChange }: FinishingLevelSelect
               type="button"
               onClick={() => onChange(level)}
               className={cn(
-                'relative text-left rounded-2xl border-2 p-4 transition-all duration-200',
-                selected && `${accent.border} ${accent.bg} shadow-lg ring-2 ${accent.ring}`,
-                !selected && 'border-gray-200 bg-white hover:border-gray-300',
+                'relative text-left rounded-2xl p-4 transition-all duration-200',
+                selected ? FORM_OPTION_SELECTED : FORM_OPTION_UNSELECTED,
               )}
             >
               {cfg.popular && (
-                <span className="absolute -top-2 right-3 text-[9px] font-bold uppercase px-2 py-0.5 rounded-full bg-brand text-white">
+                <span className="absolute -top-2 right-3 text-[9px] font-bold uppercase px-2 py-0.5 rounded-full bg-blue-600 text-white">
                   Most Popular
                 </span>
               )}
               <div className="flex items-start justify-between gap-2 mb-2">
                 <span className="text-2xl">{cfg.icon}</span>
-                {selected && <CheckCircle2 className="w-5 h-5 text-brand" />}
+                {selected && <CheckCircle2 className="w-5 h-5 text-blue-600" />}
               </div>
-              <h3 className="text-sm font-bold text-foreground">{cfg.title}</h3>
-              <span className="inline-block mt-1 mb-2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-white border border-gray-200">
+              <h3 className={cn('text-sm', selected ? 'font-semibold text-slate-900' : 'font-medium text-slate-700')}>{cfg.title}</h3>
+              <span className="inline-block mt-1 mb-2 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white border border-slate-200 text-slate-600">
                 {cfg.classBadge}
               </span>
               <ul className="space-y-1 mb-3">
                 {cfg.includes.map((item) => (
-                  <li key={item} className="text-[10px] text-muted-foreground flex gap-1">
-                    <span className="text-brand">•</span>{item}
+                  <li key={item} className="text-[10px] text-slate-500 flex gap-1">
+                    <span className="text-blue-600">•</span>{item}
                   </li>
                 ))}
               </ul>

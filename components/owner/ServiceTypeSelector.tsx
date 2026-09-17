@@ -3,7 +3,7 @@
 import { CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { HistoryBackButton } from '@/components/shared/HistoryBackButton';
-import { FORM_CONTINUE_BTN } from '@/components/owner/wizard/formTheme';
+import { FORM_CONTINUE_BTN, FORM_OPTION_SELECTED, FORM_OPTION_UNSELECTED } from '@/components/owner/wizard/formTheme';
 import type { ServiceType } from '@/lib/types';
 import { ALL_SERVICE_CATEGORIES, TRADE_SERVICE_OPTIONS } from '@/lib/trades';
 import { isConstructionFirmEnabled } from '@/lib/features';
@@ -57,17 +57,15 @@ function ServiceCard({
       type="button"
       onClick={onSelect}
       className={cn(
-        'relative flex h-full min-h-0 w-full cursor-pointer flex-col justify-between rounded-xl border-2 p-3.5 text-left transition-all duration-200',
-        selected
-          ? 'scale-[1.02] border-brand bg-white shadow-sm ring-1 ring-brand/30'
-          : 'border-gray-200 bg-white hover:border-gray-300',
+        'relative flex h-full min-h-0 w-full cursor-pointer flex-col justify-between rounded-xl p-3.5 text-left transition-all duration-200',
+        selected ? FORM_OPTION_SELECTED : FORM_OPTION_UNSELECTED,
       )}
     >
       <div className="mb-1 flex items-center justify-between gap-2">
         <span className="text-xl leading-none">{option.emoji}</span>
-        {selected && <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-brand" />}
+        {selected && <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-blue-600" />}
       </div>
-      <p className="text-xs font-bold text-foreground">{option.title}</p>
+      <p className={cn('text-xs', selected ? 'font-semibold text-slate-900' : 'font-medium text-slate-700')}>{option.title}</p>
       <p className="mt-0.5 flex-1 text-[10px] leading-snug text-muted-foreground">
         {option.subtitle}
       </p>
