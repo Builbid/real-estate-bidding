@@ -16,6 +16,7 @@ import {
 import { TradeWorkRequirementsFields, type TradeWorkFormFields } from '@/components/owner/TradeWorkRequirementsFields';
 import { OptionSelectGrid } from '@/components/owner/wizard/OptionSelectCard';
 import { FORM_CONTINUE_BTN, FORM_SECTION_CARD, FORM_SHELL_CARD, FORM_TEXTAREA } from '@/components/owner/wizard/formTheme';
+import { WIZARD_SECTION_LABEL, withSectionColon } from '@/components/owner/wizard/StartTimeAndNotes';
 import { ReviewSummaryList, WizardStepper } from '@/components/owner/wizard/ReviewSummary';
 import { generateProjectTitle } from '@/lib/generateProjectTitle';
 import { hasContactInfo } from '@/lib/validation/projectContactInfo';
@@ -503,8 +504,8 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
               {(trade === 'plumber' || trade === 'electrician' || trade === 'false_ceiling_work') && (
                 <div className="space-y-4">
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-semibold text-gray-800 dark:text-zinc-100 uppercase tracking-wider">
-                      Building Structure Type <span className="text-red-500">*</span>
+                    <label className={WIZARD_SECTION_LABEL}>
+                      {withSectionColon('Building Structure Type')} <span className="text-red-500">*</span>
                     </label>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {PLUMBING_HOUSE_STRUCTURE_OPTIONS.map((opt) => {
@@ -550,8 +551,8 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                   </div>
 
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-semibold text-gray-800 dark:text-zinc-100 uppercase tracking-wider">
-                      Target Work Floor
+                    <label className={WIZARD_SECTION_LABEL}>
+                      {withSectionColon('Target Work Floor')}
                     </label>
                     <OptionSelectGrid
                       options={PLUMBING_TARGET_FLOOR_OPTIONS}
@@ -624,8 +625,8 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
               )}
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-gray-800 dark:text-zinc-100 uppercase tracking-wider">
-                  Bidding Duration
+                <label className={WIZARD_SECTION_LABEL}>
+                  {withSectionColon('Bidding Duration')}
                 </label>
                 <Select value={form.bidding_minutes} onValueChange={(v) => update('bidding_minutes', v)}>
                   <SelectTrigger>
@@ -801,8 +802,8 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                   </div>
 
                   <div className={FORM_SECTION_CARD}>
-                    <label className="text-xs font-semibold text-gray-800 dark:text-zinc-100 uppercase tracking-wider">
-                      Additional Requirements <span className="normal-case tracking-normal">(optional)</span>
+                    <label className={WIZARD_SECTION_LABEL}>
+                      Additional Requirements <span className="normal-case tracking-normal">(optional)</span>:
                     </label>
                     <textarea
                       rows={3}
@@ -928,9 +929,7 @@ function PainterChoice<T extends string>({
   );
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="text-xs font-semibold text-gray-800 dark:text-zinc-100 uppercase tracking-wider">
-        {label}
-      </label>
+      <label className={WIZARD_SECTION_LABEL}>{withSectionColon(label)}</label>
       <div
         className={cn(
           'grid gap-2',

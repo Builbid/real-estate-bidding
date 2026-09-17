@@ -10,7 +10,7 @@ import {
 } from '@/lib/projectStartTime';
 
 export const WIZARD_SECTION_LABEL =
-  'text-xs font-bold text-slate-900 dark:text-zinc-100 uppercase tracking-wider';
+  'mb-2 text-xs font-bold text-slate-900 dark:text-zinc-100 uppercase tracking-wider';
 
 export function withSectionColon(label: string): string {
   const trimmed = label.trim();
@@ -65,8 +65,7 @@ export function StartTimeAndNotes<T extends string = ProjectStartTimeType>({
 
       <div className={FORM_SECTION_CARD}>
         <label className={WIZARD_SECTION_LABEL}>
-          Additional Requirements:{' '}
-          <span className="normal-case tracking-normal">(optional)</span>
+          Additional Requirements <span className="normal-case tracking-normal">(optional)</span>:
         </label>
         <textarea
           rows={3}

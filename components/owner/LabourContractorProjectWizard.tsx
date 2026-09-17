@@ -29,7 +29,6 @@ import {
   MISTRI_ASSAM_ROOF_OPTIONS,
   MISTRI_ASSAM_ROOFING_SHEET_OPTIONS,
   MISTRI_APPROXIMATE_AREA_LABEL,
-  MISTRI_BOUNDARY_WALL_COLUMN_OPTIONS,
   MISTRI_BOUNDARY_WALL_MATERIAL_OPTIONS,
   MISTRI_BOUNDARY_WALL_PLASTER_OPTIONS,
   MISTRI_BOUNDARY_WALL_TIMELINE_OPTIONS,
@@ -70,7 +69,6 @@ import {
   workTypesFromWallPlasterMode,
   type MistriAssamRoofType,
   type MistriAssamRoofingSheet,
-  type MistriBoundaryWallColumnType,
   type MistriBoundaryWallMaterial,
   type MistriBoundaryWallTimeline,
   type MistriBrickworkMaterial,
@@ -95,6 +93,7 @@ import {
   FORM_SHELL_CARD,
   FORM_TEXTAREA,
 } from '@/components/owner/wizard/formTheme';
+import { WIZARD_SECTION_LABEL, withSectionColon } from '@/components/owner/wizard/StartTimeAndNotes';
 import { ReviewSummaryList, WizardStepper } from '@/components/owner/wizard/ReviewSummary';
 import { cn } from '@/lib/utils';
 import { createProjectAction } from '@/app/actions/createProject';
@@ -103,17 +102,9 @@ type Step = 1 | 2 | 3 | 4;
 
 const BIDDING_MINUTES = 7;
 
-const SECTION_LABEL =
-  'text-xs font-bold text-slate-900 dark:text-zinc-100 uppercase tracking-wider';
+const SECTION_LABEL = WIZARD_SECTION_LABEL;
 const HELPER_TEXT =
   'text-[11px] font-medium text-gray-700 dark:text-zinc-300 leading-relaxed';
-const NESTED_SECTION_LABEL = 'text-xs font-bold text-slate-900 dark:text-zinc-100';
-
-function withSectionColon(label: string): string {
-  const trimmed = label.trim();
-  if (!trimmed || /[?:]$/.test(trimmed)) return trimmed;
-  return `${trimmed}:`;
-}
 
 interface FloorWorkForm {
   workTypes: MistriFloorWorkType[];
@@ -303,7 +294,7 @@ function NestedChoiceButtons<T extends string>({
 
   return (
     <div className="space-y-1.5">
-      <p className={NESTED_SECTION_LABEL}>{withSectionColon(question)}</p>
+      <p className={SECTION_LABEL}>{withSectionColon(question)}</p>
       <div
         className={cn(
           'grid gap-2',
@@ -493,8 +484,8 @@ interface BoundaryWallForm {
   materialType: MistriBoundaryWallMaterial | null;
   plasteringFinish: MistriWallPlasteringScope | null;
   plasteringAreaSqft: string;
-  columnType: MistriBoundaryWallColumnType | null;
   executionTimeline: MistriBoundaryWallTimeline | null;
+  executionTimelineCustomDate: string;
 }
 
 const EMPTY_BOUNDARY_WALL: BoundaryWallForm = {
@@ -503,8 +494,8 @@ const EMPTY_BOUNDARY_WALL: BoundaryWallForm = {
   materialType: null,
   plasteringFinish: null,
   plasteringAreaSqft: '',
-  columnType: null,
   executionTimeline: null,
+  executionTimelineCustomDate: '',
 };
 
 interface FormState {
@@ -989,8 +980,8 @@ export function LabourContractorProjectWizard() {
       materialType: form.boundaryWall.materialType,
       plasteringFinish: form.boundaryWall.plasteringFinish,
       plasteringAreaSqft: form.boundaryWall.plasteringAreaSqft,
-      columnType: form.boundaryWall.columnType,
       executionTimeline: form.boundaryWall.executionTimeline,
+      executionTimelineCustomDate: form.boundaryWall.executionTimelineCustomDate,
       additionalRequirements: form.additionalRequirements,
     };
   }
@@ -1356,20 +1347,29 @@ export function LabourContractorProjectWizard() {
                   )}
 
                   <NestedChoiceButtons
-                    question="Column / Pillar Specification"
-                    options={MISTRI_BOUNDARY_WALL_COLUMN_OPTIONS}
-                    value={form.boundaryWall.columnType}
-                    columns={2}
-                    onChange={(v) => patchBoundaryWall({ columnType: v })}
-                  />
-
-                  <NestedChoiceButtons
                     question="Work Execution Timeline"
                     options={MISTRI_BOUNDARY_WALL_TIMELINE_OPTIONS}
                     value={form.boundaryWall.executionTimeline}
                     columns={4}
-                    onChange={(v) => patchBoundaryWall({ executionTimeline: v })}
+                    onChange={(v) =>
+                      patchBoundaryWall({
+                        executionTimeline: v,
+                        executionTimelineCustomDate:
+                          v === 'custom' ? form.boundaryWall.executionTimelineCustomDate : '',
+                      })
+                    }
                   />
+                  {form.boundaryWall.executionTimeline === 'custom' && (
+                    <Input
+                      label="Custom Date"
+                      type="date"
+                      min={todayLocalDateString()}
+                      value={form.boundaryWall.executionTimelineCustomDate}
+                      onChange={(e) =>
+                        patchBoundaryWall({ executionTimelineCustomDate: e.target.value })
+                      }
+                    />
+                  )}
                 </div>
               ) : (
                 <>
@@ -1725,8 +1725,7 @@ export function LabourContractorProjectWizard() {
 
               <div className={FORM_SECTION_CARD}>
                 <label className={SECTION_LABEL}>
-                  Additional Requirements:{' '}
-                  <span className="normal-case tracking-normal">(optional)</span>
+                  Additional Requirements <span className="normal-case tracking-normal">(optional)</span>:
                 </label>
                 <textarea
                   rows={3}

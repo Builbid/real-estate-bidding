@@ -2,6 +2,7 @@
 
 import { Minus, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { WIZARD_SECTION_LABEL, withSectionColon } from '@/components/owner/wizard/StartTimeAndNotes';
 
 export function StepperInput({
   label,
@@ -22,9 +23,7 @@ export function StepperInput({
 
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="text-xs font-semibold text-gray-800 dark:text-zinc-100 uppercase tracking-wider">
-        {label}
-      </label>
+      <label className={WIZARD_SECTION_LABEL}>{withSectionColon(label)}</label>
       <div className="flex items-center gap-3">
         <button
           type="button"

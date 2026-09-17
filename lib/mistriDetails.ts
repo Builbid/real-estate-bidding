@@ -49,7 +49,7 @@ export type MistriBoundaryWallMaterial =
 
 export type MistriBoundaryWallColumnType = 'brick_pillar' | 'rcc_casted_column';
 
-export type MistriBoundaryWallTimeline = '1week' | '2weeks' | '3weeks' | '4weeks';
+export type MistriBoundaryWallTimeline = '1week' | '2weeks' | '3weeks' | '4weeks' | 'custom';
 
 export interface MistriBrickworkDetails {
   materialType: MistriBrickworkMaterial;
@@ -67,6 +67,8 @@ export interface MistriBoundaryWallDetails {
   columnType?: MistriBoundaryWallColumnType | null;
   /** Compact Boundary Wall workflow — execution window. */
   executionTimeline?: MistriBoundaryWallTimeline | null;
+  /** Required when executionTimeline is `custom`. YYYY-MM-DD. */
+  executionTimelineCustomDate?: string | null;
   /**
    * Plastering surface area in sq. ft.
    * Single side = wall area; both sides = wall area × 2; no plaster = 0.
@@ -531,7 +533,7 @@ export const MISTRI_BOUNDARY_WALL_TIMELINE_OPTIONS: {
   { value: '1week', label: 'Within 1 Week' },
   { value: '2weeks', label: '2 Weeks' },
   { value: '3weeks', label: '3 Weeks' },
-  { value: '4weeks', label: '4 Weeks' },
+  { value: 'custom', label: 'Custom Date' },
 ];
 
 /** Current construction floor buttons (Box 1). */
@@ -1267,9 +1269,10 @@ const BOUNDARY_WALL_MATERIAL_SET = new Set<string>([
 const BOUNDARY_WALL_COLUMN_SET = new Set<string>(
   MISTRI_BOUNDARY_WALL_COLUMN_OPTIONS.map((o) => o.value),
 );
-const BOUNDARY_WALL_TIMELINE_SET = new Set<string>(
-  MISTRI_BOUNDARY_WALL_TIMELINE_OPTIONS.map((o) => o.value),
-);
+const BOUNDARY_WALL_TIMELINE_SET = new Set<string>([
+  ...MISTRI_BOUNDARY_WALL_TIMELINE_OPTIONS.map((o) => o.value),
+  '4weeks',
+]);
 const START_TIME_TYPES = new Set<MistriStartTimeType>([
   '1week',
   '2week',
@@ -1426,6 +1429,34 @@ function normalizeBoundaryWallTimeline(
   return null;
 }
 
+function normalizeBoundaryWallCustomDate(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const date = value.trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+  return date;
+}
+
+export function formatBoundaryWallTimeline(
+  timeline: MistriBoundaryWallTimeline | null | undefined,
+  customDate?: string | null,
+): string {
+  if (!timeline) return '—';
+  if (timeline === 'custom') {
+    const date = customDate?.trim();
+    if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      const [year, month, day] = date.split('-').map(Number);
+      return new Date(year, month - 1, day).toLocaleDateString('en-IN', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      });
+    }
+    return 'Custom Date';
+  }
+  if (timeline === '4weeks') return '4 Weeks';
+  return optionLabel(MISTRI_BOUNDARY_WALL_TIMELINE_OPTIONS, timeline);
+}
+
 export function boundaryWallTimelineToStartTime(
   timeline: MistriBoundaryWallTimeline,
 ): MistriStartTimeType {
@@ -1438,6 +1469,8 @@ export function boundaryWallTimelineToStartTime(
       return '3week';
     case '4weeks':
       return '4week';
+    case 'custom':
+      return 'specific';
   }
 }
 
@@ -1471,19 +1504,24 @@ export function normalizeBoundaryWallDetails(
   const materialType = normalizeBoundaryWallMaterial(v.materialType);
   const columnType = normalizeBoundaryWallColumnType(v.columnType);
   const executionTimeline = normalizeBoundaryWallTimeline(v.executionTimeline);
+  const executionTimelineCustomDate = normalizeBoundaryWallCustomDate(
+    v.executionTimelineCustomDate ?? v.execution_timeline_custom_date,
+  );
   const plasteringAreaSqft = resolveBoundaryWallPlasteringAreaSqft({
     lengthFt,
     heightFt,
     plasteringFinish,
     plasteringAreaSqft: v.plasteringAreaSqft ?? v.plastering_area_sqft,
   });
-  if (lengthFt && heightFt && materialType && columnType && executionTimeline) {
+  if (lengthFt && heightFt && materialType && executionTimeline) {
     return {
       lengthFt,
       heightFt,
       materialType,
       columnType,
       executionTimeline,
+      executionTimelineCustomDate:
+        executionTimeline === 'custom' ? executionTimelineCustomDate : null,
       plasteringFinish,
       plasteringAreaSqft,
       thickness: normalizeBoundaryWallThickness(v.thickness),
@@ -1504,6 +1542,8 @@ export function normalizeBoundaryWallDetails(
     materialType,
     columnType,
     executionTimeline,
+    executionTimelineCustomDate:
+      executionTimeline === 'custom' ? executionTimelineCustomDate : null,
   };
 }
 
@@ -2905,9 +2945,10 @@ export function formatMistriFloorLevel(details: MistriDetails): string {
 
 export function formatMistriStartTime(details: MistriDetails): string {
   if (details.boundaryWallDetails?.executionTimeline) {
-    return optionLabel(
-      MISTRI_BOUNDARY_WALL_TIMELINE_OPTIONS,
+    return formatBoundaryWallTimeline(
       details.boundaryWallDetails.executionTimeline,
+      details.boundaryWallDetails.executionTimelineCustomDate ??
+        details.projectStartTimeSpecificDate,
     );
   }
   switch (details.projectStartTimeType) {
@@ -3035,7 +3076,7 @@ export function getMistriWorkRequirementBlocks(details: MistriDetails): {
 
   if (details.boundaryWallDetails) {
     const wall = details.boundaryWallDetails;
-    if (wall.lengthFt && wall.heightFt && wall.materialType && wall.columnType && wall.executionTimeline) {
+    if (wall.lengthFt && wall.heightFt && wall.materialType && wall.executionTimeline) {
       blocks.push(
         {
           label: 'Wall Length',
@@ -3072,13 +3113,20 @@ export function getMistriWorkRequirementBlocks(details: MistriDetails): {
               0,
           ).toLocaleString('en-IN')} sq. ft.`,
         },
-        {
-          label: 'Column / Pillar',
-          value: optionLabel(MISTRI_BOUNDARY_WALL_COLUMN_OPTIONS, wall.columnType),
-        },
+        ...(wall.columnType
+          ? [
+              {
+                label: 'Column / Pillar',
+                value: optionLabel(MISTRI_BOUNDARY_WALL_COLUMN_OPTIONS, wall.columnType),
+              },
+            ]
+          : []),
         {
           label: 'Work Execution Timeline',
-          value: optionLabel(MISTRI_BOUNDARY_WALL_TIMELINE_OPTIONS, wall.executionTimeline),
+          value: formatBoundaryWallTimeline(
+            wall.executionTimeline,
+            wall.executionTimelineCustomDate,
+          ),
         },
       );
     } else {
@@ -3266,8 +3314,8 @@ export function validateMistriBoundaryWallInput(input: {
   materialType: MistriBoundaryWallMaterial | null;
   plasteringFinish: MistriWallPlasteringScope | null;
   plasteringAreaSqft?: string | number | null;
-  columnType: MistriBoundaryWallColumnType | null;
   executionTimeline: MistriBoundaryWallTimeline | null;
+  executionTimelineCustomDate?: string | null;
   additionalRequirements: string;
 }): { error: string } | { details: MistriDetails } {
   const lengthFt = parseFoundationDepthFt(input.lengthFt);
@@ -3295,13 +3343,20 @@ export function validateMistriBoundaryWallInput(input: {
   if (plasteringFinish !== 'none' && plasteringAreaSqft == null) {
     return { error: 'Enter the approximate plastering area (sq. ft.).' };
   }
-  const columnType = normalizeBoundaryWallColumnType(input.columnType);
-  if (!columnType) {
-    return { error: 'Select Brick Pillar or RCC Casted Column.' };
-  }
   const executionTimeline = normalizeBoundaryWallTimeline(input.executionTimeline);
   if (!executionTimeline) {
     return { error: 'Select the work execution timeline.' };
+  }
+  let executionTimelineCustomDate: string | null = null;
+  if (executionTimeline === 'custom') {
+    const date = normalizeBoundaryWallCustomDate(input.executionTimelineCustomDate);
+    if (!date) {
+      return { error: 'Select a custom completion date.' };
+    }
+    if (!isProjectStartDateNotInPast(date)) {
+      return { error: PROJECT_START_DATE_PAST_INVALID_MESSAGE };
+    }
+    executionTimelineCustomDate = date;
   }
 
   const additional = input.additionalRequirements.trim() || null;
@@ -3312,8 +3367,8 @@ export function validateMistriBoundaryWallInput(input: {
     materialType,
     plasteringFinish,
     plasteringAreaSqft: plasteringAreaSqft ?? 0,
-    columnType,
     executionTimeline,
+    executionTimelineCustomDate,
   };
 
   return {
@@ -3335,7 +3390,7 @@ export function validateMistriBoundaryWallInput(input: {
       includeDoorWindowFrames: false,
       doorWindowFramesQuantity: null,
       projectStartTimeType: boundaryWallTimelineToStartTime(executionTimeline),
-      projectStartTimeSpecificDate: null,
+      projectStartTimeSpecificDate: executionTimelineCustomDate,
     },
   };
 }
