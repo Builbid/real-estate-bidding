@@ -1445,11 +1445,9 @@ export function LabourContractorProjectWizard() {
                           const selected = selectedScopes.includes(opt.value);
                           const disabled = isRccScopeDisabled(selectedScopes, opt.value);
                           const scopeNote =
-                            opt.value === 'wall_plaster_only'
-                              ? 'Note: Requires columns and slab to already be cast on this floor.'
-                              : opt.value === 'frame_only'
-                                ? 'Cannot be combined with Full Construction, Wall Brick Work, or Flooring Work.'
-                                : undefined;
+                            opt.value === 'frame_only'
+                              ? 'Cannot be combined with Full Construction, Wall Brick Work, or Flooring Work.'
+                              : undefined;
 
                           return (
                             <div key={opt.value} className="w-full space-y-2">

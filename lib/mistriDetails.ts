@@ -724,9 +724,9 @@ export const MISTRI_WALL_PLASTER_WORK_OPTIONS: {
   value: MistriWallPlasterWorkMode;
   label: string;
 }[] = [
-  { value: 'wall', label: 'Wall Brick Work' },
-  { value: 'plastering', label: 'Plastering Work' },
-  { value: 'both', label: 'Both Wall Brick Work & Plastering Work' },
+  { value: 'wall', label: 'Brick Work Only' },
+  { value: 'plastering', label: 'Plastering Work Only' },
+  { value: 'both', label: 'Both Brick Work & Plastering Work' },
 ];
 
 export function wallPlasterWorkModeFromWorkTypes(
