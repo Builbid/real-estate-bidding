@@ -1269,7 +1269,7 @@ export const CUSTOM_FLOOR_SEQUENCE_AFTER_4TH_INVALID_MESSAGE =
   'With RCC 4th Floor selected, custom floors must be a consecutive sequence starting at 5 (e.g. 5,6,7).';
 
 export const CUSTOM_FLOOR_NUMBERS_INVALID_MESSAGE =
-  'Add at least one floor number above 4th (5–50).';
+  'Add at least one floor number above 4th (5–20).';
 
 export function getCustomFloorSequenceInvalidMessage(
   requireStartAt5: boolean,
@@ -1919,7 +1919,7 @@ export function parseCustomFloorNumber(raw: unknown): number | null {
 }
 
 export const CUSTOM_FLOOR_INPUT_HELPER =
-  'Add each floor number above 4th (5–50). Duplicates are ignored.';
+  'Select floors 5–20. Selected floors appear as tags in the box.';
 
 /**
  * Live input sanitizer for RCC custom floors (5–50).
