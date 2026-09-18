@@ -1314,8 +1314,9 @@ const MAX_LEGACY_CUSTOM_FLOORS = 50;
 
 function optionLabel<T extends string>(
   options: { value: T; label: string }[],
-  value: T,
+  value: T | null | undefined,
 ): string {
+  if (value == null || value === '') return '—';
   return options.find((o) => o.value === value)?.label ?? value;
 }
 
@@ -1511,7 +1512,7 @@ export function normalizeBoundaryWallDetails(
     lengthFt,
     heightFt,
     plasteringFinish,
-    plasteringAreaSqft: v.plasteringAreaSqft ?? v.plastering_area_sqft,
+    plasteringAreaSqft: toAreaInput(v.plasteringAreaSqft ?? v.plastering_area_sqft),
   });
   if (lengthFt && heightFt && materialType && executionTimeline) {
     return {
@@ -1778,10 +1779,14 @@ function normalizeCivilWorkTypes(raw: unknown): MistriCivilWorkType[] {
 }
 
 /** Parse approximate area from free-text or number (e.g. "Approx. 1200 Sq. Ft."). */
-export function parseApproximateAreaSqft(input: string | number): number | null {
+export function parseApproximateAreaSqft(
+  input: string | number | null | undefined,
+): number | null {
+  if (input == null || input === '') return null;
   if (typeof input === 'number') {
     return Number.isFinite(input) && input > 0 ? input : null;
   }
+  if (typeof input !== 'string') return null;
   const match = String(input).replace(/,/g, '').match(/(\d+(?:\.\d+)?)/);
   if (!match) return null;
   const area = parseFloat(match[1]);
@@ -2343,33 +2348,46 @@ export function computeBoundaryWallAreaSqft(
   const length = parseFoundationDepthFt(lengthFt);
   const height = parseFoundationDepthFt(heightFt);
   if (length == null || height == null) return null;
-  return Math.round(length * height * 100) / 100;
+  const area = length * height;
+  if (!Number.isFinite(area) || area <= 0) return null;
+  return Math.round(area * 100) / 100;
 }
 
 export function computeBoundaryWallPlasteringAreaSqft(
   wallAreaSqft: number | null | undefined,
   plasteringFinish: MistriWallPlasteringScope | null | undefined,
 ): number | null {
-  if (!plasteringFinish) return null;
-  if (plasteringFinish === 'none') return 0;
-  if (wallAreaSqft == null || !(wallAreaSqft > 0)) return null;
-  const multiplier = plasteringFinish === 'both' ? 2 : 1;
-  return Math.round(wallAreaSqft * multiplier * 100) / 100;
+  const finish = plasteringFinish ?? null;
+  if (!finish) return null;
+  if (finish === 'none') return 0;
+  const area = wallAreaSqft ?? 0;
+  if (!(area > 0)) return null;
+  const multiplier = finish === 'both' ? 2 : 1;
+  const plastered = area * multiplier;
+  if (!Number.isFinite(plastered)) return null;
+  return Math.round(plastered * 100) / 100;
 }
 
-export function resolveBoundaryWallPlasteringAreaSqft(input: {
+function toAreaInput(value: unknown): string | number | null {
+  if (value == null || value === '') return null;
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+  if (typeof value === 'string') return value;
+  return null;
+}
+
+export function resolveBoundaryWallPlasteringAreaSqft(input?: {
   lengthFt?: string | number | null;
   heightFt?: string | number | null;
-  plasteringFinish: MistriWallPlasteringScope | null | undefined;
+  plasteringFinish?: MistriWallPlasteringScope | null;
   plasteringAreaSqft?: string | number | null;
-}): number | null {
-  const wallArea = computeBoundaryWallAreaSqft(input.lengthFt, input.heightFt);
-  const auto = computeBoundaryWallPlasteringAreaSqft(wallArea, input.plasteringFinish);
+} | null): number | null {
+  const finish = input?.plasteringFinish ?? null;
+  const wallArea = computeBoundaryWallAreaSqft(input?.lengthFt, input?.heightFt);
+  const auto = computeBoundaryWallPlasteringAreaSqft(wallArea, finish);
   if (auto != null) return auto;
-  if (!input.plasteringFinish || input.plasteringFinish === 'none') {
-    return input.plasteringFinish === 'none' ? 0 : null;
-  }
-  return parseApproximateAreaSqft(input.plasteringAreaSqft ?? '');
+  if (!finish) return null;
+  if (finish === 'none') return 0;
+  return parseApproximateAreaSqft(input?.plasteringAreaSqft) ?? null;
 }
 
 function normalizeSingleFloorWork(raw: unknown): MistriFloorWork | null {
@@ -3088,7 +3106,7 @@ export function getMistriWorkRequirementBlocks(details: MistriDetails): {
         },
         {
           label: 'Approximate Total Wall Area',
-          value: `${computeBoundaryWallAreaSqft(wall.lengthFt, wall.heightFt)?.toLocaleString('en-IN') ?? '—'} sq. ft.`,
+          value: `${computeBoundaryWallAreaSqft(wall?.lengthFt, wall?.heightFt)?.toLocaleString('en-IN') ?? '—'} sq. ft.`,
         },
         {
           label: 'Wall Material',
@@ -3099,16 +3117,17 @@ export function getMistriWorkRequirementBlocks(details: MistriDetails): {
         },
         {
           label: 'Boundary Wall Plastering',
-          value: optionLabel(MISTRI_BOUNDARY_WALL_PLASTER_OPTIONS, wall.plasteringFinish),
+          value: optionLabel(MISTRI_BOUNDARY_WALL_PLASTER_OPTIONS, wall?.plasteringFinish),
         },
         {
           label: 'Estimated Plastering Surface Area',
           value: `${Number(
-            wall.plasteringAreaSqft ??
+            wall?.plasteringAreaSqft ??
               resolveBoundaryWallPlasteringAreaSqft({
-                lengthFt: wall.lengthFt,
-                heightFt: wall.heightFt,
-                plasteringFinish: wall.plasteringFinish,
+                lengthFt: wall?.lengthFt,
+                heightFt: wall?.heightFt,
+                plasteringFinish: wall?.plasteringFinish,
+                plasteringAreaSqft: wall?.plasteringAreaSqft,
               }) ??
               0,
           ).toLocaleString('en-IN')} sq. ft.`,
@@ -3149,7 +3168,7 @@ export function getMistriWorkRequirementBlocks(details: MistriDetails): {
           label: 'Boundary Wall Plastering',
           value: optionLabel(
             MISTRI_WALL_PLASTERING_SCOPE_OPTIONS,
-            wall.plasteringFinish,
+            wall?.plasteringFinish,
           ),
         },
       );
@@ -3330,7 +3349,7 @@ export function validateMistriBoundaryWallInput(input: {
   if (!materialType || materialType === 'concrete_solid_block') {
     return { error: 'Select a wall material: Red Clay Brick or AAC Block.' };
   }
-  const plasteringFinish = normalizeWallPlasteringScope(input.plasteringFinish);
+  const plasteringFinish = normalizeWallPlasteringScope(input?.plasteringFinish);
   if (!plasteringFinish) {
     return { error: 'Select a plastering option for the boundary wall.' };
   }
@@ -3338,7 +3357,7 @@ export function validateMistriBoundaryWallInput(input: {
     lengthFt,
     heightFt,
     plasteringFinish,
-    plasteringAreaSqft: input.plasteringAreaSqft,
+    plasteringAreaSqft: input?.plasteringAreaSqft,
   });
   if (plasteringFinish !== 'none' && plasteringAreaSqft == null) {
     return { error: 'Enter the approximate plastering area (sq. ft.).' };

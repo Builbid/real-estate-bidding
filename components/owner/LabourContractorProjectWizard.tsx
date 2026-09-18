@@ -990,14 +990,15 @@ export function LabourContractorProjectWizard() {
   }
 
   function boundaryWallValidationInput() {
+    const wall = form.boundaryWall;
     return {
-      lengthFt: form.boundaryWall.lengthFt,
-      heightFt: form.boundaryWall.heightFt,
-      materialType: form.boundaryWall.materialType,
-      plasteringFinish: form.boundaryWall.plasteringFinish,
-      plasteringAreaSqft: form.boundaryWall.plasteringAreaSqft,
-      executionTimeline: form.boundaryWall.executionTimeline,
-      executionTimelineCustomDate: form.boundaryWall.executionTimelineCustomDate,
+      lengthFt: wall?.lengthFt ?? '',
+      heightFt: wall?.heightFt ?? '',
+      materialType: wall?.materialType ?? null,
+      plasteringFinish: wall?.plasteringFinish ?? null,
+      plasteringAreaSqft: wall?.plasteringAreaSqft ?? '',
+      executionTimeline: wall?.executionTimeline ?? null,
+      executionTimelineCustomDate: wall?.executionTimelineCustomDate ?? '',
       additionalRequirements: form.additionalRequirements,
     };
   }
@@ -1113,17 +1114,18 @@ export function LabourContractorProjectWizard() {
     form.houseType === 'rcc' && mistriContractTypeRequiredForFloorWork(assembledFloorWork);
   const currentFloorPlan = currentFloorPlanFromFloorWork(assembledFloorWork);
   const currentUpper = floorPlanUpperCount(currentFloorPlan);
+  const wall = form.boundaryWall;
   const boundaryWallAreaSqft = computeBoundaryWallAreaSqft(
-    form.boundaryWall.lengthFt,
-    form.boundaryWall.heightFt,
+    wall?.lengthFt,
+    wall?.heightFt,
   );
   const autoPlasteringAreaSqft = computeBoundaryWallPlasteringAreaSqft(
     boundaryWallAreaSqft,
-    form.boundaryWall.plasteringFinish,
+    wall?.plasteringFinish,
   );
   const showManualPlasteringArea =
-    form.boundaryWall.plasteringFinish != null &&
-    form.boundaryWall.plasteringFinish !== 'none' &&
+    wall?.plasteringFinish != null &&
+    wall?.plasteringFinish !== 'none' &&
     autoPlasteringAreaSqft == null;
 
   const futureCustomError = (() => {
@@ -1309,7 +1311,7 @@ export function LabourContractorProjectWizard() {
                       type="text"
                       inputMode="decimal"
                       placeholder="e.g. 80"
-                      value={form.boundaryWall.lengthFt}
+                      value={form.boundaryWall?.lengthFt ?? ''}
                       onChange={(e) => patchBoundaryWall({ lengthFt: e.target.value })}
                     />
                     <Input
@@ -1317,7 +1319,7 @@ export function LabourContractorProjectWizard() {
                       type="text"
                       inputMode="decimal"
                       placeholder="e.g. 6"
-                      value={form.boundaryWall.heightFt}
+                      value={form.boundaryWall?.heightFt ?? ''}
                       onChange={(e) => patchBoundaryWall({ heightFt: e.target.value })}
                     />
                   </div>
@@ -1330,7 +1332,7 @@ export function LabourContractorProjectWizard() {
                   <NestedChoiceButtons
                     question="Material / Brick Selection"
                     options={MISTRI_BOUNDARY_WALL_MATERIAL_OPTIONS}
-                    value={form.boundaryWall.materialType}
+                    value={form.boundaryWall?.materialType ?? null}
                     columns={2}
                     onChange={(v) => patchBoundaryWall({ materialType: v })}
                   />
@@ -1338,7 +1340,7 @@ export function LabourContractorProjectWizard() {
                   <NestedChoiceButtons
                     question="Plastering Options"
                     options={MISTRI_BOUNDARY_WALL_PLASTER_OPTIONS}
-                    value={form.boundaryWall.plasteringFinish}
+                    value={form.boundaryWall?.plasteringFinish ?? null}
                     onChange={(v) => patchBoundaryWall({ plasteringFinish: v })}
                   />
                   {autoPlasteringAreaSqft != null && (
@@ -1356,7 +1358,7 @@ export function LabourContractorProjectWizard() {
                         type="text"
                         inputMode="decimal"
                         placeholder="e.g. 500"
-                        value={form.boundaryWall.plasteringAreaSqft}
+                        value={form.boundaryWall?.plasteringAreaSqft ?? ''}
                         onChange={(e) =>
                           patchBoundaryWall({ plasteringAreaSqft: e.target.value })
                         }
@@ -1367,22 +1369,22 @@ export function LabourContractorProjectWizard() {
                   <NestedChoiceButtons
                     question="Work Execution Timeline"
                     options={MISTRI_BOUNDARY_WALL_TIMELINE_OPTIONS}
-                    value={form.boundaryWall.executionTimeline}
+                    value={form.boundaryWall?.executionTimeline ?? null}
                     columns={4}
                     onChange={(v) =>
                       patchBoundaryWall({
                         executionTimeline: v,
                         executionTimelineCustomDate:
-                          v === 'custom' ? form.boundaryWall.executionTimelineCustomDate : '',
+                          v === 'custom' ? form.boundaryWall?.executionTimelineCustomDate ?? '' : '',
                       })
                     }
                   />
-                  {form.boundaryWall.executionTimeline === 'custom' && (
+                  {form.boundaryWall?.executionTimeline === 'custom' && (
                     <Input
                       label="Custom Date"
                       type="date"
                       min={todayLocalDateString()}
-                      value={form.boundaryWall.executionTimelineCustomDate}
+                      value={form.boundaryWall?.executionTimelineCustomDate ?? ''}
                       onChange={(e) =>
                         patchBoundaryWall({ executionTimelineCustomDate: e.target.value })
                       }
