@@ -2,6 +2,8 @@
 
 import { useRouter } from 'next/navigation';
 import { CategoryServiceIcon } from '@/components/home/CategoryServiceIcons';
+import { useOptionalPostProjectGuard } from '@/components/auth/PostProjectGuardProvider';
+import { decidePostProjectAccess } from '@/lib/auth/roles';
 import { getVisibleServiceCategories } from '@/lib/trades';
 import type { ServiceType } from '@/lib/types';
 
@@ -13,12 +15,23 @@ interface ServiceCategoryBarProps {
 /** Homepage service picker — fixed 3×2 grid on every viewport and zoom level. */
 export function ServiceCategoryBar({ isAuthenticated, role }: ServiceCategoryBarProps) {
   const router = useRouter();
-  const isOwner = role === 'owner';
+  const postGuard = useOptionalPostProjectGuard();
   const categories = getVisibleServiceCategories();
 
   function handleSelect(service: ServiceType) {
     const target = `/dashboard/owner/new-project?service=${service}`;
-    if (!isAuthenticated || !isOwner) {
+    const decision = decidePostProjectAccess(isAuthenticated, role);
+    if (decision === 'blocked') {
+      postGuard?.openBlockedDialog();
+      return;
+    }
+    if (postGuard) {
+      if (postGuard.requestPostProject(target)) {
+        router.push(target);
+      }
+      return;
+    }
+    if (decision === 'login') {
       router.push(`/login?next=${encodeURIComponent(target)}`);
       return;
     }

@@ -45,6 +45,11 @@ import {
   embedDetailsInSubConfiguration,
   missingProjectsColumn,
 } from '@/lib/project/storedDetails'
+import {
+  canPostProjects,
+  CONTRACTOR_CANNOT_POST_PROJECT_MESSAGE,
+  roleFromUserMetadata,
+} from '@/lib/auth/roles'
 
 interface CreateProjectBase {
   title: string
@@ -114,6 +119,21 @@ export async function createProjectAction(
 
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   if (!user || authError) return { error: 'Not authenticated' }
+
+  const metaRole = roleFromUserMetadata(user.user_metadata as Record<string, unknown>)
+  if (metaRole && !canPostProjects(metaRole)) {
+    return { error: CONTRACTOR_CANNOT_POST_PROJECT_MESSAGE }
+  }
+  if (!metaRole) {
+    const { data: posterProfile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle()
+    if (!canPostProjects(posterProfile?.role)) {
+      return { error: CONTRACTOR_CANNOT_POST_PROJECT_MESSAGE }
+    }
+  }
 
   const pincodeRaw = input.pincode?.trim() ?? ''
   if (pincodeRaw) {

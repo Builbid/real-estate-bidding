@@ -65,3 +65,34 @@ export function isBidderRole(role: string | null | undefined): boolean {
     normalized === 'service_provider'
   );
 }
+
+/**
+ * Logged-in Mistri / Worker / Contractor / trade provider.
+ * Null or empty role is not treated as a contractor (guests must see login, not the block modal).
+ */
+export function isContractorWorkerRole(role: string | null | undefined): boolean {
+  if (role == null || String(role).trim() === '') return false;
+  return isBidderRole(role);
+}
+
+/** Owners (and admins) may post projects. */
+export function canPostProjects(role: string | null | undefined): boolean {
+  if (role == null || String(role).trim() === '') return false;
+  const normalized = normalizeRole(role);
+  return normalized === 'owner' || normalized === 'admin';
+}
+
+export type PostProjectAccess = 'allow' | 'login' | 'blocked';
+
+export function decidePostProjectAccess(
+  isAuthenticated: boolean,
+  role: string | null | undefined,
+): PostProjectAccess {
+  if (isAuthenticated && isContractorWorkerRole(role)) return 'blocked';
+  if (isAuthenticated && canPostProjects(role)) return 'allow';
+  if (isAuthenticated) return 'allow';
+  return 'login';
+}
+
+export const CONTRACTOR_CANNOT_POST_PROJECT_MESSAGE =
+  'You are logged in as a Mistri / Contractor, so you cannot upload or post projects. To post a project, please log in with or create an Owner Account.';

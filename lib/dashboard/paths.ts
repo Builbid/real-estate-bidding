@@ -4,3 +4,12 @@ export function isNewProjectPath(pathname: string): boolean {
     pathname.startsWith('/dashboard/owner/new-project/')
   );
 }
+
+export function isNewProjectHref(href: string, origin?: string): boolean {
+  try {
+    const url = new URL(href, origin ?? 'https://builbid.in');
+    return isNewProjectPath(url.pathname);
+  } catch {
+    return false;
+  }
+}
