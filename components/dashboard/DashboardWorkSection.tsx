@@ -3,12 +3,12 @@ import { cn } from '@/lib/utils';
 
 const TONES = {
   live: {
-    shell: 'border-emerald-500/25 bg-emerald-500/[0.05] dark:bg-emerald-500/[0.07]',
+    shell: 'border-emerald-500/20 bg-transparent',
     dot: 'bg-emerald-500',
     title: 'text-emerald-800 dark:text-emerald-300',
   },
   select: {
-    shell: 'border-amber-500/30 bg-amber-500/[0.06] dark:bg-amber-500/[0.08]',
+    shell: 'border-amber-500/25 bg-transparent',
     dot: 'bg-amber-500',
     title: 'text-amber-800 dark:text-amber-300',
   },
@@ -35,8 +35,8 @@ export function DashboardWorkSection({
   const t = TONES[tone];
 
   return (
-    <section className={cn('rounded-2xl border p-4 sm:p-5', t.shell)}>
-      <header className="mb-4 flex items-start justify-between gap-3 border-b border-black/5 pb-3 dark:border-white/10">
+    <section className={cn('rounded-2xl border p-3 sm:p-4', t.shell)}>
+      <header className="mb-3 flex items-start justify-between gap-3 border-b border-black/5 pb-2.5 dark:border-white/10">
         <div className="min-w-0">
           <h2 className={cn('flex items-center gap-2 text-sm font-bold tracking-wide', t.title)}>
             <span

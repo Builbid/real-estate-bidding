@@ -136,7 +136,7 @@ export default async function OwnerDashboard() {
   const hasAnyProject = totalLive > 0 || completed.length > 0;
 
   return (
-    <div className="space-y-8 pb-24">
+    <div className="space-y-6 pb-24">
       <div>
         <NavLink href="/" prefetch className={cn(NAV_BACK_LINK, 'mb-3')}>
           <ArrowLeft className="w-4 h-4" />
@@ -158,6 +158,7 @@ export default async function OwnerDashboard() {
       </div>
 
       <DashboardStatTiles
+        variant="plain"
         items={[
           { label: 'Live bidding', value: liveAuctions.length, hint: 'Open auctions', tone: 'live' },
           { label: 'Needs selection', value: selectionRequired.length, hint: 'Award a worker', tone: 'select' },
@@ -173,7 +174,7 @@ export default async function OwnerDashboard() {
           count={selectionRequired.length}
           description="Bidding has closed. Select a worker to award the contract."
         >
-          <div className="space-y-4">
+          <div className="space-y-3">
             {selectionRequired.map((bundle) => (
               <OwnerLiveProjectCard
                 key={bundle.project.id}
@@ -197,7 +198,7 @@ export default async function OwnerDashboard() {
         description="Auctions still receiving bids. Rankings update in real time."
       >
         {liveAuctions.length > 0 ? (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {liveAuctions.map((bundle) => (
               <OwnerLiveProjectCard
                 key={bundle.project.id}
@@ -210,7 +211,7 @@ export default async function OwnerDashboard() {
             ))}
           </div>
         ) : (
-          <p className="py-6 text-center text-sm text-muted-foreground">
+          <p className="py-2 text-sm text-muted-foreground">
             No live auctions right now.
           </p>
         )}
@@ -235,6 +236,7 @@ export default async function OwnerDashboard() {
       )}
 
       <CompletedProjectsPreview
+        variant="folder"
         projects={completed}
         totalCount={completed.length}
         viewAllHref="/dashboard/owner/projects/completed"

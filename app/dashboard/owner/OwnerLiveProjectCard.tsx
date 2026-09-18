@@ -7,7 +7,6 @@ import { UnifiedBidRankings } from './project/[id]/UnifiedBidRankings';
 import { UnifiedFirmBidRankings } from './project/[id]/UnifiedFirmBidRankings';
 import { OwnerProjectPhaseProvider, useOwnerProjectPhaseContext } from '@/lib/context/OwnerProjectPhaseContext';
 import { cn, formatProjectPostedAt } from '@/lib/utils';
-import { Card, CardContent } from '@/components/ui/card';
 import {
   getProjectServiceBadgeLabel,
   isFirmProject,
@@ -72,14 +71,14 @@ function OwnerLiveProjectCardBody({
       : null;
 
   return (
-    <Card
+    <article
       className={cn(
-        'overflow-hidden shadow-none',
-        canSelect ? 'border-l-[3px] border-l-amber-500' : 'border-l-[3px] border-l-emerald-500',
+        'min-w-0 overflow-hidden',
+        canSelect ? 'border-l-2 border-l-amber-500 pl-3 sm:pl-4' : 'border-l-2 border-l-emerald-500 pl-3 sm:pl-4',
       )}
     >
-      <CardContent className="space-y-4 p-4 sm:p-5">
-      <div className="flex flex-wrap items-start gap-4">
+      <div className="space-y-2.5 py-1">
+      <div className="flex flex-wrap items-start gap-3">
         <div className="flex-1 min-w-0">
           <div className="mb-1.5 flex flex-wrap items-center gap-2">
             <Badge variant={canSelect ? 'amber' : 'emerald'}>{statusLabel ?? serviceBadge}</Badge>
@@ -165,22 +164,22 @@ function OwnerLiveProjectCardBody({
         </p>
       )}
 
-      <div className="rounded-xl border border-border/70 bg-background/70 p-3 sm:p-4">
-        {isFirm ? (
-          <UnifiedFirmBidRankings
-            initialBids={initialBids}
-            initialFirms={initialFirms}
-          />
-        ) : (
-          <UnifiedBidRankings
-            initialBids={initialBids}
-            initialBuilders={initialBuilders}
-            userId={userId}
-          />
-        )}
+      {isFirm ? (
+        <UnifiedFirmBidRankings
+          compactEmpty
+          initialBids={initialBids}
+          initialFirms={initialFirms}
+        />
+      ) : (
+        <UnifiedBidRankings
+          compactEmpty
+          initialBids={initialBids}
+          initialBuilders={initialBuilders}
+          userId={userId}
+        />
+      )}
       </div>
-      </CardContent>
-    </Card>
+    </article>
   );
 }
 

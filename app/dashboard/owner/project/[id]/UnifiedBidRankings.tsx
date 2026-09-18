@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, UserCheck, Trophy, TrendingDown, Loader2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useRealtimeBids } from '@/lib/hooks/useRealtimeBids';
-import { averageFromSumMetric, formatBidMetric, formatRelativeTime } from '@/lib/utils';
+import { averageFromSumMetric, cn, formatBidMetric, formatRelativeTime } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { BuilderRatingBadge } from '@/components/shared/BuilderRatingBadge';
 import { UserAvatar } from '@/components/shared/UserAvatar';
@@ -41,12 +41,13 @@ interface Props {
   initialBids: Bid[];
   initialBuilders: Record<string, BuilderInfo>;
   userId: string;
+  compactEmpty?: boolean;
 }
 
 const RANK_MEDAL = ['🥇', '🥈', '🥉'];
 
 export function UnifiedBidRankings({
-  initialBids, initialBuilders, userId,
+  initialBids, initialBuilders, userId, compactEmpty = false,
 }: Props) {
   const { project, isFrozen } = useOwnerProjectPhaseContext();
   const supabase = createClient();
@@ -111,7 +112,10 @@ export function UnifiedBidRankings({
 
   if (loading && bids.length === 0) {
     return (
-      <div className="flex items-center justify-center py-16 gap-2 text-muted-foreground">
+      <div className={cn(
+        'flex items-center gap-2 text-muted-foreground',
+        compactEmpty ? 'py-1' : 'justify-center py-16',
+      )}>
         <Loader2 className="w-4 h-4 animate-spin" />
         <span className="text-sm">Loading bids…</span>
       </div>
@@ -119,6 +123,11 @@ export function UnifiedBidRankings({
   }
 
   if (bids.length === 0) {
+    if (compactEmpty) {
+      return (
+        <p className="text-xs text-muted-foreground">No bids yet</p>
+      );
+    }
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
         <Trophy className="w-10 h-10 text-muted-foreground" />

@@ -9,7 +9,7 @@ import { useRealtimeFirmBids } from '@/lib/hooks/useRealtimeFirmBids';
 import { FirmLogo, getFirmCityLabel } from '@/components/firm/FirmLogo';
 import { SelectFirmButton } from '@/components/firm/SelectFirmButton';
 import { PackageBidPriceList } from '@/components/firm/PackageBidPriceList';
-import { formatRelativeTime } from '@/lib/utils';
+import { cn, formatRelativeTime } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useOwnerProjectPhaseContext } from '@/lib/context/OwnerProjectPhaseContext';
 import type { Project, Bid, PublicFirmProfile } from '@/lib/types';
@@ -17,12 +17,13 @@ import type { Project, Bid, PublicFirmProfile } from '@/lib/types';
 interface Props {
   initialBids: Bid[];
   initialFirms: Record<string, PublicFirmProfile>;
+  compactEmpty?: boolean;
 }
 
 const RANK_MEDAL = ['🥇', '🥈', '🥉'];
 
 export function UnifiedFirmBidRankings({
-  initialBids, initialFirms,
+  initialBids, initialFirms, compactEmpty = false,
 }: Props) {
   const { project, isReveal, isFrozen } = useOwnerProjectPhaseContext();
   const supabase = createClient();
@@ -56,7 +57,10 @@ export function UnifiedFirmBidRankings({
 
   if (loading && bids.length === 0) {
     return (
-      <div className="flex items-center justify-center py-16 gap-2 text-muted-foreground">
+      <div className={cn(
+        'flex items-center gap-2 text-muted-foreground',
+        compactEmpty ? 'py-1' : 'justify-center py-16',
+      )}>
         <Loader2 className="w-4 h-4 animate-spin" />
         <span className="text-sm">Loading bids…</span>
       </div>
@@ -64,6 +68,11 @@ export function UnifiedFirmBidRankings({
   }
 
   if (bids.length === 0) {
+    if (compactEmpty) {
+      return (
+        <p className="text-xs text-muted-foreground">No bids yet</p>
+      );
+    }
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
         <Trophy className="w-10 h-10 text-muted-foreground" />
