@@ -731,10 +731,44 @@ export const MISTRI_WALL_PLASTER_WORK_OPTIONS: {
   value: MistriWallPlasterWorkMode;
   label: string;
 }[] = [
+  { value: 'both', label: 'Both Brick Work & Plastering Work' },
   { value: 'wall', label: 'Brick Work Only' },
   { value: 'plastering', label: 'Plastering Work Only' },
-  { value: 'both', label: 'Both Brick Work & Plastering Work' },
 ];
+
+/** Single-side wall area ≈ plinth area × 2.25. */
+export const WALL_AREA_FROM_PLINTH_MULTIPLIER = 2.25;
+
+/** Both-sides plastering is priced as 2× the displayed single-side wall area. */
+export const PLASTER_BOTH_SIDES_RATE_MULTIPLIER = 2;
+
+export const WALL_AREA_ESTIMATE_NOTE =
+  'Note: This is an estimated value calculated for convenience. Actual measurement will be taken on-site by the contractor.';
+
+export function estimateWallAreaFromPlinth(
+  plinthArea: string | number | null | undefined,
+): number | null {
+  const plinth = parseApproximateAreaSqft(plinthArea);
+  if (plinth == null) return null;
+  const estimated = plinth * WALL_AREA_FROM_PLINTH_MULTIPLIER;
+  if (!Number.isFinite(estimated) || estimated <= 0) return null;
+  return Math.round(estimated * 100) / 100;
+}
+
+export function formatEstimatedWallAreaSqft(
+  plinthArea: string | number | null | undefined,
+): string {
+  const estimated = estimateWallAreaFromPlinth(plinthArea);
+  if (estimated == null) return '';
+  return Number.isInteger(estimated) ? String(estimated) : String(estimated);
+}
+
+/** 2× when plastering is included (plastering only or both brick & plastering). */
+export function wallPlasterRateMultiplier(
+  workTypes: readonly MistriFloorWorkType[] | null | undefined,
+): number {
+  return workTypes?.includes('plastering') ? PLASTER_BOTH_SIDES_RATE_MULTIPLIER : 1;
+}
 
 export function wallPlasterWorkModeFromWorkTypes(
   workTypes: readonly MistriFloorWorkType[],

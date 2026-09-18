@@ -110,6 +110,7 @@ import {
   computeMistriFloorWallCost,
   flooringFittingFieldLabel,
   flooringFittingTitle,
+  formatMistriWallCostFormula,
   getMistriCivilCostDisplayEntries,
   getMistriFlooringRateDisplayEntries,
   isMistriCivilCostProject,
@@ -197,6 +198,7 @@ type BidWorkItemView =
       floorId: string;
       costKind: 'civil' | 'wall';
       wallAreaSqft: number;
+      wallRateMultiplier: number;
       includeFlooring: boolean;
       flooringAreaSqft: number;
       flooringMaterialLabel?: string | null;
@@ -353,6 +355,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
           floorId: floor.floorId,
           costKind: floor.costKind,
           wallAreaSqft: floor.wallAreaSqft,
+          wallRateMultiplier: floor.wallRateMultiplier,
           includeFlooring: floor.includeFlooring,
           flooringAreaSqft: floor.flooringAreaSqft,
           flooringMaterialLabel: floor.flooringMaterialLabel,
@@ -1366,7 +1369,8 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                           )}
                           {isCivilItem && item.costKind === 'wall' && numericValue != null && numericValue > 0 && item.wallAreaSqft > 0 && (
                             <p className={cn('text-xs font-medium', estimateClass)}>
-                              Floor wall estimate: ₹{computeMistriFloorWallCost(item.wallAreaSqft, numericValue).toLocaleString('en-IN')}
+                              Floor wall estimate: ₹{computeMistriFloorWallCost(item.wallAreaSqft, numericValue, item.wallRateMultiplier).toLocaleString('en-IN')}
+                              {item.wallRateMultiplier === 2 ? ' (both-sides plastering)' : ''}
                             </p>
                           )}
                           {isCivilItem && item.includeFlooring && (
@@ -1429,7 +1433,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                                 ? computeMistriFloorFlooringCost(item.flooringAreaSqft, flooringRate)
                                 : 0;
                               const primaryCost = item.costKind === 'wall'
-                                ? computeMistriFloorWallCost(item.wallAreaSqft, numericValue)
+                                ? computeMistriFloorWallCost(item.wallAreaSqft, numericValue, item.wallRateMultiplier)
                                 : computeMistriFloorCivilCost(item.slabAreaSqft, numericValue);
                               const floorTotal = primaryCost + flooringCost;
                               if (!(floorTotal > 0)) return null;
@@ -1594,13 +1598,17 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                       if (floor.costKind !== 'wall') return null;
                       const wallRate = liveCivilRates[index] ?? 0;
                       if (!(wallRate > 0) || !(floor.wallAreaSqft > 0)) return null;
-                      const wallCost = computeMistriFloorWallCost(floor.wallAreaSqft, wallRate);
+                      const wallCost = computeMistriFloorWallCost(
+                        floor.wallAreaSqft,
+                        wallRate,
+                        floor.wallRateMultiplier,
+                      );
                       return (
                         <p
                           key={`wall-${floor.floorId}`}
                           className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-2 text-[11px] font-medium text-emerald-800 dark:text-emerald-300"
                         >
-                          {floor.label} · Wall construction: {floor.wallAreaSqft.toLocaleString('en-IN')} sq. ft. × ₹{wallRate.toLocaleString('en-IN')} = ₹{wallCost.toLocaleString('en-IN')}
+                          {floor.label} · Wall construction: {formatMistriWallCostFormula(floor.wallAreaSqft, wallRate, floor.wallRateMultiplier)} = ₹{wallCost.toLocaleString('en-IN')}
                         </p>
                       );
                     })}

@@ -268,7 +268,7 @@ export interface BidRates {
    * Also stored as total_project_cost. Legacy bids may contain civil-only values.
    */
   total_civil_cost?: number;
-  /** Mistri: sum of (wall area × wall rate) across Option 3 floors. */
+  /** Mistri: sum of (wall area × wall rate × both-sides multiplier when plastering is included). */
   total_wall_cost?: number;
   /** Mistri: sum of (flooring area × flooring rate) across selected floors. */
   total_flooring_cost?: number;
@@ -285,6 +285,7 @@ export interface BidRates {
     wallAreaSqft?: number;
     wallRate?: number;
     wallCost?: number;
+    wallRateMultiplier?: number;
     flooringAreaSqft?: number;
     flooringRate?: number;
     flooringCost?: number;

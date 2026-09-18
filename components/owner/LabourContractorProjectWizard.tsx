@@ -56,6 +56,8 @@ import {
   parseFoundationCustomFloorCount,
   parseApproximateAreaSqft,
   flooringAreaExceedsPlinthError,
+  formatEstimatedWallAreaSqft,
+  WALL_AREA_ESTIMATE_NOTE,
   parseFoundationDepthFt,
   computeBoundaryWallAreaSqft,
   computeBoundaryWallPlasteringAreaSqft,
@@ -171,10 +173,21 @@ function FlooringAreaField({
 function WallAreaField({
   value,
   onChange,
+  plinthArea,
 }: {
   value: string;
   onChange: (value: string) => void;
+  plinthArea: string;
 }) {
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+
+  useEffect(() => {
+    if (value.trim()) return;
+    const estimated = formatEstimatedWallAreaSqft(plinthArea);
+    if (estimated) onChangeRef.current(estimated);
+  }, [plinthArea, value]);
+
   return (
     <div className="space-y-1.5">
       <label className="text-xs font-semibold text-gray-900 dark:text-zinc-100">
@@ -187,6 +200,7 @@ function WallAreaField({
         value={value}
         onChange={(e) => onChange(e.target.value)}
       />
+      <p className={FORM_NOTE}>{WALL_AREA_ESTIMATE_NOTE}</p>
     </div>
   );
 }
@@ -889,7 +903,11 @@ export function LabourContractorProjectWizard() {
             flooringMaterial: keepFlooringFields ? current.flooringMaterial : null,
             includeFineFlooring: keepFlooringFields ? true : null,
             flooringAreaSqft: keepFlooringFields ? current.flooringAreaSqft : '',
-            wallAreaSqft: keepWallFields ? current.wallAreaSqft : '',
+            wallAreaSqft: keepWallFields
+              ? (current.wallAreaSqft.trim()
+                  ? current.wallAreaSqft
+                  : formatEstimatedWallAreaSqft(f.approximateArea))
+              : '',
           },
         },
       };
@@ -1566,7 +1584,7 @@ export function LabourContractorProjectWizard() {
                                   <NestedChoiceButtons
                                     question="Select the work required on this floor"
                                     options={MISTRI_WALL_PLASTER_WORK_OPTIONS}
-                                    value={wallPlasterMode}
+                                    value={wallPlasterMode ?? 'both'}
                                     onChange={(v) =>
                                       setWallPlasterWorkMode(
                                         fw.floorId,
@@ -1591,6 +1609,7 @@ export function LabourContractorProjectWizard() {
                                   )}
                                   <WallAreaField
                                     value={entry.wallAreaSqft}
+                                    plinthArea={form.approximateArea}
                                     onChange={(value) =>
                                       patchFloorWork(
                                         fw.floorId,

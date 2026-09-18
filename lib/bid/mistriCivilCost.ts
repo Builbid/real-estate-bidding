@@ -9,6 +9,7 @@ import {
   MISTRI_FLOORING_MATERIAL_OPTIONS,
   parseMistriDetails,
   sortMistriFloorWork,
+  wallPlasterRateMultiplier,
   type MistriFloorId,
   type MistriFloorWork,
 } from '@/lib/mistriDetails';
@@ -37,6 +38,8 @@ export interface MistriCivilFloor {
   rateKey?: BidFloorRateKey;
   costKind: MistriFloorCostKind;
   wallAreaSqft: number;
+  /** 2 when plastering is in scope (both-sides rate); displayed wall area stays single-side. */
+  wallRateMultiplier: number;
   includeFlooring: boolean;
   flooringAreaSqft: number;
   flooringMaterial?: string | null;
@@ -54,6 +57,7 @@ export interface MistriFloorCivilBreakdown {
   wallAreaSqft?: number;
   wallRate?: number;
   wallCost?: number;
+  wallRateMultiplier?: number;
   flooringAreaSqft?: number;
   flooringRate?: number;
   flooringCost?: number;
@@ -137,9 +141,28 @@ export function computeMistriFloorFlooringCost(flooringAreaSqft: number, floorin
   return Math.round(flooringAreaSqft * flooringRate);
 }
 
-export function computeMistriFloorWallCost(wallAreaSqft: number, wallRate: number): number {
+export function computeMistriFloorWallCost(
+  wallAreaSqft: number,
+  wallRate: number,
+  rateMultiplier = 1,
+): number {
+  const multiplier = rateMultiplier > 0 ? rateMultiplier : 1;
   if (!(wallAreaSqft > 0) || !(wallRate > 0)) return 0;
-  return Math.round(wallAreaSqft * wallRate);
+  return Math.round(wallAreaSqft * wallRate * multiplier);
+}
+
+export function formatMistriWallCostFormula(
+  wallAreaSqft: number,
+  wallRate: number,
+  rateMultiplier = 1,
+  areaUnit: 'sq. ft.' | 'sqft' = 'sq. ft.',
+): string {
+  const area = wallAreaSqft.toLocaleString('en-IN');
+  const rate = wallRate.toLocaleString('en-IN');
+  if (rateMultiplier === 2) {
+    return `${area} ${areaUnit} × ₹${rate} × 2 (both sides plastering)`;
+  }
+  return `${area} ${areaUnit} × ₹${rate}`;
 }
 
 function floorPrimaryRate(row: {
@@ -199,6 +222,7 @@ export function resolveMistriCivilFloors(project: MistriCivilCostProject): Mistr
         rateKey: FLOOR_RATE_KEYS[index],
         costKind: isWall ? 'wall' : 'civil',
         wallAreaSqft,
+        wallRateMultiplier: isWall ? wallPlasterRateMultiplier(fw.workTypes) : 1,
         includeFlooring,
         flooringAreaSqft,
         flooringMaterial: includeFlooring ? (fw.flooringMaterial ?? null) : null,
@@ -227,6 +251,7 @@ export function resolveMistriCivilFloors(project: MistriCivilCostProject): Mistr
     rateKey: FLOOR_RATE_KEYS[index],
     costKind: 'civil' as const,
     wallAreaSqft: 0,
+    wallRateMultiplier: 1,
     includeFlooring,
     flooringAreaSqft: includeFlooring ? builtUpAreaSqft : 0,
     flooringMaterial: includeFlooring ? 'tile' : null,
@@ -305,7 +330,9 @@ export function buildMistriCivilCostPayload(
       ? (flooringRates?.[floor.floorId] ?? 0)
       : 0;
     const civilCost = isWall ? 0 : computeMistriFloorCivilCost(floor.slabAreaSqft, civilRate);
-    const wallCost = isWall ? computeMistriFloorWallCost(floor.wallAreaSqft, wallRate) : 0;
+    const wallCost = isWall
+      ? computeMistriFloorWallCost(floor.wallAreaSqft, wallRate, floor.wallRateMultiplier)
+      : 0;
     const flooringCost = floor.includeFlooring
       ? computeMistriFloorFlooringCost(floor.flooringAreaSqft, flooringRate)
       : 0;
@@ -322,6 +349,7 @@ export function buildMistriCivilCostPayload(
             wallAreaSqft: floor.wallAreaSqft,
             wallRate,
             wallCost,
+            wallRateMultiplier: floor.wallRateMultiplier,
           }
         : {}),
       ...(floor.includeFlooring
@@ -427,8 +455,11 @@ export function getMistriCivilCostDisplayEntries(
       const entries: Array<{ label: string; value: number; suffix?: string }> = [];
       const isWallRow = row.costKind === 'wall' || ((row.wallCost ?? 0) > 0 && !(row.civilCost > 0));
       if (isWallRow) {
+        const wallArea = Number(row.wallAreaSqft || 0);
+        const wallRate = Number(row.wallRate || floorPrimaryRate(row));
+        const multiplier = Number(row.wallRateMultiplier || 1);
         entries.push({
-          label: `${row.label} · Wall · ${Number(row.wallAreaSqft || 0).toLocaleString('en-IN')} sqft × ₹${Number(row.wallRate || floorPrimaryRate(row)).toLocaleString('en-IN')}`,
+          label: `${row.label} · Wall · ${formatMistriWallCostFormula(wallArea, wallRate, multiplier, 'sqft')}`,
           value: Number(row.wallCost || 0),
           suffix: '',
         });
@@ -458,8 +489,8 @@ export function getMistriCivilCostDisplayEntries(
     if (!(rate > 0)) return [];
     if (floor.costKind === 'wall') {
       return [{
-        label: `${floor.label} · Wall · ${floor.wallAreaSqft.toLocaleString('en-IN')} sqft × ₹${rate.toLocaleString('en-IN')}`,
-        value: computeMistriFloorWallCost(floor.wallAreaSqft, rate),
+        label: `${floor.label} · Wall · ${formatMistriWallCostFormula(floor.wallAreaSqft, rate, floor.wallRateMultiplier, 'sqft')}`,
+        value: computeMistriFloorWallCost(floor.wallAreaSqft, rate, floor.wallRateMultiplier),
         suffix: '',
       }];
     }
