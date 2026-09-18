@@ -16,15 +16,15 @@ interface RCCMatrixSelectorProps {
 const TIER_HEADER_STYLE = {
   ground: {
     icon: '🏠',
-    className: 'bg-white border-l-slate-400 text-slate-900 border border-slate-200',
+    className: 'bg-slate-800/40 border-l-slate-500 text-slate-100 border border-slate-700/30',
   },
   g_plus_1: {
     icon: '🏢',
-    className: 'bg-white border-l-blue-600 text-slate-900 border border-slate-200',
+    className: 'bg-slate-800/40 border-l-blue-500 text-slate-100 border border-slate-700/30',
   },
   g_plus_2: {
     icon: '🏗️',
-    className: 'bg-white border-l-teal-600 text-slate-900 border border-slate-200',
+    className: 'bg-slate-800/40 border-l-teal-500 text-slate-100 border border-slate-700/30',
   },
 } as const;
 

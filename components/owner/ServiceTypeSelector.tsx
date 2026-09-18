@@ -63,9 +63,9 @@ function ServiceCard({
     >
       <div className="mb-1 flex items-center justify-between gap-2">
         <span className="text-xl leading-none">{option.emoji}</span>
-        {selected && <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-blue-600" />}
+        {selected && <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-blue-400" />}
       </div>
-      <p className={cn('text-xs', selected ? 'font-semibold text-slate-900' : 'font-medium text-slate-700')}>{option.title}</p>
+      <p className={cn('text-xs', selected ? 'font-medium text-slate-900 dark:text-white' : 'font-medium text-slate-700 dark:text-slate-200')}>{option.title}</p>
       <p className="mt-0.5 flex-1 text-[10px] leading-snug text-muted-foreground">
         {option.subtitle}
       </p>

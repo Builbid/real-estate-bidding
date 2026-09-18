@@ -87,6 +87,9 @@ import { HistoryBackButton } from '@/components/shared/HistoryBackButton';
 import {
   FORM_BADGE,
   FORM_CONTINUE_BTN,
+  FORM_HEADING,
+  FORM_MARKER_IDLE,
+  FORM_MARKER_ON,
   FORM_NESTED_PANEL,
   FORM_NOTE,
   FORM_OPTION_SELECTED,
@@ -219,7 +222,7 @@ function OptionCardButton({
         className={cn(
           'flex w-full items-center justify-between gap-3 rounded-xl px-4 py-3.5 text-left text-sm transition-all',
           selected ? FORM_OPTION_SELECTED : FORM_OPTION_UNSELECTED,
-          disabled && 'cursor-not-allowed opacity-50 grayscale hover:border-slate-200 hover:bg-white',
+          disabled && 'cursor-not-allowed opacity-50 grayscale hover:border-slate-700/30 hover:bg-slate-800/40',
           className,
         )}
       >
@@ -230,27 +233,33 @@ function OptionCardButton({
           selected ? (
             <span
               aria-hidden
-              className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-[4px] border-2 border-blue-600 bg-blue-600 text-white"
+              className={cn(
+                'flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-[4px]',
+                FORM_MARKER_ON,
+              )}
             >
               <Check className="h-3 w-3" strokeWidth={3} />
             </span>
           ) : (
             <span
               aria-hidden
-              className="h-5 w-5 flex-shrink-0 rounded-[4px] border-2 border-slate-300"
+              className={cn('h-5 w-5 flex-shrink-0 rounded-[4px]', FORM_MARKER_IDLE)}
             />
           )
         ) : selected ? (
           <span
             aria-hidden
-            className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border-2 border-blue-600"
+            className={cn(
+              'flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full',
+              'border border-blue-500/50',
+            )}
           >
-            <span className="h-2.5 w-2.5 rounded-full bg-blue-600" />
+            <span className="h-2.5 w-2.5 rounded-full bg-blue-500" />
           </span>
         ) : (
           <span
             aria-hidden
-            className="h-5 w-5 flex-shrink-0 rounded-full border-2 border-slate-300"
+            className={cn('h-5 w-5 flex-shrink-0 rounded-full', FORM_MARKER_IDLE)}
           />
         )}
       </button>
@@ -264,16 +273,16 @@ function ChoiceRadio({ selected }: { selected: boolean }) {
     return (
       <span
         aria-hidden
-        className="flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full border-2 border-blue-600"
+        className="flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full border border-blue-500/50"
       >
-        <span className="h-2 w-2 rounded-full bg-blue-600" />
+        <span className="h-2 w-2 rounded-full bg-blue-500" />
       </span>
     );
   }
   return (
     <span
       aria-hidden
-      className="h-4 w-4 flex-shrink-0 rounded-full border-2 border-slate-300"
+      className={cn('h-4 w-4 flex-shrink-0 rounded-full', FORM_MARKER_IDLE)}
     />
   );
 }
@@ -464,7 +473,7 @@ function HouseTypeCard({
       ) : (
         <RccStructureGraphic />
       )}
-      <span className={cn(selected ? 'font-semibold text-slate-900' : 'font-medium text-slate-700')}>
+      <span className={cn(selected ? 'font-medium text-slate-900 dark:text-white' : 'font-medium text-slate-700 dark:text-slate-200')}>
         {label}
       </span>
     </button>
@@ -1139,7 +1148,7 @@ export function LabourContractorProjectWizard() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-6 text-slate-900 [overflow-anchor:none]">
+    <div className="mx-auto w-full max-w-3xl space-y-6 text-slate-900 dark:text-slate-100 [overflow-anchor:none]">
       <div>
         <HistoryBackButton className="mb-2" onClick={goWizardBack} />
         <h1 className="text-xl font-bold text-foreground">Post Mistri Worker Project</h1>
@@ -1161,7 +1170,7 @@ export function LabourContractorProjectWizard() {
 
           {step === 1 && (
             <div className="space-y-4 [overflow-anchor:none]">
-              <h2 className="text-base font-bold text-slate-900">Project Information</h2>
+              <h2 className={FORM_HEADING}>Project Information</h2>
 
               <AssamDistrictAutocomplete
                 value={form.location}
@@ -1271,7 +1280,7 @@ export function LabourContractorProjectWizard() {
           {step === 2 && (
             <div className="space-y-4">
               <div>
-                <h2 className="text-base font-bold text-slate-900">Work Requirements</h2>
+                <h2 className={FORM_HEADING}>Work Requirements</h2>
                 <p className="text-xs font-medium text-slate-500 mt-1">
                   {form.houseType === 'boundary_wall'
                     ? 'Enter boundary wall dimensions, material, plastering, and execution timeline.'
@@ -1413,7 +1422,7 @@ export function LabourContractorProjectWizard() {
                     {isAssam ? (
                       <div className="space-y-3">
                         <div className="space-y-1">
-                          <p className="text-sm font-semibold text-slate-900">
+                          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                             Full finishing upto Plastering and Roof work
                           </p>
                           <p className={cn('mt-1', HELPER_TEXT)}>
@@ -1768,7 +1777,7 @@ export function LabourContractorProjectWizard() {
 
           {step === 3 && (
             <div className="space-y-4">
-              <h2 className="text-base font-bold text-slate-900">Review & Launch Auction</h2>
+              <h2 className={FORM_HEADING}>Review & Launch Auction</h2>
 
               <ReviewSummaryList
                 items={[
@@ -1823,7 +1832,7 @@ export function LabourContractorProjectWizard() {
                 <CheckCircle2 className="w-8 h-8 text-blue-600" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-slate-900 mb-2">Auction Launched! 🎉</h2>
+                <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-2">Auction Launched! 🎉</h2>
                 <p className="text-sm font-medium text-slate-600">
                   Your project <strong className="text-foreground">&quot;{submittedTitle}&quot;</strong> is now live.
                 </p>

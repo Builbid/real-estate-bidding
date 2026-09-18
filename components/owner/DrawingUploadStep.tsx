@@ -80,9 +80,9 @@ export function DrawingUploadStep({
         >
           <div className="flex items-center justify-between mb-2">
             <span className="text-2xl">📐</span>
-            {choice === 'upload' && <CheckCircle2 className="w-5 h-5 text-blue-600" />}
+            {choice === 'upload' && <CheckCircle2 className="w-5 h-5 text-blue-400" />}
           </div>
-          <p className={cn('text-sm', choice === 'upload' ? 'font-semibold text-slate-900' : 'font-medium text-slate-700')}>Yes, I have a drawing</p>
+          <p className={cn('text-sm', choice === 'upload' ? 'font-medium text-slate-900 dark:text-white' : 'font-medium text-slate-700 dark:text-slate-200')}>Yes, I have a drawing</p>
         </button>
         <button
           type="button"
@@ -94,9 +94,9 @@ export function DrawingUploadStep({
         >
           <div className="flex items-center justify-between mb-2">
             <span className="text-2xl">✏️</span>
-            {choice === 'firm_creates' && <CheckCircle2 className="w-5 h-5 text-blue-600" />}
+            {choice === 'firm_creates' && <CheckCircle2 className="w-5 h-5 text-blue-400" />}
           </div>
-          <p className={cn('text-sm', choice === 'firm_creates' ? 'font-semibold text-slate-900' : 'font-medium text-slate-700')}>No, let the firm create it</p>
+          <p className={cn('text-sm', choice === 'firm_creates' ? 'font-medium text-slate-900 dark:text-white' : 'font-medium text-slate-700 dark:text-slate-200')}>No, let the firm create it</p>
           <p className="text-[11px] text-muted-foreground mt-1">
             The construction firm will design a drawing based on your requirements
           </p>
@@ -110,7 +110,7 @@ export function DrawingUploadStep({
           onDrop={(e) => { e.preventDefault(); setDragOver(false); handleFiles(e.dataTransfer.files); }}
           className={cn(
             'rounded-xl border-2 border-dashed p-6 text-center transition-colors',
-            dragOver ? 'border-blue-600 bg-blue-50/30' : 'border-slate-200 bg-white',
+            dragOver ? 'border-blue-500/40 bg-blue-900/20' : 'border-slate-700/30 bg-slate-800/40',
           )}
         >
           <input

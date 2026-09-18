@@ -332,7 +332,7 @@ export function ConstructionFirmProjectWizard() {
           {step === 3 && (
             <div className="space-y-4">
               <div>
-                <h2 className="text-lg font-bold tracking-tight text-slate-900">Review & Submit</h2>
+                <h2 className="text-lg font-bold tracking-tight text-slate-900 dark:text-slate-100">Review & Submit</h2>
                 <p className="mt-1 text-sm text-slate-500">
                   Confirm details before your project goes live for bidding
                 </p>

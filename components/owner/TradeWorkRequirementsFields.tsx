@@ -108,7 +108,7 @@ export function TradeWorkRequirementsFields({
     <div className="space-y-4">
       {trade === 'plumber' && (
         <>
-          <p className="text-xs font-medium leading-relaxed rounded-xl border border-amber-500/40 bg-white px-3 py-2.5 text-gray-800 dark:text-zinc-200">
+          <p className="text-xs font-medium leading-relaxed rounded-xl border border-amber-500/30 bg-amber-950/20 px-3 py-2.5 text-amber-100">
             {PLUMBING_LABOUR_ONLY_DISCLAIMER}
           </p>
         <PlumbingFloorFixtureForm
@@ -137,7 +137,7 @@ export function TradeWorkRequirementsFields({
 
       {trade === 'electrician' && (
         <>
-          <p className="text-xs font-medium leading-relaxed rounded-xl border border-amber-500/40 bg-white px-3 py-2.5 text-gray-800 dark:text-zinc-200">
+          <p className="text-xs font-medium leading-relaxed rounded-xl border border-amber-500/30 bg-amber-950/20 px-3 py-2.5 text-amber-100">
             {ELECTRICIAN_LABOUR_ONLY_DISCLAIMER}
           </p>
           <ElectricianFloorFixtureForm
@@ -159,7 +159,7 @@ export function TradeWorkRequirementsFields({
 
       {trade === 'false_ceiling_work' && (
         <>
-          <p className="text-xs font-medium leading-relaxed rounded-xl border border-amber-500/40 bg-white px-3 py-2.5 text-gray-800 dark:text-zinc-200">
+          <p className="text-xs font-medium leading-relaxed rounded-xl border border-amber-500/30 bg-amber-950/20 px-3 py-2.5 text-amber-100">
             {INTERIOR_DESIGNER_LABOUR_ONLY_DISCLAIMER}
           </p>
           <InteriorPackageForm

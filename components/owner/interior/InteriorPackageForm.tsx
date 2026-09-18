@@ -68,7 +68,7 @@ export function InteriorPackageForm({
               />
               <span className="flex-1 min-w-0">
                 <span className="flex items-center justify-between gap-2">
-                  <span className={cn('text-sm', open ? 'font-semibold text-slate-900' : 'font-medium text-slate-700')}>{pkg.label}</span>
+                  <span className={cn('text-sm', open ? 'font-medium text-slate-900 dark:text-white' : 'font-medium text-slate-700 dark:text-slate-200')}>{pkg.label}</span>
                   <ChevronDown
                     className={cn(
                       'h-4 w-4 flex-shrink-0 text-slate-700 transition-transform',
@@ -92,7 +92,7 @@ export function InteriorPackageForm({
               )}
             >
               <div className="overflow-hidden">
-                <div className="space-y-3 border-t border-slate-100 px-4 pb-4 pt-3">
+                <div className="space-y-3 border-t border-slate-700/30 px-4 pb-4 pt-3">
                   {pkg.options.map((option) => {
                     const checked = selectedSubOptions.includes(option.id);
                     return (
@@ -110,7 +110,7 @@ export function InteriorPackageForm({
                           className={FORM_CHECKBOX}
                         />
                         <span className="flex-1">
-                          <span className={cn('flex items-center gap-2 text-sm', checked ? 'font-semibold text-slate-900' : 'font-medium text-slate-700')}>
+                          <span className={cn('flex items-center gap-2 text-sm', checked ? 'font-medium text-slate-900 dark:text-white' : 'font-medium text-slate-700 dark:text-slate-200')}>
                             {option.label}
                             {checked && (
                               <CheckCircle2 className="h-3.5 w-3.5 text-blue-600" aria-hidden />

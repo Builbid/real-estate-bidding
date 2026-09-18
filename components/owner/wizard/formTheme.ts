@@ -1,4 +1,4 @@
-/** Shared new-project form surfaces — clean white cards, blue selection, open spacing. */
+/** Shared new-project form surfaces — seamless dark cards matching primary inputs. */
 export const FORM_SECTION_CARD = 'space-y-4';
 
 export const FORM_BADGE =
@@ -10,37 +10,48 @@ export const FORM_CONTINUE_BTN =
 export const FORM_NESTED_PANEL = 'space-y-4';
 
 export const FORM_CHECKBOX =
-  'mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600';
+  'mt-0.5 h-4 w-4 rounded border-slate-600 bg-transparent text-blue-500 focus:ring-blue-500/30 dark:border-slate-600 dark:bg-transparent';
 
 export const FORM_TEXTAREA =
-  'w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/30 focus-visible:border-blue-600 dark:border-slate-200 dark:bg-white dark:text-slate-900';
+  'w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/20 focus-visible:border-blue-500/40 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white dark:placeholder:text-zinc-400';
 
 export const FORM_PROGRESS_DONE = 'bg-blue-600 text-white';
 export const FORM_PROGRESS_CURRENT =
-  'border-2 border-blue-600 text-blue-600 bg-white';
+  'border border-blue-500/40 text-blue-400 bg-blue-900/30';
 export const FORM_PROGRESS_IDLE =
-  'border border-slate-200 bg-white text-slate-400';
-export const FORM_PROGRESS_LINE = 'h-px flex-1 bg-slate-200 mx-1 min-w-[8px]';
+  'border border-slate-700/30 bg-slate-800/40 text-slate-500';
+export const FORM_PROGRESS_LINE = 'h-px flex-1 bg-slate-700/40 mx-1 min-w-[8px]';
 
 export const FORM_SHELL_CARD =
-  'border border-slate-200 rounded-2xl bg-white shadow-none dark:bg-white dark:border-slate-200 dark:shadow-none dark:ring-0';
+  'rounded-2xl border border-slate-200/70 bg-white shadow-none dark:border-slate-700/30 dark:bg-slate-900/40 dark:shadow-none dark:ring-0';
+
+export const FORM_SURFACE =
+  'rounded-xl border border-slate-200/60 bg-white dark:border-slate-700/30 dark:bg-slate-800/40';
 
 export const FORM_REVIEW_ROW =
-  'grid grid-cols-12 gap-4 items-start py-4 border-b border-slate-100 last:border-b-0';
+  'grid grid-cols-12 gap-4 items-start py-4 border-b border-slate-200/70 last:border-b-0 dark:border-slate-700/30';
 
 export const FORM_REVIEW_LABEL =
-  'col-span-5 sm:col-span-4 text-slate-700 font-medium text-sm min-w-0';
+  'col-span-5 sm:col-span-4 text-slate-700 font-medium text-sm min-w-0 dark:text-slate-300';
 export const FORM_REVIEW_VALUE =
-  'col-span-7 sm:col-span-8 text-slate-900 font-semibold text-sm text-right whitespace-pre-line break-words min-w-0';
+  'col-span-7 sm:col-span-8 text-slate-900 font-semibold text-sm text-right whitespace-pre-line break-words min-w-0 dark:text-white';
 
 export const FORM_REVIEW_HIGHLIGHT =
   'border-0 bg-transparent rounded-none px-0';
 
 export const FORM_OPTION_UNSELECTED =
-  'border-2 border-slate-200 bg-white text-slate-700 hover:border-slate-300 dark:border-slate-200 dark:bg-white dark:text-slate-700';
+  'border border-slate-200/70 bg-slate-50/80 text-slate-700 hover:bg-slate-100 transition-colors dark:bg-slate-800/40 dark:border-slate-700/30 dark:text-slate-200 dark:hover:bg-slate-800/60 dark:hover:border-slate-700/30';
 
 export const FORM_OPTION_SELECTED =
-  'border-2 border-blue-600 bg-blue-50/30 text-slate-900 font-semibold dark:border-blue-600 dark:bg-blue-50/30 dark:text-slate-900';
+  'border border-blue-500/40 bg-blue-50/40 text-slate-900 font-medium transition-colors dark:bg-blue-900/30 dark:border-blue-500/40 dark:text-white';
+
+export const FORM_OPTION_LABEL_IDLE = 'font-medium text-slate-700 dark:text-slate-200';
+export const FORM_OPTION_LABEL_SELECTED = 'font-medium text-white';
+
+export const FORM_MARKER_IDLE =
+  'border border-slate-300 bg-transparent dark:border-slate-600/70 dark:bg-transparent';
+export const FORM_MARKER_ON =
+  'border border-blue-500/50 bg-blue-600 text-white';
 
 /** @deprecated Use FORM_OPTION_SELECTED */
 export const FORM_SELECTED_CARD = FORM_OPTION_SELECTED;
@@ -49,4 +60,6 @@ export const FORM_SELECTED_CARD = FORM_OPTION_SELECTED;
 export const FORM_OPTION_IDLE = FORM_OPTION_UNSELECTED;
 
 export const FORM_NOTE =
-  'mt-1.5 w-full text-left text-[11px] font-medium leading-snug text-slate-600';
+  'mt-1.5 w-full text-left text-[11px] font-medium leading-snug text-slate-600 dark:text-slate-400';
+
+export const FORM_HEADING = 'text-base font-bold text-slate-900 dark:text-slate-100';

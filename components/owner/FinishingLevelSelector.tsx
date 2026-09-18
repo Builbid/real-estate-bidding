@@ -44,10 +44,10 @@ export function FinishingLevelSelector({ value, onChange }: FinishingLevelSelect
               )}
               <div className="flex items-start justify-between gap-2 mb-2">
                 <span className="text-2xl">{cfg.icon}</span>
-                {selected && <CheckCircle2 className="w-5 h-5 text-blue-600" />}
+                {selected && <CheckCircle2 className="w-5 h-5 text-blue-400" />}
               </div>
-              <h3 className={cn('text-sm', selected ? 'font-semibold text-slate-900' : 'font-medium text-slate-700')}>{cfg.title}</h3>
-              <span className="inline-block mt-1 mb-2 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white border border-slate-200 text-slate-600">
+              <h3 className={cn('text-sm', selected ? 'font-medium text-slate-900 dark:text-white' : 'font-medium text-slate-700 dark:text-slate-200')}>{cfg.title}</h3>
+              <span className="inline-block mt-1 mb-2 text-[10px] font-semibold px-2 py-0.5 rounded-full border border-slate-700/30 bg-slate-800/40 text-slate-300">
                 {cfg.classBadge}
               </span>
               <ul className="space-y-1 mb-3">

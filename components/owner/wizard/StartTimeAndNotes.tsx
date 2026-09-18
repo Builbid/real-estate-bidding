@@ -10,7 +10,7 @@ import {
 } from '@/lib/projectStartTime';
 
 export const WIZARD_SECTION_LABEL =
-  'mb-3 text-base font-bold text-slate-900';
+  'mb-3 text-base font-bold text-slate-900 dark:text-slate-100';
 
 export function withSectionColon(label: string): string {
   const trimmed = label.trim();

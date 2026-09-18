@@ -26,12 +26,12 @@ export function ElectricianWorkCard({
       onClick={onClick}
       aria-pressed={selected}
       className={cn(
-        'group relative flex w-full flex-col overflow-hidden rounded-xl bg-white text-left transition-all duration-150',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/30 focus-visible:ring-offset-1',
+        'group relative flex w-full flex-col overflow-hidden rounded-xl text-left transition-all duration-150',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/20 focus-visible:ring-offset-0',
         selected ? FORM_OPTION_SELECTED : FORM_OPTION_UNSELECTED,
       )}
     >
-      <div className="relative h-32 w-full overflow-hidden bg-white sm:h-36">
+      <div className="relative h-32 w-full overflow-hidden bg-slate-800/40 sm:h-36">
         <Image
           src={imageUrl}
           alt={imageAlt}
@@ -52,7 +52,7 @@ export function ElectricianWorkCard({
         )}
       </div>
       <div className="flex flex-1 flex-col gap-0.5 p-2">
-        <p className={cn('line-clamp-2 text-[11px] leading-snug sm:text-xs', selected ? 'font-semibold text-slate-900' : 'font-medium text-slate-700')}>
+        <p className={cn('line-clamp-2 text-[11px] leading-snug sm:text-xs', selected ? 'font-medium text-slate-900 dark:text-white' : 'font-medium text-slate-700 dark:text-slate-200')}>
           {title}
         </p>
         <p className="line-clamp-2 text-[10px] leading-snug text-slate-500">

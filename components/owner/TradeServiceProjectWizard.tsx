@@ -537,7 +537,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                             {selected && (
                               <CheckCircle2 className="absolute top-2.5 right-2.5 w-5 h-5 text-blue-600 flex-shrink-0" />
                             )}
-                            <span className={cn('text-sm', selected ? 'font-semibold text-slate-900' : 'font-medium text-slate-700')}>{opt.label}</span>
+                            <span className={cn('text-sm', selected ? 'font-medium text-slate-900 dark:text-white' : 'font-medium text-slate-700 dark:text-slate-200')}>{opt.label}</span>
                             <p className="text-xs font-medium text-slate-500 mt-1">{opt.description}</p>
                           </button>
                         );
@@ -694,7 +694,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                         {selected && (
                           <CheckCircle2 className="absolute top-2.5 right-2.5 w-5 h-5 text-blue-600 flex-shrink-0" />
                         )}
-                        <span className={cn('text-sm', selected ? 'font-semibold text-slate-900' : 'font-medium text-slate-700')}>{opt.label}</span>
+                        <span className={cn('text-sm', selected ? 'font-medium text-slate-900 dark:text-white' : 'font-medium text-slate-700 dark:text-slate-200')}>{opt.label}</span>
                         <p className="text-xs font-medium text-slate-500 mt-1">{opt.description}</p>
                       </button>
                     );
@@ -839,7 +839,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
 
           {step === 3 && (isCustomTrade || form.track_type) && (
             <div className="space-y-4">
-              <h2 className="text-base font-semibold text-slate-900">Review & Launch Auction</h2>
+              <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">Review & Launch Auction</h2>
 
               <ReviewSummaryList
                 items={[

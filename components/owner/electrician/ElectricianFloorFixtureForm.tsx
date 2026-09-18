@@ -1,6 +1,7 @@
 'use client';
 
 import { Input } from '@/components/ui/input';
+import { FORM_SURFACE } from '@/components/owner/wizard/formTheme';
 import {
   ELECTRICIAN_FIXTURE_FIELDS,
   emptyElectricianFixtureDraft,
@@ -50,10 +51,10 @@ export function ElectricianFloorFixtureForm({
         return (
           <div
             key={floor}
-            className="rounded-xl border border-slate-100 bg-white overflow-hidden"
+            className={`${FORM_SURFACE} overflow-hidden`}
           >
-            <div className="border-b border-border/70 px-4 py-3">
-              <h3 className="text-sm font-bold text-gray-900 dark:text-white">
+            <div className="border-b border-slate-700/30 px-4 py-3">
+              <h3 className="text-sm font-bold text-gray-900 dark:text-slate-100">
                 {plumbingFloorLabel(floor, customTargetFloors)}
               </h3>
               <p className="mt-0.5 text-[11px] font-medium text-slate-700 dark:text-slate-300">

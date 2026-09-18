@@ -44,7 +44,7 @@ export function BathroomPackageSelector({
                   aria-hidden
                 />
               )}
-              <p className={cn('text-sm', selected ? 'font-semibold text-slate-900' : 'font-medium text-slate-700')}>{pkg.shortLabel}</p>
+              <p className={cn('text-sm', selected ? 'font-medium text-slate-900 dark:text-white' : 'font-medium text-slate-700 dark:text-slate-200')}>{pkg.shortLabel}</p>
             </button>
           );
         })}
@@ -57,14 +57,14 @@ export function BathroomPackageSelector({
       >
         <div className="overflow-hidden">
           {selectedPackage && (
-            <ul className="mt-3 space-y-1.5 rounded-lg border border-slate-100 bg-white p-3">
-              <li className="text-[10px] font-semibold uppercase tracking-wider text-blue-600">
+            <ul className="mt-3 space-y-1.5 rounded-lg border border-slate-700/30 bg-slate-800/40 p-3">
+              <li className="text-[10px] font-semibold uppercase tracking-wider text-blue-400">
                 {selectedPackage.label} — included work scope
               </li>
               {selectedPackage.included.map((item) => (
                 <li
                   key={item}
-                  className="flex items-start gap-2 text-xs font-medium text-slate-700"
+                  className="flex items-start gap-2 text-xs font-medium text-slate-300"
                 >
                   <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-blue-600" />
                   <span>{item}</span>

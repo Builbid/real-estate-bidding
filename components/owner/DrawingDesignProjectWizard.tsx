@@ -373,7 +373,7 @@ export function DrawingDesignProjectWizard() {
 
           {step === 3 && (
             <>
-              <h2 className="text-base font-semibold text-slate-900">Review & Launch</h2>
+              <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">Review & Launch</h2>
               <ReviewSummaryList
                 items={[
                   { label: 'Service', value: '✏️ Drawing and Design' },

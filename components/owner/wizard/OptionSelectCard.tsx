@@ -1,7 +1,7 @@
 'use client';
 
 import { CheckCircle2 } from 'lucide-react';
-import { FORM_NOTE, FORM_OPTION_SELECTED, FORM_OPTION_UNSELECTED } from '@/components/owner/wizard/formTheme';
+import { FORM_MARKER_IDLE, FORM_NOTE, FORM_OPTION_SELECTED, FORM_OPTION_UNSELECTED } from '@/components/owner/wizard/formTheme';
 import { cn } from '@/lib/utils';
 
 function formatOptionNote(text: string) {
@@ -67,21 +67,21 @@ export function OptionSelectCard({
       >
         {selected ? (
           <CheckCircle2
-            className="absolute top-2.5 right-2.5 h-5 w-5 flex-shrink-0 text-blue-600"
+            className="absolute top-2.5 right-2.5 h-5 w-5 flex-shrink-0 text-blue-400"
             aria-hidden
           />
         ) : multi ? (
           <span
             aria-hidden
-            className="absolute top-3 right-3 h-4 w-4 rounded-full border-2 border-slate-300"
+            className={cn('absolute top-3 right-3 h-4 w-4 rounded-full', FORM_MARKER_IDLE)}
           />
         ) : (
           <span
             aria-hidden
-            className="absolute top-3 right-3 h-4 w-4 rounded-full border-2 border-slate-300"
+            className={cn('absolute top-3 right-3 h-4 w-4 rounded-full', FORM_MARKER_IDLE)}
           />
         )}
-        <p className={cn('text-sm leading-snug', selected ? 'font-semibold text-slate-900' : 'font-medium text-slate-700')}>{label}</p>
+        <p className={cn('text-sm leading-snug', selected ? 'font-medium text-slate-900 dark:text-white' : 'font-medium text-slate-700 dark:text-slate-200')}>{label}</p>
         {split.description && (
           <p className="mt-1 text-xs font-medium leading-snug text-slate-500">
             {split.description}

@@ -200,7 +200,7 @@ export function PipingOptionSelector({
             {bidOptions.map((option) => (
               <li
                 key={option.id}
-                className="flex items-start gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-800 dark:text-zinc-200"
+                className="flex items-start gap-2 rounded-lg border border-slate-700/30 bg-slate-800/40 px-3 py-2 text-xs font-medium text-slate-200"
               >
                 <Ruler className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-brand" />
                 <span>
@@ -217,7 +217,7 @@ export function PipingOptionSelector({
         </p>
       </div>
 
-      <div className="flex items-start gap-2 rounded-xl border border-amber-500/40 bg-white p-3">
+      <div className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-950/20 p-3">
         <Info className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-500" />
         <p className="text-xs font-medium leading-relaxed text-gray-800 dark:text-zinc-200">
           {PLUMBING_TAPE_MEASURE_DISCLAIMER}

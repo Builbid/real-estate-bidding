@@ -1,6 +1,7 @@
 'use client';
 
 import { Minus, Plus } from 'lucide-react';
+import { FORM_OPTION_UNSELECTED } from '@/components/owner/wizard/formTheme';
 import { cn } from '@/lib/utils';
 import { WIZARD_SECTION_LABEL, withSectionColon } from '@/components/owner/wizard/StartTimeAndNotes';
 
@@ -30,14 +31,15 @@ export function StepperInput({
           onClick={() => onChange(Math.max(min, value - 1))}
           disabled={value <= min}
           className={cn(
-            'flex h-11 w-11 items-center justify-center rounded-xl border-2 border-slate-200 bg-white text-slate-900',
-            'hover:border-blue-600 disabled:opacity-40 disabled:hover:border-slate-200',
+            'flex h-11 w-11 items-center justify-center rounded-xl text-slate-900 dark:text-slate-100',
+            FORM_OPTION_UNSELECTED,
+            'hover:bg-slate-800/60 disabled:opacity-40',
           )}
           aria-label={`Decrease ${label}`}
         >
           <Minus className="h-4 w-4" />
         </button>
-        <span className="min-w-[3rem] text-center text-lg font-bold text-slate-900">
+        <span className="min-w-[3rem] text-center text-lg font-bold text-slate-900 dark:text-slate-100">
           {display}
         </span>
         <button
@@ -45,8 +47,9 @@ export function StepperInput({
           onClick={() => onChange(Math.min(max, value + 1))}
           disabled={value >= max}
           className={cn(
-            'flex h-11 w-11 items-center justify-center rounded-xl border-2 border-slate-200 bg-white text-slate-900',
-            'hover:border-blue-600 disabled:opacity-40 disabled:hover:border-slate-200',
+            'flex h-11 w-11 items-center justify-center rounded-xl text-slate-900 dark:text-slate-100',
+            FORM_OPTION_UNSELECTED,
+            'hover:bg-slate-800/60 disabled:opacity-40',
           )}
           aria-label={`Increase ${label}`}
         >

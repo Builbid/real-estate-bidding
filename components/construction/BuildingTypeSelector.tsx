@@ -16,7 +16,7 @@ import {
   mistriFloorUpperCount,
   parseCustomFloorSequence,
 } from '@/lib/mistriDetails';
-import { FORM_OPTION_SELECTED, FORM_OPTION_UNSELECTED } from '@/components/owner/wizard/formTheme';
+import { FORM_OPTION_SELECTED, FORM_OPTION_UNSELECTED, FORM_MARKER_IDLE, FORM_MARKER_ON } from '@/components/owner/wizard/formTheme';
 import { cn } from '@/lib/utils';
 
 const RCC_4TH_FLOOR: BuildingType = 'RCC 4th Floor';
@@ -279,10 +279,8 @@ export function BuildingTypeSelector({
             >
               <span
                 className={cn(
-                  'flex h-5 w-5 flex-shrink-0 items-center justify-center rounded border-2 transition-colors',
-                  selected
-                    ? 'border-blue-600 bg-blue-600 text-white'
-                    : 'border-slate-300 bg-white',
+                  'flex h-5 w-5 flex-shrink-0 items-center justify-center rounded transition-colors',
+                  selected ? FORM_MARKER_ON : FORM_MARKER_IDLE,
                 )}
               >
                 {selected && <Check className="h-3 w-3" strokeWidth={3} />}
@@ -312,10 +310,8 @@ export function BuildingTypeSelector({
           >
             <span
               className={cn(
-                'flex h-5 w-5 flex-shrink-0 items-center justify-center rounded border-2 transition-colors',
-                customSelected && customSelectable
-                  ? 'border-blue-600 bg-blue-600 text-white'
-                  : 'border-slate-300 bg-white',
+                'flex h-5 w-5 flex-shrink-0 items-center justify-center rounded transition-colors',
+                customSelected && customSelectable ? FORM_MARKER_ON : FORM_MARKER_IDLE,
               )}
             >
               {customSelected && customSelectable && (
