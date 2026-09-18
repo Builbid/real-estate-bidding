@@ -3,7 +3,11 @@
 // ============================================================
 
 import type { BuildingType } from './buildingConfig';
-import { RCC_BUILDING_TYPES } from './buildingConfig';
+import { ASSAM_BUILDING_TYPE, RCC_BUILDING_TYPES } from './buildingConfig';
+import {
+  formatCustomFloorNumberInput,
+  parseCustomFloorSequence,
+} from './mistriDetails';
 import {
   formatProjectStartTime,
   isProjectStartTimeType,
@@ -25,6 +29,16 @@ export type DrawingDesignPackage =
   | 'full_architectural';
 
 export type DrawingFloorPlan = 'G' | 'G+1' | 'G+2' | 'G+3' | 'G+4' | 'custom';
+
+export type DrawingHouseStructure = 'assam' | 'rcc';
+
+export const DRAWING_HOUSE_STRUCTURE_OPTIONS: {
+  value: DrawingHouseStructure;
+  label: string;
+}[] = [
+  { value: 'assam', label: 'Assam Type' },
+  { value: 'rcc', label: 'RCC Structure' },
+];
 
 export type DrawingDeliverable =
   | 'pdf_soft_copy'
@@ -95,6 +109,9 @@ export interface DrawingDetails {
   /** First selected package — kept for older stored records and readers. */
   package: DrawingDesignPackage;
   numberOfFloors: string;
+  houseStructure?: DrawingHouseStructure | null;
+  buildingTypes?: BuildingType[];
+  customFloorNumber?: string | null;
   plotDimensions: string;
   /** Legacy field — no longer collected on new submissions. */
   plotAreaSqft?: number | null;
@@ -255,8 +272,32 @@ export function normalizeDrawingFloorLabel(raw: unknown): string | null {
   return raw.trim();
 }
 
+export function resolveDrawingBuildingTypes(input: {
+  houseStructure: DrawingHouseStructure | null;
+  buildingTypes: BuildingType[];
+}): BuildingType[] {
+  if (input.houseStructure === 'assam') return [ASSAM_BUILDING_TYPE];
+  return input.buildingTypes.filter((type) => RCC_BUILDING_TYPES.includes(type));
+}
+
+export function formatDrawingFloorSelection(input: {
+  houseStructure: DrawingHouseStructure | null;
+  buildingTypes: BuildingType[];
+  customFloorSelected?: boolean;
+  customFloorNumber?: string | null;
+}): string {
+  if (input.houseStructure === 'assam') return 'Assam Type';
+  const parts = resolveDrawingBuildingTypes(input);
+  const custom =
+    input.customFloorSelected && input.customFloorNumber?.trim()
+      ? `Floors above 4th (${input.customFloorNumber.trim()})`
+      : null;
+  return [...parts, custom].filter(Boolean).join(', ');
+}
+
 export function buildingTypesFromDrawingFloors(floors: string): BuildingType[] {
   const normalized = normalizeDrawingFloorLabel(floors) ?? 'G';
+  if (/assam/i.test(normalized)) return [ASSAM_BUILDING_TYPE];
   if (normalized === 'G') return [RCC_BUILDING_TYPES[0]];
   const match = normalized.match(/^G\+(\d+)$/);
   if (!match) return [RCC_BUILDING_TYPES[0]];
@@ -312,10 +353,33 @@ export function parseDrawingDetails(value: unknown): DrawingDetails | null {
       ? v.additionalRequirements.trim()
       : null;
 
+  const houseStructure =
+    v.houseStructure === 'assam' || v.houseStructure === 'rcc'
+      ? v.houseStructure
+      : /assam/i.test(floors)
+        ? 'assam'
+        : 'rcc';
+  const buildingTypes = Array.isArray(v.buildingTypes)
+    ? (v.buildingTypes.filter(
+        (type): type is BuildingType =>
+          typeof type === 'string' &&
+          (type === ASSAM_BUILDING_TYPE || RCC_BUILDING_TYPES.includes(type as BuildingType)),
+      ) as BuildingType[])
+    : houseStructure === 'assam'
+      ? [ASSAM_BUILDING_TYPE]
+      : buildingTypesFromDrawingFloors(floors);
+  const customFloorNumber =
+    typeof v.customFloorNumber === 'string' && v.customFloorNumber.trim()
+      ? v.customFloorNumber.trim()
+      : null;
+
   return {
     packages,
     package: packages[0],
     numberOfFloors: floors,
+    houseStructure,
+    buildingTypes,
+    customFloorNumber,
     plotDimensions: dimensions,
     plotAreaSqft: area,
     deliverables,
@@ -337,7 +401,15 @@ export function getDrawingWorkRequirementBlocks(details: DrawingDetails): {
   }
   blocks.push(
     { label: 'Packages', value: formatDrawingPackagesSummary(details.packages) },
-    { label: 'Number of Floors', value: details.numberOfFloors },
+  );
+  if (details.houseStructure) {
+    blocks.push({
+      label: 'Structure Type',
+      value: details.houseStructure === 'assam' ? 'Assam Type' : 'RCC Structure',
+    });
+  }
+  blocks.push(
+    { label: 'Target Work Floor', value: details.numberOfFloors },
     { label: 'Approximate Plot Dimensions', value: details.plotDimensions },
   );
   if (details.plotAreaSqft != null) {
@@ -374,8 +446,10 @@ export function getDrawingWorkRequirementBlocks(details: DrawingDetails): {
 
 export function validateDrawingDetailsInput(input: {
   packages: DrawingDesignPackage[];
-  floorOption: DrawingFloorPlan | null;
-  customFloors: string;
+  houseStructure: DrawingHouseStructure | null;
+  buildingTypes: BuildingType[];
+  customFloorSelected: boolean;
+  customFloorNumber: string;
   plotDimensions: string;
   deliverables: DrawingDeliverable[];
   projectSubmissionTimeType: DrawingSubmissionTimeType | null;
@@ -387,15 +461,37 @@ export function validateDrawingDetailsInput(input: {
   if (packages.length === 0) {
     return { error: 'Select at least one drawing package.' };
   }
-  if (!input.floorOption) {
-    return { error: 'Select the number of floors.' };
+  if (input.houseStructure !== 'assam' && input.houseStructure !== 'rcc') {
+    return { error: 'Select Assam Type or RCC Structure.' };
   }
-  const floors =
-    input.floorOption === 'custom'
-      ? normalizeDrawingFloorLabel(input.customFloors)
-      : input.floorOption;
+  if (input.houseStructure === 'rcc') {
+    const namedFloors = resolveDrawingBuildingTypes({
+      houseStructure: 'rcc',
+      buildingTypes: input.buildingTypes,
+    });
+    if (namedFloors.length === 0 && !input.customFloorSelected) {
+      return { error: 'Select at least one target work floor.' };
+    }
+    if (input.customFloorSelected) {
+      const sequence = parseCustomFloorSequence(input.customFloorNumber, { allowGaps: true });
+      if (!sequence) {
+        return { error: 'Enter floor numbers above 4th (e.g., 5, 6, 7).' };
+      }
+    }
+  }
+  const buildingTypes = resolveDrawingBuildingTypes(input);
+  const customFloorNumber =
+    input.houseStructure === 'rcc' && input.customFloorSelected
+      ? formatCustomFloorNumberInput(input.customFloorNumber)
+      : null;
+  const floors = formatDrawingFloorSelection({
+    houseStructure: input.houseStructure,
+    buildingTypes,
+    customFloorSelected: input.houseStructure === 'rcc' && input.customFloorSelected,
+    customFloorNumber,
+  });
   if (!floors) {
-    return { error: 'Enter the number of floors (e.g. G+2).' };
+    return { error: 'Select at least one target work floor.' };
   }
   const dimensions = input.plotDimensions.trim();
   if (dimensions.length < 2) {
@@ -414,6 +510,9 @@ export function validateDrawingDetailsInput(input: {
       packages,
       package: packages[0],
       numberOfFloors: floors,
+      houseStructure: input.houseStructure,
+      buildingTypes,
+      customFloorNumber,
       plotDimensions: dimensions,
       deliverables,
       projectSubmissionTimeType: input.projectSubmissionTimeType,

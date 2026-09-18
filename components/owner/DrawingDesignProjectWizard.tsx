@@ -13,24 +13,27 @@ import { OptionSelectGrid } from '@/components/owner/wizard/OptionSelectCard';
 import { StartTimeAndNotes, WIZARD_SECTION_LABEL, withSectionColon } from '@/components/owner/wizard/StartTimeAndNotes';
 import { FORM_CONTINUE_BTN, FORM_SECTION_CARD, FORM_SHELL_CARD } from '@/components/owner/wizard/formTheme';
 import { ReviewSummaryList, WizardStepper } from '@/components/owner/wizard/ReviewSummary';
+import { BuildingTypeSelector } from '@/components/construction/BuildingTypeSelector';
 import {
   AssamDistrictAutocomplete,
   parseAssamDistrictSelection,
 } from '@/components/shared/AssamDistrictAutocomplete';
 import { formatPincodeInput, validatePincode } from '@/lib/validation/pincode';
 import { hasContactInfo } from '@/lib/validation/projectContactInfo';
+import { parseCustomFloorSequence } from '@/lib/mistriDetails';
+import type { BuildingType } from '@/lib/buildingConfig';
 import {
   DRAWING_DELIVERABLE_OPTIONS,
-  DRAWING_FLOOR_OPTIONS,
+  DRAWING_HOUSE_STRUCTURE_OPTIONS,
   DRAWING_PACKAGE_OPTIONS,
   DRAWING_SUBMISSION_TIME_OPTIONS,
-  buildingTypesFromDrawingFloors,
   drawingTypesFromPackages,
   getDrawingWorkRequirementBlocks,
+  resolveDrawingBuildingTypes,
   validateDrawingDetailsInput,
   type DrawingDeliverable,
   type DrawingDesignPackage,
-  type DrawingFloorPlan,
+  type DrawingHouseStructure,
   type DrawingSubmissionTimeType,
 } from '@/lib/drawingDesign';
 import { generateProjectTitle } from '@/lib/generateProjectTitle';
@@ -47,9 +50,11 @@ interface FormState {
   location: string;
   pincode: string;
   bidding_minutes: string;
+  houseStructure: DrawingHouseStructure | null;
+  buildingTypes: BuildingType[];
+  customFloorSelected: boolean;
+  customFloorNumber: string;
   packages: DrawingDesignPackage[];
-  floorOption: DrawingFloorPlan | null;
-  customFloors: string;
   plotDimensions: string;
   deliverables: DrawingDeliverable[];
   projectSubmissionTimeType: DrawingSubmissionTimeType | null;
@@ -60,9 +65,11 @@ const EMPTY_FORM: FormState = {
   location: '',
   pincode: '',
   bidding_minutes: String(BIDDING_MINUTES),
+  houseStructure: null,
+  buildingTypes: [],
+  customFloorSelected: false,
+  customFloorNumber: '',
   packages: [],
-  floorOption: null,
-  customFloors: '',
   plotDimensions: '',
   deliverables: [],
   projectSubmissionTimeType: null,
@@ -83,16 +90,30 @@ export function DrawingDesignProjectWizard() {
   const [step1Errors, setStep1Errors] = useState<{
     location?: string;
     pincode?: string;
+    houseStructure?: string;
+    floors?: string;
+    customFloor?: string;
   }>({});
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((f) => ({ ...f, [key]: value }));
-    if (step1ValidationAttempted && (key === 'location' || key === 'pincode')) {
+    if (
+      step1ValidationAttempted &&
+      (key === 'location' ||
+        key === 'pincode' ||
+        key === 'houseStructure' ||
+        key === 'buildingTypes' ||
+        key === 'customFloorSelected' ||
+        key === 'customFloorNumber')
+    ) {
       setStep1Errors((errors) => {
         const next = { ...errors };
         if (key === 'location') delete next.location;
         if (key === 'pincode') delete next.pincode;
+        if (key === 'houseStructure') delete next.houseStructure;
+        if (key === 'buildingTypes' || key === 'customFloorSelected') delete next.floors;
+        if (key === 'customFloorNumber' || key === 'customFloorSelected') delete next.customFloor;
         return next;
       });
     }
@@ -101,8 +122,10 @@ export function DrawingDesignProjectWizard() {
   function validatedDetails() {
     return validateDrawingDetailsInput({
       packages: form.packages,
-      floorOption: form.floorOption,
-      customFloors: form.customFloors,
+      houseStructure: form.houseStructure,
+      buildingTypes: form.buildingTypes,
+      customFloorSelected: form.customFloorSelected,
+      customFloorNumber: form.customFloorNumber,
       plotDimensions: form.plotDimensions,
       deliverables: form.deliverables,
       projectSubmissionTimeType: form.projectSubmissionTimeType,
@@ -117,6 +140,19 @@ export function DrawingDesignProjectWizard() {
     }
     const pincodeError = validatePincode(form.pincode);
     if (pincodeError) errors.pincode = pincodeError;
+    if (!form.houseStructure) {
+      errors.houseStructure = 'Select Assam Type or RCC Structure.';
+    } else if (form.houseStructure === 'rcc') {
+      if (form.buildingTypes.length === 0 && !form.customFloorSelected) {
+        errors.floors = 'Select at least one target work floor.';
+      }
+      if (form.customFloorSelected) {
+        const sequence = parseCustomFloorSequence(form.customFloorNumber, { allowGaps: true });
+        if (!sequence) {
+          errors.customFloor = 'Enter floor numbers above 4th (e.g., 5, 6, 7).';
+        }
+      }
+    }
 
     if (Object.keys(errors).length > 0) {
       setStep1ValidationAttempted(true);
@@ -172,7 +208,10 @@ export function DrawingDesignProjectWizard() {
       state: districtSelection.state,
       pincode: form.pincode.trim() || undefined,
       bidding_minutes: parseInt(form.bidding_minutes, 10) || BIDDING_MINUTES,
-      building_types: buildingTypesFromDrawingFloors(validated.details.numberOfFloors),
+      building_types: resolveDrawingBuildingTypes({
+        houseStructure: form.houseStructure,
+        buildingTypes: form.buildingTypes,
+      }),
       drawing_types: drawingTypesFromPackages(validated.details.packages),
       drawing_details: validated.details,
     });
@@ -230,6 +269,79 @@ export function DrawingDesignProjectWizard() {
                 onChange={(e) => update('pincode', formatPincodeInput(e.target.value))}
                 error={step1ValidationAttempted ? step1Errors.pincode : undefined}
               />
+
+              <div className={FORM_SECTION_CARD}>
+                <label className={WIZARD_SECTION_LABEL}>
+                  {withSectionColon('Structure Type')}
+                </label>
+                <OptionSelectGrid
+                  options={DRAWING_HOUSE_STRUCTURE_OPTIONS}
+                  value={form.houseStructure}
+                  onSelect={(value) => {
+                    setForm((current) => ({
+                      ...current,
+                      houseStructure: value,
+                      buildingTypes: value === 'assam' ? [] : current.buildingTypes,
+                      customFloorSelected: value === 'assam' ? false : current.customFloorSelected,
+                      customFloorNumber: value === 'assam' ? '' : current.customFloorNumber,
+                    }));
+                    if (step1ValidationAttempted) {
+                      setStep1Errors((errors) => {
+                        const next = { ...errors };
+                        delete next.houseStructure;
+                        if (value === 'assam') {
+                          delete next.floors;
+                          delete next.customFloor;
+                        }
+                        return next;
+                      });
+                    }
+                  }}
+                  columns={2}
+                />
+                {step1ValidationAttempted && step1Errors.houseStructure ? (
+                  <p className="text-xs font-medium text-red-400">{step1Errors.houseStructure}</p>
+                ) : null}
+              </div>
+
+              {form.houseStructure === 'rcc' && (
+                <div className={FORM_SECTION_CARD}>
+                  <label className={WIZARD_SECTION_LABEL}>
+                    {withSectionColon('Target Work Floor')}
+                  </label>
+                  <p className="text-[11px] font-medium text-slate-500 leading-relaxed">
+                    Select only the RCC floors included in this project. Intermediate floors are not added automatically.
+                  </p>
+                  <BuildingTypeSelector
+                    purpose="drawing"
+                    rccOnly
+                    allowNonSequentialFloors
+                    value={form.buildingTypes}
+                    onChange={(types) => update('buildingTypes', types)}
+                    showCustomFloor
+                    customSelected={form.customFloorSelected}
+                    customFloorNumber={form.customFloorNumber}
+                    onCustomChange={(selected, number) => {
+                      setForm((current) => ({
+                        ...current,
+                        customFloorSelected: selected,
+                        customFloorNumber: number,
+                      }));
+                      if (step1ValidationAttempted) {
+                        setStep1Errors((errors) => {
+                          const next = { ...errors };
+                          delete next.floors;
+                          delete next.customFloor;
+                          return next;
+                        });
+                      }
+                    }}
+                    error={step1ValidationAttempted ? step1Errors.floors ?? null : null}
+                    customError={step1ValidationAttempted ? step1Errors.customFloor ?? null : null}
+                  />
+                </div>
+              )}
+
               <div className="flex flex-col gap-1.5">
                 <label className={WIZARD_SECTION_LABEL}>
                   {withSectionColon('Bidding Duration')}
@@ -283,34 +395,10 @@ export function DrawingDesignProjectWizard() {
               </div>
 
               <div className={FORM_SECTION_CARD}>
-                <label className={WIZARD_SECTION_LABEL}>{withSectionColon('Number of Floors')}</label>
-                <OptionSelectGrid
-                  options={DRAWING_FLOOR_OPTIONS}
-                  value={form.floorOption}
-                  onSelect={(v) => {
-                    update('floorOption', v);
-                    if (v !== 'custom') update('customFloors', '');
-                    setStep2Error(null);
-                  }}
-                  columns={2}
-                />
-                {form.floorOption === 'custom' && (
-                  <Input
-                    label="Custom Floors"
-                    type="text"
-                    placeholder="e.g. G+5"
-                    value={form.customFloors}
-                    onChange={(e) => {
-                      update('customFloors', e.target.value);
-                      setStep2Error(null);
-                    }}
-                  />
-                )}
-              </div>
-
-              <div className={FORM_SECTION_CARD}>
+                <label className={WIZARD_SECTION_LABEL}>
+                  {withSectionColon('Approximate Plot Dimensions')}
+                </label>
                 <Input
-                  label="Approximate Plot Dimensions (e.g. 30ft x 40ft)"
                   type="text"
                   placeholder="e.g. 30ft x 40ft"
                   value={form.plotDimensions}

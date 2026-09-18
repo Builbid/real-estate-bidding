@@ -178,7 +178,10 @@ export async function createProjectAction(
     const drawing = input as CreateDrawingDesignProjectInput
     const buildingTypes = Array.isArray(drawing.building_types) ? drawing.building_types : []
     if (buildingTypes.length === 0) {
-      return { error: 'Select Assam Type or one or more RCC floors.' }
+      const hasCustomFloors = Boolean(drawing.drawing_details.customFloorNumber);
+      if (!hasCustomFloors) {
+        return { error: 'Select Assam Type or one or more RCC floors.' }
+      }
     }
     const hasAssam = buildingTypes.includes(ASSAM_BUILDING_TYPE)
     const hasRcc = buildingTypes.some((t) => RCC_BUILDING_TYPES.includes(t))

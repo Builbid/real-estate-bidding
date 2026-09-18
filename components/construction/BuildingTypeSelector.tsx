@@ -196,16 +196,18 @@ export function BuildingTypeSelector({
     <div className="space-y-4">
       <div className="space-y-1">
         {purpose === 'drawing' ? (
-          <>
-            <p className="text-sm text-muted-foreground">
-              Select Assam Type <span className="font-semibold">or</span> RCC floor(s) for these drawings.
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Assam Type and RCC cannot be mixed.
-              <br />
-              For RCC you can select multiple floors (e.g. Ground + 1st Floor).
-            </p>
-          </>
+          rccOnly ? null : (
+            <>
+              <p className="text-sm text-muted-foreground">
+                Select Assam Type <span className="font-semibold">or</span> RCC floor(s) for these drawings.
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Assam Type and RCC cannot be mixed.
+                <br />
+                For RCC you can select multiple floors (e.g. Ground + 1st Floor).
+              </p>
+            </>
+          )
         ) : purpose === 'mistri' ? (
           rccOnly ? null : (
             <p className="text-sm text-muted-foreground">
