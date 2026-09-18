@@ -480,7 +480,9 @@ function HouseTypeCard({
       aria-pressed={selected}
       className={cn(
         'flex min-h-[10.75rem] w-full cursor-pointer flex-col items-center justify-center space-y-3 rounded-xl p-6 text-center transition-all [overflow-anchor:none]',
-        selected ? FORM_OPTION_SELECTED : FORM_OPTION_UNSELECTED,
+        selected
+          ? 'border-2 border-blue-600 bg-blue-50/80 font-medium text-slate-900 ring-2 ring-blue-500/30 dark:border-blue-500 dark:bg-blue-950/40 dark:text-white'
+          : 'border-2 border-slate-200/80 bg-slate-50/80 text-slate-700 hover:border-slate-300 hover:bg-slate-100 dark:border-slate-700/40 dark:bg-slate-800/40 dark:text-slate-200 dark:hover:border-slate-600/50 dark:hover:bg-slate-800/60',
       )}
     >
       {type === 'assam' ? (
@@ -490,7 +492,7 @@ function HouseTypeCard({
       ) : (
         <RccStructureGraphic />
       )}
-      <span className={cn(selected ? 'font-medium text-slate-900 dark:text-white' : 'font-medium text-slate-700 dark:text-slate-200')}>
+      <span className={cn(selected ? 'font-semibold text-slate-900 dark:text-white' : 'font-medium text-slate-700 dark:text-slate-200')}>
         {label}
       </span>
     </button>
@@ -1323,7 +1325,7 @@ export function LabourContractorProjectWizard() {
                 )}
 
                 {form.houseType === 'rcc' && (
-                  <div className={cn(FORM_SECTION_CARD, 'min-h-[22rem]')}>
+                  <div className={cn(FORM_SECTION_CARD, 'space-y-3')}>
                     <label className={SECTION_LABEL}>{withSectionColon('Building / Floor Type')}</label>
                     <p className={HELPER_TEXT}>
                       Select only the RCC floors included in this project. Intermediate floors are not added automatically.
@@ -1345,7 +1347,7 @@ export function LabourContractorProjectWizard() {
                 )}
               </div>
 
-              <div className={FORM_SECTION_CARD}>
+              <div className={cn(FORM_SECTION_CARD, 'space-y-3')}>
                 <label className={SECTION_LABEL}>
                   {withSectionColon('Bidding Duration')}
                 </label>
