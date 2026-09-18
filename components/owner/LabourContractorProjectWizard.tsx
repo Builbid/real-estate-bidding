@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, ArrowLeft, Check, CheckCircle2, AlertCircle, Lock } from 'lucide-react';
 import { useProfile } from '@/lib/hooks/useProfile';
@@ -212,6 +212,7 @@ function OptionCardButton({
       <button
         type="button"
         disabled={disabled}
+        onMouseDown={(event) => event.preventDefault()}
         onClick={() => {
           if (!disabled) onClick();
         }}
@@ -448,10 +449,11 @@ function HouseTypeCard({
   return (
     <button
       type="button"
+      onMouseDown={(event) => event.preventDefault()}
       onClick={onClick}
       aria-pressed={selected}
       className={cn(
-        'flex w-full cursor-pointer flex-col items-center justify-center space-y-3 rounded-xl p-6 text-center transition-all',
+        'flex min-h-[10.75rem] w-full cursor-pointer flex-col items-center justify-center space-y-3 rounded-xl p-6 text-center transition-all [overflow-anchor:none]',
         selected ? FORM_OPTION_SELECTED : FORM_OPTION_UNSELECTED,
       )}
     >
@@ -590,6 +592,18 @@ export function LabourContractorProjectWizard() {
   }>({});
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [submittedTitle, setSubmittedTitle] = useState('');
+  const houseTypeScrollYRef = useRef<number | null>(null);
+
+  useLayoutEffect(() => {
+    const y = houseTypeScrollYRef.current;
+    if (y == null) return;
+    window.scrollTo(0, y);
+    const frame = requestAnimationFrame(() => {
+      window.scrollTo(0, y);
+      houseTypeScrollYRef.current = null;
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [form.houseType]);
 
   const districtSelection = parseAssamDistrictSelection(form.location);
   const parsedCustomSequence = parseCustomFloorSequence(form.customFloorNumber, {
@@ -692,6 +706,8 @@ export function LabourContractorProjectWizard() {
   }
 
   function setHouseType(next: MistriHouseType) {
+    if (form.houseType === next) return;
+    houseTypeScrollYRef.current = window.scrollY;
     setForm((f) => {
       if (f.houseType === next) return f;
       if (next === 'assam') {
@@ -1123,7 +1139,7 @@ export function LabourContractorProjectWizard() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-6 text-slate-900">
+    <div className="mx-auto w-full max-w-3xl space-y-6 text-slate-900 [overflow-anchor:none]">
       <div>
         <HistoryBackButton className="mb-2" onClick={goWizardBack} />
         <h1 className="text-xl font-bold text-foreground">Post Mistri Worker Project</h1>
@@ -1144,7 +1160,7 @@ export function LabourContractorProjectWizard() {
           )}
 
           {step === 1 && (
-            <div className="space-y-4">
+            <div className="space-y-4 [overflow-anchor:none]">
               <h2 className="text-base font-bold text-slate-900">Project Information</h2>
 
               <AssamDistrictAutocomplete
@@ -1163,29 +1179,9 @@ export function LabourContractorProjectWizard() {
                 error={step1ValidationAttempted ? step1Errors.pincode : undefined}
               />
 
-              {form.houseType !== 'boundary_wall' && (
-                <>
-                  <Input
-                    label={MISTRI_APPROXIMATE_AREA_LABEL}
-                    type="text"
-                    inputMode="decimal"
-                    placeholder="e.g. 1200"
-                    value={form.approximateArea}
-                    onChange={(e) => {
-                      update('approximateArea', e.target.value);
-                      setStep1Errors((prev) => ({ ...prev, builtUpArea: undefined }));
-                    }}
-                    error={step1ValidationAttempted ? step1Errors.builtUpArea : undefined}
-                  />
-                  <p className={FORM_NOTE}>
-                    * Note: Enter the estimated slab area for a single floor. This value will be used as the base area for each floor selected below.
-                  </p>
-                </>
-              )}
-
-              <div className={FORM_SECTION_CARD}>
+              <div className={cn(FORM_SECTION_CARD, '[overflow-anchor:none]')}>
                 <label className={SECTION_LABEL}>{withSectionColon('Construction type')}</label>
-                <div className="mt-1 grid grid-cols-1 gap-4 md:grid-cols-3">
+                <div className="mt-1 grid grid-cols-1 items-stretch gap-4 md:grid-cols-3">
                   {MISTRI_HOUSE_TYPE_OPTIONS.map((opt) => (
                     <HouseTypeCard
                       key={opt.value}
@@ -1204,27 +1200,49 @@ export function LabourContractorProjectWizard() {
                 )}
               </div>
 
-              {form.houseType === 'rcc' && (
-                <div className={FORM_SECTION_CARD}>
-                  <label className={SECTION_LABEL}>{withSectionColon('Building / Floor Type')}</label>
-                  <p className={HELPER_TEXT}>
-                    Select only the RCC floors included in this project. Intermediate floors are not added automatically.
-                  </p>
-                  <BuildingTypeSelector
-                    purpose="mistri"
-                    rccOnly
-                    allowNonSequentialFloors
-                    value={form.buildingTypes}
-                    onChange={setBuildingTypes}
-                    showCustomFloor
-                    customSelected={form.customFloorSelected}
-                    customFloorNumber={form.customFloorNumber}
-                    onCustomChange={setCustomFloor}
-                    error={step1ValidationAttempted ? step1Errors.floors : null}
-                    customError={step1ValidationAttempted ? step1Errors.customFloor : null}
-                  />
-                </div>
-              )}
+              <div className="min-h-[7rem] space-y-4 [overflow-anchor:none]">
+                {form.houseType !== 'boundary_wall' && (
+                  <div className="min-h-[6.75rem]">
+                    <Input
+                      label={MISTRI_APPROXIMATE_AREA_LABEL}
+                      type="text"
+                      inputMode="decimal"
+                      placeholder="e.g. 1200"
+                      value={form.approximateArea}
+                      onChange={(e) => {
+                        update('approximateArea', e.target.value);
+                        setStep1Errors((prev) => ({ ...prev, builtUpArea: undefined }));
+                      }}
+                      error={step1ValidationAttempted ? step1Errors.builtUpArea : undefined}
+                    />
+                    <p className={FORM_NOTE}>
+                      * Note: Enter the estimated slab area for a single floor. This value will be used as the base area for each floor selected below.
+                    </p>
+                  </div>
+                )}
+
+                {form.houseType === 'rcc' && (
+                  <div className={cn(FORM_SECTION_CARD, 'min-h-[22rem]')}>
+                    <label className={SECTION_LABEL}>{withSectionColon('Building / Floor Type')}</label>
+                    <p className={HELPER_TEXT}>
+                      Select only the RCC floors included in this project. Intermediate floors are not added automatically.
+                    </p>
+                    <BuildingTypeSelector
+                      purpose="mistri"
+                      rccOnly
+                      allowNonSequentialFloors
+                      value={form.buildingTypes}
+                      onChange={setBuildingTypes}
+                      showCustomFloor
+                      customSelected={form.customFloorSelected}
+                      customFloorNumber={form.customFloorNumber}
+                      onCustomChange={setCustomFloor}
+                      error={step1ValidationAttempted ? step1Errors.floors : null}
+                      customError={step1ValidationAttempted ? step1Errors.customFloor : null}
+                    />
+                  </div>
+                )}
+              </div>
 
               <div className={FORM_SECTION_CARD}>
                 <label className={SECTION_LABEL}>
