@@ -103,7 +103,7 @@ import {
   FORM_SHELL_CARD,
   FORM_TEXTAREA,
 } from '@/components/owner/wizard/formTheme';
-import { WIZARD_SECTION_LABEL, withSectionColon } from '@/components/owner/wizard/StartTimeAndNotes';
+import { ADDITIONAL_REQUIREMENTS_PLACEHOLDER, WIZARD_SECTION_LABEL, withSectionColon } from '@/components/owner/wizard/StartTimeAndNotes';
 import { ReviewSummaryList, WizardStepper } from '@/components/owner/wizard/ReviewSummary';
 import { cn } from '@/lib/utils';
 import { createProjectAction } from '@/app/actions/createProject';
@@ -1852,11 +1852,13 @@ export function LabourContractorProjectWizard() {
 
               <div className={FORM_SECTION_CARD}>
                 <label className={SECTION_LABEL}>
-                  Additional Requirements <span className="normal-case tracking-normal">(optional)</span>:
+                  <span>
+                    Additional Requirements <span className="normal-case tracking-normal">(optional)</span>:
+                  </span>
                 </label>
                 <textarea
                   rows={3}
-                  placeholder=""
+                  placeholder={ADDITIONAL_REQUIREMENTS_PLACEHOLDER}
                   value={form.additionalRequirements}
                   onChange={(e) => {
                     update('additionalRequirements', e.target.value);

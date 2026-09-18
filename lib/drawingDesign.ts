@@ -32,19 +32,37 @@ export type DrawingDeliverable =
   | '3d_rendering_images'
   | 'autocad_dwg_revit';
 
-export type DrawingSubmissionTimeType = '3days' | '1week' | '2week' | '1month';
+export type DrawingSubmissionTimeType =
+  | '1week'
+  | '2week'
+  | '3week'
+  | '4week'
+  /** Legacy values — no longer offered on new submissions. */
+  | '3days'
+  | '1month';
 
 export const DRAWING_SUBMISSION_TIME_OPTIONS: {
   value: DrawingSubmissionTimeType;
   label: string;
 }[] = [
-  { value: '3days', label: 'within 3 days' },
   { value: '1week', label: 'within 1 week' },
-  { value: '2week', label: 'within 2 week' },
-  { value: '1month', label: 'within one month' },
+  { value: '2week', label: 'within 2 weeks' },
+  { value: '3week', label: 'within 3 weeks' },
+  { value: '4week', label: 'within 4 weeks' },
 ];
 
-const SUBMISSION_TIME_SET = new Set<DrawingSubmissionTimeType>(
+const LEGACY_SUBMISSION_TIME_LABELS: Record<'3days' | '1month', string> = {
+  '3days': 'within 3 days',
+  '1month': 'within one month',
+};
+
+const SUBMISSION_TIME_SET = new Set<DrawingSubmissionTimeType>([
+  ...DRAWING_SUBMISSION_TIME_OPTIONS.map((o) => o.value),
+  '3days',
+  '1month',
+]);
+
+const ACTIVE_SUBMISSION_TIME_SET = new Set(
   DRAWING_SUBMISSION_TIME_OPTIONS.map((o) => o.value),
 );
 
@@ -54,8 +72,21 @@ export function isDrawingSubmissionTimeType(
   return typeof value === 'string' && SUBMISSION_TIME_SET.has(value as DrawingSubmissionTimeType);
 }
 
+export function isActiveDrawingSubmissionTimeType(
+  value: unknown,
+): value is Exclude<DrawingSubmissionTimeType, '3days' | '1month'> {
+  return (
+    typeof value === 'string' &&
+    ACTIVE_SUBMISSION_TIME_SET.has(value as Exclude<DrawingSubmissionTimeType, '3days' | '1month'>)
+  );
+}
+
 export function formatDrawingSubmissionTime(type: DrawingSubmissionTimeType): string {
-  return DRAWING_SUBMISSION_TIME_OPTIONS.find((o) => o.value === type)?.label ?? type;
+  return (
+    DRAWING_SUBMISSION_TIME_OPTIONS.find((o) => o.value === type)?.label ??
+    LEGACY_SUBMISSION_TIME_LABELS[type as '3days' | '1month'] ??
+    type
+  );
 }
 
 export interface DrawingDetails {
@@ -374,7 +405,7 @@ export function validateDrawingDetailsInput(input: {
   if (deliverables.length === 0) {
     return { error: 'Select at least one deliverable.' };
   }
-  if (!isDrawingSubmissionTimeType(input.projectSubmissionTimeType)) {
+  if (!isActiveDrawingSubmissionTimeType(input.projectSubmissionTimeType)) {
     return { error: 'Select a project submission time.' };
   }
 

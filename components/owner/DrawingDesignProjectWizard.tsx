@@ -352,7 +352,6 @@ export function DrawingDesignProjectWizard() {
                   update('additionalRequirements', v);
                   setStep2Error(null);
                 }}
-                notesPlaceholder="Specify site constraints, municipal notes, or extra drawing sheets..."
               />
 
               <div className="flex gap-3">

@@ -16,7 +16,7 @@ import {
 import { BuildingTypeSelector } from '@/components/construction/BuildingTypeSelector';
 import { TradeWorkRequirementsFields, type TradeWorkFormFields } from '@/components/owner/TradeWorkRequirementsFields';
 import { FORM_CONTINUE_BTN, FORM_OPTION_SELECTED, FORM_OPTION_UNSELECTED, FORM_SECTION_CARD, FORM_SHELL_CARD, FORM_TEXTAREA } from '@/components/owner/wizard/formTheme';
-import { WIZARD_SECTION_LABEL, withSectionColon } from '@/components/owner/wizard/StartTimeAndNotes';
+import { ADDITIONAL_REQUIREMENTS_PLACEHOLDER, WIZARD_SECTION_LABEL, withSectionColon } from '@/components/owner/wizard/StartTimeAndNotes';
 import { ReviewSummaryList, WizardStepper } from '@/components/owner/wizard/ReviewSummary';
 import { generateProjectTitle } from '@/lib/generateProjectTitle';
 import { hasContactInfo } from '@/lib/validation/projectContactInfo';
@@ -815,11 +815,13 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
 
                   <div className={FORM_SECTION_CARD}>
                     <label className={WIZARD_SECTION_LABEL}>
-                      Additional Requirements <span className="normal-case tracking-normal">(optional)</span>:
+                      <span>
+                        Additional Requirements <span className="normal-case tracking-normal">(optional)</span>:
+                      </span>
                     </label>
                     <textarea
                       rows={3}
-                      placeholder="Specify any custom instructions, special paint brands, scaffolding needs, or details not covered above..."
+                      placeholder={ADDITIONAL_REQUIREMENTS_PLACEHOLDER}
                       value={form.additionalRequirements}
                       onChange={(e) => {
                         update('additionalRequirements', e.target.value);

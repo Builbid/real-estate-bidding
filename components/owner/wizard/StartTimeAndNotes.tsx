@@ -10,7 +10,10 @@ import {
 } from '@/lib/projectStartTime';
 
 export const WIZARD_SECTION_LABEL =
-  'mb-3 text-base font-bold text-slate-900 dark:text-slate-100';
+  "mb-3 flex items-center gap-2 text-base font-bold text-slate-900 dark:text-slate-100 before:inline-block before:h-2 before:w-2 before:flex-shrink-0 before:rounded-full before:bg-brand before:content-['']";
+
+export const ADDITIONAL_REQUIREMENTS_PLACEHOLDER =
+  'Write any additional requirements or notes here...';
 
 export function withSectionColon(label: string): string {
   const trimmed = label.trim();
@@ -65,14 +68,13 @@ export function StartTimeAndNotes<T extends string = ProjectStartTimeType>({
 
       <div className={FORM_SECTION_CARD}>
         <label className={WIZARD_SECTION_LABEL}>
-          Additional Requirements <span className="normal-case tracking-normal">(optional)</span>:
+          <span>
+            Additional Requirements <span className="normal-case tracking-normal">(optional)</span>:
+          </span>
         </label>
         <textarea
           rows={3}
-          placeholder={
-            notesPlaceholder ??
-            'Specify any custom instructions or details not covered above...'
-          }
+          placeholder={notesPlaceholder ?? ADDITIONAL_REQUIREMENTS_PLACEHOLDER}
           value={additionalRequirements}
           onChange={(e) => onNotesChange(e.target.value)}
           className={FORM_TEXTAREA}
