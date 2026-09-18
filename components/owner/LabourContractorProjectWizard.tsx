@@ -49,7 +49,10 @@ import {
   getMistriRccScopeLabel,
   getMistriWorkRequirementBlocks,
   isAssamMistriFloor,
+  isFinishingRccScope,
+  isFinishingScopeBlockedByLowerStructure,
   isRccScopeDisabled,
+  finishingScopeLockedByLowerStructureMessage,
   mistriContractTypeRequiredForFloorWork,
   mistriFoundationProvisionRequired,
   parseCustomFloorSequence,
@@ -581,6 +584,45 @@ function floorWorkKey(
   return floorId;
 }
 
+function withoutFinishingScopes(current: FloorWorkForm): FloorWorkForm {
+  const scopes = rccScopesFromWorkTypes(
+    current.workTypes,
+    current.includeFineFlooring,
+  ).filter((scope) => !isFinishingRccScope(scope));
+  const wallMode = wallPlasterWorkModeFromWorkTypes(current.workTypes) ?? 'both';
+  return {
+    ...current,
+    workTypes: workTypesFromRccScopes(scopes, wallMode),
+    brickMaterial: null,
+    plasterScope: null,
+    flooringMaterial: null,
+    includeFineFlooring: null,
+    flooringAreaSqft: '',
+    wallAreaSqft: '',
+  };
+}
+
+function rccScopeFloorsFromForm(form: FormState): Array<{
+  floorId: MistriFloorId;
+  customFloorNumber: number | null;
+  workTypes: MistriFloorWorkType[];
+  scopeOption: ReturnType<typeof rccScopeFromWorkTypes>;
+}> {
+  return selectedFloorEntries(form).map((entry) => {
+    const work = form.floorWorkById[floorWorkKey(entry.floorId, entry.customFloorNumber)]
+      ?? EMPTY_FLOOR_WORK;
+    const workTypes = isAssamMistriFloor(entry.floorId)
+      ? (['full_finished'] as MistriFloorWorkType[])
+      : work.workTypes;
+    return {
+      floorId: entry.floorId,
+      customFloorNumber: entry.customFloorNumber,
+      workTypes,
+      scopeOption: rccScopeFromWorkTypes(workTypes),
+    };
+  });
+}
+
 function pruneFloorWorkById(
   floorWorkById: Record<string, FloorWorkForm>,
   entries: Array<{ floorId: MistriFloorId; customFloorNumber: number | null }>,
@@ -881,35 +923,65 @@ export function LabourContractorProjectWizard() {
       if (isRccScopeDisabled(currentScopes, option)) {
         return f;
       }
+      const currentScopeFloors = rccScopeFloorsFromForm(f);
+      if (
+        isFinishingRccScope(option) &&
+        !currentScopes.includes(option) &&
+        isFinishingScopeBlockedByLowerStructure(
+          floorId,
+          currentScopeFloors,
+          customFloorNumber,
+        )
+      ) {
+        return f;
+      }
       const nextScopes = applyRccScopeToggle(currentScopes, option);
       const wallMode =
         wallPlasterWorkModeFromWorkTypes(current.workTypes) ?? 'both';
       const workTypes = workTypesFromRccScopes(nextScopes, wallMode);
       const keepWallFields = nextScopes.includes('wall_plaster_only');
       const keepFlooringFields = nextScopes.includes('flooring_only');
+      const nextById: Record<string, FloorWorkForm> = {
+        ...f.floorWorkById,
+        [key]: {
+          ...current,
+          workTypes,
+          brickMaterial:
+            keepWallFields && wallMode !== 'plastering' ? current.brickMaterial : null,
+          plasterScope:
+            keepWallFields && wallMode !== 'wall'
+              ? (current.plasterScope ?? 'both')
+              : null,
+          flooringMaterial: keepFlooringFields ? current.flooringMaterial : null,
+          includeFineFlooring: keepFlooringFields ? true : null,
+          flooringAreaSqft: keepFlooringFields ? current.flooringAreaSqft : '',
+          wallAreaSqft: keepWallFields
+            ? (current.wallAreaSqft.trim()
+                ? current.wallAreaSqft
+                : formatEstimatedWallAreaSqft(f.approximateArea))
+            : '',
+        },
+      };
+      const nextScopeFloors = rccScopeFloorsFromForm({ ...f, floorWorkById: nextById });
+      for (const entry of selectedFloorEntries(f)) {
+        if (isAssamMistriFloor(entry.floorId)) continue;
+        if (
+          !isFinishingScopeBlockedByLowerStructure(
+            entry.floorId,
+            nextScopeFloors,
+            entry.customFloorNumber,
+          )
+        ) {
+          continue;
+        }
+        const entryKey = floorWorkKey(entry.floorId, entry.customFloorNumber);
+        nextById[entryKey] = withoutFinishingScopes(
+          nextById[entryKey] ?? EMPTY_FLOOR_WORK,
+        );
+      }
       return {
         ...f,
-        floorWorkById: {
-          ...f.floorWorkById,
-          [key]: {
-            ...current,
-            workTypes,
-            brickMaterial:
-              keepWallFields && wallMode !== 'plastering' ? current.brickMaterial : null,
-            plasterScope:
-              keepWallFields && wallMode !== 'wall'
-                ? (current.plasterScope ?? 'both')
-                : null,
-            flooringMaterial: keepFlooringFields ? current.flooringMaterial : null,
-            includeFineFlooring: keepFlooringFields ? true : null,
-            flooringAreaSqft: keepFlooringFields ? current.flooringAreaSqft : '',
-            wallAreaSqft: keepWallFields
-              ? (current.wallAreaSqft.trim()
-                  ? current.wallAreaSqft
-                  : formatEstimatedWallAreaSqft(f.approximateArea))
-              : '',
-          },
-        },
+        floorWorkById: nextById,
       };
     });
     setStep2Error(null);
@@ -1426,7 +1498,7 @@ export function LabourContractorProjectWizard() {
                 return (
                   <div
                     key={key}
-                    className={cn(FORM_SECTION_CARD, 'border-b border-slate-100 pb-6 last:border-b-0 last:pb-0')}
+                    className={cn(FORM_SECTION_CARD, 'border-b border-slate-100 pb-6 last:border-b-0 last:pb-0 [overflow-anchor:none]')}
                   >
                     <div className="space-y-1.5">
                       <p className={FORM_BADGE}>
@@ -1554,17 +1626,32 @@ export function LabourContractorProjectWizard() {
                         </div>
                       </div>
                     ) : (
-                      <div className="grid grid-cols-1 gap-3">
+                      <div className="grid grid-cols-1 gap-3 [overflow-anchor:none]">
                         {MISTRI_RCC_SCOPE_OPTIONS.map((opt) => {
                           const selected = selectedScopes.includes(opt.value);
-                          const disabled = isRccScopeDisabled(selectedScopes, opt.value);
+                          const finishingLockedByLower =
+                            isFinishingRccScope(opt.value) &&
+                            isFinishingScopeBlockedByLowerStructure(
+                              fw.floorId,
+                              assembledFloorWork,
+                              fw.customFloorNumber,
+                            );
+                          const comboDisabled = isRccScopeDisabled(selectedScopes, opt.value);
+                          const disabled = comboDisabled || finishingLockedByLower;
+                          const lockNote = finishingLockedByLower
+                            ? finishingScopeLockedByLowerStructureMessage(
+                                fw.floorId,
+                                fw.customFloorNumber,
+                              )
+                            : undefined;
 
                           return (
-                            <div key={opt.value} className="w-full space-y-2">
+                            <div key={opt.value} className="w-full space-y-2 [overflow-anchor:none]">
                               <OptionCardButton
-                                selected={selected}
+                                selected={selected && !finishingLockedByLower}
                                 disabled={disabled}
                                 locked={disabled}
+                                note={lockNote}
                                 marker="checkbox"
                                 onClick={() =>
                                   toggleRccScope(fw.floorId, opt.value, fw.customFloorNumber)
@@ -1579,7 +1666,7 @@ export function LabourContractorProjectWizard() {
                                   </span>
                                 </span>
                               </OptionCardButton>
-                              {opt.value === 'wall_plaster_only' && selected && (
+                              {opt.value === 'wall_plaster_only' && selected && !finishingLockedByLower && (
                                 <div className="w-full space-y-3">
                                   <NestedChoiceButtons
                                     question="Select the work required on this floor"
@@ -1620,7 +1707,7 @@ export function LabourContractorProjectWizard() {
                                   />
                                 </div>
                               )}
-                              {opt.value === 'flooring_only' && selected && (
+                              {opt.value === 'flooring_only' && selected && !finishingLockedByLower && (
                                 <div className="w-full space-y-4">
                                   <NestedChoiceButtons
                                     question="What flooring material will be used?"

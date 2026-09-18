@@ -711,10 +711,28 @@ export const UPPER_FLOOR_STRUCTURAL_REQUIRES_LOWER_FRAME =
   'Requires structural frame on the floor below.';
 
 export const UPPER_FLOOR_WALL_LOCKED_BY_LOWER_STRUCTURE =
-  'Option 3 (Wall Brick Work) is unavailable because lower floors require new structural framing. You must select Option 1 or Option 2 to cast the slab/frame first.';
+  'This work option is locked for Floor [X] because lower floors are set to new frame/structure creation.';
 
 export const OPTION_3_REQUIRES_EXISTING_SLAB =
   'Option 3 requires an existing structural slab on this floor from prior construction.';
+
+export function formatMistriFloorLockLabel(
+  floorId: MistriFloorId,
+  customFloorNumber?: number | null,
+): string {
+  return formatMistriFloorWorkLabel({ floorId, customFloorNumber }).replace(/^RCC\s+/i, '');
+}
+
+export function finishingScopeLockedByLowerStructureMessage(
+  floorId: MistriFloorId,
+  customFloorNumber?: number | null,
+): string {
+  return `This work option is locked for Floor ${formatMistriFloorLockLabel(floorId, customFloorNumber)} because lower floors are set to new frame/structure creation.`;
+}
+
+export function isFinishingRccScope(option: MistriRccScopeOption | null | undefined): boolean {
+  return option === 'wall_plaster_only' || option === 'flooring_only';
+}
 
 export const MISTRI_RCC_SCOPE_OPTIONS: {
   value: MistriRccScopeOption;
@@ -1085,12 +1103,7 @@ export function floorLevelHasStructuralFrame(
 }
 
 /**
- * Option 1/2 on upper floor N requires a structural frame on floor N-1
- * (new framing, wall-only on existing slab, or prior construction below).
- */
-/**
- * @deprecated Inter-floor Option 3 locking removed — scopes are independent per floor.
- * Always returns false.
+ * Option 1/2 on upper floors stay available so new framing can continue upward.
  */
 export function isUpperFloorStructuralScopeBlocked(
   _floorId: MistriFloorId,
@@ -1118,16 +1131,13 @@ export function floorSlabExistsFromPriorConstruction(
   return level < firstNewStructure;
 }
 
-/**
- * @deprecated Inter-floor Option 3 locking removed — scopes are independent per floor.
- * Always returns false.
- */
+/** Option 3/4 on this floor is locked when any lower floor is new structure. */
 export function isWallPlasterScopeBlocked(
-  _floorId: MistriFloorId,
-  _floorWork: readonly MistriScopeFloor[],
-  _customFloorNumber?: number | null,
+  floorId: MistriFloorId,
+  floorWork: readonly MistriScopeFloor[],
+  customFloorNumber?: number | null,
 ): boolean {
-  return false;
+  return isFinishingScopeBlockedByLowerStructure(floorId, floorWork, customFloorNumber);
 }
 
 export function structuralFramingLevels(floorWork: readonly MistriScopeFloor[]): number[] {
@@ -1153,15 +1163,27 @@ export function firstNewStructureFloorLevel(
 }
 
 /**
- * @deprecated Inter-floor Option 3 locking removed — scopes are independent per floor.
- * Always returns false.
+ * If floor i is Full Construction or Frame / Slab Casting, every selected
+ * floor above i (i+1 … N) cannot use Option 3 or Option 4.
  */
-export function isUpperFloorWallScopeBlocked(
-  _floorId: MistriFloorId,
-  _floorWork: readonly MistriScopeFloor[],
-  _customFloorNumber?: number | null,
+export function isFinishingScopeBlockedByLowerStructure(
+  floorId: MistriFloorId,
+  floorWork: readonly MistriScopeFloor[],
+  customFloorNumber?: number | null,
 ): boolean {
-  return false;
+  if (isAssamMistriFloor(floorId)) return false;
+  const level = mistriFloorUpperCount(floorId, customFloorNumber);
+  const firstNew = firstNewStructureFloorLevel(floorWork);
+  if (firstNew == null) return false;
+  return level > firstNew;
+}
+
+export function isUpperFloorWallScopeBlocked(
+  floorId: MistriFloorId,
+  floorWork: readonly MistriScopeFloor[],
+  customFloorNumber?: number | null,
+): boolean {
+  return isFinishingScopeBlockedByLowerStructure(floorId, floorWork, customFloorNumber);
 }
 
 /**
@@ -3516,6 +3538,26 @@ export function validateMistriFloorWorkInput(input: {
       continue;
     }
 
+    if (
+      isFinishingScopeBlockedByLowerStructure(
+        fw.floorId,
+        input.floorWork,
+        fw.customFloorNumber,
+      ) &&
+      (
+        fw.workTypes.includes('brick_aac') ||
+        fw.workTypes.includes('plastering') ||
+        fw.workTypes.includes('flooring') ||
+        fw.includeFineFlooring === true
+      )
+    ) {
+      return {
+        error: finishingScopeLockedByLowerStructureMessage(
+          fw.floorId,
+          fw.customFloorNumber,
+        ),
+      };
+    }
     if (fw.workTypes.includes('brick_aac') && !fw.brickMaterial) {
       return { error: `Select Red Brick or AAC Block for ${label}.` };
     }
