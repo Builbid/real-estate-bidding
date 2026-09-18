@@ -27,7 +27,9 @@ import {
 import { createProjectAction } from '@/app/actions/createProject';
 import { HistoryBackButton } from '@/components/shared/HistoryBackButton';
 import { FORM_CONTINUE_BTN, FORM_SECTION_CARD, FORM_SHELL_CARD } from '@/components/owner/wizard/formTheme';
+import { WIZARD_SECTION_LABEL, withSectionColon } from '@/components/owner/wizard/StartTimeAndNotes';
 import { ReviewSummaryList, WizardStepper } from '@/components/owner/wizard/ReviewSummary';
+import { parseCustomFloorSequence } from '@/lib/mistriDetails';
 import { formatPincodeInput, validatePincode } from '@/lib/validation/pincode';
 import { cn } from '@/lib/utils';
 
@@ -48,6 +50,8 @@ interface FirmFormState {
   budget_max: string;
   bidding_minutes: string;
   building_types: BuildingType[];
+  customFloorSelected: boolean;
+  customFloorNumber: string;
 }
 
 const EMPTY_FORM: FirmFormState = {
@@ -57,6 +61,8 @@ const EMPTY_FORM: FirmFormState = {
   budget_max: '',
   bidding_minutes: String(BIDDING_MINUTES),
   building_types: [],
+  customFloorSelected: false,
+  customFloorNumber: '',
 };
 
 export function ConstructionFirmProjectWizard() {
@@ -124,8 +130,15 @@ export function ConstructionFirmProjectWizard() {
 
   function tryGoStep3() {
     if (form.building_types.length === 0) {
-      setStep2Error('Please select at least one building type.');
+      setStep2Error('Please select at least one floor.');
       return;
+    }
+    if (form.customFloorSelected) {
+      const sequence = parseCustomFloorSequence(form.customFloorNumber, { allowGaps: true });
+      if (!sequence) {
+        setStep2Error('Enter floor numbers above 4th (e.g., 5, 6, 7).');
+        return;
+      }
     }
     setStep2Error(null);
     setStep(3);
@@ -151,10 +164,16 @@ export function ConstructionFirmProjectWizard() {
       district: districtSelection.district,
     });
 
+    const customFloorSummary =
+      form.customFloorSelected && form.customFloorNumber.trim()
+        ? `Floors above 4th (${form.customFloorNumber.trim()})`
+        : null;
+
     const result = await createProjectAction({
       service_type: 'construction_firm',
       title: autoTitle,
       building_types: form.building_types,
+      description: customFloorSummary ?? undefined,
       district: districtSelection.district,
       state: districtSelection.state,
       pincode: form.pincode.trim() || undefined,
@@ -263,11 +282,25 @@ export function ConstructionFirmProjectWizard() {
 
           {step === 2 && (
             <div className="space-y-4">
-              <h2 className="text-base font-semibold text-foreground">Type of Building</h2>
               <div className={FORM_SECTION_CARD}>
+                <label className={WIZARD_SECTION_LABEL}>
+                  {withSectionColon('Target Work Floor')}
+                </label>
                 <BuildingTypeSelector
                   value={form.building_types}
                   onChange={(v) => { update('building_types', v); setStep2Error(null); }}
+                  showCustomFloor
+                  allowNonSequentialFloors
+                  customSelected={form.customFloorSelected}
+                  customFloorNumber={form.customFloorNumber}
+                  onCustomChange={(selected, number) => {
+                    setForm((f) => ({
+                      ...f,
+                      customFloorSelected: selected,
+                      customFloorNumber: number,
+                    }));
+                    setStep2Error(null);
+                  }}
                   error={step2Error}
                 />
               </div>
@@ -350,8 +383,15 @@ export function ConstructionFirmProjectWizard() {
                     value: form.floor_area_sqft ? `${form.floor_area_sqft} sqft` : 'Not specified',
                   },
                   {
-                    label: 'Type of building',
-                    value: form.building_types.length > 0 ? form.building_types.join(', ') : '—',
+                    label: 'Target work floor',
+                    value: [
+                      ...form.building_types,
+                      form.customFloorSelected && form.customFloorNumber.trim()
+                        ? `Floors above 4th (${form.customFloorNumber.trim()})`
+                        : null,
+                    ]
+                      .filter(Boolean)
+                      .join(', ') || '—',
                     highlight: true,
                   },
                   {

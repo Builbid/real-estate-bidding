@@ -13,8 +13,8 @@ import {
   AssamDistrictAutocomplete,
   parseAssamDistrictSelection,
 } from '@/components/shared/AssamDistrictAutocomplete';
+import { BuildingTypeSelector } from '@/components/construction/BuildingTypeSelector';
 import { TradeWorkRequirementsFields, type TradeWorkFormFields } from '@/components/owner/TradeWorkRequirementsFields';
-import { OptionSelectGrid } from '@/components/owner/wizard/OptionSelectCard';
 import { FORM_CONTINUE_BTN, FORM_OPTION_SELECTED, FORM_OPTION_UNSELECTED, FORM_SECTION_CARD, FORM_SHELL_CARD, FORM_TEXTAREA } from '@/components/owner/wizard/formTheme';
 import { WIZARD_SECTION_LABEL, withSectionColon } from '@/components/owner/wizard/StartTimeAndNotes';
 import { ReviewSummaryList, WizardStepper } from '@/components/owner/wizard/ReviewSummary';
@@ -39,13 +39,16 @@ import {
   type PainterStartTimeType,
   type PainterSurfaceCondition,
 } from '@/lib/painterDetails';
+import type { BuildingType } from '@/lib/buildingConfig';
+import { parseCustomFloorSequence } from '@/lib/mistriDetails';
 import {
   PLUMBING_HOUSE_STRUCTURE_OPTIONS,
-  PLUMBING_TARGET_FLOOR_OPTIONS,
+  buildingTypesFromTargetFloors,
   emptyBathroomPackageSelections,
   houseStructureToTrackType,
   getTradeWorkRequirementBlocks,
   isCustomTradeWorkService,
+  targetFloorsFromBuildingSelection,
   validateTradeDetailsInput,
 } from '@/lib/tradeWorkDetails';
 import { HistoryBackButton } from '@/components/shared/HistoryBackButton';
@@ -77,6 +80,28 @@ interface FormState extends TradeWorkFormFields {
   surfaceCondition: PainterSurfaceCondition | null;
   primerRequirement: PainterPrimerRequirement | '';
   paintTopcoats: PainterPaintTopcoats | null;
+}
+
+function applyTargetFloorSelection(
+  current: FormState,
+  types: BuildingType[],
+  customSelected: boolean,
+  customNumber: string,
+): FormState {
+  const nextFloors = targetFloorsFromBuildingSelection(types, customSelected);
+  const keepFloor = (key: string) => nextFloors.includes(key as (typeof nextFloors)[number]);
+  return {
+    ...current,
+    targetFloors: nextFloors,
+    targetWorkFloor: nextFloors[0] ?? null,
+    customTargetFloors: customSelected ? customNumber : '',
+    floorFixtureCounts: Object.fromEntries(
+      Object.entries(current.floorFixtureCounts).filter(([key]) => keepFloor(key)),
+    ) as FormState['floorFixtureCounts'],
+    electricianFloorFixtureCounts: Object.fromEntries(
+      Object.entries(current.electricianFloorFixtureCounts).filter(([key]) => keepFloor(key)),
+    ) as FormState['electricianFloorFixtureCounts'],
+  };
 }
 
 const EMPTY_FORM: FormState = {
@@ -234,8 +259,11 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
       if (form.targetFloors.length === 0) {
         errors.targetWorkFloor = 'Select at least one target work floor.';
       }
-      if (form.targetFloors.includes('custom') && !form.customTargetFloors.trim()) {
-        errors.customTargetFloors = 'Enter the custom / higher floor numbers.';
+      if (
+        form.targetFloors.includes('custom') &&
+        !parseCustomFloorSequence(form.customTargetFloors, { allowGaps: true })
+      ) {
+        errors.customTargetFloors = 'Enter floor numbers above 4th (e.g., 5, 6, 7).';
       }
       if (trade === 'false_ceiling_work') {
         const area = parseFloat(form.approxBuiltUpAreaSqft.replace(/,/g, '').trim());
@@ -552,57 +580,56 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                     <label className={WIZARD_SECTION_LABEL}>
                       {withSectionColon('Target Work Floor')}
                     </label>
-                    <OptionSelectGrid
-                      options={PLUMBING_TARGET_FLOOR_OPTIONS}
-                      values={form.targetFloors}
-                      onToggle={(floor) => {
-                        setForm((current) => {
-                          const next = current.targetFloors.includes(floor)
-                            ? current.targetFloors.filter((item) => item !== floor)
-                            : [...current.targetFloors, floor];
-                          return {
-                            ...current,
-                            targetFloors: next,
-                            targetWorkFloor: next[0] ?? null,
-                            customTargetFloors: next.includes('custom') ? current.customTargetFloors : '',
-                            floorFixtureCounts: Object.fromEntries(
-                              Object.entries(current.floorFixtureCounts).filter(([key]) =>
-                                next.includes(key as (typeof next)[number]),
-                              ),
-                            ) as FormState['floorFixtureCounts'],
-                            electricianFloorFixtureCounts: Object.fromEntries(
-                              Object.entries(current.electricianFloorFixtureCounts).filter(([key]) =>
-                                next.includes(key as (typeof next)[number]),
-                              ),
-                            ) as FormState['electricianFloorFixtureCounts'],
-                          };
-                        });
+                    <p className="text-[11px] font-medium text-slate-500 leading-relaxed">
+                      Select only the RCC floors included in this project. Intermediate floors are not added automatically.
+                    </p>
+                    <BuildingTypeSelector
+                      purpose="mistri"
+                      rccOnly
+                      allowNonSequentialFloors
+                      value={buildingTypesFromTargetFloors(form.targetFloors)}
+                      onChange={(types) => {
+                        setForm((current) =>
+                          applyTargetFloorSelection(
+                            current,
+                            types,
+                            current.targetFloors.includes('custom'),
+                            current.customTargetFloors,
+                          ),
+                        );
                         if (step1ValidationAttempted) {
                           setStep1Errors((errors) => {
                             const nextErrors = { ...errors };
                             delete nextErrors.targetWorkFloor;
-                            if (floor === 'custom' && form.targetFloors.includes('custom')) {
-                              delete nextErrors.customTargetFloors;
-                            }
+                            delete nextErrors.customTargetFloors;
                             return nextErrors;
                           });
                         }
                       }}
-                      columns={2}
+                      showCustomFloor
+                      customSelected={form.targetFloors.includes('custom')}
+                      customFloorNumber={form.customTargetFloors}
+                      onCustomChange={(selected, number) => {
+                        setForm((current) =>
+                          applyTargetFloorSelection(
+                            current,
+                            buildingTypesFromTargetFloors(current.targetFloors),
+                            selected,
+                            number,
+                          ),
+                        );
+                        if (step1ValidationAttempted) {
+                          setStep1Errors((errors) => {
+                            const nextErrors = { ...errors };
+                            delete nextErrors.targetWorkFloor;
+                            delete nextErrors.customTargetFloors;
+                            return nextErrors;
+                          });
+                        }
+                      }}
+                      error={step1ValidationAttempted ? step1Errors.targetWorkFloor ?? null : null}
+                      customError={step1ValidationAttempted ? step1Errors.customTargetFloors ?? null : null}
                     />
-                    {form.targetFloors.includes('custom') ? (
-                      <Input
-                        label="Specify Custom Floors"
-                        type="text"
-                        placeholder="e.g. 3rd, 4th & Terrace"
-                        value={form.customTargetFloors}
-                        onChange={(e) => update('customTargetFloors', e.target.value)}
-                        error={step1ValidationAttempted ? step1Errors.customTargetFloors : undefined}
-                      />
-                    ) : null}
-                    {step1ValidationAttempted && step1Errors.targetWorkFloor ? (
-                      <p className="text-xs font-medium text-red-400">{step1Errors.targetWorkFloor}</p>
-                    ) : null}
                   </div>
 
                   {trade === 'false_ceiling_work' ? (

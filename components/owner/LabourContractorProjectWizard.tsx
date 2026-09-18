@@ -1326,7 +1326,7 @@ export function LabourContractorProjectWizard() {
 
                 {form.houseType === 'rcc' && (
                   <div className={cn(FORM_SECTION_CARD, 'space-y-3')}>
-                    <label className={SECTION_LABEL}>{withSectionColon('Building / Floor Type')}</label>
+                    <label className={SECTION_LABEL}>{withSectionColon('Target Work Floor')}</label>
                     <p className={HELPER_TEXT}>
                       Select only the RCC floors included in this project. Intermediate floors are not added automatically.
                     </p>

@@ -5,12 +5,14 @@
 // ============================================================
 
 import type { TradeServiceType } from './types';
+import type { BuildingType } from './buildingConfig';
 import {
   formatProjectStartTime,
   isProjectStartTimeType,
   validateProjectStartTime,
   type ProjectStartTimeType,
 } from './projectStartTime';
+import { formatCustomFloorNumberInput, parseCustomFloorSequence } from './mistriDetails';
 
 export type { ProjectStartTimeType };
 
@@ -51,7 +53,7 @@ export type PlumbingFloorLevel = 'ground' | 'first' | 'second_plus';
 
 export type PlumbingHouseStructure = 'assam_type' | 'rcc';
 
-export type PlumbingTargetFloor = 'ground' | 'first' | 'second' | 'custom';
+export type PlumbingTargetFloor = 'ground' | 'first' | 'second' | 'third' | 'fourth' | 'custom';
 
 export type PlumbingFixtureKind = 'basin' | 'taps' | 'shower' | 'commode' | 'geyser';
 
@@ -543,11 +545,52 @@ export const PLUMBING_TARGET_FLOOR_OPTIONS: {
   value: PlumbingTargetFloor;
   label: string;
 }[] = [
-  { value: 'ground', label: 'Ground Floor' },
-  { value: 'first', label: '1st Floor' },
-  { value: 'second', label: '2nd Floor' },
-  { value: 'custom', label: 'Custom / Higher Floors' },
+  { value: 'ground', label: 'RCC Ground Floor' },
+  { value: 'first', label: 'RCC 1st Floor' },
+  { value: 'second', label: 'RCC 2nd Floor' },
+  { value: 'third', label: 'RCC 3rd Floor' },
+  { value: 'fourth', label: 'RCC 4th Floor' },
+  { value: 'custom', label: 'Floors above 4th (custom)' },
 ];
+
+const TARGET_FLOOR_TO_RCC: Record<Exclude<PlumbingTargetFloor, 'custom'>, BuildingType> = {
+  ground: 'RCC Ground Floor',
+  first: 'RCC 1st Floor',
+  second: 'RCC 2nd Floor',
+  third: 'RCC 3rd Floor',
+  fourth: 'RCC 4th Floor',
+};
+
+const RCC_TO_TARGET_FLOOR: Partial<Record<BuildingType, Exclude<PlumbingTargetFloor, 'custom'>>> = {
+  'RCC Ground Floor': 'ground',
+  'RCC 1st Floor': 'first',
+  'RCC 2nd Floor': 'second',
+  'RCC 3rd Floor': 'third',
+  'RCC 4th Floor': 'fourth',
+};
+
+export function buildingTypesFromTargetFloors(
+  floors: readonly PlumbingTargetFloor[],
+): BuildingType[] {
+  return floors.flatMap((floor) => {
+    if (floor === 'custom') return [];
+    const type = TARGET_FLOOR_TO_RCC[floor];
+    return type ? [type] : [];
+  });
+}
+
+export function targetFloorsFromBuildingSelection(
+  types: readonly BuildingType[],
+  customSelected: boolean,
+): PlumbingTargetFloor[] {
+  const floors: PlumbingTargetFloor[] = [];
+  for (const type of types) {
+    const floor = RCC_TO_TARGET_FLOOR[type];
+    if (floor && !floors.includes(floor)) floors.push(floor);
+  }
+  if (customSelected && !floors.includes('custom')) floors.push('custom');
+  return floors;
+}
 
 export type PlumbingFittingType = 'concealed' | 'open_surface';
 
@@ -1391,7 +1434,15 @@ export function parseDrainageInstallMethods(raw: unknown): DrainageInstallMethod
 
 export function normalizePlumbingTargetFloor(raw: unknown): PlumbingTargetFloor | null {
   if (raw === 'third_plus' || raw === 'custom') return 'custom';
-  if (raw === 'ground' || raw === 'first' || raw === 'second') return raw;
+  if (
+    raw === 'ground' ||
+    raw === 'first' ||
+    raw === 'second' ||
+    raw === 'third' ||
+    raw === 'fourth'
+  ) {
+    return raw;
+  }
   return null;
 }
 
@@ -1959,7 +2010,14 @@ export function targetFloorsToTotalFloors(
   floors: PlumbingTargetFloor[] | null | undefined,
 ): 1 | 2 | 3 {
   if (!floors?.length) return 1;
-  if (floors.includes('custom') || floors.includes('second')) return 3;
+  if (
+    floors.includes('custom') ||
+    floors.includes('second') ||
+    floors.includes('third') ||
+    floors.includes('fourth')
+  ) {
+    return 3;
+  }
   if (floors.includes('first')) return 2;
   return 1;
 }
@@ -2129,7 +2187,14 @@ export function targetFloorToPlumbingFloorLevel(
   floors: PlumbingTargetFloor[] | null | undefined,
 ): PlumbingFloorLevel {
   if (!floors?.length) return 'ground';
-  if (floors.includes('second') || floors.includes('custom')) return 'second_plus';
+  if (
+    floors.includes('second') ||
+    floors.includes('third') ||
+    floors.includes('fourth') ||
+    floors.includes('custom')
+  ) {
+    return 'second_plus';
+  }
   if (floors.includes('first')) return 'first';
   return 'ground';
 }
@@ -3368,10 +3433,12 @@ export function validateTradeDetailsInput(
       return { error: 'Select at least one target work floor.' };
     }
     const customTargetFloors = targetFloors.includes('custom')
-      ? parseCustomTargetFloors(input.customTargetFloors)
+      ? (parseCustomFloorSequence(input.customTargetFloors, { allowGaps: true })
+          ? formatCustomFloorNumberInput(String(input.customTargetFloors ?? ''))
+          : parseCustomTargetFloors(input.customTargetFloors))
       : null;
     if (targetFloors.includes('custom') && !customTargetFloors) {
-      return { error: 'Enter the custom / higher floor numbers.' };
+      return { error: 'Enter floor numbers above 4th (e.g., 5, 6, 7).' };
     }
     const targetWorkFloor = targetFloors[0];
     const buildingStoreys =
@@ -3488,10 +3555,12 @@ export function validateTradeDetailsInput(
       return { error: 'Select at least one target work floor.' };
     }
     const customTargetFloors = targetFloors.includes('custom')
-      ? parseCustomTargetFloors(input.customTargetFloors)
+      ? (parseCustomFloorSequence(input.customTargetFloors, { allowGaps: true })
+          ? formatCustomFloorNumberInput(String(input.customTargetFloors ?? ''))
+          : parseCustomTargetFloors(input.customTargetFloors))
       : null;
     if (targetFloors.includes('custom') && !customTargetFloors) {
-      return { error: 'Enter the custom / higher floor numbers.' };
+      return { error: 'Enter floor numbers above 4th (e.g., 5, 6, 7).' };
     }
     const targetWorkFloor = targetFloors[0];
     const floorFixtureCounts = parseElectricianFixtureInput(
@@ -3590,10 +3659,12 @@ export function validateTradeDetailsInput(
       return { error: 'Select at least one target work floor.' };
     }
     const customTargetFloors = targetFloors.includes('custom')
-      ? parseCustomTargetFloors(input.customTargetFloors)
+      ? (parseCustomFloorSequence(input.customTargetFloors, { allowGaps: true })
+          ? formatCustomFloorNumberInput(String(input.customTargetFloors ?? ''))
+          : parseCustomTargetFloors(input.customTargetFloors))
       : null;
     if (targetFloors.includes('custom') && !customTargetFloors) {
-      return { error: 'Enter the custom / higher floor numbers.' };
+      return { error: 'Enter floor numbers above 4th (e.g., 5, 6, 7).' };
     }
     const targetWorkFloor = targetFloors[0];
     const approxBuiltUpAreaSqft = parsePositiveNumber(input.approxBuiltUpAreaSqft);
