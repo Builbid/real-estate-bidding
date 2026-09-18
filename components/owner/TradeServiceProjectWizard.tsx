@@ -473,18 +473,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
     <div className="mx-auto max-w-2xl space-y-6">
       <div>
         <HistoryBackButton className="mb-2" />
-        <h1 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-          <span>{tradeEmoji}</span> Post {tradeLabel} Project
-        </h1>
-        <p className="text-sm text-gray-700 dark:text-zinc-300 mt-1">
-          Registered {tradeLabel.toLowerCase()}s will bid their rate{' '}
-          {trade === 'plumber'
-            ? 'as plumber rates per fixture for basin, taps, shower, commode, and geyser on each selected floor'
-            : trade === 'electrician'
-              ? 'as electrician rates per point for ceiling lights, fans, ACs, refrigerators, and inverters on each selected floor'
-              : 'per sqft'}{' '}
-          on your project.
-        </p>
+        <h1 className="text-xl font-bold text-foreground">Post {tradeLabel} Project</h1>
       </div>
 
       <WizardStepper labels={progressLabels} step={step} />

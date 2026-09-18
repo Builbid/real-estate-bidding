@@ -1246,9 +1246,6 @@ export function LabourContractorProjectWizard() {
       <div>
         <HistoryBackButton className="mb-2" onClick={goWizardBack} />
         <h1 className="text-xl font-bold text-foreground">Post Mistri Worker Project</h1>
-        <p className="text-sm font-medium text-gray-700 dark:text-zinc-300 mt-1">
-          Specify civil work scope clearly so mistri workers can bid without disputes.
-        </p>
       </div>
 
       {step < 4 && <WizardStepper labels={PROGRESS_LABELS} step={step} />}

@@ -202,9 +202,6 @@ export function ConstructionFirmProjectWizard() {
       <div>
         <HistoryBackButton className="mb-2" />
         <h1 className="text-xl font-bold text-foreground">Post Construction Firm Project</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Turnkey construction — firms bid a single ₹/sqft rate for the full project.
-        </p>
       </div>
 
       {step < 4 && <WizardStepper labels={PROGRESS_LABELS} step={step} />}

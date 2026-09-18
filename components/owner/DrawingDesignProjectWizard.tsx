@@ -198,12 +198,7 @@ export function DrawingDesignProjectWizard() {
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
         <HistoryBackButton className="mb-2" />
-        <h1 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-          <span>✏️</span> Post Drawing and Design Project
-        </h1>
-        <p className="text-sm font-medium text-gray-700 dark:text-zinc-300 mt-1">
-          Choose drawing packages and building details so designers can bid without scope conflicts.
-        </p>
+        <h1 className="text-xl font-bold text-foreground">Post Drawing and Design Project</h1>
       </div>
 
       <WizardStepper labels={PROGRESS_LABELS} step={step} />

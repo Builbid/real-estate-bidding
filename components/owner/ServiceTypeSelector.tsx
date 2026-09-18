@@ -91,9 +91,6 @@ export function ServiceTypeSelector({ value, onChange, onContinue }: ServiceType
       <div>
         <HistoryBackButton className="mb-2" />
         <h2 className="text-xl font-bold text-foreground">What are you looking for?</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Choose the type of construction service you need
-        </p>
       </div>
 
       <div
