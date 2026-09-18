@@ -174,6 +174,7 @@ export interface SubConfiguration {
     floor: 'ground' | 'first' | 'second';
     type: 'structural' | 'full';
   }>;
+  customFloors?: number[];
 }
 
 export type ProjectDocumentType = 'agreement' | 'estimate' | 'ai_design';

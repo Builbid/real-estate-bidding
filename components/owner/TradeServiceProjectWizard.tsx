@@ -86,7 +86,7 @@ function applyTargetFloorSelection(
   current: FormState,
   types: BuildingType[],
   customSelected: boolean,
-  customNumber: string,
+  customFloors: number[],
 ): FormState {
   const nextFloors = targetFloorsFromBuildingSelection(types, customSelected);
   const keepFloor = (key: string) => nextFloors.includes(key as (typeof nextFloors)[number]);
@@ -94,7 +94,7 @@ function applyTargetFloorSelection(
     ...current,
     targetFloors: nextFloors,
     targetWorkFloor: nextFloors[0] ?? null,
-    customTargetFloors: customSelected ? customNumber : '',
+    customTargetFloors: customFloors,
     floorFixtureCounts: Object.fromEntries(
       Object.entries(current.floorFixtureCounts).filter(([key]) => keepFloor(key)),
     ) as FormState['floorFixtureCounts'],
@@ -129,7 +129,7 @@ const EMPTY_FORM: FormState = {
   houseStructure: null,
   targetFloors: [],
   targetWorkFloor: null,
-  customTargetFloors: '',
+  customTargetFloors: [],
   buildingStoreys: null,
   approxBuiltUpAreaSqft: '',
   selectedPackages: [],
@@ -263,7 +263,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
         form.targetFloors.includes('custom') &&
         !parseCustomFloorSequence(form.customTargetFloors, { allowGaps: true })
       ) {
-        errors.customTargetFloors = 'Enter floor numbers above 4th (e.g., 5, 6, 7).';
+        errors.customTargetFloors = 'Add at least one floor number above 4th.';
       }
       if (trade === 'false_ceiling_work') {
         const area = parseFloat(form.approxBuiltUpAreaSqft.replace(/,/g, '').trim());
@@ -597,14 +597,14 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                       }}
                       showCustomFloor
                       customSelected={form.targetFloors.includes('custom')}
-                      customFloorNumber={form.customTargetFloors}
-                      onCustomChange={(selected, number) => {
+                      customFloors={form.customTargetFloors}
+                      onCustomChange={(selected, floors) => {
                         setForm((current) =>
                           applyTargetFloorSelection(
                             current,
                             buildingTypesFromTargetFloors(current.targetFloors),
                             selected,
-                            number,
+                            floors,
                           ),
                         );
                         if (step1ValidationAttempted) {

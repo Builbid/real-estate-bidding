@@ -1269,7 +1269,7 @@ export const CUSTOM_FLOOR_SEQUENCE_AFTER_4TH_INVALID_MESSAGE =
   'With RCC 4th Floor selected, custom floors must be a consecutive sequence starting at 5 (e.g. 5,6,7).';
 
 export const CUSTOM_FLOOR_NUMBERS_INVALID_MESSAGE =
-  'Enter floor numbers from 5 to 50, separated by commas (e.g. 7,9,12).';
+  'Add at least one floor number above 4th (5–50).';
 
 export function getCustomFloorSequenceInvalidMessage(
   requireStartAt5: boolean,
@@ -1919,7 +1919,7 @@ export function parseCustomFloorNumber(raw: unknown): number | null {
 }
 
 export const CUSTOM_FLOOR_INPUT_HELPER =
-  'Enter floor numbers above 4th (e.g., 5, 6, 7) for multi-story construction.';
+  'Add each floor number above 4th (5–50). Duplicates are ignored.';
 
 /**
  * Live input sanitizer for RCC custom floors (5–50).
@@ -2008,6 +2008,24 @@ export function parseCustomFloorSequence(
     if (requireStartAt5 && single !== MIN_CUSTOM_RCC_FLOOR) return null;
     return [single];
   }
+  if (Array.isArray(raw)) {
+    const nums: number[] = [];
+    const seen = new Set<number>();
+    for (const item of raw) {
+      const parsed = parseCustomFloorNumber(item);
+      if (parsed == null || seen.has(parsed)) continue;
+      seen.add(parsed);
+      nums.push(parsed);
+    }
+    if (nums.length === 0) return null;
+    const sorted = [...nums].sort((a, b) => a - b);
+    if (allowGaps) return sorted;
+    if (requireStartAt5 && sorted[0] !== MIN_CUSTOM_RCC_FLOOR) return null;
+    for (let i = 1; i < sorted.length; i++) {
+      if (sorted[i] !== sorted[i - 1] + 1) return null;
+    }
+    return sorted;
+  }
   if (typeof raw !== 'string') return null;
   const trimmed = formatCustomFloorNumberInput(raw);
   if (!trimmed) return null;
@@ -2053,7 +2071,7 @@ export function mistriFloorUpperCount(
 export function collectMistriFloorUpperLevels(input: {
   buildingTypes: readonly BuildingType[];
   customSelected?: boolean;
-  customFloorNumber?: string | number | null;
+  customFloorNumber?: string | number | number[] | null;
 }): number[] {
   const levels: number[] = [];
   for (const type of input.buildingTypes) {
@@ -2101,7 +2119,7 @@ export function canToggleMistriFloorUpper(
 export function validateMajorMistriFloorSequence(input: {
   buildingTypes: readonly BuildingType[];
   customSelected?: boolean;
-  customFloorNumber?: string | number | null;
+  customFloorNumber?: string | number | number[] | null;
 }): string | null {
   const levels = collectMistriFloorUpperLevels(input);
   if (!areMistriFloorUppersContiguous(levels)) {

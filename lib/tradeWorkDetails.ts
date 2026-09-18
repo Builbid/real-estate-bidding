@@ -12,7 +12,8 @@ import {
   validateProjectStartTime,
   type ProjectStartTimeType,
 } from './projectStartTime';
-import { formatCustomFloorNumberInput, parseCustomFloorSequence } from './mistriDetails';
+import { parseCustomFloorSequence } from './mistriDetails';
+import { formatCustomFloorsList } from './customFloors';
 
 export type { ProjectStartTimeType };
 
@@ -315,8 +316,8 @@ export interface PlumberDetails extends TradeDetailsBase {
   pipingPackage?: PipingPackageKind | null;
   /** Primary / first selected target work floor (legacy single-select). */
   targetWorkFloor?: PlumbingTargetFloor | null;
-  /** Free-text floors when `custom` is among the selected target floors. */
-  customTargetFloors?: string | null;
+  /** Custom floors above 4th when `custom` is among the selected target floors. */
+  customTargetFloors?: number[] | string | null;
   /** Total storeys in the building (optional; no longer collected on Step 1). */
   buildingStoreys?: PlumbingBuildingStoreys | null;
   /** Approximate built-up area in square feet. */
@@ -355,7 +356,7 @@ export interface ElectricianDetails extends TradeDetailsBase {
   /** Target floors for electrical work. */
   targetFloors?: PlumbingTargetFloor[];
   targetWorkFloor?: PlumbingTargetFloor | null;
-  customTargetFloors?: string | null;
+  customTargetFloors?: number[] | string | null;
   /** Approximate built-up area in square feet. */
   approxBuiltUpAreaSqft?: number | null;
   /** Main electrical rate categories checked by the owner. */
@@ -402,7 +403,7 @@ export interface InteriorDetails extends TradeDetailsBase {
   /** Target floors for interior work. */
   targetFloors?: PlumbingTargetFloor[];
   targetWorkFloor?: PlumbingTargetFloor | null;
-  customTargetFloors?: string | null;
+  customTargetFloors?: number[] | string | null;
   /** Approximate built-up area in square feet. */
   approxBuiltUpAreaSqft?: number | null;
   /** Main interior design rate categories checked by the owner. */
@@ -1560,7 +1561,7 @@ function parsePlumberFixtureInput(
     | Partial<Record<PlumbingTargetFloor, PlumbingFixtureCountDraft>>
     | PlumbingFloorFixtureCounts[]
     | undefined,
-  customTargetFloors: string | null,
+  customTargetFloors: string | number[] | null,
 ): PlumbingFloorFixtureCounts[] | { error: string } {
   if (Array.isArray(raw)) {
     const parsed = parsePlumbingFloorFixtureCounts(raw).filter((item) =>
@@ -1682,7 +1683,7 @@ function parseElectricianFixtureInput(
     | Partial<Record<PlumbingTargetFloor, ElectricianFixtureCountDraft>>
     | ElectricianFloorFixtureCounts[]
     | undefined,
-  customTargetFloors: string | null,
+  customTargetFloors: string | number[] | null,
 ): ElectricianFloorFixtureCounts[] | { error: string } {
   if (Array.isArray(raw)) {
     const parsed = parseElectricianFloorFixtureCounts(raw).filter((item) =>
@@ -1774,9 +1775,13 @@ export function formatElectricianFixtureScopeSummary(
 
 export function plumbingFloorLabel(
   floor: PlumbingTargetFloor,
-  customText?: string | null,
+  customText?: string | number[] | null,
 ): string {
-  if (floor === 'custom' && customText?.trim()) return customText.trim();
+  if (floor === 'custom') {
+    const label = formatCustomFloorsList(customText);
+    if (label) return label;
+    if (typeof customText === 'string' && customText.trim()) return customText.trim();
+  }
   return PLUMBING_TARGET_FLOOR_OPTIONS.find((o) => o.value === floor)?.label ?? floor;
 }
 
@@ -1805,7 +1810,14 @@ export function parseEstimatedLongConnectionLengthFt(raw: unknown): number | nul
   return parseCount(raw, 1, 9999);
 }
 
+export function parseCustomTargetFloorNumbers(raw: unknown): number[] | null {
+  const floors = parseCustomFloorSequence(raw, { allowGaps: true });
+  return floors && floors.length > 0 ? floors : null;
+}
+
 export function parseCustomTargetFloors(raw: unknown): string | null {
+  const floors = parseCustomTargetFloorNumbers(raw);
+  if (floors) return formatCustomFloorsList(floors);
   if (typeof raw !== 'string') return null;
   const trimmed = raw.trim();
   return trimmed || null;
@@ -2152,13 +2164,13 @@ export function getPlumbingTargetFloorLabel(value: PlumbingTargetFloor): string 
 
 export function formatPlumbingTargetWorkFloors(
   floors: PlumbingTargetFloor[] | null | undefined,
-  customText?: string | null,
+  customText?: string | number[] | null,
 ): string {
   if (!floors?.length) return '';
   return floors
     .map((floor) =>
-      floor === 'custom' && customText?.trim()
-        ? customText.trim()
+      floor === 'custom' && formatCustomFloorsList(customText)
+        ? formatCustomFloorsList(customText)
         : getPlumbingTargetFloorLabel(floor),
     )
     .join(', ');
@@ -2379,7 +2391,9 @@ export function parseTradeDetails(value: unknown): TradeDetails | null {
     const selectedPackagesFromForm = parsePlumbingPackageKinds(v.selectedPackages);
     const parsedTargetFloors = parsePlumbingTargetFloors(v.targetFloors);
     const parsedWorkFloor = normalizePlumbingTargetFloor(v.targetWorkFloor);
-    const customTargetFloors = parseCustomTargetFloors(v.customTargetFloors);
+    const customTargetFloors =
+      parseCustomTargetFloorNumbers(v.customTargetFloors) ??
+      parseCustomTargetFloors(v.customTargetFloors);
     const buildingStoreys =
       typeof v.buildingStoreys === 'string' &&
       PLUMBING_BUILDING_STOREYS_SET.has(v.buildingStoreys as PlumbingBuildingStoreys)
@@ -2516,7 +2530,9 @@ export function parseTradeDetails(value: unknown): TradeDetails | null {
         : null;
     const parsedTargetFloors = parsePlumbingTargetFloors(v.targetFloors);
     const parsedWorkFloor = normalizePlumbingTargetFloor(v.targetWorkFloor);
-    const customTargetFloors = parseCustomTargetFloors(v.customTargetFloors);
+    const customTargetFloors =
+      parseCustomTargetFloorNumbers(v.customTargetFloors) ??
+      parseCustomTargetFloors(v.customTargetFloors);
     const targetFloors =
       parsedTargetFloors.length > 0
         ? parsedTargetFloors
@@ -2653,7 +2669,9 @@ export function parseTradeDetails(value: unknown): TradeDetails | null {
         : null;
     const parsedTargetFloors = parsePlumbingTargetFloors(v.targetFloors);
     const parsedWorkFloor = normalizePlumbingTargetFloor(v.targetWorkFloor);
-    const customTargetFloors = parseCustomTargetFloors(v.customTargetFloors);
+    const customTargetFloors =
+      parseCustomTargetFloorNumbers(v.customTargetFloors) ??
+      parseCustomTargetFloors(v.customTargetFloors);
     const targetFloors =
       parsedTargetFloors.length > 0
         ? parsedTargetFloors
@@ -3189,11 +3207,7 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
         blocks.push({
           label: 'Target Work Floor',
           value: workFloors
-            .map((floor) =>
-              floor === 'custom' && details.customTargetFloors
-                ? details.customTargetFloors
-                : getPlumbingTargetFloorLabel(floor),
-            )
+            .map((floor) => plumbingFloorLabel(floor, details.customTargetFloors))
             .join(', '),
         });
       }
@@ -3352,7 +3366,7 @@ export interface TradeDetailsFormInput {
   houseStructure?: PlumbingHouseStructure | null;
   targetFloors?: PlumbingTargetFloor[];
   targetWorkFloor?: PlumbingTargetFloor | null;
-  customTargetFloors?: string | null;
+  customTargetFloors?: string | number[] | null;
   buildingStoreys?: PlumbingBuildingStoreys | null;
   approxBuiltUpAreaSqft?: string | number | null;
   selectedPackages?: PlumbingPackageKind[];
@@ -3433,12 +3447,10 @@ export function validateTradeDetailsInput(
       return { error: 'Select at least one target work floor.' };
     }
     const customTargetFloors = targetFloors.includes('custom')
-      ? (parseCustomFloorSequence(input.customTargetFloors, { allowGaps: true })
-          ? formatCustomFloorNumberInput(String(input.customTargetFloors ?? ''))
-          : parseCustomTargetFloors(input.customTargetFloors))
+      ? parseCustomTargetFloorNumbers(input.customTargetFloors)
       : null;
     if (targetFloors.includes('custom') && !customTargetFloors) {
-      return { error: 'Enter floor numbers above 4th (e.g., 5, 6, 7).' };
+      return { error: 'Add at least one floor number above 4th.' };
     }
     const targetWorkFloor = targetFloors[0];
     const buildingStoreys =
@@ -3555,12 +3567,10 @@ export function validateTradeDetailsInput(
       return { error: 'Select at least one target work floor.' };
     }
     const customTargetFloors = targetFloors.includes('custom')
-      ? (parseCustomFloorSequence(input.customTargetFloors, { allowGaps: true })
-          ? formatCustomFloorNumberInput(String(input.customTargetFloors ?? ''))
-          : parseCustomTargetFloors(input.customTargetFloors))
+      ? parseCustomTargetFloorNumbers(input.customTargetFloors)
       : null;
     if (targetFloors.includes('custom') && !customTargetFloors) {
-      return { error: 'Enter floor numbers above 4th (e.g., 5, 6, 7).' };
+      return { error: 'Add at least one floor number above 4th.' };
     }
     const targetWorkFloor = targetFloors[0];
     const floorFixtureCounts = parseElectricianFixtureInput(
@@ -3659,12 +3669,10 @@ export function validateTradeDetailsInput(
       return { error: 'Select at least one target work floor.' };
     }
     const customTargetFloors = targetFloors.includes('custom')
-      ? (parseCustomFloorSequence(input.customTargetFloors, { allowGaps: true })
-          ? formatCustomFloorNumberInput(String(input.customTargetFloors ?? ''))
-          : parseCustomTargetFloors(input.customTargetFloors))
+      ? parseCustomTargetFloorNumbers(input.customTargetFloors)
       : null;
     if (targetFloors.includes('custom') && !customTargetFloors) {
-      return { error: 'Enter floor numbers above 4th (e.g., 5, 6, 7).' };
+      return { error: 'Add at least one floor number above 4th.' };
     }
     const targetWorkFloor = targetFloors[0];
     const approxBuiltUpAreaSqft = parsePositiveNumber(input.approxBuiltUpAreaSqft);

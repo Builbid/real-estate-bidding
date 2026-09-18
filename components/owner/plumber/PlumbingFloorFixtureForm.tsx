@@ -18,7 +18,7 @@ export function PlumbingFloorFixtureForm({
   onChange,
 }: {
   targetFloors: PlumbingTargetFloor[];
-  customTargetFloors: string;
+  customTargetFloors: string | number[];
   values: Partial<Record<PlumbingTargetFloor, PlumbingFixtureCountDraft>>;
   onChange: (value: Partial<Record<PlumbingTargetFloor, PlumbingFixtureCountDraft>>) => void;
 }) {

@@ -75,6 +75,8 @@ export interface CreateFirmProjectInput extends CreateProjectBase {
   service_type: 'construction_firm'
   building_types: BuildingType[]
   construction_types?: ConstructionTypesMap
+  /** Custom floors above 4th, e.g. [5, 10, 11]. */
+  customFloors?: number[]
   floor_area_sqft?: number | null
   finishing_level?: FinishingLevel | null
   budget_range_min?: number | null
@@ -178,7 +180,10 @@ export async function createProjectAction(
     const drawing = input as CreateDrawingDesignProjectInput
     const buildingTypes = Array.isArray(drawing.building_types) ? drawing.building_types : []
     if (buildingTypes.length === 0) {
-      const hasCustomFloors = Boolean(drawing.drawing_details.customFloorNumber);
+      const hasCustomFloors =
+        (Array.isArray(drawing.drawing_details.customFloors) &&
+          drawing.drawing_details.customFloors.length > 0) ||
+        Boolean(drawing.drawing_details.customFloorNumber);
       if (!hasCustomFloors) {
         return { error: 'Select Assam Type or one or more RCC floors.' }
       }
@@ -292,9 +297,15 @@ export async function createProjectAction(
       const constructionTypes: ConstructionTypesMap =
         firm.construction_types ?? buildFirmConstructionTypes(buildingTypes)
       const legacy = deriveLegacyProjectFields(buildingTypes, constructionTypes)
+      const customFloors = Array.isArray(firm.customFloors)
+        ? firm.customFloors.filter((n) => Number.isInteger(n) && n > 4)
+        : []
 
       insertPayload.track_type = legacy.track_type
-      insertPayload.sub_configuration = legacy.sub_configuration
+      insertPayload.sub_configuration = {
+        ...legacy.sub_configuration,
+        ...(customFloors.length > 0 ? { customFloors } : {}),
+      }
       insertPayload.building_types = buildingTypes
       insertPayload.construction_types = constructionTypes
       insertPayload.total_floors = legacy.total_floors

@@ -53,7 +53,7 @@ interface FormState {
   houseStructure: DrawingHouseStructure | null;
   buildingTypes: BuildingType[];
   customFloorSelected: boolean;
-  customFloorNumber: string;
+  customFloors: number[];
   packages: DrawingDesignPackage[];
   plotDimensions: string;
   deliverables: DrawingDeliverable[];
@@ -68,7 +68,7 @@ const EMPTY_FORM: FormState = {
   houseStructure: null,
   buildingTypes: [],
   customFloorSelected: false,
-  customFloorNumber: '',
+  customFloors: [],
   packages: [],
   plotDimensions: '',
   deliverables: [],
@@ -105,7 +105,7 @@ export function DrawingDesignProjectWizard() {
         key === 'houseStructure' ||
         key === 'buildingTypes' ||
         key === 'customFloorSelected' ||
-        key === 'customFloorNumber')
+        key === 'customFloors')
     ) {
       setStep1Errors((errors) => {
         const next = { ...errors };
@@ -113,7 +113,7 @@ export function DrawingDesignProjectWizard() {
         if (key === 'pincode') delete next.pincode;
         if (key === 'houseStructure') delete next.houseStructure;
         if (key === 'buildingTypes' || key === 'customFloorSelected') delete next.floors;
-        if (key === 'customFloorNumber' || key === 'customFloorSelected') delete next.customFloor;
+        if (key === 'customFloors' || key === 'customFloorSelected') delete next.customFloor;
         return next;
       });
     }
@@ -125,7 +125,7 @@ export function DrawingDesignProjectWizard() {
       houseStructure: form.houseStructure,
       buildingTypes: form.buildingTypes,
       customFloorSelected: form.customFloorSelected,
-      customFloorNumber: form.customFloorNumber,
+      customFloors: form.customFloors,
       plotDimensions: form.plotDimensions,
       deliverables: form.deliverables,
       projectSubmissionTimeType: form.projectSubmissionTimeType,
@@ -147,9 +147,9 @@ export function DrawingDesignProjectWizard() {
         errors.floors = 'Select at least one target work floor.';
       }
       if (form.customFloorSelected) {
-        const sequence = parseCustomFloorSequence(form.customFloorNumber, { allowGaps: true });
+        const sequence = parseCustomFloorSequence(form.customFloors, { allowGaps: true });
         if (!sequence) {
-          errors.customFloor = 'Enter floor numbers above 4th (e.g., 5, 6, 7).';
+          errors.customFloor = 'Add at least one floor number above 4th.';
         }
       }
     }
@@ -283,7 +283,7 @@ export function DrawingDesignProjectWizard() {
                       houseStructure: value,
                       buildingTypes: value === 'assam' ? [] : current.buildingTypes,
                       customFloorSelected: value === 'assam' ? false : current.customFloorSelected,
-                      customFloorNumber: value === 'assam' ? '' : current.customFloorNumber,
+                      customFloors: value === 'assam' ? [] : current.customFloors,
                     }));
                     if (step1ValidationAttempted) {
                       setStep1Errors((errors) => {
@@ -320,12 +320,12 @@ export function DrawingDesignProjectWizard() {
                     onChange={(types) => update('buildingTypes', types)}
                     showCustomFloor
                     customSelected={form.customFloorSelected}
-                    customFloorNumber={form.customFloorNumber}
-                    onCustomChange={(selected, number) => {
+                    customFloors={form.customFloors}
+                    onCustomChange={(selected, floors) => {
                       setForm((current) => ({
                         ...current,
                         customFloorSelected: selected,
-                        customFloorNumber: number,
+                        customFloors: floors,
                       }));
                       if (step1ValidationAttempted) {
                         setStep1Errors((errors) => {

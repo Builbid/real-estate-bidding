@@ -30,6 +30,7 @@ import { FORM_CONTINUE_BTN, FORM_SECTION_CARD, FORM_SHELL_CARD } from '@/compone
 import { WIZARD_SECTION_LABEL, withSectionColon } from '@/components/owner/wizard/StartTimeAndNotes';
 import { ReviewSummaryList, WizardStepper } from '@/components/owner/wizard/ReviewSummary';
 import { parseCustomFloorSequence } from '@/lib/mistriDetails';
+import { formatCustomFloorsList } from '@/lib/customFloors';
 import { formatPincodeInput, validatePincode } from '@/lib/validation/pincode';
 import { cn } from '@/lib/utils';
 
@@ -51,7 +52,7 @@ interface FirmFormState {
   bidding_minutes: string;
   building_types: BuildingType[];
   customFloorSelected: boolean;
-  customFloorNumber: string;
+  customFloors: number[];
 }
 
 const EMPTY_FORM: FirmFormState = {
@@ -62,7 +63,7 @@ const EMPTY_FORM: FirmFormState = {
   bidding_minutes: String(BIDDING_MINUTES),
   building_types: [],
   customFloorSelected: false,
-  customFloorNumber: '',
+  customFloors: [],
 };
 
 export function ConstructionFirmProjectWizard() {
@@ -134,9 +135,9 @@ export function ConstructionFirmProjectWizard() {
       return;
     }
     if (form.customFloorSelected) {
-      const sequence = parseCustomFloorSequence(form.customFloorNumber, { allowGaps: true });
+      const sequence = parseCustomFloorSequence(form.customFloors, { allowGaps: true });
       if (!sequence) {
-        setStep2Error('Enter floor numbers above 4th (e.g., 5, 6, 7).');
+        setStep2Error('Add at least one floor number above 4th.');
         return;
       }
     }
@@ -164,15 +165,17 @@ export function ConstructionFirmProjectWizard() {
       district: districtSelection.district,
     });
 
-    const customFloorSummary =
-      form.customFloorSelected && form.customFloorNumber.trim()
-        ? `Floors above 4th (${form.customFloorNumber.trim()})`
-        : null;
+    const customFloors =
+      form.customFloorSelected ? parseCustomFloorSequence(form.customFloors, { allowGaps: true }) : null;
+    const customFloorSummary = customFloors?.length
+      ? `Floors above 4th (${formatCustomFloorsList(customFloors)})`
+      : null;
 
     const result = await createProjectAction({
       service_type: 'construction_firm',
       title: autoTitle,
       building_types: form.building_types,
+      customFloors: customFloors ?? [],
       description: customFloorSummary ?? undefined,
       district: districtSelection.district,
       state: districtSelection.state,
@@ -289,12 +292,12 @@ export function ConstructionFirmProjectWizard() {
                   showCustomFloor
                   allowNonSequentialFloors
                   customSelected={form.customFloorSelected}
-                  customFloorNumber={form.customFloorNumber}
-                  onCustomChange={(selected, number) => {
+                  customFloors={form.customFloors}
+                  onCustomChange={(selected, floors) => {
                     setForm((f) => ({
                       ...f,
                       customFloorSelected: selected,
-                      customFloorNumber: number,
+                      customFloors: floors,
                     }));
                     setStep2Error(null);
                   }}
@@ -383,8 +386,8 @@ export function ConstructionFirmProjectWizard() {
                     label: 'Target work floor',
                     value: [
                       ...form.building_types,
-                      form.customFloorSelected && form.customFloorNumber.trim()
-                        ? `Floors above 4th (${form.customFloorNumber.trim()})`
+                      form.customFloorSelected && form.customFloors.length
+                        ? `Floors above 4th (${formatCustomFloorsList(form.customFloors)})`
                         : null,
                     ]
                       .filter(Boolean)

@@ -5,9 +5,9 @@
 import type { BuildingType } from './buildingConfig';
 import { ASSAM_BUILDING_TYPE, RCC_BUILDING_TYPES } from './buildingConfig';
 import {
-  formatCustomFloorNumberInput,
   parseCustomFloorSequence,
 } from './mistriDetails';
+import { formatCustomFloorsList, normalizeCustomFloors } from './customFloors';
 import {
   formatProjectStartTime,
   isProjectStartTimeType,
@@ -111,6 +111,9 @@ export interface DrawingDetails {
   numberOfFloors: string;
   houseStructure?: DrawingHouseStructure | null;
   buildingTypes?: BuildingType[];
+  /** Canonical custom floors above 4th, e.g. [5, 10, 11]. */
+  customFloors?: number[] | null;
+  /** Legacy comma-separated display string; new posts dual-write this from `customFloors`. */
   customFloorNumber?: string | null;
   plotDimensions: string;
   /** Legacy field — no longer collected on new submissions. */
@@ -284,13 +287,15 @@ export function formatDrawingFloorSelection(input: {
   houseStructure: DrawingHouseStructure | null;
   buildingTypes: BuildingType[];
   customFloorSelected?: boolean;
-  customFloorNumber?: string | null;
+  customFloors?: number[] | null;
+  customFloorNumber?: string | number[] | null;
 }): string {
   if (input.houseStructure === 'assam') return 'Assam Type';
   const parts = resolveDrawingBuildingTypes(input);
+  const customLabel = formatCustomFloorsList(input.customFloors ?? input.customFloorNumber);
   const custom =
-    input.customFloorSelected && input.customFloorNumber?.trim()
-      ? `Floors above 4th (${input.customFloorNumber.trim()})`
+    input.customFloorSelected && customLabel
+      ? `Floors above 4th (${customLabel})`
       : null;
   return [...parts, custom].filter(Boolean).join(', ');
 }
@@ -368,8 +373,13 @@ export function parseDrawingDetails(value: unknown): DrawingDetails | null {
     : houseStructure === 'assam'
       ? [ASSAM_BUILDING_TYPE]
       : buildingTypesFromDrawingFloors(floors);
-  const customFloorNumber =
-    typeof v.customFloorNumber === 'string' && v.customFloorNumber.trim()
+  const customFloors = parseCustomFloorSequence(
+    v.customFloors ?? v.customFloorNumber,
+    { allowGaps: true },
+  );
+  const customFloorNumber = customFloors
+    ? formatCustomFloorsList(customFloors)
+    : typeof v.customFloorNumber === 'string' && v.customFloorNumber.trim()
       ? v.customFloorNumber.trim()
       : null;
 
@@ -379,6 +389,7 @@ export function parseDrawingDetails(value: unknown): DrawingDetails | null {
     numberOfFloors: floors,
     houseStructure,
     buildingTypes,
+    customFloors,
     customFloorNumber,
     plotDimensions: dimensions,
     plotAreaSqft: area,
@@ -449,7 +460,8 @@ export function validateDrawingDetailsInput(input: {
   houseStructure: DrawingHouseStructure | null;
   buildingTypes: BuildingType[];
   customFloorSelected: boolean;
-  customFloorNumber: string;
+  customFloors?: number[] | null;
+  customFloorNumber?: string | number[] | null;
   plotDimensions: string;
   deliverables: DrawingDeliverable[];
   projectSubmissionTimeType: DrawingSubmissionTimeType | null;
@@ -473,21 +485,26 @@ export function validateDrawingDetailsInput(input: {
       return { error: 'Select at least one target work floor.' };
     }
     if (input.customFloorSelected) {
-      const sequence = parseCustomFloorSequence(input.customFloorNumber, { allowGaps: true });
+      const sequence = parseCustomFloorSequence(
+        input.customFloors ?? input.customFloorNumber,
+        { allowGaps: true },
+      );
       if (!sequence) {
-        return { error: 'Enter floor numbers above 4th (e.g., 5, 6, 7).' };
+        return { error: 'Add at least one floor number above 4th.' };
       }
     }
   }
   const buildingTypes = resolveDrawingBuildingTypes(input);
-  const customFloorNumber =
+  const customFloors =
     input.houseStructure === 'rcc' && input.customFloorSelected
-      ? formatCustomFloorNumberInput(input.customFloorNumber)
-      : null;
+      ? normalizeCustomFloors(input.customFloors ?? input.customFloorNumber)
+      : [];
+  const customFloorNumber = customFloors.length ? formatCustomFloorsList(customFloors) : null;
   const floors = formatDrawingFloorSelection({
     houseStructure: input.houseStructure,
     buildingTypes,
     customFloorSelected: input.houseStructure === 'rcc' && input.customFloorSelected,
+    customFloors,
     customFloorNumber,
   });
   if (!floors) {
@@ -512,6 +529,7 @@ export function validateDrawingDetailsInput(input: {
       numberOfFloors: floors,
       houseStructure: input.houseStructure,
       buildingTypes,
+      customFloors: customFloors.length ? customFloors : null,
       customFloorNumber,
       plotDimensions: dimensions,
       deliverables,

@@ -526,7 +526,7 @@ interface FormState {
   houseType: MistriHouseType | null;
   buildingTypes: BuildingType[];
   customFloorSelected: boolean;
-  customFloorNumber: string;
+  customFloors: number[];
   floorWorkById: Record<string, FloorWorkForm>;
   approximateArea: string;
   /** Whole-number floor count for foundation provision (Ground Floor major only). */
@@ -546,7 +546,7 @@ const EMPTY_FORM: FormState = {
   houseType: null,
   buildingTypes: [],
   customFloorSelected: false,
-  customFloorNumber: '',
+  customFloors: [],
   floorWorkById: {},
   approximateArea: '',
   futureFloorCustom: '',
@@ -566,7 +566,7 @@ function selectedFloorEntries(form: FormState): Array<{
     form.buildingTypes.map((floorId) => ({ floorId, customFloorNumber: null }));
 
   if (form.customFloorSelected) {
-    const sequence = parseCustomFloorSequence(form.customFloorNumber, {
+    const sequence = parseCustomFloorSequence(form.customFloors, {
       allowGaps: true,
     });
     if (sequence) {
@@ -673,7 +673,7 @@ export function LabourContractorProjectWizard() {
   }, [form.houseType]);
 
   const districtSelection = parseAssamDistrictSelection(form.location);
-  const parsedCustomSequence = parseCustomFloorSequence(form.customFloorNumber, {
+  const parsedCustomSequence = parseCustomFloorSequence(form.customFloors, {
     allowGaps: true,
   });
 
@@ -718,7 +718,7 @@ export function LabourContractorProjectWizard() {
   }, [
     form.buildingTypes,
     form.customFloorSelected,
-    form.customFloorNumber,
+    form.customFloors,
     form.floorWorkById,
   ]);
 
@@ -783,7 +783,7 @@ export function LabourContractorProjectWizard() {
           houseType: 'assam',
           buildingTypes: [ASSAM_BUILDING_TYPE],
           customFloorSelected: false,
-          customFloorNumber: '',
+          customFloors: [],
           floorWorkById: {
             [ASSAM_BUILDING_TYPE]: { ...ASSAM_FULL_FINISHED_WORK },
           },
@@ -798,7 +798,7 @@ export function LabourContractorProjectWizard() {
           houseType: 'boundary_wall',
           buildingTypes: [],
           customFloorSelected: false,
-          customFloorNumber: '',
+          customFloors: [],
           floorWorkById: {},
           futureFloorCustom: '',
           contractType: 'labor_only',
@@ -812,7 +812,7 @@ export function LabourContractorProjectWizard() {
         houseType: 'rcc',
         buildingTypes: [],
         customFloorSelected: false,
-        customFloorNumber: '',
+        customFloors: [],
         floorWorkById: {},
         futureFloorCustom: '',
         contractType: null,
@@ -870,13 +870,13 @@ export function LabourContractorProjectWizard() {
     });
   }
 
-  function setCustomFloor(selected: boolean, number: string) {
+  function setCustomFloor(selected: boolean, floors: number[]) {
     setForm((f) => {
       if (f.houseType === 'assam') return f;
       const draft: FormState = {
         ...f,
         customFloorSelected: selected,
-        customFloorNumber: number,
+        customFloors: floors,
       };
       return {
         ...draft,
@@ -1335,7 +1335,7 @@ export function LabourContractorProjectWizard() {
                       onChange={setBuildingTypes}
                       showCustomFloor
                       customSelected={form.customFloorSelected}
-                      customFloorNumber={form.customFloorNumber}
+                      customFloors={form.customFloors}
                       onCustomChange={setCustomFloor}
                       error={step1ValidationAttempted ? step1Errors.floors : null}
                       customError={step1ValidationAttempted ? step1Errors.customFloor : null}

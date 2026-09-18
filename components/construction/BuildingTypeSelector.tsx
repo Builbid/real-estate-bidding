@@ -9,12 +9,10 @@ import {
   RCC_BUILDING_TYPES,
   type BuildingType,
 } from '@/lib/buildingConfig';
-import { Input } from '@/components/ui/input';
+import { CustomFloorTagInput } from '@/components/owner/wizard/CustomFloorTagInput';
 import {
   canToggleMistriFloorUpper,
   collectMistriFloorUpperLevels,
-  CUSTOM_FLOOR_INPUT_HELPER,
-  formatCustomFloorNumberInput,
   mistriFloorUpperCount,
   parseCustomFloorSequence,
 } from '@/lib/mistriDetails';
@@ -31,8 +29,8 @@ interface BuildingTypeSelectorProps {
   purpose?: 'construction' | 'drawing' | 'mistri';
   showCustomFloor?: boolean;
   customSelected?: boolean;
-  customFloorNumber?: string;
-  onCustomChange?: (selected: boolean, number: string) => void;
+  customFloors?: number[];
+  onCustomChange?: (selected: boolean, floors: number[]) => void;
   customError?: string | null;
   /**
    * Mistri major activities: RCC floors must stay consecutive (no skipped storeys).
@@ -57,7 +55,7 @@ export function BuildingTypeSelector({
   purpose = 'construction',
   showCustomFloor = false,
   customSelected = false,
-  customFloorNumber = '',
+  customFloors = [],
   onCustomChange,
   customError,
   enforceContiguousFloors = false,
@@ -78,13 +76,13 @@ export function BuildingTypeSelector({
     ? collectMistriFloorUpperLevels({
         buildingTypes: value,
         customSelected: customSelected && customFloorVisible && customSelectable,
-        customFloorNumber,
+        customFloorNumber: customFloors,
       })
     : [];
 
   useEffect(() => {
     if (customSelected && !customSelectable) {
-      onCustomChange?.(false, '');
+      onCustomChange?.(false, []);
     }
     // Intentionally omit onCustomChange — parent handlers are often inline.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -102,7 +100,7 @@ export function BuildingTypeSelector({
         onChange([]);
       } else {
         onChange([ASSAM_BUILDING_TYPE]);
-        onCustomChange?.(false, '');
+        onCustomChange?.(false, []);
       }
       return;
     }
@@ -123,7 +121,7 @@ export function BuildingTypeSelector({
         nextTypes.length > 0 &&
         !nextTypes.includes(RCC_4TH_FLOOR)
       ) {
-        onCustomChange?.(false, '');
+        onCustomChange?.(false, []);
       }
       onChange(nextTypes);
     } else {
@@ -133,7 +131,7 @@ export function BuildingTypeSelector({
         customSelected &&
         !nextTypes.includes(RCC_4TH_FLOOR)
       ) {
-        onCustomChange?.(false, '');
+        onCustomChange?.(false, []);
       }
       onChange(nextTypes);
     }
@@ -142,12 +140,12 @@ export function BuildingTypeSelector({
   function toggleCustom() {
     if (!customFloorVisible) return;
     if (customSelected) {
-      onCustomChange?.(false, customFloorNumber);
+      onCustomChange?.(false, customFloors);
       return;
     }
     if (!customSelectable) return;
 
-    const sequence = parseCustomFloorSequence(customFloorNumber, {
+    const sequence = parseCustomFloorSequence(customFloors, {
       requireStartAt5: !allowNonSequentialFloors && has4thFloor,
       allowGaps: allowNonSequentialFloors,
     });
@@ -162,21 +160,20 @@ export function BuildingTypeSelector({
       }
     }
     onChange(value.filter((t) => t !== ASSAM_BUILDING_TYPE));
-    onCustomChange?.(true, customFloorNumber);
+    onCustomChange?.(true, customFloors);
   }
 
-  function onCustomSequenceChange(raw: string) {
+  function onCustomFloorsChange(next: number[]) {
     if (!customSelectable) return;
-    const cleaned = formatCustomFloorNumberInput(raw);
     if (!enforceContiguousFloors || allowNonSequentialFloors || !customSelected) {
-      onCustomChange?.(true, cleaned);
+      onCustomChange?.(true, next);
       return;
     }
-    const sequence = parseCustomFloorSequence(cleaned, {
+    const sequence = parseCustomFloorSequence(next, {
       requireStartAt5: has4thFloor,
     });
     if (sequence == null) {
-      onCustomChange?.(true, cleaned);
+      onCustomChange?.(true, next);
       return;
     }
     const withoutCustom = collectMistriFloorUpperLevels({
@@ -187,7 +184,7 @@ export function BuildingTypeSelector({
     for (let i = 1; i < combined.length; i++) {
       if (combined[i] !== combined[i - 1] + 1) return;
     }
-    onCustomChange?.(true, cleaned);
+    onCustomChange?.(true, next);
   }
 
   const customDisabled = hasAssam || !customSelectable;
@@ -330,20 +327,11 @@ export function BuildingTypeSelector({
       </div>
 
       {customFloorVisible && customSelected && customSelectable && (
-        <div className="space-y-1.5">
-          <Input
-            label="Custom floor numbers (above 4th)"
-            type="text"
-            inputMode="numeric"
-            placeholder="e.g., 5, 6, 7"
-            value={customFloorNumber}
-            onChange={(e) => onCustomSequenceChange(e.target.value)}
-            error={customError ?? undefined}
-          />
-          <p className="text-[11px] font-medium text-muted-foreground leading-snug">
-            {CUSTOM_FLOOR_INPUT_HELPER}
-          </p>
-        </div>
+        <CustomFloorTagInput
+          value={customFloors}
+          onChange={onCustomFloorsChange}
+          error={customError}
+        />
       )}
 
       {error && (
