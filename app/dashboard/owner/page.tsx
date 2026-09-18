@@ -174,7 +174,7 @@ export default async function OwnerDashboard() {
           count={selectionRequired.length}
           description="Bidding has closed. Select a worker to award the contract."
         >
-          <div className="space-y-3">
+          <div className="space-y-5">
             {selectionRequired.map((bundle) => (
               <OwnerLiveProjectCard
                 key={bundle.project.id}
@@ -198,7 +198,7 @@ export default async function OwnerDashboard() {
         description="Auctions still receiving bids. Rankings update in real time."
       >
         {liveAuctions.length > 0 ? (
-          <div className="space-y-3">
+          <div className="space-y-5">
             {liveAuctions.map((bundle) => (
               <OwnerLiveProjectCard
                 key={bundle.project.id}

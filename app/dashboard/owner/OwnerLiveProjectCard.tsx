@@ -73,25 +73,30 @@ function OwnerLiveProjectCardBody({
   return (
     <article
       className={cn(
-        'min-w-0 overflow-hidden',
-        canSelect ? 'border-l-2 border-l-amber-500 pl-3 sm:pl-4' : 'border-l-2 border-l-emerald-500 pl-3 sm:pl-4',
+        'min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white p-4 shadow-sm',
+        'dark:border-slate-700/60 dark:bg-slate-900 dark:shadow-none',
       )}
     >
-      <div className="space-y-2.5 py-1">
+      <div
+        className={cn(
+          'space-y-3 border-l-[3px] pl-3 sm:pl-4',
+          canSelect ? 'border-l-amber-500' : 'border-l-emerald-500',
+        )}
+      >
       <div className="flex flex-wrap items-start gap-3">
         <div className="flex-1 min-w-0">
           <div className="mb-1.5 flex flex-wrap items-center gap-2">
             <Badge variant={canSelect ? 'amber' : 'emerald'}>{statusLabel ?? serviceBadge}</Badge>
             {statusLabel ? (
-              <span className="text-sm font-medium text-muted-foreground">{serviceBadge}</span>
+              <span className="text-sm font-medium text-slate-600 dark:text-slate-400">{serviceBadge}</span>
             ) : null}
           </div>
-          <p className="text-sm font-semibold text-foreground">{project.title}</p>
-          <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{project.title}</p>
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-600 dark:text-slate-400">
             {metaParts.map((part, index) => (
               <span key={`${part}-${index}`} className="inline-flex items-center gap-2">
                 {index > 0 ? (
-                  <span className="text-muted-foreground/60" aria-hidden>
+                  <span className="text-slate-400 dark:text-slate-500" aria-hidden>
                     •
                   </span>
                 ) : null}
@@ -107,7 +112,7 @@ function OwnerLiveProjectCardBody({
             ))}
             {postedAt ? (
               <span className="inline-flex items-center gap-2">
-                <span className="text-muted-foreground/60" aria-hidden>
+                <span className="text-slate-400 dark:text-slate-500" aria-hidden>
                   •
                 </span>
                 <span className="inline-flex items-center gap-1">
@@ -118,7 +123,11 @@ function OwnerLiveProjectCardBody({
             ) : null}
           </div>
           {floorScopes.length > 0 ? (
-            <FloorScopeBadges items={floorScopes} className="mt-2.5" variant="plain" />
+            <FloorScopeBadges
+              items={floorScopes}
+              className="mt-2.5 text-slate-600 dark:text-slate-400"
+              variant="plain"
+            />
           ) : null}
         </div>
 
@@ -145,10 +154,10 @@ function OwnerLiveProjectCardBody({
         <div className="flex items-start gap-3">
           <Lock className="w-4 h-4 text-indigo-400 flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-semibold text-foreground mb-1">
+            <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-1">
               Bidding Closed — {isFirm ? 'Select Your Construction Firm' : 'Select Your Builder'}
             </p>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-slate-600 dark:text-slate-400">
               Choose a {isFirm ? 'firm' : 'builder'} before the timer expires. Contact details remain private until
               you award the contract. If no selection is made, this listing will expire.
             </p>
@@ -157,7 +166,7 @@ function OwnerLiveProjectCardBody({
       )}
 
       {phase === 'live' && (
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-slate-600 dark:text-slate-400">
           <span className="mr-2 inline-block h-2 w-2 rounded-full bg-emerald-600 align-middle animate-pulse dark:bg-emerald-400" />
           Live auction in progress. {isFirm ? 'Firm' : 'Builder'} names and profile photos are visible on the
           leaderboard; contact details stay private. Rankings update in real-time.
