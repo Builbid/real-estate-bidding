@@ -1918,6 +1918,77 @@ export function parseCustomFloorNumber(raw: unknown): number | null {
   return null;
 }
 
+export const CUSTOM_FLOOR_INPUT_HELPER =
+  'Enter floor numbers above 4th (e.g., 5, 6, 7) for multi-story construction.';
+
+/**
+ * Live input sanitizer for RCC custom floors (5–50).
+ * Space or comma separates numbers; long digit runs like "567" become "5, 6, 7".
+ * Drops invalid tokens, duplicates, and trailing separators.
+ */
+export function formatCustomFloorNumberInput(raw: string): string {
+  const source = String(raw ?? '').replace(/[^\d,\s]/g, '');
+  if (!source.trim()) return '';
+
+  const trailingSeparator = /[,\s]$/.test(source);
+  const parts = source.split(/[,\s]+/).filter((part) => part.length > 0);
+  const floors: number[] = [];
+  const seen = new Set<number>();
+  let pending = '';
+
+  const addFloor = (n: number) => {
+    if (!Number.isInteger(n) || n < MIN_CUSTOM_RCC_FLOOR || n > MAX_CUSTOM_RCC_FLOOR) {
+      return;
+    }
+    if (seen.has(n)) return;
+    seen.add(n);
+    floors.push(n);
+  };
+
+  for (let partIndex = 0; partIndex < parts.length; partIndex++) {
+    const part = parts[partIndex];
+    const isLastPart = partIndex === parts.length - 1;
+    let i = 0;
+    while (i < part.length) {
+      const leftover = part.slice(i);
+      const isLastChunk = isLastPart && leftover.length === part.length - i;
+
+      if (leftover.length >= 2) {
+        const two = Number.parseInt(leftover.slice(0, 2), 10);
+        if (two >= MIN_CUSTOM_RCC_FLOOR && two <= MAX_CUSTOM_RCC_FLOOR) {
+          addFloor(two);
+          i += 2;
+          continue;
+        }
+      }
+
+      const one = Number.parseInt(leftover[0] ?? '', 10);
+      if (!Number.isInteger(one)) {
+        i += 1;
+        continue;
+      }
+
+      if (
+        isLastChunk &&
+        leftover.length === 1 &&
+        !trailingSeparator &&
+        one >= 1 &&
+        one <= 5
+      ) {
+        pending = leftover[0];
+        break;
+      }
+
+      if (one >= MIN_CUSTOM_RCC_FLOOR && one <= 9) addFloor(one);
+      i += 1;
+    }
+  }
+
+  const formatted = floors.join(', ');
+  if (!pending) return formatted;
+  return formatted ? `${formatted}, ${pending}` : pending;
+}
+
 /**
  * Comma-separated floors above 4th (5–50).
  * Default: consecutive ascending. When `requireStartAt5` is true, the sequence
@@ -1938,11 +2009,11 @@ export function parseCustomFloorSequence(
     return [single];
   }
   if (typeof raw !== 'string') return null;
-  const trimmed = raw.trim();
+  const trimmed = formatCustomFloorNumberInput(raw);
   if (!trimmed) return null;
 
   const parts = trimmed
-    .split(',')
+    .split(/[,\s]+/)
     .map((p) => p.trim())
     .filter((p) => p.length > 0);
   if (parts.length === 0) return null;

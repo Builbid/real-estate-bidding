@@ -13,6 +13,8 @@ import { Input } from '@/components/ui/input';
 import {
   canToggleMistriFloorUpper,
   collectMistriFloorUpperLevels,
+  CUSTOM_FLOOR_INPUT_HELPER,
+  formatCustomFloorNumberInput,
   mistriFloorUpperCount,
   parseCustomFloorSequence,
 } from '@/lib/mistriDetails';
@@ -165,7 +167,7 @@ export function BuildingTypeSelector({
 
   function onCustomSequenceChange(raw: string) {
     if (!customSelectable) return;
-    const cleaned = raw.replace(/[^\d,\s]/g, '');
+    const cleaned = formatCustomFloorNumberInput(raw);
     if (!enforceContiguousFloors || allowNonSequentialFloors || !customSelected) {
       onCustomChange?.(true, cleaned);
       return;
@@ -331,17 +333,13 @@ export function BuildingTypeSelector({
             label="Custom floor numbers (above 4th)"
             type="text"
             inputMode="numeric"
-            placeholder={allowNonSequentialFloors ? 'e.g. 7,9,12' : 'e.g. 5,6,7'}
+            placeholder="e.g., 5, 6, 7"
             value={customFloorNumber}
             onChange={(e) => onCustomSequenceChange(e.target.value)}
             error={customError ?? undefined}
           />
           <p className="text-[11px] font-medium text-muted-foreground leading-snug">
-            {allowNonSequentialFloors
-              ? 'Enter floor numbers from 5–50, comma-separated (example: 7,9,12). Skipped floors are allowed.'
-              : has4thFloor
-                ? 'With 4th floor selected, enter consecutive floors starting at 5 (example: 5,6,7).'
-                : 'Enter consecutive floors from 5–50 (example: 7,8,9). Gaps or out-of-order values are invalid.'}
+            {CUSTOM_FLOOR_INPUT_HELPER}
           </p>
         </div>
       )}
