@@ -101,9 +101,9 @@ export function AllProjectsPageContent({
   const hasActiveFilter = serviceFilter !== 'all' || Boolean(activeSearch);
 
   return (
-    <>
+    <div className="flex max-h-fit min-h-0 flex-1 flex-col">
       <Navbar />
-      <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-10 pb-16">
+      <main className="mx-auto w-full max-w-5xl max-h-fit min-h-0 flex-1 px-4 py-6 sm:px-6">
         <NavLink href="/" prefetch className={cn(NAV_BACK_LINK, 'mb-6')}>
           <ArrowLeft className="w-4 h-4" />
           Back to Home
@@ -145,7 +145,7 @@ export function AllProjectsPageContent({
           <>
           <div
             className={cn(
-              'mx-auto grid w-full max-w-5xl grid-cols-1 justify-items-center gap-5 md:grid-cols-2',
+              'mx-auto grid h-auto w-full max-w-5xl grid-cols-1 content-start justify-items-center gap-5 md:grid-cols-2',
               isPending && 'opacity-70 transition-opacity',
             )}
           >
@@ -193,6 +193,6 @@ export function AllProjectsPageContent({
           </div>
         )}
       </main>
-    </>
+    </div>
   );
 }
