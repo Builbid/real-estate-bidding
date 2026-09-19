@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { FORM_CONTINUE_BTN } from '@/components/owner/wizard/formTheme';
+import { WIZARD_SECTION_LABEL, withSectionColon } from '@/components/owner/wizard/WizardSectionLabel';
 import { cn } from '@/lib/utils';
 import { CUSTOM_FLOOR_INPUT_HELPER } from '@/lib/mistriDetails';
 import {
@@ -62,8 +63,8 @@ export function CustomFloorTagInput({
 
   return (
     <div className="space-y-2">
-      <label className="text-xs font-semibold uppercase tracking-wider text-slate-800 dark:text-zinc-100">
-        Custom floor numbers (above 4th)
+      <label className={WIZARD_SECTION_LABEL}>
+        {withSectionColon('Custom floor numbers (above 4th)')}
       </label>
 
       <div className="space-y-3 rounded-xl border border-gray-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900">

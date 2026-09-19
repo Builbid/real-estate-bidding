@@ -27,7 +27,7 @@ import {
 import { createProjectAction } from '@/app/actions/createProject';
 import { HistoryBackButton } from '@/components/shared/HistoryBackButton';
 import { FORM_CONTINUE_BTN, FORM_SECTION_CARD, FORM_SHELL_CARD } from '@/components/owner/wizard/formTheme';
-import { WIZARD_SECTION_LABEL, withSectionColon } from '@/components/owner/wizard/StartTimeAndNotes';
+import { WIZARD_SECTION_LABEL, WizardAccentLabels, withSectionColon } from '@/components/owner/wizard/StartTimeAndNotes';
 import { ReviewSummaryList, WizardStepper } from '@/components/owner/wizard/ReviewSummary';
 import { parseCustomFloorSequence } from '@/lib/mistriDetails';
 import { formatCustomFloorsList } from '@/lib/customFloors';
@@ -201,6 +201,7 @@ export function ConstructionFirmProjectWizard() {
   }
 
   return (
+    <WizardAccentLabels>
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
         <HistoryBackButton className="mb-2" />
@@ -239,11 +240,10 @@ export function ConstructionFirmProjectWizard() {
               />
 
               <div>
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
-                  Your Maximum Budget (Optional)
+                <p className={WIZARD_SECTION_LABEL}>
+                  {withSectionColon('Your Maximum Budget (Optional)')}
                 </p>
                 <Input
-                  label="Max ₹"
                   type="text"
                   inputMode="numeric"
                   placeholder="e.g. 40,00,000"
@@ -257,8 +257,8 @@ export function ConstructionFirmProjectWizard() {
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Bidding Duration
+                <label className={WIZARD_SECTION_LABEL}>
+                  {withSectionColon('Bidding Duration')}
                 </label>
                 <Select value={form.bidding_minutes} onValueChange={(v) => update('bidding_minutes', v)}>
                   <SelectTrigger>
@@ -309,9 +309,9 @@ export function ConstructionFirmProjectWizard() {
                 <div className="flex items-center gap-1.5 mb-1.5">
                   <label
                     htmlFor="floor-area-sqft"
-                    className="text-xs font-medium text-muted-foreground uppercase tracking-wider"
+                    className={cn(WIZARD_SECTION_LABEL, 'mb-0')}
                   >
-                    Total Slab Area of All the Floors (in Sqft) Approx (Optional)
+                    {withSectionColon('Total Slab Area of All the Floors (in Sqft) Approx (Optional)')}
                   </label>
                   <Popover>
                     <PopoverTrigger asChild>
@@ -459,5 +459,6 @@ export function ConstructionFirmProjectWizard() {
         </CardContent>
       </Card>
     </div>
+    </WizardAccentLabels>
   );
 }

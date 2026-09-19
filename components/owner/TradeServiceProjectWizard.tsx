@@ -16,7 +16,7 @@ import {
 import { BuildingTypeSelector } from '@/components/construction/BuildingTypeSelector';
 import { TradeWorkRequirementsFields, type TradeWorkFormFields } from '@/components/owner/TradeWorkRequirementsFields';
 import { FORM_CONTINUE_BTN, FORM_OPTION_SELECTED, FORM_OPTION_UNSELECTED, FORM_SECTION_CARD, FORM_SHELL_CARD, FORM_TEXTAREA } from '@/components/owner/wizard/formTheme';
-import { ADDITIONAL_REQUIREMENTS_PLACEHOLDER, WIZARD_SECTION_LABEL, withSectionColon } from '@/components/owner/wizard/StartTimeAndNotes';
+import { ADDITIONAL_REQUIREMENTS_PLACEHOLDER, WIZARD_SECTION_LABEL, WizardAccentLabels, withSectionColon } from '@/components/owner/wizard/StartTimeAndNotes';
 import { ReviewSummaryList, WizardStepper } from '@/components/owner/wizard/ReviewSummary';
 import { generateProjectTitle } from '@/lib/generateProjectTitle';
 import { hasContactInfo } from '@/lib/validation/projectContactInfo';
@@ -470,6 +470,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
     trade === 'plumber' || trade === 'electrician' ? FIXTURE_PROGRESS_LABELS : DEFAULT_PROGRESS_LABELS;
 
   return (
+    <WizardAccentLabels>
     <div className="mx-auto max-w-2xl space-y-6">
       <div>
         <HistoryBackButton className="mb-2" />
@@ -922,6 +923,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
         </CardContent>
       </Card>
     </div>
+    </WizardAccentLabels>
   );
 }
 

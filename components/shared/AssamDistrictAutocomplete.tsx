@@ -8,6 +8,10 @@ import {
   searchAssamDistricts,
   type AssamDistrict,
 } from '@/lib/assamDistricts';
+import {
+  WIZARD_SECTION_LABEL_BASE,
+  withSectionColon,
+} from '@/components/owner/wizard/WizardSectionLabel';
 
 export { parseAssamDistrictSelection };
 
@@ -119,9 +123,9 @@ export function AssamDistrictAutocomplete({
     <div ref={containerRef} className="relative flex flex-col gap-1.5 w-full">
       <label
         htmlFor={listboxId}
-        className="text-xs font-semibold text-gray-800 dark:text-zinc-100 uppercase tracking-wider"
+        className={WIZARD_SECTION_LABEL_BASE}
       >
-        {label}
+        {withSectionColon(label)}
       </label>
 
       <div className="relative flex items-center">

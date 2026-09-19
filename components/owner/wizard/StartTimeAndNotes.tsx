@@ -8,18 +8,21 @@ import {
   todayLocalDateString,
   type ProjectStartTimeType,
 } from '@/lib/projectStartTime';
+import {
+  WIZARD_SECTION_LABEL,
+  withSectionColon,
+} from '@/components/owner/wizard/WizardSectionLabel';
 
-export const WIZARD_SECTION_LABEL =
-  "mb-3 flex items-center gap-2 text-base font-bold text-slate-900 dark:text-slate-100 before:inline-block before:h-2 before:w-2 before:flex-shrink-0 before:rounded-full before:bg-brand before:content-['']";
+export {
+  WIZARD_SECTION_LABEL,
+  WIZARD_SECTION_LABEL_BASE,
+  WizardAccentLabels,
+  WizardSectionLabel,
+  withSectionColon,
+} from '@/components/owner/wizard/WizardSectionLabel';
 
 export const ADDITIONAL_REQUIREMENTS_PLACEHOLDER =
   'Write any additional requirements or notes here...';
-
-export function withSectionColon(label: string): string {
-  const trimmed = label.trim();
-  if (!trimmed || /[?:]$/.test(trimmed)) return trimmed;
-  return `${trimmed}:`;
-}
 
 export function StartTimeAndNotes<T extends string = ProjectStartTimeType>({
   startTimeType,

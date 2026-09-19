@@ -10,7 +10,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { OptionSelectGrid } from '@/components/owner/wizard/OptionSelectCard';
-import { StartTimeAndNotes, WIZARD_SECTION_LABEL, withSectionColon } from '@/components/owner/wizard/StartTimeAndNotes';
+import { StartTimeAndNotes, WIZARD_SECTION_LABEL, WizardAccentLabels, withSectionColon } from '@/components/owner/wizard/StartTimeAndNotes';
 import { FORM_CONTINUE_BTN, FORM_SECTION_CARD, FORM_SHELL_CARD } from '@/components/owner/wizard/formTheme';
 import { ReviewSummaryList, WizardStepper } from '@/components/owner/wizard/ReviewSummary';
 import { BuildingTypeSelector } from '@/components/construction/BuildingTypeSelector';
@@ -234,6 +234,7 @@ export function DrawingDesignProjectWizard() {
     'error' in reviewDetails ? [] : getDrawingWorkRequirementBlocks(reviewDetails.details);
 
   return (
+    <WizardAccentLabels>
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
         <HistoryBackButton className="mb-2" />
@@ -486,5 +487,6 @@ export function DrawingDesignProjectWizard() {
         </CardContent>
       </Card>
     </div>
+    </WizardAccentLabels>
   );
 }

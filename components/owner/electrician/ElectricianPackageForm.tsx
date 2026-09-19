@@ -7,6 +7,7 @@ import {
   type ElectricianPackageKind,
   type ElectricianSubOptionId,
 } from '@/lib/tradeWorkDetails';
+import { WIZARD_SECTION_LABEL, withSectionColon } from '@/components/owner/wizard/WizardSectionLabel';
 
 export function ElectricianPackageForm({
   selectedPackages,
@@ -50,7 +51,7 @@ export function ElectricianPackageForm({
         return (
           <section key={pkg.id} className="space-y-3">
             <div className="border-b border-border pb-2">
-              <h3 className="text-sm font-bold text-gray-900 dark:text-white sm:text-base">{pkg.label}</h3>
+              <h3 className={WIZARD_SECTION_LABEL}>{withSectionColon(pkg.label)}</h3>
               {pickedCount > 0 ? (
                 <p className="mt-0.5 text-xs font-medium text-amber-600 dark:text-amber-400">
                   {pickedCount} selected

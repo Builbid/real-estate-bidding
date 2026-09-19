@@ -1,20 +1,36 @@
+'use client';
+
 import * as React from 'react';
 import { cn } from '@/lib/utils';
+import {
+  WIZARD_SECTION_LABEL_BASE,
+  useWizardAccentLabel,
+  withSectionColon,
+} from '@/components/owner/wizard/WizardSectionLabel';
 
 export interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'prefix' | 'suffix'> {
   label?: string;
   error?: string;
   prefix?: React.ReactNode;
   suffix?: React.ReactNode;
+  /** Force wizard accent labels on/off. Defaults to the surrounding wizard context. */
+  accentLabel?: boolean;
 }
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ className, type, label, error, prefix, suffix, ...props }, ref) => {
+  ({ className, type, label, error, prefix, suffix, accentLabel, ...props }, ref) => {
+    const useAccent = useWizardAccentLabel(accentLabel);
     return (
       <div className="flex flex-col gap-1.5 w-full">
         {label && (
-          <label className="text-xs font-semibold text-slate-800 dark:text-zinc-100 uppercase tracking-wider">
-            {label}
+          <label
+            className={
+              useAccent
+                ? WIZARD_SECTION_LABEL_BASE
+                : 'text-xs font-semibold text-slate-800 dark:text-zinc-100 uppercase tracking-wider'
+            }
+          >
+            {useAccent ? withSectionColon(label) : label}
           </label>
         )}
         <div className="relative flex items-center">

@@ -103,7 +103,7 @@ import {
   FORM_SHELL_CARD,
   FORM_TEXTAREA,
 } from '@/components/owner/wizard/formTheme';
-import { ADDITIONAL_REQUIREMENTS_PLACEHOLDER, WIZARD_SECTION_LABEL, withSectionColon } from '@/components/owner/wizard/StartTimeAndNotes';
+import { ADDITIONAL_REQUIREMENTS_PLACEHOLDER, WIZARD_SECTION_LABEL, WizardAccentLabels, withSectionColon } from '@/components/owner/wizard/StartTimeAndNotes';
 import { ReviewSummaryList, WizardStepper } from '@/components/owner/wizard/ReviewSummary';
 import { cn } from '@/lib/utils';
 import { createProjectAction } from '@/app/actions/createProject';
@@ -158,10 +158,8 @@ function FlooringAreaField({
 }) {
   return (
     <div className="space-y-1.5">
-      <label className="text-xs font-semibold text-gray-900 dark:text-zinc-100">
-        Approximate Flooring Work Area (sq. ft.)
-      </label>
       <Input
+        label="Approximate Flooring Work Area (sq. ft.)"
         type="text"
         inputMode="decimal"
         placeholder="e.g., 1800"
@@ -193,10 +191,8 @@ function WallAreaField({
 
   return (
     <div className="space-y-1.5">
-      <label className="text-xs font-semibold text-gray-900 dark:text-zinc-100">
-        Approximate Wall Area (sq. ft.)
-      </label>
       <Input
+        label="Approximate Wall Area (sq. ft.)"
         type="text"
         inputMode="decimal"
         placeholder="e.g., 1200"
@@ -1242,6 +1238,7 @@ export function LabourContractorProjectWizard() {
   }
 
   return (
+    <WizardAccentLabels>
     <div className="mx-auto w-full max-w-3xl space-y-6 text-slate-900 dark:text-slate-100 [overflow-anchor:none]">
       <div>
         <HistoryBackButton className="mb-2" onClick={goWizardBack} />
@@ -1439,20 +1436,16 @@ export function LabourContractorProjectWizard() {
                     </p>
                   )}
                   {showManualPlasteringArea && (
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-gray-900 dark:text-zinc-100">
-                        Approximate Plastering Area (sq. ft.)
-                      </label>
-                      <Input
-                        type="text"
-                        inputMode="decimal"
-                        placeholder="e.g. 500"
-                        value={form.boundaryWall?.plasteringAreaSqft ?? ''}
-                        onChange={(e) =>
-                          patchBoundaryWall({ plasteringAreaSqft: e.target.value })
-                        }
-                      />
-                    </div>
+                    <Input
+                      label="Approximate Plastering Area (sq. ft.)"
+                      type="text"
+                      inputMode="decimal"
+                      placeholder="e.g. 500"
+                      value={form.boundaryWall?.plasteringAreaSqft ?? ''}
+                      onChange={(e) =>
+                        patchBoundaryWall({ plasteringAreaSqft: e.target.value })
+                      }
+                    />
                   )}
 
                   <NestedChoiceButtons
@@ -1970,5 +1963,6 @@ export function LabourContractorProjectWizard() {
         </CardContent>
       </Card>
     </div>
+    </WizardAccentLabels>
   );
 }
