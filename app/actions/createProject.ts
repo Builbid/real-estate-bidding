@@ -26,6 +26,7 @@ import {
 } from '@/lib/painterDetails'
 import {
   buildingStoreysToTotalFloors,
+  buildingTypesFromTargetFloors,
   isCustomTradeWorkService,
   isTradeDetails,
   targetFloorsToTotalFloors,
@@ -256,7 +257,15 @@ export async function createProjectAction(
         surfaceCondition: trade.painter_details.surfaceCondition ?? null,
         paintTopcoats: trade.painter_details.paintTopcoats ?? null,
         additionalRequirements: trade.painter_details.additionalRequirements?.trim() || null,
+        targetFloors: trade.painter_details.targetFloors ?? null,
+        customTargetFloors: trade.painter_details.customTargetFloors ?? null,
       }
+      const painterFloors = trade.painter_details.targetFloors ?? []
+      insertPayload.building_types =
+        trade.track_type === 'AssamType'
+          ? [ASSAM_BUILDING_TYPE]
+          : buildingTypesFromTargetFloors(painterFloors)
+      insertPayload.total_floors = targetFloorsToTotalFloors(painterFloors)
     } else if (isCustomTradeWorkService(trade.service_type)) {
       if (
         !isTradeDetails(trade.trade_details) ||

@@ -175,6 +175,10 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [step2Error, setStep2Error] = useState<string | null>(null);
+  const [painterFloorErrors, setPainterFloorErrors] = useState<{
+    floors?: string;
+    custom?: string;
+  }>({});
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -345,6 +349,23 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
       setStep2Error('Please select a building type to continue.');
       return;
     }
+    if (isPainter && form.track_type === 'RCC') {
+      const floorErrors: { floors?: string; custom?: string } = {};
+      if (form.targetFloors.length === 0) {
+        floorErrors.floors = 'Select at least one target work floor.';
+      }
+      if (
+        form.targetFloors.includes('custom') &&
+        !parseCustomFloorSequence(form.customTargetFloors, { allowGaps: true })
+      ) {
+        floorErrors.custom = 'Add at least one floor number above 4th.';
+      }
+      if (floorErrors.floors || floorErrors.custom) {
+        setPainterFloorErrors(floorErrors);
+        setStep2Error(floorErrors.floors ?? floorErrors.custom ?? null);
+        return;
+      }
+    }
     if (isPainter) {
       const validated = validatePainterDetailsInput({
         projectArea: form.projectArea,
@@ -356,6 +377,9 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
         surfaceCondition: form.surfaceCondition,
         paintTopcoats: form.paintTopcoats,
         additionalRequirements: form.additionalRequirements,
+        trackType: form.track_type,
+        targetFloors: form.targetFloors,
+        customTargetFloors: form.customTargetFloors,
       });
       if ('error' in validated) {
         setStep2Error(validated.error);
@@ -403,6 +427,9 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
         surfaceCondition: form.surfaceCondition,
         paintTopcoats: form.paintTopcoats,
         additionalRequirements: form.additionalRequirements,
+        trackType: form.track_type,
+        targetFloors: form.targetFloors,
+        customTargetFloors: form.customTargetFloors,
       });
       if ('error' in validated) {
         setError(validated.error);
@@ -672,10 +699,9 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                     ? 'Fixture Quantities'
                     : 'Work Requirements'}
               </h2>
+              {!isPainter && (
               <p className="text-xs font-medium text-gray-700 dark:text-zinc-300 -mt-3">
-                {isPainter
-                  ? 'Tell painters the building type, area, primer, materials, and when work should start.'
-                  : trade === 'plumber'
+                {trade === 'plumber'
                     ? 'Enter how many basins, taps, showers, commodes, and geysers you need on each selected floor.'
                     : trade === 'electrician'
                       ? 'Enter how many ceiling lights, ceiling fans, ACs, refrigerators, and inverters you need on each selected floor.'
@@ -683,6 +709,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                         ? 'Check the interior design categories you need, then pick the sub-options designers should quote as interior designer unit rates.'
                     : `Describe the ${tradeLabel.toLowerCase()} work so bidders can quote without scope conflicts.`}
               </p>
+              )}
 
               {step2Error && (
                 <div className="flex items-start gap-3 p-3.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400">
@@ -692,7 +719,8 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
               )}
 
               {isPainter && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {BUILDING_TYPE_OPTIONS.map((opt) => {
                     const selected = form.track_type === opt.value;
                     return (
@@ -700,7 +728,18 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                         key={opt.value}
                         type="button"
                         onClick={() => {
-                          update('track_type', opt.value);
+                          setForm((current) => {
+                            if (opt.value === 'AssamType') {
+                              return applyTargetFloorSelection(
+                                { ...current, track_type: opt.value },
+                                [],
+                                false,
+                                [],
+                              );
+                            }
+                            return { ...current, track_type: opt.value };
+                          });
+                          setPainterFloorErrors({});
                           setStep2Error(null);
                         }}
                         className={cn(
@@ -712,10 +751,56 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                           <CheckCircle2 className="absolute top-2.5 right-2.5 w-5 h-5 text-blue-600 flex-shrink-0" />
                         )}
                         <span className={cn('text-sm', selected ? 'font-medium text-slate-900 dark:text-white' : 'font-medium text-slate-700 dark:text-slate-200')}>{opt.label}</span>
-                        <p className="text-xs font-medium text-slate-500 mt-1">{opt.description}</p>
                       </button>
                     );
                   })}
+                  </div>
+
+                  {form.track_type === 'RCC' && (
+                    <div className={FORM_SECTION_CARD}>
+                      <label className={WIZARD_SECTION_LABEL}>
+                        {withSectionColon('Target Work Floor')}
+                      </label>
+                      <p className="text-[11px] font-medium text-slate-500 leading-relaxed">
+                        Select only the RCC floors included in this project. Intermediate floors are not added automatically.
+                      </p>
+                      <BuildingTypeSelector
+                        purpose="mistri"
+                        rccOnly
+                        allowNonSequentialFloors
+                        value={buildingTypesFromTargetFloors(form.targetFloors)}
+                        onChange={(types) => {
+                          setForm((current) =>
+                            applyTargetFloorSelection(
+                              current,
+                              types,
+                              current.targetFloors.includes('custom'),
+                              current.customTargetFloors,
+                            ),
+                          );
+                          setPainterFloorErrors({});
+                          setStep2Error(null);
+                        }}
+                        showCustomFloor
+                        customSelected={form.targetFloors.includes('custom')}
+                        customFloors={form.customTargetFloors}
+                        onCustomChange={(selected, floors) => {
+                          setForm((current) =>
+                            applyTargetFloorSelection(
+                              current,
+                              buildingTypesFromTargetFloors(current.targetFloors),
+                              selected,
+                              floors,
+                            ),
+                          );
+                          setPainterFloorErrors({});
+                          setStep2Error(null);
+                        }}
+                        error={painterFloorErrors.floors ?? null}
+                        customError={painterFloorErrors.custom ?? null}
+                      />
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -889,6 +974,9 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                         surfaceCondition: form.surfaceCondition,
                         paintTopcoats: form.paintTopcoats,
                         additionalRequirements: form.additionalRequirements.trim() || null,
+                        targetFloors: form.track_type === 'RCC' ? form.targetFloors : null,
+                        customTargetFloors:
+                          form.track_type === 'RCC' ? form.customTargetFloors : null,
                       })
                     : []),
                   ...reviewTradeBlocks,

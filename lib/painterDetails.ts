@@ -6,6 +6,8 @@ import {
   isProjectStartDateNotInPast,
   PROJECT_START_DATE_PAST_INVALID_MESSAGE,
 } from './projectStartTime';
+import { parseCustomFloorSequence } from './mistriDetails';
+import { formatCustomFloorsList } from './customFloors';
 
 export type PainterStartTimeType = '1week' | '2week' | '1month' | 'specific';
 
@@ -21,6 +23,8 @@ export type PainterPaintFinish = 'standard' | 'premium' | 'textured';
 export type PainterSurfaceCondition = 'new' | 'repaint_good' | 'repaint_repair';
 
 export type PainterPaintTopcoats = '1 Coat' | '2 Coats' | '3 Coats';
+
+export type PainterTargetFloor = 'ground' | 'first' | 'second' | 'third' | 'fourth' | 'custom';
 
 export interface PainterDetails {
   projectArea: number;
@@ -39,6 +43,9 @@ export interface PainterDetails {
   surfaceCondition?: PainterSurfaceCondition | null;
   paintTopcoats?: PainterPaintTopcoats | null;
   additionalRequirements?: string | null;
+  /** RCC floors to paint. Empty / omitted for Assam Type and legacy rows. */
+  targetFloors?: PainterTargetFloor[] | null;
+  customTargetFloors?: number[] | null;
 }
 
 export const PAINTER_PRIMER_OPTIONS: {
@@ -110,6 +117,53 @@ const SCOPE_SET = new Set<string>(PAINTER_SCOPE_OPTIONS.map((o) => o.value));
 const FINISH_SET = new Set<string>(PAINTER_FINISH_OPTIONS.map((o) => o.value));
 const SURFACE_SET = new Set<string>(PAINTER_SURFACE_OPTIONS.map((o) => o.value));
 const TOPCOAT_SET = new Set<string>(PAINTER_TOPCOAT_OPTIONS);
+const TARGET_FLOOR_SET = new Set<PainterTargetFloor>([
+  'ground',
+  'first',
+  'second',
+  'third',
+  'fourth',
+  'custom',
+]);
+const TARGET_FLOOR_LABELS: Record<PainterTargetFloor, string> = {
+  ground: 'RCC Ground Floor',
+  first: 'RCC 1st Floor',
+  second: 'RCC 2nd Floor',
+  third: 'RCC 3rd Floor',
+  fourth: 'RCC 4th Floor',
+  custom: 'Custom floors',
+};
+
+function parsePainterTargetFloors(raw: unknown): PainterTargetFloor[] {
+  if (!Array.isArray(raw)) return [];
+  const next: PainterTargetFloor[] = [];
+  for (const item of raw) {
+    if (typeof item === 'string' && TARGET_FLOOR_SET.has(item as PainterTargetFloor)) {
+      const floor = item as PainterTargetFloor;
+      if (!next.includes(floor)) next.push(floor);
+    }
+  }
+  return next;
+}
+
+function parsePainterCustomFloors(raw: unknown): number[] | null {
+  const floors = parseCustomFloorSequence(raw, { allowGaps: true });
+  return floors && floors.length > 0 ? floors : null;
+}
+
+function formatPainterTargetFloors(
+  floors: PainterTargetFloor[] | null | undefined,
+  customFloors?: number[] | null,
+): string {
+  if (!floors?.length) return '';
+  return floors
+    .map((floor) =>
+      floor === 'custom' && formatCustomFloorsList(customFloors)
+        ? formatCustomFloorsList(customFloors)
+        : TARGET_FLOOR_LABELS[floor],
+    )
+    .join(', ');
+}
 
 function normalizeStartTimeType(value: unknown): PainterStartTimeType | null {
   if (typeof value !== 'string') return null;
@@ -142,6 +196,15 @@ export function isPainterDetails(value: unknown): value is PainterDetails {
     v.additionalRequirements === undefined ||
     v.additionalRequirements === null ||
     typeof v.additionalRequirements === 'string';
+  const floorsOk =
+    v.targetFloors === undefined ||
+    v.targetFloors === null ||
+    Array.isArray(v.targetFloors);
+  const customFloorsOk =
+    v.customTargetFloors === undefined ||
+    v.customTargetFloors === null ||
+    Array.isArray(v.customTargetFloors) ||
+    typeof v.customTargetFloors === 'string';
 
   return (
     typeof v.projectArea === 'number' &&
@@ -155,7 +218,9 @@ export function isPainterDetails(value: unknown): value is PainterDetails {
     optionalEnumOk(v.paintFinish, FINISH_SET) &&
     optionalEnumOk(v.surfaceCondition, SURFACE_SET) &&
     optionalEnumOk(v.paintTopcoats, TOPCOAT_SET) &&
-    additionalOk
+    additionalOk &&
+    floorsOk &&
+    customFloorsOk
   );
 }
 
@@ -191,6 +256,11 @@ export function parsePainterDetails(value: unknown): PainterDetails | null {
       ? value.additionalRequirements.trim()
       : null;
 
+  const targetFloors = parsePainterTargetFloors(value.targetFloors);
+  const customTargetFloors = targetFloors.includes('custom')
+    ? parsePainterCustomFloors(value.customTargetFloors)
+    : null;
+
   return {
     projectArea: value.projectArea,
     primerRequirement: value.primerRequirement,
@@ -205,6 +275,8 @@ export function parsePainterDetails(value: unknown): PainterDetails | null {
     surfaceCondition,
     paintTopcoats,
     additionalRequirements,
+    targetFloors: targetFloors.length > 0 ? targetFloors : null,
+    customTargetFloors,
   };
 }
 
@@ -239,9 +311,18 @@ export function getPainterWorkRequirementBlocks(details: PainterDetails): {
   label: string;
   value: string;
 }[] {
-  const blocks: { label: string; value: string }[] = [
+  const blocks: { label: string; value: string }[] = [];
+
+  if (details.targetFloors && details.targetFloors.length > 0) {
+    blocks.push({
+      label: 'Target Work Floor',
+      value: formatPainterTargetFloors(details.targetFloors, details.customTargetFloors),
+    });
+  }
+
+  blocks.push(
     { label: 'Approximate Paint Area', value: formatPainterProjectArea(details.projectArea) },
-  ];
+  );
 
   if (details.paintingScope) {
     blocks.push({
@@ -307,6 +388,9 @@ export function validatePainterDetailsInput(input: {
   surfaceCondition: PainterSurfaceCondition | null;
   paintTopcoats: PainterPaintTopcoats | null;
   additionalRequirements: string;
+  trackType?: 'RCC' | 'AssamType' | null;
+  targetFloors?: PainterTargetFloor[];
+  customTargetFloors?: number[];
 }): { error: string } | { details: PainterDetails } {
   const area =
     typeof input.projectArea === 'number'
@@ -336,6 +420,22 @@ export function validatePainterDetailsInput(input: {
   }
 
   const additional = input.additionalRequirements.trim() || null;
+  const isRcc = input.trackType === 'RCC';
+  const targetFloors = isRcc ? parsePainterTargetFloors(input.targetFloors) : [];
+  if (isRcc && targetFloors.length === 0) {
+    return { error: 'Select at least one target work floor.' };
+  }
+  const customTargetFloors =
+    isRcc && targetFloors.includes('custom')
+      ? parsePainterCustomFloors(input.customTargetFloors)
+      : null;
+  if (isRcc && targetFloors.includes('custom') && !customTargetFloors) {
+    return { error: 'Add at least one floor number above 4th.' };
+  }
+  const floorFields = {
+    targetFloors: targetFloors.length > 0 ? targetFloors : null,
+    customTargetFloors,
+  };
 
   if (input.projectStartTimeType === 'specific') {
     const date = input.projectStartTimeSpecificDate.trim();
@@ -357,6 +457,7 @@ export function validatePainterDetailsInput(input: {
         surfaceCondition: input.surfaceCondition,
         paintTopcoats: input.paintTopcoats,
         additionalRequirements: additional,
+        ...floorFields,
       },
     };
   }
@@ -373,6 +474,7 @@ export function validatePainterDetailsInput(input: {
       surfaceCondition: input.surfaceCondition,
       paintTopcoats: input.paintTopcoats,
       additionalRequirements: additional,
+      ...floorFields,
     },
   };
 }
