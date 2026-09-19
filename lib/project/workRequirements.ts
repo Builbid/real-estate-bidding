@@ -153,6 +153,8 @@ export function isWideRequirementLabel(label: string): boolean {
     label === 'Deliverables' ||
     label === 'Project Submission Time' ||
     label === 'Approximate Paint Area' ||
+    label === 'Estimated Paint Area' ||
+    label === 'Carpet / Floor Area' ||
     label === 'Heavy Appliances' ||
     label === 'Quantity / Count (Door & Window Frames)' ||
     label === 'Kitchen Size / Layout' ||
@@ -179,6 +181,8 @@ const BID_SUMMARY_LABELS = new Set([
   MISTRI_APPROXIMATE_AREA_LABEL,
   'Approx. Area',
   'Approximate Paint Area',
+  'Estimated Paint Area',
+  'Carpet / Floor Area',
   'Interior Area',
   'Total Plot Area',
   'Plot Dimensions',

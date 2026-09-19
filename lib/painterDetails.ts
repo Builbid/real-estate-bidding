@@ -46,6 +46,8 @@ export interface PainterDetails {
   /** RCC floors to paint. Empty / omitted for Assam Type and legacy rows. */
   targetFloors?: PainterTargetFloor[] | null;
   customTargetFloors?: number[] | null;
+  /** Carpet / floor area used to auto-estimate paint area. */
+  carpetArea?: number | null;
 }
 
 export const PAINTER_PRIMER_OPTIONS: {
@@ -66,6 +68,31 @@ export const PAINTER_SCOPE_OPTIONS: {
   { value: 'exterior', label: 'Exterior' },
   { value: 'both', label: 'Both (Interior & Exterior)' },
 ];
+
+export const PAINTER_PAINT_AREA_MULTIPLIERS: Record<PainterPaintingScope, number> = {
+  interior: 2.8,
+  exterior: 1.5,
+  both: 4.3,
+};
+
+export const PAINTER_PAINT_AREA_DISCLAIMER =
+  'Note: This is an auto-generated approximate paint area based on standard multipliers to help painters place bids. Final payable measurements will be physically verified on-site before work commences.';
+
+export function estimatePainterPaintArea(
+  carpetArea: number,
+  scope: PainterPaintingScope,
+): number {
+  return Math.round(carpetArea * PAINTER_PAINT_AREA_MULTIPLIERS[scope]);
+}
+
+export function parsePainterAreaInput(raw: string | number | null | undefined): number | null {
+  if (typeof raw === 'number') {
+    return Number.isFinite(raw) && raw > 0 ? raw : null;
+  }
+  if (typeof raw !== 'string') return null;
+  const value = parseFloat(raw.replace(/,/g, '').trim());
+  return Number.isFinite(value) && value > 0 ? value : null;
+}
 
 export const PAINTER_FINISH_OPTIONS: {
   value: PainterPaintFinish;
@@ -205,6 +232,10 @@ export function isPainterDetails(value: unknown): value is PainterDetails {
     v.customTargetFloors === null ||
     Array.isArray(v.customTargetFloors) ||
     typeof v.customTargetFloors === 'string';
+  const carpetOk =
+    v.carpetArea === undefined ||
+    v.carpetArea === null ||
+    (typeof v.carpetArea === 'number' && Number.isFinite(v.carpetArea) && v.carpetArea > 0);
 
   return (
     typeof v.projectArea === 'number' &&
@@ -220,7 +251,8 @@ export function isPainterDetails(value: unknown): value is PainterDetails {
     optionalEnumOk(v.paintTopcoats, TOPCOAT_SET) &&
     additionalOk &&
     floorsOk &&
-    customFloorsOk
+    customFloorsOk &&
+    carpetOk
   );
 }
 
@@ -277,6 +309,10 @@ export function parsePainterDetails(value: unknown): PainterDetails | null {
     additionalRequirements,
     targetFloors: targetFloors.length > 0 ? targetFloors : null,
     customTargetFloors,
+    carpetArea:
+      typeof value.carpetArea === 'number' && Number.isFinite(value.carpetArea) && value.carpetArea > 0
+        ? value.carpetArea
+        : null,
   };
 }
 
@@ -320,8 +356,15 @@ export function getPainterWorkRequirementBlocks(details: PainterDetails): {
     });
   }
 
+  if (details.carpetArea && details.carpetArea > 0) {
+    blocks.push({
+      label: 'Carpet / Floor Area',
+      value: `${details.carpetArea.toLocaleString('en-IN')} Sq. Ft.`,
+    });
+  }
+
   blocks.push(
-    { label: 'Approximate Paint Area', value: formatPainterProjectArea(details.projectArea) },
+    { label: 'Estimated Paint Area', value: formatPainterProjectArea(details.projectArea) },
   );
 
   if (details.paintingScope) {
@@ -380,6 +423,7 @@ export function getPainterWorkRequirementBlocks(details: PainterDetails): {
 
 export function validatePainterDetailsInput(input: {
   projectArea: string | number;
+  carpetArea?: string | number | null;
   primerRequirement: string;
   projectStartTimeType: PainterStartTimeType | null;
   projectStartTimeSpecificDate: string;
@@ -392,13 +436,13 @@ export function validatePainterDetailsInput(input: {
   targetFloors?: PainterTargetFloor[];
   customTargetFloors?: number[];
 }): { error: string } | { details: PainterDetails } {
-  const area =
-    typeof input.projectArea === 'number'
-      ? input.projectArea
-      : parseFloat(String(input.projectArea).replace(/,/g, '').trim());
-
-  if (!Number.isFinite(area) || area <= 0) {
-    return { error: 'Enter a valid project area in sq.ft.' };
+  const carpetArea = parsePainterAreaInput(input.carpetArea);
+  if (!carpetArea) {
+    return { error: 'Enter the carpet / floor area in sq.ft.' };
+  }
+  const area = parsePainterAreaInput(input.projectArea);
+  if (!area) {
+    return { error: 'Enter a valid estimated paint area in sq.ft.' };
   }
   if (!input.paintingScope || !SCOPE_SET.has(input.paintingScope)) {
     return { error: 'Select a painting scope.' };
@@ -435,6 +479,7 @@ export function validatePainterDetailsInput(input: {
   const floorFields = {
     targetFloors: targetFloors.length > 0 ? targetFloors : null,
     customTargetFloors,
+    carpetArea,
   };
 
   if (input.projectStartTimeType === 'specific') {

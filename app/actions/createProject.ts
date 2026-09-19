@@ -259,6 +259,7 @@ export async function createProjectAction(
         additionalRequirements: trade.painter_details.additionalRequirements?.trim() || null,
         targetFloors: trade.painter_details.targetFloors ?? null,
         customTargetFloors: trade.painter_details.customTargetFloors ?? null,
+        carpetArea: trade.painter_details.carpetArea ?? null,
       }
       const painterFloors = trade.painter_details.targetFloors ?? []
       insertPayload.building_types =

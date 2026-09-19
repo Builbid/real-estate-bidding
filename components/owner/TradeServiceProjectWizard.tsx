@@ -25,12 +25,15 @@ import { todayLocalDateString } from '@/lib/projectStartTime';
 import { getTradeLabel, getTradeEmoji } from '@/lib/trades';
 import {
   PAINTER_FINISH_OPTIONS,
+  PAINTER_PAINT_AREA_DISCLAIMER,
   PAINTER_PRIMER_OPTIONS,
   PAINTER_SCOPE_OPTIONS,
   PAINTER_START_TIME_OPTIONS,
   PAINTER_SURFACE_OPTIONS,
   PAINTER_TOPCOAT_OPTIONS,
+  estimatePainterPaintArea,
   getPainterWorkRequirementBlocks,
+  parsePainterAreaInput,
   validatePainterDetailsInput,
   type PainterPaintFinish,
   type PainterPaintTopcoats,
@@ -74,12 +77,22 @@ interface FormState extends TradeWorkFormFields {
   pincode: string;
   bidding_minutes: string;
   track_type: TrackType | null;
+  carpetArea: string;
   projectArea: string;
   paintingScope: PainterPaintingScope | null;
   paintFinish: PainterPaintFinish | null;
   surfaceCondition: PainterSurfaceCondition | null;
   primerRequirement: PainterPrimerRequirement | '';
   paintTopcoats: PainterPaintTopcoats | null;
+}
+
+function applyPaintAreaEstimate(
+  carpetArea: string,
+  paintingScope: PainterPaintingScope | null,
+): string {
+  const carpet = parsePainterAreaInput(carpetArea);
+  if (!carpet || !paintingScope) return '';
+  return String(estimatePainterPaintArea(carpet, paintingScope));
 }
 
 function applyTargetFloorSelection(
@@ -110,6 +123,7 @@ const EMPTY_FORM: FormState = {
   pincode: '',
   bidding_minutes: String(BIDDING_MINUTES),
   track_type: null,
+  carpetArea: '',
   projectArea: '',
   paintingScope: null,
   paintFinish: null,
@@ -380,6 +394,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
         trackType: form.track_type,
         targetFloors: form.targetFloors,
         customTargetFloors: form.customTargetFloors,
+        carpetArea: form.carpetArea,
       });
       if ('error' in validated) {
         setStep2Error(validated.error);
@@ -430,6 +445,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
         trackType: form.track_type,
         targetFloors: form.targetFloors,
         customTargetFloors: form.customTargetFloors,
+        carpetArea: form.carpetArea,
       });
       if ('error' in validated) {
         setError(validated.error);
@@ -807,15 +823,21 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
               {isPainter && (
                 <div className="space-y-4">
                   <Input
-                    label="Approximate Paint Area"
+                    label="Carpet / Floor Area (Sq. Ft.)"
                     type="number"
                     inputMode="decimal"
                     min={1}
                     step="1"
-                    placeholder="e.g. Approx. 1500 Sq. Ft."
-                    value={form.projectArea}
+                    placeholder="e.g. 1000"
+                    suffix={<span className="text-xs font-medium text-muted-foreground">Sq. Ft.</span>}
+                    value={form.carpetArea}
                     onChange={(e) => {
-                      update('projectArea', e.target.value);
+                      const carpetArea = e.target.value;
+                      setForm((current) => ({
+                        ...current,
+                        carpetArea,
+                        projectArea: applyPaintAreaEstimate(carpetArea, current.paintingScope),
+                      }));
                       setStep2Error(null);
                     }}
                   />
@@ -825,11 +847,33 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                     options={PAINTER_SCOPE_OPTIONS}
                     value={form.paintingScope}
                     onChange={(v) => {
-                      update('paintingScope', v);
+                      setForm((current) => ({
+                        ...current,
+                        paintingScope: v,
+                        projectArea: applyPaintAreaEstimate(current.carpetArea, v),
+                      }));
                       setStep2Error(null);
                     }}
                     columns={3}
                   />
+
+                  <Input
+                    label="Estimated Paint Area (Sq. Ft.)"
+                    type="number"
+                    inputMode="decimal"
+                    min={1}
+                    step="1"
+                    placeholder="Calculated from carpet area"
+                    suffix={<span className="text-xs font-medium text-muted-foreground">Sq. Ft.</span>}
+                    value={form.projectArea}
+                    onChange={(e) => {
+                      update('projectArea', e.target.value);
+                      setStep2Error(null);
+                    }}
+                  />
+                  <p className="rounded-xl border border-slate-200/70 bg-slate-50/80 px-3 py-2.5 text-[11px] font-medium leading-relaxed text-slate-600 dark:border-slate-700/30 dark:bg-slate-800/40 dark:text-slate-300">
+                    {PAINTER_PAINT_AREA_DISCLAIMER}
+                  </p>
 
                   <PainterChoice
                     label="Paint Finish / Quality"
@@ -962,7 +1006,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                         },
                       ]
                     : []),
-                  ...(isPainter && form.projectArea && form.paintingScope && form.paintFinish && form.surfaceCondition && form.primerRequirement && form.paintTopcoats && form.projectStartTimeType
+                  ...(isPainter && form.carpetArea && form.projectArea && form.paintingScope && form.paintFinish && form.surfaceCondition && form.primerRequirement && form.paintTopcoats && form.projectStartTimeType
                     ? getPainterWorkRequirementBlocks({
                         projectArea: parseFloat(form.projectArea) || 0,
                         primerRequirement: form.primerRequirement,
@@ -977,6 +1021,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                         targetFloors: form.track_type === 'RCC' ? form.targetFloors : null,
                         customTargetFloors:
                           form.track_type === 'RCC' ? form.customTargetFloors : null,
+                        carpetArea: parsePainterAreaInput(form.carpetArea),
                       })
                     : []),
                   ...reviewTradeBlocks,
