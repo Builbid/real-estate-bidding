@@ -7,7 +7,6 @@ import Link from 'next/link';
 import { Plus, Building, ArrowLeft } from 'lucide-react';
 import { OwnerLiveProjectCard } from './OwnerLiveProjectCard';
 import { CompletedProjectsPreview } from '@/components/dashboard/CompletedProjectsPreview';
-import { DashboardStatTiles } from '@/components/dashboard/DashboardStatTiles';
 import { DashboardWorkSection } from '@/components/dashboard/DashboardWorkSection';
 import { Button } from '@/components/ui/button';
 import { NavLink } from '@/components/shared/NavLink';
@@ -132,11 +131,11 @@ async function getData() {
 export default async function OwnerDashboard() {
   const { profile, userId, selectionRequired, liveAuctions, completed } = await getData();
 
-  const totalLive = selectionRequired.length + liveAuctions.length;
-  const hasAnyProject = totalLive > 0 || completed.length > 0;
+  const hasAnyProject =
+    selectionRequired.length > 0 || liveAuctions.length > 0 || completed.length > 0;
 
   return (
-    <div className="space-y-6 pb-24">
+    <div className="space-y-4 pb-24">
       <div>
         <NavLink href="/" prefetch className={cn(NAV_BACK_LINK, 'mb-3')}>
           <ArrowLeft className="w-4 h-4" />
@@ -156,16 +155,6 @@ export default async function OwnerDashboard() {
           </Button>
         </div>
       </div>
-
-      <DashboardStatTiles
-        variant="plain"
-        items={[
-          { label: 'Live bidding', value: liveAuctions.length, hint: 'Open auctions', tone: 'live' },
-          { label: 'Needs selection', value: selectionRequired.length, hint: 'Award a worker', tone: 'select' },
-          { label: 'Completed', value: completed.length, hint: 'Awarded & closed', tone: 'done' },
-          { label: 'In progress', value: totalLive, hint: 'Live + awaiting award', tone: 'neutral' },
-        ]}
-      />
 
       {selectionRequired.length > 0 && (
         <DashboardWorkSection
