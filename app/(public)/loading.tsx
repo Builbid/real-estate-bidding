@@ -1,6 +1,6 @@
 export default function PublicLoading() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex flex-1 flex-col bg-background">
       <div className="h-14 border-b border-border/60 bg-background/80" />
       <div className="mx-auto max-w-5xl animate-pulse px-4 pb-10 pt-6 sm:pt-8">
         <div className="mx-auto h-8 w-3/4 max-w-xl rounded-lg bg-muted" />

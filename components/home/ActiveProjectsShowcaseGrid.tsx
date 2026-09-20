@@ -126,7 +126,7 @@ export function ActiveProjectsShowcaseGrid({
   const hasActiveSearch = locationSearch.trim().length > 0;
 
   return (
-    <div className="relative">
+    <div className="relative h-auto">
       <div className="mb-5 flex flex-wrap items-center gap-2 sm:mb-6 sm:gap-3">
         <span className="relative inline-flex h-2 w-2 shrink-0" aria-hidden>
           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
@@ -165,7 +165,7 @@ export function ActiveProjectsShowcaseGrid({
         </div>
 
         {displayProjects.length > 0 ? (
-          <div className="mx-auto grid w-full max-w-5xl grid-cols-1 justify-items-center gap-6 md:grid-cols-2">
+          <div className="mx-auto grid h-auto w-full max-w-5xl grid-cols-1 content-start justify-items-center gap-6 md:grid-cols-2">
             {displayProjects.map((project) => (
               <ShowcaseProjectCard
                 key={project.id}

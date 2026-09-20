@@ -52,7 +52,7 @@ export function HomePageContent({
   ] as const;
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="flex max-h-fit min-h-0 flex-1 flex-col bg-background text-foreground">
       <Navbar overlay authHint={{ isAuthenticated, role }} />
 
       <section className="relative overflow-x-hidden border-b border-border/60 bg-white dark:bg-background">
@@ -104,7 +104,7 @@ export function HomePageContent({
         </div>
       </section>
 
-      <section id="live-auctions" className="mx-auto max-w-5xl px-4 pb-16 pt-8 sm:px-6 sm:pt-10 sm:pb-20">
+      <section id="live-auctions" className="mx-auto w-full max-w-5xl max-h-fit min-h-0 flex-1 px-4 py-6 sm:px-6">
         <ActiveProjectsShowcaseGrid
           projects={showcaseProjects}
           isAuthenticated={isAuthenticated}

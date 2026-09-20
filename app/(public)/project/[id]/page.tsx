@@ -216,7 +216,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
   const requirementsTitle = workRequirements?.title ?? 'Engineering Specifications';
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="flex flex-1 flex-col bg-background text-foreground">
       <Navbar />
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
