@@ -282,7 +282,7 @@ export interface BidRates {
     slabAreaSqft: number;
     civilRate: number;
     civilCost: number;
-    costKind?: 'civil' | 'wall';
+    costKind?: 'civil' | 'wall' | 'flooring';
     wallAreaSqft?: number;
     wallRate?: number;
     wallCost?: number;

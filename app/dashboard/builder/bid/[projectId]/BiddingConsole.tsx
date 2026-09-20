@@ -196,7 +196,7 @@ type BidWorkItemView =
       civilIndex: number;
       slabAreaSqft: number;
       floorId: string;
-      costKind: 'civil' | 'wall';
+      costKind: 'civil' | 'wall' | 'flooring';
       wallAreaSqft: number;
       wallRateMultiplier: number;
       includeFlooring: boolean;
@@ -341,14 +341,28 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
   const civilWorkItems: BidWorkItemView[] = isMistriCivilBid
     ? mistriCivilFloors.map((floor, index) => {
         const isWall = floor.costKind === 'wall';
+        const isFlooringOnly = floor.costKind === 'flooring';
+        const flooringLabel = floor.flooringMaterialLabel || 'Flooring';
         return {
           key: floor.rateKey ?? `civil-${index}`,
           title: floor.label,
-          category: isWall ? 'Wall Construction & Plastering Rate' : 'Civil Construction Rate',
-          unitSuffix: isWall ? WALL_CONSTRUCTION_RATE_UNIT : '/sqft slab',
+          category: isWall
+            ? 'Wall Construction & Plastering Rate'
+            : isFlooringOnly
+              ? flooringFittingTitle(flooringLabel)
+              : /frame/i.test(floor.scopeTitle ?? '')
+                ? 'Civil / Frame Rate'
+                : 'Civil Construction Rate',
+          unitSuffix: isWall
+            ? WALL_CONSTRUCTION_RATE_UNIT
+            : isFlooringOnly
+              ? TILE_FITTING_RATE_UNIT
+              : '/sqft slab',
           placeholder: isWall
             ? WALL_CONSTRUCTION_RATE_FIELD_LABEL
-            : 'Civil rate per sq. ft. of slab area',
+            : isFlooringOnly
+              ? flooringFittingFieldLabel(flooringLabel)
+              : 'Civil rate per sq. ft. of slab area',
           kind: 'civil' as const,
           civilIndex: index,
           slabAreaSqft: floor.slabAreaSqft,
@@ -644,8 +658,10 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
   }, [isFlexibleRate]);
 
   const allFilled = isMistriCivilBid
-    ? mistriCivilFloors.every((_, index) =>
-        isValidBidRate(parseBidRateValue(civilRateInputs[index] ?? ''), rateRules),
+    ? mistriCivilFloors.every((floor, index) =>
+        floor.costKind === 'flooring'
+          ? true
+          : isValidBidRate(parseBidRateValue(civilRateInputs[index] ?? ''), rateRules),
       ) &&
       mistriCivilFloors
         .filter((floor) => floor.includeFlooring)
@@ -853,6 +869,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
       );
       const nextCivilErrors: Record<number, string> = {};
       civilRateInputs.forEach((input, index) => {
+        if (mistriCivilFloors[index]?.costKind === 'flooring') return;
         const value = parseBidRateValue(input);
         let fieldError = getBidRateFieldError(value, rateRules);
         if (isFlexibleRate && fieldError === BID_RATE_ERROR) fieldError = null;
@@ -1309,6 +1326,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                               </p>
                             </div>
                           )}
+                          {!(isCivilItem && item.costKind === 'flooring') && (
                           <Input
                             type="text"
                             inputMode="numeric"
@@ -1344,7 +1362,8 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                             error={visibleError}
                             required={!isUnitItem}
                           />
-                          {showRoundHelper && numericValue != null && (
+                          )}
+                          {!(isCivilItem && item.costKind === 'flooring') && showRoundHelper && numericValue != null && (
                             <button
                               type="button"
                               onClick={() => {
@@ -1362,7 +1381,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                               Round to nearest 5 (→ ₹{roundBidRateToNearestFive(numericValue).toLocaleString('en-IN')})
                             </button>
                           )}
-                          {isCivilItem && item.costKind !== 'wall' && numericValue != null && numericValue > 0 && item.slabAreaSqft > 0 && (
+                          {isCivilItem && item.costKind === 'civil' && numericValue != null && numericValue > 0 && item.slabAreaSqft > 0 && (
                             <p className={cn('text-xs font-medium', estimateClass)}>
                               Floor civil estimate: ₹{computeMistriFloorCivilCost(item.slabAreaSqft, numericValue).toLocaleString('en-IN')}
                             </p>
@@ -1374,7 +1393,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                             </p>
                           )}
                           {isCivilItem && item.includeFlooring && (
-                            <div className="space-y-2 border-t border-border/60 pt-3">
+                            <div className={cn('space-y-2', item.costKind !== 'flooring' && 'border-t border-border/60 pt-3')}>
                               <div className="space-y-0.5">
                                 <p className="text-sm font-semibold text-foreground leading-snug">
                                   {flooringFittingTitle(item.flooringMaterialLabel || 'Flooring')}
@@ -1426,15 +1445,17 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                               )}
                             </div>
                           )}
-                          {isCivilItem && numericValue != null && numericValue > 0 && (
+                          {isCivilItem && (
                             (() => {
                               const flooringRate = parseBidRateValue(flooringRateInputs[item.floorId] ?? '') ?? 0;
                               const flooringCost = item.includeFlooring
                                 ? computeMistriFloorFlooringCost(item.flooringAreaSqft, flooringRate)
                                 : 0;
-                              const primaryCost = item.costKind === 'wall'
-                                ? computeMistriFloorWallCost(item.wallAreaSqft, numericValue, item.wallRateMultiplier)
-                                : computeMistriFloorCivilCost(item.slabAreaSqft, numericValue);
+                              const primaryCost = item.costKind === 'flooring'
+                                ? 0
+                                : item.costKind === 'wall'
+                                  ? computeMistriFloorWallCost(item.wallAreaSqft, numericValue ?? 0, item.wallRateMultiplier)
+                                  : computeMistriFloorCivilCost(item.slabAreaSqft, numericValue ?? 0);
                               const floorTotal = primaryCost + flooringCost;
                               if (!(floorTotal > 0)) return null;
                               return (

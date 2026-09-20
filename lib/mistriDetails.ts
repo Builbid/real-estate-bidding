@@ -996,9 +996,19 @@ export function isMistriWallPlasterOnlyFloor(
 }
 
 export function isMistriFlooringOnlyFloor(
-  fw: Pick<MistriFloorWork, 'workTypes' | 'scopeOption'>,
+  fw: Pick<MistriFloorWork, 'workTypes' | 'scopeOption' | 'includeFineFlooring'>,
 ): boolean {
-  return rccScopeFromWorkTypes(fw.workTypes, fw.scopeOption) === 'flooring_only';
+  const scopes = rccScopesFromWorkTypes(fw.workTypes, fw.includeFineFlooring);
+  if (scopes.length > 0) {
+    return scopes.length === 1 && scopes[0] === 'flooring_only';
+  }
+  return (
+    rccScopeFromWorkTypes(fw.workTypes, fw.scopeOption) === 'flooring_only' &&
+    !fw.workTypes.includes('full_finished') &&
+    !fw.workTypes.includes('frame_skeleton') &&
+    !fw.workTypes.includes('brick_aac') &&
+    !fw.workTypes.includes('plastering')
+  );
 }
 
 export function formatMistriRccScopeDescription(

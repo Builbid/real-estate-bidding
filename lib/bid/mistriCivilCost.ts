@@ -29,7 +29,7 @@ export const WALL_CONSTRUCTION_RATE_UNIT = '/sqft wall area';
 export const WALL_CONSTRUCTION_RATE_FIELD_LABEL =
   'Wall Construction & Plastering Rate (₹/sq. ft. of wall area)';
 
-export type MistriFloorCostKind = 'civil' | 'wall';
+export type MistriFloorCostKind = 'civil' | 'wall' | 'flooring';
 
 export interface MistriCivilFloor {
   floorId: string;
@@ -202,13 +202,13 @@ export function resolveMistriCivilFloors(project: MistriCivilCostProject): Mistr
 
   if (work.length > 0) {
     return work.map((fw, index) => {
-      const includeFlooring = floorHasFlooringWork(fw);
+      const isWall = isMistriWallPlasterOnlyFloor(fw);
+      const isFlooringOnly = isMistriFlooringOnlyFloor(fw);
+      const includeFlooring = isFlooringOnly || floorHasFlooringWork(fw);
       const sourceFloorId = fw.floorId;
       const flooringAreaSqft = includeFlooring
         ? (fw.flooringAreaSqft && fw.flooringAreaSqft > 0 ? fw.flooringAreaSqft : builtUpAreaSqft)
         : 0;
-      const isWall = isMistriWallPlasterOnlyFloor(fw);
-      const isFlooringOnly = isMistriFlooringOnlyFloor(fw);
       const wallAreaSqft = isWall
         ? (fw.wallAreaSqft && fw.wallAreaSqft > 0 ? fw.wallAreaSqft : 0)
         : 0;
@@ -220,7 +220,7 @@ export function resolveMistriCivilFloors(project: MistriCivilCostProject): Mistr
         label: toRateInputLabel(formatMistriFloorWorkLabel(fw)),
         slabAreaSqft: isFlooringOnly ? 0 : builtUpAreaSqft,
         rateKey: FLOOR_RATE_KEYS[index],
-        costKind: isWall ? 'wall' : 'civil',
+        costKind: isWall ? 'wall' : isFlooringOnly ? 'flooring' : 'civil',
         wallAreaSqft,
         wallRateMultiplier: isWall ? wallPlasterRateMultiplier(fw.workTypes) : 1,
         includeFlooring,
@@ -268,6 +268,7 @@ export function civilRatesFromBid(
     ? rates.floor_civil_breakdown
     : [];
   return floors.map((floor, index) => {
+    if (floor.costKind === 'flooring') return 0;
     const fromBreakdown = breakdown[index];
     if (floor.costKind === 'wall') {
       const wallRate = fromBreakdown?.wallRate;
@@ -324,12 +325,13 @@ export function buildMistriCivilCostPayload(
   const floor_civil_breakdown: MistriFloorCivilBreakdown[] = floors.map((floor, index) => {
     const enteredRate = civilRates[index] ?? 0;
     const isWall = floor.costKind === 'wall';
-    const civilRate = isWall ? 0 : enteredRate;
+    const isFlooringOnly = floor.costKind === 'flooring';
+    const civilRate = isWall || isFlooringOnly ? 0 : enteredRate;
     const wallRate = isWall ? enteredRate : 0;
     const flooringRate = floor.includeFlooring
       ? (flooringRates?.[floor.floorId] ?? 0)
       : 0;
-    const civilCost = isWall ? 0 : computeMistriFloorCivilCost(floor.slabAreaSqft, civilRate);
+    const civilCost = isWall || isFlooringOnly ? 0 : computeMistriFloorCivilCost(floor.slabAreaSqft, civilRate);
     const wallCost = isWall
       ? computeMistriFloorWallCost(floor.wallAreaSqft, wallRate, floor.wallRateMultiplier)
       : 0;
@@ -454,6 +456,7 @@ export function getMistriCivilCostDisplayEntries(
     return breakdown.flatMap((row) => {
       const entries: Array<{ label: string; value: number; suffix?: string }> = [];
       const isWallRow = row.costKind === 'wall' || ((row.wallCost ?? 0) > 0 && !(row.civilCost > 0));
+      const isFlooringRow = row.costKind === 'flooring';
       if (isWallRow) {
         const wallArea = Number(row.wallAreaSqft || 0);
         const wallRate = Number(row.wallRate || floorPrimaryRate(row));
@@ -463,7 +466,7 @@ export function getMistriCivilCostDisplayEntries(
           value: Number(row.wallCost || 0),
           suffix: '',
         });
-      } else if (row.civilRate > 0 || row.civilCost > 0) {
+      } else if (!isFlooringRow && (row.civilRate > 0 || row.civilCost > 0)) {
         entries.push({
           label: `${row.label} · ${Number(row.slabAreaSqft || 0).toLocaleString('en-IN')} sqft × ₹${Number(row.civilRate || 0).toLocaleString('en-IN')}`,
           value: Number(row.civilCost || 0),
@@ -494,6 +497,7 @@ export function getMistriCivilCostDisplayEntries(
         suffix: '',
       }];
     }
+    if (floor.costKind === 'flooring') return [];
     return [{
       label: `${floor.label} · ${floor.slabAreaSqft.toLocaleString('en-IN')} sqft × ₹${rate.toLocaleString('en-IN')}`,
       value: computeMistriFloorCivilCost(floor.slabAreaSqft, rate),
@@ -511,6 +515,7 @@ export function getMistriCivilRateDisplayEntries(
     : [];
   if (breakdown.length > 0) {
     return breakdown.flatMap((row) => {
+      if (row.costKind === 'flooring') return [];
       const rate = floorPrimaryRate(row);
       if (!(rate > 0)) return [];
       return [{ label: row.label, rate }];
@@ -520,6 +525,7 @@ export function getMistriCivilRateDisplayEntries(
   const sourceFloors = floors ?? [];
   const civilRates = civilRatesFromBid(rates, sourceFloors);
   return sourceFloors.flatMap((floor, index) => {
+    if (floor.costKind === 'flooring') return [];
     const civilRate = civilRates[index] ?? 0;
     if (!(civilRate > 0)) return [];
     return [{ label: floor.label, rate: civilRate }];
@@ -566,24 +572,27 @@ export function validateMistriCivilBid(
   for (let index = 0; index < floors.length; index += 1) {
     const floor = floors[index];
     const isWall = floor.costKind === 'wall';
+    const isFlooringOnly = floor.costKind === 'flooring';
     if (isWall) {
       if (!(floor.wallAreaSqft > 0)) {
         return { valid: false, message: `Wall area is missing for ${floor.label}.` };
       }
-    } else if (!(floor.slabAreaSqft > 0)) {
+    } else if (!isFlooringOnly && !(floor.slabAreaSqft > 0)) {
       return { valid: false, message: 'Built-up area is missing for this project.' };
     }
-    const rate = civilRates[index];
-    if (rate == null || rate <= 0) {
-      return {
-        valid: false,
-        message: isWall
-          ? `Enter a wall construction & plastering rate for ${floor.label}.`
-          : `Enter a civil construction rate for ${floor.label}.`,
-      };
+    if (!isFlooringOnly) {
+      const rate = civilRates[index];
+      if (rate == null || rate <= 0) {
+        return {
+          valid: false,
+          message: isWall
+            ? `Enter a wall construction & plastering rate for ${floor.label}.`
+            : `Enter a civil construction rate for ${floor.label}.`,
+        };
+      }
+      const fieldError = getBidRateFieldError(rate, rules);
+      if (fieldError) return { valid: false, message: fieldError };
     }
-    const fieldError = getBidRateFieldError(rate, rules);
-    if (fieldError) return { valid: false, message: fieldError };
   }
 
   for (const floor of floors) {
