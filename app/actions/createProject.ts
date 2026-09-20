@@ -219,10 +219,9 @@ export async function createProjectAction(
     }
     if (
       drawing.drawing_details.projectStartTimeType === 'specific' &&
-      !drawing.drawing_details.projectStartTimeSpecificDate &&
-      !drawing.drawing_details.projectSubmissionTimeType
+      !drawing.drawing_details.projectStartTimeSpecificDate
     ) {
-      return { error: 'Select a project submission time.' }
+      return { error: 'Select a specific project start date.' }
     }
     insertPayload.drawing_details = drawing.drawing_details
   } else if (isTrade) {

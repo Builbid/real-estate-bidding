@@ -26,7 +26,6 @@ import {
   DRAWING_DELIVERABLE_OPTIONS,
   DRAWING_HOUSE_STRUCTURE_OPTIONS,
   DRAWING_PACKAGE_OPTIONS,
-  DRAWING_SUBMISSION_TIME_OPTIONS,
   drawingTypesFromPackages,
   getDrawingWorkRequirementBlocks,
   resolveDrawingBuildingTypes,
@@ -34,7 +33,7 @@ import {
   type DrawingDeliverable,
   type DrawingDesignPackage,
   type DrawingHouseStructure,
-  type DrawingSubmissionTimeType,
+  type ProjectStartTimeType,
 } from '@/lib/drawingDesign';
 import { generateProjectTitle } from '@/lib/generateProjectTitle';
 import { HistoryBackButton } from '@/components/shared/HistoryBackButton';
@@ -57,7 +56,8 @@ interface FormState {
   packages: DrawingDesignPackage[];
   plotDimensions: string;
   deliverables: DrawingDeliverable[];
-  projectSubmissionTimeType: DrawingSubmissionTimeType | null;
+  projectStartTimeType: ProjectStartTimeType | null;
+  projectStartTimeSpecificDate: string;
   additionalRequirements: string;
 }
 
@@ -72,7 +72,8 @@ const EMPTY_FORM: FormState = {
   packages: [],
   plotDimensions: '',
   deliverables: [],
-  projectSubmissionTimeType: null,
+  projectStartTimeType: null,
+  projectStartTimeSpecificDate: '',
   additionalRequirements: '',
 };
 
@@ -128,7 +129,8 @@ export function DrawingDesignProjectWizard() {
       customFloors: form.customFloors,
       plotDimensions: form.plotDimensions,
       deliverables: form.deliverables,
-      projectSubmissionTimeType: form.projectSubmissionTimeType,
+      projectStartTimeType: form.projectStartTimeType,
+      projectStartTimeSpecificDate: form.projectStartTimeSpecificDate,
       additionalRequirements: form.additionalRequirements,
     });
   }
@@ -428,13 +430,17 @@ export function DrawingDesignProjectWizard() {
               </div>
 
               <StartTimeAndNotes
-                title="Project Submission Time"
-                options={DRAWING_SUBMISSION_TIME_OPTIONS}
-                allowSpecificDate={false}
-                startTimeType={form.projectSubmissionTimeType}
+                title="Project Starting Time"
+                startTimeType={form.projectStartTimeType}
+                specificDate={form.projectStartTimeSpecificDate}
                 additionalRequirements={form.additionalRequirements}
                 onStartTimeChange={(v) => {
-                  update('projectSubmissionTimeType', v);
+                  update('projectStartTimeType', v);
+                  if (v !== 'specific') update('projectStartTimeSpecificDate', '');
+                  setStep2Error(null);
+                }}
+                onSpecificDateChange={(v) => {
+                  update('projectStartTimeSpecificDate', v);
                   setStep2Error(null);
                 }}
                 onNotesChange={(v) => {

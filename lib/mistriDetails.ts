@@ -10,6 +10,7 @@ import {
   isProjectStartTimeType,
   PROJECT_START_DATE_PAST_INVALID_MESSAGE,
   PROJECT_START_DATE_RANGE_INVALID_MESSAGE,
+  PROJECT_START_TIME_OPTIONS,
 } from './projectStartTime';
 import {
   ASSAM_BUILDING_TYPE,
@@ -621,12 +622,7 @@ const LEGACY_CONTRACT_MAP: Record<LegacyMistriContractType, MistriContractType> 
 export const MISTRI_START_TIME_OPTIONS: {
   value: MistriStartTimeType;
   label: string;
-}[] = [
-  { value: '1week', label: 'Within 1 week' },
-  { value: '2week', label: 'Within 2 weeks' },
-  { value: '1month', label: 'Within 1 month' },
-  { value: 'specific', label: 'Specific Date (Max 3 Months)' },
-];
+}[] = PROJECT_START_TIME_OPTIONS;
 
 export const MISTRI_CUSTOM_FLOOR_ID = 'custom' as const;
 

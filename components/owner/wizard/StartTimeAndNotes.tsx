@@ -41,6 +41,7 @@ export function SpecificStartDateField({
     <div className="mt-2 space-y-2">
       <Input
         label="Specific Start Date"
+        accentLabel
         type="date"
         min={todayLocalDateString()}
         max={maxProjectStartDateString()}

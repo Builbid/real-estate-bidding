@@ -11,6 +11,7 @@ import { formatCustomFloorsList, normalizeCustomFloors } from './customFloors';
 import {
   formatProjectStartTime,
   isProjectStartTimeType,
+  validateProjectStartTime,
   type ProjectStartTimeType,
 } from './projectStartTime';
 import type { DrawingDesignType, ServiceType } from './types';
@@ -436,15 +437,19 @@ export function getDrawingWorkRequirementBlocks(details: DrawingDetails): {
       .join(', '),
   });
   blocks.push({
-    label: 'Project Submission Time',
-    value: details.projectSubmissionTimeType
-      ? formatDrawingSubmissionTime(details.projectSubmissionTimeType)
-      : details.projectStartTimeType && isProjectStartTimeType(details.projectStartTimeType)
+    label:
+      details.projectStartTimeType && isProjectStartTimeType(details.projectStartTimeType)
+        ? 'Project Starting Time'
+        : 'Project Submission Time',
+    value:
+      details.projectStartTimeType && isProjectStartTimeType(details.projectStartTimeType)
         ? formatProjectStartTime(
             details.projectStartTimeType,
             details.projectStartTimeSpecificDate,
           )
-        : '—',
+        : details.projectSubmissionTimeType
+          ? formatDrawingSubmissionTime(details.projectSubmissionTimeType)
+          : '—',
   });
   if (details.additionalRequirements) {
     blocks.push({
@@ -464,7 +469,8 @@ export function validateDrawingDetailsInput(input: {
   customFloorNumber?: string | number[] | null;
   plotDimensions: string;
   deliverables: DrawingDeliverable[];
-  projectSubmissionTimeType: DrawingSubmissionTimeType | null;
+  projectStartTimeType: ProjectStartTimeType | null;
+  projectStartTimeSpecificDate: string;
   additionalRequirements: string;
 }): { error: string } | { details: DrawingDetails } {
   const packages = parsePackages(input.packages).filter((value) =>
@@ -518,9 +524,11 @@ export function validateDrawingDetailsInput(input: {
   if (deliverables.length === 0) {
     return { error: 'Select at least one deliverable.' };
   }
-  if (!isActiveDrawingSubmissionTimeType(input.projectSubmissionTimeType)) {
-    return { error: 'Select a project submission time.' };
-  }
+  const start = validateProjectStartTime({
+    projectStartTimeType: input.projectStartTimeType,
+    projectStartTimeSpecificDate: input.projectStartTimeSpecificDate,
+  });
+  if ('error' in start) return start;
 
   return {
     details: {
@@ -533,9 +541,11 @@ export function validateDrawingDetailsInput(input: {
       customFloorNumber,
       plotDimensions: dimensions,
       deliverables,
-      projectSubmissionTimeType: input.projectSubmissionTimeType,
-      projectStartTimeType: input.projectSubmissionTimeType,
-      projectStartTimeSpecificDate: null,
+      projectSubmissionTimeType: isDrawingSubmissionTimeType(start.type)
+        ? start.type
+        : null,
+      projectStartTimeType: start.type,
+      projectStartTimeSpecificDate: start.specificDate,
       additionalRequirements: input.additionalRequirements.trim() || null,
     },
   };

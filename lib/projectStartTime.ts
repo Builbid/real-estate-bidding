@@ -9,7 +9,7 @@ export const PROJECT_START_TIME_OPTIONS: {
   { value: '1week', label: 'Within 1 week' },
   { value: '2week', label: 'Within 2 weeks' },
   { value: '1month', label: 'Within 1 month' },
-  { value: 'specific', label: 'Specific Date (Max 3 Months)' },
+  { value: 'specific', label: 'Specific Date' },
 ];
 
 export const PROJECT_START_DATE_PAST_INVALID_MESSAGE =
@@ -91,7 +91,7 @@ export function formatProjectStartTime(
     case '1month':
       return 'Within 1 month';
     case 'specific':
-      return specificDate || 'Specific Date (Max 3 Months)';
+      return specificDate || 'Specific Date';
     default:
       return '—';
   }

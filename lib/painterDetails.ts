@@ -6,11 +6,13 @@ import {
   formatProjectStartTime,
   isProjectStartDateWithinRange,
   PROJECT_START_DATE_RANGE_INVALID_MESSAGE,
+  PROJECT_START_TIME_OPTIONS,
+  type ProjectStartTimeType,
 } from './projectStartTime';
 import { parseCustomFloorSequence } from './mistriDetails';
 import { formatCustomFloorsList } from './customFloors';
 
-export type PainterStartTimeType = '1week' | '2week' | '1month' | 'specific';
+export type PainterStartTimeType = ProjectStartTimeType;
 
 /** Legacy start-time values that may exist on older painter_details rows. */
 type LegacyPainterStartTimeType = 'immediately';
@@ -115,15 +117,7 @@ export const PAINTER_TOPCOAT_OPTIONS: PainterPaintTopcoats[] = [
   '3 Coats',
 ];
 
-export const PAINTER_START_TIME_OPTIONS: {
-  value: PainterStartTimeType;
-  label: string;
-}[] = [
-  { value: '1week', label: 'Within 1 week' },
-  { value: '2week', label: 'Within 2 weeks' },
-  { value: '1month', label: 'Within 1 month' },
-  { value: 'specific', label: 'Specific Date (Max 3 Months)' },
-];
+export const PAINTER_START_TIME_OPTIONS = PROJECT_START_TIME_OPTIONS;
 
 const START_TIME_TYPES = new Set<PainterStartTimeType>([
   '1week',
