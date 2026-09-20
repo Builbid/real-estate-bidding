@@ -822,8 +822,23 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
 
               {isPainter && (
                 <div className="space-y-4">
+                  <PainterChoice
+                    label="Painting Work Coverage"
+                    options={PAINTER_SCOPE_OPTIONS}
+                    value={form.paintingScope}
+                    onChange={(v) => {
+                      setForm((current) => ({
+                        ...current,
+                        paintingScope: v,
+                        projectArea: applyPaintAreaEstimate(current.carpetArea, v),
+                      }));
+                      setStep2Error(null);
+                    }}
+                    columns={3}
+                  />
+
                   <Input
-                    label="Carpet / Floor Area (Sq. Ft.)"
+                    label="Approx. Carpet / Floor Area (Sq. Ft.)"
                     type="number"
                     inputMode="decimal"
                     min={1}
@@ -840,21 +855,6 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                       }));
                       setStep2Error(null);
                     }}
-                  />
-
-                  <PainterChoice
-                    label="Painting Scope"
-                    options={PAINTER_SCOPE_OPTIONS}
-                    value={form.paintingScope}
-                    onChange={(v) => {
-                      setForm((current) => ({
-                        ...current,
-                        paintingScope: v,
-                        projectArea: applyPaintAreaEstimate(current.carpetArea, v),
-                      }));
-                      setStep2Error(null);
-                    }}
-                    columns={3}
                   />
 
                   <Input

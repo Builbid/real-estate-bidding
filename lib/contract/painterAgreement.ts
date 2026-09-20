@@ -36,6 +36,8 @@ const SCOPE_LABELS_EXCLUDED_FROM_AGREEMENT = new Set([
   'Approximate Paint Area',
   'Estimated Paint Area',
   'Carpet / Floor Area',
+  'Approx. Carpet / Floor Area',
+  'Painting Work Coverage',
 ]);
 
 const FLOOR_RATE_KEYS = ['ground_rate', 'first_rate', 'second_rate', 'third_rate'] as const;

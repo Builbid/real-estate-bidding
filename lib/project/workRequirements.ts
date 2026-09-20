@@ -155,6 +155,8 @@ export function isWideRequirementLabel(label: string): boolean {
     label === 'Approximate Paint Area' ||
     label === 'Estimated Paint Area' ||
     label === 'Carpet / Floor Area' ||
+    label === 'Approx. Carpet / Floor Area' ||
+    label === 'Painting Work Coverage' ||
     label === 'Heavy Appliances' ||
     label === 'Quantity / Count (Door & Window Frames)' ||
     label === 'Kitchen Size / Layout' ||
@@ -183,6 +185,8 @@ const BID_SUMMARY_LABELS = new Set([
   'Approximate Paint Area',
   'Estimated Paint Area',
   'Carpet / Floor Area',
+  'Approx. Carpet / Floor Area',
+  'Painting Work Coverage',
   'Interior Area',
   'Total Plot Area',
   'Plot Dimensions',

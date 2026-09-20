@@ -358,7 +358,7 @@ export function getPainterWorkRequirementBlocks(details: PainterDetails): {
 
   if (details.carpetArea && details.carpetArea > 0) {
     blocks.push({
-      label: 'Carpet / Floor Area',
+      label: 'Approx. Carpet / Floor Area',
       value: `${details.carpetArea.toLocaleString('en-IN')} Sq. Ft.`,
     });
   }
@@ -369,7 +369,7 @@ export function getPainterWorkRequirementBlocks(details: PainterDetails): {
 
   if (details.paintingScope) {
     blocks.push({
-      label: 'Scope',
+      label: 'Painting Work Coverage',
       value: optionLabel(PAINTER_SCOPE_OPTIONS, details.paintingScope),
     });
   }
@@ -438,7 +438,7 @@ export function validatePainterDetailsInput(input: {
 }): { error: string } | { details: PainterDetails } {
   const carpetArea = parsePainterAreaInput(input.carpetArea);
   if (!carpetArea) {
-    return { error: 'Enter the carpet / floor area in sq.ft.' };
+    return { error: 'Enter the approx. carpet / floor area in sq.ft.' };
   }
   const area = parsePainterAreaInput(input.projectArea);
   if (!area) {
