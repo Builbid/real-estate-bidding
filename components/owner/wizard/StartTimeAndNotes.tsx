@@ -1,18 +1,23 @@
 'use client';
 
-import { Input } from '@/components/ui/input';
+import { useEffect, useRef, useState } from 'react';
+import { Calendar } from 'lucide-react';
 import { OptionSelectGrid } from '@/components/owner/wizard/OptionSelectCard';
-import { FORM_SECTION_CARD, FORM_TEXTAREA } from '@/components/owner/wizard/formTheme';
+import { FORM_NOTE_BOX, FORM_SECTION_CARD, FORM_TEXTAREA } from '@/components/owner/wizard/formTheme';
+import { cn } from '@/lib/utils';
 import {
-  clampProjectStartDateInput,
+  getProjectStartBookingNote,
+  getProjectStartDateFieldError,
   maxProjectStartDateString,
-  PROJECT_START_DATE_BOOKING_NOTE,
+  PROJECT_START_DATE_PAST_INVALID_MESSAGE,
+  PROJECT_START_DATE_RANGE_INVALID_MESSAGE,
   PROJECT_START_TIME_OPTIONS,
   todayLocalDateString,
   type ProjectStartTimeType,
 } from '@/lib/projectStartTime';
 import {
   WIZARD_SECTION_LABEL,
+  WIZARD_SECTION_LABEL_BASE,
   withSectionColon,
 } from '@/components/owner/wizard/WizardSectionLabel';
 
@@ -27,8 +32,17 @@ export {
 export const ADDITIONAL_REQUIREMENTS_PLACEHOLDER =
   'Write any additional requirements or notes here...';
 
-const BOOKING_NOTE_CLASS =
-  'rounded-xl border border-slate-200/70 bg-slate-50/80 px-3 py-2.5 text-[11px] font-medium leading-relaxed text-slate-600 dark:border-slate-700/30 dark:bg-slate-800/40 dark:text-slate-300';
+export function ProjectStartBookingNote({
+  startTimeType,
+  specificDate = '',
+}: {
+  startTimeType: string | null;
+  specificDate?: string;
+}) {
+  return (
+    <p className={FORM_NOTE_BOX}>{getProjectStartBookingNote(startTimeType, specificDate)}</p>
+  );
+}
 
 export function SpecificStartDateField({
   value,
@@ -37,18 +51,90 @@ export function SpecificStartDateField({
   value: string;
   onChange: (value: string) => void;
 }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [rangeError, setRangeError] = useState<string | undefined>();
+  const parsedError = getProjectStartDateFieldError(value);
+  const error = parsedError ?? rangeError;
+
+  useEffect(() => {
+    if (!value) setRangeError(undefined);
+  }, [value]);
+
+  function syncRangeError(el: HTMLInputElement) {
+    if (el.validity.rangeOverflow) {
+      setRangeError(PROJECT_START_DATE_RANGE_INVALID_MESSAGE);
+      return;
+    }
+    if (el.validity.rangeUnderflow) {
+      setRangeError(PROJECT_START_DATE_PAST_INVALID_MESSAGE);
+      return;
+    }
+    setRangeError(undefined);
+  }
+
+  function openCalendar() {
+    const el = inputRef.current;
+    if (!el) return;
+    try {
+      const picker = el as HTMLInputElement & { showPicker?: () => void };
+      picker.showPicker?.();
+    } catch {
+      el.focus();
+    }
+  }
+
   return (
     <div className="mt-2 space-y-2">
-      <Input
-        label="Specific Start Date"
-        accentLabel
-        type="date"
-        min={todayLocalDateString()}
-        max={maxProjectStartDateString()}
-        value={value}
-        onChange={(e) => onChange(clampProjectStartDateInput(e.target.value))}
-      />
-      <p className={BOOKING_NOTE_CLASS}>{PROJECT_START_DATE_BOOKING_NOTE}</p>
+      <div className="flex flex-col gap-1.5 w-full">
+        <label className={WIZARD_SECTION_LABEL_BASE}>
+          {withSectionColon('Choose Start Date from Calendar')}
+        </label>
+        <div
+          className={cn(
+            'flex w-full overflow-hidden rounded-xl border bg-white shadow-sm dark:bg-zinc-900',
+            error
+              ? 'border-red-500 focus-within:ring-2 focus-within:ring-red-500/40'
+              : 'border-gray-200 focus-within:ring-2 focus-within:ring-brand/50 focus-within:border-brand dark:border-zinc-800',
+          )}
+        >
+          <input
+            ref={inputRef}
+            type="date"
+            min={todayLocalDateString()}
+            max={maxProjectStartDateString()}
+            value={value}
+            onChange={(e) => {
+              syncRangeError(e.target);
+              onChange(e.target.value);
+            }}
+            onInput={(e) => syncRangeError(e.currentTarget)}
+            aria-invalid={Boolean(error)}
+            className={cn(
+              'h-11 min-w-0 flex-1 border-0 bg-transparent px-3 py-2 text-base md:text-sm text-foreground',
+              'placeholder:text-slate-600 shadow-none appearance-none',
+              'dark:text-white dark:placeholder:text-zinc-400 dark:[color-scheme:dark]',
+              'focus:outline-none focus:ring-0',
+              '[&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-y-0 [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-11',
+            )}
+          />
+          <button
+            type="button"
+            aria-label="Open calendar"
+            onClick={openCalendar}
+            className={cn(
+              'flex h-11 w-11 shrink-0 items-center justify-center border-l',
+              error
+                ? 'border-red-500 bg-red-50 text-red-600 dark:bg-red-950/40 dark:text-red-400'
+                : 'border-gray-200 bg-slate-50 text-slate-600 hover:bg-slate-100 dark:border-zinc-800 dark:bg-zinc-800 dark:text-slate-300 dark:hover:bg-zinc-700',
+            )}
+          >
+            <Calendar className="h-5 w-5" strokeWidth={2} />
+          </button>
+        </div>
+        {error && (
+          <p className="text-xs font-medium text-red-600 dark:text-red-400 mt-0.5">{error}</p>
+        )}
+      </div>
     </div>
   );
 }
@@ -92,6 +178,10 @@ export function StartTimeAndNotes<T extends string = ProjectStartTimeType>({
             onChange={(next) => onSpecificDateChange?.(next)}
           />
         )}
+        <ProjectStartBookingNote
+          startTimeType={startTimeType}
+          specificDate={specificDate}
+        />
       </div>
 
       <div className={FORM_SECTION_CARD}>

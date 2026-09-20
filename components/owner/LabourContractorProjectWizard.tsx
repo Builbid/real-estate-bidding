@@ -105,7 +105,7 @@ import {
   FORM_SHELL_CARD,
   FORM_TEXTAREA,
 } from '@/components/owner/wizard/formTheme';
-import { ADDITIONAL_REQUIREMENTS_PLACEHOLDER, SpecificStartDateField, WIZARD_SECTION_LABEL, WizardAccentLabels, withSectionColon } from '@/components/owner/wizard/StartTimeAndNotes';
+import { ADDITIONAL_REQUIREMENTS_PLACEHOLDER, ProjectStartBookingNote, SpecificStartDateField, WIZARD_SECTION_LABEL, WizardAccentLabels, withSectionColon } from '@/components/owner/wizard/StartTimeAndNotes';
 import { ReviewSummaryList, WizardStepper } from '@/components/owner/wizard/ReviewSummary';
 import { cn } from '@/lib/utils';
 import { createProjectAction } from '@/app/actions/createProject';
@@ -1863,6 +1863,10 @@ export function LabourContractorProjectWizard() {
                     }}
                   />
                 )}
+                <ProjectStartBookingNote
+                  startTimeType={form.projectStartTimeType}
+                  specificDate={form.projectStartTimeSpecificDate}
+                />
               </div>
               )}
 
