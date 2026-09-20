@@ -16,12 +16,10 @@ export const PROJECT_START_DATE_PAST_INVALID_MESSAGE =
   'Select today or a future date. Past dates are not allowed.';
 export const PROJECT_START_DATE_RANGE_INVALID_MESSAGE =
   'Error: Projects starting beyond 3 months (90 days) cannot be created.';
-export const PROJECT_START_DATE_WITHIN_MONTH_NOTE =
-  'Note: Projects can be scheduled up to 3 months (90 days) in advance from today.';
+export const PROJECT_START_DATE_FORMAT_INVALID_MESSAGE =
+  'Enter a valid date as DD/MM/YYYY.';
 export const PROJECT_START_DATE_BEYOND_MONTH_NOTE =
   'Note: For projects scheduled beyond 1 month, a small token booking amount will be required upon offline site verification and contract agreement to confirm contractor availability.';
-/** @deprecated Use PROJECT_START_DATE_WITHIN_MONTH_NOTE */
-export const PROJECT_START_DATE_BOOKING_NOTE = PROJECT_START_DATE_WITHIN_MONTH_NOTE;
 
 const START_TIME_TYPES = new Set<ProjectStartTimeType>([
   '1week',
@@ -114,11 +112,51 @@ export function getProjectStartDateFieldError(
 export function getProjectStartBookingNote(
   type: string | null | undefined,
   specificDate?: string | null,
-): string {
+): string | null {
   if (type === 'specific' && isProjectStartDateBeyondOneMonth(specificDate ?? '')) {
     return PROJECT_START_DATE_BEYOND_MONTH_NOTE;
   }
-  return PROJECT_START_DATE_WITHIN_MONTH_NOTE;
+  return null;
+}
+
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const INDIAN_DATE_RE = /^(\d{2})\/(\d{2})\/(\d{4})$/;
+
+/** Convert stored YYYY-MM-DD to DD/MM/YYYY. */
+export function isoToIndianDate(value: string | null | undefined): string {
+  const iso = value?.trim() ?? '';
+  if (!ISO_DATE_RE.test(iso)) return '';
+  const [year, month, day] = iso.split('-');
+  return `${day}/${month}/${year}`;
+}
+
+/** Keep typed Indian dates as DD/MM/YYYY while digits are entered. */
+export function formatIndianDateInput(raw: string): string {
+  const digits = raw.replace(/\D/g, '').slice(0, 8);
+  const day = digits.slice(0, 2);
+  const month = digits.slice(2, 4);
+  const year = digits.slice(4, 8);
+  if (digits.length <= 2) return day;
+  if (digits.length <= 4) return `${day}/${month}`;
+  return `${day}/${month}/${year}`;
+}
+
+/** Parse DD/MM/YYYY to YYYY-MM-DD, or null if the calendar date is invalid. */
+export function parseIndianDateToIso(value: string): string | null {
+  const match = value.trim().match(INDIAN_DATE_RE);
+  if (!match) return null;
+  const day = Number(match[1]);
+  const month = Number(match[2]);
+  const year = Number(match[3]);
+  const date = new Date(year, month - 1, day);
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ) {
+    return null;
+  }
+  return todayLocalDateString(date);
 }
 
 /** Keep typed or pasted dates inside today … today+90 days. */
@@ -145,7 +183,7 @@ export function formatProjectStartTime(
     case '1month':
       return 'Within 1 month';
     case 'specific':
-      return specificDate || 'Specific Date';
+      return isoToIndianDate(specificDate) || specificDate || 'Specific Date';
     default:
       return '—';
   }

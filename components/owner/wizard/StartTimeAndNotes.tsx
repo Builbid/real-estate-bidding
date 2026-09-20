@@ -6,11 +6,13 @@ import { OptionSelectGrid } from '@/components/owner/wizard/OptionSelectCard';
 import { FORM_NOTE_BOX, FORM_SECTION_CARD, FORM_TEXTAREA } from '@/components/owner/wizard/formTheme';
 import { cn } from '@/lib/utils';
 import {
+  formatIndianDateInput,
   getProjectStartBookingNote,
   getProjectStartDateFieldError,
+  isoToIndianDate,
   maxProjectStartDateString,
-  PROJECT_START_DATE_PAST_INVALID_MESSAGE,
-  PROJECT_START_DATE_RANGE_INVALID_MESSAGE,
+  parseIndianDateToIso,
+  PROJECT_START_DATE_FORMAT_INVALID_MESSAGE,
   PROJECT_START_TIME_OPTIONS,
   todayLocalDateString,
   type ProjectStartTimeType,
@@ -39,9 +41,9 @@ export function ProjectStartBookingNote({
   startTimeType: string | null;
   specificDate?: string;
 }) {
-  return (
-    <p className={FORM_NOTE_BOX}>{getProjectStartBookingNote(startTimeType, specificDate)}</p>
-  );
+  const note = getProjectStartBookingNote(startTimeType, specificDate);
+  if (!note) return null;
+  return <p className={FORM_NOTE_BOX}>{note}</p>;
 }
 
 export function SpecificStartDateField({
@@ -51,29 +53,40 @@ export function SpecificStartDateField({
   value: string;
   onChange: (value: string) => void;
 }) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [rangeError, setRangeError] = useState<string | undefined>();
-  const parsedError = getProjectStartDateFieldError(value);
-  const error = parsedError ?? rangeError;
+  const pickerRef = useRef<HTMLInputElement>(null);
+  const [display, setDisplay] = useState(() => isoToIndianDate(value));
 
   useEffect(() => {
-    if (!value) setRangeError(undefined);
+    if (!value) return;
+    const indian = isoToIndianDate(value);
+    setDisplay((current) => (parseIndianDateToIso(current) === value ? current : indian));
   }, [value]);
 
-  function syncRangeError(el: HTMLInputElement) {
-    if (el.validity.rangeOverflow) {
-      setRangeError(PROJECT_START_DATE_RANGE_INVALID_MESSAGE);
+  const complete = display.length === 10;
+  const parsedIso = complete ? parseIndianDateToIso(display) : null;
+  const formatError =
+    complete && !parsedIso ? PROJECT_START_DATE_FORMAT_INVALID_MESSAGE : undefined;
+  const rangeError = parsedIso ? getProjectStartDateFieldError(parsedIso) : undefined;
+  const error = formatError ?? rangeError;
+
+  function handleDisplayChange(raw: string) {
+    const next = formatIndianDateInput(raw);
+    setDisplay(next);
+    if (!next) {
+      onChange('');
       return;
     }
-    if (el.validity.rangeUnderflow) {
-      setRangeError(PROJECT_START_DATE_PAST_INVALID_MESSAGE);
-      return;
-    }
-    setRangeError(undefined);
+    const iso = parseIndianDateToIso(next);
+    onChange(iso ?? '');
+  }
+
+  function handlePickerChange(iso: string) {
+    onChange(iso);
+    setDisplay(isoToIndianDate(iso));
   }
 
   function openCalendar() {
-    const el = inputRef.current;
+    const el = pickerRef.current;
     if (!el) return;
     try {
       const picker = el as HTMLInputElement & { showPicker?: () => void };
@@ -87,7 +100,7 @@ export function SpecificStartDateField({
     <div className="mt-2 space-y-2">
       <div className="flex flex-col gap-1.5 w-full">
         <label className={WIZARD_SECTION_LABEL_BASE}>
-          {withSectionColon('Choose Start Date from Calendar')}
+          {withSectionColon('Choose Start Date (DD/MM/YYYY)')}
         </label>
         <div
           className={cn(
@@ -98,38 +111,46 @@ export function SpecificStartDateField({
           )}
         >
           <input
-            ref={inputRef}
-            type="date"
-            min={todayLocalDateString()}
-            max={maxProjectStartDateString()}
-            value={value}
-            onChange={(e) => {
-              syncRangeError(e.target);
-              onChange(e.target.value);
-            }}
-            onInput={(e) => syncRangeError(e.currentTarget)}
+            type="text"
+            inputMode="numeric"
+            placeholder="DD/MM/YYYY"
+            autoComplete="off"
+            value={display}
+            onChange={(e) => handleDisplayChange(e.target.value)}
             aria-invalid={Boolean(error)}
             className={cn(
               'h-11 min-w-0 flex-1 border-0 bg-transparent px-3 py-2 text-base md:text-sm text-foreground',
-              'placeholder:text-slate-600 shadow-none appearance-none',
-              'dark:text-white dark:placeholder:text-zinc-400 dark:[color-scheme:dark]',
+              'placeholder:text-slate-400 shadow-none appearance-none',
+              'dark:text-white dark:placeholder:text-zinc-500',
               'focus:outline-none focus:ring-0',
-              '[&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-y-0 [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-11',
             )}
           />
-          <button
-            type="button"
-            aria-label="Open calendar"
-            onClick={openCalendar}
-            className={cn(
-              'flex h-11 w-11 shrink-0 items-center justify-center border-l',
-              error
-                ? 'border-red-500 bg-red-50 text-red-600 dark:bg-red-950/40 dark:text-red-400'
-                : 'border-gray-200 bg-slate-50 text-slate-600 hover:bg-slate-100 dark:border-zinc-800 dark:bg-zinc-800 dark:text-slate-300 dark:hover:bg-zinc-700',
-            )}
-          >
-            <Calendar className="h-5 w-5" strokeWidth={2} />
-          </button>
+          <div className="relative h-11 w-11 shrink-0">
+            <input
+              ref={pickerRef}
+              type="date"
+              min={todayLocalDateString()}
+              max={maxProjectStartDateString()}
+              value={parsedIso && !rangeError ? parsedIso : ''}
+              onChange={(e) => handlePickerChange(e.target.value)}
+              aria-hidden
+              tabIndex={-1}
+              className="absolute inset-0 z-10 cursor-pointer opacity-0"
+            />
+            <button
+              type="button"
+              aria-label="Open calendar"
+              onClick={openCalendar}
+              className={cn(
+                'flex h-11 w-11 items-center justify-center border-l',
+                error
+                  ? 'border-red-500 bg-red-50 text-red-600 dark:bg-red-950/40 dark:text-red-400'
+                  : 'border-gray-200 bg-slate-50 text-slate-600 hover:bg-slate-100 dark:border-zinc-800 dark:bg-zinc-800 dark:text-slate-300 dark:hover:bg-zinc-700',
+              )}
+            >
+              <Calendar className="h-5 w-5" strokeWidth={2} />
+            </button>
+          </div>
         </div>
         {error && (
           <p className="text-xs font-medium text-red-600 dark:text-red-400 mt-0.5">{error}</p>
