@@ -1331,7 +1331,7 @@ export function LabourContractorProjectWizard() {
                       error={step1ValidationAttempted ? step1Errors.builtUpArea : undefined}
                     />
                     <p className={FORM_NOTE}>
-                      * Note: Enter the estimated slab area for a single floor. This value will be used as the base area for each floor selected below.
+                      *Note: Built-up covered area of a single floor.
                     </p>
                   </div>
                 )}
@@ -1340,7 +1340,7 @@ export function LabourContractorProjectWizard() {
                   <div className={cn(FORM_SECTION_CARD, 'space-y-3')}>
                     <label className={SECTION_LABEL}>{withSectionColon('Target Work Floor')}</label>
                     <p className={HELPER_TEXT}>
-                      Select only the RCC floors included in this project. Intermediate floors are not added automatically.
+                      Select only the RCC floors included in this project.
                     </p>
                     <BuildingTypeSelector
                       purpose="mistri"

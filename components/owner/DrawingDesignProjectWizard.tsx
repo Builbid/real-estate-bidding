@@ -313,7 +313,7 @@ export function DrawingDesignProjectWizard() {
                     {withSectionColon('Target Work Floor')}
                   </label>
                   <p className="text-[11px] font-medium text-slate-500 leading-relaxed">
-                    Select only the RCC floors included in this project. Intermediate floors are not added automatically.
+                    Select only the RCC floors included in this project.
                   </p>
                   <BuildingTypeSelector
                     purpose="drawing"
