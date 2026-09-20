@@ -103,7 +103,7 @@ import {
   FORM_SHELL_CARD,
   FORM_TEXTAREA,
 } from '@/components/owner/wizard/formTheme';
-import { ADDITIONAL_REQUIREMENTS_PLACEHOLDER, WIZARD_SECTION_LABEL, WizardAccentLabels, withSectionColon } from '@/components/owner/wizard/StartTimeAndNotes';
+import { ADDITIONAL_REQUIREMENTS_PLACEHOLDER, SpecificStartDateField, WIZARD_SECTION_LABEL, WizardAccentLabels, withSectionColon } from '@/components/owner/wizard/StartTimeAndNotes';
 import { ReviewSummaryList, WizardStepper } from '@/components/owner/wizard/ReviewSummary';
 import { cn } from '@/lib/utils';
 import { createProjectAction } from '@/app/actions/createProject';
@@ -1828,16 +1828,12 @@ export function LabourContractorProjectWizard() {
                   ))}
                 </div>
                 {form.projectStartTimeType === 'specific' && (
-                  <Input
-                    label="Specific Start Date"
-                    type="date"
-                    min={todayLocalDateString()}
+                  <SpecificStartDateField
                     value={form.projectStartTimeSpecificDate}
-                    onChange={(e) => {
-                      update('projectStartTimeSpecificDate', e.target.value);
+                    onChange={(value) => {
+                      update('projectStartTimeSpecificDate', value);
                       setStep2Error(null);
                     }}
-                    className="mt-2"
                   />
                 )}
               </div>

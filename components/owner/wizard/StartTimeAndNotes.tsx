@@ -4,6 +4,9 @@ import { Input } from '@/components/ui/input';
 import { OptionSelectGrid } from '@/components/owner/wizard/OptionSelectCard';
 import { FORM_SECTION_CARD, FORM_TEXTAREA } from '@/components/owner/wizard/formTheme';
 import {
+  clampProjectStartDateInput,
+  maxProjectStartDateString,
+  PROJECT_START_DATE_BOOKING_NOTE,
   PROJECT_START_TIME_OPTIONS,
   todayLocalDateString,
   type ProjectStartTimeType,
@@ -23,6 +26,31 @@ export {
 
 export const ADDITIONAL_REQUIREMENTS_PLACEHOLDER =
   'Write any additional requirements or notes here...';
+
+const BOOKING_NOTE_CLASS =
+  'rounded-xl border border-slate-200/70 bg-slate-50/80 px-3 py-2.5 text-[11px] font-medium leading-relaxed text-slate-600 dark:border-slate-700/30 dark:bg-slate-800/40 dark:text-slate-300';
+
+export function SpecificStartDateField({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div className="mt-2 space-y-2">
+      <Input
+        label="Specific Start Date"
+        type="date"
+        min={todayLocalDateString()}
+        max={maxProjectStartDateString()}
+        value={value}
+        onChange={(e) => onChange(clampProjectStartDateInput(e.target.value))}
+      />
+      <p className={BOOKING_NOTE_CLASS}>{PROJECT_START_DATE_BOOKING_NOTE}</p>
+    </div>
+  );
+}
 
 export function StartTimeAndNotes<T extends string = ProjectStartTimeType>({
   startTimeType,
@@ -58,13 +86,9 @@ export function StartTimeAndNotes<T extends string = ProjectStartTimeType>({
           columns={2}
         />
         {allowSpecificDate && startTimeType === 'specific' && (
-          <Input
-            label="Specific Start Date"
-            type="date"
-            min={todayLocalDateString()}
+          <SpecificStartDateField
             value={specificDate}
-            onChange={(e) => onSpecificDateChange?.(e.target.value)}
-            className="mt-2"
+            onChange={(next) => onSpecificDateChange?.(next)}
           />
         )}
       </div>

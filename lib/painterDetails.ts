@@ -3,8 +3,9 @@
 // ============================================================
 
 import {
-  isProjectStartDateNotInPast,
-  PROJECT_START_DATE_PAST_INVALID_MESSAGE,
+  formatProjectStartTime,
+  isProjectStartDateWithinRange,
+  PROJECT_START_DATE_RANGE_INVALID_MESSAGE,
 } from './projectStartTime';
 import { parseCustomFloorSequence } from './mistriDetails';
 import { formatCustomFloorsList } from './customFloors';
@@ -18,9 +19,13 @@ export type PainterPrimerRequirement = 'None' | '1 Coat' | '2 Coats' | '3 Coats'
 
 export type PainterPaintingScope = 'interior' | 'exterior' | 'both';
 
+/** Legacy finish values that may exist on older painter_details rows. */
 export type PainterPaintFinish = 'standard' | 'premium' | 'textured';
 
-export type PainterSurfaceCondition = 'new' | 'repaint_good' | 'repaint_repair';
+export type PainterSurfaceCondition = 'new' | 'repaint';
+
+/** Legacy surface values that may exist on older painter_details rows. */
+type LegacyPainterSurfaceCondition = 'repaint_good' | 'repaint_repair';
 
 export type PainterPaintTopcoats = '1 Coat' | '2 Coats' | '3 Coats';
 
@@ -94,22 +99,14 @@ export function parsePainterAreaInput(raw: string | number | null | undefined): 
   return Number.isFinite(value) && value > 0 ? value : null;
 }
 
-export const PAINTER_FINISH_OPTIONS: {
-  value: PainterPaintFinish;
-  label: string;
-}[] = [
-  { value: 'standard', label: 'Standard (Distemper / Basic Emulsion)' },
-  { value: 'premium', label: 'Premium (Royal Emulsion / Weatherproof)' },
-  { value: 'textured', label: 'Textured / Decorative' },
-];
+const LEGACY_FINISH_SET = new Set<string>(['standard', 'premium', 'textured']);
 
 export const PAINTER_SURFACE_OPTIONS: {
   value: PainterSurfaceCondition;
   label: string;
 }[] = [
-  { value: 'new', label: 'New Surface (Fresh Plaster)' },
-  { value: 'repaint_good', label: 'Repaint (Good Condition)' },
-  { value: 'repaint_repair', label: 'Repaint (Needs Repair / Crack Filling)' },
+  { value: 'new', label: 'New Surface' },
+  { value: 'repaint', label: 'Repaint' },
 ];
 
 export const PAINTER_TOPCOAT_OPTIONS: PainterPaintTopcoats[] = [
@@ -122,10 +119,10 @@ export const PAINTER_START_TIME_OPTIONS: {
   value: PainterStartTimeType;
   label: string;
 }[] = [
-  { value: '1week', label: 'Within one week' },
-  { value: '2week', label: 'Within two week' },
+  { value: '1week', label: 'Within 1 week' },
+  { value: '2week', label: 'Within 2 weeks' },
   { value: '1month', label: 'Within 1 month' },
-  { value: 'specific', label: 'Specific Date' },
+  { value: 'specific', label: 'Specific Date (Max 3 Months)' },
 ];
 
 const START_TIME_TYPES = new Set<PainterStartTimeType>([
@@ -141,8 +138,11 @@ const LEGACY_START_TIME_MAP: Record<LegacyPainterStartTimeType, PainterStartTime
 
 const PRIMER_SET = new Set<string>(PAINTER_PRIMER_OPTIONS.map((o) => o.value));
 const SCOPE_SET = new Set<string>(PAINTER_SCOPE_OPTIONS.map((o) => o.value));
-const FINISH_SET = new Set<string>(PAINTER_FINISH_OPTIONS.map((o) => o.value));
 const SURFACE_SET = new Set<string>(PAINTER_SURFACE_OPTIONS.map((o) => o.value));
+const LEGACY_SURFACE_MAP: Record<LegacyPainterSurfaceCondition, PainterSurfaceCondition> = {
+  repaint_good: 'repaint',
+  repaint_repair: 'repaint',
+};
 const TOPCOAT_SET = new Set<string>(PAINTER_TOPCOAT_OPTIONS);
 const TARGET_FLOOR_SET = new Set<PainterTargetFloor>([
   'ground',
@@ -203,6 +203,15 @@ function normalizeStartTimeType(value: unknown): PainterStartTimeType | null {
   return null;
 }
 
+function normalizeSurfaceCondition(value: unknown): PainterSurfaceCondition | null {
+  if (typeof value !== 'string') return null;
+  if (SURFACE_SET.has(value)) return value as PainterSurfaceCondition;
+  if (value in LEGACY_SURFACE_MAP) {
+    return LEGACY_SURFACE_MAP[value as LegacyPainterSurfaceCondition];
+  }
+  return null;
+}
+
 function optionLabel<T extends string>(
   options: { value: T; label: string }[],
   value: T,
@@ -246,8 +255,10 @@ export function isPainterDetails(value: unknown): value is PainterDetails {
     materialsOk &&
     normalizeStartTimeType(v.projectStartTimeType) != null &&
     optionalEnumOk(v.paintingScope, SCOPE_SET) &&
-    optionalEnumOk(v.paintFinish, FINISH_SET) &&
-    optionalEnumOk(v.surfaceCondition, SURFACE_SET) &&
+    optionalEnumOk(v.paintFinish, LEGACY_FINISH_SET) &&
+    (v.surfaceCondition === undefined ||
+      v.surfaceCondition === null ||
+      normalizeSurfaceCondition(v.surfaceCondition) != null) &&
     optionalEnumOk(v.paintTopcoats, TOPCOAT_SET) &&
     additionalOk &&
     floorsOk &&
@@ -272,13 +283,10 @@ export function parsePainterDetails(value: unknown): PainterDetails | null {
       ? (value.paintingScope as PainterPaintingScope)
       : null;
   const paintFinish =
-    typeof value.paintFinish === 'string' && FINISH_SET.has(value.paintFinish)
+    typeof value.paintFinish === 'string' && LEGACY_FINISH_SET.has(value.paintFinish)
       ? (value.paintFinish as PainterPaintFinish)
       : null;
-  const surfaceCondition =
-    typeof value.surfaceCondition === 'string' && SURFACE_SET.has(value.surfaceCondition)
-      ? (value.surfaceCondition as PainterSurfaceCondition)
-      : null;
+  const surfaceCondition = normalizeSurfaceCondition(value.surfaceCondition);
   const paintTopcoats =
     typeof value.paintTopcoats === 'string' && TOPCOAT_SET.has(value.paintTopcoats)
       ? (value.paintTopcoats as PainterPaintTopcoats)
@@ -329,18 +337,7 @@ export function formatPainterMaterials(materialsIncludeClient: boolean): string 
 }
 
 export function formatPainterStartTime(details: PainterDetails): string {
-  switch (details.projectStartTimeType) {
-    case '1week':
-      return 'Within one week';
-    case '2week':
-      return 'Within two week';
-    case '1month':
-      return 'Within 1 month';
-    case 'specific':
-      return details.projectStartTimeSpecificDate ?? 'Specific Date';
-    default:
-      return '—';
-  }
+  return formatProjectStartTime(details.projectStartTimeType, details.projectStartTimeSpecificDate);
 }
 
 export function getPainterWorkRequirementBlocks(details: PainterDetails): {
@@ -371,12 +368,6 @@ export function getPainterWorkRequirementBlocks(details: PainterDetails): {
     blocks.push({
       label: 'Painting Work Coverage',
       value: optionLabel(PAINTER_SCOPE_OPTIONS, details.paintingScope),
-    });
-  }
-  if (details.paintFinish) {
-    blocks.push({
-      label: 'Finish',
-      value: optionLabel(PAINTER_FINISH_OPTIONS, details.paintFinish),
     });
   }
   if (details.surfaceCondition) {
@@ -428,7 +419,6 @@ export function validatePainterDetailsInput(input: {
   projectStartTimeType: PainterStartTimeType | null;
   projectStartTimeSpecificDate: string;
   paintingScope: PainterPaintingScope | null;
-  paintFinish: PainterPaintFinish | null;
   surfaceCondition: PainterSurfaceCondition | null;
   paintTopcoats: PainterPaintTopcoats | null;
   additionalRequirements: string;
@@ -446,9 +436,6 @@ export function validatePainterDetailsInput(input: {
   }
   if (!input.paintingScope || !SCOPE_SET.has(input.paintingScope)) {
     return { error: 'Select a painting scope.' };
-  }
-  if (!input.paintFinish || !FINISH_SET.has(input.paintFinish)) {
-    return { error: 'Select a paint finish / quality.' };
   }
   if (!input.surfaceCondition || !SURFACE_SET.has(input.surfaceCondition)) {
     return { error: 'Select a surface condition.' };
@@ -487,8 +474,8 @@ export function validatePainterDetailsInput(input: {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       return { error: 'Select a specific project start date.' };
     }
-    if (!isProjectStartDateNotInPast(date)) {
-      return { error: PROJECT_START_DATE_PAST_INVALID_MESSAGE };
+    if (!isProjectStartDateWithinRange(date)) {
+      return { error: PROJECT_START_DATE_RANGE_INVALID_MESSAGE };
     }
     return {
       details: {
@@ -498,7 +485,7 @@ export function validatePainterDetailsInput(input: {
         projectStartTimeType: 'specific',
         projectStartTimeSpecificDate: date,
         paintingScope: input.paintingScope,
-        paintFinish: input.paintFinish,
+        paintFinish: null,
         surfaceCondition: input.surfaceCondition,
         paintTopcoats: input.paintTopcoats,
         additionalRequirements: additional,
@@ -515,7 +502,7 @@ export function validatePainterDetailsInput(input: {
       projectStartTimeType: input.projectStartTimeType,
       projectStartTimeSpecificDate: null,
       paintingScope: input.paintingScope,
-      paintFinish: input.paintFinish,
+      paintFinish: null,
       surfaceCondition: input.surfaceCondition,
       paintTopcoats: input.paintTopcoats,
       additionalRequirements: additional,

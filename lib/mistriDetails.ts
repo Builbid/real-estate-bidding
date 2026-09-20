@@ -4,8 +4,12 @@
 
 import type { BuildingType, ConstructionTypesMap, ConstructionTypeValue } from './buildingConfig';
 import {
+  formatProjectStartTime,
   isProjectStartDateNotInPast,
+  isProjectStartDateWithinRange,
+  isProjectStartTimeType,
   PROJECT_START_DATE_PAST_INVALID_MESSAGE,
+  PROJECT_START_DATE_RANGE_INVALID_MESSAGE,
 } from './projectStartTime';
 import {
   ASSAM_BUILDING_TYPE,
@@ -618,10 +622,10 @@ export const MISTRI_START_TIME_OPTIONS: {
   value: MistriStartTimeType;
   label: string;
 }[] = [
-  { value: '1week', label: 'Within one week' },
-  { value: '2week', label: 'Within two week' },
+  { value: '1week', label: 'Within 1 week' },
+  { value: '2week', label: 'Within 2 weeks' },
   { value: '1month', label: 'Within 1 month' },
-  { value: 'specific', label: 'Specific Date' },
+  { value: 'specific', label: 'Specific Date (Max 3 Months)' },
 ];
 
 export const MISTRI_CUSTOM_FLOOR_ID = 'custom' as const;
@@ -3115,20 +3119,14 @@ export function formatMistriStartTime(details: MistriDetails): string {
     );
   }
   switch (details.projectStartTimeType) {
-    case '1week':
-      return 'Within one week';
-    case '2week':
-      return 'Within two week';
     case '3week':
       return 'Within 3 weeks';
     case '4week':
       return 'Within 4 weeks';
-    case '1month':
-      return 'Within 1 month';
-    case 'specific':
-      return details.projectStartTimeSpecificDate ?? 'Specific Date';
     default:
-      return '—';
+      return isProjectStartTimeType(details.projectStartTimeType)
+        ? formatProjectStartTime(details.projectStartTimeType, details.projectStartTimeSpecificDate)
+        : '—';
   }
 }
 
@@ -3818,8 +3816,8 @@ export function validateMistriFloorWorkInput(input: {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       return { error: 'Select a specific project start date.' };
     }
-    if (!isProjectStartDateNotInPast(date)) {
-      return { error: PROJECT_START_DATE_PAST_INVALID_MESSAGE };
+    if (!isProjectStartDateWithinRange(date)) {
+      return { error: PROJECT_START_DATE_RANGE_INVALID_MESSAGE };
     }
     return {
       details: {
@@ -4019,8 +4017,8 @@ export function validateMistriDetailsInput(input: {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       return { error: 'Select a specific project start date.' };
     }
-    if (!isProjectStartDateNotInPast(date)) {
-      return { error: PROJECT_START_DATE_PAST_INVALID_MESSAGE };
+    if (!isProjectStartDateWithinRange(date)) {
+      return { error: PROJECT_START_DATE_RANGE_INVALID_MESSAGE };
     }
     return {
       details: {

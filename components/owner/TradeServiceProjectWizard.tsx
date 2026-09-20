@@ -16,15 +16,13 @@ import {
 import { BuildingTypeSelector } from '@/components/construction/BuildingTypeSelector';
 import { TradeWorkRequirementsFields, type TradeWorkFormFields } from '@/components/owner/TradeWorkRequirementsFields';
 import { FORM_CONTINUE_BTN, FORM_OPTION_SELECTED, FORM_OPTION_UNSELECTED, FORM_SECTION_CARD, FORM_SHELL_CARD, FORM_TEXTAREA } from '@/components/owner/wizard/formTheme';
-import { ADDITIONAL_REQUIREMENTS_PLACEHOLDER, WIZARD_SECTION_LABEL, WizardAccentLabels, withSectionColon } from '@/components/owner/wizard/StartTimeAndNotes';
+import { ADDITIONAL_REQUIREMENTS_PLACEHOLDER, SpecificStartDateField, WIZARD_SECTION_LABEL, WizardAccentLabels, withSectionColon } from '@/components/owner/wizard/StartTimeAndNotes';
 import { ReviewSummaryList, WizardStepper } from '@/components/owner/wizard/ReviewSummary';
 import { generateProjectTitle } from '@/lib/generateProjectTitle';
 import { hasContactInfo } from '@/lib/validation/projectContactInfo';
 import { formatPincodeInput, validatePincode } from '@/lib/validation/pincode';
-import { todayLocalDateString } from '@/lib/projectStartTime';
 import { getTradeLabel, getTradeEmoji } from '@/lib/trades';
 import {
-  PAINTER_FINISH_OPTIONS,
   PAINTER_PAINT_AREA_DISCLAIMER,
   PAINTER_PRIMER_OPTIONS,
   PAINTER_SCOPE_OPTIONS,
@@ -35,7 +33,6 @@ import {
   getPainterWorkRequirementBlocks,
   parsePainterAreaInput,
   validatePainterDetailsInput,
-  type PainterPaintFinish,
   type PainterPaintTopcoats,
   type PainterPaintingScope,
   type PainterPrimerRequirement,
@@ -80,7 +77,6 @@ interface FormState extends TradeWorkFormFields {
   carpetArea: string;
   projectArea: string;
   paintingScope: PainterPaintingScope | null;
-  paintFinish: PainterPaintFinish | null;
   surfaceCondition: PainterSurfaceCondition | null;
   primerRequirement: PainterPrimerRequirement | '';
   paintTopcoats: PainterPaintTopcoats | null;
@@ -126,7 +122,6 @@ const EMPTY_FORM: FormState = {
   carpetArea: '',
   projectArea: '',
   paintingScope: null,
-  paintFinish: null,
   surfaceCondition: null,
   primerRequirement: '',
   paintTopcoats: null,
@@ -387,7 +382,6 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
         projectStartTimeType: form.projectStartTimeType as PainterStartTimeType | null,
         projectStartTimeSpecificDate: form.projectStartTimeSpecificDate,
         paintingScope: form.paintingScope,
-        paintFinish: form.paintFinish,
         surfaceCondition: form.surfaceCondition,
         paintTopcoats: form.paintTopcoats,
         additionalRequirements: form.additionalRequirements,
@@ -438,7 +432,6 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
         projectStartTimeType: form.projectStartTimeType as PainterStartTimeType | null,
         projectStartTimeSpecificDate: form.projectStartTimeSpecificDate,
         paintingScope: form.paintingScope,
-        paintFinish: form.paintFinish,
         surfaceCondition: form.surfaceCondition,
         paintTopcoats: form.paintTopcoats,
         additionalRequirements: form.additionalRequirements,
@@ -876,16 +869,6 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                   </p>
 
                   <PainterChoice
-                    label="Paint Finish / Quality"
-                    options={PAINTER_FINISH_OPTIONS}
-                    value={form.paintFinish}
-                    onChange={(v) => {
-                      update('paintFinish', v);
-                      setStep2Error(null);
-                    }}
-                  />
-
-                  <PainterChoice
                     label="Surface Condition"
                     options={PAINTER_SURFACE_OPTIONS}
                     value={form.surfaceCondition}
@@ -893,6 +876,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                       update('surfaceCondition', v);
                       setStep2Error(null);
                     }}
+                    columns={2}
                   />
 
                   <PainterChoice
@@ -930,13 +914,10 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                       columns={2}
                     />
                     {form.projectStartTimeType === 'specific' && (
-                      <Input
-                        label="Specific Start Date"
-                        type="date"
-                        min={todayLocalDateString()}
+                      <SpecificStartDateField
                         value={form.projectStartTimeSpecificDate}
-                        onChange={(e) => {
-                          update('projectStartTimeSpecificDate', e.target.value);
+                        onChange={(value) => {
+                          update('projectStartTimeSpecificDate', value);
                           setStep2Error(null);
                         }}
                       />
@@ -1006,7 +987,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                         },
                       ]
                     : []),
-                  ...(isPainter && form.carpetArea && form.projectArea && form.paintingScope && form.paintFinish && form.surfaceCondition && form.primerRequirement && form.paintTopcoats && form.projectStartTimeType
+                  ...(isPainter && form.carpetArea && form.projectArea && form.paintingScope && form.surfaceCondition && form.primerRequirement && form.paintTopcoats && form.projectStartTimeType
                     ? getPainterWorkRequirementBlocks({
                         projectArea: parseFloat(form.projectArea) || 0,
                         primerRequirement: form.primerRequirement,
@@ -1014,7 +995,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                         projectStartTimeType: form.projectStartTimeType as PainterStartTimeType,
                         projectStartTimeSpecificDate: form.projectStartTimeSpecificDate || null,
                         paintingScope: form.paintingScope,
-                        paintFinish: form.paintFinish,
+                        paintFinish: null,
                         surfaceCondition: form.surfaceCondition,
                         paintTopcoats: form.paintTopcoats,
                         additionalRequirements: form.additionalRequirements.trim() || null,
