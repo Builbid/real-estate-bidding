@@ -25,6 +25,7 @@ import {
   getCustomFloorSequenceInvalidMessage,
   FOUNDATION_CAPACITY_INVALID_MESSAGE,
   FOUNDATION_CUSTOM_FLOORS_INVALID_MESSAGE,
+  FOUNDATION_PROVISION_NOTE,
   MISTRI_ASSAM_FLOORING_MATERIAL_OPTIONS,
   MISTRI_ASSAM_ROOF_OPTIONS,
   MISTRI_ASSAM_ROOFING_SHEET_OPTIONS,
@@ -49,8 +50,8 @@ import {
   getMistriRccScopeLabel,
   getMistriWorkRequirementBlocks,
   isAssamMistriFloor,
-  isFinishingRccScope,
   isFinishingScopeBlockedByLowerStructure,
+  isFlooringWorkLocked,
   isRccScopeDisabled,
   finishingScopeLockedByLowerStructureMessage,
   mistriContractTypeRequiredForFloorWork,
@@ -97,6 +98,7 @@ import {
   FORM_MARKER_ON,
   FORM_NESTED_PANEL,
   FORM_NOTE,
+  FORM_NOTE_BOX,
   FORM_OPTION_SELECTED,
   FORM_OPTION_UNSELECTED,
   FORM_SECTION_CARD,
@@ -586,16 +588,20 @@ function withoutFinishingScopes(current: FloorWorkForm): FloorWorkForm {
   const scopes = rccScopesFromWorkTypes(
     current.workTypes,
     current.includeFineFlooring,
-  ).filter((scope) => !isFinishingRccScope(scope));
+  ).filter((scope) => scope !== 'wall_plaster_only');
+  const nextScopes = scopes.includes('full_construction')
+    ? scopes
+    : scopes.filter((scope) => scope !== 'flooring_only');
   const wallMode = wallPlasterWorkModeFromWorkTypes(current.workTypes) ?? 'both';
+  const keepFlooring = nextScopes.includes('flooring_only');
   return {
     ...current,
-    workTypes: workTypesFromRccScopes(scopes, wallMode),
+    workTypes: workTypesFromRccScopes(nextScopes, wallMode),
     brickMaterial: null,
     plasterScope: null,
-    flooringMaterial: null,
-    includeFineFlooring: null,
-    flooringAreaSqft: '',
+    flooringMaterial: keepFlooring ? current.flooringMaterial : null,
+    includeFineFlooring: keepFlooring ? current.includeFineFlooring : null,
+    flooringAreaSqft: keepFlooring ? current.flooringAreaSqft : '',
     wallAreaSqft: '',
   };
 }
@@ -923,9 +929,21 @@ export function LabourContractorProjectWizard() {
       }
       const currentScopeFloors = rccScopeFloorsFromForm(f);
       if (
-        isFinishingRccScope(option) &&
+        option === 'wall_plaster_only' &&
         !currentScopes.includes(option) &&
         isFinishingScopeBlockedByLowerStructure(
+          floorId,
+          currentScopeFloors,
+          customFloorNumber,
+        )
+      ) {
+        return f;
+      }
+      if (
+        option === 'flooring_only' &&
+        !currentScopes.includes(option) &&
+        isFlooringWorkLocked(
+          currentScopes,
           floorId,
           currentScopeFloors,
           customFloorNumber,
@@ -1622,25 +1640,38 @@ export function LabourContractorProjectWizard() {
                         {MISTRI_RCC_SCOPE_OPTIONS.map((opt) => {
                           const selected = selectedScopes.includes(opt.value);
                           const finishingLockedByLower =
-                            isFinishingRccScope(opt.value) &&
+                            opt.value === 'wall_plaster_only' &&
                             isFinishingScopeBlockedByLowerStructure(
                               fw.floorId,
                               assembledFloorWork,
                               fw.customFloorNumber,
                             );
+                          const flooringLocked = isFlooringWorkLocked(
+                            selectedScopes,
+                            fw.floorId,
+                            assembledFloorWork,
+                            fw.customFloorNumber,
+                          );
                           const comboDisabled = isRccScopeDisabled(selectedScopes, opt.value);
-                          const disabled = comboDisabled || finishingLockedByLower;
-                          const lockNote = finishingLockedByLower
-                            ? finishingScopeLockedByLowerStructureMessage(
-                                fw.floorId,
-                                fw.customFloorNumber,
-                              )
-                            : undefined;
+                          const disabled =
+                            comboDisabled ||
+                            finishingLockedByLower ||
+                            (opt.value === 'flooring_only' && flooringLocked);
+                          const lockNote =
+                            finishingLockedByLower ||
+                            (opt.value === 'flooring_only' &&
+                              flooringLocked &&
+                              !selectedScopes.includes('frame_only'))
+                              ? finishingScopeLockedByLowerStructureMessage(
+                                  fw.floorId,
+                                  fw.customFloorNumber,
+                                )
+                              : undefined;
 
                           return (
                             <div key={opt.value} className="w-full space-y-2 [overflow-anchor:none]">
                               <OptionCardButton
-                                selected={selected && !finishingLockedByLower}
+                                selected={selected && !disabled}
                                 disabled={disabled}
                                 locked={disabled}
                                 note={lockNote}
@@ -1699,7 +1730,7 @@ export function LabourContractorProjectWizard() {
                                   />
                                 </div>
                               )}
-                              {opt.value === 'flooring_only' && selected && !finishingLockedByLower && (
+                              {opt.value === 'flooring_only' && selected && !disabled && (
                                 <div className="w-full space-y-4">
                                   <NestedChoiceButtons
                                     question="What flooring material will be used?"
@@ -1755,10 +1786,9 @@ export function LabourContractorProjectWizard() {
               {showFoundationProvision && (
                 <div className={FORM_SECTION_CARD}>
                   <p className={SECTION_LABEL}>
-                    {withSectionColon('Foundation provision for')}
+                    {withSectionColon('Foundation Provision (No. of Floors)')}
                   </p>
                   <Input
-                    label="No. of floors"
                     type="text"
                     inputMode="numeric"
                     placeholder={`e.g. ${minFoundationFloors}`}
@@ -1768,10 +1798,7 @@ export function LabourContractorProjectWizard() {
                       setStep2Error(null);
                     }}
                   />
-                  <p className={HELPER_TEXT}>
-                    Enter the total number of floors this foundation must support for present and
-                    future construction.
-                  </p>
+                  <p className={FORM_NOTE_BOX}>{FOUNDATION_PROVISION_NOTE}</p>
                   {futureCustomError && (
                     <p className="text-xs text-destructive flex items-center gap-1">
                       <AlertCircle className="h-3 w-3 shrink-0" />

@@ -951,6 +951,11 @@ export function isRccScopeDisabled(
   current: readonly MistriRccScopeOption[],
   option: MistriRccScopeOption,
 ): boolean {
+  // Option 4 (Flooring) can combine with Full Construction or Wall Brick Work,
+  // but stays locked when Frame / Slab Casting is the selected scope.
+  if (option === 'flooring_only') {
+    return current.includes('frame_only');
+  }
   if (current.includes('full_construction')) {
     return option === 'frame_only' || option === 'wall_plaster_only';
   }
@@ -1178,6 +1183,24 @@ export function isFinishingScopeBlockedByLowerStructure(
   return level > firstNew;
 }
 
+/**
+ * Option 4 is enabled on any floor when Option 1 or Option 3 is selected.
+ * It stays locked when only Option 2 (Frame / Slab Casting) is selected,
+ * and when flooring-only would sit above a new structure with no walls/full build.
+ */
+export function isFlooringWorkLocked(
+  current: readonly MistriRccScopeOption[],
+  floorId: MistriFloorId,
+  floorWork: readonly MistriScopeFloor[],
+  customFloorNumber?: number | null,
+): boolean {
+  if (current.includes('frame_only')) return true;
+  if (current.includes('full_construction') || current.includes('wall_plaster_only')) {
+    return false;
+  }
+  return isFinishingScopeBlockedByLowerStructure(floorId, floorWork, customFloorNumber);
+}
+
 export function isUpperFloorWallScopeBlocked(
   floorId: MistriFloorId,
   floorWork: readonly MistriScopeFloor[],
@@ -1289,6 +1312,9 @@ export const FOUNDATION_CUSTOM_FLOORS_INVALID_MESSAGE =
 
 export const FOUNDATION_CAPACITY_INVALID_MESSAGE =
   'Foundation provision must be greater than your highest constructing floor (e.g. building up to 4th floor → enter 5 or higher).';
+
+export const FOUNDATION_PROVISION_NOTE =
+  'Note: Specify the total number of floors this foundation should be engineered to support (for current build and future expansion).';
 
 export const MAJOR_FLOOR_SEQUENCE_INVALID_MESSAGE =
   'For major activities, selected floors must be consecutive with no gaps. Ground + 3rd is invalid without 1st and 2nd. Selecting only 3rd + 4th is fine for an existing building.';
@@ -3629,9 +3655,24 @@ export function validateMistriFloorWorkInput(input: {
       ) &&
       (
         fw.workTypes.includes('brick_aac') ||
-        fw.workTypes.includes('plastering') ||
-        fw.workTypes.includes('flooring') ||
-        fw.includeFineFlooring === true
+        fw.workTypes.includes('plastering')
+      ) &&
+      !fw.workTypes.includes('full_finished')
+    ) {
+      return {
+        error: finishingScopeLockedByLowerStructureMessage(
+          fw.floorId,
+          fw.customFloorNumber,
+        ),
+      };
+    }
+    if (
+      (fw.workTypes.includes('flooring') || fw.includeFineFlooring === true) &&
+      isFlooringWorkLocked(
+        rccScopesFromWorkTypes(fw.workTypes, fw.includeFineFlooring),
+        fw.floorId,
+        input.floorWork,
+        fw.customFloorNumber,
       )
     ) {
       return {

@@ -62,4 +62,7 @@ export const FORM_OPTION_IDLE = FORM_OPTION_UNSELECTED;
 export const FORM_NOTE =
   'mt-1.5 w-full text-left text-[11px] font-medium leading-snug text-slate-600 dark:text-slate-400';
 
+export const FORM_NOTE_BOX =
+  'rounded-xl border border-slate-200/70 bg-slate-50/80 px-3 py-2.5 text-[11px] font-medium leading-relaxed text-slate-600 dark:border-slate-700/30 dark:bg-slate-800/40 dark:text-slate-300';
+
 export const FORM_HEADING = 'text-base font-bold text-slate-900 dark:text-slate-100';
