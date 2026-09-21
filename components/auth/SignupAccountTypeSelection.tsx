@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowLeft, Briefcase, Home } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { BuilBidLogo } from '@/components/shared/BuilBidLogo';
 import { cn } from '@/lib/utils';
 
@@ -7,15 +7,13 @@ const ACCOUNT_TYPE_OPTIONS = [
   {
     id: 'client',
     href: '/signup/client',
-    emoji: '🏠',
-    title: 'Client',
+    title: 'Homeowner',
     subtitle: 'Post projects and receive competitive construction bids',
     accent: 'teal' as const,
   },
   {
     id: 'service_provider',
     href: '/signup/provider',
-    emoji: '🔧',
     title: 'Service Provider',
     subtitle: 'Offer Mistri work, turnkey construction, or local trade services',
     accent: 'emerald' as const,
@@ -49,13 +47,6 @@ export function SignupAccountTypeSelection() {
           </div>
         </div>
 
-        <p className="text-center text-xs sm:text-sm text-muted-foreground mb-6">
-          Already have an account?{' '}
-          <Link href="/login" className="text-emerald-600 dark:text-emerald-400 hover:underline underline-offset-2">
-            Sign in
-          </Link>
-        </p>
-
         <div className="rounded-2xl border border-border/80 bg-card/80 dark:bg-card/60 backdrop-blur-md shadow-xl shadow-black/[0.06] p-6 sm:p-8 space-y-3">
           {ACCOUNT_TYPE_OPTIONS.map((opt) => (
             <Link
@@ -63,28 +54,31 @@ export function SignupAccountTypeSelection() {
               href={opt.href}
               prefetch
               className={cn(
-                'flex items-start gap-4 w-full text-left px-4 py-5 rounded-xl border-2 transition-all duration-200',
+                'flex items-center gap-4 w-full text-left px-4 py-5 rounded-xl border-2 transition-all duration-200',
                 'hover:scale-[1.01] active:scale-[0.99] shadow-sm hover:shadow-md',
                 'border-border bg-secondary/30 hover:border-muted-foreground/30',
                 opt.accent === 'teal' && 'hover:border-teal-500/40',
                 opt.accent === 'emerald' && 'hover:border-emerald-500/40',
               )}
             >
-              <span className="text-3xl leading-none shrink-0">{opt.emoji}</span>
-              <div className="min-w-0">
-                <p className="text-base font-bold text-foreground flex items-center gap-2">
-                  {opt.title}
-                  {opt.id === 'client' ? (
-                    <Home className="h-4 w-4 text-teal-600 opacity-80" aria-hidden />
-                  ) : (
-                    <Briefcase className="h-4 w-4 text-emerald-600 opacity-80" aria-hidden />
-                  )}
-                </p>
+              <div className="min-w-0 flex-1">
+                <p className="text-base font-bold text-foreground">{opt.title}</p>
                 <p className="text-sm text-muted-foreground mt-1 leading-snug">{opt.subtitle}</p>
               </div>
+              <span
+                aria-hidden
+                className="h-4 w-4 shrink-0 rounded-full border-2 border-muted-foreground/40"
+              />
             </Link>
           ))}
         </div>
+
+        <p className="text-center text-xs sm:text-sm text-muted-foreground mt-6">
+          Already have an account?{' '}
+          <Link href="/login" className="text-emerald-600 dark:text-emerald-400 hover:underline underline-offset-2">
+            Sign in
+          </Link>
+        </p>
       </div>
     </div>
   );
