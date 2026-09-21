@@ -18,7 +18,7 @@ export type PainterStartTimeType = ProjectStartTimeType;
 /** Legacy start-time values that may exist on older painter_details rows. */
 type LegacyPainterStartTimeType = 'immediately';
 
-export type PainterPrimerRequirement = 'None' | '1 Coat' | '2 Coats' | '3 Coats';
+export type PainterPrimerRequirement = '1 Coat' | '2 Coats' | 'None' | '3 Coats';
 
 export type PainterPaintingScope = 'interior' | 'exterior' | 'both';
 
@@ -31,6 +31,8 @@ export type PainterSurfaceCondition = 'new' | 'repaint';
 type LegacyPainterSurfaceCondition = 'repaint_good' | 'repaint_repair';
 
 export type PainterPaintTopcoats = '1 Coat' | '2 Coats' | '3 Coats';
+
+export type PainterPuttyRequirement = '1 Coat' | '2 Coats' | 'None';
 
 export type PainterTargetFloor = 'ground' | 'first' | 'second' | 'third' | 'fourth' | 'custom';
 
@@ -50,6 +52,7 @@ export interface PainterDetails {
   paintFinish?: PainterPaintFinish | null;
   surfaceCondition?: PainterSurfaceCondition | null;
   paintTopcoats?: PainterPaintTopcoats | null;
+  puttyRequirement?: PainterPuttyRequirement | null;
   additionalRequirements?: string | null;
   /** RCC floors to paint. Empty / omitted for Assam Type and legacy rows. */
   targetFloors?: PainterTargetFloor[] | null;
@@ -59,13 +62,20 @@ export interface PainterDetails {
 }
 
 export const PAINTER_PRIMER_OPTIONS: {
-  value: PainterPrimerRequirement;
+  value: Extract<PainterPrimerRequirement, '1 Coat' | '2 Coats'>;
   label: string;
 }[] = [
   { value: '1 Coat', label: '1 Coat' },
   { value: '2 Coats', label: '2 Coats' },
-  { value: '3 Coats', label: '3 Coats' },
-  { value: 'None', label: 'No Primer' },
+];
+
+export const PAINTER_PUTTY_OPTIONS: {
+  value: PainterPuttyRequirement;
+  label: string;
+}[] = [
+  { value: '1 Coat', label: '1 Coat' },
+  { value: '2 Coats', label: '2 Coats' },
+  { value: 'None', label: 'No Putty Required' },
 ];
 
 export const PAINTER_SCOPE_OPTIONS: {
@@ -160,7 +170,6 @@ export const PAINTER_SURFACE_OPTIONS: {
 export const PAINTER_TOPCOAT_OPTIONS: PainterPaintTopcoats[] = [
   '1 Coat',
   '2 Coats',
-  '3 Coats',
 ];
 
 export const PAINTER_START_TIME_OPTIONS = PROJECT_START_TIME_OPTIONS;
@@ -177,6 +186,7 @@ const LEGACY_START_TIME_MAP: Record<LegacyPainterStartTimeType, PainterStartTime
 };
 
 const PRIMER_SET = new Set<string>(PAINTER_PRIMER_OPTIONS.map((o) => o.value));
+const STORED_PRIMER_SET = new Set<string>([...PRIMER_SET, 'None', '3 Coats']);
 const SCOPE_SET = new Set<string>(PAINTER_SCOPE_OPTIONS.map((o) => o.value));
 const SURFACE_SET = new Set<string>(PAINTER_SURFACE_OPTIONS.map((o) => o.value));
 const LEGACY_SURFACE_MAP: Record<LegacyPainterSurfaceCondition, PainterSurfaceCondition> = {
@@ -184,6 +194,8 @@ const LEGACY_SURFACE_MAP: Record<LegacyPainterSurfaceCondition, PainterSurfaceCo
   repaint_repair: 'repaint',
 };
 const TOPCOAT_SET = new Set<string>(PAINTER_TOPCOAT_OPTIONS);
+const STORED_TOPCOAT_SET = new Set<string>([...TOPCOAT_SET, '3 Coats']);
+const PUTTY_SET = new Set<string>(PAINTER_PUTTY_OPTIONS.map((o) => o.value));
 const TARGET_FLOOR_SET = new Set<PainterTargetFloor>([
   'ground',
   'first',
@@ -382,7 +394,7 @@ export function isPainterDetails(value: unknown): value is PainterDetails {
     Number.isFinite(v.projectArea) &&
     v.projectArea > 0 &&
     typeof v.primerRequirement === 'string' &&
-    PRIMER_SET.has(v.primerRequirement) &&
+    STORED_PRIMER_SET.has(v.primerRequirement) &&
     materialsOk &&
     normalizeStartTimeType(v.projectStartTimeType) != null &&
     optionalEnumOk(v.paintingScope, SCOPE_SET) &&
@@ -390,7 +402,8 @@ export function isPainterDetails(value: unknown): value is PainterDetails {
     (v.surfaceCondition === undefined ||
       v.surfaceCondition === null ||
       normalizeSurfaceCondition(v.surfaceCondition) != null) &&
-    optionalEnumOk(v.paintTopcoats, TOPCOAT_SET) &&
+    optionalEnumOk(v.paintTopcoats, STORED_TOPCOAT_SET) &&
+    optionalEnumOk(v.puttyRequirement, PUTTY_SET) &&
     additionalOk &&
     floorsOk &&
     customFloorsOk &&
@@ -419,8 +432,12 @@ export function parsePainterDetails(value: unknown): PainterDetails | null {
       : null;
   const surfaceCondition = normalizeSurfaceCondition(value.surfaceCondition);
   const paintTopcoats =
-    typeof value.paintTopcoats === 'string' && TOPCOAT_SET.has(value.paintTopcoats)
+    typeof value.paintTopcoats === 'string' && STORED_TOPCOAT_SET.has(value.paintTopcoats)
       ? (value.paintTopcoats as PainterPaintTopcoats)
+      : null;
+  const puttyRequirement =
+    typeof value.puttyRequirement === 'string' && PUTTY_SET.has(value.puttyRequirement)
+      ? (value.puttyRequirement as PainterPuttyRequirement)
       : null;
   const additionalRequirements =
     typeof value.additionalRequirements === 'string' && value.additionalRequirements.trim()
@@ -445,6 +462,7 @@ export function parsePainterDetails(value: unknown): PainterDetails | null {
     paintFinish,
     surfaceCondition,
     paintTopcoats,
+    puttyRequirement,
     additionalRequirements,
     targetFloors: targetFloors.length > 0 ? targetFloors : null,
     customTargetFloors,
@@ -460,7 +478,12 @@ export function formatPainterProjectArea(area: number): string {
 }
 
 export function formatPainterPrimer(primer: PainterPrimerRequirement): string {
-  return optionLabel(PAINTER_PRIMER_OPTIONS, primer);
+  if (primer === 'None') return 'No Primer';
+  return primer;
+}
+
+export function formatPainterPutty(putty: PainterPuttyRequirement): string {
+  return optionLabel(PAINTER_PUTTY_OPTIONS, putty);
 }
 
 export function formatPainterMaterials(materialsIncludeClient: boolean): string {
@@ -516,6 +539,13 @@ export function getPainterWorkRequirementBlocks(details: PainterDetails): {
     });
   }
 
+  if (details.puttyRequirement) {
+    blocks.push({
+      label: 'Wall Putty Requirement',
+      value: formatPainterPutty(details.puttyRequirement),
+    });
+  }
+
   blocks.push({
     label: 'Primer',
     value: formatPainterPrimer(details.primerRequirement),
@@ -555,6 +585,7 @@ export function validatePainterDetailsInput(input: {
   projectArea: string | number;
   carpetArea?: string | number | null;
   primerRequirement: string;
+  puttyRequirement: PainterPuttyRequirement | null;
   projectStartTimeType: PainterStartTimeType | null;
   projectStartTimeSpecificDate: string;
   paintingScope: PainterPaintingScope | null;
@@ -578,6 +609,9 @@ export function validatePainterDetailsInput(input: {
   }
   if (!input.surfaceCondition || !SURFACE_SET.has(input.surfaceCondition)) {
     return { error: 'Select a surface condition.' };
+  }
+  if (!input.puttyRequirement || !PUTTY_SET.has(input.puttyRequirement)) {
+    return { error: 'Select a wall putty requirement.' };
   }
   if (!PRIMER_SET.has(input.primerRequirement)) {
     return { error: 'Select a primer requirement.' };
@@ -620,6 +654,7 @@ export function validatePainterDetailsInput(input: {
       details: {
         projectArea: area,
         primerRequirement: input.primerRequirement as PainterPrimerRequirement,
+        puttyRequirement: input.puttyRequirement,
         materialsIncludeClient: null,
         projectStartTimeType: 'specific',
         projectStartTimeSpecificDate: date,
@@ -637,6 +672,7 @@ export function validatePainterDetailsInput(input: {
     details: {
       projectArea: area,
       primerRequirement: input.primerRequirement as PainterPrimerRequirement,
+      puttyRequirement: input.puttyRequirement,
       materialsIncludeClient: null,
       projectStartTimeType: input.projectStartTimeType,
       projectStartTimeSpecificDate: null,

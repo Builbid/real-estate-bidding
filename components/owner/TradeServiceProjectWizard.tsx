@@ -25,6 +25,7 @@ import { getTradeLabel, getTradeEmoji } from '@/lib/trades';
 import {
   PAINTER_PAINT_AREA_DISCLAIMER,
   PAINTER_PRIMER_OPTIONS,
+  PAINTER_PUTTY_OPTIONS,
   PAINTER_SCOPE_OPTIONS,
   PAINTER_START_TIME_OPTIONS,
   PAINTER_SURFACE_OPTIONS,
@@ -39,6 +40,7 @@ import {
   type PainterPaintTopcoats,
   type PainterPaintingScope,
   type PainterPrimerRequirement,
+  type PainterPuttyRequirement,
   type PainterStartTimeType,
   type PainterSurfaceCondition,
 } from '@/lib/painterDetails';
@@ -82,6 +84,7 @@ interface FormState extends TradeWorkFormFields {
   paintingScope: PainterPaintingScope | null;
   surfaceCondition: PainterSurfaceCondition | null;
   primerRequirement: PainterPrimerRequirement | '';
+  puttyRequirement: PainterPuttyRequirement | null;
   paintTopcoats: PainterPaintTopcoats | null;
 }
 
@@ -146,6 +149,7 @@ const EMPTY_FORM: FormState = {
   paintingScope: null,
   surfaceCondition: null,
   primerRequirement: '',
+  puttyRequirement: null,
   paintTopcoats: null,
   plumberScope: 'full_house',
   bathrooms: 1,
@@ -411,6 +415,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
       const validated = validatePainterDetailsInput({
         projectArea: form.projectArea,
         primerRequirement: form.primerRequirement,
+        puttyRequirement: form.puttyRequirement,
         projectStartTimeType: form.projectStartTimeType as PainterStartTimeType | null,
         projectStartTimeSpecificDate: form.projectStartTimeSpecificDate,
         paintingScope: form.paintingScope,
@@ -461,6 +466,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
       const validated = validatePainterDetailsInput({
         projectArea: form.projectArea,
         primerRequirement: form.primerRequirement,
+        puttyRequirement: form.puttyRequirement,
         projectStartTimeType: form.projectStartTimeType as PainterStartTimeType | null,
         projectStartTimeSpecificDate: form.projectStartTimeSpecificDate,
         paintingScope: form.paintingScope,
@@ -921,6 +927,17 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                   />
 
                   <PainterChoice
+                    label="Wall Putty Requirement"
+                    options={PAINTER_PUTTY_OPTIONS}
+                    value={form.puttyRequirement}
+                    onChange={(v) => {
+                      update('puttyRequirement', v);
+                      setStep2Error(null);
+                    }}
+                    columns={3}
+                  />
+
+                  <PainterChoice
                     label="Primer Requirement"
                     options={PAINTER_PRIMER_OPTIONS}
                     value={form.primerRequirement || null}
@@ -928,7 +945,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                       update('primerRequirement', v);
                       setStep2Error(null);
                     }}
-                    columns={3}
+                    columns={2}
                   />
 
                   <PainterChoice
@@ -939,7 +956,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                       update('paintTopcoats', v);
                       setStep2Error(null);
                     }}
-                    columns={3}
+                    columns={2}
                   />
 
                   <div className={FORM_SECTION_CARD}>
@@ -1032,10 +1049,11 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                         },
                       ]
                     : []),
-                  ...(isPainter && form.carpetArea && form.projectArea && form.paintingScope && form.surfaceCondition && form.primerRequirement && form.paintTopcoats && form.projectStartTimeType
+                  ...(isPainter && form.carpetArea && form.projectArea && form.paintingScope && form.surfaceCondition && form.puttyRequirement && form.primerRequirement && form.paintTopcoats && form.projectStartTimeType
                     ? getPainterWorkRequirementBlocks({
                         projectArea: parseFloat(form.projectArea) || 0,
                         primerRequirement: form.primerRequirement,
+                        puttyRequirement: form.puttyRequirement,
                         materialsIncludeClient: null,
                         projectStartTimeType: form.projectStartTimeType as PainterStartTimeType,
                         projectStartTimeSpecificDate: form.projectStartTimeSpecificDate || null,

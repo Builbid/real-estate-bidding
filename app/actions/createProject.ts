@@ -245,6 +245,7 @@ export async function createProjectAction(
       insertPayload.painter_details = {
         projectArea: trade.painter_details.projectArea,
         primerRequirement: trade.painter_details.primerRequirement,
+        puttyRequirement: trade.painter_details.puttyRequirement ?? null,
         materialsIncludeClient: trade.painter_details.materialsIncludeClient ?? null,
         projectStartTimeType: trade.painter_details.projectStartTimeType,
         projectStartTimeSpecificDate:
