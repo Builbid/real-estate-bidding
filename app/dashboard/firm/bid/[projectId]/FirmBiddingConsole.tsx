@@ -28,7 +28,6 @@ import {
 } from '@/lib/project/display';
 import { formatEstimatedTotalLabel } from '@/lib/firm/bidDisplay';
 import {
-  BID_RATE_ERROR,
   getBidRateFieldError,
   isValidBidRate,
   parseBidDbError,
@@ -375,6 +374,7 @@ export function FirmBiddingConsole({
                               type="text"
                               inputMode="numeric"
                               pattern="[0-9]*"
+                              step="1"
                               placeholder="e.g. 1850"
                               value={value}
                               onChange={(e) => handleRateChange(pkg.id, e.target.value)}
@@ -383,9 +383,6 @@ export function FirmBiddingConsole({
                               error={fieldError ?? undefined}
                               required
                             />
-                            {fieldError === BID_RATE_ERROR && (
-                              <p className="text-xs text-amber-400">{BID_RATE_ERROR}</p>
-                            )}
                             {parsedRate && isValidBidRate(parsedRate) && floorAreaSqft ? (
                               <p className="text-[11px] text-muted-foreground mt-1">
                                 Estimated Total:{' '}

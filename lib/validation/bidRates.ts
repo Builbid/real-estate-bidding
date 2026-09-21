@@ -2,14 +2,10 @@ import type { BidFloorRateKey, BidRates, ServiceType } from '@/lib/types';
 import { getRateKeys } from '@/lib/utils';
 
 export const BID_RATE_ERROR =
-  'Rate must end in 0 or 5 (e.g., 1230, 1235).';
+  'Rate must be a whole number greater than zero.';
 
-/** Only these services still require rates ending in 0 or 5. All others accept 0–9. */
-export const MULTIPLE_OF_FIVE_SERVICES = [
-  'plumber',
-  'earthwork',
-  'construction_firm',
-] as const;
+/** @deprecated All services now accept any positive integer (₹1 step). Kept for call-site compatibility. */
+export const MULTIPLE_OF_FIVE_SERVICES = [] as const;
 
 export const FLEXIBLE_WHOLE_NUMBER_SERVICES = [
   'painter',
@@ -17,10 +13,14 @@ export const FLEXIBLE_WHOLE_NUMBER_SERVICES = [
   'carpenter',
   'drawing_design',
   'false_ceiling_work',
+  'plumber',
+  'earthwork',
+  'construction_firm',
+  'labour_contractor',
 ] as const;
 
 export interface BidRateRules {
-  /** When false, any positive whole number is accepted. Default true for plumber/earthwork/firm. */
+  /** Ignored — any positive whole number is accepted. */
   requireMultipleOfFive?: boolean;
 }
 
@@ -28,23 +28,12 @@ export function normalizeServiceType(serviceType?: string | null): string {
   return String(serviceType ?? '').trim().toLowerCase();
 }
 
-export function allowsAnyWholeNumberRate(...serviceTypes: Array<string | null | undefined>): boolean {
-  const normalized = serviceTypes.map(normalizeServiceType).filter(Boolean);
-  if (normalized.some((value) => (FLEXIBLE_WHOLE_NUMBER_SERVICES as readonly string[]).includes(value))) {
-    return true;
-  }
-  if (normalized.length === 0) return true;
-  return normalized.every(
-    (value) => !(MULTIPLE_OF_FIVE_SERVICES as readonly string[]).includes(value),
-  );
+export function allowsAnyWholeNumberRate(..._serviceTypes: Array<string | null | undefined>): boolean {
+  return true;
 }
 
-export function getBidRateRules(...serviceTypes: Array<ServiceType | string | null | undefined>): BidRateRules {
-  return { requireMultipleOfFive: !allowsAnyWholeNumberRate(...serviceTypes) };
-}
-
-function requiresMultipleOfFive(rules?: BidRateRules): boolean {
-  return rules?.requireMultipleOfFive === true;
+export function getBidRateRules(..._serviceTypes: Array<ServiceType | string | null | undefined>): BidRateRules {
+  return { requireMultipleOfFive: false };
 }
 
 /** Strip non-digit characters so only whole numbers can be entered. */
@@ -63,25 +52,16 @@ export function toRateNumber(value: unknown): number {
   return Number(value) || 0;
 }
 
-export function isValidBidRate(value: number | undefined, rules?: BidRateRules): boolean {
+export function isValidBidRate(value: number | undefined, _rules?: BidRateRules): boolean {
   if (value === undefined || value <= 0) return false;
-  if (!Number.isInteger(value)) return false;
-  if (!requiresMultipleOfFive(rules)) return true;
-  return value % 5 === 0;
+  return Number.isInteger(value);
 }
 
-export function roundBidRateToNearestFive(value: number): number {
-  if (value <= 0) return 5;
-  const rounded = Math.round(value / 5) * 5;
-  return rounded <= 0 ? 5 : rounded;
-}
-
-export function getBidRateFieldError(value: number | undefined, rules?: BidRateRules): string | null {
+export function getBidRateFieldError(value: number | undefined, _rules?: BidRateRules): string | null {
   if (value === undefined || value <= 0) return null;
   if (!Number.isInteger(value)) {
     return 'Rate must be a whole number with no decimals.';
   }
-  if (requiresMultipleOfFive(rules) && value % 5 !== 0) return BID_RATE_ERROR;
   return null;
 }
 
@@ -189,12 +169,9 @@ export function ratesToInputStrings(rates: Partial<BidRates>): Partial<Record<Bi
 }
 
 /** Map Postgres trigger / RLS errors to user-friendly bid messages. */
-export function parseBidDbError(message: string, serviceType?: string | null): string {
+export function parseBidDbError(message: string, _serviceType?: string | null): string {
   if (message.includes('bid_rate_must_end_in_0_or_5')) {
-    if (allowsAnyWholeNumberRate(serviceType)) {
-      return 'Unable to save this bid. Please try again.';
-    }
-    return BID_RATE_ERROR;
+    return 'Unable to save this bid. Please try again.';
   }
   if (message.includes('bid_rate_must_be_whole_number')) {
     return 'Rate must be a whole number with no decimals.';

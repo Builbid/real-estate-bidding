@@ -33,7 +33,6 @@ import {
   parseBidRateValue,
   parseBidDbError,
   ratesToInputStrings,
-  roundBidRateToNearestFive,
   sanitizeBidRateInput,
   validateBidRatesForFloorCount,
 } from '@/lib/validation/bidRates';
@@ -827,18 +826,6 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
     });
   }
 
-  function handleRoundToNearestFive(key: BidFloorRateKey) {
-    const current = parseBidRateValue(rateInputs[key] ?? '') ?? rates[key] ?? 0;
-    if (current <= 0) return;
-
-    const rounded = roundBidRateToNearestFive(current);
-    const sanitized = String(rounded);
-
-    setRateInputs((prev) => ({ ...prev, [key]: sanitized }));
-    setRates((prev) => ({ ...prev, [key]: rounded }));
-    validateRateField(key, rounded);
-  }
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
@@ -1295,11 +1282,6 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                       : isCivilItem
                         ? civilRateErrors[item.civilIndex]
                         : rateErrors[item.floorKey];
-                    const showRoundHelper =
-                      !isFlexibleRate &&
-                      fieldError === BID_RATE_ERROR &&
-                      numericValue !== undefined &&
-                      numericValue > 0;
                     const visibleError =
                       isUnitItem && fieldError === BID_RATE_ERROR ? undefined : fieldError;
                     const isAssamFloor =
@@ -1347,6 +1329,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                             type="text"
                             inputMode="numeric"
                             pattern="[0-9]*"
+                            step="1"
                             placeholder={item.placeholder}
                             value={inputValue}
                             onChange={(e) => {
@@ -1379,24 +1362,6 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                             required={!isUnitItem}
                           />
                           )}
-                          {!(isCivilItem && item.costKind === 'flooring') && showRoundHelper && numericValue != null && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const rounded = String(roundBidRateToNearestFive(numericValue));
-                                if (item.kind === 'unit') {
-                                  handleUnitRateChange(item.optionId, rounded);
-                                } else if (item.kind === 'civil') {
-                                  handleCivilRateChange(item.civilIndex, rounded);
-                                } else {
-                                  handleRoundToNearestFive(item.floorKey);
-                                }
-                              }}
-                              className="mt-1 text-xs text-amber-400 hover:text-amber-300 underline underline-offset-2 transition-colors"
-                            >
-                              Round to nearest 5 (→ ₹{roundBidRateToNearestFive(numericValue).toLocaleString('en-IN')})
-                            </button>
-                          )}
                           {isCivilItem && item.costKind === 'civil' && numericValue != null && numericValue > 0 && item.slabAreaSqft > 0 && (
                             <p className={cn('text-xs font-medium', estimateClass)}>
                               Floor civil estimate: ₹{computeMistriFloorCivilCost(item.slabAreaSqft, numericValue).toLocaleString('en-IN')}
@@ -1425,6 +1390,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                                 type="text"
                                 inputMode="numeric"
                                 pattern="[0-9]*"
+                                step="1"
                                 placeholder={flooringFittingFieldLabel(item.flooringMaterialLabel || 'Flooring')}
                                 value={flooringRateInputs[item.floorId] ?? ''}
                                 onChange={(e) => handleFlooringRateChange(item.floorId, e.target.value)}
@@ -1433,22 +1399,6 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                                 error={flooringRateErrors[item.floorId]}
                                 required
                               />
-                              {!isFlexibleRate &&
-                                flooringRateErrors[item.floorId] === BID_RATE_ERROR &&
-                                parseBidRateValue(flooringRateInputs[item.floorId] ?? '') != null &&
-                                (parseBidRateValue(flooringRateInputs[item.floorId] ?? '') ?? 0) > 0 && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const current = parseBidRateValue(flooringRateInputs[item.floorId] ?? '');
-                                    if (current == null) return;
-                                    handleFlooringRateChange(item.floorId, String(roundBidRateToNearestFive(current)));
-                                  }}
-                                  className="mt-1 text-xs text-amber-400 hover:text-amber-300 underline underline-offset-2 transition-colors"
-                                >
-                                  Round to nearest 5 (→ ₹{roundBidRateToNearestFive(parseBidRateValue(flooringRateInputs[item.floorId] ?? '') ?? 0).toLocaleString('en-IN')})
-                                </button>
-                              )}
                               {parseBidRateValue(flooringRateInputs[item.floorId] ?? '') != null &&
                                 (parseBidRateValue(flooringRateInputs[item.floorId] ?? '') ?? 0) > 0 &&
                                 item.flooringAreaSqft > 0 && (
@@ -1497,6 +1447,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                       type="text"
                       inputMode="numeric"
                       pattern="[0-9]*"
+                      step="1"
                       placeholder="Enter rate per running foot (optional)"
                       value={runningFootInput}
                       onChange={(e) => {

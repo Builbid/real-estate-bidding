@@ -4,7 +4,6 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { normalizeConstructionPackages } from '@/lib/firm/constructionClass';
 import { parseBidDbError, validateSingleRate } from '@/lib/validation/singleRate';
-import { roundBidRateToNearestFive } from '@/lib/validation/bidRates';
 import type { FirmConstructionPackage } from '@/lib/types';
 
 export interface PackageRateInput {
@@ -73,7 +72,7 @@ export async function submitFirmBidAction(
 
   const average =
     packageRatesPayload.reduce((sum, p) => sum + p.rate, 0) / packageRatesPayload.length;
-  const rankingRate = roundBidRateToNearestFive(average);
+  const rankingRate = Math.round(average);
 
   const ratesPayload = { ground_rate: rankingRate };
 
