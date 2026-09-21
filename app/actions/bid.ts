@@ -60,6 +60,8 @@ import {
   validateInteriorUnitRateInputs,
   type InteriorBidOption,
 } from '@/lib/interiorBid';
+import { buildPainterFloorRatePayload } from '@/lib/bid/painterBid';
+import { readPainterBidFloors } from '@/lib/painterDetails';
 
 type UnitRateBidOption = PlumbingBidOption | ElectricianBidOption | InteriorBidOption;
 
@@ -150,17 +152,30 @@ export async function submitBidAction(
     building_types: string[] | null;
     mistri_details: unknown;
     trade_details?: unknown;
+    painter_details?: unknown;
     total_floors: number | null;
   };
 
   const firstLookup = await supabase
     .from('projects')
-    .select('track_type, sub_configuration, service_type, building_types, mistri_details, trade_details, total_floors')
+    .select('track_type, sub_configuration, service_type, building_types, mistri_details, trade_details, painter_details, total_floors')
     .eq('id', projectId)
     .single();
 
   let project: BidProjectRow | null = firstLookup.data as BidProjectRow | null;
   let projectError = firstLookup.error;
+
+  if (projectError && missingProjectsColumn(projectError.message) === 'painter_details') {
+    const retry = await supabase
+      .from('projects')
+      .select('track_type, sub_configuration, service_type, building_types, mistri_details, trade_details, total_floors')
+      .eq('id', projectId)
+      .single();
+    project = retry.data
+      ? ({ ...retry.data, painter_details: undefined } as BidProjectRow)
+      : null;
+    projectError = retry.error;
+  }
 
   if (projectError && missingProjectsColumn(projectError.message) === 'trade_details') {
     const retry = await supabase
@@ -206,6 +221,7 @@ export async function submitBidAction(
   const scopeBid = resolveScopeRateBidItems({
     service_type: project.service_type,
     trade_details: project.trade_details,
+    painter_details: project.painter_details,
     mistri_details: project.mistri_details,
     sub_configuration: project.sub_configuration,
     track_type: project.track_type,
@@ -331,10 +347,14 @@ export async function submitBidAction(
       )
     : null;
 
+  const painterFloors = project.service_type === 'painter' ? readPainterBidFloors(project) : [];
+  const painterFloorPayload =
+    painterFloors.length > 0 ? buildPainterFloorRatePayload(painterFloors, rates) : null;
+
   const ratesPayload = buildBidRatesPayload(
     {
       ...rates,
-      ...(unitRatePayload ?? pointRatePayload ?? mistriCivilPayload ?? {}),
+      ...(unitRatePayload ?? pointRatePayload ?? mistriCivilPayload ?? painterFloorPayload ?? {}),
       bid_unit: earthworkMode
         ? bidUnitForEarthworkMode(earthworkMode)
         : unitRatePayload || pointRatePayload
@@ -343,7 +363,7 @@ export async function submitBidAction(
             ? (scopeBid?.kind === 'plumbing' ? 'per_running_foot' : 'flat')
             : project.service_type === 'electrician'
               ? 'per_point'
-              : mistriCivilPayload
+              : mistriCivilPayload || painterFloorPayload
                 ? 'per_sqft'
                 : rates.bid_unit,
       vehicleCapacityCum: isTripBid ? rates.vehicleCapacityCum : undefined,

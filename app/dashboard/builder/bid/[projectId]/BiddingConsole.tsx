@@ -56,6 +56,8 @@ import {
   sanitizeCapacityInput,
 } from '@/lib/bid/earthworkBid';
 import { resolveScopeRateBidItems } from '@/lib/bid/scopeRateBid';
+import { readPainterBidFloors } from '@/lib/painterDetails';
+import { buildPainterFloorRatePayload } from '@/lib/bid/painterBid';
 import {
   ELECTRICIAN_LABOUR_ONLY_DISCLAIMER,
   computeElectricianPointBidTotal,
@@ -227,7 +229,9 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
   const [builders, setBuilders] = useState<Record<string, BuilderInfo>>({});
   const isTrade = isTradeServiceType(project.service_type);
   const isDrawing = isDrawingDesignServiceType(project.service_type);
-  const isSingleRateBid = isTrade || isDrawing;
+  const painterBidFloors = readPainterBidFloors(project);
+  const isPainterFloorBid = painterBidFloors.length > 0;
+  const isSingleRateBid = (isTrade || isDrawing) && !isPainterFloorBid;
   const serviceBadge = getProjectServiceBadgeLabel(project);
   const configMeta = getProjectConfigOrDrawingMeta(project);
   const workRequirements = getProjectWorkRequirementBlocks(project);
@@ -417,6 +421,8 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
         const category =
           pointFloor
             ? 'Rate Per Point (₹)'
+            : isPainterFloorBid
+            ? 'Painting Work'
             : earthworkMode === 'hourly'
             ? 'Your Hourly Rate'
             : earthworkMode === 'trip'
@@ -438,7 +444,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
           category,
           description: pointFloor?.breakdown ?? matched?.value ?? matchedAssam?.value,
           unitSuffix,
-          placeholder: formatBidRatePlaceholder(unitSuffix),
+          placeholder: isPainterFloorBid ? (label || 'Enter rate per sqft') : formatBidRatePlaceholder(unitSuffix),
           kind: 'floor' as const,
           floorKey,
         }];
@@ -941,11 +947,14 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
           ),
         )
       : null;
+    const painterPayload = isPainterFloorBid
+      ? buildPainterFloorRatePayload(painterBidFloors, rates)
+      : null;
     const result = await submitBidAction(project.id, {
-      ground_rate: mistriPayload?.ground_rate ?? rates.ground_rate ?? 0,
-      first_rate: mistriPayload?.first_rate ?? rates.first_rate,
-      second_rate: mistriPayload?.second_rate ?? rates.second_rate,
-      third_rate: mistriPayload?.third_rate ?? rates.third_rate,
+      ground_rate: mistriPayload?.ground_rate ?? painterPayload?.ground_rate ?? rates.ground_rate ?? 0,
+      first_rate: mistriPayload?.first_rate ?? painterPayload?.first_rate ?? rates.first_rate,
+      second_rate: mistriPayload?.second_rate ?? painterPayload?.second_rate ?? rates.second_rate,
+      third_rate: mistriPayload?.third_rate ?? painterPayload?.third_rate ?? rates.third_rate,
       ...(mistriPayload
         ? {
             bid_unit: 'per_sqft' as const,
@@ -957,6 +966,14 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
             flooring_rates: mistriPayload.flooring_rates,
             wall_rates: mistriPayload.wall_rates,
             tile_fitting_rate: mistriPayload.tile_fitting_rate,
+          }
+        : {}),
+      ...(painterPayload
+        ? {
+            bid_unit: 'per_sqft' as const,
+            floor_rates: painterPayload.floor_rates,
+            floor_rate_breakdown: painterPayload.floor_rate_breakdown,
+            average_rate: painterPayload.average_rate,
           }
         : {}),
       ...(earthworkMode === 'hourly' ? { bid_unit: 'per_hour' as const } : {}),
@@ -1165,7 +1182,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                           {floorCount === 1 ? (
                             <>Single rate<br />bid</>
                           ) : (
-                            <>Average of {floorCount} items</>
+                            <>Average of {floorCount} {scopeBid?.kind === 'floors' ? 'floors' : 'items'}</>
                           )}
                         </p>
                       )}
@@ -1559,7 +1576,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                       {floorCount === 1 ? (
                         <>Single rate<br />bid</>
                       ) : (
-                        <>Average of {floorCount} items</>
+                        <>Average of {floorCount} {scopeBid?.kind === 'floors' ? 'floors' : 'items'}</>
                       )}
                     </p>
                   )}

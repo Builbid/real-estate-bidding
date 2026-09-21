@@ -11,6 +11,7 @@ import {
 } from './projectStartTime';
 import { parseCustomFloorSequence } from './mistriDetails';
 import { formatCustomFloorsList } from './customFloors';
+import { readNestedProjectDetail } from './project/storedDetails';
 
 export type PainterStartTimeType = ProjectStartTimeType;
 
@@ -184,6 +185,74 @@ function formatPainterTargetFloors(
         : TARGET_FLOOR_LABELS[floor],
     )
     .join(', ');
+}
+
+const PAINTER_BID_FLOOR_LABELS: Record<Exclude<PainterTargetFloor, 'custom'>, string> = {
+  ground: 'Ground Floor',
+  first: '1st Floor',
+  second: '2nd Floor',
+  third: '3rd Floor',
+  fourth: '4th Floor',
+};
+
+const PAINTER_BID_FLOOR_ORDER: PainterTargetFloor[] = [
+  'ground',
+  'first',
+  'second',
+  'third',
+  'fourth',
+  'custom',
+];
+
+function ordinalFloorLabel(n: number): string {
+  const abs = Math.abs(n);
+  const j = abs % 10;
+  const k = abs % 100;
+  const suffix =
+    j === 1 && k !== 11 ? 'st' : j === 2 && k !== 12 ? 'nd' : j === 3 && k !== 13 ? 'rd' : 'th';
+  return `${n}${suffix} Floor`;
+}
+
+export interface PainterBidFloor {
+  id: string;
+  floor: PainterTargetFloor;
+  label: string;
+  rateLabel: string;
+}
+
+export function readPainterBidFloors(project: {
+  service_type?: string | null;
+  painter_details?: unknown;
+  sub_configuration?: unknown;
+}): PainterBidFloor[] {
+  const details = parsePainterDetails(readNestedProjectDetail(project, 'painter_details'));
+  if (!details?.targetFloors?.length) return [];
+
+  const selected = new Set(details.targetFloors);
+  const floors: PainterBidFloor[] = [];
+  for (const key of PAINTER_BID_FLOOR_ORDER) {
+    if (!selected.has(key)) continue;
+    if (key === 'custom') {
+      for (const n of details.customTargetFloors ?? []) {
+        const label = ordinalFloorLabel(n);
+        floors.push({
+          id: `custom-${n}`,
+          floor: 'custom',
+          label,
+          rateLabel: `${label} Rate (/sqft)`,
+        });
+      }
+      continue;
+    }
+    const label = PAINTER_BID_FLOOR_LABELS[key];
+    floors.push({
+      id: key,
+      floor: key,
+      label,
+      rateLabel: `${label} Rate (/sqft)`,
+    });
+  }
+  return floors;
 }
 
 function normalizeStartTimeType(value: unknown): PainterStartTimeType | null {

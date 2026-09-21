@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { FileSignature, Loader2 } from 'lucide-react';
 import {
   Dialog,
@@ -14,21 +14,26 @@ import { Button } from '@/components/ui/button';
 import { IndianContractDateField } from '@/components/admin/IndianContractDateField';
 import { sendContractAgreementForSignatureAction } from '@/app/admin/contract-actions';
 import { formatAadhaarInput } from '@/lib/contract/aadhaar';
+import { normalizeProjectId } from '@/lib/contract/projectId';
 
 export function CreateContractAgreementModal({
   open,
   onOpenChange,
   projectId,
+  publicId,
   projectTitle,
   clientName,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   projectId: string;
+  publicId?: string;
   projectTitle: string;
   clientName: string;
 }) {
   const [pending, startTransition] = useTransition();
+  const [activeProjectId, setActiveProjectId] = useState(normalizeProjectId(projectId));
+  const [activePublicId, setActivePublicId] = useState(normalizeProjectId(publicId));
   const [plinthArea, setPlinthArea] = useState('');
   const [startDate, setStartDate] = useState('');
   const [completionDate, setCompletionDate] = useState('');
@@ -37,6 +42,21 @@ export function CreateContractAgreementModal({
   const [contractorAadhaar, setContractorAadhaar] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const nextId = normalizeProjectId(projectId);
+    const nextPublicId = normalizeProjectId(publicId);
+    setActiveProjectId(nextId);
+    setActivePublicId(nextPublicId);
+    if (!nextId) {
+      console.error(
+        '[CreateContractAgreement] Modal opened without projectId. publicId=',
+        nextPublicId || '(empty)',
+      );
+      setError('Project context is missing. Close this dialog and open it from a project row.');
+    }
+  }, [open, projectId, publicId]);
 
   function reset() {
     setPlinthArea('');
@@ -50,11 +70,24 @@ export function CreateContractAgreementModal({
   }
 
   function submit() {
+    const pid = activeProjectId || normalizeProjectId(projectId);
+    const code = activePublicId || normalizeProjectId(publicId);
     setError(null);
     setMessage(null);
+    if (!pid) {
+      console.error(
+        '[CreateContractAgreement] eSign blocked: projectId is missing from modal state.',
+        { projectId, publicId, activeProjectId, activePublicId },
+      );
+      setError('Project not found. Close this dialog and reopen it from the project row.');
+      return;
+    }
     startTransition(async () => {
       const result = await sendContractAgreementForSignatureAction({
-        projectId,
+        projectId: pid,
+        id: pid,
+        project_id: pid,
+        numeric_id: code || undefined,
         plinthArea,
         startDate,
         completionDate,
@@ -69,6 +102,8 @@ export function CreateContractAgreementModal({
       setMessage(result.message ?? 'Contract sent for dual Aadhaar eSign.');
     });
   }
+
+  const shownId = activePublicId || activeProjectId;
 
   return (
     <Dialog
@@ -85,8 +120,10 @@ export function CreateContractAgreementModal({
             Create Contract Agreement
           </DialogTitle>
           <DialogDescription>
-            {projectTitle} · Client: {clientName}. Existing bid-winning agreement clauses are
-            preserved. Both parties will receive a draft PDF and Aadhaar eSign OTP.
+            {projectTitle}
+            {shownId ? ` · Project ID: ${shownId}` : ''}
+            {clientName ? ` · Client: ${clientName}` : ''}. Existing bid-winning agreement clauses
+            are preserved. Both parties will receive a draft PDF and Aadhaar eSign OTP.
           </DialogDescription>
         </DialogHeader>
 

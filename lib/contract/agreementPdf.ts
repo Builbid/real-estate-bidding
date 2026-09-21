@@ -73,18 +73,22 @@ export function nonEmpty(value: string | null | undefined, fallback = '—'): st
 
 export function numericProjectId(value?: string | null): string {
   const trimmed = value?.trim();
-  return trimmed && /^[0-9]{6}$/.test(trimmed) ? trimmed : '';
+  if (!trimmed) return '';
+  if (/^[A-Z][0-9][A-Z][0-9][A-Z][0-9][A-Z][0-9]$/i.test(trimmed)) {
+    return trimmed.toUpperCase();
+  }
+  return /^[0-9]{6}$/.test(trimmed) ? trimmed : '';
 }
 
 export function officialAgreementFileName(
   projectId: string,
   numericId?: string | null,
 ): string {
-  const numeric = numericId?.trim();
+  const numeric = numericProjectId(numericId);
   const safe =
-    numeric && /^[0-9]{6}$/.test(numeric)
-      ? numeric
-      : projectId.replace(/[^a-zA-Z0-9-_]/g, '').slice(0, 36) || 'project';
+    numeric ||
+    projectId.replace(/[^a-zA-Z0-9-_]/g, '').slice(0, 36) ||
+    'project';
   return `Official-Signed-Agreement-${safe}.pdf`;
 }
 
@@ -93,7 +97,7 @@ export function officialAgreementEmailSubject(
   numericId: string | null | undefined,
   serviceLabel: string,
 ): string {
-  const id = numericId?.trim() && /^[0-9]{6}$/.test(numericId.trim()) ? numericId.trim() : projectId;
+  const id = numericProjectId(numericId) || projectId;
   return `Official Signed Agreement - Project #${id} (${serviceLabel})`;
 }
 

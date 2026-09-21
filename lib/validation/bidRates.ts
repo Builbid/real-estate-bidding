@@ -154,6 +154,15 @@ export function buildBidRatesPayload(
     ...(rates.wall_rates && Object.keys(rates.wall_rates).length > 0
       ? { wall_rates: rates.wall_rates }
       : {}),
+    ...(rates.floor_rates && Object.keys(rates.floor_rates).length > 0
+      ? { floor_rates: rates.floor_rates }
+      : {}),
+    ...(Array.isArray(rates.floor_rate_breakdown) && rates.floor_rate_breakdown.length > 0
+      ? { floor_rate_breakdown: rates.floor_rate_breakdown }
+      : {}),
+    ...(rates.average_rate != null && rates.average_rate > 0
+      ? { average_rate: rates.average_rate }
+      : {}),
   };
 }
 

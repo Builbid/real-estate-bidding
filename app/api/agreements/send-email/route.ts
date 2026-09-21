@@ -12,6 +12,11 @@ import { isMistriCivilService } from '@/lib/contract/mistriAgreement';
 import { isPlumberService } from '@/lib/contract/plumberAgreement';
 import { isElectricianService } from '@/lib/contract/electricianAgreement';
 import { isPainterService } from '@/lib/contract/painterAgreement';
+import {
+  createAgreementLookupClient,
+  extractProjectIdFromRequest,
+  findProjectByAnyId,
+} from '@/lib/contract/resolveProjectId';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -26,44 +31,50 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  let projectId = '';
-  try {
-    const body = (await request.json()) as { projectId?: string };
-    projectId = body.projectId?.trim() ?? '';
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body.' }, { status: 400 });
-  }
-
-  if (!projectId) {
+  const requestedId = await extractProjectIdFromRequest(request);
+  if (!requestedId) {
+    console.error(
+      '[agreements/send-email] projectId missing from payload. Expected projectId, id, or project_id.',
+    );
     return NextResponse.json({ error: 'projectId is required.' }, { status: 400 });
   }
 
-  const { data: project } = await supabase
-    .from('projects')
-    .select('service_type')
-    .eq('id', projectId)
-    .maybeSingle();
+  const db = await createAgreementLookupClient(user.email);
+  const { data: project, errorMessage } = await findProjectByAnyId<{
+    id: string;
+    service_type: string | null;
+  }>(db, requestedId, 'id, service_type');
+
+  if (!project) {
+    console.error('[agreements/send-email] Project lookup failed.', {
+      requestedId,
+      errorMessage,
+    });
+    return NextResponse.json({ error: 'Project not found.' }, { status: 404 });
+  }
+
+  const projectId = project.id;
 
   try {
-    if (isPlumberService(project?.service_type)) {
+    if (isPlumberService(project.service_type)) {
       const loaded = await loadPlumberAgreementPayload(projectId, user.id);
       if ('error' in loaded) {
         return NextResponse.json({ error: loaded.error }, { status: loaded.status });
       }
       await sendOfficialPlumberAgreementEmail(loaded.payload);
-    } else if (isElectricianService(project?.service_type)) {
+    } else if (isElectricianService(project.service_type)) {
       const loaded = await loadElectricianAgreementPayload(projectId, user.id);
       if ('error' in loaded) {
         return NextResponse.json({ error: loaded.error }, { status: loaded.status });
       }
       await sendOfficialElectricianAgreementEmail(loaded.payload);
-    } else if (isPainterService(project?.service_type)) {
+    } else if (isPainterService(project.service_type)) {
       const loaded = await loadPainterAgreementPayload(projectId, user.id);
       if ('error' in loaded) {
         return NextResponse.json({ error: loaded.error }, { status: loaded.status });
       }
       await sendOfficialPainterAgreementEmail(loaded.payload);
-    } else if (!project || isMistriCivilService(project.service_type)) {
+    } else if (!project.service_type || isMistriCivilService(project.service_type)) {
       const loaded = await loadMistriAgreementPayload(projectId, user.id);
       if ('error' in loaded) {
         return NextResponse.json({ error: loaded.error }, { status: loaded.status });

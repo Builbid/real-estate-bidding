@@ -1,6 +1,7 @@
 import { createHash, createHmac, randomBytes, randomInt, timingSafeEqual } from 'crypto';
 import { jsPDF } from 'jspdf';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { findProjectByAnyId } from '@/lib/contract/resolveProjectId';
 import { isoToIndianDate } from '@/lib/projectStartTime';
 import { formatInrAmount, officialAgreementFileName } from '@/lib/contract/agreementPdf';
 import {
@@ -224,17 +225,41 @@ export async function generateDigitalContractPdf(
   overlay: DigitalContractOverlay,
 ): Promise<{ bytes: Uint8Array; filename: string; summary: Record<string, string> }> {
   const admin = createAdminClient();
-  const { data: project, error } = await admin
-    .from('projects')
-    .select(
-      'id, owner_id, title, district, state, pincode, description, track_type, sub_configuration, building_types, construction_types, total_floors, plot_area_sqft, floor_area_sqft, mistri_details, painter_details, trade_details, service_type, selected_builder_id, numeric_id',
-    )
-    .eq('id', projectId)
-    .maybeSingle();
+  const { data: project, errorMessage } = await findProjectByAnyId<{
+    id: string;
+    owner_id: string;
+    title: string;
+    district: string;
+    state: string;
+    pincode: string | null;
+    description: string | null;
+    track_type: string | null;
+    sub_configuration: unknown;
+    building_types: unknown;
+    construction_types: unknown;
+    total_floors: number | null;
+    plot_area_sqft: number | null;
+    floor_area_sqft: number | null;
+    mistri_details: unknown;
+    painter_details: unknown;
+    trade_details: unknown;
+    service_type: string | null;
+    selected_builder_id: string | null;
+    numeric_id: string | null;
+  }>(
+    admin,
+    projectId,
+    'id, owner_id, title, district, state, pincode, description, track_type, sub_configuration, building_types, construction_types, total_floors, plot_area_sqft, floor_area_sqft, mistri_details, painter_details, trade_details, service_type, selected_builder_id, numeric_id',
+  );
 
-  if (error || !project) {
+  if (!project) {
+    console.error('[generateDigitalContractPdf] Project lookup failed.', {
+      projectId,
+      errorMessage,
+    });
     throw new Error('Project not found.');
   }
+  const canonicalId = project.id;
   if (!project.selected_builder_id) {
     throw new Error('No contractor has been finalized for this project yet.');
   }
@@ -255,7 +280,7 @@ export async function generateDigitalContractPdf(
     admin
       .from('bids')
       .select('id, total_sum_metric, single_rate, rates')
-      .eq('project_id', projectId)
+      .eq('project_id', canonicalId)
       .eq('builder_id', project.selected_builder_id)
       .limit(1)
       .maybeSingle(),

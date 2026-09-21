@@ -48,6 +48,19 @@ export function getBidFloorRateEntries(
   floorLabels?: string[],
 ): BidFloorRateEntry[] {
   const normalized = normalizeBidRates(rates);
+  const breakdown = Array.isArray(normalized.floor_rate_breakdown)
+    ? normalized.floor_rate_breakdown
+    : [];
+  if (breakdown.length > 0) {
+    return breakdown.flatMap((row) => {
+      if (!row || typeof row.rate !== 'number' || row.rate <= 0) return [];
+      return [{
+        key: 'ground_rate' as BidFloorRateKey,
+        label: row.label || 'Floor',
+        value: row.rate,
+      }];
+    });
+  }
 
   return FLOOR_RATE_KEYS.flatMap((key, index) => {
     const value = normalized[key];

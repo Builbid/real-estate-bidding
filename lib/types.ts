@@ -200,7 +200,7 @@ export interface ProjectDocument {
 export interface Project {
   id: string;
   owner_id: string;
-  /** Short numeric-only public ID shared by all project documents (e.g. 849201). */
+  /** Public project ID: 4 letters + 4 digits (e.g. K7M2Q9P1), stored in numeric_id. */
   numeric_id?: string | null;
   title: string;
   description?: string | null;
@@ -308,6 +308,18 @@ export interface BidRates {
    * Included in total_project_cost / ranking.
    */
   wall_rates?: Record<string, number>;
+  /**
+   * Painter: per-floor ₹/sqft rates keyed by target floor id (ground, first, custom-5, …).
+   */
+  floor_rates?: Record<string, number>;
+  /** Painter: labeled floor-wise rate breakdown stored alongside the aggregated average. */
+  floor_rate_breakdown?: Array<{
+    floorId: string;
+    label: string;
+    rate: number;
+  }>;
+  /** Painter: average of entered floor rates, used for display. Ranking still uses floor keys. */
+  average_rate?: number;
 }
 
 /**

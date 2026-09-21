@@ -15,6 +15,8 @@ export interface AdminKpis {
 
 export interface AdminProjectRow {
   id: string;
+  /** Public project ID stored in projects.numeric_id (4 letters + 4 digits). */
+  publicId: string;
   title: string;
   district: string;
   state: string;
@@ -58,6 +60,7 @@ export interface AdminClientRow {
 
 export interface AdminAgreementRow {
   projectId: string;
+  publicId: string;
   projectTitle: string;
   clientName: string;
   mistriName: string;
@@ -96,7 +99,7 @@ export async function loadAdminDashboardData(): Promise<{
     supabase
       .from('projects')
       .select(
-        'id, title, district, state, status, bidding_ends_at, selection_ends_at, owner_id, selected_builder_id, service_type, created_at, updated_at',
+        'id, numeric_id, title, district, state, status, bidding_ends_at, selection_ends_at, owner_id, selected_builder_id, service_type, created_at, updated_at',
       )
       .order('created_at', { ascending: false })
       .limit(400),
@@ -117,6 +120,7 @@ export async function loadAdminDashboardData(): Promise<{
 
   const projects = (projectsRaw ?? []) as Array<{
     id: string;
+    numeric_id: string | null;
     title: string;
     district: string;
     state: string;
@@ -161,6 +165,7 @@ export async function loadAdminDashboardData(): Promise<{
     }
     return {
       id: p.id,
+      publicId: (p.numeric_id ?? '').trim().toUpperCase(),
       title: p.title,
       district: p.district,
       state: p.state,
@@ -235,6 +240,7 @@ export async function loadAdminDashboardData(): Promise<{
       );
       return {
         projectId: p.id,
+        publicId: (p.numeric_id ?? '').trim().toUpperCase(),
         projectTitle: p.title,
         clientName: owner?.full_name ?? '—',
         mistriName: mistri?.company_name || mistri?.full_name || '—',

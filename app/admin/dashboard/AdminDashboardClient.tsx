@@ -161,6 +161,12 @@ function countdownLabel(iso: string): string {
   return `${h}h ${m}m left`;
 }
 
+function displayProjectId(publicId: string | undefined, uuid: string): string {
+  const id = publicId?.trim();
+  if (id) return id.toUpperCase();
+  return uuid.slice(0, 8).toUpperCase();
+}
+
 function shortId(id: string): string {
   return `#${id.slice(0, 8)}`;
 }
@@ -350,7 +356,38 @@ export function AdminDashboardClient({
   const [projectFilters, setProjectFilters] =
     useState<ProjectColumnFilters>(EMPTY_PROJECT_FILTERS);
   const [pending, startTransition] = useTransition();
-  const [contractProject, setContractProject] = useState<AdminProjectRow | null>(null);
+  const [contractProject, setContractProject] = useState<{
+    id: string;
+    publicId: string;
+    title: string;
+    clientName: string;
+  } | null>(null);
+
+  function openContractModal(row: {
+    id?: string | null;
+    projectId?: string | null;
+    publicId?: string | null;
+    title?: string | null;
+    projectTitle?: string | null;
+    clientName?: string | null;
+  }) {
+    const projectId = (row.id || row.projectId || '').trim();
+    const publicId = (row.publicId || '').trim();
+    if (!projectId) {
+      console.error(
+        '[AdminDashboard] Create Contract Agreement blocked: projectId missing from the selected row.',
+        row,
+      );
+      toast.error('This project is missing an ID. Refresh the dashboard and try again.');
+      return;
+    }
+    setContractProject({
+      id: projectId,
+      publicId,
+      title: row.title || row.projectTitle || '',
+      clientName: row.clientName || '',
+    });
+  }
 
   const projectFiltersActive = useMemo(
     () =>
@@ -387,7 +424,7 @@ export function AdminDashboardClient({
       if (projectFilters.bids === 'awarded' && !p.selectedBuilderId) return false;
 
       if (projectQ) {
-        const hay = `${p.title} ${p.id} ${shortId(p.id)}`.toLowerCase();
+        const hay = `${p.title} ${p.id} ${p.publicId} ${displayProjectId(p.publicId, p.id)}`.toLowerCase();
         if (!hay.includes(projectQ)) return false;
       }
       if (locationQ) {
@@ -405,7 +442,8 @@ export function AdminDashboardClient({
         p.state.toLowerCase().includes(q) ||
         p.clientName.toLowerCase().includes(q) ||
         trade.label.toLowerCase().includes(q) ||
-        p.id.toLowerCase().includes(q)
+        p.id.toLowerCase().includes(q) ||
+        (p.publicId && p.publicId.toLowerCase().includes(q))
       );
     });
   }, [projects, query, projectFilters]);
@@ -718,7 +756,7 @@ export function AdminDashboardClient({
                               {p.title}
                             </Link>
                             <p className="mt-0.5 text-xs text-slate-400">
-                              ID: {shortId(p.id)}
+                              ID: {displayProjectId(p.publicId, p.id)}
                             </p>
                           </td>
                           <td className={TD}>
@@ -794,14 +832,14 @@ export function AdminDashboardClient({
                                   <button
                                     type="button"
                                     title="Create Contract Agreement"
-                                    onClick={() => setContractProject(p)}
+                                    onClick={() => openContractModal(p)}
                                     className="inline-flex items-center gap-1 rounded-md bg-emerald-700 px-2.5 py-1 text-xs font-medium text-white shadow-xs transition hover:bg-emerald-800"
                                   >
                                     <FileSignature className="h-3 w-3" />
                                     Create Contract Agreement
                                   </button>
                                   <a
-                                    href={`/api/agreements/pdf?projectId=${encodeURIComponent(p.id)}`}
+                                    href={`/api/agreements/pdf?projectId=${encodeURIComponent(p.publicId || p.id)}`}
                                     target="_blank"
                                     rel="noreferrer"
                                     className="inline-flex items-center gap-1 rounded-md bg-slate-900 px-2.5 py-1 text-xs font-medium text-white shadow-xs transition hover:bg-slate-800"
@@ -1013,7 +1051,7 @@ export function AdminDashboardClient({
                               {a.projectTitle}
                             </p>
                             <p className="mt-0.5 text-xs text-slate-400">
-                              {a.district} · ID: {shortId(a.projectId)}
+                              {a.district} · ID: {displayProjectId(a.publicId, a.projectId)}
                             </p>
                           </td>
                           <td className={cn(TD, 'text-sm text-slate-700')}>
@@ -1036,7 +1074,14 @@ export function AdminDashboardClient({
                                 type="button"
                                 onClick={() => {
                                   const project = projects.find((p) => p.id === a.projectId);
-                                  if (project) setContractProject(project);
+                                  openContractModal(
+                                    project ?? {
+                                      id: a.projectId,
+                                      publicId: a.publicId,
+                                      title: a.projectTitle,
+                                      clientName: a.clientName,
+                                    },
+                                  );
                                 }}
                                 className="inline-flex items-center gap-1 rounded-md bg-emerald-700 px-2.5 py-1 text-xs font-medium text-white shadow-xs transition hover:bg-emerald-800"
                               >
@@ -1044,7 +1089,7 @@ export function AdminDashboardClient({
                                 Create Contract Agreement
                               </button>
                               <a
-                                href={`/api/agreements/pdf?projectId=${encodeURIComponent(a.projectId)}`}
+                                href={`/api/agreements/pdf?projectId=${encodeURIComponent(a.publicId || a.projectId)}`}
                                 target="_blank"
                                 rel="noreferrer"
                                 className="inline-flex items-center gap-1 rounded-md bg-slate-900 px-2.5 py-1 text-xs font-medium text-white shadow-xs transition hover:bg-slate-800"
@@ -1073,11 +1118,13 @@ export function AdminDashboardClient({
         </main>
       </div>
       <CreateContractAgreementModal
+        key={contractProject?.id ?? 'closed'}
         open={Boolean(contractProject)}
         onOpenChange={(open) => {
           if (!open) setContractProject(null);
         }}
         projectId={contractProject?.id ?? ''}
+        publicId={contractProject?.publicId ?? ''}
         projectTitle={contractProject?.title ?? ''}
         clientName={contractProject?.clientName ?? ''}
       />

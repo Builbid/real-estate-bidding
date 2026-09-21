@@ -17,9 +17,16 @@ import {
 } from '@/lib/contract/renderDigitalContract';
 import { sendDigitalContractDraftEmails } from '@/lib/email/sendDigitalContract';
 import { parseIndianDateToIso } from '@/lib/projectStartTime';
+import {
+  extractProjectIdFromRecord,
+  findProjectByAnyId,
+} from '@/lib/contract/resolveProjectId';
 
 export interface CreateDigitalContractInput {
-  projectId: string;
+  projectId?: string;
+  id?: string;
+  project_id?: string;
+  numeric_id?: string;
   plinthArea: string;
   startDate: string;
   completionDate: string;
@@ -48,8 +55,26 @@ export async function sendContractAgreementForSignatureAction(
 ): Promise<{ error?: string; ok?: boolean; message?: string }> {
   const session = await requireOfficialAdmin();
 
-  const projectId = input.projectId?.trim();
-  if (!projectId) return { error: 'Project is missing.' };
+  const requestedId = extractProjectIdFromRecord({
+    projectId: input.projectId,
+    id: input.id,
+    project_id: input.project_id,
+    numeric_id: input.numeric_id,
+  });
+  if (!requestedId) {
+    console.error(
+      '[CreateContractAgreement] eSign blocked: projectId/id/project_id missing from payload.',
+      {
+        hasProjectId: Boolean(input.projectId),
+        hasId: Boolean(input.id),
+        hasProject_id: Boolean(input.project_id),
+      },
+    );
+    return {
+      error:
+        'Project is missing. Close this dialog and reopen Create Contract Agreement from the project row.',
+    };
+  }
 
   const plinthArea = parsePositiveNumber(input.plinthArea, 'Approximate Plinth Area');
   if (typeof plinthArea !== 'number') return plinthArea;
@@ -73,13 +98,21 @@ export async function sendContractAgreementForSignatureAction(
   }
 
   const admin = createAdminClient();
-  const { data: project, error: projectError } = await admin
-    .from('projects')
-    .select('id, owner_id, selected_builder_id, title')
-    .eq('id', projectId)
-    .maybeSingle();
+  const { data: project, errorMessage } = await findProjectByAnyId<{
+    id: string;
+    owner_id: string;
+    selected_builder_id: string | null;
+    title: string;
+  }>(admin, requestedId, 'id, owner_id, selected_builder_id, title');
 
-  if (projectError || !project) return { error: 'Project not found.' };
+  if (!project) {
+    console.error('[CreateContractAgreement] Project lookup failed.', {
+      requestedId,
+      errorMessage,
+    });
+    return { error: 'Project not found.' };
+  }
+  const projectId = project.id;
   if (!project.selected_builder_id) {
     return { error: 'Create a contract only after a bidder / contractor has been finalized.' };
   }

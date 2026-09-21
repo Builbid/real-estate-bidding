@@ -24,9 +24,37 @@ import {
   isPainterService,
   painterAgreementFileName,
 } from '@/lib/contract/painterAgreement';
+import {
+  createAgreementLookupClient,
+  extractProjectIdFromRequest,
+  findProjectByAnyId,
+} from '@/lib/contract/resolveProjectId';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+
+async function resolveRequestedProject(request: Request, email?: string | null) {
+  const requestedId = await extractProjectIdFromRequest(request);
+  if (!requestedId) {
+    console.error(
+      '[agreements/pdf] projectId missing from query/body. Expected projectId, id, or project_id.',
+    );
+    return { error: NextResponse.json({ error: 'projectId is required.' }, { status: 400 }) };
+  }
+
+  const db = await createAgreementLookupClient(email);
+  const { data: project, errorMessage } = await findProjectByAnyId<{
+    id: string;
+    service_type: string | null;
+  }>(db, requestedId, 'id, service_type');
+
+  if (!project) {
+    console.error('[agreements/pdf] Project lookup failed.', { requestedId, errorMessage });
+    return { error: NextResponse.json({ error: 'Project not found.' }, { status: 404 }) };
+  }
+
+  return { project, requestedId };
+}
 
 export async function GET(request: Request) {
   const supabase = await createClient();
@@ -38,18 +66,12 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const projectId = new URL(request.url).searchParams.get('projectId')?.trim() ?? '';
-  if (!projectId) {
-    return NextResponse.json({ error: 'projectId is required.' }, { status: 400 });
-  }
+  const resolved = await resolveRequestedProject(request, user.email);
+  if ('error' in resolved && resolved.error) return resolved.error;
+  const { project } = resolved as { project: { id: string; service_type: string | null } };
+  const projectId = project.id;
 
-  const { data: project } = await supabase
-    .from('projects')
-    .select('service_type')
-    .eq('id', projectId)
-    .maybeSingle();
-
-  if (isPlumberService(project?.service_type)) {
+  if (isPlumberService(project.service_type)) {
     const loaded = await loadPlumberAgreementPayload(projectId, user.id);
     if ('error' in loaded) {
       return NextResponse.json({ error: loaded.error }, { status: loaded.status });
@@ -64,7 +86,7 @@ export async function GET(request: Request) {
     });
   }
 
-  if (isElectricianService(project?.service_type)) {
+  if (isElectricianService(project.service_type)) {
     const loaded = await loadElectricianAgreementPayload(projectId, user.id);
     if ('error' in loaded) {
       return NextResponse.json({ error: loaded.error }, { status: loaded.status });
@@ -79,7 +101,7 @@ export async function GET(request: Request) {
     });
   }
 
-  if (isPainterService(project?.service_type)) {
+  if (isPainterService(project.service_type)) {
     const loaded = await loadPainterAgreementPayload(projectId, user.id);
     if ('error' in loaded) {
       return NextResponse.json({ error: loaded.error }, { status: loaded.status });
@@ -94,7 +116,7 @@ export async function GET(request: Request) {
     });
   }
 
-  if (project && !isMistriCivilService(project.service_type)) {
+  if (project.service_type && !isMistriCivilService(project.service_type)) {
     return NextResponse.json(
       { error: 'Official agreements of this type are not available for this service.' },
       { status: 400 },
@@ -114,4 +136,8 @@ export async function GET(request: Request) {
       'Content-Disposition': `attachment; filename="${mistriAgreementFileName(projectId, loaded.payload.numericProjectId)}"`,
     },
   });
+}
+
+export async function POST(request: Request) {
+  return GET(request);
 }

@@ -18,6 +18,7 @@ import {
   readElectricianPointRateFloors,
   readProjectElectricianBidOptions,
 } from '@/lib/electricianBid';
+import { readPainterBidFloors } from '@/lib/painterDetails';
 
 export const MODULAR_KITCHEN_BID_LABEL = 'Modular Kitchen';
 
@@ -66,6 +67,7 @@ export function resolveScopeRateBidItems(
   project: {
     service_type?: ServiceType | string | null;
     trade_details?: unknown;
+    painter_details?: unknown;
     mistri_details?: unknown;
     sub_configuration?: unknown;
     track_type?: string | null;
@@ -77,6 +79,22 @@ export function resolveScopeRateBidItems(
   const service = normalizeServiceType(project.service_type);
   const bidder = normalizeServiceType(bidderServiceType);
   const tradeDetails = parseTradeDetails(readNestedProjectDetail(project, 'trade_details'));
+
+  if (service === 'painter' || bidder === 'painter') {
+    const floors = readPainterBidFloors(project);
+    if (floors.length > 0) {
+      const scoped = floors.slice(0, 4);
+      return {
+        labels: scoped.map((floor) => floor.rateLabel),
+        count: scoped.length,
+        kind: 'floors',
+        flexibleRates: true,
+        unitSuffix: '/sqft',
+        rateUnits: scoped.map(() => '/sqft'),
+        optionIds: scoped.map((floor) => floor.id),
+      };
+    }
+  }
 
   if (service === 'plumber' || tradeDetails?.service === 'plumber') {
     if (isPlumbingPointRateProject(readNestedProjectDetail(project, 'trade_details'))) {
