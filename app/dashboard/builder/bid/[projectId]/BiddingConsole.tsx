@@ -573,14 +573,14 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
     ? computeElectricianPointBidTotal(electricianPointRateMap, electricianPointFloors)
     : 0;
   const liveCivilRates = isMistriCivilBid
-    ? mistriCivilFloors.map((_, index) => parseBidRateValue(civilRateInputs[index] ?? '') ?? 0)
+    ? mistriCivilFloors.map((_, index) => Number(civilRateInputs[index] ?? '') || 0)
     : [];
   const liveFlooringRates: Record<string, number> = isMistriCivilBid
     ? Object.fromEntries(
         mistriCivilFloors.flatMap((floor) => {
           if (!floor.includeFlooring) return [];
-          const value = parseBidRateValue(flooringRateInputs[floor.floorId] ?? '');
-          return value != null && value > 0 ? [[floor.floorId, value]] : [];
+          const value = Number(flooringRateInputs[floor.floorId] ?? '') || 0;
+          return value > 0 ? [[floor.floorId, value]] : [];
         }),
       )
     : {};
@@ -704,8 +704,8 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
   function handleRateChange(key: BidFloorRateKey, raw: string) {
     const sanitized = sanitizeBidRateInput(raw);
     setRateInputs((prev) => ({ ...prev, [key]: sanitized }));
-    const value = parseBidRateValue(sanitized);
-    setRates((prev) => ({ ...prev, [key]: value ?? 0 }));
+    const value = Number(sanitized) || 0;
+    setRates((prev) => ({ ...prev, [key]: value }));
 
     if (isFlexibleRate || (value != null && isValidBidRate(value, rateRules))) {
       setError((prev) => (prev === BID_RATE_ERROR ? null : prev));
@@ -733,10 +733,11 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
       next[index] = sanitized;
       return next;
     });
-    const value = parseBidRateValue(sanitized);
-    const floorKey = mistriCivilFloors[index]?.rateKey;
-    if (floorKey) {
-      setRates((prev) => ({ ...prev, [floorKey]: value ?? 0 }));
+    const value = Number(sanitized) || 0;
+    const floor = mistriCivilFloors[index];
+    const floorKey = floor?.rateKey;
+    if (floorKey && floor?.costKind !== 'flooring') {
+      setRates((prev) => ({ ...prev, [floorKey]: value }));
       setRateInputs((prev) => ({ ...prev, [floorKey]: sanitized }));
     }
 
@@ -749,7 +750,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
       return;
     }
 
-    let fieldError = getBidRateFieldError(value, rateRules);
+    let fieldError = getBidRateFieldError(sanitized ? value : undefined, rateRules);
     if (isFlexibleRate && fieldError === BID_RATE_ERROR) fieldError = null;
     setCivilRateErrors((prev) => {
       const next = { ...prev };
@@ -761,7 +762,19 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
 
   function handleFlooringRateChange(floorId: string, raw: string) {
     const sanitized = sanitizeBidRateInput(raw);
+    const value = Number(sanitized) || 0;
     setFlooringRateInputs((prev) => ({ ...prev, [floorId]: sanitized }));
+    const floor = mistriCivilFloors.find((item) => item.floorId === floorId);
+    setRates((prev) => ({
+      ...prev,
+      flooring_rates: {
+        ...(prev.flooring_rates ?? {}),
+        [floorId]: value,
+      },
+      ...(floor?.costKind === 'flooring' && floor.rateKey
+        ? { [floor.rateKey]: value }
+        : {}),
+    }));
     if (!sanitized) {
       setFlooringRateErrors((prev) => {
         const next = { ...prev };
@@ -770,10 +783,9 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
       });
       return;
     }
-    const value = parseBidRateValue(sanitized);
     let fieldError = getBidRateFieldError(value, rateRules);
     if (isFlexibleRate && fieldError === BID_RATE_ERROR) fieldError = null;
-    if (value == null || value <= 0) fieldError = 'Enter a rate greater than zero.';
+    if (value <= 0) fieldError = 'Enter a rate greater than zero.';
     setFlooringRateErrors((prev) => {
       const next = { ...prev };
       if (fieldError) next[floorId] = fieldError;
@@ -790,10 +802,10 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
   function handleUnitRateChange(optionId: string, raw: string) {
     const sanitized = sanitizeBidRateInput(raw);
     setUnitRateInputs((prev) => ({ ...prev, [optionId]: sanitized }));
-    const value = parseBidRateValue(sanitized);
+    const value = Number(sanitized) || 0;
     setUnitRateValues((prev) => {
       const next = { ...prev };
-      if (value == null) delete next[optionId];
+      if (!sanitized) delete next[optionId];
       else next[optionId] = value;
       return next;
     });
@@ -845,15 +857,15 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
         return;
       }
     } else if (isMistriCivilBid) {
-      const civilRates = civilRateInputs.map((value) => parseBidRateValue(value) ?? 0);
+      const civilRates = civilRateInputs.map((value) => Number(value) || 0);
       const flooringRates: Record<string, number> = {};
       const nextFlooringErrors: Record<string, string> = {};
       for (const floor of mistriCivilFloors) {
         if (!floor.includeFlooring) continue;
-        const value = parseBidRateValue(flooringRateInputs[floor.floorId] ?? '');
-        let fieldError = getBidRateFieldError(value, rateRules);
+        const value = Number(flooringRateInputs[floor.floorId] ?? '') || 0;
+        let fieldError = getBidRateFieldError(value > 0 ? value : undefined, rateRules);
         if (isFlexibleRate && fieldError === BID_RATE_ERROR) fieldError = null;
-        if (value == null || value <= 0) {
+        if (value <= 0) {
           nextFlooringErrors[floor.floorId] = 'Enter a rate greater than zero.';
         } else if (fieldError) {
           nextFlooringErrors[floor.floorId] = fieldError;
@@ -870,10 +882,10 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
       const nextCivilErrors: Record<number, string> = {};
       civilRateInputs.forEach((input, index) => {
         if (mistriCivilFloors[index]?.costKind === 'flooring') return;
-        const value = parseBidRateValue(input);
-        let fieldError = getBidRateFieldError(value, rateRules);
+        const value = Number(input) || 0;
+        let fieldError = getBidRateFieldError(value > 0 ? value : undefined, rateRules);
         if (isFlexibleRate && fieldError === BID_RATE_ERROR) fieldError = null;
-        if (value == null || value <= 0) nextCivilErrors[index] = 'Enter a rate greater than zero.';
+        if (value <= 0) nextCivilErrors[index] = 'Enter a rate greater than zero.';
         else if (fieldError) nextCivilErrors[index] = fieldError;
       });
       setCivilRateErrors(nextCivilErrors);
@@ -934,8 +946,12 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
     const mistriPayload = isMistriCivilBid
       ? buildMistriCivilCostPayload(
           mistriCivilFloors,
-          mistriCivilFloors.map((_, index) => parseBidRateValue(civilRateInputs[index] ?? '') ?? 0),
-          liveFlooringRates,
+          mistriCivilFloors.map((_, index) => Number(civilRateInputs[index] ?? '') || 0),
+          Object.fromEntries(
+            mistriCivilFloors
+              .filter((floor) => floor.includeFlooring)
+              .map((floor) => [floor.floorId, Number(flooringRateInputs[floor.floorId] ?? '') || 0]),
+          ),
         )
       : null;
     const result = await submitBidAction(project.id, {

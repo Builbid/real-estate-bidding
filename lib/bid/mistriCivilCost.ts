@@ -15,7 +15,7 @@ import {
 } from '@/lib/mistriDetails';
 import { readNestedProjectDetail } from '@/lib/project/storedDetails';
 import type { Bid, BidFloorRateKey, BidRates, Project, SubConfiguration, TrackType } from '@/lib/types';
-import { normalizeServiceType, getBidRateFieldError, type BidRateRules } from '@/lib/validation/bidRates';
+import { normalizeServiceType, getBidRateFieldError, toRateNumber, type BidRateRules } from '@/lib/validation/bidRates';
 
 const FLOOR_RATE_KEYS: BidFloorRateKey[] = ['ground_rate', 'first_rate', 'second_rate', 'third_rate'];
 
@@ -323,13 +323,13 @@ export function buildMistriCivilCostPayload(
   flooringRates?: Record<string, number> | null,
 ): BidRates {
   const floor_civil_breakdown: MistriFloorCivilBreakdown[] = floors.map((floor, index) => {
-    const enteredRate = civilRates[index] ?? 0;
+    const enteredRate = toRateNumber(civilRates[index]);
     const isWall = floor.costKind === 'wall';
     const isFlooringOnly = floor.costKind === 'flooring';
     const civilRate = isWall || isFlooringOnly ? 0 : enteredRate;
     const wallRate = isWall ? enteredRate : 0;
     const flooringRate = floor.includeFlooring
-      ? (flooringRates?.[floor.floorId] ?? 0)
+      ? toRateNumber(flooringRates?.[floor.floorId])
       : 0;
     const civilCost = isWall || isFlooringOnly ? 0 : computeMistriFloorCivilCost(floor.slabAreaSqft, civilRate);
     const wallCost = isWall
@@ -389,11 +389,20 @@ export function buildMistriCivilCostPayload(
   });
   const firstFlooringRate = Object.values(flooring_rates)[0];
 
+  const floorKeyValues: Array<number | undefined> = floors.map((floor, index) => {
+    if (floor.costKind === 'flooring') {
+      const tiles = toRateNumber(flooringRates?.[floor.floorId]);
+      return tiles > 0 ? tiles : undefined;
+    }
+    const rate = toRateNumber(civilRates[index]);
+    return rate > 0 ? rate : undefined;
+  });
+
   return {
-    ground_rate: civilRates[0] ?? 0,
-    first_rate: civilRates[1] != null ? civilRates[1] : undefined,
-    second_rate: civilRates[2] != null ? civilRates[2] : undefined,
-    third_rate: civilRates[3] != null ? civilRates[3] : undefined,
+    ground_rate: floorKeyValues[0] ?? 0,
+    first_rate: floorKeyValues[1],
+    second_rate: floorKeyValues[2],
+    third_rate: floorKeyValues[3],
     bid_unit: 'per_sqft',
     total_civil_cost: total_project_cost,
     total_wall_cost,
@@ -581,8 +590,8 @@ export function validateMistriCivilBid(
       return { valid: false, message: 'Built-up area is missing for this project.' };
     }
     if (!isFlooringOnly) {
-      const rate = civilRates[index];
-      if (rate == null || rate <= 0) {
+      const rate = toRateNumber(civilRates[index]);
+      if (rate <= 0) {
         return {
           valid: false,
           message: isWall
@@ -604,8 +613,8 @@ export function validateMistriCivilBid(
       };
     }
     const materialLabel = floor.flooringMaterialLabel || 'Flooring';
-    const flooringRate = flooringRates?.[floor.floorId];
-    if (flooringRate == null || flooringRate <= 0) {
+    const flooringRate = toRateNumber(flooringRates?.[floor.floorId]);
+    if (flooringRate <= 0) {
       return {
         valid: false,
         message: `Enter a ${materialLabel.toLowerCase()} fitting rate for ${floor.label}.`,

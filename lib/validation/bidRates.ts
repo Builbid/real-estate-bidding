@@ -58,6 +58,11 @@ export function parseBidRateValue(sanitized: string): number | undefined {
   return Number.isNaN(value) ? undefined : value;
 }
 
+/** Coerce a rate field to a finite number for form state and submit validation. */
+export function toRateNumber(value: unknown): number {
+  return Number(value) || 0;
+}
+
 export function isValidBidRate(value: number | undefined, rules?: BidRateRules): boolean {
   if (value === undefined || value <= 0) return false;
   if (!Number.isInteger(value)) return false;
@@ -87,10 +92,19 @@ export function validateBidRatesForFloorCount(
 ): { valid: boolean; errors: Partial<Record<BidFloorRateKey, string>>; message: string | null } {
   const keys = getRateKeys(floorCount);
   const errors: Partial<Record<BidFloorRateKey, string>> = {};
+  const mistriBreakdown = Array.isArray(rates.floor_civil_breakdown)
+    ? rates.floor_civil_breakdown
+    : [];
+  const skipUnusedMistriFloorKeys = mistriBreakdown.length > 0
+    || (rates.flooring_rates != null && Object.keys(rates.flooring_rates).length > 0)
+    || (typeof rates.total_project_cost === 'number' && rates.total_project_cost > 0);
 
   for (const key of keys) {
-    const value = rates[key];
-    if (value === undefined || value <= 0) {
+    const value = toRateNumber(rates[key]);
+    if (skipUnusedMistriFloorKeys && value <= 0) {
+      continue;
+    }
+    if (value <= 0) {
       errors[key] = 'Enter a rate greater than zero.';
       continue;
     }
@@ -106,15 +120,20 @@ export function validateBidRatesForFloorCount(
   };
 }
 
+function optionalPositiveRate(value: unknown): number | undefined {
+  const n = toRateNumber(value);
+  return n > 0 ? n : undefined;
+}
+
 export function buildBidRatesPayload(
   rates: Partial<BidRates>,
   floorCount: number,
 ): BidRates {
   return {
-    ground_rate: rates.ground_rate ?? 0,
-    first_rate: floorCount >= 2 ? (rates.first_rate ?? 0) : undefined,
-    second_rate: floorCount >= 3 ? (rates.second_rate ?? 0) : undefined,
-    third_rate: floorCount >= 4 ? (rates.third_rate ?? 0) : undefined,
+    ground_rate: optionalPositiveRate(rates.ground_rate) ?? toRateNumber(rates.ground_rate),
+    first_rate: floorCount >= 2 ? optionalPositiveRate(rates.first_rate) : undefined,
+    second_rate: floorCount >= 3 ? optionalPositiveRate(rates.second_rate) : undefined,
+    third_rate: floorCount >= 4 ? optionalPositiveRate(rates.third_rate) : undefined,
     ...(rates.bid_unit ? { bid_unit: rates.bid_unit } : {}),
     ...(rates.vehicleCapacityCum != null && rates.vehicleCapacityCum > 0
       ? { vehicleCapacityCum: rates.vehicleCapacityCum }
