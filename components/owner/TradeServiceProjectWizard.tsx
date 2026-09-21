@@ -15,7 +15,7 @@ import {
 } from '@/components/shared/AssamDistrictAutocomplete';
 import { BuildingTypeSelector } from '@/components/construction/BuildingTypeSelector';
 import { TradeWorkRequirementsFields, type TradeWorkFormFields } from '@/components/owner/TradeWorkRequirementsFields';
-import { FORM_CONTINUE_BTN, FORM_OPTION_SELECTED, FORM_OPTION_UNSELECTED, FORM_SECTION_CARD, FORM_SHELL_CARD, FORM_TEXTAREA } from '@/components/owner/wizard/formTheme';
+import { FORM_CONTINUE_BTN, FORM_NOTE_BOX, FORM_OPTION_SELECTED, FORM_OPTION_UNSELECTED, FORM_SECTION_CARD, FORM_SHELL_CARD, FORM_TEXTAREA } from '@/components/owner/wizard/formTheme';
 import { ADDITIONAL_REQUIREMENTS_PLACEHOLDER, ProjectStartBookingNote, SpecificStartDateField, WIZARD_SECTION_LABEL, WizardAccentLabels, withSectionColon } from '@/components/owner/wizard/StartTimeAndNotes';
 import { ReviewSummaryList, WizardStepper } from '@/components/owner/wizard/ReviewSummary';
 import { generateProjectTitle } from '@/lib/generateProjectTitle';
@@ -29,9 +29,12 @@ import {
   PAINTER_START_TIME_OPTIONS,
   PAINTER_SURFACE_OPTIONS,
   PAINTER_TOPCOAT_OPTIONS,
+  countPainterSelectedFloors,
   estimatePainterPaintArea,
+  formatPainterTotalFloorAreaSummary,
   getPainterWorkRequirementBlocks,
   parsePainterAreaInput,
+  painterFloorAreaMultiplier,
   validatePainterDetailsInput,
   type PainterPaintTopcoats,
   type PainterPaintingScope,
@@ -82,13 +85,32 @@ interface FormState extends TradeWorkFormFields {
   paintTopcoats: PainterPaintTopcoats | null;
 }
 
+function painterFormFloorCount(
+  form: Pick<FormState, 'track_type' | 'targetFloors' | 'customTargetFloors'>,
+): number {
+  if (form.track_type !== 'RCC') return 1;
+  return painterFloorAreaMultiplier(form.targetFloors, form.customTargetFloors);
+}
+
 function applyPaintAreaEstimate(
   carpetArea: string,
   paintingScope: PainterPaintingScope | null,
+  floorCount = 1,
 ): string {
   const carpet = parsePainterAreaInput(carpetArea);
   if (!carpet || !paintingScope) return '';
-  return String(estimatePainterPaintArea(carpet, paintingScope));
+  return String(estimatePainterPaintArea(carpet, paintingScope, floorCount));
+}
+
+function withPaintAreaEstimate(form: FormState): FormState {
+  return {
+    ...form,
+    projectArea: applyPaintAreaEstimate(
+      form.carpetArea,
+      form.paintingScope,
+      painterFormFloorCount(form),
+    ),
+  };
 }
 
 function applyTargetFloorSelection(
@@ -99,7 +121,7 @@ function applyTargetFloorSelection(
 ): FormState {
   const nextFloors = targetFloorsFromBuildingSelection(types, customSelected);
   const keepFloor = (key: string) => nextFloors.includes(key as (typeof nextFloors)[number]);
-  return {
+  return withPaintAreaEstimate({
     ...current,
     targetFloors: nextFloors,
     targetWorkFloor: nextFloors[0] ?? null,
@@ -110,7 +132,7 @@ function applyTargetFloorSelection(
     electricianFloorFixtureCounts: Object.fromEntries(
       Object.entries(current.electricianFloorFixtureCounts).filter(([key]) => keepFloor(key)),
     ) as FormState['electricianFloorFixtureCounts'],
-  };
+  });
 }
 
 const EMPTY_FORM: FormState = {
@@ -215,6 +237,16 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
     serviceType: trade,
     district: districtSelection?.district ?? form.location,
   });
+  const painterSelectedFloorCount =
+    isPainter && form.track_type === 'RCC'
+      ? countPainterSelectedFloors(form.targetFloors, form.customTargetFloors)
+      : 0;
+  const painterTotalFloorSummary = isPainter
+    ? formatPainterTotalFloorAreaSummary(
+        parsePainterAreaInput(form.carpetArea) ?? 0,
+        painterSelectedFloorCount,
+      )
+    : null;
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -748,7 +780,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                                 [],
                               );
                             }
-                            return { ...current, track_type: opt.value };
+                            return withPaintAreaEstimate({ ...current, track_type: opt.value });
                           });
                           setPainterFloorErrors({});
                           setStep2Error(null);
@@ -822,35 +854,40 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                     options={PAINTER_SCOPE_OPTIONS}
                     value={form.paintingScope}
                     onChange={(v) => {
-                      setForm((current) => ({
+                      setForm((current) => withPaintAreaEstimate({
                         ...current,
                         paintingScope: v,
-                        projectArea: applyPaintAreaEstimate(current.carpetArea, v),
                       }));
                       setStep2Error(null);
                     }}
                     columns={3}
                   />
 
-                  <Input
-                    label="Approx. House / Floor Area (Sq. Ft.)"
-                    type="number"
-                    inputMode="decimal"
-                    min={1}
-                    step="1"
-                    placeholder="e.g. 1000"
-                    suffix={<span className="text-xs font-medium text-muted-foreground">Sq. Ft.</span>}
-                    value={form.carpetArea}
-                    onChange={(e) => {
-                      const carpetArea = e.target.value;
-                      setForm((current) => ({
-                        ...current,
-                        carpetArea,
-                        projectArea: applyPaintAreaEstimate(carpetArea, current.paintingScope),
-                      }));
-                      setStep2Error(null);
-                    }}
-                  />
+                  <div className="space-y-2">
+                    <Input
+                      label="Approx. House / Floor Area (Sq. Ft.)"
+                      type="number"
+                      inputMode="decimal"
+                      min={1}
+                      step="1"
+                      placeholder="e.g. 1000"
+                      suffix={<span className="text-xs font-medium text-muted-foreground">Sq. Ft.</span>}
+                      value={form.carpetArea}
+                      onChange={(e) => {
+                        const carpetArea = e.target.value;
+                        setForm((current) => withPaintAreaEstimate({
+                          ...current,
+                          carpetArea,
+                        }));
+                        setStep2Error(null);
+                      }}
+                    />
+                    {painterTotalFloorSummary && (
+                      <p className={FORM_NOTE_BOX}>
+                        {painterTotalFloorSummary}
+                      </p>
+                    )}
+                  </div>
 
                   <div className="space-y-1">
                     <Input

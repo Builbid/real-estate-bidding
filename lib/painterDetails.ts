@@ -86,11 +86,56 @@ export const PAINTER_PAINT_AREA_MULTIPLIERS: Record<PainterPaintingScope, number
 export const PAINTER_PAINT_AREA_DISCLAIMER =
   'Note: This is an auto-generated approximate paint area based on standard multipliers to help painters place bids. Final payable measurements will be physically verified on-site before work commences.';
 
+/** Count RCC work floors, treating each custom floor number as its own floor. */
+export function countPainterSelectedFloors(
+  targetFloors?: PainterTargetFloor[] | null,
+  customTargetFloors?: number[] | null,
+): number {
+  if (!targetFloors?.length) return 0;
+  let count = 0;
+  for (const floor of targetFloors) {
+    if (floor === 'custom') {
+      count += customTargetFloors?.length ?? 0;
+    } else {
+      count += 1;
+    }
+  }
+  return count;
+}
+
+/** Floor-area multiplier: selected floors, or 1 when none are chosen yet. */
+export function painterFloorAreaMultiplier(
+  targetFloors?: PainterTargetFloor[] | null,
+  customTargetFloors?: number[] | null,
+): number {
+  return Math.max(countPainterSelectedFloors(targetFloors, customTargetFloors), 1);
+}
+
+export function resolvePainterTotalFloorArea(
+  singleFloorArea: number,
+  floorCount: number,
+): number {
+  if (!Number.isFinite(singleFloorArea) || singleFloorArea <= 0) return 0;
+  return singleFloorArea * Math.max(floorCount, 1);
+}
+
+export function formatPainterTotalFloorAreaSummary(
+  singleFloorArea: number,
+  floorCount: number,
+): string | null {
+  if (floorCount <= 1 || !(singleFloorArea > 0)) return null;
+  const area = singleFloorArea.toLocaleString('en-IN');
+  const total = resolvePainterTotalFloorArea(singleFloorArea, floorCount).toLocaleString('en-IN');
+  return `Calculated Total Floor Area: ${area} Sq. Ft. × ${floorCount} Selected Floors = ${total} Sq. Ft.`;
+}
+
 export function estimatePainterPaintArea(
   carpetArea: number,
   scope: PainterPaintingScope,
+  floorCount = 1,
 ): number {
-  return Math.round(carpetArea * PAINTER_PAINT_AREA_MULTIPLIERS[scope]);
+  const totalFloorArea = resolvePainterTotalFloorArea(carpetArea, floorCount);
+  return Math.round(totalFloorArea * PAINTER_PAINT_AREA_MULTIPLIERS[scope]);
 }
 
 export function parsePainterAreaInput(raw: string | number | null | undefined): number | null {
@@ -444,6 +489,14 @@ export function getPainterWorkRequirementBlocks(details: PainterDetails): {
       label: 'Approx. House / Floor Area',
       value: `${details.carpetArea.toLocaleString('en-IN')} Sq. Ft.`,
     });
+    const floorCount = countPainterSelectedFloors(details.targetFloors, details.customTargetFloors);
+    const totalSummary = formatPainterTotalFloorAreaSummary(details.carpetArea, floorCount);
+    if (totalSummary) {
+      blocks.push({
+        label: 'Calculated Total Floor Area',
+        value: `${details.carpetArea.toLocaleString('en-IN')} Sq. Ft. × ${floorCount} Selected Floors = ${resolvePainterTotalFloorArea(details.carpetArea, floorCount).toLocaleString('en-IN')} Sq. Ft.`,
+      });
+    }
   }
 
   blocks.push(
