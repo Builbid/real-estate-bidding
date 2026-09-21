@@ -73,8 +73,8 @@ export const PAINTER_PUTTY_OPTIONS: {
   value: PainterPuttyRequirement;
   label: string;
 }[] = [
-  { value: '1 Coat', label: '1 Coat' },
-  { value: '2 Coats', label: '2 Coats' },
+  { value: '1 Coat', label: '1st Layer Putty (Single Putty)' },
+  { value: '2 Coats', label: '2nd Layer Putty (Double Putty)' },
   { value: 'None', label: 'No Putty Required' },
 ];
 
