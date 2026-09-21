@@ -62,10 +62,10 @@ export const PAINTER_PRIMER_OPTIONS: {
   value: PainterPrimerRequirement;
   label: string;
 }[] = [
-  { value: 'None', label: 'No Primer' },
   { value: '1 Coat', label: '1 Coat' },
   { value: '2 Coats', label: '2 Coats' },
   { value: '3 Coats', label: '3 Coats' },
+  { value: 'None', label: 'No Primer' },
 ];
 
 export const PAINTER_SCOPE_OPTIONS: {
@@ -470,7 +470,7 @@ export function getPainterWorkRequirementBlocks(details: PainterDetails): {
 
   if (details.paintTopcoats) {
     blocks.push({
-      label: 'Topcoats',
+      label: 'Paint Layers / Final Coats',
       value: details.paintTopcoats.toUpperCase(),
     });
   }
@@ -530,7 +530,7 @@ export function validatePainterDetailsInput(input: {
     return { error: 'Select a primer requirement.' };
   }
   if (!input.paintTopcoats || !TOPCOAT_SET.has(input.paintTopcoats)) {
-    return { error: 'Select paint topcoats.' };
+    return { error: 'Select the paint layers / final coats.' };
   }
   if (!input.projectStartTimeType || !START_TIME_TYPES.has(input.projectStartTimeType)) {
     return { error: 'Select when the project should start.' };

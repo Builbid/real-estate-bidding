@@ -895,7 +895,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                   />
 
                   <PainterChoice
-                    label="Paint Topcoats"
+                    label="Paint Layers / Final Coats"
                     options={PAINTER_TOPCOAT_OPTIONS.map((opt) => ({ value: opt, label: opt }))}
                     value={form.paintTopcoats}
                     onChange={(v) => {
