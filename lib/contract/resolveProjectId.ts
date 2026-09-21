@@ -66,10 +66,10 @@ export async function findProjectByAnyId<T extends { id: string }>(
   }
 
   const byId = await client.from('projects').select(select).eq('id', id).maybeSingle();
-  if (byId.data) return { data: byId.data as T, errorMessage: null };
+  if (byId.data) return { data: byId.data as unknown as T, errorMessage: null };
 
   const byNumeric = await client.from('projects').select(select).eq('numeric_id', id).maybeSingle();
-  if (byNumeric.data) return { data: byNumeric.data as T, errorMessage: null };
+  if (byNumeric.data) return { data: byNumeric.data as unknown as T, errorMessage: null };
 
   const message =
     byId.error?.message ||

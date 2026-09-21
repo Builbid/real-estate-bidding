@@ -128,7 +128,9 @@ export async function loadMistriAgreementPayload(
       description: project.description,
       track_type: project.track_type as TrackType,
       sub_configuration: (project.sub_configuration ?? {}) as SubConfiguration,
-      building_types: project.building_types,
+      building_types: (Array.isArray(project.building_types)
+        ? project.building_types
+        : null) as string[] | null,
       construction_types: (project.construction_types ?? null) as ConstructionTypesMap | null,
       total_floors: project.total_floors,
       plot_area_sqft: project.plot_area_sqft,
