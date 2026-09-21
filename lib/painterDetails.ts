@@ -72,9 +72,9 @@ export const PAINTER_SCOPE_OPTIONS: {
   value: PainterPaintingScope;
   label: string;
 }[] = [
+  { value: 'both', label: 'Interior & Exterior Both' },
   { value: 'interior', label: 'Interior' },
   { value: 'exterior', label: 'Exterior' },
-  { value: 'both', label: 'Both (Interior & Exterior)' },
 ];
 
 export const PAINTER_PAINT_AREA_MULTIPLIERS: Record<PainterPaintingScope, number> = {
@@ -441,7 +441,7 @@ export function getPainterWorkRequirementBlocks(details: PainterDetails): {
 
   if (details.carpetArea && details.carpetArea > 0) {
     blocks.push({
-      label: 'Approx. Carpet / Floor Area',
+      label: 'Approx. House / Floor Area',
       value: `${details.carpetArea.toLocaleString('en-IN')} Sq. Ft.`,
     });
   }
@@ -514,7 +514,7 @@ export function validatePainterDetailsInput(input: {
 }): { error: string } | { details: PainterDetails } {
   const carpetArea = parsePainterAreaInput(input.carpetArea);
   if (!carpetArea) {
-    return { error: 'Enter the approx. carpet / floor area in sq.ft.' };
+    return { error: 'Enter the approx. house / floor area in sq.ft.' };
   }
   const area = parsePainterAreaInput(input.projectArea);
   if (!area) {

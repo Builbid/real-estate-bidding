@@ -43,6 +43,7 @@ const SCOPE_LABELS_EXCLUDED_FROM_AGREEMENT = new Set([
   'Estimated Paint Area',
   'Carpet / Floor Area',
   'Approx. Carpet / Floor Area',
+  'Approx. House / Floor Area',
   'Painting Work Coverage',
 ]);
 

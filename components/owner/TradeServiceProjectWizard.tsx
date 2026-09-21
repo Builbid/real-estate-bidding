@@ -701,12 +701,14 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
 
           {step === 2 && (
             <div className="space-y-4">
-              <h2 className="text-base font-semibold text-gray-900 dark:text-white">
-                {isPainter
-                  ? 'Building Type & Work Requirements'
-                  : trade === 'plumber' || trade === 'electrician'
-                    ? 'Fixture Quantities'
-                    : 'Work Requirements'}
+              <h2 className={WIZARD_SECTION_LABEL}>
+                {withSectionColon(
+                  isPainter
+                    ? 'Building Type & Work Requirements'
+                    : trade === 'plumber' || trade === 'electrician'
+                      ? 'Fixture Quantities'
+                      : 'Work Requirements',
+                )}
               </h2>
               {!isPainter && (
               <p className="text-xs font-medium text-gray-700 dark:text-zinc-300 -mt-3">
@@ -831,7 +833,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                   />
 
                   <Input
-                    label="Approx. Carpet / Floor Area (Sq. Ft.)"
+                    label="Approx. House / Floor Area (Sq. Ft.)"
                     type="number"
                     inputMode="decimal"
                     min={1}
@@ -850,23 +852,25 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                     }}
                   />
 
-                  <Input
-                    label="Estimated Paint Area (Sq. Ft.)"
-                    type="number"
-                    inputMode="decimal"
-                    min={1}
-                    step="1"
-                    placeholder="Calculated from carpet area"
-                    suffix={<span className="text-xs font-medium text-muted-foreground">Sq. Ft.</span>}
-                    value={form.projectArea}
-                    onChange={(e) => {
-                      update('projectArea', e.target.value);
-                      setStep2Error(null);
-                    }}
-                  />
-                  <p className="rounded-xl border border-slate-200/70 bg-slate-50/80 px-3 py-2.5 text-[11px] font-medium leading-relaxed text-slate-600 dark:border-slate-700/30 dark:bg-slate-800/40 dark:text-slate-300">
-                    {PAINTER_PAINT_AREA_DISCLAIMER}
-                  </p>
+                  <div className="space-y-1">
+                    <Input
+                      label="Estimated Paint Area (Sq. Ft.)"
+                      type="number"
+                      inputMode="decimal"
+                      min={1}
+                      step="1"
+                      placeholder="Calculated from house / floor area"
+                      suffix={<span className="text-xs font-medium text-muted-foreground">Sq. Ft.</span>}
+                      value={form.projectArea}
+                      onChange={(e) => {
+                        update('projectArea', e.target.value);
+                        setStep2Error(null);
+                      }}
+                    />
+                    <p className="px-0.5 text-[11px] leading-relaxed text-muted-foreground">
+                      {PAINTER_PAINT_AREA_DISCLAIMER}
+                    </p>
+                  </div>
 
                   <PainterChoice
                     label="Surface Condition"
