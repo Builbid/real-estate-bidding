@@ -10,7 +10,6 @@ import {
   drawParagraph,
   drawRows,
   drawSectionTitle,
-  drawSignatureBlock,
   ensurePage,
   formatBuilbidPublicId,
   formatInrAmount,
@@ -22,6 +21,13 @@ import {
   type AgreementParty,
   type AgreementRow,
 } from '@/lib/contract/agreementPdf';
+import {
+  applyOverlayDates,
+  drawExecutionSection,
+  drawFilledOrPrompt,
+  stampAgreementOverlay,
+  type DigitalContractOverlay,
+} from '@/lib/contract/digitalContractOverlay';
 import { readNestedProjectDetail } from '@/lib/project/storedDetails';
 import {
   getTradeWorkRequirementBlocks,
@@ -239,7 +245,11 @@ export function buildPlumberAgreementPayload(input: {
  * Official signed plumber agreement PDF.
  * Currency uses "Rs." (Helvetica-safe). On-screen/email copy may show ₹.
  */
-export function generatePlumberAgreementPdfBytes(payload: PlumberAgreementPayload): Uint8Array {
+export function generatePlumberAgreementPdfBytes(
+  payload: PlumberAgreementPayload,
+  overlay?: DigitalContractOverlay | null,
+): Uint8Array {
+  const filled = applyOverlayDates(payload, overlay);
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const margin = PAGE_MARGIN_MM;
   const pageW = doc.internal.pageSize.getWidth();
@@ -262,12 +272,12 @@ export function generatePlumberAgreementPdfBytes(payload: PlumberAgreementPayloa
   y = drawRows(
     doc,
     [
-      { label: 'Project title', value: payload.projectTitle },
-      { label: 'Project ID', value: payload.numericProjectId || '—' },
-      { label: 'PARTY A — Homeowner', value: nonEmpty(payload.client.name) },
-      { label: 'Phone / WhatsApp', value: nonEmpty(payload.client.mobile) },
-      { label: 'Site address', value: payload.siteAddress },
-      { label: 'District / Pincode', value: payload.districtPincode },
+      { label: 'Project title', value: filled.projectTitle },
+      { label: 'Project ID', value: filled.numericProjectId || '—' },
+      { label: 'PARTY A — Homeowner', value: nonEmpty(filled.client.name) },
+      { label: 'Phone / WhatsApp', value: nonEmpty(filled.client.mobile) },
+      { label: 'Site address', value: filled.siteAddress },
+      { label: 'District / Pincode', value: filled.districtPincode },
     ],
     y,
     margin,
@@ -275,10 +285,10 @@ export function generatePlumberAgreementPdfBytes(payload: PlumberAgreementPayloa
   y = drawRows(
     doc,
     [
-      { label: 'PARTY B — Plumber', value: nonEmpty(payload.plumber.companyName || payload.plumber.name) },
-      { label: 'Phone / WhatsApp', value: nonEmpty(payload.plumber.mobile) },
-      { label: 'builbid ID', value: formatBuilbidPublicId(payload.plumber.platformId) },
-      { label: 'Govt ID / GST / Reg No', value: nonEmpty(payload.plumber.gstNumber) },
+      { label: 'PARTY B — Plumber', value: nonEmpty(filled.plumber.companyName || filled.plumber.name) },
+      { label: 'Phone / WhatsApp', value: nonEmpty(filled.plumber.mobile) },
+      { label: 'builbid ID', value: formatBuilbidPublicId(filled.plumber.platformId) },
+      { label: 'Govt ID / GST / Reg No', value: nonEmpty(filled.plumber.gstNumber) },
     ],
     y,
     margin,
@@ -297,7 +307,7 @@ export function generatePlumberAgreementPdfBytes(payload: PlumberAgreementPayloa
     y,
     margin,
   );
-  y = drawRows(doc, payload.scopeRows, y, margin);
+  y = drawRows(doc, filled.scopeRows, y, margin);
 
   y = drawSectionTitle(doc, '3. Fixed Rates & Payment Terms', y, margin);
   y = drawParagraph(
@@ -313,7 +323,15 @@ export function generatePlumberAgreementPdfBytes(payload: PlumberAgreementPayloa
     margin,
     { bold: true, fill: [254, 226, 226], bordered: true },
   );
-  y = drawRows(doc, payload.bidRows, y, margin);
+  y = drawRows(doc, filled.bidRows, y, margin);
+  y = drawFilledOrPrompt(
+    doc,
+    y,
+    margin,
+    'Approximate Plinth Area (Sq. Ft.)',
+    overlay?.plinthAreaLabel,
+    (nextY) => nextY,
+  );
   y = drawParagraph(
     doc,
     'Site measurement sheet: Fill the table below on site. Leave unused rows blank.',
@@ -336,14 +354,21 @@ export function generatePlumberAgreementPdfBytes(payload: PlumberAgreementPayloa
     margin,
     [0.7, 2.2, 1.1, 1.2, 1.5, 1.3, 1.2],
   );
-  y = drawFillInPrompt(doc, 'Total cost', '', y, margin);
+  y = drawFilledOrPrompt(
+    doc,
+    y,
+    margin,
+    'Total Agreed Project Cost',
+    overlay?.totalAgreedCostLabel,
+    (nextY) => drawFillInPrompt(doc, 'Total cost', '', nextY, margin),
+  );
 
   y = drawSectionTitle(doc, '4. Timelines, Delays & Penalty Terms', y, margin);
   y = drawRows(
     doc,
     [
-      { label: 'Agreed start date', value: payload.agreedStartDate || AGREEMENT_MANUAL_DATE_BLANK },
-      { label: 'Agreed completion date', value: payload.agreedCompletionDate || AGREEMENT_MANUAL_DATE_BLANK },
+      { label: 'Agreed start date', value: filled.agreedStartDate || AGREEMENT_MANUAL_DATE_BLANK },
+      { label: 'Agreed completion date', value: filled.agreedCompletionDate || AGREEMENT_MANUAL_DATE_BLANK },
       { label: 'Grace extension allowed', value: '10 Calendar Days (Penalty Free)' },
     ],
     y,
@@ -369,18 +394,18 @@ export function generatePlumberAgreementPdfBytes(payload: PlumberAgreementPayloa
     { bold: true, fill: [254, 226, 226], bordered: true },
   );
 
-  y = drawSectionTitle(doc, '5. Execution & Physical Authorization', y, margin);
-  y = drawParagraph(
+  y = drawExecutionSection(
     doc,
-    'This agreement is signed on-site by the Homeowner and Plumber in the presence of the BuilBid Field Coordinator.',
     y,
     margin,
+    overlay,
+    'This agreement is signed on-site by the Homeowner and Plumber in the presence of the BuilBid Field Coordinator.',
+    [
+      ['PARTY A: HOMEOWNER', 'Signature / Thumb'],
+      ['PARTY B: PLUMBER', 'Signature / Thumb'],
+      ['WITNESS / BUILBID', 'Coordinator Signature'],
+    ],
   );
-  y = drawSignatureBlock(doc, y, margin, [
-    ['PARTY A: HOMEOWNER', 'Signature / Thumb'],
-    ['PARTY B: PLUMBER', 'Signature / Thumb'],
-    ['WITNESS / BUILBID', 'Coordinator Signature'],
-  ]);
 
   y = ensurePage(doc, y, 10, margin);
   doc.setFont('helvetica', 'normal');
@@ -394,6 +419,7 @@ export function generatePlumberAgreementPdfBytes(payload: PlumberAgreementPayloa
   ) as string[];
   doc.text(footer, margin, y);
 
+  stampAgreementOverlay(doc, overlay);
   return new Uint8Array(doc.output('arraybuffer') as ArrayBuffer);
 }
 

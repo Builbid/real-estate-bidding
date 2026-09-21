@@ -19,6 +19,7 @@ import {
   Gavel,
   ExternalLink,
   TimerReset,
+  FileSignature,
 } from 'lucide-react';
 import {
   adminCloseAuctionAction,
@@ -50,6 +51,7 @@ import {
   formatRelativeTime,
   STATUS_CONFIG,
 } from '@/lib/utils';
+import { CreateContractAgreementModal } from '@/components/admin/CreateContractAgreementModal';
 
 const TH =
   'px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500';
@@ -333,6 +335,7 @@ export function AdminDashboardClient({
   workers,
   clients,
   agreements,
+  initialTab = 'overview',
 }: {
   email: string;
   kpis: AdminKpis;
@@ -340,12 +343,14 @@ export function AdminDashboardClient({
   workers: AdminWorkerRow[];
   clients: AdminClientRow[];
   agreements: AdminAgreementRow[];
+  initialTab?: AdminTab;
 }) {
-  const [tab, setTab] = useState<AdminTab>('overview');
+  const [tab, setTab] = useState<AdminTab>(initialTab);
   const [query, setQuery] = useState('');
   const [projectFilters, setProjectFilters] =
     useState<ProjectColumnFilters>(EMPTY_PROJECT_FILTERS);
   const [pending, startTransition] = useTransition();
+  const [contractProject, setContractProject] = useState<AdminProjectRow | null>(null);
 
   const projectFiltersActive = useMemo(
     () =>
@@ -785,15 +790,26 @@ export function AdminDashboardClient({
                                 +24h
                               </button>
                               {p.selectedBuilderId ? (
-                                <a
-                                  href={`/api/agreements/pdf?projectId=${encodeURIComponent(p.id)}`}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="inline-flex items-center gap-1 rounded-md bg-slate-900 px-2.5 py-1 text-xs font-medium text-white shadow-xs transition hover:bg-slate-800"
-                                >
-                                  <Download className="h-3 w-3" />
-                                  PDF
-                                </a>
+                                <>
+                                  <button
+                                    type="button"
+                                    title="Create Contract Agreement"
+                                    onClick={() => setContractProject(p)}
+                                    className="inline-flex items-center gap-1 rounded-md bg-emerald-700 px-2.5 py-1 text-xs font-medium text-white shadow-xs transition hover:bg-emerald-800"
+                                  >
+                                    <FileSignature className="h-3 w-3" />
+                                    Create Contract Agreement
+                                  </button>
+                                  <a
+                                    href={`/api/agreements/pdf?projectId=${encodeURIComponent(p.id)}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="inline-flex items-center gap-1 rounded-md bg-slate-900 px-2.5 py-1 text-xs font-medium text-white shadow-xs transition hover:bg-slate-800"
+                                  >
+                                    <Download className="h-3 w-3" />
+                                    PDF
+                                  </a>
+                                </>
                               ) : null}
                             </div>
                           </td>
@@ -1016,6 +1032,17 @@ export function AdminDashboardClient({
                           </td>
                           <td className={TD}>
                             <div className="flex flex-wrap items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const project = projects.find((p) => p.id === a.projectId);
+                                  if (project) setContractProject(project);
+                                }}
+                                className="inline-flex items-center gap-1 rounded-md bg-emerald-700 px-2.5 py-1 text-xs font-medium text-white shadow-xs transition hover:bg-emerald-800"
+                              >
+                                <FileSignature className="h-3 w-3" />
+                                Create Contract Agreement
+                              </button>
                               <a
                                 href={`/api/agreements/pdf?projectId=${encodeURIComponent(a.projectId)}`}
                                 target="_blank"
@@ -1045,6 +1072,15 @@ export function AdminDashboardClient({
           ) : null}
         </main>
       </div>
+      <CreateContractAgreementModal
+        open={Boolean(contractProject)}
+        onOpenChange={(open) => {
+          if (!open) setContractProject(null);
+        }}
+        projectId={contractProject?.id ?? ''}
+        projectTitle={contractProject?.title ?? ''}
+        clientName={contractProject?.clientName ?? ''}
+      />
     </div>
   );
 }
