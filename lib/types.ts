@@ -273,8 +273,15 @@ export interface BidRates {
   total_wall_cost?: number;
   /** Mistri: sum of (flooring area × flooring rate) across selected floors. */
   total_flooring_cost?: number;
-  /** Mistri: combined civil + wall + flooring project cost used for ranking. */
+  /** Combined civil + wall + flooring project cost used for ranking. */
   total_project_cost?: number;
+  /**
+   * Ranking total across services: Σ (floor area × floor rate), fixture-point totals,
+   * or mistri project cost. Lowest value ranks #1.
+   */
+  total_estimated_cost?: number;
+  /** Per-floor estimated amounts (area × rate) keyed by floor id. */
+  floor_amounts?: Record<string, number>;
   /** Mistri / Civil: per-floor slab or wall area, rates, costs, and optional flooring. */
   floor_civil_breakdown?: Array<{
     floorId: string;
@@ -312,13 +319,15 @@ export interface BidRates {
    * Painter: per-floor ₹/sqft rates keyed by target floor id (ground, first, custom-5, …).
    */
   floor_rates?: Record<string, number>;
-  /** Painter: labeled floor-wise rate breakdown stored alongside the aggregated average. */
+  /** Painter / floor-wise: labeled rate, area, and estimated amount. */
   floor_rate_breakdown?: Array<{
     floorId: string;
     label: string;
     rate: number;
+    areaSqft?: number;
+    amount?: number;
   }>;
-  /** Painter: average of entered floor rates, used for display. Ranking still uses floor keys. */
+  /** Painter: average of entered floor rates (informational; ranking uses total_estimated_cost). */
   average_rate?: number;
 }
 

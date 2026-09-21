@@ -509,6 +509,8 @@ export function buildPlumbingPointRatePayload(
   unit_rates: Record<string, number>;
   running_foot_rate?: number;
   bid_unit: 'per_point';
+  total_bid_amount: number;
+  total_estimated_cost: number;
 } {
   const unitRates: Record<string, number> = {};
   const amounts: number[] = [];
@@ -519,6 +521,7 @@ export function buildPlumbingPointRatePayload(
   });
   const running = runningFootRate != null && runningFootRate > 0 ? runningFootRate : null;
   if (running != null) unitRates[PLUMBING_RUNNING_FOOT_RATE_KEY] = running;
+  const total = amounts.reduce((sum, value) => sum + (Number(value) || 0), 0);
   return {
     ground_rate: amounts[0] ?? 0,
     first_rate: amounts[1],
@@ -527,6 +530,8 @@ export function buildPlumbingPointRatePayload(
     unit_rates: unitRates,
     ...(running != null ? { running_foot_rate: running } : {}),
     bid_unit: 'per_point',
+    total_bid_amount: total,
+    total_estimated_cost: total,
   };
 }
 

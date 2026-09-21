@@ -142,6 +142,9 @@ export function buildBidRatesPayload(
     ...(rates.total_project_cost != null && rates.total_project_cost > 0
       ? { total_project_cost: rates.total_project_cost }
       : {}),
+    ...(rates.total_estimated_cost != null && rates.total_estimated_cost > 0
+      ? { total_estimated_cost: rates.total_estimated_cost }
+      : {}),
     ...(Array.isArray(rates.floor_civil_breakdown) && rates.floor_civil_breakdown.length > 0
       ? { floor_civil_breakdown: rates.floor_civil_breakdown }
       : {}),
@@ -156,6 +159,9 @@ export function buildBidRatesPayload(
       : {}),
     ...(rates.floor_rates && Object.keys(rates.floor_rates).length > 0
       ? { floor_rates: rates.floor_rates }
+      : {}),
+    ...(rates.floor_amounts && Object.keys(rates.floor_amounts).length > 0
+      ? { floor_amounts: rates.floor_amounts }
       : {}),
     ...(Array.isArray(rates.floor_rate_breakdown) && rates.floor_rate_breakdown.length > 0
       ? { floor_rate_breakdown: rates.floor_rate_breakdown }

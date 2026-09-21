@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trophy, TrendingDown, EyeOff, Clock } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
@@ -9,7 +9,7 @@ import { useProfile } from '@/lib/hooks/useProfile';
 import { BuilderRatingBadge } from '@/components/shared/BuilderRatingBadge';
 import { UserAvatar } from '@/components/shared/UserAvatar';
 import { computeRatingStats } from '@/lib/builderRatings';
-import { cn, formatRelativeTime, getFloorInputCount, averageFromSumMetric, formatBidMetric } from '@/lib/utils';
+import { cn, formatRelativeTime, getFloorInputCount, formatBidMetric } from '@/lib/utils';
 import { useTranslation } from '@/lib/context/LanguageProvider';
 import { ConstructionMatrixSummary } from '@/components/construction/ConstructionMatrixSummary';
 import { BidFloorRatesBreakdown } from '@/components/shared/BidFloorRatesBreakdown';
@@ -23,9 +23,12 @@ import {
   getMistriCivilCostDisplayEntries,
   getMistriFlooringRateDisplayEntries,
   isMistriCivilCostProject,
-  mistriRankMetric,
   resolveMistriCivilFloors,
 } from '@/lib/bid/mistriCivilCost';
+import { getBidRankMetric } from '@/lib/bid/estimatedCost';
+import { getPainterFloorCostDisplayEntries } from '@/lib/bid/painterBid';
+import { parsePainterDetails, readPainterBidFloors, resolvePainterFloorAreaSqft } from '@/lib/painterDetails';
+import { readNestedProjectDetail } from '@/lib/project/storedDetails';
 import type { ProjectStatus, ServiceType, TrackType, SubConfiguration } from '@/lib/types';
 
 interface BuilderInfo {
@@ -42,8 +45,10 @@ interface BidLeaderboardProps {
   serviceType?: ServiceType | null;
   mistriDetails?: unknown;
   tradeDetails?: unknown;
+  painterDetails?: unknown;
   buildingTypes?: string[] | null;
   totalFloors?: number | null;
+  floorAreaSqft?: number | null;
   initialBuilders?: Record<string, BuilderInfo>;
 }
 
@@ -69,13 +74,33 @@ export function BidLeaderboard({
   serviceType = 'labour_contractor',
   mistriDetails,
   tradeDetails,
+  painterDetails,
   buildingTypes,
   totalFloors,
+  floorAreaSqft,
   initialBuilders,
 }: BidLeaderboardProps) {
   const { t } = useTranslation();
   const supabase = createClient();
-  const { bids, loading } = useRealtimeBids(projectId);
+  const bidRankContext = useMemo(() => {
+    const projectLike = {
+      service_type: serviceType,
+      painter_details: painterDetails,
+      floor_area_sqft: floorAreaSqft,
+    };
+    const floors = readPainterBidFloors(projectLike);
+    const details = parsePainterDetails(readNestedProjectDetail(projectLike, 'painter_details'));
+    return {
+      serviceType,
+      painterFloors: floors,
+      painterAreaSqft:
+        floors.length > 0
+          ? null
+          : resolvePainterFloorAreaSqft(details, 1, floorAreaSqft),
+      floorAreaSqft: floorAreaSqft ?? null,
+    };
+  }, [serviceType, painterDetails, floorAreaSqft]);
+  const { bids, loading } = useRealtimeBids(projectId, bidRankContext);
   const { profile } = useProfile();
   const [builders, setBuilders] = useState<Record<string, BuilderInfo>>(initialBuilders ?? {});
   const [ratings, setRatings] = useState<Record<string, { average: number; total: number }>>({});
@@ -87,6 +112,7 @@ export function BidLeaderboard({
     service_type: serviceType,
     mistri_details: mistriDetails,
     trade_details: tradeDetails,
+    painter_details: painterDetails,
     track_type: trackType,
     sub_configuration: subConfiguration,
     building_types: buildingTypes,
@@ -114,8 +140,13 @@ export function BidLeaderboard({
         building_types: buildingTypes,
         mistri_details: mistriDetails,
         total_floors: totalFloors,
+        floor_area_sqft: floorAreaSqft,
       })
     : [];
+  const painterBidFloors = bidRankContext.painterFloors ?? [];
+  const isPainterFloorBid = painterBidFloors.length > 0;
+  const isPainter = serviceType === 'painter';
+  const isTotalEstimatedCostMetric = isMistriCivilBid || isPointRateBid || isPainter;
   const plumbingOptions = isPlumbingBid
     ? readProjectPlumbingBidOptions({ trade_details: tradeDetails, sub_configuration: subConfiguration })
     : [];
@@ -355,25 +386,19 @@ export function BidLeaderboard({
                 )}>
                   {serviceType === 'plumber' && !isPlumbingBid ? 'Rs. ' : '₹'}
                   {formatBidMetric(
-                    isMistriCivilBid
-                      ? mistriRankMetric(bid)
-                      : isPointRateBid
-                      ? (bid.rates?.total_bid_amount ?? bid.total_sum_metric)
-                      : isTradeUnitRateBid && bid.rates?.weighted_index
+                    isTradeUnitRateBid && !isPointRateBid && bid.rates?.weighted_index
                       ? bid.rates.weighted_index
-                      : averageFromSumMetric(bid.total_sum_metric, projectFloorCount),
+                      : getBidRankMetric(bid, bidRankContext),
                   )}
                 </p>
                 <p className="text-[10px] text-muted-foreground">
-                  {isPointRateBid
-                    ? 'estimated total'
+                  {isTotalEstimatedCostMetric
+                    ? 'estimated project cost'
                     : isTradeUnitRateBid
                     ? 'weighted index'
-                    : isMistriCivilBid
-                    ? 'total project cost'
                     : isPlumbingBid
                     ? 'overall avg'
-                    : serviceType === 'plumber' ? 'Rs.' : serviceType === 'electrician' ? '/point' : projectFloorCount > 1 ? '/sqft avg' : '/sqft'}
+                    : serviceType === 'plumber' ? 'Rs.' : serviceType === 'electrician' ? '/point' : '/sqft'}
                 </p>
                 {isPlumbingPointRateBid && parsePlumbingRunningFootRate(bid.rates) != null && (
                   <p className="mt-1 inline-flex rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-800 dark:text-amber-300">
@@ -393,6 +418,7 @@ export function BidLeaderboard({
               {showFloorBreakdown &&
                 (shouldShowBidFloorBreakdown(bid.rates, projectFloorCount) ||
                   isMistriCivilBid ||
+                  isPainterFloorBid ||
                   isPointRateBid ||
                   (isTradeUnitRateBid && Object.keys(bid.rates?.unit_rates ?? {}).length > 0)) && (
                 <div className="w-full basis-full">
@@ -404,6 +430,8 @@ export function BidLeaderboard({
                     extraEntries={
                       isMistriCivilBid
                         ? getMistriCivilCostDisplayEntries(bid.rates, mistriCivilFloors)
+                        : isPainterFloorBid
+                        ? getPainterFloorCostDisplayEntries(bid.rates, painterBidFloors)
                         : isPlumbingPointRateBid
                         ? getPlumbingPointRateDisplayEntries(bid.rates, plumbingPointFloors)
                         : isElectricianPointRateBid
@@ -417,17 +445,13 @@ export function BidLeaderboard({
                         : undefined
                     }
                     indexLabel={
-                      isMistriCivilBid
-                        ? 'Total Estimated Cost'
-                        : isPointRateBid
-                          ? 'Estimated Total'
-                          : 'Weighted Index'
+                      isTotalEstimatedCostMetric
+                        ? 'Total Estimated Project Cost'
+                        : 'Weighted Index'
                     }
                     indexValue={
-                      isMistriCivilBid
-                        ? mistriRankMetric(bid)
-                        : isPointRateBid
-                        ? (bid.rates?.total_bid_amount ?? bid.total_sum_metric)
+                      isTotalEstimatedCostMetric
+                        ? getBidRankMetric(bid, bidRankContext)
                         : isTradeUnitRateBid
                           ? bid.rates?.weighted_index
                           : undefined

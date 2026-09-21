@@ -297,6 +297,7 @@ export function buildElectricianPointRatePayload(
   unit_rates: Record<string, number>;
   bid_unit: 'per_point';
   total_bid_amount: number;
+  total_estimated_cost: number;
 } {
   const unitRates: Record<string, number> = {};
   const amounts: number[] = [];
@@ -314,6 +315,7 @@ export function buildElectricianPointRatePayload(
     unit_rates: unitRates,
     bid_unit: 'per_point',
     total_bid_amount: total,
+    total_estimated_cost: total,
   };
 }
 

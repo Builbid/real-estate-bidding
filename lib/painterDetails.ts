@@ -218,18 +218,36 @@ export interface PainterBidFloor {
   floor: PainterTargetFloor;
   label: string;
   rateLabel: string;
+  /** Carpet / floor area applied to this floor for estimated cost. */
+  areaSqft: number;
+}
+
+/** Area used for each selected work floor when computing estimated painting cost. */
+export function resolvePainterFloorAreaSqft(
+  details: PainterDetails | null | undefined,
+  floorCount = 1,
+  fallbackArea?: number | null,
+): number {
+  if (details?.carpetArea && details.carpetArea > 0) return details.carpetArea;
+  if (fallbackArea && fallbackArea > 0) return fallbackArea;
+  if (details?.projectArea && details.projectArea > 0) {
+    const n = Math.max(floorCount, 1);
+    return n > 1 ? details.projectArea / n : details.projectArea;
+  }
+  return 0;
 }
 
 export function readPainterBidFloors(project: {
   service_type?: string | null;
   painter_details?: unknown;
   sub_configuration?: unknown;
+  floor_area_sqft?: number | null;
 }): PainterBidFloor[] {
   const details = parsePainterDetails(readNestedProjectDetail(project, 'painter_details'));
   if (!details?.targetFloors?.length) return [];
 
   const selected = new Set(details.targetFloors);
-  const floors: PainterBidFloor[] = [];
+  const floors: Omit<PainterBidFloor, 'areaSqft'>[] = [];
   for (const key of PAINTER_BID_FLOOR_ORDER) {
     if (!selected.has(key)) continue;
     if (key === 'custom') {
@@ -252,7 +270,12 @@ export function readPainterBidFloors(project: {
       rateLabel: `${label} Rate (/sqft)`,
     });
   }
-  return floors;
+  const areaSqft = resolvePainterFloorAreaSqft(
+    details,
+    floors.length,
+    project.floor_area_sqft,
+  );
+  return floors.map((floor) => ({ ...floor, areaSqft }));
 }
 
 function normalizeStartTimeType(value: unknown): PainterStartTimeType | null {

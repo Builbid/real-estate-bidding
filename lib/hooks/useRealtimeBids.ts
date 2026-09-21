@@ -1,14 +1,14 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { createClient } from '../supabase/client';
 import type { Bid } from '../types';
-import { mistriRankMetric } from '../bid/mistriCivilCost';
+import { sortBidsByEstimatedCost, type BidRankContext } from '../bid/estimatedCost';
 
-export function useRealtimeBids(projectId: string) {
-  const [bids, setBids]       = useState<Bid[]>([]);
+export function useRealtimeBids(projectId: string, rankContext?: BidRankContext | null) {
+  const [rawBids, setRawBids] = useState<Bid[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const supabase = createClient();
 
@@ -22,11 +22,7 @@ export function useRealtimeBids(projectId: string) {
     if (error) {
       setError(error.message);
     } else {
-      setBids(
-        ((data ?? []) as Bid[]).slice().sort((a, b) => {
-          return mistriRankMetric(a) - mistriRankMetric(b);
-        }),
-      );
+      setRawBids((data ?? []) as Bid[]);
     }
     setLoading(false);
   }, [projectId, supabase]);
@@ -46,7 +42,7 @@ export function useRealtimeBids(projectId: string) {
         },
         () => {
           fetchBids();
-        }
+        },
       )
       .subscribe();
 
@@ -54,6 +50,11 @@ export function useRealtimeBids(projectId: string) {
       supabase.removeChannel(channel);
     };
   }, [projectId, fetchBids, supabase]);
+
+  const bids = useMemo(
+    () => sortBidsByEstimatedCost(rawBids, rankContext),
+    [rawBids, rankContext],
+  );
 
   return { bids, loading, error };
 }

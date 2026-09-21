@@ -43,7 +43,7 @@ export async function submitFirmBidAction(
 
   const { data: project, error: projectError } = await supabase
     .from('projects')
-    .select('service_type')
+    .select('service_type, floor_area_sqft')
     .eq('id', projectId)
     .single();
 
@@ -73,8 +73,13 @@ export async function submitFirmBidAction(
   const average =
     packageRatesPayload.reduce((sum, p) => sum + p.rate, 0) / packageRatesPayload.length;
   const rankingRate = Math.round(average);
+  const floorArea = Number(project.floor_area_sqft) > 0 ? Number(project.floor_area_sqft) : 0;
+  const totalEstimatedCost = floorArea > 0 ? Math.round(rankingRate * floorArea) : rankingRate;
 
-  const ratesPayload = { ground_rate: rankingRate };
+  const ratesPayload = {
+    ground_rate: rankingRate,
+    total_estimated_cost: totalEstimatedCost,
+  };
 
   if (bidId) {
     const { error: updateError } = await supabase

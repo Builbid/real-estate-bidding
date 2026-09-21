@@ -411,8 +411,10 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                   serviceType={serviceType}
                   mistriDetails={project.mistri_details}
                   tradeDetails={project.trade_details}
+                  painterDetails={project.painter_details}
                   buildingTypes={project.building_types}
                   totalFloors={project.total_floors}
+                  floorAreaSqft={project.floor_area_sqft}
                 />
               </CardContent>
             </Card>

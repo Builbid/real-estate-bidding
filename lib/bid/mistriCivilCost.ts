@@ -408,6 +408,7 @@ export function buildMistriCivilCostPayload(
     total_wall_cost,
     total_flooring_cost,
     total_project_cost,
+    total_estimated_cost: total_project_cost,
     floor_civil_breakdown,
     ...(Object.keys(flooring_rates).length > 0 ? { flooring_rates } : {}),
     ...(Object.keys(wall_rates).length > 0 ? { wall_rates } : {}),

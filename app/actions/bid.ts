@@ -26,6 +26,7 @@ import {
   getBidRateFieldError,
   getBidRateRules,
   parseBidDbError,
+  toRateNumber,
   validateBidRatesForFloorCount,
 } from '@/lib/validation/bidRates';
 import {
@@ -60,8 +61,12 @@ import {
   validateInteriorUnitRateInputs,
   type InteriorBidOption,
 } from '@/lib/interiorBid';
-import { buildPainterFloorRatePayload } from '@/lib/bid/painterBid';
-import { readPainterBidFloors } from '@/lib/painterDetails';
+import { buildPainterFloorRatePayload, computeFloorEstimatedAmount } from '@/lib/bid/painterBid';
+import {
+  parsePainterDetails,
+  readPainterBidFloors,
+  resolvePainterFloorAreaSqft,
+} from '@/lib/painterDetails';
 
 type UnitRateBidOption = PlumbingBidOption | ElectricianBidOption | InteriorBidOption;
 
@@ -154,11 +159,12 @@ export async function submitBidAction(
     trade_details?: unknown;
     painter_details?: unknown;
     total_floors: number | null;
+    floor_area_sqft?: number | null;
   };
 
   const firstLookup = await supabase
     .from('projects')
-    .select('track_type, sub_configuration, service_type, building_types, mistri_details, trade_details, painter_details, total_floors')
+    .select('track_type, sub_configuration, service_type, building_types, mistri_details, trade_details, painter_details, total_floors, floor_area_sqft')
     .eq('id', projectId)
     .single();
 
@@ -350,11 +356,30 @@ export async function submitBidAction(
   const painterFloors = project.service_type === 'painter' ? readPainterBidFloors(project) : [];
   const painterFloorPayload =
     painterFloors.length > 0 ? buildPainterFloorRatePayload(painterFloors, rates) : null;
+  const painterSingleCostPayload = (() => {
+    if (painterFloorPayload || project.service_type !== 'painter') return null;
+    const details = parsePainterDetails(project.painter_details);
+    const areaSqft = resolvePainterFloorAreaSqft(details, 1, project.floor_area_sqft);
+    const rate = toRateNumber(rates.ground_rate);
+    const total = computeFloorEstimatedAmount(areaSqft, rate);
+    if (!(total > 0)) return null;
+    return {
+      total_estimated_cost: total,
+      total_project_cost: total,
+      floor_rate_breakdown: [{
+        floorId: 'ground',
+        label: 'Painting Work',
+        rate,
+        areaSqft,
+        amount: total,
+      }],
+    };
+  })();
 
   const ratesPayload = buildBidRatesPayload(
     {
       ...rates,
-      ...(unitRatePayload ?? pointRatePayload ?? mistriCivilPayload ?? painterFloorPayload ?? {}),
+      ...(unitRatePayload ?? pointRatePayload ?? mistriCivilPayload ?? painterFloorPayload ?? painterSingleCostPayload ?? {}),
       bid_unit: earthworkMode
         ? bidUnitForEarthworkMode(earthworkMode)
         : unitRatePayload || pointRatePayload

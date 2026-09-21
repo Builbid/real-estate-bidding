@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, UserCheck, Trophy, TrendingDown, Loader2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useRealtimeBids } from '@/lib/hooks/useRealtimeBids';
-import { averageFromSumMetric, cn, formatBidMetric, formatRelativeTime } from '@/lib/utils';
+import { cn, formatBidMetric, formatRelativeTime } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { BuilderRatingBadge } from '@/components/shared/BuilderRatingBadge';
 import { UserAvatar } from '@/components/shared/UserAvatar';
@@ -23,9 +23,12 @@ import {
   getMistriCivilCostDisplayEntries,
   getMistriFlooringRateDisplayEntries,
   isMistriCivilCostProject,
-  mistriRankMetric,
   resolveMistriCivilFloors,
 } from '@/lib/bid/mistriCivilCost';
+import { getBidRankMetric, sortBidsByEstimatedCost } from '@/lib/bid/estimatedCost';
+import { getPainterFloorCostDisplayEntries } from '@/lib/bid/painterBid';
+import { parsePainterDetails, readPainterBidFloors, resolvePainterFloorAreaSqft } from '@/lib/painterDetails';
+import { readNestedProjectDetail } from '@/lib/project/storedDetails';
 import { useOwnerProjectPhaseContext } from '@/lib/context/OwnerProjectPhaseContext';
 import type { Project, Bid } from '@/lib/types';
 
@@ -51,13 +54,28 @@ export function UnifiedBidRankings({
 }: Props) {
   const { project, isFrozen } = useOwnerProjectPhaseContext();
   const supabase = createClient();
-  const { bids: realtimeBids, loading } = useRealtimeBids(project.id);
+  const bidRankContext = useMemo(() => {
+    const floors = readPainterBidFloors(project);
+    const details = parsePainterDetails(readNestedProjectDetail(project, 'painter_details'));
+    return {
+      serviceType: project.service_type,
+      painterFloors: floors,
+      painterAreaSqft:
+        floors.length > 0
+          ? null
+          : resolvePainterFloorAreaSqft(details, 1, project.floor_area_sqft),
+      floorAreaSqft: project.floor_area_sqft ?? null,
+    };
+  }, [project]);
+  const { bids: realtimeBids, loading } = useRealtimeBids(project.id, bidRankContext);
 
   const [builders, setBuilders] = useState<Record<string, BuilderInfo>>(initialBuilders);
   const [ratings, setRatings]   = useState<Record<string, { average: number; total: number }>>({});
 
   // Use realtime bids when available, fall back to server-fetched initial
-  const bids = realtimeBids.length > 0 ? realtimeBids : initialBids;
+  const bids = realtimeBids.length > 0
+    ? realtimeBids
+    : sortBidsByEstimatedCost(initialBids, bidRankContext);
 
   // Fetch profiles for any builder IDs not yet in the map (new realtime bids)
   useEffect(() => {
@@ -152,6 +170,10 @@ export function UnifiedBidRankings({
   const isTradeUnitRateBid = Boolean(scopeBid?.unitRateBid);
   const isMistriCivilBid = isMistriCivilCostProject(project);
   const mistriCivilFloors = isMistriCivilBid ? resolveMistriCivilFloors(project) : [];
+  const painterBidFloors = bidRankContext.painterFloors ?? [];
+  const isPainterFloorBid = painterBidFloors.length > 0;
+  const isPainter = project.service_type === 'painter';
+  const isTotalEstimatedCostMetric = isMistriCivilBid || isPointRateBid || isPainter;
   const plumbingOptions = isPlumbingBid ? readProjectPlumbingBidOptions(project) : [];
   const electricianOptions = isElectricianBid ? readProjectElectricianBidOptions(project) : [];
   const interiorOptions = isInteriorBid ? readProjectInteriorBidOptions(project) : [];
@@ -173,11 +195,9 @@ export function UnifiedBidRankings({
           <TrendingDown className="w-4 h-4 text-emerald-400" />
           <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             Bid Rankings — {bids.length} bid{bids.length !== 1 ? 's' : ''}
-            {isMistriCivilBid
-              ? ' · lowest total project cost first'
-              : isPointRateBid
-                ? ' · lowest estimated total first'
-                : isTradeUnitRateBid
+            {isTotalEstimatedCostMetric
+              ? ' · lowest total estimated cost first'
+              : isTradeUnitRateBid
                   ? ' · lowest Baseline Score first'
                   : ''}
           </span>
@@ -267,30 +287,22 @@ export function UnifiedBidRankings({
                 }`}>
                   {project.service_type === 'plumber' && !isPlumbingBid ? 'Rs. ' : '₹'}
                   {formatBidMetric(
-                    isMistriCivilBid
-                      ? mistriRankMetric(bid)
-                      : isPointRateBid
-                      ? (bid.rates?.total_bid_amount ?? bid.total_sum_metric)
-                      : isTradeUnitRateBid && bid.rates?.weighted_index
+                    isTradeUnitRateBid && !isPointRateBid && bid.rates?.weighted_index
                       ? bid.rates.weighted_index
-                      : averageFromSumMetric(bid.total_sum_metric, projectFloorCount),
+                      : getBidRankMetric(bid, bidRankContext),
                   )}
                 </p>
                 <p className="text-[10px] text-muted-foreground">
                   {formatTripCapacityLabel(bid.rates?.vehicleCapacityCum)
-                    ?? (isMistriCivilBid
-                      ? 'total project cost'
-                      : isPointRateBid
-                      ? 'estimated total'
+                    ?? (isTotalEstimatedCostMetric
+                      ? 'estimated project cost'
                       : isTradeUnitRateBid
                       ? 'weighted index'
                       : isPlumbingBid
                       ? 'overall avg'
                       : ['Rs.', '/point'].includes(formatBidUnitCaption(bid.rates, undefined, project.service_type))
                       ? formatBidUnitCaption(bid.rates, undefined, project.service_type)
-                      : projectFloorCount > 1
-                        ? '/sqft avg'
-                        : formatBidUnitSuffix(bid.rates, undefined, project.service_type))}
+                      : formatBidUnitSuffix(bid.rates, undefined, project.service_type))}
                 </p>
                 {isPlumbingPointRateBid && parsePlumbingRunningFootRate(bid.rates) != null && (
                   <p className="mt-1 text-[10px] font-semibold text-amber-800 dark:text-amber-300">
@@ -309,6 +321,7 @@ export function UnifiedBidRankings({
 
               {(shouldShowBidFloorBreakdown(bid.rates, projectFloorCount) ||
                 isMistriCivilBid ||
+                isPainterFloorBid ||
                 isPointRateBid ||
                 (isTradeUnitRateBid && Object.keys(bid.rates?.unit_rates ?? {}).length > 0)) && (
                 <div className="w-full basis-full">
@@ -320,6 +333,8 @@ export function UnifiedBidRankings({
                     extraEntries={
                       isMistriCivilBid
                         ? getMistriCivilCostDisplayEntries(bid.rates, mistriCivilFloors)
+                        : isPainterFloorBid
+                        ? getPainterFloorCostDisplayEntries(bid.rates, painterBidFloors)
                         : isPlumbingPointRateBid
                         ? getPlumbingPointRateDisplayEntries(bid.rates, plumbingPointFloors)
                         : isElectricianPointRateBid
@@ -333,17 +348,13 @@ export function UnifiedBidRankings({
                         : undefined
                     }
                     indexLabel={
-                      isMistriCivilBid
-                        ? 'Total Estimated Cost'
-                        : isPointRateBid
-                          ? 'Estimated Total'
-                          : 'Weighted Index'
+                      isTotalEstimatedCostMetric
+                        ? 'Total Estimated Project Cost'
+                        : 'Weighted Index'
                     }
                     indexValue={
-                      isMistriCivilBid
-                        ? mistriRankMetric(bid)
-                        : isPointRateBid
-                        ? (bid.rates?.total_bid_amount ?? bid.total_sum_metric)
+                      isTotalEstimatedCostMetric
+                        ? getBidRankMetric(bid, bidRankContext)
                         : isTradeUnitRateBid
                           ? bid.rates?.weighted_index
                           : undefined
