@@ -19,7 +19,7 @@ export const PROJECT_START_DATE_RANGE_INVALID_MESSAGE =
 export const PROJECT_START_DATE_FORMAT_INVALID_MESSAGE =
   'Enter a valid date as DD/MM/YYYY.';
 export const PROJECT_START_DATE_BEYOND_MONTH_NOTE =
-  'Note: For project start dates scheduled beyond 30 days, an advance token money deposit will be required during contract agreement.';
+  'Note: Projects scheduled beyond 30 days require an advance token money deposit during contract agreement. To avoid advance charges, please schedule your project start date within 30 days.';
 
 const START_TIME_TYPES = new Set<ProjectStartTimeType>([
   '1week',

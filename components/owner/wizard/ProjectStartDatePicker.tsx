@@ -80,6 +80,19 @@ function partsFromValue(value: string): { day: number | null; month: number | nu
   return { day: parts.day, month: parts.month, year: parts.year };
 }
 
+function displayFromParts(
+  nextDay: number | null,
+  nextMonth: number | null,
+  nextYear: number | null,
+): string {
+  if (!nextDay) return '';
+  const dayText = padDatePart(nextDay);
+  if (!nextMonth) return `${dayText}/`;
+  const monthText = padDatePart(nextMonth);
+  if (!nextYear) return `${dayText}/${monthText}/`;
+  return `${dayText}/${monthText}/${nextYear}`;
+}
+
 export function ProjectStartDatePicker({
   value,
   onChange,
@@ -123,15 +136,12 @@ export function ProjectStartDatePicker({
     setDay(nextDay);
     setMonth(nextMonth);
     setYear(nextYear);
-    if (!nextDay || !nextMonth || !nextYear) return;
-    const nextDisplay = `${padDatePart(nextDay)}/${padDatePart(nextMonth)}/${nextYear}`;
+    const nextDisplay = displayFromParts(nextDay, nextMonth, nextYear);
     setDisplay(nextDisplay);
     const iso = parseIndianDateToIso(nextDisplay);
     onChange(iso ?? '');
-    if (iso) {
-      setViewYear(YEAR_OPTION_SET.has(nextYear) ? nextYear : viewYear);
-      setViewMonth(nextMonth);
-    }
+    if (nextMonth) setViewMonth(nextMonth);
+    if (nextYear && YEAR_OPTION_SET.has(nextYear)) setViewYear(nextYear);
   }
 
   function handleDisplayChange(raw: string) {
