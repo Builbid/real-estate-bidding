@@ -373,7 +373,7 @@ export function ConstructionFirmProjectWizard() {
 
               <ReviewSummaryList
                 items={[
-                  { label: 'Service', value: '🏢 Construction Firm' },
+                  { label: 'Service', value: 'Construction Firm' },
                   { label: 'Project title', value: previewTitle },
                   { label: 'District', value: form.location || '—' },
                   { label: 'Pincode', value: form.pincode.trim() || 'Not specified' },

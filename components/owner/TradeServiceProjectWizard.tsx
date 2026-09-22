@@ -21,7 +21,7 @@ import { ReviewSummaryList, WizardStepper } from '@/components/owner/wizard/Revi
 import { generateProjectTitle } from '@/lib/generateProjectTitle';
 import { hasContactInfo } from '@/lib/validation/projectContactInfo';
 import { formatPincodeInput, validatePincode } from '@/lib/validation/pincode';
-import { getTradeLabel, getTradeEmoji } from '@/lib/trades';
+import { getTradeLabel } from '@/lib/trades';
 import {
   PAINTER_PAINT_AREA_DISCLAIMER,
   PAINTER_PRIMER_OPTIONS,
@@ -231,7 +231,6 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
 
   const tradeLabel = getTradeLabel(trade);
-  const tradeEmoji = getTradeEmoji(trade);
   const isPainter = trade === 'painter';
   const isEarthwork = trade === 'earthwork';
   const isCustomTrade = isCustomTradeWorkService(trade);
@@ -1030,7 +1029,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
 
               <ReviewSummaryList
                 items={[
-                  { label: 'Service', value: `${tradeEmoji} ${tradeLabel}` },
+                  { label: 'Service', value: tradeLabel },
                   { label: 'Project Title', value: previewTitle },
                   { label: 'District', value: form.location },
                   ...(isEarthwork
@@ -1087,7 +1086,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                       Launching…
                     </span>
                   ) : (
-                    <span className="flex items-center gap-2">🚀 Launch Auction</span>
+                    <span>Launch Auction</span>
                   )}
                 </Button>
               </div>

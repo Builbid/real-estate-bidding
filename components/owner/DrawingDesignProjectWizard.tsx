@@ -465,7 +465,7 @@ export function DrawingDesignProjectWizard() {
               <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">Review & Launch</h2>
               <ReviewSummaryList
                 items={[
-                  { label: 'Service', value: '✏️ Drawing and Design' },
+                  { label: 'Service', value: 'Drawing and Design' },
                   { label: 'Project title', value: previewTitle },
                   { label: 'District', value: form.location },
                   { label: 'Pincode', value: form.pincode.trim() || 'Not specified' },
@@ -485,7 +485,7 @@ export function DrawingDesignProjectWizard() {
                   <ArrowLeft className="h-4 w-4" /> Back
                 </Button>
                 <Button size="lg" className={cn('flex-1', FORM_CONTINUE_BTN)} disabled={loading} onClick={handleSubmit}>
-                  {loading ? 'Launching…' : '🚀 Launch Auction'}
+                  {loading ? 'Launching…' : 'Launch Auction'}
                 </Button>
               </div>
             </>

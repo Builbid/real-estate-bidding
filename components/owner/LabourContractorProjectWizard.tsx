@@ -1944,7 +1944,7 @@ export function LabourContractorProjectWizard() {
                       Launching…
                     </span>
                   ) : (
-                    <span className="flex items-center gap-2">🚀 Launch Auction</span>
+                    <span>Launch Auction</span>
                   )}
                 </Button>
               </div>

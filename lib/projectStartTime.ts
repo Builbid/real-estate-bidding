@@ -19,7 +19,7 @@ export const PROJECT_START_DATE_RANGE_INVALID_MESSAGE =
 export const PROJECT_START_DATE_FORMAT_INVALID_MESSAGE =
   'Enter a valid date as DD/MM/YYYY.';
 export const PROJECT_START_DATE_BEYOND_MONTH_NOTE =
-  'Note: Projects scheduled beyond 30 days require an advance token money deposit during contract agreement. To avoid advance charges, please schedule your project start date within 30 days.';
+  'Note: Projects scheduled beyond 30 days require a small advance token money deposit during contract agreement. To avoid any advance charges, please schedule your project start date within 30 days.';
 
 const START_TIME_TYPES = new Set<ProjectStartTimeType>([
   '1week',
@@ -32,6 +32,11 @@ export function isProjectStartTimeType(
   value: unknown,
 ): value is ProjectStartTimeType {
   return typeof value === 'string' && START_TIME_TYPES.has(value as ProjectStartTimeType);
+}
+
+export function projectStartPickerYears(now: Date = new Date()): [number, number] {
+  const year = now.getFullYear();
+  return [year, year + 1];
 }
 
 /** Local calendar date as YYYY-MM-DD (for `<input type="date" min>`). */

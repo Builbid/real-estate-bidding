@@ -19,6 +19,7 @@ import {
   maxProjectStartDateString,
   parseIndianDateToIso,
   PROJECT_START_DATE_BEYOND_MONTH_NOTE,
+  projectStartPickerYears,
   todayLocalDateString,
 } from '@/lib/projectStartTime';
 import {
@@ -41,11 +42,7 @@ const MONTH_LABELS = [
   'November',
   'December',
 ] as const;
-const YEAR_OPTIONS = [2026, 2027, 2028] as const;
-const YEAR_OPTION_SET = new Set<number>(YEAR_OPTIONS);
 const DAY_OPTIONS = Array.from({ length: 31 }, (_, i) => i + 1);
-const PICKER_MIN_YEAR = YEAR_OPTIONS[0];
-const PICKER_MAX_YEAR = YEAR_OPTIONS[YEAR_OPTIONS.length - 1];
 
 function padDatePart(value: number): string {
   return String(value).padStart(2, '0');
@@ -102,6 +99,10 @@ export function ProjectStartDatePicker({
 }) {
   const minDate = todayLocalDateString();
   const maxDate = maxProjectStartDateString();
+  const yearOptions = useMemo(() => projectStartPickerYears(), [minDate]);
+  const yearOptionSet = useMemo(() => new Set(yearOptions), [yearOptions]);
+  const pickerMinYear = yearOptions[0];
+  const pickerMaxYear = yearOptions[1];
   const initialParts = partsFromValue(value);
   const [open, setOpen] = useState(false);
   const [display, setDisplay] = useState(() => isoToIndianDate(value));
@@ -109,7 +110,7 @@ export function ProjectStartDatePicker({
   const [month, setMonth] = useState<number | null>(initialParts.month);
   const [year, setYear] = useState<number | null>(initialParts.year);
 
-  const todayParts = parseIsoParts(minDate) ?? { year: PICKER_MIN_YEAR, month: 1, day: 1 };
+  const todayParts = parseIsoParts(minDate) ?? { year: pickerMinYear, month: 1, day: 1 };
   const [viewYear, setViewYear] = useState(year ?? todayParts.year);
   const [viewMonth, setViewMonth] = useState(month ?? todayParts.month);
 
@@ -129,8 +130,8 @@ export function ProjectStartDatePicker({
   const showTokenNotice = Boolean(parsedIso && !error && isProjectStartDateBeyondOneMonth(parsedIso));
 
   const cells = useMemo(() => monthGrid(viewYear, viewMonth), [viewYear, viewMonth]);
-  const canGoPrev = viewYear > PICKER_MIN_YEAR || (viewYear === PICKER_MIN_YEAR && viewMonth > 1);
-  const canGoNext = viewYear < PICKER_MAX_YEAR || (viewYear === PICKER_MAX_YEAR && viewMonth < 12);
+  const canGoPrev = viewYear > pickerMinYear || (viewYear === pickerMinYear && viewMonth > 1);
+  const canGoNext = viewYear < pickerMaxYear || (viewYear === pickerMaxYear && viewMonth < 12);
 
   function emitParts(nextDay: number | null, nextMonth: number | null, nextYear: number | null) {
     setDay(nextDay);
@@ -141,7 +142,7 @@ export function ProjectStartDatePicker({
     const iso = parseIndianDateToIso(nextDisplay);
     onChange(iso ?? '');
     if (nextMonth) setViewMonth(nextMonth);
-    if (nextYear && YEAR_OPTION_SET.has(nextYear)) setViewYear(nextYear);
+    if (nextYear && yearOptionSet.has(nextYear)) setViewYear(nextYear);
   }
 
   function handleDisplayChange(raw: string) {
@@ -160,7 +161,7 @@ export function ProjectStartDatePicker({
     const typedYear = parts[2]?.length === 4 ? Number(parts[2]) : NaN;
     if (typedDay >= 1 && typedDay <= 31) setDay(typedDay);
     if (typedMonth >= 1 && typedMonth <= 12) setMonth(typedMonth);
-    if (YEAR_OPTION_SET.has(typedYear)) {
+    if (yearOptionSet.has(typedYear)) {
       setYear(typedYear);
       setViewYear(typedYear);
     }
@@ -187,7 +188,7 @@ export function ProjectStartDatePicker({
   function shiftMonth(delta: number) {
     const date = new Date(viewYear, viewMonth - 1 + delta, 1);
     const nextYear = date.getFullYear();
-    if (nextYear < PICKER_MIN_YEAR || nextYear > PICKER_MAX_YEAR) return;
+    if (nextYear < pickerMinYear || nextYear > pickerMaxYear) return;
     setViewYear(nextYear);
     setViewMonth(date.getMonth() + 1);
   }
@@ -196,7 +197,7 @@ export function ProjectStartDatePicker({
     setOpen(nextOpen);
     if (!nextOpen) return;
     const parts = parseIsoParts(selectedIso) ?? todayParts;
-    const nextYear = YEAR_OPTION_SET.has(parts.year) ? parts.year : todayParts.year;
+    const nextYear = yearOptionSet.has(parts.year) ? parts.year : todayParts.year;
     setViewYear(nextYear);
     setViewMonth(parts.month);
   }
@@ -276,7 +277,7 @@ export function ProjectStartDatePicker({
                     {MONTH_LABELS[viewMonth - 1]}
                   </span>
                   <div className="flex items-center gap-1" role="group" aria-label="Select year">
-                    {YEAR_OPTIONS.map((optionYear) => (
+                    {yearOptions.map((optionYear) => (
                       <button
                         key={optionYear}
                         type="button"
@@ -390,7 +391,7 @@ export function ProjectStartDatePicker({
                 <SelectValue placeholder="Year" />
               </SelectTrigger>
               <SelectContent side="top" position="item-aligned" className="z-[80]">
-                {YEAR_OPTIONS.map((optionYear) => (
+                {yearOptions.map((optionYear) => (
                   <SelectItem key={optionYear} value={String(optionYear)}>
                     {optionYear}
                   </SelectItem>
