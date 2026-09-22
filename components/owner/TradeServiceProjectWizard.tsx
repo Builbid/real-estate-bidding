@@ -16,7 +16,7 @@ import {
 import { BuildingTypeSelector } from '@/components/construction/BuildingTypeSelector';
 import { TradeWorkRequirementsFields, type TradeWorkFormFields } from '@/components/owner/TradeWorkRequirementsFields';
 import { FORM_CONTINUE_BTN, FORM_NOTE_BOX, FORM_OPTION_SELECTED, FORM_OPTION_UNSELECTED, FORM_SECTION_CARD, FORM_SHELL_CARD, FORM_TEXTAREA } from '@/components/owner/wizard/formTheme';
-import { ADDITIONAL_REQUIREMENTS_PLACEHOLDER, ProjectStartBookingNote, SpecificStartDateField, WIZARD_SECTION_LABEL, WizardAccentLabels, withSectionColon } from '@/components/owner/wizard/StartTimeAndNotes';
+import { ADDITIONAL_REQUIREMENTS_PLACEHOLDER, ProjectStartBookingNote, ProjectStartDatePicker, WIZARD_SECTION_LABEL, WizardAccentLabels, withSectionColon } from '@/components/owner/wizard/StartTimeAndNotes';
 import { ReviewSummaryList, WizardStepper } from '@/components/owner/wizard/ReviewSummary';
 import { generateProjectTitle } from '@/lib/generateProjectTitle';
 import { hasContactInfo } from '@/lib/validation/projectContactInfo';
@@ -972,7 +972,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                       columns={2}
                     />
                     {form.projectStartTimeType === 'specific' && (
-                      <SpecificStartDateField
+                      <ProjectStartDatePicker
                         value={form.projectStartTimeSpecificDate}
                         onChange={(value) => {
                           update('projectStartTimeSpecificDate', value);
