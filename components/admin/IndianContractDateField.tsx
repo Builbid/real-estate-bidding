@@ -43,7 +43,7 @@ export function IndianContractDateField({
   const shownError = error ?? formatError ?? rangeError;
 
   function handleDisplayChange(raw: string) {
-    const next = formatIndianDateInput(raw);
+    const next = formatIndianDateInput(raw, display);
     setDisplay(next);
     if (!next) {
       onChange('');

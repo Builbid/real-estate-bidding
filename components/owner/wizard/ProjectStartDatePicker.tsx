@@ -13,10 +13,12 @@ import {
 import { cn } from '@/lib/utils';
 import {
   formatIndianDateInput,
-  getProjectStartDateFieldError,
+  getProjectStartDateInputError,
   isoToIndianDate,
+  isProjectStartDateBeyondOneMonth,
+  maxProjectStartDateString,
   parseIndianDateToIso,
-  PROJECT_START_DATE_FORMAT_INVALID_MESSAGE,
+  PROJECT_START_DATE_BEYOND_MONTH_NOTE,
   todayLocalDateString,
 } from '@/lib/projectStartTime';
 import {
@@ -86,6 +88,7 @@ export function ProjectStartDatePicker({
   onChange: (value: string) => void;
 }) {
   const minDate = todayLocalDateString();
+  const maxDate = maxProjectStartDateString();
   const initialParts = partsFromValue(value);
   const [open, setOpen] = useState(false);
   const [display, setDisplay] = useState(() => isoToIndianDate(value));
@@ -107,13 +110,10 @@ export function ProjectStartDatePicker({
     setYear(parts.year);
   }, [value]);
 
-  const complete = display.length === 10;
-  const parsedIso = complete ? parseIndianDateToIso(display) : null;
-  const formatError =
-    complete && !parsedIso ? PROJECT_START_DATE_FORMAT_INVALID_MESSAGE : undefined;
-  const rangeError = parsedIso ? getProjectStartDateFieldError(parsedIso) : undefined;
-  const error = formatError ?? rangeError;
-  const selectedIso = parsedIso && !formatError ? parsedIso : value || '';
+  const error = getProjectStartDateInputError(display);
+  const parsedIso = parseIndianDateToIso(display);
+  const selectedIso = parsedIso ?? value ?? '';
+  const showTokenNotice = Boolean(parsedIso && !error && isProjectStartDateBeyondOneMonth(parsedIso));
 
   const cells = useMemo(() => monthGrid(viewYear, viewMonth), [viewYear, viewMonth]);
   const canGoPrev = viewYear > PICKER_MIN_YEAR || (viewYear === PICKER_MIN_YEAR && viewMonth > 1);
@@ -124,16 +124,18 @@ export function ProjectStartDatePicker({
     setMonth(nextMonth);
     setYear(nextYear);
     if (!nextDay || !nextMonth || !nextYear) return;
-    const last = daysInMonth(nextYear, nextMonth);
-    const clampedDay = Math.min(nextDay, last);
-    if (clampedDay !== nextDay) setDay(clampedDay);
-    const iso = toIsoDate(nextYear, nextMonth, clampedDay);
-    setDisplay(isoToIndianDate(iso));
-    onChange(iso);
+    const nextDisplay = `${padDatePart(nextDay)}/${padDatePart(nextMonth)}/${nextYear}`;
+    setDisplay(nextDisplay);
+    const iso = parseIndianDateToIso(nextDisplay);
+    onChange(iso ?? '');
+    if (iso) {
+      setViewYear(YEAR_OPTION_SET.has(nextYear) ? nextYear : viewYear);
+      setViewMonth(nextMonth);
+    }
   }
 
   function handleDisplayChange(raw: string) {
-    const next = formatIndianDateInput(raw);
+    const next = formatIndianDateInput(raw, display);
     setDisplay(next);
     if (!next) {
       setDay(null);
@@ -142,29 +144,28 @@ export function ProjectStartDatePicker({
       onChange('');
       return;
     }
-    if (next.length < 10) {
-      const parts = next.split('/');
-      const typedDay = parts[0] ? Number(parts[0]) : NaN;
-      const typedMonth = parts[1] ? Number(parts[1]) : NaN;
-      const typedYear = parts[2]?.length === 4 ? Number(parts[2]) : NaN;
-      if (typedDay >= 1 && typedDay <= 31) setDay(typedDay);
-      if (typedMonth >= 1 && typedMonth <= 12) setMonth(typedMonth);
-      if (YEAR_OPTION_SET.has(typedYear)) setYear(typedYear);
+    const parts = next.split('/');
+    const typedDay = parts[0]?.length === 2 ? Number(parts[0]) : NaN;
+    const typedMonth = parts[1]?.length === 2 ? Number(parts[1]) : NaN;
+    const typedYear = parts[2]?.length === 4 ? Number(parts[2]) : NaN;
+    if (typedDay >= 1 && typedDay <= 31) setDay(typedDay);
+    if (typedMonth >= 1 && typedMonth <= 12) setMonth(typedMonth);
+    if (YEAR_OPTION_SET.has(typedYear)) {
+      setYear(typedYear);
+      setViewYear(typedYear);
+    }
+    if (typedMonth >= 1 && typedMonth <= 12) setViewMonth(typedMonth);
+
+    if (next.replace(/\D/g, '').length < 8) {
+      if (getProjectStartDateInputError(next)) onChange('');
       return;
     }
     const iso = parseIndianDateToIso(next);
     onChange(iso ?? '');
-    if (!iso) return;
-    const parts = parseIsoParts(iso);
-    if (!parts) return;
-    setDay(parts.day);
-    setMonth(parts.month);
-    setYear(parts.year);
-    setViewYear(YEAR_OPTION_SET.has(parts.year) ? parts.year : viewYear);
-    setViewMonth(parts.month);
   }
 
   function selectIso(iso: string) {
+    if (iso < minDate || iso > maxDate) return;
     const parts = parseIsoParts(iso);
     if (!parts) return;
     emitParts(parts.day, parts.month, parts.year);
@@ -306,8 +307,8 @@ export function ProjectStartDatePicker({
                     return <div key={`empty-${index}`} />;
                   }
                   const iso = toIsoDate(viewYear, viewMonth, gridDay);
-                  const disabled = iso < minDate;
-                  const selected = iso === selectedIso && !formatError;
+                  const disabled = iso < minDate || iso > maxDate;
+                  const selected = Boolean(parsedIso) && iso === parsedIso && !error;
                   const isToday = iso === minDate;
                   return (
                     <button
@@ -391,6 +392,11 @@ export function ProjectStartDatePicker({
 
         {error && (
           <p className="text-xs font-medium text-red-600 dark:text-red-400 mt-0.5">{error}</p>
+        )}
+        {showTokenNotice && (
+          <p className="rounded-xl border border-amber-300 bg-amber-50 px-3 py-2.5 text-[11px] font-medium leading-relaxed text-amber-900 dark:border-amber-500/40 dark:bg-amber-950/40 dark:text-amber-200">
+            {PROJECT_START_DATE_BEYOND_MONTH_NOTE}
+          </p>
         )}
       </div>
     </div>

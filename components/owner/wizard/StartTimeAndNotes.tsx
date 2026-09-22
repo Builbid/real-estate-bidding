@@ -80,10 +80,6 @@ export function StartTimeAndNotes<T extends string = ProjectStartTimeType>({
             onChange={(next) => onSpecificDateChange?.(next)}
           />
         )}
-        <ProjectStartBookingNote
-          startTimeType={startTimeType}
-          specificDate={specificDate}
-        />
       </div>
 
       <div className={FORM_SECTION_CARD}>

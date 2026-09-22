@@ -15,11 +15,11 @@ export const PROJECT_START_TIME_OPTIONS: {
 export const PROJECT_START_DATE_PAST_INVALID_MESSAGE =
   'Select today or a future date. Past dates are not allowed.';
 export const PROJECT_START_DATE_RANGE_INVALID_MESSAGE =
-  'Error: Projects starting beyond 3 months (90 days) cannot be created.';
+  'Project start date cannot exceed 90 days from today.';
 export const PROJECT_START_DATE_FORMAT_INVALID_MESSAGE =
   'Enter a valid date as DD/MM/YYYY.';
 export const PROJECT_START_DATE_BEYOND_MONTH_NOTE =
-  'Note: For projects scheduled beyond 1 month, a small token booking amount will be required upon offline site verification and contract agreement to confirm contractor availability.';
+  'Note: For project start dates scheduled beyond 30 days, an advance token money deposit will be required during contract agreement.';
 
 const START_TIME_TYPES = new Set<ProjectStartTimeType>([
   '1week',
@@ -96,7 +96,7 @@ export function isProjectStartDateBeyondOneMonth(
   return date > oneMonthProjectStartDateString(now) && date <= maxProjectStartDateString(now);
 }
 
-/** Real-time field error for a typed or picked start date. */
+/** Real-time field error for a typed or picked start date (ISO YYYY-MM-DD). */
 export function getProjectStartDateFieldError(
   value: string,
   now: Date = new Date(),
@@ -107,6 +107,34 @@ export function getProjectStartDateFieldError(
   if (date < todayLocalDateString(now)) return PROJECT_START_DATE_PAST_INVALID_MESSAGE;
   if (date > maxProjectStartDateString(now)) return PROJECT_START_DATE_RANGE_INVALID_MESSAGE;
   return undefined;
+}
+
+/** Real-time error for a DD/MM/YYYY (or partial) typed value. */
+export function getProjectStartDateInputError(
+  display: string,
+  now: Date = new Date(),
+): string | undefined {
+  const trimmed = display.trim();
+  if (!trimmed) return undefined;
+  const digits = trimmed.replace(/\D/g, '');
+  if (digits.length >= 2) {
+    const day = Number(digits.slice(0, 2));
+    if (!Number.isFinite(day) || day < 1 || day > 31) {
+      return PROJECT_START_DATE_FORMAT_INVALID_MESSAGE;
+    }
+  }
+  if (digits.length >= 4) {
+    const month = Number(digits.slice(2, 4));
+    if (!Number.isFinite(month) || month < 1 || month > 12) {
+      return PROJECT_START_DATE_FORMAT_INVALID_MESSAGE;
+    }
+  }
+  if (digits.length < 8) return undefined;
+  const iso = parseIndianDateToIso(
+    `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4, 8)}`,
+  );
+  if (!iso) return PROJECT_START_DATE_FORMAT_INVALID_MESSAGE;
+  return getProjectStartDateFieldError(iso, now);
 }
 
 export function getProjectStartBookingNote(
@@ -130,15 +158,19 @@ export function isoToIndianDate(value: string | null | undefined): string {
   return `${day}/${month}/${year}`;
 }
 
-/** Keep typed Indian dates as DD/MM/YYYY while digits are entered. */
-export function formatIndianDateInput(raw: string): string {
+/** Keep typed Indian dates as DD/MM/YYYY while digits are entered, inserting `/` after DD and MM. */
+export function formatIndianDateInput(raw: string, previous = ''): string {
   const digits = raw.replace(/\D/g, '').slice(0, 8);
+  const previousDigits = previous.replace(/\D/g, '');
+  const deleting = digits.length < previousDigits.length || raw.length < previous.length;
+  if (!digits) return '';
   const day = digits.slice(0, 2);
+  if (digits.length < 2) return day;
+  if (digits.length === 2) return deleting ? day : `${day}/`;
   const month = digits.slice(2, 4);
-  const year = digits.slice(4, 8);
-  if (digits.length <= 2) return day;
-  if (digits.length <= 4) return `${day}/${month}`;
-  return `${day}/${month}/${year}`;
+  if (digits.length < 4) return `${day}/${month}`;
+  if (digits.length === 4) return deleting ? `${day}/${month}` : `${day}/${month}/`;
+  return `${day}/${month}/${digits.slice(4, 8)}`;
 }
 
 /** Parse DD/MM/YYYY to YYYY-MM-DD, or null if the calendar date is invalid. */
