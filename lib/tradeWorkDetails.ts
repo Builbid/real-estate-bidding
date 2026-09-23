@@ -603,12 +603,12 @@ export const PLUMBING_FITTING_TYPE_OPTIONS: {
   {
     value: 'concealed',
     label: 'Concealed Fitting',
-    description: 'Pipes hidden inside walls after fitting.',
+    description: '(Pipes hidden inside walls after fitting)',
   },
   {
     value: 'open_surface',
     label: 'Open Surface Fitting',
-    description: 'Pipes run on the outer wall surface.',
+    description: '(Pipes run on the outer wall surface)',
   },
 ];
 
@@ -641,12 +641,12 @@ export const ELECTRICIAN_WIRING_TYPE_OPTIONS: {
   {
     value: 'concealed',
     label: 'Concealed Wiring',
-    description: 'Wires hidden inside walls after fitting.',
+    description: '(Wires hidden inside walls after fitting)',
   },
   {
     value: 'surface_casing',
     label: 'Surface Casing Wiring',
-    description: 'Wires run in casing on the outer wall surface.',
+    description: '(Wires run on the outer wall surface)',
   },
 ];
 
@@ -1544,7 +1544,8 @@ function parseFixtureDraftCounts(
   for (const field of PLUMBING_FIXTURE_FIELDS) {
     const raw = draft?.[field.key]?.trim() ?? '';
     if (raw === '') {
-      return { error: `Enter ${field.label.toLowerCase()} for each selected floor.` };
+      counts[field.key] = 0;
+      continue;
     }
     const n = parseCount(raw, 0, 50);
     if (n == null) {
@@ -1666,7 +1667,8 @@ function parseElectricianFixtureDraftCounts(
   for (const field of ELECTRICIAN_FIXTURE_FIELDS) {
     const raw = draft?.[field.key]?.trim() ?? '';
     if (raw === '') {
-      return { error: `Enter ${field.label.toLowerCase()} for each selected floor.` };
+      counts[field.key] = 0;
+      continue;
     }
     const n = parseCount(raw, 0, 50);
     if (n == null) {

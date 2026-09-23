@@ -217,7 +217,7 @@ export function ProjectStartDatePicker({
     <div className="mt-2 space-y-2" data-field-invalid={error ? 'true' : undefined}>
       <div className="flex flex-col gap-1.5 w-full">
         <label className={WIZARD_SECTION_LABEL_BASE}>
-          {withSectionColon('Choose Start Date (DD/MM/YYYY)')}
+          {withSectionColon('Choose Work Start Date (DD/MM/YYYY)')}
         </label>
         <div
           className={cn(

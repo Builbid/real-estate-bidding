@@ -114,7 +114,6 @@ export function TradeWorkRequirementsFields({
           targetFloors={form.targetFloors}
           customTargetFloors={form.customTargetFloors}
           values={form.floorFixtureCounts}
-          highlightEmpty={messageMatches(error, 'for each selected floor') || messageMatches(error, 'fixture')}
           onChange={(v) => onChange('floorFixtureCounts', v)}
         />
         <FieldGroup label="Fitting Type" invalid={messageMatches(error, 'fitting')} message={messageMatches(error, 'fitting') ? error : undefined}>
@@ -141,7 +140,6 @@ export function TradeWorkRequirementsFields({
             targetFloors={form.targetFloors}
             customTargetFloors={form.customTargetFloors}
             values={form.electricianFloorFixtureCounts}
-            highlightEmpty={messageMatches(error, 'for each selected floor') || messageMatches(error, 'fixture')}
             onChange={(v) => onChange('electricianFloorFixtureCounts', v)}
           />
           <FieldGroup label="Wiring Type" invalid={messageMatches(error, 'wiring')} message={messageMatches(error, 'wiring') ? error : undefined}>

@@ -16,13 +16,11 @@ export function ElectricianFloorFixtureForm({
   customTargetFloors,
   values,
   onChange,
-  highlightEmpty = false,
 }: {
   targetFloors: PlumbingTargetFloor[];
   customTargetFloors: string | number[];
   values: Partial<Record<PlumbingTargetFloor, ElectricianFixtureCountDraft>>;
   onChange: (value: Partial<Record<PlumbingTargetFloor, ElectricianFixtureCountDraft>>) => void;
-  highlightEmpty?: boolean;
 }) {
   function updateField(floor: PlumbingTargetFloor, key: ElectricianFixtureKind, raw: string) {
     const current = values[floor] ?? emptyElectricianFixtureDraft();
@@ -65,7 +63,6 @@ export function ElectricianFloorFixtureForm({
                   type="text"
                   inputMode="numeric"
                   value={counts[field.key]}
-                  error={highlightEmpty && !counts[field.key]?.trim() ? 'Enter a quantity.' : undefined}
                   onChange={(e) => updateField(floor, field.key, e.target.value)}
                 />
               ))}
