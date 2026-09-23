@@ -165,7 +165,7 @@ function FlooringAreaField({
         label="Approximate Flooring Work Area (sq. ft.)"
         type="text"
         inputMode="decimal"
-        placeholder="e.g., 1800"
+        placeholder=""
         value={value}
         error={error ?? undefined}
         onChange={(e) => onChange(e.target.value)}
@@ -198,7 +198,7 @@ function WallAreaField({
         label="Approximate Wall Area (sq. ft.)"
         type="text"
         inputMode="decimal"
-        placeholder="e.g., 1200"
+        placeholder=""
         value={value}
         onChange={(e) => onChange(e.target.value)}
       />
@@ -669,7 +669,9 @@ export function LabourContractorProjectWizard() {
     houseType?: string;
     floors?: string;
     customFloor?: string;
+    bidding?: string;
   }>({});
+  const [step2FieldErrors, setStep2FieldErrors] = useState<Record<string, string>>({});
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [submittedTitle, setSubmittedTitle] = useState('');
   const houseTypeScrollYRef = useRef<number | null>(null);
@@ -1066,9 +1068,12 @@ export function LabourContractorProjectWizard() {
       errors.location = 'Please select a district from the list.';
     }
 
-    const pincodeError = validatePincode(form.pincode);
+    const pincodeError = validatePincode(form.pincode, { required: true });
     if (pincodeError) {
       errors.pincode = pincodeError;
+    }
+    if (form.bidding_minutes !== '7' && form.bidding_minutes !== '1440') {
+      errors.bidding = 'Select a bidding duration.';
     }
 
     if (form.houseType !== 'boundary_wall' && parseApproximateAreaSqft(form.approximateArea) == null) {
@@ -1132,14 +1137,40 @@ export function LabourContractorProjectWizard() {
     return null;
   }
 
+  function collectBoundaryErrors(): Record<string, string> {
+    const errors: Record<string, string> = {};
+    const wall = form.boundaryWall;
+    if (!wall?.lengthFt?.trim()) errors.length = 'Enter the boundary wall length in feet.';
+    if (!wall?.heightFt?.trim()) errors.height = 'Enter the boundary wall height in feet.';
+    if (!wall?.materialType) errors.material = 'Select a wall material: Red Clay Brick or AAC Block.';
+    if (!wall?.plasteringFinish) errors.plaster = 'Select a plastering option for the boundary wall.';
+    if (showManualPlasteringArea && !wall?.plasteringAreaSqft?.trim()) {
+      errors.plasterArea = 'Enter the approximate plastering area (sq. ft.).';
+    }
+    if (!wall?.executionTimeline) errors.timeline = 'Select the work execution timeline.';
+    if (wall?.executionTimeline === 'custom' && !wall.executionTimelineCustomDate?.trim()) {
+      errors.customDate = 'Select a custom completion date.';
+    }
+    return errors;
+  }
+
   function tryGoStep3() {
     if (form.houseType === 'boundary_wall') {
+      const fieldErrors = collectBoundaryErrors();
+      if (Object.keys(fieldErrors).length > 0) {
+        setStep2FieldErrors(fieldErrors);
+        setStep2Error(Object.values(fieldErrors)[0]);
+        revealInvalid();
+        return;
+      }
       const validated = validateMistriBoundaryWallInput(boundaryWallValidationInput());
       if ('error' in validated) {
+        setStep2FieldErrors({});
         setStep2Error(validated.error);
         revealInvalid();
         return;
       }
+      setStep2FieldErrors({});
       setStep2Error(null);
       setStep(3);
       return;
@@ -1313,7 +1344,7 @@ export function LabourContractorProjectWizard() {
                 label="Pincode"
                 type="text"
                 inputMode="numeric"
-                placeholder="e.g. 781001"
+                placeholder=""
                 value={form.pincode}
                 onChange={(e) => update('pincode', formatPincodeInput(e.target.value))}
                 error={step1ValidationAttempted ? step1Errors.pincode : undefined}
@@ -1349,7 +1380,7 @@ export function LabourContractorProjectWizard() {
                       label={MISTRI_APPROXIMATE_AREA_LABEL}
                       type="text"
                       inputMode="decimal"
-                      placeholder="e.g. 1200"
+                      placeholder=""
                       value={form.approximateArea}
                       onChange={(e) => {
                         update('approximateArea', e.target.value);
@@ -1386,12 +1417,15 @@ export function LabourContractorProjectWizard() {
                 )}
               </div>
 
-              <div className={cn(FORM_SECTION_CARD, 'space-y-3')}>
+              <div
+                className={cn(FORM_SECTION_CARD, 'space-y-3')}
+                data-field-invalid={step1ValidationAttempted && step1Errors.bidding ? 'true' : undefined}
+              >
                 <label className={SECTION_LABEL}>
                   {withSectionColon('Bidding Duration')}
                 </label>
                 <Select value={form.bidding_minutes} onValueChange={(v) => update('bidding_minutes', v)}>
-                  <SelectTrigger>
+                  <SelectTrigger className={step1ValidationAttempted && step1Errors.bidding ? 'border-red-500 ring-1 ring-red-500' : undefined}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -1399,6 +1433,7 @@ export function LabourContractorProjectWizard() {
                     <SelectItem value="1440">24 Hours (Standard)</SelectItem>
                   </SelectContent>
                 </Select>
+                <FieldError message={step1ValidationAttempted ? step1Errors.bidding : undefined} />
                 <p className="text-[11px] font-medium text-blue-600">
                   After bidding closes you have 5 minutes to select a mistri worker.
                 </p>
@@ -1446,18 +1481,18 @@ export function LabourContractorProjectWizard() {
                       label="Approximate Length (ft)"
                       type="text"
                       inputMode="decimal"
-                      placeholder="e.g. 80"
+                      placeholder=""
                       value={form.boundaryWall?.lengthFt ?? ''}
-                      error={messageMatches(step2Error, 'length') ? step2Error ?? undefined : undefined}
+                      error={step2FieldErrors.length || (messageMatches(step2Error, 'length') ? step2Error ?? undefined : undefined)}
                       onChange={(e) => patchBoundaryWall({ lengthFt: e.target.value })}
                     />
                     <Input
                       label="Height (ft)"
                       type="text"
                       inputMode="decimal"
-                      placeholder="e.g. 6"
+                      placeholder=""
                       value={form.boundaryWall?.heightFt ?? ''}
-                      error={messageMatches(step2Error, 'height') ? step2Error ?? undefined : undefined}
+                      error={step2FieldErrors.height || (messageMatches(step2Error, 'height') ? step2Error ?? undefined : undefined)}
                       onChange={(e) => patchBoundaryWall({ heightFt: e.target.value })}
                     />
                   </div>
@@ -1469,7 +1504,7 @@ export function LabourContractorProjectWizard() {
 
                   <NestedChoiceButtons
                     question="Material / Brick Selection"
-                    invalid={messageMatches(step2Error, 'wall material') || messageMatches(step2Error, 'brick')}
+                    invalid={Boolean(step2FieldErrors.material) || messageMatches(step2Error, 'wall material') || messageMatches(step2Error, 'brick')}
                     options={MISTRI_BOUNDARY_WALL_MATERIAL_OPTIONS}
                     value={form.boundaryWall?.materialType ?? null}
                     columns={2}
@@ -1478,7 +1513,7 @@ export function LabourContractorProjectWizard() {
 
                   <NestedChoiceButtons
                     question="Plastering Options"
-                    invalid={messageMatches(step2Error, 'plastering option') || messageMatches(step2Error, 'plastering finish')}
+                    invalid={Boolean(step2FieldErrors.plaster) || messageMatches(step2Error, 'plastering option') || messageMatches(step2Error, 'plastering finish')}
                     options={MISTRI_BOUNDARY_WALL_PLASTER_OPTIONS}
                     value={form.boundaryWall?.plasteringFinish ?? null}
                     onChange={(v) => patchBoundaryWall({ plasteringFinish: v })}
@@ -1494,8 +1529,8 @@ export function LabourContractorProjectWizard() {
                       label="Approximate Plastering Area (sq. ft.)"
                       type="text"
                       inputMode="decimal"
-                      placeholder="e.g. 500"
-                      error={messageMatches(step2Error, 'plastering area') ? step2Error ?? undefined : undefined}
+                      placeholder=""
+                      error={step2FieldErrors.plasterArea || (messageMatches(step2Error, 'plastering area') ? step2Error ?? undefined : undefined)}
                       value={form.boundaryWall?.plasteringAreaSqft ?? ''}
                       onChange={(e) =>
                         patchBoundaryWall({ plasteringAreaSqft: e.target.value })
@@ -1505,7 +1540,7 @@ export function LabourContractorProjectWizard() {
 
                   <NestedChoiceButtons
                     question="Work Execution Timeline"
-                    invalid={messageMatches(step2Error, 'execution timeline')}
+                    invalid={Boolean(step2FieldErrors.timeline) || messageMatches(step2Error, 'execution timeline')}
                     options={MISTRI_BOUNDARY_WALL_TIMELINE_OPTIONS}
                     value={form.boundaryWall?.executionTimeline ?? null}
                     columns={4}
@@ -1522,7 +1557,7 @@ export function LabourContractorProjectWizard() {
                       label="Custom Date"
                       type="date"
                       min={todayLocalDateString()}
-                      error={messageMatches(step2Error, 'completion date') || messageMatches(step2Error, 'start date') ? step2Error ?? undefined : undefined}
+                      error={step2FieldErrors.customDate || (messageMatches(step2Error, 'completion date') || messageMatches(step2Error, 'start date') ? step2Error ?? undefined : undefined)}
                       value={form.boundaryWall?.executionTimelineCustomDate ?? ''}
                       onChange={(e) =>
                         patchBoundaryWall({ executionTimelineCustomDate: e.target.value })
@@ -1664,7 +1699,7 @@ export function LabourContractorProjectWizard() {
                             min={0.1}
                             step="0.1"
                             inputMode="decimal"
-                            placeholder="e.g. 4"
+                            placeholder=""
                             value={entry.foundationDepthFt}
                             onChange={(e) =>
                               patchFloorWork(
@@ -1838,7 +1873,7 @@ export function LabourContractorProjectWizard() {
                   <Input
                     type="text"
                     inputMode="numeric"
-                    placeholder={`e.g. ${minFoundationFloors}`}
+                    placeholder=""
                     error={messageMatches(step2Error, 'foundation') ? step2Error ?? undefined : undefined}
                     value={form.futureFloorCustom}
                     onChange={(e) => {

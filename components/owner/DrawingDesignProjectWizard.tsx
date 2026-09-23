@@ -12,7 +12,7 @@ import {
 import { OptionSelectGrid } from '@/components/owner/wizard/OptionSelectCard';
 import { StartTimeAndNotes, WIZARD_SECTION_LABEL, WizardAccentLabels, withSectionColon } from '@/components/owner/wizard/StartTimeAndNotes';
 import { FORM_CONTINUE_BTN, FORM_SECTION_CARD, FORM_SHELL_CARD } from '@/components/owner/wizard/formTheme';
-import { FieldError, invalidAttr, useScrollToFirstInvalid } from '@/components/owner/wizard/fieldValidation';
+import { FieldError, useScrollToFirstInvalid } from '@/components/owner/wizard/fieldValidation';
 import { ReviewSummaryList, WizardStepper } from '@/components/owner/wizard/ReviewSummary';
 import { BuildingTypeSelector } from '@/components/construction/BuildingTypeSelector';
 import {
@@ -84,6 +84,11 @@ export function DrawingDesignProjectWizard() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [step2Error, setStep2Error] = useState<string | null>(null);
+  const [step2FieldErrors, setStep2FieldErrors] = useState<Record<string, string>>({});
+  function clearStep2() {
+    setStep2Error(null);
+    setStep2FieldErrors({});
+  }
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -100,6 +105,7 @@ export function DrawingDesignProjectWizard() {
     houseStructure?: string;
     floors?: string;
     customFloor?: string;
+    bidding?: string;
   }>({});
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
 
@@ -146,8 +152,11 @@ export function DrawingDesignProjectWizard() {
     if (!parseAssamDistrictSelection(form.location)) {
       errors.location = 'Please select a district from the list.';
     }
-    const pincodeError = validatePincode(form.pincode);
+    const pincodeError = validatePincode(form.pincode, { required: true });
     if (pincodeError) errors.pincode = pincodeError;
+    if (form.bidding_minutes !== '7' && form.bidding_minutes !== '1440') {
+      errors.bidding = 'Select a bidding duration.';
+    }
     if (!form.houseStructure) {
       errors.houseStructure = 'Select Assam Type or RCC Structure.';
     } else if (form.houseStructure === 'rcc') {
@@ -177,10 +186,11 @@ export function DrawingDesignProjectWizard() {
     const validated = validatedDetails();
     if ('error' in validated) {
       setStep2Error(validated.error);
+      setStep2FieldErrors(validated.fieldErrors);
       revealInvalid();
       return;
     }
-    setStep2Error(null);
+    clearStep2();
     setStep(3);
   }
 
@@ -284,7 +294,7 @@ export function DrawingDesignProjectWizard() {
                 label="Pincode"
                 type="text"
                 inputMode="numeric"
-                placeholder="e.g. 781001"
+                placeholder=""
                 value={form.pincode}
                 onChange={(e) => update('pincode', formatPincodeInput(e.target.value))}
                 error={step1ValidationAttempted ? step1Errors.pincode : undefined}
@@ -366,17 +376,23 @@ export function DrawingDesignProjectWizard() {
                 </div>
               )}
 
-              <div className="flex flex-col gap-1.5">
+              <div
+                className="flex flex-col gap-1.5"
+                data-field-invalid={step1ValidationAttempted && step1Errors.bidding ? 'true' : undefined}
+              >
                 <label className={WIZARD_SECTION_LABEL}>
                   {withSectionColon('Bidding Duration')}
                 </label>
                 <Select value={form.bidding_minutes} onValueChange={(v) => update('bidding_minutes', v)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger className={step1ValidationAttempted && step1Errors.bidding ? 'border-red-500 ring-1 ring-red-500' : undefined}>
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="7">7 Minutes (Quick)</SelectItem>
                     <SelectItem value="1440">24 Hours (Standard)</SelectItem>
                   </SelectContent>
                 </Select>
+                <FieldError message={step1ValidationAttempted ? step1Errors.bidding : undefined} />
               </div>
 
               <Button size="lg" className={cn('w-full', FORM_CONTINUE_BTN)} onClick={tryGoStep2}>
@@ -407,8 +423,8 @@ export function DrawingDesignProjectWizard() {
               )}
 
               <div
-                className={cn(FORM_SECTION_CARD, invalidAttr(step2Error, 'package') && 'ring-1 ring-red-500')}
-                data-field-invalid={invalidAttr(step2Error, 'package')}
+                className={cn(FORM_SECTION_CARD, step2FieldErrors.package && 'ring-1 ring-red-500')}
+                data-field-invalid={step2FieldErrors.package ? 'true' : undefined}
               >
                 <label className={WIZARD_SECTION_LABEL}>{withSectionColon('Package Selection')}</label>
                 <OptionSelectGrid
@@ -421,33 +437,33 @@ export function DrawingDesignProjectWizard() {
                         ? form.packages.filter((pkg) => pkg !== value)
                         : [...form.packages, value],
                     );
-                    setStep2Error(null);
+                    clearStep2();
                   }}
                 />
+                <FieldError message={step2FieldErrors.package} />
               </div>
 
               <div
-                className={cn(FORM_SECTION_CARD, invalidAttr(step2Error, 'plot') && 'ring-1 ring-red-500')}
-                data-field-invalid={invalidAttr(step2Error, 'plot')}
+                className={cn(FORM_SECTION_CARD, step2FieldErrors.plot && 'ring-1 ring-red-500')}
+                data-field-invalid={step2FieldErrors.plot ? 'true' : undefined}
               >
                 <label className={WIZARD_SECTION_LABEL}>
                   {withSectionColon('Approximate Plot Dimensions')}
                 </label>
                 <Input
                   type="text"
-                  placeholder="e.g. 30ft x 40ft"
                   value={form.plotDimensions}
-                  error={invalidAttr(step2Error, 'plot') ? step2Error ?? undefined : undefined}
+                  error={step2FieldErrors.plot}
                   onChange={(e) => {
                     update('plotDimensions', e.target.value);
-                    setStep2Error(null);
+                    clearStep2();
                   }}
                 />
               </div>
 
               <div
-                className={cn(FORM_SECTION_CARD, invalidAttr(step2Error, 'deliverable') && 'ring-1 ring-red-500')}
-                data-field-invalid={invalidAttr(step2Error, 'deliverable')}
+                className={cn(FORM_SECTION_CARD, step2FieldErrors.deliverable && 'ring-1 ring-red-500')}
+                data-field-invalid={step2FieldErrors.deliverable ? 'true' : undefined}
               >
                 <label className={WIZARD_SECTION_LABEL}>{withSectionColon('Deliverables Required')}</label>
                 <OptionSelectGrid
@@ -460,29 +476,30 @@ export function DrawingDesignProjectWizard() {
                         ? form.deliverables.filter((d) => d !== value)
                         : [...form.deliverables, value],
                     );
-                    setStep2Error(null);
+                    clearStep2();
                   }}
                 />
+                <FieldError message={step2FieldErrors.deliverable} />
               </div>
 
               <StartTimeAndNotes
                 title="Delivery Timeline"
-                error={step2Error}
+                error={step2FieldErrors.date || step2FieldErrors.start || null}
                 startTimeType={form.projectStartTimeType}
                 specificDate={form.projectStartTimeSpecificDate}
                 additionalRequirements={form.additionalRequirements}
                 onStartTimeChange={(v) => {
                   update('projectStartTimeType', v);
                   if (v !== 'specific') update('projectStartTimeSpecificDate', '');
-                  setStep2Error(null);
+                  clearStep2();
                 }}
                 onSpecificDateChange={(v) => {
                   update('projectStartTimeSpecificDate', v);
-                  setStep2Error(null);
+                  clearStep2();
                 }}
                 onNotesChange={(v) => {
                   update('additionalRequirements', v);
-                  setStep2Error(null);
+                  clearStep2();
                 }}
               />
 

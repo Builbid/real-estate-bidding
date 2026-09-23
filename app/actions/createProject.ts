@@ -139,10 +139,8 @@ export async function createProjectAction(
   }
 
   const pincodeRaw = input.pincode?.trim() ?? ''
-  if (pincodeRaw) {
-    const pincodeError = validatePincode(pincodeRaw)
-    if (pincodeError) return { error: pincodeError }
-  }
+  const pincodeError = validatePincode(pincodeRaw, { required: true })
+  if (pincodeError) return { error: pincodeError }
 
   const isFirm = input.service_type === 'construction_firm'
   if (isFirm && !isConstructionFirmEnabled()) {

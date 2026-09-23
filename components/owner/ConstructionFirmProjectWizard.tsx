@@ -12,7 +12,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { BuildingTypeSelector } from '@/components/construction/BuildingTypeSelector';
-import { useScrollToFirstInvalid } from '@/components/owner/wizard/fieldValidation';
+import { FieldError, useScrollToFirstInvalid } from '@/components/owner/wizard/fieldValidation';
 import { CountdownTicker } from '@/components/shared/CountdownTicker';
 import {
   AssamDistrictAutocomplete,
@@ -88,6 +88,13 @@ export function ConstructionFirmProjectWizard() {
   const [step1Errors, setStep1Errors] = useState<{
     location?: string;
     pincode?: string;
+    budget?: string;
+    bidding?: string;
+  }>({});
+  const [step2FieldErrors, setStep2FieldErrors] = useState<{
+    floors?: string;
+    customFloor?: string;
+    floorArea?: string;
   }>({});
   const [biddingEndsAt, setBiddingEndsAt] = useState<string | null>(null);
   const [projectId, setProjectId] = useState<string | null>(null);
@@ -119,9 +126,15 @@ export function ConstructionFirmProjectWizard() {
       errors.location = 'Please select a district from the list.';
     }
 
-    const pincodeError = validatePincode(form.pincode);
+    const pincodeError = validatePincode(form.pincode, { required: true });
     if (pincodeError) {
       errors.pincode = pincodeError;
+    }
+    if (parseIndianAmount(form.budget_max) == null) {
+      errors.budget = 'Enter your maximum budget.';
+    }
+    if (form.bidding_minutes !== '7' && form.bidding_minutes !== '1440') {
+      errors.bidding = 'Select a bidding duration.';
     }
 
     if (Object.keys(errors).length > 0) {
@@ -137,19 +150,27 @@ export function ConstructionFirmProjectWizard() {
   }
 
   function tryGoStep3() {
+    const errors: { floors?: string; customFloor?: string; floorArea?: string } = {};
     if (form.building_types.length === 0) {
-      setStep2Error('Please select at least one floor.');
-      revealInvalid();
-      return;
+      errors.floors = 'Please select at least one floor.';
     }
     if (form.customFloorSelected) {
       const sequence = parseCustomFloorSequence(form.customFloors, { allowGaps: true });
       if (!sequence) {
-        setStep2Error('Add at least one floor number above 4th.');
-        revealInvalid();
-        return;
+        errors.customFloor = 'Add at least one floor number above 4th.';
       }
     }
+    const area = Number(form.floor_area_sqft);
+    if (!form.floor_area_sqft.trim() || !Number.isFinite(area) || area < 100 || area > 50000) {
+      errors.floorArea = 'Enter the total slab area in sq. ft.';
+    }
+    if (Object.keys(errors).length > 0) {
+      setStep2FieldErrors(errors);
+      setStep2Error(errors.floors ?? errors.customFloor ?? errors.floorArea ?? null);
+      revealInvalid();
+      return;
+    }
+    setStep2FieldErrors({});
     setStep2Error(null);
     setStep(3);
   }
@@ -162,9 +183,22 @@ export function ConstructionFirmProjectWizard() {
     setLoading(true);
     setError(null);
 
-    const pincodeError = validatePincode(form.pincode);
+    const pincodeError = validatePincode(form.pincode, { required: true });
     if (pincodeError) {
       setError(pincodeError);
+      setLoading(false);
+      revealInvalid();
+      return;
+    }
+    if (parseIndianAmount(form.budget_max) == null) {
+      setError('Enter your maximum budget.');
+      setLoading(false);
+      revealInvalid();
+      return;
+    }
+    const area = Number(form.floor_area_sqft);
+    if (!form.floor_area_sqft.trim() || !Number.isFinite(area) || area < 100 || area > 50000) {
+      setError('Enter the total slab area in sq. ft.');
       setLoading(false);
       revealInvalid();
       return;
@@ -249,7 +283,7 @@ export function ConstructionFirmProjectWizard() {
                 label="Pincode"
                 type="text"
                 inputMode="numeric"
-                placeholder="e.g. 781001"
+                placeholder=""
                 value={form.pincode}
                 onChange={(e) => update('pincode', formatPincodeInput(e.target.value))}
                 error={step1ValidationAttempted ? step1Errors.pincode : undefined}
@@ -257,14 +291,14 @@ export function ConstructionFirmProjectWizard() {
 
               <div>
                 <p className={WIZARD_SECTION_LABEL}>
-                  {withSectionColon('Your Maximum Budget (Optional)')}
+                  {withSectionColon('Your Maximum Budget')}
                 </p>
                 <Input
                   type="text"
                   inputMode="numeric"
-                  placeholder="e.g. 40,00,000"
                   value={form.budget_max}
                   onChange={(e) => update('budget_max', formatIndianInputDisplay(e.target.value))}
+                  error={step1ValidationAttempted ? step1Errors.budget : undefined}
                 />
                 <p className="text-[11px] text-muted-foreground mt-1">Sharing a budget helps firms give you more accurate bids</p>
                 {budgetPreview && (
@@ -272,12 +306,15 @@ export function ConstructionFirmProjectWizard() {
                 )}
               </div>
 
-              <div className="flex flex-col gap-1.5">
+              <div
+                className="flex flex-col gap-1.5"
+                data-field-invalid={step1ValidationAttempted && step1Errors.bidding ? 'true' : undefined}
+              >
                 <label className={WIZARD_SECTION_LABEL}>
                   {withSectionColon('Bidding Duration')}
                 </label>
                 <Select value={form.bidding_minutes} onValueChange={(v) => update('bidding_minutes', v)}>
-                  <SelectTrigger>
+                  <SelectTrigger className={step1ValidationAttempted && step1Errors.bidding ? 'border-red-500 ring-1 ring-red-500' : undefined}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -285,6 +322,7 @@ export function ConstructionFirmProjectWizard() {
                     <SelectItem value="1440">24 Hours (Standard)</SelectItem>
                   </SelectContent>
                 </Select>
+                <FieldError message={step1ValidationAttempted ? step1Errors.bidding : undefined} />
                 <p className="text-[11px] font-medium text-brand">
                   Choose how long construction firms can bid. After bidding closes you have 5 minutes to select a firm.
                 </p>
@@ -307,7 +345,7 @@ export function ConstructionFirmProjectWizard() {
                 </p>
                 <BuildingTypeSelector
                   value={form.building_types}
-                  onChange={(v) => { update('building_types', v); setStep2Error(null); }}
+                  onChange={(v) => { update('building_types', v); setStep2Error(null); setStep2FieldErrors({}); }}
                   showCustomFloor
                   allowNonSequentialFloors
                   customSelected={form.customFloorSelected}
@@ -319,8 +357,10 @@ export function ConstructionFirmProjectWizard() {
                       customFloors: floors,
                     }));
                     setStep2Error(null);
+                    setStep2FieldErrors({});
                   }}
-                  error={step2Error}
+                  error={step2FieldErrors.floors ?? null}
+                  customError={step2FieldErrors.customFloor ?? null}
                 />
               </div>
 
@@ -330,7 +370,7 @@ export function ConstructionFirmProjectWizard() {
                     htmlFor="floor-area-sqft"
                     className={cn(WIZARD_SECTION_LABEL, 'mb-0')}
                   >
-                    {withSectionColon('Total Slab Area of All the Floors (in Sqft) Approx (Optional)')}
+                    {withSectionColon('Total Slab Area of All the Floors (in Sqft) Approx')}
                   </label>
                   <Popover>
                     <PopoverTrigger asChild>
@@ -361,12 +401,15 @@ export function ConstructionFirmProjectWizard() {
                   type="number"
                   min={100}
                   max={50000}
-                  placeholder="e.g. 1500"
                   value={form.floor_area_sqft}
-                  onChange={(e) => update('floor_area_sqft', e.target.value)}
+                  onChange={(e) => {
+                    update('floor_area_sqft', e.target.value);
+                    setStep2FieldErrors((current) => ({ ...current, floorArea: undefined }));
+                  }}
+                  error={step2FieldErrors.floorArea}
                 />
                 <p className="text-[11px] text-muted-foreground mt-1">
-                  Optional — helps firms estimate total project cost
+                  Firms use this area with their ₹/sqft rate to estimate total project cost.
                 </p>
               </div>
 

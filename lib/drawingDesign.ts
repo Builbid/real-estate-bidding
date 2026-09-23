@@ -495,15 +495,17 @@ export function validateDrawingDetailsInput(input: {
   projectStartTimeType: ProjectStartTimeType | null;
   projectStartTimeSpecificDate: string;
   additionalRequirements: string;
-}): { error: string } | { details: DrawingDetails } {
+}): { error: string; fieldErrors: Record<string, string> } | { details: DrawingDetails } {
+  const fieldErrors: Record<string, string> = {};
   const packages = parsePackages(input.packages).filter((value) =>
     SELECTABLE_PACKAGE_SET.has(value),
   );
   if (packages.length === 0) {
-    return { error: 'Select at least one drawing package.' };
+    fieldErrors.package = 'Select at least one drawing package.';
   }
-  if (input.houseStructure !== 'assam' && input.houseStructure !== 'rcc') {
-    return { error: 'Select Assam Type or RCC Structure.' };
+  const structureOk = input.houseStructure === 'assam' || input.houseStructure === 'rcc';
+  if (!structureOk) {
+    fieldErrors.structure = 'Select Assam Type or RCC Structure.';
   }
   if (input.houseStructure === 'rcc') {
     const namedFloors = resolveDrawingBuildingTypes({
@@ -511,7 +513,7 @@ export function validateDrawingDetailsInput(input: {
       buildingTypes: input.buildingTypes,
     });
     if (namedFloors.length === 0 && !input.customFloorSelected) {
-      return { error: 'Select at least one target work floor.' };
+      fieldErrors.floors = 'Select at least one target work floor.';
     }
     if (input.customFloorSelected) {
       const sequence = parseCustomFloorSequence(
@@ -519,7 +521,7 @@ export function validateDrawingDetailsInput(input: {
         { allowGaps: true },
       );
       if (!sequence) {
-        return { error: 'Add at least one floor number above 4th.' };
+        fieldErrors.customFloor = 'Add at least one floor number above 4th.';
       }
     }
   }
@@ -529,29 +531,43 @@ export function validateDrawingDetailsInput(input: {
       ? normalizeCustomFloors(input.customFloors ?? input.customFloorNumber)
       : [];
   const customFloorNumber = customFloors.length ? formatCustomFloorsList(customFloors) : null;
-  const floors = formatDrawingFloorSelection({
-    houseStructure: input.houseStructure,
-    buildingTypes,
-    customFloorSelected: input.houseStructure === 'rcc' && input.customFloorSelected,
-    customFloors,
-    customFloorNumber,
-  });
-  if (!floors) {
-    return { error: 'Select at least one target work floor.' };
+  const floors = structureOk
+    ? formatDrawingFloorSelection({
+        houseStructure: input.houseStructure,
+        buildingTypes,
+        customFloorSelected: input.houseStructure === 'rcc' && input.customFloorSelected,
+        customFloors,
+        customFloorNumber,
+      })
+    : null;
+  if (structureOk && !floors) {
+    fieldErrors.floors = 'Select at least one target work floor.';
   }
   const dimensions = input.plotDimensions.trim();
   if (dimensions.length < 2) {
-    return { error: 'Enter approximate plot dimensions (e.g. 30ft x 40ft).' };
+    fieldErrors.plot = 'Enter the approximate plot dimensions.';
   }
   const deliverables = parseDeliverables(input.deliverables);
   if (deliverables.length === 0) {
-    return { error: 'Select at least one deliverable.' };
+    fieldErrors.deliverable = 'Select at least one deliverable.';
   }
   const start = validateProjectStartTime({
     projectStartTimeType: input.projectStartTimeType,
     projectStartTimeSpecificDate: input.projectStartTimeSpecificDate,
   });
-  if ('error' in start) return start;
+  if ('error' in start) {
+    if (start.error.toLowerCase().includes('when the project should start')) {
+      fieldErrors.start = start.error;
+    } else {
+      fieldErrors.date = start.error;
+    }
+  }
+  if (Object.keys(fieldErrors).length > 0 || !floors || !structureOk || 'error' in start) {
+    return {
+      error: Object.values(fieldErrors)[0] ?? 'Drawing work requirements are incomplete.',
+      fieldErrors,
+    };
+  }
 
   return {
     details: {

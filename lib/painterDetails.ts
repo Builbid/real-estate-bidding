@@ -595,46 +595,70 @@ export function validatePainterDetailsInput(input: {
   trackType?: 'RCC' | 'AssamType' | null;
   targetFloors?: PainterTargetFloor[];
   customTargetFloors?: number[];
-}): { error: string } | { details: PainterDetails } {
+}): { error: string; fieldErrors: Record<string, string> } | { details: PainterDetails } {
+  const fieldErrors: Record<string, string> = {};
   const carpetArea = parsePainterAreaInput(input.carpetArea);
   if (!carpetArea) {
-    return { error: 'Enter the approx. house / floor area in sq.ft.' };
+    fieldErrors.carpet = 'Enter the approx. house / floor area in sq.ft.';
   }
   const area = parsePainterAreaInput(input.projectArea);
   if (!area) {
-    return { error: 'Enter a valid estimated paint area in sq.ft.' };
+    fieldErrors.paintArea = 'Enter a valid estimated paint area in sq.ft.';
   }
   if (!input.paintingScope || !SCOPE_SET.has(input.paintingScope)) {
-    return { error: 'Select a painting scope.' };
+    fieldErrors.paintingScope = 'Select a painting scope.';
   }
   if (!input.surfaceCondition || !SURFACE_SET.has(input.surfaceCondition)) {
-    return { error: 'Select a surface condition.' };
+    fieldErrors.surface = 'Select a surface condition.';
   }
   if (!input.puttyRequirement || !PUTTY_SET.has(input.puttyRequirement)) {
-    return { error: 'Select a wall putty requirement.' };
+    fieldErrors.putty = 'Select a wall putty requirement.';
   }
   if (!PRIMER_SET.has(input.primerRequirement)) {
-    return { error: 'Select a primer requirement.' };
+    fieldErrors.primer = 'Select a primer requirement.';
   }
   if (!input.paintTopcoats || !TOPCOAT_SET.has(input.paintTopcoats)) {
-    return { error: 'Select the paint layers / final coats.' };
+    fieldErrors.topcoats = 'Select the paint layers / final coats.';
   }
   if (!input.projectStartTimeType || !START_TIME_TYPES.has(input.projectStartTimeType)) {
-    return { error: 'Select when the project should start.' };
+    fieldErrors.start = 'Select when the project should start.';
   }
 
   const additional = input.additionalRequirements.trim() || null;
   const isRcc = input.trackType === 'RCC';
   const targetFloors = isRcc ? parsePainterTargetFloors(input.targetFloors) : [];
   if (isRcc && targetFloors.length === 0) {
-    return { error: 'Select at least one target work floor.' };
+    fieldErrors.floors = 'Select at least one target work floor.';
   }
   const customTargetFloors =
     isRcc && targetFloors.includes('custom')
       ? parsePainterCustomFloors(input.customTargetFloors)
       : null;
   if (isRcc && targetFloors.includes('custom') && !customTargetFloors) {
-    return { error: 'Add at least one floor number above 4th.' };
+    fieldErrors.customFloor = 'Add at least one floor number above 4th.';
+  }
+  if (input.projectStartTimeType === 'specific') {
+    const date = input.projectStartTimeSpecificDate.trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      fieldErrors.date = 'Select a specific project start date.';
+    } else if (!isProjectStartDateWithinRange(date)) {
+      fieldErrors.date = PROJECT_START_DATE_RANGE_INVALID_MESSAGE;
+    }
+  }
+  if (
+    Object.keys(fieldErrors).length > 0 ||
+    !carpetArea ||
+    !area ||
+    !input.paintingScope ||
+    !input.surfaceCondition ||
+    !input.puttyRequirement ||
+    !input.paintTopcoats ||
+    !input.projectStartTimeType
+  ) {
+    return {
+      error: Object.values(fieldErrors)[0] ?? 'Painter work requirements are incomplete.',
+      fieldErrors,
+    };
   }
   const floorFields = {
     targetFloors: targetFloors.length > 0 ? targetFloors : null,
@@ -644,12 +668,6 @@ export function validatePainterDetailsInput(input: {
 
   if (input.projectStartTimeType === 'specific') {
     const date = input.projectStartTimeSpecificDate.trim();
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-      return { error: 'Select a specific project start date.' };
-    }
-    if (!isProjectStartDateWithinRange(date)) {
-      return { error: PROJECT_START_DATE_RANGE_INVALID_MESSAGE };
-    }
     return {
       details: {
         projectArea: area,

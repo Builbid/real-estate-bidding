@@ -4,7 +4,9 @@ import { PlumbingFloorFixtureForm } from '@/components/owner/plumber/PlumbingFlo
 import { ElectricianFloorFixtureForm } from '@/components/owner/electrician/ElectricianFloorFixtureForm';
 import { InteriorPackageForm } from '@/components/owner/interior/InteriorPackageForm';
 import { OptionSelectGrid } from '@/components/owner/wizard/OptionSelectCard';
+import { FieldError, messageMatches } from '@/components/owner/wizard/fieldValidation';
 import { StartTimeAndNotes, WIZARD_SECTION_LABEL, withSectionColon } from '@/components/owner/wizard/StartTimeAndNotes';
+import { cn } from '@/lib/utils';
 import {
   EARTHWORK_SOIL_VEHICLE_OPTIONS,
   EARTHWORK_TYPE_OPTIONS,
@@ -99,10 +101,12 @@ export function TradeWorkRequirementsFields({
   trade,
   form,
   onChange,
+  error = null,
 }: {
   trade: TradeWorkService;
   form: TradeWorkFormFields;
   onChange: <K extends keyof TradeWorkFormFields>(key: K, value: TradeWorkFormFields[K]) => void;
+  error?: string | null;
 }) {
   return (
     <div className="space-y-4">
@@ -115,9 +119,10 @@ export function TradeWorkRequirementsFields({
           targetFloors={form.targetFloors}
           customTargetFloors={form.customTargetFloors}
           values={form.floorFixtureCounts}
+          highlightEmpty={messageMatches(error, 'for each selected floor') || messageMatches(error, 'fixture')}
           onChange={(v) => onChange('floorFixtureCounts', v)}
         />
-        <FieldGroup label="Fitting Type">
+        <FieldGroup label="Fitting Type" invalid={messageMatches(error, 'fitting')} message={messageMatches(error, 'fitting') ? error : undefined}>
           <OptionSelectGrid
             options={PLUMBING_FITTING_TYPE_OPTIONS}
             value={form.plumbingFittingType}
@@ -144,9 +149,10 @@ export function TradeWorkRequirementsFields({
             targetFloors={form.targetFloors}
             customTargetFloors={form.customTargetFloors}
             values={form.electricianFloorFixtureCounts}
+            highlightEmpty={messageMatches(error, 'for each selected floor') || messageMatches(error, 'fixture')}
             onChange={(v) => onChange('electricianFloorFixtureCounts', v)}
           />
-          <FieldGroup label="Wiring Type">
+          <FieldGroup label="Wiring Type" invalid={messageMatches(error, 'wiring')} message={messageMatches(error, 'wiring') ? error : undefined}>
             <OptionSelectGrid
               options={ELECTRICIAN_WIRING_TYPE_OPTIONS}
               value={form.electricianWiringType}
@@ -162,18 +168,28 @@ export function TradeWorkRequirementsFields({
           <p className="text-xs font-medium leading-relaxed rounded-xl border border-amber-500/30 bg-amber-950/20 px-3 py-2.5 text-amber-100">
             {INTERIOR_DESIGNER_LABOUR_ONLY_DISCLAIMER}
           </p>
+          <div
+            className={cn('rounded-xl', messageMatches(error, 'work item') && 'ring-1 ring-red-500')}
+            data-field-invalid={messageMatches(error, 'work item') ? 'true' : undefined}
+          >
           <InteriorPackageForm
             selectedPackages={form.interiorPackages}
             selectedSubOptions={form.interiorSubOptions}
             onChangePackages={(v) => onChange('interiorPackages', v)}
             onChangeSubOptions={(v) => onChange('interiorSubOptions', v)}
           />
+          <FieldError message={messageMatches(error, 'work item') ? error : undefined} />
+          </div>
         </>
       )}
 
       {trade === 'earthwork' && (
         <>
-          <FieldGroup label="Work Type">
+          <FieldGroup
+            label="Work Type"
+            invalid={messageMatches(error, 'earthwork type')}
+            message={messageMatches(error, 'earthwork type') ? error : undefined}
+          >
             <OptionSelectGrid
               options={EARTHWORK_TYPE_OPTIONS}
               value={form.earthworkType}
@@ -190,7 +206,11 @@ export function TradeWorkRequirementsFields({
             />
           </FieldGroup>
           {form.earthworkType === 'soil_filling' && (
-            <FieldGroup label="Vehicle Type for Soil Filling">
+            <FieldGroup
+              label="Vehicle Type for Soil Filling"
+              invalid={messageMatches(error, 'tractor') || messageMatches(error, 'dumper')}
+              message={messageMatches(error, 'tractor') || messageMatches(error, 'dumper') ? error : undefined}
+            >
               <OptionSelectGrid
                 options={EARTHWORK_SOIL_VEHICLE_OPTIONS}
                 value={
@@ -207,6 +227,7 @@ export function TradeWorkRequirementsFields({
       )}
 
       <StartTimeAndNotes
+        error={error}
         startTimeType={form.projectStartTimeType}
         specificDate={form.projectStartTimeSpecificDate}
         additionalRequirements={form.additionalRequirements}
@@ -225,13 +246,20 @@ function FieldGroup({
   label,
   hint,
   children,
+  invalid = false,
+  message,
 }: {
   label: string;
   hint?: string;
   children: React.ReactNode;
+  invalid?: boolean;
+  message?: string | null;
 }) {
   return (
-    <div className="space-y-4">
+    <div
+      className={cn('space-y-4 rounded-xl', invalid && 'ring-1 ring-red-500')}
+      data-field-invalid={invalid ? 'true' : undefined}
+    >
       <label className={WIZARD_SECTION_LABEL}>
         {withSectionColon(label)}
         {hint ? (
@@ -241,6 +269,7 @@ function FieldGroup({
         ) : null}
       </label>
       {children}
+      <FieldError message={message} />
     </div>
   );
 }
