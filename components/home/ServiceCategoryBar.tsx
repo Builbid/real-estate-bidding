@@ -39,7 +39,7 @@ export function ServiceCategoryBar({ isAuthenticated, role }: ServiceCategoryBar
   }
 
   return (
-    <div className="bg-white dark:bg-transparent">
+    <div id="services" className="scroll-mt-20 bg-white dark:bg-transparent">
       <p className="mx-auto max-w-2xl text-center text-sm font-medium leading-snug text-slate-700 dark:text-slate-200 sm:text-base">
         Post your project and receive competitive bids from verified professionals.
       </p>

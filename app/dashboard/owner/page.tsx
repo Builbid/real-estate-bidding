@@ -149,7 +149,7 @@ export default async function OwnerDashboard() {
             </p>
           </div>
           <Button asChild>
-            <Link href="/dashboard/owner/new-project">
+            <Link href="/#services">
               <Plus className="w-4 h-4" /> Post New Project
             </Link>
           </Button>
