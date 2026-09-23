@@ -8,6 +8,7 @@ import {
   plumbingFloorLabel,
   type PlumbingFixtureCountDraft,
   type PlumbingFixtureKind,
+  type PlumbingHouseStructure,
   type PlumbingTargetFloor,
 } from '@/lib/tradeWorkDetails';
 
@@ -16,11 +17,13 @@ export function PlumbingFloorFixtureForm({
   customTargetFloors,
   values,
   onChange,
+  houseStructure = null,
 }: {
   targetFloors: PlumbingTargetFloor[];
   customTargetFloors: string | number[];
   values: Partial<Record<PlumbingTargetFloor, PlumbingFixtureCountDraft>>;
   onChange: (value: Partial<Record<PlumbingTargetFloor, PlumbingFixtureCountDraft>>) => void;
+  houseStructure?: PlumbingHouseStructure | null;
 }) {
   function updateField(floor: PlumbingTargetFloor, key: PlumbingFixtureKind, raw: string) {
     const current = values[floor] ?? emptyPlumbingFixtureDraft();
@@ -52,7 +55,9 @@ export function PlumbingFloorFixtureForm({
           >
             <div className="bg-blue-600 px-4 py-2.5">
               <h3 className="text-sm font-bold tracking-wide text-white">
-                {plumbingFloorLabel(floor, customTargetFloors)}
+                {houseStructure === 'assam_type' && floor === 'ground'
+                  ? 'Ground Floor'
+                  : plumbingFloorLabel(floor, customTargetFloors)}
               </h3>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4">

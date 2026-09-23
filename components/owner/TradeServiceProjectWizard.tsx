@@ -314,10 +314,11 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
       if (!form.houseStructure) {
         errors.houseStructure = 'Select RCC Building or Assam Type.';
       }
-      if (form.targetFloors.length === 0) {
+      if (form.houseStructure === 'rcc' && form.targetFloors.length === 0) {
         errors.targetWorkFloor = 'Select at least one target work floor.';
       }
       if (
+        form.houseStructure === 'rcc' &&
         form.targetFloors.includes('custom') &&
         !parseCustomFloorSequence(form.customTargetFloors, { allowGaps: true })
       ) {
@@ -631,17 +632,26 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                             key={opt.value}
                             type="button"
                             onClick={() => {
-                              setForm((current) => ({
-                                ...current,
-                                houseStructure: opt.value,
-                                track_type: houseStructureToTrackType(opt.value),
-                                plumbingFloorLevel: opt.value === 'assam_type' ? 'ground' : current.plumbingFloorLevel,
-                                waterTankFloor: opt.value === 'assam_type' ? null : current.waterTankFloor,
-                                customWaterTankFloor: opt.value === 'assam_type' ? '' : current.customWaterTankFloor,
-                              }));
+                              setForm((current) => {
+                                if (current.houseStructure === opt.value) return current;
+                                const next = {
+                                  ...current,
+                                  houseStructure: opt.value,
+                                  track_type: houseStructureToTrackType(opt.value),
+                                  plumbingFloorLevel: 'ground' as const,
+                                  waterTankFloor: opt.value === 'assam_type' ? null : current.waterTankFloor,
+                                  customWaterTankFloor: opt.value === 'assam_type' ? '' : current.customWaterTankFloor,
+                                };
+                                if (opt.value === 'assam_type') {
+                                  return applyTargetFloorSelection(next, ['RCC Ground Floor'], false, []);
+                                }
+                                return applyTargetFloorSelection(next, [], false, []);
+                              });
                               setStep1Errors((errors) => {
                                 const next = { ...errors };
                                 delete next.houseStructure;
+                                delete next.targetWorkFloor;
+                                delete next.customTargetFloors;
                                 return next;
                               });
                             }}
@@ -661,6 +671,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                     <FieldError message={step1ValidationAttempted ? step1Errors.houseStructure : undefined} />
                   </div>
 
+                  {form.houseStructure === 'rcc' && (
                   <div className="flex flex-col gap-1.5">
                     <label className={WIZARD_SECTION_LABEL}>
                       {withSectionColon('Target Work Floor')}
@@ -716,6 +727,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                       customError={step1ValidationAttempted ? step1Errors.customTargetFloors ?? null : null}
                     />
                   </div>
+                  )}
 
                   {trade === 'false_ceiling_work' ? (
                     <Input
@@ -811,6 +823,14 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                         onClick={() => {
                           setForm((current) => {
                             if (opt.value === 'AssamType') {
+                              return applyTargetFloorSelection(
+                                { ...current, track_type: opt.value },
+                                ['RCC Ground Floor'],
+                                false,
+                                [],
+                              );
+                            }
+                            if (current.track_type === 'AssamType') {
                               return applyTargetFloorSelection(
                                 { ...current, track_type: opt.value },
                                 [],

@@ -532,7 +532,7 @@ export const PLUMBING_HOUSE_STRUCTURE_OPTIONS: {
     value: 'assam_type',
     trackType: 'AssamType',
     label: 'Assam Type',
-    description: 'Traditional Assam-type house. Target work floor is still required.',
+    description: 'Traditional Assam-type house. Work is on a single ground floor.',
   },
   {
     value: 'rcc',
@@ -578,6 +578,15 @@ export function buildingTypesFromTargetFloors(
     const type = TARGET_FLOOR_TO_RCC[floor];
     return type ? [type] : [];
   });
+}
+
+/** Assam Type is always a single ground floor. RCC keeps the floors the owner selected. */
+export function targetFloorsForHouseStructure(
+  houseStructure: PlumbingHouseStructure,
+  floors: readonly PlumbingTargetFloor[],
+): PlumbingTargetFloor[] {
+  if (houseStructure === 'assam_type') return ['ground'];
+  return [...floors];
 }
 
 export function targetFloorsFromBuildingSelection(
@@ -1563,6 +1572,7 @@ function parsePlumberFixtureInput(
     | PlumbingFloorFixtureCounts[]
     | undefined,
   customTargetFloors: string | number[] | null,
+  houseStructure: PlumbingHouseStructure | null = null,
 ): PlumbingFloorFixtureCounts[] | { error: string } {
   if (Array.isArray(raw)) {
     const parsed = parsePlumbingFloorFixtureCounts(raw).filter((item) =>
@@ -1574,7 +1584,7 @@ function parsePlumberFixtureInput(
     for (const item of parsed) {
       if (plumbingFloorFixtureTotal(item) === 0) {
         return {
-          error: `Enter at least one fixture quantity for ${plumbingFloorLabel(item.floor, customTargetFloors)}.`,
+          error: `Enter at least one fixture quantity for ${plumbingFloorLabel(item.floor, customTargetFloors, houseStructure)}.`,
         };
       }
     }
@@ -1588,13 +1598,13 @@ function parsePlumberFixtureInput(
       return {
         error: parsed.error.replace(
           'for each selected floor.',
-          `for ${plumbingFloorLabel(floor, customTargetFloors)}.`,
+          `for ${plumbingFloorLabel(floor, customTargetFloors, houseStructure)}.`,
         ),
       };
     }
     if (plumbingFloorFixtureTotal(parsed) === 0) {
       return {
-        error: `Enter at least one fixture quantity for ${plumbingFloorLabel(floor, customTargetFloors)}.`,
+        error: `Enter at least one fixture quantity for ${plumbingFloorLabel(floor, customTargetFloors, houseStructure)}.`,
       };
     }
     next.push({ floor, ...parsed });
@@ -1686,6 +1696,7 @@ function parseElectricianFixtureInput(
     | ElectricianFloorFixtureCounts[]
     | undefined,
   customTargetFloors: string | number[] | null,
+  houseStructure: PlumbingHouseStructure | null = null,
 ): ElectricianFloorFixtureCounts[] | { error: string } {
   if (Array.isArray(raw)) {
     const parsed = parseElectricianFloorFixtureCounts(raw).filter((item) =>
@@ -1697,7 +1708,7 @@ function parseElectricianFixtureInput(
     for (const item of parsed) {
       if (electricianFloorFixtureTotal(item) === 0) {
         return {
-          error: `Enter at least one fixture quantity for ${plumbingFloorLabel(item.floor, customTargetFloors)}.`,
+          error: `Enter at least one fixture quantity for ${plumbingFloorLabel(item.floor, customTargetFloors, houseStructure)}.`,
         };
       }
     }
@@ -1711,13 +1722,13 @@ function parseElectricianFixtureInput(
       return {
         error: parsed.error.replace(
           'for each selected floor.',
-          `for ${plumbingFloorLabel(floor, customTargetFloors)}.`,
+          `for ${plumbingFloorLabel(floor, customTargetFloors, houseStructure)}.`,
         ),
       };
     }
     if (electricianFloorFixtureTotal(parsed) === 0) {
       return {
-        error: `Enter at least one fixture quantity for ${plumbingFloorLabel(floor, customTargetFloors)}.`,
+        error: `Enter at least one fixture quantity for ${plumbingFloorLabel(floor, customTargetFloors, houseStructure)}.`,
       };
     }
     next.push({ floor, ...parsed });
@@ -1778,7 +1789,9 @@ export function formatElectricianFixtureScopeSummary(
 export function plumbingFloorLabel(
   floor: PlumbingTargetFloor,
   customText?: string | number[] | null,
+  houseStructure?: PlumbingHouseStructure | null,
 ): string {
+  if (houseStructure === 'assam_type' && floor === 'ground') return 'Ground Floor';
   if (floor === 'custom') {
     const label = formatCustomFloorsList(customText);
     if (label) return label;
@@ -2809,7 +2822,7 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
           : details.targetWorkFloor
             ? [details.targetWorkFloor]
             : [];
-      if (workFloors.length > 0) {
+      if (details.houseStructure !== 'assam_type' && workFloors.length > 0) {
         blocks.push({
           label: 'Target Work Floor',
           value: formatPlumbingTargetWorkFloors(workFloors, details.customTargetFloors),
@@ -2817,7 +2830,7 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
       }
       for (const item of floorFixtureCounts) {
         blocks.push({
-          label: `${plumbingFloorLabel(item.floor, details.customTargetFloors)} Fixtures`,
+          label: `${plumbingFloorLabel(item.floor, details.customTargetFloors, details.houseStructure)} Fixtures`,
           value: formatPlumbingFloorFixtureLine(item),
         });
       }
@@ -3094,7 +3107,7 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
           : details.targetWorkFloor
             ? [details.targetWorkFloor]
             : [];
-      if (workFloors.length > 0) {
+      if (details.houseStructure !== 'assam_type' && workFloors.length > 0) {
         blocks.push({
           label: 'Target Work Floor',
           value: formatPlumbingTargetWorkFloors(workFloors, details.customTargetFloors),
@@ -3102,7 +3115,7 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
       }
       for (const item of floorFixtureCounts) {
         blocks.push({
-          label: `${plumbingFloorLabel(item.floor, details.customTargetFloors)} Fixtures`,
+          label: `${plumbingFloorLabel(item.floor, details.customTargetFloors, details.houseStructure)} Fixtures`,
           value: formatElectricianFloorFixtureLine(item),
         });
       }
@@ -3205,7 +3218,7 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
           : details.targetWorkFloor
             ? [details.targetWorkFloor]
             : [];
-      if (workFloors.length > 0) {
+      if (details.houseStructure !== 'assam_type' && workFloors.length > 0) {
         blocks.push({
           label: 'Target Work Floor',
           value: workFloors
@@ -3438,12 +3451,15 @@ export function validateTradeDetailsInput(
     if (!houseStructure) {
       return { error: 'Select the building structure type.' };
     }
-    const targetFloors = parsePlumbingTargetFloors(
-      input.targetFloors?.length
-        ? input.targetFloors
-        : input.targetWorkFloor
-          ? [input.targetWorkFloor]
-          : [],
+    const targetFloors = targetFloorsForHouseStructure(
+      houseStructure,
+      parsePlumbingTargetFloors(
+        input.targetFloors?.length
+          ? input.targetFloors
+          : input.targetWorkFloor
+            ? [input.targetWorkFloor]
+            : [],
+      ),
     );
     if (targetFloors.length === 0) {
       return { error: 'Select at least one target work floor.' };
@@ -3464,6 +3480,7 @@ export function validateTradeDetailsInput(
       targetFloors,
       input.floorFixtureCounts,
       customTargetFloors,
+      houseStructure,
     );
     if ('error' in floorFixtureCounts) {
       return floorFixtureCounts;
@@ -3558,12 +3575,15 @@ export function validateTradeDetailsInput(
     if (!houseStructure) {
       return { error: 'Select the building structure type.' };
     }
-    const targetFloors = parsePlumbingTargetFloors(
-      input.targetFloors?.length
-        ? input.targetFloors
-        : input.targetWorkFloor
-          ? [input.targetWorkFloor]
-          : [],
+    const targetFloors = targetFloorsForHouseStructure(
+      houseStructure,
+      parsePlumbingTargetFloors(
+        input.targetFloors?.length
+          ? input.targetFloors
+          : input.targetWorkFloor
+            ? [input.targetWorkFloor]
+            : [],
+      ),
     );
     if (targetFloors.length === 0) {
       return { error: 'Select at least one target work floor.' };
@@ -3579,6 +3599,7 @@ export function validateTradeDetailsInput(
       targetFloors,
       input.electricianFloorFixtureCounts,
       customTargetFloors,
+      houseStructure,
     );
     if ('error' in floorFixtureCounts) {
       return floorFixtureCounts;
@@ -3660,12 +3681,15 @@ export function validateTradeDetailsInput(
     if (!houseStructure) {
       return { error: 'Select the building structure type.' };
     }
-    const targetFloors = parsePlumbingTargetFloors(
-      input.targetFloors?.length
-        ? input.targetFloors
-        : input.targetWorkFloor
-          ? [input.targetWorkFloor]
-          : [],
+    const targetFloors = targetFloorsForHouseStructure(
+      houseStructure,
+      parsePlumbingTargetFloors(
+        input.targetFloors?.length
+          ? input.targetFloors
+          : input.targetWorkFloor
+            ? [input.targetWorkFloor]
+            : [],
+      ),
     );
     if (targetFloors.length === 0) {
       return { error: 'Select at least one target work floor.' };

@@ -317,7 +317,7 @@ export function readPlumbingPointRateFloors(project: {
   }
   return details.floorFixtureCounts.map((item) => ({
     floor: item.floor,
-    label: plumbingFloorLabel(item.floor, details.customTargetFloors),
+    label: plumbingFloorLabel(item.floor, details.customTargetFloors, details.houseStructure),
     points: plumbingFloorPoints(item),
     breakdown: formatPlumbingFloorPointBreakdown(item),
     counts: item,

@@ -241,7 +241,7 @@ export function readElectricianPointRateFloors(project: {
   }
   return details.floorFixtureCounts.map((item) => ({
     floor: item.floor,
-    label: plumbingFloorLabel(item.floor, details.customTargetFloors),
+    label: plumbingFloorLabel(item.floor, details.customTargetFloors, details.houseStructure),
     points: electricianFloorPoints(item),
     breakdown: formatElectricianFloorPointBreakdown(item),
     counts: item,

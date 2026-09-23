@@ -113,6 +113,7 @@ export function TradeWorkRequirementsFields({
         <PlumbingFloorFixtureForm
           targetFloors={form.targetFloors}
           customTargetFloors={form.customTargetFloors}
+          houseStructure={form.houseStructure}
           values={form.floorFixtureCounts}
           onChange={(v) => onChange('floorFixtureCounts', v)}
         />
@@ -139,6 +140,7 @@ export function TradeWorkRequirementsFields({
           <ElectricianFloorFixtureForm
             targetFloors={form.targetFloors}
             customTargetFloors={form.customTargetFloors}
+            houseStructure={form.houseStructure}
             values={form.electricianFloorFixtureCounts}
             onChange={(v) => onChange('electricianFloorFixtureCounts', v)}
           />
