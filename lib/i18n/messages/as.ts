@@ -75,10 +75,10 @@ export const as: Messages = {
   home: {
     hero: {
       platformBadge: 'Live Construction Bidding Platform',
-      titlePrefix: 'নতুন প্ৰজন্মৰ',
+      titlePrefix: 'The Smart',
       construction: 'Construction',
       bidding: 'Bidding',
-      titleSuffix: 'Network',
+      titleSuffix: 'Platform',
       subtitle:
         'আপোনাৰ project post কৰক, verified builders ৰ পৰা ভাল rate পাব, transparent auction ৰ জৰিয়তে deal close কৰক।',
       goDashboard: 'Dashboard লৈ যাওক',

@@ -60,7 +60,7 @@ export function HomePageContent({
 
         <div className="relative mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 pb-6 pt-3 sm:gap-8 sm:pb-8 sm:pt-5">
           <div className="mx-auto max-w-3xl text-center">
-            <h1 className="text-xl font-extrabold leading-[1.15] tracking-tight text-amber-400 sm:text-3xl">
+            <h1 className="text-xl font-extrabold leading-[1.15] tracking-tight text-blue-500 dark:text-sky-400 sm:text-3xl">
               {t('home.hero.titlePrefix')} {t('home.hero.construction')} {t('home.hero.bidding')} {t('home.hero.titleSuffix')}
             </h1>
             <div className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5">

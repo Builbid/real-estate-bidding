@@ -73,10 +73,10 @@ export const en = {
   home: {
     hero: {
       platformBadge: 'Live Construction Bidding Platform',
-      titlePrefix: 'The Next Generation',
+      titlePrefix: 'The Smart',
       construction: 'Construction',
       bidding: 'Bidding',
-      titleSuffix: 'Network',
+      titleSuffix: 'Platform',
       subtitle:
         'Post your real estate projects, receive best-market rates from verified builders, and close deals via transparent auctions.',
       goDashboard: 'Go to Dashboard',
