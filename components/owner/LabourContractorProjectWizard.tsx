@@ -1340,7 +1340,7 @@ export function LabourContractorProjectWizard() {
                   <div className={cn(FORM_SECTION_CARD, 'space-y-3')}>
                     <label className={SECTION_LABEL}>{withSectionColon('Target Work Floor')}</label>
                     <p className={HELPER_TEXT}>
-                      Select only the RCC floors included in this project.
+                      Select the specific floor(s) where work will be executed for this project.
                     </p>
                     <BuildingTypeSelector
                       purpose="mistri"

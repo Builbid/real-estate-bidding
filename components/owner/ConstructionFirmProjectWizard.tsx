@@ -286,6 +286,9 @@ export function ConstructionFirmProjectWizard() {
                 <label className={WIZARD_SECTION_LABEL}>
                   {withSectionColon('Target Work Floor')}
                 </label>
+                <p className="text-[11px] font-medium text-slate-500 leading-relaxed">
+                  Select the specific floor(s) where work will be executed for this project.
+                </p>
                 <BuildingTypeSelector
                   value={form.building_types}
                   onChange={(v) => { update('building_types', v); setStep2Error(null); }}

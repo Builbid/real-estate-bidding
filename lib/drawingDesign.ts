@@ -45,6 +45,7 @@ export type DrawingDeliverable =
   | 'pdf_soft_copy'
   | 'printed_blueprints'
   | '3d_rendering_images'
+  | '3d_animation_walkthrough'
   | 'autocad_dwg_revit';
 
 export type DrawingSubmissionTimeType =
@@ -176,11 +177,36 @@ export const DRAWING_FLOOR_OPTIONS: { value: DrawingFloorPlan; label: string }[]
   { value: 'custom', label: 'Custom (e.g. G+5)' },
 ];
 
-export const DRAWING_DELIVERABLE_OPTIONS: { value: DrawingDeliverable; label: string }[] = [
-  { value: 'pdf_soft_copy', label: 'PDF Soft Copy' },
-  { value: 'printed_blueprints', label: 'Printed Blueprints' },
-  { value: '3d_rendering_images', label: '3D Rendering Images' },
-  { value: 'autocad_dwg_revit', label: 'AutoCAD DWG / Revit File (for organization purpose)' },
+export const DRAWING_DELIVERABLE_OPTIONS: {
+  value: DrawingDeliverable;
+  label: string;
+  description: string;
+}[] = [
+  {
+    value: 'pdf_soft_copy',
+    label: 'PDF Soft Copy',
+    description: 'Digital drawings delivered as a PDF file',
+  },
+  {
+    value: 'printed_blueprints',
+    label: 'Printed Blueprints / Physical Hard Copy',
+    description: 'Printed drawing sheets handed over on site',
+  },
+  {
+    value: '3d_rendering_images',
+    label: '3D Structural Rendering Images',
+    description: 'Still images of the structural 3D model',
+  },
+  {
+    value: '3d_animation_walkthrough',
+    label: '3D Animation / Walkthrough Video',
+    description: 'Animated walkthrough of the proposed design',
+  },
+  {
+    value: 'autocad_dwg_revit',
+    label: 'AutoCAD (DWG) & Revit Editable Source Files',
+    description: 'Editable AutoCAD DWG and Revit source files',
+  },
 ];
 
 export const DRAWING_PACKAGE_TO_TYPES: Record<DrawingDesignPackage, DrawingDesignType[]> = {

@@ -644,7 +644,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                       {withSectionColon('Target Work Floor')}
                     </label>
                     <p className="text-[11px] font-medium text-slate-500 leading-relaxed">
-                      Select only the RCC floors included in this project.
+                      Select the specific floor(s) where work will be executed for this project.
                     </p>
                     <BuildingTypeSelector
                       purpose="mistri"
@@ -810,7 +810,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                         {withSectionColon('Target Work Floor')}
                       </label>
                       <p className="text-[11px] font-medium text-slate-500 leading-relaxed">
-                        Select only the RCC floors included in this project.
+                        Select the specific floor(s) where work will be executed for this project.
                       </p>
                       <BuildingTypeSelector
                         purpose="mistri"
