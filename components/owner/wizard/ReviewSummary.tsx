@@ -26,7 +26,7 @@ export function WizardStepper({
         <div key={label} className="flex items-center gap-1 flex-1 min-w-0">
           <div
             className={cn(
-              'flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold',
+              'flex h-6 w-6 flex-shrink-0 items-center justify-center bg-transparent text-xs font-bold',
               i + 1 < step
                 ? FORM_PROGRESS_DONE
                 : i + 1 === step

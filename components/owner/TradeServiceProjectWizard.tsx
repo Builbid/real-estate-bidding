@@ -623,7 +623,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                 >
                   <div className="flex flex-col gap-1.5">
                     <label className={WIZARD_SECTION_LABEL}>
-                      {withSectionColon('Building Structure Type')} <span className="text-red-500">*</span>
+                      {withSectionColon('Building Structure Type')}
                     </label>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {PLUMBING_HOUSE_STRUCTURE_OPTIONS.map((opt) => {
@@ -656,7 +656,6 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                               <CheckCircle2 className="absolute top-2.5 right-2.5 w-5 h-5 text-blue-600 flex-shrink-0" />
                             )}
                             <span className={cn('text-sm', selected ? 'font-medium text-slate-900 dark:text-white' : 'font-medium text-slate-700 dark:text-slate-200')}>{opt.label}</span>
-                            <p className="text-xs font-medium text-slate-500 mt-1">{opt.description}</p>
                           </button>
                         );
                       })}
