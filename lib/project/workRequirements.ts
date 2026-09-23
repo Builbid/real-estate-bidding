@@ -29,6 +29,7 @@ const HIDDEN_DISPLAY_LABELS = new Set([
   'Bidding Options (₹ / Running Foot)',
   'Billing Notice',
   'Point Weights',
+  'Calculated Total Floor Area',
 ]);
 
 function filterDisplayRequirementBlocks(blocks: WorkRequirementBlock[]): WorkRequirementBlock[] {

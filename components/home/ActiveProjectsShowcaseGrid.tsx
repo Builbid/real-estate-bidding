@@ -165,7 +165,7 @@ export function ActiveProjectsShowcaseGrid({
         </div>
 
         {displayProjects.length > 0 ? (
-          <div className="mx-auto grid w-full max-w-5xl grid-cols-1 justify-items-center gap-6 md:grid-cols-2">
+          <div className="mx-auto grid w-full max-w-5xl grid-cols-1 items-stretch gap-6 md:grid-cols-2">
             {displayProjects.map((project) => (
               <ShowcaseProjectCard
                 key={project.id}

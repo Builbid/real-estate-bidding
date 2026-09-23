@@ -241,6 +241,7 @@ export function ShowcaseProjectCard({
   const filteredRequirementBlocks =
     (getProjectWorkRequirementBlocks(project)?.blocks ?? null)?.filter(
       (block) =>
+        block.label !== 'Calculated Total Floor Area' &&
         !isFloorFixtureRequirementLabel(block.label) &&
         !(floorScopes.length > 0 && isFloorScopeRequirementLabel(block.label)),
     ) ?? null;
@@ -354,9 +355,9 @@ export function ShowcaseProjectCard({
 
   return (
     <article
-      className="group relative flex w-full max-w-[550px] min-w-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-colors hover:border-slate-300 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700"
+      className="group relative flex h-full w-full min-w-0 flex-col self-stretch overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-colors hover:border-slate-300 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700"
     >
-      <div className="relative flex flex-col gap-2 p-3 pl-3.5">
+      <div className="relative flex h-full min-h-0 flex-1 flex-col gap-2 p-3 pl-3.5">
         <div className="flex flex-wrap items-center justify-between gap-1.5">
           <div className="flex min-w-0 flex-wrap items-center gap-1">
             <Badge className={cn(
@@ -407,7 +408,7 @@ export function ShowcaseProjectCard({
             <p className="text-sm font-bold tracking-tight leading-tight text-slate-900 dark:text-slate-100">
               {serviceCategory.label}
             </p>
-            <h3 className="mt-0.5 line-clamp-2 text-sm font-semibold leading-snug text-slate-900 transition-colors group-hover:text-brand dark:text-slate-100 dark:group-hover:text-brand">
+            <h3 className="mt-0.5 line-clamp-2 text-sm font-semibold leading-snug text-slate-900 hover:text-slate-900 dark:text-slate-100 dark:hover:text-slate-100">
               {getLiveAuctionDisplayTitle(project)}
             </h3>
             <p className="mt-1 flex min-w-0 flex-wrap items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
@@ -463,7 +464,7 @@ export function ShowcaseProjectCard({
           </>
         )}
 
-        <div className="flex items-center justify-between gap-2 pt-0.5">
+        <div className="mt-auto flex items-center justify-between gap-2 pt-0.5">
           {postedDisplay ? (
             <p className="flex min-w-0 items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400">
               <CalendarDays className="h-3 w-3 shrink-0" />

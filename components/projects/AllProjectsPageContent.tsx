@@ -145,7 +145,7 @@ export function AllProjectsPageContent({
           <>
           <div
             className={cn(
-              'mx-auto grid w-full max-w-5xl grid-cols-1 justify-items-center gap-5 md:grid-cols-2',
+              'mx-auto grid w-full max-w-5xl grid-cols-1 items-stretch gap-5 md:grid-cols-2',
               isPending && 'opacity-70 transition-opacity',
             )}
           >

@@ -67,6 +67,7 @@ export function ProjectCard({
   const detailBlocks = rawDetailBlocks
     ?.filter(
       (block) =>
+        block.label !== 'Calculated Total Floor Area' &&
         !(floorScopes.length > 0 && isFloorScopeRequirementLabel(block.label)),
     ) ?? null;
   const visibleDetailBlocks =
@@ -117,7 +118,7 @@ export function ProjectCard({
               {serviceCategory.label}
             </p>
             <h3 className={cn(
-              'font-semibold text-slate-900 dark:text-slate-100 leading-snug line-clamp-2 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors',
+              'font-semibold text-slate-900 hover:text-slate-900 dark:text-slate-100 dark:hover:text-slate-100 leading-snug line-clamp-2',
               compact ? 'text-base' : 'text-base',
             )}>
               {getLiveAuctionDisplayTitle(project)}
