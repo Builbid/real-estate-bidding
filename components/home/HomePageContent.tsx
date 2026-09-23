@@ -60,11 +60,8 @@ export function HomePageContent({
 
         <div className="relative mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 pb-6 pt-3 sm:gap-8 sm:pb-8 sm:pt-5">
           <div className="mx-auto max-w-3xl text-center">
-            <h1 className="text-xl font-extrabold leading-[1.15] tracking-tight sm:text-3xl">
-              <span className="text-foreground">{t('home.hero.titlePrefix')}</span>{' '}
-              <span className="text-violet-600 dark:text-violet-400">{t('home.hero.construction')}</span>{' '}
-              <span className="text-amber-600 dark:text-amber-400">{t('home.hero.bidding')}</span>{' '}
-              <span className="text-foreground">{t('home.hero.titleSuffix')}</span>
+            <h1 className="text-xl font-extrabold leading-[1.15] tracking-tight text-amber-400 sm:text-3xl">
+              {t('home.hero.titlePrefix')} {t('home.hero.construction')} {t('home.hero.bidding')} {t('home.hero.titleSuffix')}
             </h1>
             <div className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5">
               {TRUST_BADGES.map(({ icon: Icon, text, color }) => (
