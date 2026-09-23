@@ -606,8 +606,8 @@ export const MISTRI_CONTRACT_TYPE_OPTIONS: {
   value: MistriContractType;
   label: string;
 }[] = [
-  { value: 'labor_only', label: 'Mistri Rate Only' },
-  { value: 'labor_centering', label: 'Mistri Rate + Shuttering' },
+  { value: 'labor_only', label: 'Mistri Rate Only (Labor Charge Only)' },
+  { value: 'labor_centering', label: 'Mistri Rate + Shuttering (Rental Cost of Shuttering Included)' },
 ];
 
 const LEGACY_CIVIL_WORK_MAP: Record<LegacyMistriCivilWorkType, MistriCivilWorkType> = {
@@ -1430,7 +1430,7 @@ function normalizeContractType(value: unknown): MistriContractType | null {
   return null;
 }
 
-const CONTRACT_TYPE_FALLBACK_LABEL = 'Mistri Rate Only';
+const CONTRACT_TYPE_FALLBACK_LABEL = 'Mistri Rate Only (Labor Charge Only)';
 
 const LEGACY_CONTRACT_LABEL_MAP: Record<string, MistriContractType> = {
   'labor rate only': 'labor_only',
