@@ -107,6 +107,7 @@ import {
 } from '@/components/owner/wizard/formTheme';
 import { ADDITIONAL_REQUIREMENTS_PLACEHOLDER, ProjectStartDatePicker, WIZARD_SECTION_LABEL, WizardAccentLabels, withSectionColon } from '@/components/owner/wizard/StartTimeAndNotes';
 import { ReviewSummaryList, WizardStepper } from '@/components/owner/wizard/ReviewSummary';
+import { FieldError, messageMatches, useScrollToFirstInvalid } from '@/components/owner/wizard/fieldValidation';
 import { cn } from '@/lib/utils';
 import { createProjectAction } from '@/app/actions/createProject';
 
@@ -308,17 +309,22 @@ function NestedChoiceButtons<T extends string>({
   value,
   onChange,
   columns = 1,
+  invalid = false,
 }: {
   question: string;
   options: { value: T; label: string }[];
   value: T | null;
   onChange: (value: T) => void;
   columns?: 1 | 2 | 3 | 4;
+  invalid?: boolean;
 }) {
   const inlineRow = columns !== 1;
 
   return (
-    <div className="space-y-4">
+    <div
+      className={cn('space-y-4 rounded-xl', invalid && 'ring-1 ring-red-500')}
+      data-field-invalid={invalid ? 'true' : undefined}
+    >
       <p className={SECTION_LABEL}>{withSectionColon(question)}</p>
       <div
         className={cn(
@@ -651,6 +657,11 @@ export function LabourContractorProjectWizard() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [step]);
   const [step1ValidationAttempted, setStep1ValidationAttempted] = useState(false);
+  const [invalidScrollToken, setInvalidScrollToken] = useState(0);
+  useScrollToFirstInvalid(invalidScrollToken);
+  function revealInvalid() {
+    setInvalidScrollToken((token) => token + 1);
+  }
   const [step1Errors, setStep1Errors] = useState<{
     location?: string;
     pincode?: string;
@@ -1087,6 +1098,7 @@ export function LabourContractorProjectWizard() {
     if (Object.keys(errors).length > 0) {
       setStep1ValidationAttempted(true);
       setStep1Errors(errors);
+      revealInvalid();
       return;
     }
 
@@ -1125,6 +1137,7 @@ export function LabourContractorProjectWizard() {
       const validated = validateMistriBoundaryWallInput(boundaryWallValidationInput());
       if ('error' in validated) {
         setStep2Error(validated.error);
+        revealInvalid();
         return;
       }
       setStep2Error(null);
@@ -1134,11 +1147,13 @@ export function LabourContractorProjectWizard() {
     const flooringCap = flooringPlinthCapError();
     if (flooringCap) {
       setStep2Error(flooringCap);
+      revealInvalid();
       return;
     }
     const validated = validateMistriFloorWorkInput(mistriValidationInput());
     if ('error' in validated) {
       setStep2Error(validated.error);
+      revealInvalid();
       return;
     }
     setStep2Error(null);
@@ -1154,12 +1169,14 @@ export function LabourContractorProjectWizard() {
     if (!districtSelection) {
       setError('Please select a district from the list.');
       setLoading(false);
+      revealInvalid();
       return;
     }
 
     if (hasContactInfo(form.additionalRequirements)) {
       setError('Remove contact details from additional requirements before submitting.');
       setLoading(false);
+      revealInvalid();
       return;
     }
 
@@ -1168,6 +1185,7 @@ export function LabourContractorProjectWizard() {
       if (flooringCap) {
         setError(flooringCap);
         setLoading(false);
+        revealInvalid();
         return;
       }
     }
@@ -1179,6 +1197,7 @@ export function LabourContractorProjectWizard() {
     if ('error' in validated) {
       setError(validated.error);
       setLoading(false);
+      revealInvalid();
       return;
     }
 
@@ -1199,6 +1218,7 @@ export function LabourContractorProjectWizard() {
     if (result.error) {
       setError(result.error);
       setLoading(false);
+      revealInvalid();
       return;
     }
 
@@ -1268,7 +1288,12 @@ export function LabourContractorProjectWizard() {
       <Card className={FORM_SHELL_CARD}>
         <CardContent className="px-4 pt-5 pb-5 sm:px-6">
           {error && (
-            <div className="flex items-start gap-3 mb-5 p-3.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400">
+            <div
+              className="mb-5 flex items-start gap-3 rounded-lg border border-red-500/20 bg-red-500/10 p-3.5 text-red-400"
+              data-field-invalid="true"
+              data-validation-banner="true"
+              tabIndex={-1}
+            >
               <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
               <p className="text-sm">{error}</p>
             </div>
@@ -1294,7 +1319,14 @@ export function LabourContractorProjectWizard() {
                 error={step1ValidationAttempted ? step1Errors.pincode : undefined}
               />
 
-              <div className={cn(FORM_SECTION_CARD, '[overflow-anchor:none]')}>
+              <div
+                className={cn(
+                  FORM_SECTION_CARD,
+                  '[overflow-anchor:none]',
+                  step1ValidationAttempted && step1Errors.houseType && 'ring-1 ring-red-500',
+                )}
+                data-field-invalid={step1ValidationAttempted && step1Errors.houseType ? 'true' : undefined}
+              >
                 <label className={SECTION_LABEL}>{withSectionColon('Construction type')}</label>
                 <div className="mt-1 grid grid-cols-1 items-stretch gap-4 md:grid-cols-3">
                   {MISTRI_HOUSE_TYPE_OPTIONS.map((opt) => (
@@ -1307,12 +1339,7 @@ export function LabourContractorProjectWizard() {
                     />
                   ))}
                 </div>
-                {step1ValidationAttempted && step1Errors.houseType && (
-                  <p className="text-xs text-destructive flex items-center gap-1 mt-1">
-                    <AlertCircle className="h-3 w-3 shrink-0" />
-                    {step1Errors.houseType}
-                  </p>
-                )}
+                <FieldError message={step1ValidationAttempted ? step1Errors.houseType : undefined} />
               </div>
 
               <div className="min-h-[7rem] space-y-4 [overflow-anchor:none]">
@@ -1397,7 +1424,12 @@ export function LabourContractorProjectWizard() {
               </div>
 
               {step2Error && (
-                <div className="flex items-start gap-3 p-3.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400">
+                <div
+                  className="flex items-start gap-3 rounded-lg border border-red-500/20 bg-red-500/10 p-3.5 text-red-400"
+                  data-field-invalid="true"
+                  data-validation-banner="true"
+                  tabIndex={-1}
+                >
                   <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
                   <p className="text-sm">{step2Error}</p>
                 </div>
@@ -1416,6 +1448,7 @@ export function LabourContractorProjectWizard() {
                       inputMode="decimal"
                       placeholder="e.g. 80"
                       value={form.boundaryWall?.lengthFt ?? ''}
+                      error={messageMatches(step2Error, 'length') ? step2Error ?? undefined : undefined}
                       onChange={(e) => patchBoundaryWall({ lengthFt: e.target.value })}
                     />
                     <Input
@@ -1424,6 +1457,7 @@ export function LabourContractorProjectWizard() {
                       inputMode="decimal"
                       placeholder="e.g. 6"
                       value={form.boundaryWall?.heightFt ?? ''}
+                      error={messageMatches(step2Error, 'height') ? step2Error ?? undefined : undefined}
                       onChange={(e) => patchBoundaryWall({ heightFt: e.target.value })}
                     />
                   </div>
@@ -1435,6 +1469,7 @@ export function LabourContractorProjectWizard() {
 
                   <NestedChoiceButtons
                     question="Material / Brick Selection"
+                    invalid={messageMatches(step2Error, 'wall material') || messageMatches(step2Error, 'brick')}
                     options={MISTRI_BOUNDARY_WALL_MATERIAL_OPTIONS}
                     value={form.boundaryWall?.materialType ?? null}
                     columns={2}
@@ -1443,6 +1478,7 @@ export function LabourContractorProjectWizard() {
 
                   <NestedChoiceButtons
                     question="Plastering Options"
+                    invalid={messageMatches(step2Error, 'plastering option') || messageMatches(step2Error, 'plastering finish')}
                     options={MISTRI_BOUNDARY_WALL_PLASTER_OPTIONS}
                     value={form.boundaryWall?.plasteringFinish ?? null}
                     onChange={(v) => patchBoundaryWall({ plasteringFinish: v })}
@@ -1459,6 +1495,7 @@ export function LabourContractorProjectWizard() {
                       type="text"
                       inputMode="decimal"
                       placeholder="e.g. 500"
+                      error={messageMatches(step2Error, 'plastering area') ? step2Error ?? undefined : undefined}
                       value={form.boundaryWall?.plasteringAreaSqft ?? ''}
                       onChange={(e) =>
                         patchBoundaryWall({ plasteringAreaSqft: e.target.value })
@@ -1468,6 +1505,7 @@ export function LabourContractorProjectWizard() {
 
                   <NestedChoiceButtons
                     question="Work Execution Timeline"
+                    invalid={messageMatches(step2Error, 'execution timeline')}
                     options={MISTRI_BOUNDARY_WALL_TIMELINE_OPTIONS}
                     value={form.boundaryWall?.executionTimeline ?? null}
                     columns={4}
@@ -1484,6 +1522,7 @@ export function LabourContractorProjectWizard() {
                       label="Custom Date"
                       type="date"
                       min={todayLocalDateString()}
+                      error={messageMatches(step2Error, 'completion date') || messageMatches(step2Error, 'start date') ? step2Error ?? undefined : undefined}
                       value={form.boundaryWall?.executionTimelineCustomDate ?? ''}
                       onChange={(e) =>
                         patchBoundaryWall({ executionTimelineCustomDate: e.target.value })
@@ -1508,7 +1547,12 @@ export function LabourContractorProjectWizard() {
                 return (
                   <div
                     key={key}
-                    className={cn(FORM_SECTION_CARD, 'border-b border-slate-100 pb-6 last:border-b-0 last:pb-0 [overflow-anchor:none]')}
+                    className={cn(
+                      FORM_SECTION_CARD,
+                      'border-b border-slate-100 pb-6 last:border-b-0 last:pb-0 [overflow-anchor:none]',
+                      step2Error?.includes(title) && 'ring-1 ring-red-500',
+                    )}
+                    data-field-invalid={step2Error?.includes(title) ? 'true' : undefined}
                   >
                     <div className="space-y-1.5">
                       <p className={FORM_BADGE}>
@@ -1784,7 +1828,10 @@ export function LabourContractorProjectWizard() {
               </div>
 
               {showFoundationProvision && (
-                <div className={FORM_SECTION_CARD}>
+                <div
+                  className={cn(FORM_SECTION_CARD, messageMatches(step2Error, 'foundation') && 'ring-1 ring-red-500')}
+                  data-field-invalid={messageMatches(step2Error, 'foundation') ? 'true' : undefined}
+                >
                   <p className={SECTION_LABEL}>
                     {withSectionColon('Foundation Provision (No. of Floors)')}
                   </p>
@@ -1792,6 +1839,7 @@ export function LabourContractorProjectWizard() {
                     type="text"
                     inputMode="numeric"
                     placeholder={`e.g. ${minFoundationFloors}`}
+                    error={messageMatches(step2Error, 'foundation') ? step2Error ?? undefined : undefined}
                     value={form.futureFloorCustom}
                     onChange={(e) => {
                       update('futureFloorCustom', e.target.value.replace(/\D/g, ''));
@@ -1799,17 +1847,15 @@ export function LabourContractorProjectWizard() {
                     }}
                   />
                   <p className={FORM_NOTE_BOX}>{FOUNDATION_PROVISION_NOTE}</p>
-                  {futureCustomError && (
-                    <p className="text-xs text-destructive flex items-center gap-1">
-                      <AlertCircle className="h-3 w-3 shrink-0" />
-                      {futureCustomError}
-                    </p>
-                  )}
+                  <FieldError message={futureCustomError} />
                 </div>
               )}
 
               {showContractType && (
-                <div className={FORM_SECTION_CARD}>
+                <div
+                  className={cn(FORM_SECTION_CARD, messageMatches(step2Error, 'contract type') && 'ring-1 ring-red-500')}
+                  data-field-invalid={messageMatches(step2Error, 'contract type') ? 'true' : undefined}
+                >
                   <label className={SECTION_LABEL}>
                     {withSectionColon('Contract Type (Work Scope)')}
                   </label>
@@ -1833,7 +1879,13 @@ export function LabourContractorProjectWizard() {
               )}
 
               {form.houseType !== 'boundary_wall' && (
-              <div className={FORM_SECTION_CARD}>
+              <div
+                className={cn(
+                  FORM_SECTION_CARD,
+                  messageMatches(step2Error, 'when the project should start') && 'ring-1 ring-red-500',
+                )}
+                data-field-invalid={messageMatches(step2Error, 'when the project should start') ? 'true' : undefined}
+              >
                 <label className={SECTION_LABEL}>
                   {withSectionColon('Work Start Timeline')}
                 </label>
@@ -1857,6 +1909,14 @@ export function LabourContractorProjectWizard() {
                 {form.projectStartTimeType === 'specific' && (
                   <ProjectStartDatePicker
                     value={form.projectStartTimeSpecificDate}
+                    error={
+                      messageMatches(step2Error, 'specific project start date') ||
+                      messageMatches(step2Error, 'start date') ||
+                      messageMatches(step2Error, 'past date') ||
+                      messageMatches(step2Error, 'valid date')
+                        ? step2Error ?? undefined
+                        : undefined
+                    }
                     onChange={(value) => {
                       update('projectStartTimeSpecificDate', value);
                       setStep2Error(null);

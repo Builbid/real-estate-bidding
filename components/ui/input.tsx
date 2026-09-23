@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { cn } from '@/lib/utils';
+import { FieldError, INVALID_CONTROL_CLASS } from '@/components/owner/wizard/fieldValidation';
 import {
   WIZARD_SECTION_LABEL_BASE,
   useWizardAccentLabel,
@@ -21,7 +22,10 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ({ className, type, label, error, prefix, suffix, accentLabel, ...props }, ref) => {
     const useAccent = useWizardAccentLabel(accentLabel);
     return (
-      <div className="flex flex-col gap-1.5 w-full">
+      <div
+        className="flex w-full flex-col gap-1.5"
+        data-field-invalid={error ? 'true' : undefined}
+      >
         {label && (
           <label
             className={
@@ -48,19 +52,18 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
               '[&::-webkit-search-decoration]:appearance-none [&::-webkit-search-cancel-button]:appearance-none',
               prefix && 'pl-8',
               suffix && 'pr-8',
-              error && 'border-red-500/70 focus:ring-red-500/40',
+              error && INVALID_CONTROL_CLASS,
               className
             )}
             ref={ref}
+            aria-invalid={error ? true : undefined}
             {...props}
           />
           {suffix && (
             <div className="absolute right-3 text-muted-foreground text-sm">{suffix}</div>
           )}
         </div>
-        {error && (
-          <p className="text-xs text-red-600 dark:text-red-400 mt-0.5">{error}</p>
-        )}
+        <FieldError message={error} />
       </div>
     );
   }

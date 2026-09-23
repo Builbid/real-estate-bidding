@@ -12,6 +12,7 @@ import {
 import { OptionSelectGrid } from '@/components/owner/wizard/OptionSelectCard';
 import { StartTimeAndNotes, WIZARD_SECTION_LABEL, WizardAccentLabels, withSectionColon } from '@/components/owner/wizard/StartTimeAndNotes';
 import { FORM_CONTINUE_BTN, FORM_SECTION_CARD, FORM_SHELL_CARD } from '@/components/owner/wizard/formTheme';
+import { FieldError, invalidAttr, useScrollToFirstInvalid } from '@/components/owner/wizard/fieldValidation';
 import { ReviewSummaryList, WizardStepper } from '@/components/owner/wizard/ReviewSummary';
 import { BuildingTypeSelector } from '@/components/construction/BuildingTypeSelector';
 import {
@@ -88,6 +89,11 @@ export function DrawingDesignProjectWizard() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [step]);
   const [step1ValidationAttempted, setStep1ValidationAttempted] = useState(false);
+  const [invalidScrollToken, setInvalidScrollToken] = useState(0);
+  useScrollToFirstInvalid(invalidScrollToken);
+  function revealInvalid() {
+    setInvalidScrollToken((token) => token + 1);
+  }
   const [step1Errors, setStep1Errors] = useState<{
     location?: string;
     pincode?: string;
@@ -159,6 +165,7 @@ export function DrawingDesignProjectWizard() {
     if (Object.keys(errors).length > 0) {
       setStep1ValidationAttempted(true);
       setStep1Errors(errors);
+      revealInvalid();
       return;
     }
     setStep1ValidationAttempted(false);
@@ -170,6 +177,7 @@ export function DrawingDesignProjectWizard() {
     const validated = validatedDetails();
     if ('error' in validated) {
       setStep2Error(validated.error);
+      revealInvalid();
       return;
     }
     setStep2Error(null);
@@ -180,6 +188,7 @@ export function DrawingDesignProjectWizard() {
     const validated = validatedDetails();
     if ('error' in validated) {
       setError(validated.error);
+      revealInvalid();
       return;
     }
     setLoading(true);
@@ -189,12 +198,14 @@ export function DrawingDesignProjectWizard() {
     if (!districtSelection) {
       setError('Please select a district from the list.');
       setLoading(false);
+      revealInvalid();
       return;
     }
 
     if (hasContactInfo(form.additionalRequirements)) {
       setError('Remove contact details from additional requirements before submitting.');
       setLoading(false);
+      revealInvalid();
       return;
     }
 
@@ -221,6 +232,7 @@ export function DrawingDesignProjectWizard() {
     if (result.error) {
       setError(result.error);
       setLoading(false);
+      revealInvalid();
       return;
     }
     router.push('/dashboard/owner');
@@ -248,7 +260,12 @@ export function DrawingDesignProjectWizard() {
       <Card className={FORM_SHELL_CARD}>
         <CardContent className="space-y-4 pt-6 pb-6">
           {error && (
-            <div className="mb-1 flex items-start gap-3 rounded-lg border border-red-500/20 bg-red-500/10 p-3.5 text-red-400">
+            <div
+              className="mb-1 flex items-start gap-3 rounded-lg border border-red-500/20 bg-red-500/10 p-3.5 text-red-400"
+              data-field-invalid="true"
+              data-validation-banner="true"
+              tabIndex={-1}
+            >
               <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
               <p className="text-sm">{error}</p>
             </div>
@@ -273,7 +290,13 @@ export function DrawingDesignProjectWizard() {
                 error={step1ValidationAttempted ? step1Errors.pincode : undefined}
               />
 
-              <div className={FORM_SECTION_CARD}>
+              <div
+                className={cn(
+                  FORM_SECTION_CARD,
+                  step1ValidationAttempted && step1Errors.houseStructure && 'ring-1 ring-red-500',
+                )}
+                data-field-invalid={step1ValidationAttempted && step1Errors.houseStructure ? 'true' : undefined}
+              >
                 <label className={WIZARD_SECTION_LABEL}>
                   {withSectionColon('Structure Type')}
                 </label>
@@ -302,9 +325,7 @@ export function DrawingDesignProjectWizard() {
                   }}
                   columns={2}
                 />
-                {step1ValidationAttempted && step1Errors.houseStructure ? (
-                  <p className="text-xs font-medium text-red-400">{step1Errors.houseStructure}</p>
-                ) : null}
+                <FieldError message={step1ValidationAttempted ? step1Errors.houseStructure : undefined} />
               </div>
 
               {form.houseStructure === 'rcc' && (
@@ -374,13 +395,21 @@ export function DrawingDesignProjectWizard() {
               </div>
 
               {step2Error && (
-                <div className="flex items-start gap-3 rounded-lg border border-red-500/20 bg-red-500/10 p-3.5 text-red-400">
+                <div
+                  className="flex items-start gap-3 rounded-lg border border-red-500/20 bg-red-500/10 p-3.5 text-red-400"
+                  data-field-invalid="true"
+                  data-validation-banner="true"
+                  tabIndex={-1}
+                >
                   <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
                   <p className="text-sm">{step2Error}</p>
                 </div>
               )}
 
-              <div className={FORM_SECTION_CARD}>
+              <div
+                className={cn(FORM_SECTION_CARD, invalidAttr(step2Error, 'package') && 'ring-1 ring-red-500')}
+                data-field-invalid={invalidAttr(step2Error, 'package')}
+              >
                 <label className={WIZARD_SECTION_LABEL}>{withSectionColon('Package Selection')}</label>
                 <OptionSelectGrid
                   options={DRAWING_PACKAGE_OPTIONS}
@@ -397,7 +426,10 @@ export function DrawingDesignProjectWizard() {
                 />
               </div>
 
-              <div className={FORM_SECTION_CARD}>
+              <div
+                className={cn(FORM_SECTION_CARD, invalidAttr(step2Error, 'plot') && 'ring-1 ring-red-500')}
+                data-field-invalid={invalidAttr(step2Error, 'plot')}
+              >
                 <label className={WIZARD_SECTION_LABEL}>
                   {withSectionColon('Approximate Plot Dimensions')}
                 </label>
@@ -405,6 +437,7 @@ export function DrawingDesignProjectWizard() {
                   type="text"
                   placeholder="e.g. 30ft x 40ft"
                   value={form.plotDimensions}
+                  error={invalidAttr(step2Error, 'plot') ? step2Error ?? undefined : undefined}
                   onChange={(e) => {
                     update('plotDimensions', e.target.value);
                     setStep2Error(null);
@@ -412,7 +445,10 @@ export function DrawingDesignProjectWizard() {
                 />
               </div>
 
-              <div className={FORM_SECTION_CARD}>
+              <div
+                className={cn(FORM_SECTION_CARD, invalidAttr(step2Error, 'deliverable') && 'ring-1 ring-red-500')}
+                data-field-invalid={invalidAttr(step2Error, 'deliverable')}
+              >
                 <label className={WIZARD_SECTION_LABEL}>{withSectionColon('Deliverables Required')}</label>
                 <OptionSelectGrid
                   options={DRAWING_DELIVERABLE_OPTIONS}
@@ -431,6 +467,7 @@ export function DrawingDesignProjectWizard() {
 
               <StartTimeAndNotes
                 title="Delivery Timeline"
+                error={step2Error}
                 startTimeType={form.projectStartTimeType}
                 specificDate={form.projectStartTimeSpecificDate}
                 additionalRequirements={form.additionalRequirements}

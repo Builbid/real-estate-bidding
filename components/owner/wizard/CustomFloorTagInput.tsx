@@ -13,6 +13,7 @@ import {
 import { FORM_CONTINUE_BTN } from '@/components/owner/wizard/formTheme';
 import { WIZARD_SECTION_LABEL, withSectionColon } from '@/components/owner/wizard/WizardSectionLabel';
 import { cn } from '@/lib/utils';
+import { FieldError, INVALID_CONTROL_CLASS } from '@/components/owner/wizard/fieldValidation';
 import { CUSTOM_FLOOR_INPUT_HELPER } from '@/lib/mistriDetails';
 import {
   MIN_CUSTOM_RCC_FLOOR,
@@ -62,7 +63,7 @@ export function CustomFloorTagInput({
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2" data-field-invalid={error ? 'true' : undefined}>
       <label className={WIZARD_SECTION_LABEL}>
         {withSectionColon('Custom floor numbers (above 4th)')}
       </label>
@@ -71,7 +72,7 @@ export function CustomFloorTagInput({
         <div
           className={cn(
             'flex min-h-12 flex-wrap content-start gap-2 rounded-lg border border-dashed border-slate-200 bg-slate-50/80 p-2 dark:border-zinc-700 dark:bg-zinc-950/40',
-            error && 'border-red-500/70',
+            error && INVALID_CONTROL_CLASS,
           )}
         >
           {value.length > 0 ? (
@@ -120,9 +121,7 @@ export function CustomFloorTagInput({
         </Button>
       </div>
 
-      {error ? (
-        <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
-      ) : null}
+      <FieldError message={error} />
       <p className="text-[11px] font-medium leading-snug text-muted-foreground">
         {CUSTOM_FLOOR_INPUT_HELPER}
       </p>

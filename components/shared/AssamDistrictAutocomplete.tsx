@@ -3,6 +3,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { ChevronDown, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { FieldError, INVALID_CONTROL_CLASS } from '@/components/owner/wizard/fieldValidation';
 import {
   parseAssamDistrictSelection,
   searchAssamDistricts,
@@ -120,7 +121,11 @@ export function AssamDistrictAutocomplete({
   }
 
   return (
-    <div ref={containerRef} className="relative flex flex-col gap-1.5 w-full">
+    <div
+      ref={containerRef}
+      className="relative flex w-full flex-col gap-1.5"
+      data-field-invalid={error ? 'true' : undefined}
+    >
       <label
         htmlFor={listboxId}
         className={WIZARD_SECTION_LABEL_BASE}
@@ -157,8 +162,9 @@ export function AssamDistrictAutocomplete({
             'focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/40',
             'disabled:cursor-not-allowed disabled:opacity-50',
             'dark:border-zinc-800 dark:bg-zinc-900 dark:text-white',
-            error && 'border-red-500/70 focus:ring-red-500/40',
+            error && INVALID_CONTROL_CLASS,
           )}
+          aria-invalid={error ? true : undefined}
         />
         <ChevronDown
           className={cn(
@@ -169,9 +175,7 @@ export function AssamDistrictAutocomplete({
         />
       </div>
 
-      {error && (
-        <p className="text-xs text-red-600 dark:text-red-400 mt-0.5">{error}</p>
-      )}
+      <FieldError message={error} />
 
       {open && suggestions.length > 0 && (
         <ul

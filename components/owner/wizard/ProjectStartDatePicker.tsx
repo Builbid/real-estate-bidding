@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { FieldError } from '@/components/owner/wizard/fieldValidation';
 import {
   formatIndianDateInput,
   getProjectStartDateInputError,
@@ -93,9 +94,11 @@ function displayFromParts(
 export function ProjectStartDatePicker({
   value,
   onChange,
+  error: externalError,
 }: {
   value: string;
   onChange: (value: string) => void;
+  error?: string;
 }) {
   const minDate = todayLocalDateString();
   const maxDate = maxProjectStartDateString();
@@ -124,7 +127,7 @@ export function ProjectStartDatePicker({
     setYear(parts.year);
   }, [value]);
 
-  const error = getProjectStartDateInputError(display);
+  const error = externalError || getProjectStartDateInputError(display);
   const parsedIso = parseIndianDateToIso(display);
   const selectedIso = parsedIso ?? value ?? '';
   const showTokenNotice = Boolean(parsedIso && !error && isProjectStartDateBeyondOneMonth(parsedIso));
@@ -206,12 +209,12 @@ export function ProjectStartDatePicker({
     'h-11 w-full rounded-xl border bg-white px-3 text-sm shadow-sm dark:bg-zinc-900',
     'focus:outline-none focus:ring-2 focus:ring-brand/50 focus:border-brand',
     error
-      ? 'border-red-500'
+      ? 'border-red-500 ring-1 ring-red-500'
       : 'border-gray-200 dark:border-zinc-800',
   );
 
   return (
-    <div className="mt-2 space-y-2">
+    <div className="mt-2 space-y-2" data-field-invalid={error ? 'true' : undefined}>
       <div className="flex flex-col gap-1.5 w-full">
         <label className={WIZARD_SECTION_LABEL_BASE}>
           {withSectionColon('Choose Start Date (DD/MM/YYYY)')}
@@ -220,7 +223,7 @@ export function ProjectStartDatePicker({
           className={cn(
             'flex w-full overflow-hidden rounded-xl border bg-white shadow-sm dark:bg-zinc-900',
             error
-              ? 'border-red-500 focus-within:ring-2 focus-within:ring-red-500/40'
+              ? 'border-red-500 ring-1 ring-red-500 focus-within:ring-2 focus-within:ring-red-500'
               : 'border-gray-200 focus-within:ring-2 focus-within:ring-brand/50 focus-within:border-brand dark:border-zinc-800',
           )}
         >
@@ -401,9 +404,7 @@ export function ProjectStartDatePicker({
           </div>
         </div>
 
-        {error && (
-          <p className="text-xs font-medium text-red-600 dark:text-red-400 mt-0.5">{error}</p>
-        )}
+        <FieldError message={error} />
         {showTokenNotice && (
           <p className="rounded-xl border border-amber-300 bg-amber-50 px-3 py-2.5 text-[11px] font-medium leading-relaxed text-amber-900 dark:border-amber-500/40 dark:bg-amber-950/40 dark:text-amber-200">
             {PROJECT_START_DATE_BEYOND_MONTH_NOTE}

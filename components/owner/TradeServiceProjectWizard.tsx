@@ -16,6 +16,7 @@ import {
 import { BuildingTypeSelector } from '@/components/construction/BuildingTypeSelector';
 import { TradeWorkRequirementsFields, type TradeWorkFormFields } from '@/components/owner/TradeWorkRequirementsFields';
 import { FORM_CONTINUE_BTN, FORM_NOTE_BOX, FORM_OPTION_SELECTED, FORM_OPTION_UNSELECTED, FORM_SECTION_CARD, FORM_SHELL_CARD, FORM_TEXTAREA } from '@/components/owner/wizard/formTheme';
+import { FieldError, invalidAttr, messageMatches, useScrollToFirstInvalid } from '@/components/owner/wizard/fieldValidation';
 import { ADDITIONAL_REQUIREMENTS_PLACEHOLDER, ProjectStartDatePicker, WIZARD_SECTION_LABEL, WizardAccentLabels, withSectionColon } from '@/components/owner/wizard/StartTimeAndNotes';
 import { ReviewSummaryList, WizardStepper } from '@/components/owner/wizard/ReviewSummary';
 import { generateProjectTitle } from '@/lib/generateProjectTitle';
@@ -219,6 +220,11 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [step]);
   const [step1ValidationAttempted, setStep1ValidationAttempted] = useState(false);
+  const [invalidScrollToken, setInvalidScrollToken] = useState(0);
+  useScrollToFirstInvalid(invalidScrollToken);
+  function revealInvalid() {
+    setInvalidScrollToken((token) => token + 1);
+  }
   const [step1Errors, setStep1Errors] = useState<{
     location?: string;
     villageTownName?: string;
@@ -324,6 +330,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
     if (Object.keys(errors).length > 0) {
       setStep1ValidationAttempted(true);
       setStep1Errors(errors);
+      revealInvalid();
       return;
     }
 
@@ -391,6 +398,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
   function tryGoStep3() {
     if (isPainter && !form.track_type) {
       setStep2Error('Please select a building type to continue.');
+      revealInvalid();
       return;
     }
     if (isPainter && form.track_type === 'RCC') {
@@ -407,6 +415,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
       if (floorErrors.floors || floorErrors.custom) {
         setPainterFloorErrors(floorErrors);
         setStep2Error(floorErrors.floors ?? floorErrors.custom ?? null);
+        revealInvalid();
         return;
       }
     }
@@ -428,6 +437,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
       });
       if ('error' in validated) {
         setStep2Error(validated.error);
+        revealInvalid();
         return;
       }
     }
@@ -435,6 +445,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
       const validated = validatedTradeDetails();
       if (validated && 'error' in validated) {
         setStep2Error(validated.error);
+        revealInvalid();
         return;
       }
     }
@@ -451,12 +462,14 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
     if (!districtSelection) {
       setError('Please select a district from the list.');
       setLoading(false);
+      revealInvalid();
       return;
     }
 
     if (hasContactInfo(form.additionalRequirements)) {
       setError('Remove contact details from additional requirements before submitting.');
       setLoading(false);
+      revealInvalid();
       return;
     }
 
@@ -480,6 +493,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
       if ('error' in validated) {
         setError(validated.error);
         setLoading(false);
+        revealInvalid();
         return;
       }
       painterDetails = validated.details;
@@ -491,6 +505,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
       if (!validated || 'error' in validated) {
         setError(validated && 'error' in validated ? validated.error : 'Work requirements are incomplete.');
         setLoading(false);
+        revealInvalid();
         return;
       }
       tradeDetails = validated.details;
@@ -516,6 +531,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
 
     if (result.error) {
       setError(result.error);
+      revealInvalid();
       setLoading(false);
       return;
     }
@@ -555,7 +571,12 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
       <Card className={FORM_SHELL_CARD}>
         <CardContent className="pt-6 pb-6">
           {error && (
-            <div className="flex items-start gap-3 mb-5 p-3.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400">
+            <div
+              className="mb-5 flex items-start gap-3 rounded-lg border border-red-500/20 bg-red-500/10 p-3.5 text-red-400"
+              data-field-invalid="true"
+              data-validation-banner="true"
+              tabIndex={-1}
+            >
               <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
               <p className="text-sm">{error}</p>
             </div>
@@ -593,7 +614,13 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
               />
 
               {(trade === 'plumber' || trade === 'electrician' || trade === 'false_ceiling_work') && (
-                <div className="space-y-4">
+                <div
+                  className={cn(
+                    'space-y-4 rounded-xl',
+                    step1ValidationAttempted && step1Errors.houseStructure && 'ring-1 ring-red-500',
+                  )}
+                  data-field-invalid={step1ValidationAttempted && step1Errors.houseStructure ? 'true' : undefined}
+                >
                   <div className="flex flex-col gap-1.5">
                     <label className={WIZARD_SECTION_LABEL}>
                       {withSectionColon('Building Structure Type')} <span className="text-red-500">*</span>
@@ -634,9 +661,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                         );
                       })}
                     </div>
-                    {step1ValidationAttempted && step1Errors.houseStructure ? (
-                      <p className="text-xs font-medium text-red-400">{step1Errors.houseStructure}</p>
-                    ) : null}
+                    <FieldError message={step1ValidationAttempted ? step1Errors.houseStructure : undefined} />
                   </div>
 
                   <div className="flex flex-col gap-1.5">
@@ -760,14 +785,25 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
               )}
 
               {step2Error && (
-                <div className="flex items-start gap-3 p-3.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400">
+                <div
+                  className="flex items-start gap-3 rounded-lg border border-red-500/20 bg-red-500/10 p-3.5 text-red-400"
+                  data-field-invalid="true"
+                  data-validation-banner="true"
+                  tabIndex={-1}
+                >
                   <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
                   <p className="text-sm">{step2Error}</p>
                 </div>
               )}
 
               {isPainter && (
-                <div className="space-y-4">
+                <div
+                  className={cn(
+                    'space-y-4 rounded-xl',
+                    invalidAttr(step2Error, 'building type') && 'ring-1 ring-red-500',
+                  )}
+                  data-field-invalid={invalidAttr(step2Error, 'building type')}
+                >
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {BUILDING_TYPE_OPTIONS.map((opt) => {
                     const selected = form.track_type === opt.value;
@@ -856,6 +892,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                 <div className="space-y-4">
                   <PainterChoice
                     label="Painting Work Coverage"
+                    invalid={messageMatches(step2Error, 'painting scope')}
                     options={PAINTER_SCOPE_OPTIONS}
                     value={form.paintingScope}
                     onChange={(v) => {
@@ -878,6 +915,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                       placeholder="e.g. 1000"
                       suffix={<span className="text-xs font-medium text-muted-foreground">Sq. Ft.</span>}
                       value={form.carpetArea}
+                      error={messageMatches(step2Error, 'house / floor area') ? step2Error ?? undefined : undefined}
                       onChange={(e) => {
                         const carpetArea = e.target.value;
                         setForm((current) => withPaintAreaEstimate({
@@ -904,6 +942,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                       placeholder="Calculated from house / floor area"
                       suffix={<span className="text-xs font-medium text-muted-foreground">Sq. Ft.</span>}
                       value={form.projectArea}
+                      error={messageMatches(step2Error, 'paint area') ? step2Error ?? undefined : undefined}
                       onChange={(e) => {
                         update('projectArea', e.target.value);
                         setStep2Error(null);
@@ -916,6 +955,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
 
                   <PainterChoice
                     label="Surface Condition"
+                    invalid={messageMatches(step2Error, 'surface')}
                     options={PAINTER_SURFACE_OPTIONS}
                     value={form.surfaceCondition}
                     onChange={(v) => {
@@ -927,6 +967,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
 
                   <PainterChoice
                     label="Wall Putty Requirement"
+                    invalid={messageMatches(step2Error, 'putty')}
                     options={PAINTER_PUTTY_OPTIONS}
                     value={form.puttyRequirement}
                     onChange={(v) => {
@@ -938,6 +979,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
 
                   <PainterChoice
                     label="Primer Requirement"
+                    invalid={messageMatches(step2Error, 'primer')}
                     options={PAINTER_PRIMER_OPTIONS}
                     value={form.primerRequirement || null}
                     onChange={(v) => {
@@ -949,6 +991,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
 
                   <PainterChoice
                     label="Paint Layers / Final Coats"
+                    invalid={messageMatches(step2Error, 'paint layers') || messageMatches(step2Error, 'final coats')}
                     options={PAINTER_TOPCOAT_OPTIONS.map((opt) => ({ value: opt, label: opt }))}
                     value={form.paintTopcoats}
                     onChange={(v) => {
@@ -961,6 +1004,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                   <div className={FORM_SECTION_CARD}>
                     <PainterChoice
                       label="Work Start Timeline"
+                      invalid={messageMatches(step2Error, 'when the project should start')}
                       options={PAINTER_START_TIME_OPTIONS}
                       value={form.projectStartTimeType}
                       onChange={(v) => {
@@ -973,6 +1017,14 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                     {form.projectStartTimeType === 'specific' && (
                       <ProjectStartDatePicker
                         value={form.projectStartTimeSpecificDate}
+                        error={
+                          messageMatches(step2Error, 'specific project start date') ||
+                          messageMatches(step2Error, 'start date') ||
+                          messageMatches(step2Error, 'past date') ||
+                          messageMatches(step2Error, 'valid date')
+                            ? step2Error ?? undefined
+                            : undefined
+                        }
                         onChange={(value) => {
                           update('projectStartTimeSpecificDate', value);
                           setStep2Error(null);
@@ -1002,6 +1054,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
               )}
 
               {isCustomTrade && (
+                <div data-field-invalid={step2Error ? 'true' : undefined}>
                 <TradeWorkRequirementsFields
                   trade={trade}
                   form={form}
@@ -1010,6 +1063,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                     setStep2Error(null);
                   }}
                 />
+                </div>
               )}
 
               <div className="flex gap-3">
@@ -1105,18 +1159,23 @@ function PainterChoice<T extends string>({
   value,
   onChange,
   columns = 1,
+  invalid = false,
 }: {
   label: string;
   options: { value: T; label: string }[] | readonly T[];
   value: T | null;
   onChange: (value: T) => void;
   columns?: 1 | 2 | 3;
+  invalid?: boolean;
 }) {
   const normalized = options.map((opt) =>
     typeof opt === 'string' ? { value: opt, label: opt } : opt,
   );
   return (
-    <div className="space-y-4">
+    <div
+      className={cn('space-y-4', invalid && 'rounded-xl ring-1 ring-red-500')}
+      data-field-invalid={invalid ? 'true' : undefined}
+    >
       <label className={WIZARD_SECTION_LABEL}>{withSectionColon(label)}</label>
       <div
         className={cn(

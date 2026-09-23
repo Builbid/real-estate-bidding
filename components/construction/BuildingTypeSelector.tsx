@@ -18,6 +18,7 @@ import {
 } from '@/lib/mistriDetails';
 import { FORM_OPTION_SELECTED, FORM_OPTION_UNSELECTED, FORM_MARKER_IDLE, FORM_MARKER_ON } from '@/components/owner/wizard/formTheme';
 import { cn } from '@/lib/utils';
+import { FieldError } from '@/components/owner/wizard/fieldValidation';
 
 const RCC_4TH_FLOOR: BuildingType = 'RCC 4th Floor';
 
@@ -190,7 +191,10 @@ export function BuildingTypeSelector({
   const customDisabled = hasAssam || !customSelectable;
 
   return (
-    <div className="space-y-4">
+    <div
+      className={cn('space-y-4', error && 'rounded-xl ring-1 ring-red-500')}
+      data-field-invalid={error ? 'true' : undefined}
+    >
       <div className="space-y-1">
         {purpose === 'drawing' ? (
           rccOnly ? null : (
@@ -334,9 +338,7 @@ export function BuildingTypeSelector({
         />
       )}
 
-      {error && (
-        <p className="text-sm text-red-400">{error}</p>
-      )}
+      <FieldError message={error} />
     </div>
   );
 }

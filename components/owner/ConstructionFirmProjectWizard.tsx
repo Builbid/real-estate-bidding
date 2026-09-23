@@ -12,6 +12,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { BuildingTypeSelector } from '@/components/construction/BuildingTypeSelector';
+import { useScrollToFirstInvalid } from '@/components/owner/wizard/fieldValidation';
 import { CountdownTicker } from '@/components/shared/CountdownTicker';
 import {
   AssamDistrictAutocomplete,
@@ -79,6 +80,11 @@ export function ConstructionFirmProjectWizard() {
   }, [step]);
   const [step2Error, setStep2Error] = useState<string | null>(null);
   const [step1ValidationAttempted, setStep1ValidationAttempted] = useState(false);
+  const [invalidScrollToken, setInvalidScrollToken] = useState(0);
+  useScrollToFirstInvalid(invalidScrollToken);
+  function revealInvalid() {
+    setInvalidScrollToken((token) => token + 1);
+  }
   const [step1Errors, setStep1Errors] = useState<{
     location?: string;
     pincode?: string;
@@ -121,6 +127,7 @@ export function ConstructionFirmProjectWizard() {
     if (Object.keys(errors).length > 0) {
       setStep1ValidationAttempted(true);
       setStep1Errors(errors);
+      revealInvalid();
       return;
     }
 
@@ -132,12 +139,14 @@ export function ConstructionFirmProjectWizard() {
   function tryGoStep3() {
     if (form.building_types.length === 0) {
       setStep2Error('Please select at least one floor.');
+      revealInvalid();
       return;
     }
     if (form.customFloorSelected) {
       const sequence = parseCustomFloorSequence(form.customFloors, { allowGaps: true });
       if (!sequence) {
         setStep2Error('Add at least one floor number above 4th.');
+        revealInvalid();
         return;
       }
     }
@@ -157,6 +166,7 @@ export function ConstructionFirmProjectWizard() {
     if (pincodeError) {
       setError(pincodeError);
       setLoading(false);
+      revealInvalid();
       return;
     }
 
@@ -190,6 +200,7 @@ export function ConstructionFirmProjectWizard() {
 
     if (result.error || !result.projectId) {
       setError(result.error ?? 'Could not create project.');
+      revealInvalid();
       setLoading(false);
       return;
     }
@@ -213,7 +224,12 @@ export function ConstructionFirmProjectWizard() {
       <Card className={FORM_SHELL_CARD}>
         <CardContent className="pt-6 pb-6">
           {error && (
-            <div className="flex items-start gap-3 mb-5 p-3.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400">
+            <div
+              className="mb-5 flex items-start gap-3 rounded-lg border border-red-500/20 bg-red-500/10 p-3.5 text-red-400"
+              data-field-invalid="true"
+              data-validation-banner="true"
+              tabIndex={-1}
+            >
               <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
               <p className="text-sm">{error}</p>
             </div>
