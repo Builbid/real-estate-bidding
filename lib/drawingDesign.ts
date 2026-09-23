@@ -463,10 +463,7 @@ export function getDrawingWorkRequirementBlocks(details: DrawingDetails): {
       .join(', '),
   });
   blocks.push({
-    label:
-      details.projectStartTimeType && isProjectStartTimeType(details.projectStartTimeType)
-        ? 'Project Starting Time'
-        : 'Project Submission Time',
+    label: 'Delivery Timeline',
     value:
       details.projectStartTimeType && isProjectStartTimeType(details.projectStartTimeType)
         ? formatProjectStartTime(

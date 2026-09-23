@@ -1835,7 +1835,7 @@ export function LabourContractorProjectWizard() {
               {form.houseType !== 'boundary_wall' && (
               <div className={FORM_SECTION_CARD}>
                 <label className={SECTION_LABEL}>
-                  {withSectionColon('Project Starting Time')}
+                  {withSectionColon('Work Start Timeline')}
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   {MISTRI_START_TIME_OPTIONS.map((opt) => (

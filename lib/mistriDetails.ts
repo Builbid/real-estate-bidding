@@ -3214,7 +3214,7 @@ export function getMistriWorkRequirementBlocks(details: MistriDetails): {
     }
 
     blocks.push({
-      label: 'Work Start Time',
+      label: 'Work Start Timeline',
       value: formatMistriStartTime(details),
     });
 
@@ -3390,7 +3390,7 @@ export function getMistriWorkRequirementBlocks(details: MistriDetails): {
 
   if (!details.boundaryWallDetails?.executionTimeline) {
     blocks.push({
-      label: 'Work Start Time',
+      label: 'Work Start Timeline',
       value: formatMistriStartTime(details),
     });
   }

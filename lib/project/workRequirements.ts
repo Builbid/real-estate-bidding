@@ -153,6 +153,7 @@ export function isWideRequirementLabel(label: string): boolean {
     label === 'Door & Window Frames Work (Carpentry Add-on)' ||
     label === 'Deliverables' ||
     label === 'Project Submission Time' ||
+    label === 'Delivery Timeline' ||
     label === 'Approximate Paint Area' ||
     label === 'Estimated Paint Area' ||
     label === 'Carpet / Floor Area' ||
@@ -205,7 +206,9 @@ const BID_SUMMARY_LABELS = new Set([
   'Building Structure Type',
   'House Structure',
   'Work Start Time',
+  'Work Start Timeline',
   'Project Submission Time',
+  'Delivery Timeline',
   'Target Work Floor',
   'Target Floors',
   'Custom / Higher Floors',

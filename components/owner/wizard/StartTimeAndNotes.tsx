@@ -49,7 +49,7 @@ export function StartTimeAndNotes<T extends string = ProjectStartTimeType>({
   onSpecificDateChange,
   onNotesChange,
   notesPlaceholder,
-  title = 'Project Starting Time',
+  title = 'Work Start Timeline',
   options = PROJECT_START_TIME_OPTIONS as unknown as { value: T; label: string }[],
   allowSpecificDate = true,
 }: {

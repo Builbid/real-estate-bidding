@@ -38,6 +38,7 @@ export type PainterAgreementRow = AgreementRow;
 
 const SCOPE_LABELS_EXCLUDED_FROM_AGREEMENT = new Set([
   'Work Start Time',
+  'Work Start Timeline',
   'Start Time',
   'Approximate Paint Area',
   'Estimated Paint Area',

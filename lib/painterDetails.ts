@@ -567,7 +567,7 @@ export function getPainterWorkRequirementBlocks(details: PainterDetails): {
   }
 
   blocks.push({
-    label: 'Work Start Time',
+      label: 'Work Start Timeline',
     value: formatPainterStartTime(details),
   });
 

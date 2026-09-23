@@ -960,7 +960,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
 
                   <div className={FORM_SECTION_CARD}>
                     <PainterChoice
-                      label="Project Starting Time"
+                      label="Work Start Timeline"
                       options={PAINTER_START_TIME_OPTIONS}
                       value={form.projectStartTimeType}
                       onChange={(v) => {

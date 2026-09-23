@@ -45,6 +45,7 @@ export type ElectricianAgreementRow = AgreementRow;
 
 const SCOPE_LABELS_EXCLUDED_FROM_AGREEMENT = new Set([
   'Work Start Time',
+  'Work Start Timeline',
   'Start Time',
   'Bidding Options',
   'Billing Notice',

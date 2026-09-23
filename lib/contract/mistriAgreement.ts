@@ -72,6 +72,7 @@ const STRUCTURAL_FLOOR_WORK: ReadonlySet<MistriFloorWorkType> = new Set([
 
 const SCOPE_LABELS_EXCLUDED_FROM_AGREEMENT = new Set([
   'Work Start Time',
+  'Work Start Timeline',
   'Start Time',
   'Built-Up Area',
   'Built-up area',

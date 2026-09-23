@@ -430,7 +430,7 @@ export function DrawingDesignProjectWizard() {
               </div>
 
               <StartTimeAndNotes
-                title="Project Starting Time"
+                title="Delivery Timeline"
                 startTimeType={form.projectStartTimeType}
                 specificDate={form.projectStartTimeSpecificDate}
                 additionalRequirements={form.additionalRequirements}
