@@ -14,7 +14,7 @@ import { StartTimeAndNotes, WIZARD_SECTION_LABEL, WizardAccentLabels, withSectio
 import { FORM_CONTINUE_BTN, FORM_SECTION_CARD, FORM_SHELL_CARD } from '@/components/owner/wizard/formTheme';
 import { FieldError, useScrollToFirstInvalid } from '@/components/owner/wizard/fieldValidation';
 import { ReviewSummaryList, WizardStepper } from '@/components/owner/wizard/ReviewSummary';
-import { WizardContinueGuidance } from '@/components/owner/wizard/WizardContinueGuidance';
+import { StepGuidanceNotes } from '@/components/owner/wizard/StepGuidanceNotes';
 import { BuildingTypeSelector } from '@/components/construction/BuildingTypeSelector';
 import {
   AssamDistrictAutocomplete,
@@ -504,7 +504,7 @@ export function DrawingDesignProjectWizard() {
                 }}
               />
 
-              <WizardContinueGuidance />
+              <StepGuidanceNotes />
 
               <div className="flex gap-3">
                 <Button variant="outline" size="lg" className="flex-1" onClick={() => setStep(1)}>

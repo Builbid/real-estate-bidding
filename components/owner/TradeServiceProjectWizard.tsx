@@ -19,7 +19,7 @@ import { FORM_CONTINUE_BTN, FORM_NOTE_BOX, FORM_OPTION_SELECTED, FORM_OPTION_UNS
 import { FieldError, useScrollToFirstInvalid } from '@/components/owner/wizard/fieldValidation';
 import { ADDITIONAL_REQUIREMENTS_PLACEHOLDER, ProjectStartDatePicker, WIZARD_SECTION_LABEL, WizardAccentLabels, withSectionColon } from '@/components/owner/wizard/StartTimeAndNotes';
 import { ReviewSummaryList, WizardStepper } from '@/components/owner/wizard/ReviewSummary';
-import { WizardContinueGuidance } from '@/components/owner/wizard/WizardContinueGuidance';
+import { StepGuidanceNotes } from '@/components/owner/wizard/StepGuidanceNotes';
 import { generateProjectTitle } from '@/lib/generateProjectTitle';
 import { hasContactInfo } from '@/lib/validation/projectContactInfo';
 import { formatPincodeInput, validatePincode } from '@/lib/validation/pincode';
@@ -1076,7 +1076,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                 />
               )}
 
-              <WizardContinueGuidance plumberPipingNote={trade === 'plumber'} />
+              <StepGuidanceNotes showPlumberPipingNote={trade === 'plumber'} />
 
               <div className="flex gap-3">
                 <Button variant="outline" size="lg" className="flex-1" onClick={() => setStep(1)}>
