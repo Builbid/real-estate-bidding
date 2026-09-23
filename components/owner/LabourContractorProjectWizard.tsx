@@ -107,6 +107,7 @@ import {
 } from '@/components/owner/wizard/formTheme';
 import { ADDITIONAL_REQUIREMENTS_PLACEHOLDER, ProjectStartDatePicker, WIZARD_SECTION_LABEL, WizardAccentLabels, withSectionColon } from '@/components/owner/wizard/StartTimeAndNotes';
 import { ReviewSummaryList, WizardStepper } from '@/components/owner/wizard/ReviewSummary';
+import { WizardContinueGuidance } from '@/components/owner/wizard/WizardContinueGuidance';
 import { FieldError, messageMatches, useScrollToFirstInvalid } from '@/components/owner/wizard/fieldValidation';
 import { cn } from '@/lib/utils';
 import { createProjectAction } from '@/app/actions/createProject';
@@ -1978,6 +1979,8 @@ export function LabourContractorProjectWizard() {
                   className={FORM_TEXTAREA}
                 />
               </div>
+
+              <WizardContinueGuidance />
 
               <div className="flex gap-3">
                 <Button variant="outline" size="lg" className="flex-1" onClick={() => setStep(1)}>

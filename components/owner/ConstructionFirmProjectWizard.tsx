@@ -30,6 +30,7 @@ import { HistoryBackButton } from '@/components/shared/HistoryBackButton';
 import { FORM_CONTINUE_BTN, FORM_SECTION_CARD, FORM_SHELL_CARD } from '@/components/owner/wizard/formTheme';
 import { WIZARD_SECTION_LABEL, WizardAccentLabels, withSectionColon } from '@/components/owner/wizard/StartTimeAndNotes';
 import { ReviewSummaryList, WizardStepper } from '@/components/owner/wizard/ReviewSummary';
+import { WizardContinueGuidance } from '@/components/owner/wizard/WizardContinueGuidance';
 import { parseCustomFloorSequence } from '@/lib/mistriDetails';
 import { formatCustomFloorsList } from '@/lib/customFloors';
 import { formatPincodeInput, validatePincode } from '@/lib/validation/pincode';
@@ -412,6 +413,8 @@ export function ConstructionFirmProjectWizard() {
                   Firms use this area with their ₹/sqft rate to estimate total project cost.
                 </p>
               </div>
+
+              <WizardContinueGuidance />
 
               <div className="flex gap-3">
                 <Button variant="outline" size="lg" className="flex-1" onClick={() => setStep(1)}>

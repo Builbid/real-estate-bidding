@@ -16,9 +16,10 @@ import {
 import { BuildingTypeSelector } from '@/components/construction/BuildingTypeSelector';
 import { TradeWorkRequirementsFields, type TradeWorkFormFields } from '@/components/owner/TradeWorkRequirementsFields';
 import { FORM_CONTINUE_BTN, FORM_NOTE_BOX, FORM_OPTION_SELECTED, FORM_OPTION_UNSELECTED, FORM_SECTION_CARD, FORM_SHELL_CARD, FORM_TEXTAREA } from '@/components/owner/wizard/formTheme';
-import { FieldError, messageMatches, useScrollToFirstInvalid } from '@/components/owner/wizard/fieldValidation';
+import { FieldError, useScrollToFirstInvalid } from '@/components/owner/wizard/fieldValidation';
 import { ADDITIONAL_REQUIREMENTS_PLACEHOLDER, ProjectStartDatePicker, WIZARD_SECTION_LABEL, WizardAccentLabels, withSectionColon } from '@/components/owner/wizard/StartTimeAndNotes';
 import { ReviewSummaryList, WizardStepper } from '@/components/owner/wizard/ReviewSummary';
+import { WizardContinueGuidance } from '@/components/owner/wizard/WizardContinueGuidance';
 import { generateProjectTitle } from '@/lib/generateProjectTitle';
 import { hasContactInfo } from '@/lib/validation/projectContactInfo';
 import { formatPincodeInput, validatePincode } from '@/lib/validation/pincode';
@@ -1075,27 +1076,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                 />
               )}
 
-              {trade === 'plumber' && (
-                <div className="rounded-xl border border-blue-200 bg-blue-50 px-3 py-2.5 dark:border-sky-500/30 dark:bg-sky-950/40">
-                  <p className="text-xs font-medium leading-relaxed text-blue-950 dark:text-sky-100">
-                    ℹ️ Note: Includes waste piping up to 30ft. Piping beyond 30ft is charged extra at ₹35/ft.
-                  </p>
-                  <div className="mt-2">
-                    <Input
-                      label="Extra piping needed beyond 30ft (in Feet, optional)"
-                      type="text"
-                      inputMode="numeric"
-                      value={form.estimatedLongConnectionLengthFt}
-                      error={messageMatches(step2Error, 'extra piping') ? step2Error ?? undefined : undefined}
-                      onChange={(e) => {
-                        update('estimatedLongConnectionLengthFt', e.target.value.replace(/[^\d]/g, '').slice(0, 4));
-                        setStep2Error(null);
-                        setPainterFieldErrors({});
-                      }}
-                    />
-                  </div>
-                </div>
-              )}
+              <WizardContinueGuidance plumberPipingNote={trade === 'plumber'} />
 
               <div className="flex gap-3">
                 <Button variant="outline" size="lg" className="flex-1" onClick={() => setStep(1)}>
