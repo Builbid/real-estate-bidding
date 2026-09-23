@@ -13,7 +13,7 @@ export const FORM_CHECKBOX =
   'mt-0.5 h-4 w-4 rounded border-slate-600 bg-transparent text-blue-500 focus:ring-blue-500/30 dark:border-slate-600 dark:bg-transparent';
 
 export const FORM_TEXTAREA =
-  'w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/20 focus-visible:border-blue-500/40 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white dark:placeholder:text-zinc-400';
+  'w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm placeholder:text-slate-500 focus:border-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-100 dark:placeholder:text-slate-400 dark:focus:border-sky-400 dark:focus-visible:ring-sky-400/20';
 
 export const FORM_PROGRESS_DONE = 'bg-transparent text-blue-600 dark:text-sky-400';
 export const FORM_PROGRESS_CURRENT =

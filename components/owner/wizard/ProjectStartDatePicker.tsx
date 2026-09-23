@@ -206,11 +206,11 @@ export function ProjectStartDatePicker({
   }
 
   const triggerClass = cn(
-    'h-11 w-full rounded-xl border bg-white px-3 text-sm shadow-sm dark:bg-zinc-900',
-    'focus:outline-none focus:ring-2 focus:ring-brand/50 focus:border-brand',
+    'h-11 w-full rounded-xl border bg-white px-3 text-sm text-slate-900 shadow-sm dark:bg-slate-800/80 dark:text-slate-100',
+    'focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:border-sky-400',
     error
       ? 'border-red-500 ring-1 ring-red-500'
-      : 'border-gray-200 dark:border-zinc-800',
+      : 'border-slate-300 dark:border-slate-700',
   );
 
   return (
@@ -221,10 +221,10 @@ export function ProjectStartDatePicker({
         </label>
         <div
           className={cn(
-            'flex w-full overflow-hidden rounded-xl border bg-white shadow-sm dark:bg-zinc-900',
+            'flex w-full overflow-hidden rounded-xl border bg-white shadow-sm dark:bg-slate-800/80',
             error
               ? 'border-red-500 ring-1 ring-red-500 focus-within:ring-2 focus-within:ring-red-500'
-              : 'border-gray-200 focus-within:ring-2 focus-within:ring-brand/50 focus-within:border-brand dark:border-zinc-800',
+              : 'border-slate-300 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 dark:border-slate-700 dark:focus-within:border-sky-400',
           )}
         >
           <input
@@ -237,9 +237,9 @@ export function ProjectStartDatePicker({
             onChange={(e) => handleDisplayChange(e.target.value)}
             aria-invalid={Boolean(error)}
             className={cn(
-              'h-11 min-w-0 flex-1 border-0 bg-transparent px-3 py-2 text-base md:text-sm text-foreground',
-              'placeholder:text-slate-400 shadow-none appearance-none',
-              'dark:text-white dark:placeholder:text-zinc-500',
+              'h-11 min-w-0 flex-1 border-0 bg-transparent px-3 py-2 text-base text-slate-900 md:text-sm',
+              'placeholder:text-slate-500 shadow-none appearance-none',
+              'dark:text-slate-100 dark:placeholder:text-slate-400',
               'focus:outline-none focus:ring-0',
             )}
           />
@@ -252,7 +252,7 @@ export function ProjectStartDatePicker({
                   'flex h-11 w-11 shrink-0 items-center justify-center border-l',
                   error
                     ? 'border-red-500 bg-red-50 text-red-600 dark:bg-red-950/40 dark:text-red-400'
-                    : 'border-gray-200 bg-slate-50 text-slate-600 hover:bg-slate-100 dark:border-zinc-800 dark:bg-zinc-800 dark:text-slate-300 dark:hover:bg-zinc-700',
+                    : 'border-slate-300 bg-slate-50 text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700',
                 )}
               >
                 <Calendar className="h-5 w-5" strokeWidth={2} />

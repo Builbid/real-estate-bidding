@@ -157,11 +157,11 @@ export function AssamDistrictAutocomplete({
           onFocus={handleFocus}
           onKeyDown={handleKeyDown}
           className={cn(
-            'flex h-11 w-full rounded-lg border border-gray-200 bg-white pl-8 pr-9 py-2 text-base md:text-sm text-foreground placeholder:text-slate-600 dark:placeholder:text-zinc-400',
+            'flex h-11 w-full rounded-lg border border-slate-300 bg-white pl-8 pr-9 py-2 text-base text-slate-900 shadow-sm placeholder:text-slate-500 md:text-sm',
             'ring-offset-background transition-all duration-150',
-            'focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/40',
+            'focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20',
             'disabled:cursor-not-allowed disabled:opacity-50',
-            'dark:border-zinc-800 dark:bg-zinc-900 dark:text-white',
+            'dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-100 dark:placeholder:text-slate-400 dark:focus:border-sky-400 dark:focus:ring-sky-400/20',
             error && INVALID_CONTROL_CLASS,
           )}
           aria-invalid={error ? true : undefined}

@@ -44,10 +44,11 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
           <input
             type={type}
             className={cn(
-              'flex h-11 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-base md:text-sm text-foreground placeholder:text-slate-600 shadow-sm appearance-none',
-              'dark:border-zinc-800 dark:bg-zinc-900 dark:text-white dark:placeholder:text-zinc-400 dark:shadow-none dark:[color-scheme:dark]',
+              'flex h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-base text-slate-900 shadow-sm appearance-none placeholder:text-slate-500 md:text-sm',
+              'dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-100 dark:placeholder:text-slate-400 dark:[color-scheme:dark]',
               'ring-offset-background transition-all duration-150',
-              'focus:outline-none focus:ring-2 focus:ring-brand/50 focus:border-brand',
+              'focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20',
+              'dark:focus:border-sky-400 dark:focus:ring-sky-400/20',
               'disabled:cursor-not-allowed disabled:opacity-50',
               '[&::-webkit-search-decoration]:appearance-none [&::-webkit-search-cancel-button]:appearance-none',
               prefix && 'pl-8',
