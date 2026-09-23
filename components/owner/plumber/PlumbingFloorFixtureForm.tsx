@@ -45,9 +45,6 @@ export function PlumbingFloorFixtureForm({
 
   return (
     <div className="space-y-4">
-      <p className="text-xs font-medium text-gray-700 dark:text-zinc-300">
-        Enter fixture quantities separately for each selected floor. Use 0 if a floor does not need that item.
-      </p>
       {targetFloors.map((floor) => {
         const counts = values[floor] ?? emptyPlumbingFixtureDraft();
         return (
@@ -55,13 +52,10 @@ export function PlumbingFloorFixtureForm({
             key={floor}
             className={`${FORM_SURFACE} overflow-hidden`}
           >
-            <div className="border-b border-slate-700/30 px-4 py-3">
-              <h3 className="text-sm font-bold text-gray-900 dark:text-slate-100">
+            <div className="bg-blue-600 px-4 py-2.5">
+              <h3 className="text-sm font-bold tracking-wide text-white">
                 {plumbingFloorLabel(floor, customTargetFloors)}
               </h3>
-              <p className="mt-0.5 text-[11px] font-medium text-slate-700 dark:text-slate-300">
-                How many of each fixture on this floor?
-              </p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4">
               {PLUMBING_FIXTURE_FIELDS.map((field) => (

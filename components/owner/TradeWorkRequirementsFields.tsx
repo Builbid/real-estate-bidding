@@ -11,10 +11,8 @@ import {
   EARTHWORK_SOIL_VEHICLE_OPTIONS,
   EARTHWORK_TYPE_OPTIONS,
   ELECTRICIAN_WIRING_TYPE_OPTIONS,
-  ELECTRICIAN_LABOUR_ONLY_DISCLAIMER,
   INTERIOR_DESIGNER_LABOUR_ONLY_DISCLAIMER,
   PLUMBING_FITTING_TYPE_OPTIONS,
-  PLUMBING_LABOUR_ONLY_DISCLAIMER,
   type BathroomPackage,
   type BathroomPackageSelection,
   type BathroomRoomSize,
@@ -112,9 +110,6 @@ export function TradeWorkRequirementsFields({
     <div className="space-y-4">
       {trade === 'plumber' && (
         <>
-          <p className="text-xs font-medium leading-relaxed rounded-xl border border-amber-500/30 bg-amber-950/20 px-3 py-2.5 text-amber-100">
-            {PLUMBING_LABOUR_ONLY_DISCLAIMER}
-          </p>
         <PlumbingFloorFixtureForm
           targetFloors={form.targetFloors}
           customTargetFloors={form.customTargetFloors}
@@ -142,9 +137,6 @@ export function TradeWorkRequirementsFields({
 
       {trade === 'electrician' && (
         <>
-          <p className="text-xs font-medium leading-relaxed rounded-xl border border-amber-500/30 bg-amber-950/20 px-3 py-2.5 text-amber-100">
-            {ELECTRICIAN_LABOUR_ONLY_DISCLAIMER}
-          </p>
           <ElectricianFloorFixtureForm
             targetFloors={form.targetFloors}
             customTargetFloors={form.customTargetFloors}

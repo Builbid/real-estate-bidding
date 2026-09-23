@@ -67,7 +67,6 @@ type Step = 1 | 2 | 3;
 const BIDDING_MINUTES = 7;
 
 const DEFAULT_PROGRESS_LABELS = ['Project Info', 'Work Requirements', 'Review & Launch'] as const;
-const FIXTURE_PROGRESS_LABELS = ['Project Info', 'Fixture Quantities', 'Review & Launch'] as const;
 
 const BUILDING_TYPE_OPTIONS: { value: TrackType; label: string; description: string }[] = [
   { value: 'RCC', label: 'RCC', description: 'Reinforced cement concrete building' },
@@ -555,8 +554,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
         )
       : [];
 
-  const progressLabels =
-    trade === 'plumber' || trade === 'electrician' ? FIXTURE_PROGRESS_LABELS : DEFAULT_PROGRESS_LABELS;
+  const progressLabels = DEFAULT_PROGRESS_LABELS;
 
   return (
     <WizardAccentLabels>
@@ -768,11 +766,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
             <div className="space-y-4">
               <h2 className={WIZARD_SECTION_LABEL}>
                 {withSectionColon(
-                  isPainter
-                    ? 'Building Type & Work Requirements'
-                    : trade === 'plumber' || trade === 'electrician'
-                      ? 'Fixture Quantities'
-                      : 'Work Requirements',
+                  isPainter ? 'Building Type & Work Requirements' : 'Work Requirements',
                 )}
               </h2>
               {!isPainter && (
@@ -780,7 +774,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                 {trade === 'plumber'
                     ? 'Enter how many basins, taps, showers, commodes, and geysers you need on each selected floor.'
                     : trade === 'electrician'
-                      ? 'Enter how many ceiling lights, ceiling fans, ACs, refrigerators, and inverters you need on each selected floor.'
+                      ? 'Enter the required electrical points, switches, lights, and fans for each selected floor.'
                       : trade === 'false_ceiling_work'
                         ? 'Check the interior design categories you need, then pick the sub-options designers should quote as interior designer unit rates.'
                     : `Describe the ${tradeLabel.toLowerCase()} work so bidders can quote without scope conflicts.`}
