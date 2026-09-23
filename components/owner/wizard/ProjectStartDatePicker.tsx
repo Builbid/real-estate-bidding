@@ -3,13 +3,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { FieldError } from '@/components/owner/wizard/fieldValidation';
 import {
@@ -43,7 +36,6 @@ const MONTH_LABELS = [
   'November',
   'December',
 ] as const;
-const DAY_OPTIONS = Array.from({ length: 31 }, (_, i) => i + 1);
 
 function padDatePart(value: number): string {
   return String(value).padStart(2, '0');
@@ -72,25 +64,6 @@ function monthGrid(year: number, month: number): (number | null)[] {
   return cells;
 }
 
-function partsFromValue(value: string): { day: number | null; month: number | null; year: number | null } {
-  const parts = parseIsoParts(value);
-  if (!parts) return { day: null, month: null, year: null };
-  return { day: parts.day, month: parts.month, year: parts.year };
-}
-
-function displayFromParts(
-  nextDay: number | null,
-  nextMonth: number | null,
-  nextYear: number | null,
-): string {
-  if (!nextDay) return '';
-  const dayText = padDatePart(nextDay);
-  if (!nextMonth) return `${dayText}/`;
-  const monthText = padDatePart(nextMonth);
-  if (!nextYear) return `${dayText}/${monthText}/`;
-  return `${dayText}/${monthText}/${nextYear}`;
-}
-
 export function ProjectStartDatePicker({
   value,
   onChange,
@@ -106,25 +79,18 @@ export function ProjectStartDatePicker({
   const yearOptionSet = useMemo(() => new Set(yearOptions), [yearOptions]);
   const pickerMinYear = yearOptions[0];
   const pickerMaxYear = yearOptions[1];
-  const initialParts = partsFromValue(value);
+  const initialParts = parseIsoParts(value);
   const [open, setOpen] = useState(false);
   const [display, setDisplay] = useState(() => isoToIndianDate(value));
-  const [day, setDay] = useState<number | null>(initialParts.day);
-  const [month, setMonth] = useState<number | null>(initialParts.month);
-  const [year, setYear] = useState<number | null>(initialParts.year);
 
   const todayParts = parseIsoParts(minDate) ?? { year: pickerMinYear, month: 1, day: 1 };
-  const [viewYear, setViewYear] = useState(year ?? todayParts.year);
-  const [viewMonth, setViewMonth] = useState(month ?? todayParts.month);
+  const [viewYear, setViewYear] = useState(initialParts?.year ?? todayParts.year);
+  const [viewMonth, setViewMonth] = useState(initialParts?.month ?? todayParts.month);
 
   useEffect(() => {
     if (!value) return;
     const indian = isoToIndianDate(value);
     setDisplay((current) => (parseIndianDateToIso(current) === value ? current : indian));
-    const parts = partsFromValue(value);
-    setDay(parts.day);
-    setMonth(parts.month);
-    setYear(parts.year);
   }, [value]);
 
   const error = externalError || getProjectStartDateInputError(display);
@@ -136,38 +102,17 @@ export function ProjectStartDatePicker({
   const canGoPrev = viewYear > pickerMinYear || (viewYear === pickerMinYear && viewMonth > 1);
   const canGoNext = viewYear < pickerMaxYear || (viewYear === pickerMaxYear && viewMonth < 12);
 
-  function emitParts(nextDay: number | null, nextMonth: number | null, nextYear: number | null) {
-    setDay(nextDay);
-    setMonth(nextMonth);
-    setYear(nextYear);
-    const nextDisplay = displayFromParts(nextDay, nextMonth, nextYear);
-    setDisplay(nextDisplay);
-    const iso = parseIndianDateToIso(nextDisplay);
-    onChange(iso ?? '');
-    if (nextMonth) setViewMonth(nextMonth);
-    if (nextYear && yearOptionSet.has(nextYear)) setViewYear(nextYear);
-  }
-
   function handleDisplayChange(raw: string) {
     const next = formatIndianDateInput(raw, display);
     setDisplay(next);
     if (!next) {
-      setDay(null);
-      setMonth(null);
-      setYear(null);
       onChange('');
       return;
     }
     const parts = next.split('/');
-    const typedDay = parts[0]?.length === 2 ? Number(parts[0]) : NaN;
     const typedMonth = parts[1]?.length === 2 ? Number(parts[1]) : NaN;
     const typedYear = parts[2]?.length === 4 ? Number(parts[2]) : NaN;
-    if (typedDay >= 1 && typedDay <= 31) setDay(typedDay);
-    if (typedMonth >= 1 && typedMonth <= 12) setMonth(typedMonth);
-    if (yearOptionSet.has(typedYear)) {
-      setYear(typedYear);
-      setViewYear(typedYear);
-    }
+    if (yearOptionSet.has(typedYear)) setViewYear(typedYear);
     if (typedMonth >= 1 && typedMonth <= 12) setViewMonth(typedMonth);
 
     if (next.replace(/\D/g, '').length < 8) {
@@ -182,7 +127,8 @@ export function ProjectStartDatePicker({
     if (iso < minDate || iso > maxDate) return;
     const parts = parseIsoParts(iso);
     if (!parts) return;
-    emitParts(parts.day, parts.month, parts.year);
+    setDisplay(isoToIndianDate(iso));
+    onChange(iso);
     setViewYear(parts.year);
     setViewMonth(parts.month);
     setOpen(false);
@@ -205,17 +151,9 @@ export function ProjectStartDatePicker({
     setViewMonth(parts.month);
   }
 
-  const triggerClass = cn(
-    'h-11 w-full rounded-xl border bg-white px-3 text-sm text-slate-900 shadow-sm dark:bg-slate-800/80 dark:text-slate-100',
-    'focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:border-sky-400',
-    error
-      ? 'border-red-500 ring-1 ring-red-500'
-      : 'border-slate-300 dark:border-slate-700',
-  );
-
   return (
-    <div className="mt-2 space-y-2" data-field-invalid={error ? 'true' : undefined}>
-      <div className="flex flex-col gap-1.5 w-full">
+    <div className="mt-2" data-field-invalid={error ? 'true' : undefined}>
+      <div className="flex w-full flex-col gap-1">
         <label className={WIZARD_SECTION_LABEL_BASE}>
           {withSectionColon('Choose Work Start Date (DD/MM/YYYY)')}
         </label>
@@ -242,7 +180,10 @@ export function ProjectStartDatePicker({
               'dark:text-slate-100 dark:placeholder:text-slate-400',
               'focus:outline-none focus:ring-0',
             )}
-          />
+            />
+          <span className="flex shrink-0 items-center whitespace-nowrap pr-1.5 text-[11px] font-medium tracking-normal text-slate-400 dark:text-slate-500">
+            Choose from calendar :
+          </span>
           <Popover open={open} onOpenChange={onCalendarOpenChange}>
             <PopoverTrigger asChild>
               <button
@@ -347,69 +288,12 @@ export function ProjectStartDatePicker({
           </Popover>
         </div>
 
-        <div className="grid grid-cols-3 gap-2 pt-1">
-          <div className="min-w-0 space-y-1">
-            <p className="px-0.5 text-[11px] font-semibold text-slate-500 dark:text-zinc-400">Day</p>
-            <Select
-              value={day ? String(day) : undefined}
-              onValueChange={(next) => emitParts(Number(next), month, year)}
-            >
-              <SelectTrigger aria-label="Day" className={triggerClass}>
-                <SelectValue placeholder="Day" />
-              </SelectTrigger>
-              <SelectContent side="top" position="item-aligned" className="z-[80] max-h-64">
-                {DAY_OPTIONS.map((optionDay) => (
-                  <SelectItem key={optionDay} value={String(optionDay)}>
-                    {optionDay}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="min-w-0 space-y-1">
-            <p className="px-0.5 text-[11px] font-semibold text-slate-500 dark:text-zinc-400">Month</p>
-            <Select
-              value={month ? String(month) : undefined}
-              onValueChange={(next) => emitParts(day, Number(next), year)}
-            >
-              <SelectTrigger aria-label="Month" className={triggerClass}>
-                <SelectValue placeholder="Month" />
-              </SelectTrigger>
-              <SelectContent side="top" position="item-aligned" className="z-[80] max-h-64">
-                {MONTH_LABELS.map((label, index) => (
-                  <SelectItem key={label} value={String(index + 1)}>
-                    {label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="min-w-0 space-y-1">
-            <p className="px-0.5 text-[11px] font-semibold text-slate-500 dark:text-zinc-400">Year</p>
-            <Select
-              value={year ? String(year) : undefined}
-              onValueChange={(next) => emitParts(day, month, Number(next))}
-            >
-              <SelectTrigger aria-label="Year" className={triggerClass}>
-                <SelectValue placeholder="Year" />
-              </SelectTrigger>
-              <SelectContent side="top" position="item-aligned" className="z-[80]">
-                {yearOptions.map((optionYear) => (
-                  <SelectItem key={optionYear} value={String(optionYear)}>
-                    {optionYear}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        <FieldError message={error} />
         {showTokenNotice && (
-          <p className="rounded-xl border border-amber-300 bg-amber-50 px-3 py-2.5 text-[11px] font-medium leading-relaxed text-amber-900 dark:border-amber-500/40 dark:bg-amber-950/40 dark:text-amber-200">
+          <p className="text-[11px] font-medium leading-relaxed text-slate-500 dark:text-slate-400">
             {PROJECT_START_DATE_BEYOND_MONTH_NOTE}
           </p>
         )}
+        <FieldError message={error} />
       </div>
     </div>
   );
