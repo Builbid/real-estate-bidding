@@ -117,7 +117,14 @@ export function TradeWorkRequirementsFields({
           values={form.floorFixtureCounts}
           onChange={(v) => onChange('floorFixtureCounts', v)}
         />
-        <FieldGroup label="Fitting Type" invalid={messageMatches(error, 'fitting')} message={messageMatches(error, 'fitting') ? error : undefined}>
+        <FieldGroup
+          label="Fitting Type"
+          invalid={messageMatches(error, 'fitting')}
+          message={messageMatches(error, 'fitting') ? error : undefined}
+        >
+          <p className="text-[11px] font-medium leading-relaxed text-slate-600 dark:text-slate-300">
+            This fitting type applies to every package point above.
+          </p>
           <OptionSelectGrid
             options={PLUMBING_FITTING_TYPE_OPTIONS}
             value={form.plumbingFittingType}

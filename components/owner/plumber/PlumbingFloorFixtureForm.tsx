@@ -60,7 +60,7 @@ export function PlumbingFloorFixtureForm({
                   : plumbingFloorLabel(floor, customTargetFloors)}
               </h3>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4">
+            <div className="grid grid-cols-1 gap-3 p-4">
               {PLUMBING_FIXTURE_FIELDS.map((field) => (
                 <Input
                   key={field.key}

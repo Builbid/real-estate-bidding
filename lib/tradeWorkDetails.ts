@@ -56,14 +56,29 @@ export type PlumbingHouseStructure = 'assam_type' | 'rcc';
 
 export type PlumbingTargetFloor = 'ground' | 'first' | 'second' | 'third' | 'fourth' | 'custom';
 
-export type PlumbingFixtureKind = 'basin' | 'taps' | 'shower' | 'commode' | 'geyser';
+export type PlumbingFixtureKind =
+  | 'basin'
+  | 'taps'
+  | 'shower'
+  | 'geyser'
+  | 'commode'
+  | 'indian_pan'
+  | 'floor_drain'
+  | 'water_tank'
+  | 'motor'
+  | 'washing_machine';
 
 export interface PlumbingFixtureCounts {
   basin: number;
   taps: number;
   shower: number;
-  commode: number;
   geyser: number;
+  commode: number;
+  indian_pan: number;
+  floor_drain: number;
+  water_tank: number;
+  motor: number;
+  washing_machine: number;
 }
 
 export interface PlumbingFloorFixtureCounts extends PlumbingFixtureCounts {
@@ -121,6 +136,9 @@ export type PlumbingSubOptionId =
   | 'waste_four_inch_concealed'
   | 'waste_four_inch_open'
   | 'floor_drain_jali'
+  | 'water_tank_unit'
+  | 'motor_submersible'
+  | 'washing_machine_point'
   | 'tank_500_ltr'
   | 'tank_1000_ltr';
 
@@ -624,14 +642,50 @@ export const PLUMBING_FITTING_TYPE_OPTIONS: {
 export const PLUMBING_FIXTURE_FIELDS: {
   key: PlumbingFixtureKind;
   label: string;
+  shortLabel: string;
   subOption: PlumbingSubOptionId;
   points: number;
 }[] = [
-  { key: 'basin', label: 'No. of Basin', subOption: 'wash_basin', points: 1 },
-  { key: 'taps', label: 'No. of Taps', subOption: 'taps_accessories', points: 1 },
-  { key: 'shower', label: 'No. of Shower', subOption: 'overhead_shower', points: 2 },
-  { key: 'commode', label: 'No. of Commode', subOption: 'western_commode', points: 2 },
-  { key: 'geyser', label: 'No. of Geyser', subOption: 'geyser', points: 2 },
+  { key: 'basin', label: 'No. of Basin', shortLabel: 'Basin', subOption: 'wash_basin', points: 1 },
+  { key: 'taps', label: 'No. of Taps', shortLabel: 'Taps', subOption: 'taps_accessories', points: 1 },
+  { key: 'shower', label: 'No. of Shower', shortLabel: 'Shower', subOption: 'overhead_shower', points: 2 },
+  { key: 'geyser', label: 'No. of Geyser', shortLabel: 'Geyser', subOption: 'geyser', points: 2 },
+  {
+    key: 'commode',
+    label: 'No. of Western Commode (Includes full waste pipeline connection)',
+    shortLabel: 'Western Commode',
+    subOption: 'western_commode',
+    points: 2,
+  },
+  {
+    key: 'indian_pan',
+    label: 'No. of Indian Toilet Pan (Includes full waste pipeline connection)',
+    shortLabel: 'Indian Toilet Pan',
+    subOption: 'indian_toilet_pan',
+    points: 2,
+  },
+  {
+    key: 'floor_drain',
+    label: 'No. of Bathroom/Kitchen Floor Drain Points',
+    shortLabel: 'Floor Drain Points',
+    subOption: 'floor_drain_jali',
+    points: 1,
+  },
+  { key: 'water_tank', label: 'No. of Water Tank', shortLabel: 'Water Tank', subOption: 'water_tank_unit', points: 2 },
+  {
+    key: 'motor',
+    label: 'No. of Motor / Submersible Connection',
+    shortLabel: 'Motor / Submersible',
+    subOption: 'motor_submersible',
+    points: 2,
+  },
+  {
+    key: 'washing_machine',
+    label: 'No. of Washing Machine Point',
+    shortLabel: 'Washing Machine Point',
+    subOption: 'washing_machine_point',
+    points: 1,
+  },
 ];
 
 export const PLUMBING_FIXTURE_KIND_KEYS: PlumbingFixtureKind[] = PLUMBING_FIXTURE_FIELDS.map(
@@ -639,7 +693,18 @@ export const PLUMBING_FIXTURE_KIND_KEYS: PlumbingFixtureKind[] = PLUMBING_FIXTUR
 );
 
 export function emptyPlumbingFixtureDraft(): PlumbingFixtureCountDraft {
-  return { basin: '', taps: '', shower: '', commode: '', geyser: '' };
+  return {
+    basin: '',
+    taps: '',
+    shower: '',
+    geyser: '',
+    commode: '',
+    indian_pan: '',
+    floor_drain: '',
+    water_tank: '',
+    motor: '',
+    washing_machine: '',
+  };
 }
 
 export const ELECTRICIAN_WIRING_TYPE_OPTIONS: {
@@ -705,6 +770,9 @@ export const PLUMBING_SCOPE_PACKAGES: {
       { id: 'geyser', label: 'Geyser Fitting', unitSuffix: '/unit', unitType: 'per_unit', weight: 1 },
       { id: 'wash_basin', label: 'Wash Basin Fitting', unitSuffix: '/unit', unitType: 'per_unit', weight: 1 },
       { id: 'taps_accessories', label: 'Taps & Basic Accessories', unitSuffix: '/unit', unitType: 'per_unit', weight: 1 },
+      { id: 'water_tank_unit', label: 'Water Tank Fitting', unitSuffix: '/unit', unitType: 'per_unit', weight: 1 },
+      { id: 'motor_submersible', label: 'Motor / Submersible Connection', unitSuffix: '/unit', unitType: 'per_unit', weight: 1 },
+      { id: 'washing_machine_point', label: 'Washing Machine Point', unitSuffix: '/unit', unitType: 'per_unit', weight: 1 },
     ],
   },
   {
@@ -1470,7 +1538,18 @@ export function parsePlumbingTargetFloors(raw: unknown): PlumbingTargetFloor[] {
 }
 
 export function emptyPlumbingFixtureCounts(): PlumbingFixtureCounts {
-  return { basin: 0, taps: 0, shower: 0, commode: 0, geyser: 0 };
+  return {
+    basin: 0,
+    taps: 0,
+    shower: 0,
+    geyser: 0,
+    commode: 0,
+    indian_pan: 0,
+    floor_drain: 0,
+    water_tank: 0,
+    motor: 0,
+    washing_machine: 0,
+  };
 }
 
 export function parsePlumbingFixtureCounts(raw: unknown): PlumbingFixtureCounts | null {
@@ -1478,6 +1557,10 @@ export function parsePlumbingFixtureCounts(raw: unknown): PlumbingFixtureCounts 
   const row = raw as Record<string, unknown>;
   const counts = emptyPlumbingFixtureCounts();
   for (const key of PLUMBING_FIXTURE_KIND_KEYS) {
+    if (row[key] == null || row[key] === '') {
+      counts[key] = 0;
+      continue;
+    }
     const n = parseCount(row[key], 0, 50);
     if (n == null) return null;
     counts[key] = n;
@@ -1514,7 +1597,7 @@ export function plumbingFloorPoints(item: PlumbingFixtureCounts): number {
 export function formatPlumbingFloorPointBreakdown(item: PlumbingFixtureCounts): string {
   const parts = PLUMBING_FIXTURE_FIELDS.flatMap((field) =>
     item[field.key] > 0
-      ? [`${field.label.replace('No. of ', '')} ${item[field.key]}×${field.points}`]
+      ? [`${field.shortLabel} ${item[field.key]}×${field.points}`]
       : [],
   );
   const points = plumbingFloorPoints(item);
@@ -1613,9 +1696,36 @@ function parsePlumberFixtureInput(
 }
 
 export function formatPlumbingFloorFixtureLine(item: PlumbingFixtureCounts): string {
-  return PLUMBING_FIXTURE_FIELDS.map(
-    (field) => `${field.label.replace('No. of ', '')}: ${item[field.key]}`,
+  return PLUMBING_FIXTURE_FIELDS.flatMap((field) =>
+    item[field.key] > 0 ? [`${field.shortLabel}: ${item[field.key]}`] : [],
   ).join(' · ');
+}
+
+const CONCEALED_PIPING_TO_OPEN: Partial<Record<PlumbingSubOptionId, PlumbingSubOptionId>> = {
+  piping_three_quarter_concealed: 'piping_three_quarter_open',
+  piping_one_inch_concealed: 'piping_one_inch_open',
+  waste_four_inch_concealed: 'waste_four_inch_open',
+};
+
+const OPEN_PIPING_TO_CONCEALED: Partial<Record<PlumbingSubOptionId, PlumbingSubOptionId>> = {
+  piping_three_quarter_open: 'piping_three_quarter_concealed',
+  piping_one_inch_open: 'piping_one_inch_concealed',
+  piping_one_inch_main: 'piping_one_inch_concealed',
+  waste_four_inch_open: 'waste_four_inch_concealed',
+};
+
+/** Point quantities follow the one Fitting Type chosen for the whole project. */
+export function alignPlumbingSubOptionsToFitting(
+  ids: PlumbingSubOptionId[],
+  fittingType: PlumbingFittingType,
+): PlumbingSubOptionId[] {
+  const map = fittingType === 'concealed' ? OPEN_PIPING_TO_CONCEALED : CONCEALED_PIPING_TO_OPEN;
+  const next: PlumbingSubOptionId[] = [];
+  for (const id of ids) {
+    const aligned = map[id] ?? id;
+    if (!next.includes(aligned)) next.push(aligned);
+  }
+  return next;
 }
 
 export function emptyElectricianFixtureCounts(): ElectricianFixtureCounts {
@@ -1767,7 +1877,7 @@ export function formatPlumbingFixtureScopeSummary(
     }
   }
   return PLUMBING_FIXTURE_FIELDS.flatMap((field) =>
-    totals[field.key] > 0 ? [`${field.label.replace('No. of ', '')} ${totals[field.key]}`] : [],
+    totals[field.key] > 0 ? [`${field.shortLabel} ${totals[field.key]}`] : [],
   ).join(' · ');
 }
 
@@ -2842,7 +2952,7 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
       }
       if (details.estimatedLongConnectionLengthFt != null) {
         blocks.push({
-          label: 'Estimated Long Connection Line Length',
+          label: 'Extra piping beyond 30ft',
           value: `${details.estimatedLongConnectionLengthFt.toLocaleString('en-IN')} ft`,
         });
       }
@@ -3486,7 +3596,7 @@ export function validateTradeDetailsInput(
       return floorFixtureCounts;
     }
     const fixtureSubOptions = fixtureCountsToSubOptions(floorFixtureCounts);
-    const selectedSubOptions =
+    let selectedSubOptions =
       fixtureSubOptions.length > 0
         ? fixtureSubOptions
         : subOptionsForPackages(
@@ -3496,15 +3606,19 @@ export function validateTradeDetailsInput(
     if (selectedSubOptions.length === 0) {
       return { error: 'Enter fixture quantities for each selected floor.' };
     }
-    const selectedPackages = packagesFromSelectedSubOptions(
-      PLUMBING_SCOPE_PACKAGES,
-      selectedSubOptions,
-    );
-    const totalCommode = floorFixtureCounts.reduce((sum, item) => sum + item.commode, 0);
     const plumbingFittingType = parsePlumbingFittingType(input.plumbingFittingType);
     if (!plumbingFittingType) {
       return { error: 'Select Concealed Fitting or Open Surface Fitting.' };
     }
+    selectedSubOptions = alignPlumbingSubOptionsToFitting(selectedSubOptions, plumbingFittingType);
+    const selectedPackages = packagesFromSelectedSubOptions(
+      PLUMBING_SCOPE_PACKAGES,
+      selectedSubOptions,
+    );
+    const totalCommode = floorFixtureCounts.reduce(
+      (sum, item) => sum + item.commode + item.indian_pan,
+      0,
+    );
     const estimatedLongConnectionLengthFt = input.estimatedLongConnectionLengthFt == null
       || String(input.estimatedLongConnectionLengthFt).trim() === ''
       ? null
@@ -3514,7 +3628,7 @@ export function validateTradeDetailsInput(
       String(input.estimatedLongConnectionLengthFt).trim() !== '' &&
       estimatedLongConnectionLengthFt == null
     ) {
-      return { error: 'Estimated long connection line length must be a whole number of feet from 1 to 9999.' };
+      return { error: 'Extra piping beyond 30ft must be a whole number of feet from 1 to 9999.' };
     }
     const installMethod = plumbingFittingTypeToInstallMethod(plumbingFittingType);
     const pipingPackage: PipingPackageKind =
