@@ -162,20 +162,26 @@ export function TradeWorkRequirementsFields({
               columns={2}
             />
           </FieldGroup>
-          <Input
-            label="No. of Inverter Connection Points (House Common)"
-            type="text"
-            inputMode="numeric"
-            value={form.inverterConnectionPoints}
-            onChange={(e) => onChange('inverterConnectionPoints', e.target.value.replace(/[^\d]/g, '').slice(0, 2))}
-          />
-          <Input
-            label="No. of Main MCB / Distribution Box (House Common)"
-            type="text"
-            inputMode="numeric"
-            value={form.mainDistributionBoxCount}
-            onChange={(e) => onChange('mainDistributionBoxCount', e.target.value.replace(/[^\d]/g, '').slice(0, 2))}
-          />
+          <div className="grid grid-cols-1 items-start md:grid-cols-2 gap-4 gap-y-5">
+            <Input
+              label="No. of Inverter Connection Points (House Common)"
+              labelClassName="text-sm font-medium leading-5 items-start whitespace-normal"
+              className="h-10 px-3 py-1.5"
+              type="text"
+              inputMode="numeric"
+              value={form.inverterConnectionPoints}
+              onChange={(e) => onChange('inverterConnectionPoints', e.target.value.replace(/[^\d]/g, '').slice(0, 2))}
+            />
+            <Input
+              label="No. of Main MCB / Distribution Box (House Common)"
+              labelClassName="text-sm font-medium leading-5 items-start whitespace-normal"
+              className="h-10 px-3 py-1.5"
+              type="text"
+              inputMode="numeric"
+              value={form.mainDistributionBoxCount}
+              onChange={(e) => onChange('mainDistributionBoxCount', e.target.value.replace(/[^\d]/g, '').slice(0, 2))}
+            />
+          </div>
         </>
       )}
 

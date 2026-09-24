@@ -14,12 +14,14 @@ export interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElem
   error?: string;
   prefix?: React.ReactNode;
   suffix?: React.ReactNode;
+  /** Extra classes for the field label. */
+  labelClassName?: string;
   /** Force wizard accent labels on/off. Defaults to the surrounding wizard context. */
   accentLabel?: boolean;
 }
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ className, type, label, error, prefix, suffix, accentLabel, ...props }, ref) => {
+  ({ className, type, label, error, prefix, suffix, labelClassName, accentLabel, ...props }, ref) => {
     const useAccent = useWizardAccentLabel(accentLabel);
     return (
       <div
@@ -28,11 +30,12 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
       >
         {label && (
           <label
-            className={
+            className={cn(
               useAccent
                 ? WIZARD_SECTION_LABEL_BASE
-                : 'text-xs font-semibold text-slate-800 dark:text-zinc-100 uppercase tracking-wider'
-            }
+                : 'text-xs font-semibold text-slate-800 dark:text-zinc-100 uppercase tracking-wider',
+              labelClassName,
+            )}
           >
             {useAccent ? withSectionColon(label) : label}
           </label>
