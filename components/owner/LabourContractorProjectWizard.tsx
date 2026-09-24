@@ -21,6 +21,7 @@ import { formatPincodeInput, validatePincode } from '@/lib/validation/pincode';
 import { todayLocalDateString } from '@/lib/projectStartTime';
 import type { BuildingType } from '@/lib/buildingConfig';
 import { ASSAM_BUILDING_TYPE } from '@/lib/buildingConfig';
+import { missingCustomFloorSelectionMessage } from '@/lib/customFloors';
 import {
   FOUNDATION_CAPACITY_INVALID_MESSAGE,
   FOUNDATION_CUSTOM_FLOORS_INVALID_MESSAGE,
@@ -1089,6 +1090,11 @@ export function LabourContractorProjectWizard() {
       if (form.buildingTypes.length === 0 && !hasCustomFloors) {
         errors.floors = 'Select at least one RCC floor.';
       }
+      const customFloorError = missingCustomFloorSelectionMessage(
+        form.customFloorSelected,
+        form.customFloors,
+      );
+      if (customFloorError) errors.customFloor = customFloorError;
     } else if (form.houseType === 'assam') {
       if (!form.buildingTypes.includes(ASSAM_BUILDING_TYPE)) {
         errors.floors = 'Assam Type house must stay selected.';

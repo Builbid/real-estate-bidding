@@ -32,7 +32,7 @@ import { WIZARD_SECTION_LABEL, WizardAccentLabels, withSectionColon } from '@/co
 import { ReviewSummaryList, WizardStepper } from '@/components/owner/wizard/ReviewSummary';
 import { StepGuidanceNotes } from '@/components/owner/wizard/StepGuidanceNotes';
 import { parseCustomFloorSequence } from '@/lib/mistriDetails';
-import { formatCustomFloorsList } from '@/lib/customFloors';
+import { formatCustomFloorsList, missingCustomFloorSelectionMessage } from '@/lib/customFloors';
 import { formatPincodeInput, validatePincode } from '@/lib/validation/pincode';
 import { cn } from '@/lib/utils';
 
@@ -155,6 +155,11 @@ export function ConstructionFirmProjectWizard() {
     if (form.building_types.length === 0) {
       errors.floors = 'Please select at least one floor.';
     }
+    const customFloorError = missingCustomFloorSelectionMessage(
+      form.customFloorSelected,
+      form.customFloors,
+    );
+    if (customFloorError) errors.customFloor = customFloorError;
     const area = Number(form.floor_area_sqft);
     if (!form.floor_area_sqft.trim() || !Number.isFinite(area) || area < 100 || area > 50000) {
       errors.floorArea = 'Enter the total slab area in sq. ft.';
@@ -352,7 +357,14 @@ export function ConstructionFirmProjectWizard() {
                       customFloors: floors,
                     }));
                     setStep2Error(null);
-                    setStep2FieldErrors({});
+                    setStep2FieldErrors((current) => {
+                      const customFloorError = missingCustomFloorSelectionMessage(selected, floors);
+                      return {
+                        ...current,
+                        floors: undefined,
+                        customFloor: customFloorError ?? undefined,
+                      };
+                    });
                   }}
                   error={step2FieldErrors.floors ?? null}
                   customError={step2FieldErrors.customFloor ?? null}

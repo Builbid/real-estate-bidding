@@ -23,6 +23,7 @@ import {
 import { formatPincodeInput, validatePincode } from '@/lib/validation/pincode';
 import { hasContactInfo } from '@/lib/validation/projectContactInfo';
 import { parseCustomFloorSequence } from '@/lib/mistriDetails';
+import { missingCustomFloorSelectionMessage } from '@/lib/customFloors';
 import type { BuildingType } from '@/lib/buildingConfig';
 import {
   DRAWING_DELIVERABLE_OPTIONS,
@@ -167,6 +168,11 @@ export function DrawingDesignProjectWizard() {
       if (form.buildingTypes.length === 0 && !customSequence?.length) {
         errors.floors = 'Select at least one target work floor.';
       }
+      const customFloorError = missingCustomFloorSelectionMessage(
+        form.customFloorSelected,
+        form.customFloors,
+      );
+      if (customFloorError) errors.customFloor = customFloorError;
     }
 
     if (Object.keys(errors).length > 0) {
@@ -359,14 +365,14 @@ export function DrawingDesignProjectWizard() {
                         customFloorSelected: selected,
                         customFloors: floors,
                       }));
-                      if (step1ValidationAttempted) {
-                        setStep1Errors((errors) => {
-                          const next = { ...errors };
-                          delete next.floors;
-                          delete next.customFloor;
-                          return next;
-                        });
-                      }
+                      setStep1Errors((errors) => {
+                        const next = { ...errors };
+                        delete next.floors;
+                        const customFloorError = missingCustomFloorSelectionMessage(selected, floors);
+                        if (step1ValidationAttempted && customFloorError) next.customFloor = customFloorError;
+                        else delete next.customFloor;
+                        return next;
+                      });
                     }}
                     error={step1ValidationAttempted ? step1Errors.floors ?? null : null}
                     customError={step1ValidationAttempted ? step1Errors.customFloor ?? null : null}

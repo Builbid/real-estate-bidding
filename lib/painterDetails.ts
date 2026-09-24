@@ -10,7 +10,7 @@ import {
   type ProjectStartTimeType,
 } from './projectStartTime';
 import { parseCustomFloorSequence } from './mistriDetails';
-import { formatCustomFloorsList } from './customFloors';
+import { formatCustomFloorsList, CUSTOM_FLOOR_CHECKED_WITHOUT_FLOORS_MESSAGE } from './customFloors';
 import { readNestedProjectDetail } from './project/storedDetails';
 
 export type PainterStartTimeType = ProjectStartTimeType;
@@ -634,6 +634,9 @@ export function validatePainterDetailsInput(input: {
     isRcc && targetFloors.includes('custom')
       ? parsePainterCustomFloors(input.customTargetFloors)
       : null;
+  if (isRcc && targetFloors.includes('custom') && !customTargetFloors) {
+    fieldErrors.customFloor = CUSTOM_FLOOR_CHECKED_WITHOUT_FLOORS_MESSAGE;
+  }
   if (input.projectStartTimeType === 'specific') {
     const date = input.projectStartTimeSpecificDate.trim();
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {

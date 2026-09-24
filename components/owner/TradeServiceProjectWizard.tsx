@@ -47,6 +47,7 @@ import {
   type PainterSurfaceCondition,
 } from '@/lib/painterDetails';
 import type { BuildingType } from '@/lib/buildingConfig';
+import { missingCustomFloorSelectionMessage } from '@/lib/customFloors';
 import {
   PLUMBING_HOUSE_STRUCTURE_OPTIONS,
   buildingTypesFromTargetFloors,
@@ -317,6 +318,13 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
     if (form.houseStructure === 'rcc' && form.targetFloors.length === 0) {
       errors.targetWorkFloor = 'Select at least one target work floor.';
     }
+    if (form.houseStructure === 'rcc') {
+      const customFloorError = missingCustomFloorSelectionMessage(
+        form.targetFloors.includes('custom'),
+        form.customTargetFloors,
+      );
+      if (customFloorError) errors.customTargetFloors = customFloorError;
+    }
       if (trade === 'false_ceiling_work') {
         const area = parseFloat(form.approxBuiltUpAreaSqft.replace(/,/g, '').trim());
         if (!Number.isFinite(area) || area <= 0) {
@@ -402,6 +410,11 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
       if (form.targetFloors.length === 0) {
         errors.floors = 'Select at least one target work floor.';
       }
+      const customFloorError = missingCustomFloorSelectionMessage(
+        form.targetFloors.includes('custom'),
+        form.customTargetFloors,
+      );
+      if (customFloorError) errors.customFloor = customFloorError;
     }
     if (isPainter) {
       const validated = validatePainterDetailsInput({
@@ -701,14 +714,17 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                             floors,
                           ),
                         );
-                        if (step1ValidationAttempted) {
-                          setStep1Errors((errors) => {
-                            const nextErrors = { ...errors };
-                            delete nextErrors.targetWorkFloor;
+                        setStep1Errors((errors) => {
+                          const nextErrors = { ...errors };
+                          delete nextErrors.targetWorkFloor;
+                          const customFloorError = missingCustomFloorSelectionMessage(selected, floors);
+                          if (step1ValidationAttempted && customFloorError) {
+                            nextErrors.customTargetFloors = customFloorError;
+                          } else {
                             delete nextErrors.customTargetFloors;
-                            return nextErrors;
-                          });
-                        }
+                          }
+                          return nextErrors;
+                        });
                       }}
                       error={step1ValidationAttempted ? step1Errors.targetWorkFloor ?? null : null}
                       customError={step1ValidationAttempted ? step1Errors.customTargetFloors ?? null : null}
@@ -881,8 +897,15 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                               floors,
                             ),
                           );
-                          setPainterFloorErrors({});
-                          setStep2Error(null); setPainterFieldErrors({});
+                          const customFloorError = missingCustomFloorSelectionMessage(selected, floors);
+                          setPainterFloorErrors({ custom: customFloorError ?? undefined });
+                          setPainterFieldErrors((current) => {
+                            const next = { ...current };
+                            if (customFloorError) next.customFloor = customFloorError;
+                            else delete next.customFloor;
+                            return next;
+                          });
+                          setStep2Error(customFloorError);
                         }}
                         error={painterFloorErrors.floors ?? null}
                         customError={painterFloorErrors.custom ?? null}

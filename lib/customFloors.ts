@@ -29,6 +29,20 @@ export function formatCustomFloorsList(raw: CustomFloorsValue | unknown): string
   return floors.length ? floors.join(', ') : '';
 }
 
+export const CUSTOM_FLOOR_CHECKED_WITHOUT_FLOORS_MESSAGE =
+  "⚠️ You have checked 'Floors above 4th'. Please add at least one floor using (+ Add Floor) or uncheck the option to proceed.";
+
+/** Empty when custom floors are off, or at least one floor number has been added. */
+export function missingCustomFloorSelectionMessage(
+  selected: boolean,
+  floors: unknown,
+): string | null {
+  if (!selected) return null;
+  return normalizeCustomFloors(floors).length > 0
+    ? null
+    : CUSTOM_FLOOR_CHECKED_WITHOUT_FLOORS_MESSAGE;
+}
+
 export function tryAddCustomFloor(
   floors: readonly number[],
   raw: string,

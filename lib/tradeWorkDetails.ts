@@ -13,7 +13,7 @@ import {
   type ProjectStartTimeType,
 } from './projectStartTime';
 import { parseCustomFloorSequence } from './mistriDetails';
-import { formatCustomFloorsList } from './customFloors';
+import { CUSTOM_FLOOR_CHECKED_WITHOUT_FLOORS_MESSAGE, formatCustomFloorsList } from './customFloors';
 
 export type { ProjectStartTimeType };
 
@@ -3577,6 +3577,9 @@ export function validateTradeDetailsInput(
     const customTargetFloors = targetFloors.includes('custom')
       ? parseCustomTargetFloorNumbers(input.customTargetFloors)
       : null;
+    if (targetFloors.includes('custom') && !customTargetFloors) {
+      return { error: CUSTOM_FLOOR_CHECKED_WITHOUT_FLOORS_MESSAGE };
+    }
     const targetWorkFloor = targetFloors[0];
     const buildingStoreys =
       input.buildingStoreys && PLUMBING_BUILDING_STOREYS_SET.has(input.buildingStoreys)
@@ -3702,6 +3705,9 @@ export function validateTradeDetailsInput(
     const customTargetFloors = targetFloors.includes('custom')
       ? parseCustomTargetFloorNumbers(input.customTargetFloors)
       : null;
+    if (targetFloors.includes('custom') && !customTargetFloors) {
+      return { error: CUSTOM_FLOOR_CHECKED_WITHOUT_FLOORS_MESSAGE };
+    }
     const targetWorkFloor = targetFloors[0];
     const floorFixtureCounts = parseElectricianFixtureInput(
       targetFloors,
@@ -3805,6 +3811,9 @@ export function validateTradeDetailsInput(
     const customTargetFloors = targetFloors.includes('custom')
       ? parseCustomTargetFloorNumbers(input.customTargetFloors)
       : null;
+    if (targetFloors.includes('custom') && !customTargetFloors) {
+      return { error: CUSTOM_FLOOR_CHECKED_WITHOUT_FLOORS_MESSAGE };
+    }
     const targetWorkFloor = targetFloors[0];
     const approxBuiltUpAreaSqft = parsePositiveNumber(input.approxBuiltUpAreaSqft);
     if (approxBuiltUpAreaSqft == null) {

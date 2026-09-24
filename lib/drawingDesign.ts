@@ -7,7 +7,7 @@ import { ASSAM_BUILDING_TYPE, RCC_BUILDING_TYPES } from './buildingConfig';
 import {
   parseCustomFloorSequence,
 } from './mistriDetails';
-import { formatCustomFloorsList, normalizeCustomFloors } from './customFloors';
+import { formatCustomFloorsList, normalizeCustomFloors, CUSTOM_FLOOR_CHECKED_WITHOUT_FLOORS_MESSAGE } from './customFloors';
 import {
   formatProjectStartTime,
   isProjectStartTimeType,
@@ -519,6 +519,9 @@ export function validateDrawingDetailsInput(input: {
     });
     if (namedFloors.length === 0 && customFloors.length === 0) {
       fieldErrors.floors = 'Select at least one target work floor.';
+    }
+    if (input.customFloorSelected && customFloors.length === 0) {
+      fieldErrors.customFloor = CUSTOM_FLOOR_CHECKED_WITHOUT_FLOORS_MESSAGE;
     }
   }
   const customFloorNumber = customFloors.length ? formatCustomFloorsList(customFloors) : null;
