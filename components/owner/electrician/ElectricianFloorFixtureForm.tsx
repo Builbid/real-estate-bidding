@@ -58,12 +58,12 @@ export function ElectricianFloorFixtureForm({
                 {plumbingFloorLabel(floor, customTargetFloors, houseStructure)}
               </h3>
             </div>
-            <div className="grid grid-cols-1 items-start md:grid-cols-2 gap-4 gap-y-5 p-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6 items-start p-4">
               {ELECTRICIAN_FIXTURE_FIELDS.map((field) => (
                 <Input
                   key={field.key}
                   label={field.label}
-                  labelClassName="text-sm font-medium leading-5 items-start whitespace-normal"
+                  labelClassName="text-sm font-medium leading-5 items-start whitespace-normal md:min-h-[3.75rem]"
                   className="h-10 px-3 py-1.5"
                   type="text"
                   inputMode="numeric"

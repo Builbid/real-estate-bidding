@@ -358,6 +358,10 @@ export interface PlumberDetails extends TradeDetailsBase {
   plumbingFittingType?: PlumbingFittingType | null;
   /** Optional estimated extra long connection line length in feet. */
   estimatedLongConnectionLengthFt?: number | null;
+  /** Project-level water tank connections. Optional. */
+  waterTankConnections?: number | null;
+  /** Project-level motor / submersible connections. Optional. */
+  motorConnections?: number | null;
   /** RCC-only: floor where the water tank will be fitted. */
   waterTankFloor?: PlumbingWaterTankFloor | null;
   /** Free-text location when the water tank floor is `custom`. */
@@ -664,14 +668,14 @@ export const PLUMBING_FIXTURE_FIELDS: {
   { key: 'geyser', label: 'No. of Geyser', shortLabel: 'Geyser', subOption: 'geyser', points: 2 },
   {
     key: 'commode',
-    label: 'No. of Western Commode (Includes full waste pipeline connection)',
+    label: 'No. of Western Commode (Includes waste pipeline connection)',
     shortLabel: 'Western Commode',
     subOption: 'western_commode',
     points: 2,
   },
   {
     key: 'indian_pan',
-    label: 'No. of Indian Toilet Pan (Includes full waste pipeline connection)',
+    label: 'No. of Indian Toilet Pan (Includes waste pipeline connection)',
     shortLabel: 'Indian Toilet Pan',
     subOption: 'indian_toilet_pan',
     points: 2,
@@ -702,6 +706,11 @@ export const PLUMBING_FIXTURE_FIELDS: {
 
 export const PLUMBING_FIXTURE_KIND_KEYS: PlumbingFixtureKind[] = PLUMBING_FIXTURE_FIELDS.map(
   (field) => field.key,
+);
+
+/** Per-floor plumber quantities. Drain, water tank, and motor are not collected on each floor. */
+export const PLUMBING_FLOOR_FIXTURE_FIELDS = PLUMBING_FIXTURE_FIELDS.filter(
+  (field) => field.key !== 'floor_drain' && field.key !== 'water_tank' && field.key !== 'motor',
 );
 
 export function emptyPlumbingFixtureDraft(): PlumbingFixtureCountDraft {
@@ -1641,6 +1650,7 @@ export function fixtureCountsToSubOptions(
 
 export function plumbingSubOptionQuantities(
   floors: PlumbingFloorFixtureCounts[] | null | undefined,
+  extras?: { waterTankConnections?: number | null; motorConnections?: number | null },
 ): Partial<Record<PlumbingSubOptionId, number>> {
   const totals = emptyPlumbingFixtureCounts();
   for (const floor of floors ?? []) {
@@ -1649,9 +1659,13 @@ export function plumbingSubOptionQuantities(
     }
   }
   const next: Partial<Record<PlumbingSubOptionId, number>> = {};
-  for (const field of PLUMBING_FIXTURE_FIELDS) {
+  for (const field of PLUMBING_FLOOR_FIXTURE_FIELDS) {
     if (totals[field.key] > 0) next[field.subOption] = totals[field.key];
   }
+  const tank = extras?.waterTankConnections ?? totals.water_tank;
+  const motor = extras?.motorConnections ?? totals.motor;
+  if (tank > 0) next.water_tank_unit = tank;
+  if (motor > 0) next.motor_submersible = motor;
   return next;
 }
 
@@ -1722,7 +1736,7 @@ function parsePlumberFixtureInput(
 }
 
 export function formatPlumbingFloorFixtureLine(item: PlumbingFixtureCounts): string {
-  return PLUMBING_FIXTURE_FIELDS.flatMap((field) =>
+  return PLUMBING_FLOOR_FIXTURE_FIELDS.flatMap((field) =>
     item[field.key] > 0 ? [`${field.shortLabel}: ${item[field.key]}`] : [],
   ).join(' · ');
 }
@@ -2672,6 +2686,8 @@ export function parseTradeDetails(value: unknown): TradeDetails | null {
       floorFixtureCounts,
       plumbingFittingType,
       estimatedLongConnectionLengthFt,
+      waterTankConnections: parseOptionalHouseCount(v.waterTankConnections),
+      motorConnections: parseOptionalHouseCount(v.motorConnections),
       waterTankFloor:
         houseStructure === 'rcc' && selectedPackages.includes('water_tank')
           ? waterTankFloor
@@ -3009,6 +3025,18 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
           value: getPlumbingFittingTypeLabel(details.plumbingFittingType),
         });
       }
+      if (details.waterTankConnections != null && details.waterTankConnections > 0) {
+        blocks.push({
+          label: 'Total Water Tank Connections Needed',
+          value: String(details.waterTankConnections),
+        });
+      }
+      if (details.motorConnections != null && details.motorConnections > 0) {
+        blocks.push({
+          label: 'Total Motor / Submersible Connection Needed',
+          value: String(details.motorConnections),
+        });
+      }
       if (details.estimatedLongConnectionLengthFt != null) {
         blocks.push({
           label: 'Extra piping beyond 30ft',
@@ -3296,13 +3324,13 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
       }
       if (details.inverterConnectionPoints != null && details.inverterConnectionPoints > 0) {
         blocks.push({
-          label: 'No. of Inverter Connection Points (House Common)',
+          label: 'No. of Inverter Connection Points',
           value: String(details.inverterConnectionPoints),
         });
       }
       if (details.mainDistributionBoxCount != null && details.mainDistributionBoxCount > 0) {
         blocks.push({
-          label: 'No. of Main MCB / Distribution Box (House Common)',
+          label: 'No. of Main MCB / Distribution Box',
           value: String(details.mainDistributionBoxCount),
         });
       }
@@ -3570,6 +3598,8 @@ export interface TradeDetailsFormInput {
   floorFixtureCounts?: Partial<Record<PlumbingTargetFloor, PlumbingFixtureCountDraft>> | PlumbingFloorFixtureCounts[];
   plumbingFittingType?: PlumbingFittingType | null;
   estimatedLongConnectionLengthFt?: string | number | null;
+  waterTankConnections?: string | number | null;
+  motorConnections?: string | number | null;
   waterTankFloor?: PlumbingWaterTankFloor | null;
   customWaterTankFloor?: string | null;
   bathroomPackages?: BathroomPackageSelection[];
@@ -3719,6 +3749,28 @@ export function validateTradeDetailsInput(
     if (requiresTankFloor && waterTankFloor === 'custom' && !customWaterTankFloor) {
       return { error: 'Enter the custom water tank floor location.' };
     }
+    const tankRaw = input.waterTankConnections;
+    const motorRaw = input.motorConnections;
+    const waterTankConnections =
+      tankRaw == null || String(tankRaw).trim() === '' ? null : parseOptionalHouseCount(tankRaw);
+    const motorConnections =
+      motorRaw == null || String(motorRaw).trim() === '' ? null : parseOptionalHouseCount(motorRaw);
+    if (tankRaw != null && String(tankRaw).trim() !== '' && waterTankConnections == null) {
+      return { error: 'Total Water Tank Connections Needed must be a whole number from 0 to 50.' };
+    }
+    if (motorRaw != null && String(motorRaw).trim() !== '' && motorConnections == null) {
+      return { error: 'Total Motor / Submersible Connection Needed must be a whole number from 0 to 50.' };
+    }
+    if ((waterTankConnections ?? 0) > 0 && !selectedSubOptions.includes('water_tank_unit')) {
+      selectedSubOptions = [...selectedSubOptions, 'water_tank_unit'];
+    }
+    if ((motorConnections ?? 0) > 0 && !selectedSubOptions.includes('motor_submersible')) {
+      selectedSubOptions = [...selectedSubOptions, 'motor_submersible'];
+    }
+    const packagesWithProjectCounts = packagesFromSelectedSubOptions(
+      PLUMBING_SCOPE_PACKAGES,
+      selectedSubOptions,
+    );
     return {
       details: {
         ...base,
@@ -3726,7 +3778,7 @@ export function validateTradeDetailsInput(
         scopeType: 'full_house',
         bathrooms: Math.min(20, Math.max(1, totalCommode || 1)),
         kitchens: 1,
-        overheadTank: selectedPackages.includes('water_tank'),
+        overheadTank: packagesWithProjectCounts.includes('water_tank'),
         concealedPiping: plumbingFittingType === 'concealed',
         bathroomPackage: null,
         bathroomSize: null,
@@ -3737,11 +3789,13 @@ export function validateTradeDetailsInput(
         targetWorkFloor,
         customTargetFloors,
         buildingStoreys,
-        selectedPackages,
+        selectedPackages: packagesWithProjectCounts,
         selectedSubOptions,
         floorFixtureCounts,
         plumbingFittingType,
         estimatedLongConnectionLengthFt,
+        waterTankConnections,
+        motorConnections,
         waterTankFloor,
         customWaterTankFloor,
         bathroomPackages: emptyBathroomPackageSelections(),
@@ -3806,10 +3860,10 @@ export function validateTradeDetailsInput(
         ? null
         : parseOptionalHouseCount(mcbRaw);
     if (inverterRaw != null && String(inverterRaw).trim() !== '' && inverterConnectionPoints == null) {
-      return { error: 'No. of Inverter Connection Points (House Common) must be a whole number from 0 to 50.' };
+      return { error: 'No. of Inverter Connection Points must be a whole number from 0 to 50.' };
     }
     if (mcbRaw != null && String(mcbRaw).trim() !== '' && mainDistributionBoxCount == null) {
-      return { error: 'No. of Main MCB / Distribution Box (House Common) must be a whole number from 0 to 50.' };
+      return { error: 'No. of Main MCB / Distribution Box must be a whole number from 0 to 50.' };
     }
     return {
       details: {

@@ -68,6 +68,8 @@ export interface TradeWorkFormFields {
   floorFixtureCounts: Partial<Record<PlumbingTargetFloor, PlumbingFixtureCountDraft>>;
   plumbingFittingType: PlumbingFittingType | null;
   estimatedLongConnectionLengthFt: string;
+  waterTankConnections: string;
+  motorConnections: string;
   waterTankFloor: PlumbingWaterTankFloor | null;
   customWaterTankFloor: string;
   bathroomPackages: BathroomPackageSelection[];
@@ -142,6 +144,26 @@ export function TradeWorkRequirementsFields({
             columns={2}
           />
         </FieldGroup>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6 items-start">
+          <Input
+            label="Total Water Tank Connections Needed"
+            labelClassName="text-sm font-medium leading-5 items-start whitespace-normal md:min-h-[3.75rem]"
+            className="h-10 px-3 py-1.5"
+            type="text"
+            inputMode="numeric"
+            value={form.waterTankConnections}
+            onChange={(e) => onChange('waterTankConnections', e.target.value.replace(/[^\d]/g, '').slice(0, 2))}
+          />
+          <Input
+            label="Total Motor / Submersible Connection Needed"
+            labelClassName="text-sm font-medium leading-5 items-start whitespace-normal md:min-h-[3.75rem]"
+            className="h-10 px-3 py-1.5"
+            type="text"
+            inputMode="numeric"
+            value={form.motorConnections}
+            onChange={(e) => onChange('motorConnections', e.target.value.replace(/[^\d]/g, '').slice(0, 2))}
+          />
+        </div>
         </>
       )}
 
@@ -162,10 +184,10 @@ export function TradeWorkRequirementsFields({
               columns={2}
             />
           </FieldGroup>
-          <div className="grid grid-cols-1 items-start md:grid-cols-2 gap-4 gap-y-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6 items-start">
             <Input
-              label="No. of Inverter Connection Points (House Common)"
-              labelClassName="text-sm font-medium leading-5 items-start whitespace-normal"
+              label="No. of Inverter Connection Points"
+              labelClassName="text-sm font-medium leading-5 items-start whitespace-normal md:min-h-[3.75rem]"
               className="h-10 px-3 py-1.5"
               type="text"
               inputMode="numeric"
@@ -173,8 +195,8 @@ export function TradeWorkRequirementsFields({
               onChange={(e) => onChange('inverterConnectionPoints', e.target.value.replace(/[^\d]/g, '').slice(0, 2))}
             />
             <Input
-              label="No. of Main MCB / Distribution Box (House Common)"
-              labelClassName="text-sm font-medium leading-5 items-start whitespace-normal"
+              label="No. of Main MCB / Distribution Box"
+              labelClassName="text-sm font-medium leading-5 items-start whitespace-normal md:min-h-[3.75rem]"
               className="h-10 px-3 py-1.5"
               type="text"
               inputMode="numeric"

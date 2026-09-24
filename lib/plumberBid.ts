@@ -50,6 +50,8 @@ export interface PlumbingBidOptionInput {
   pipingPackage?: PipingPackageKind | null;
   selectedSubOptions?: PlumbingSubOptionId[];
   floorFixtureCounts?: PlumbingFloorFixtureCounts[];
+  waterTankConnections?: number | null;
+  motorConnections?: number | null;
   cpvcPipeSizes: CpvcPipeSize[];
   waterInstallMethods: WaterInstallMethod[];
   includeToiletWastePipe: boolean;
@@ -182,7 +184,10 @@ export function buildPlumbingBidOptions(input: PlumbingBidOptionInput): Plumbing
   if (selectedSubOptions.length > 0) {
     return buildPlumbingUnitRateOptions(
       selectedSubOptions,
-      plumbingSubOptionQuantities(input.floorFixtureCounts),
+      plumbingSubOptionQuantities(input.floorFixtureCounts, {
+        waterTankConnections: input.waterTankConnections,
+        motorConnections: input.motorConnections,
+      }),
     );
   }
 
@@ -261,6 +266,8 @@ export function plumbingInputFromDetails(details: PlumberDetails): PlumbingBidOp
     pipingPackage: details.pipingPackage ?? null,
     selectedSubOptions: details.selectedSubOptions,
     floorFixtureCounts: details.floorFixtureCounts,
+    waterTankConnections: details.waterTankConnections,
+    motorConnections: details.motorConnections,
     cpvcPipeSizes: details.cpvcPipeSizes ?? [],
     waterInstallMethods: details.waterInstallMethods ?? [],
     includeToiletWastePipe: details.includeToiletWastePipe === true,
