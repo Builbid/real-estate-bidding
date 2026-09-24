@@ -39,6 +39,13 @@ export function projectStartPickerYears(now: Date = new Date()): [number, number
   return [year, year + 1];
 }
 
+/** Current calendar year plus upcoming years for universal date dropdowns. */
+export function upcomingCalendarYears(span = 20, now: Date = new Date()): number[] {
+  const start = now.getFullYear();
+  const count = Math.max(1, span);
+  return Array.from({ length: count + 1 }, (_, index) => start + index);
+}
+
 /** Local calendar date as YYYY-MM-DD (for `<input type="date" min>`). */
 export function todayLocalDateString(now: Date = new Date()): string {
   const y = now.getFullYear();

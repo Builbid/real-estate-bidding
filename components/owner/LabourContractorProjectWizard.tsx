@@ -18,7 +18,8 @@ import {
 import { generateProjectTitle } from '@/lib/generateProjectTitle';
 import { hasContactInfo } from '@/lib/validation/projectContactInfo';
 import { formatPincodeInput, validatePincode } from '@/lib/validation/pincode';
-import { todayLocalDateString } from '@/lib/projectStartTime';
+import { PROJECT_START_DATE_PAST_INVALID_MESSAGE, todayLocalDateString } from '@/lib/projectStartTime';
+import { IndianDateDropdownInput } from '@/components/owner/wizard/IndianDateDropdownInput';
 import type { BuildingType } from '@/lib/buildingConfig';
 import { ASSAM_BUILDING_TYPE } from '@/lib/buildingConfig';
 import { missingCustomFloorSelectionMessage } from '@/lib/customFloors';
@@ -1554,16 +1555,20 @@ export function LabourContractorProjectWizard() {
                     }
                   />
                   {form.boundaryWall?.executionTimeline === 'custom' && (
-                    <Input
-                      label="Custom Date"
-                      type="date"
-                      min={todayLocalDateString()}
-                      error={step2FieldErrors.customDate || (messageMatches(step2Error, 'completion date') || messageMatches(step2Error, 'start date') ? step2Error ?? undefined : undefined)}
-                      value={form.boundaryWall?.executionTimelineCustomDate ?? ''}
-                      onChange={(e) =>
-                        patchBoundaryWall({ executionTimelineCustomDate: e.target.value })
-                      }
-                    />
+                    <div className="flex w-full flex-col gap-1.5" data-field-invalid={step2FieldErrors.customDate ? 'true' : undefined}>
+                      <label className={WIZARD_SECTION_LABEL}>Custom Date:</label>
+                      <IndianDateDropdownInput
+                        value={form.boundaryWall?.executionTimelineCustomDate ?? ''}
+                        error={
+                          step2FieldErrors.customDate
+                          || ((messageMatches(step2Error, 'completion date') || messageMatches(step2Error, 'start date')) ? step2Error ?? undefined : undefined)
+                          || ((form.boundaryWall?.executionTimelineCustomDate ?? '') < todayLocalDateString() && form.boundaryWall?.executionTimelineCustomDate
+                            ? PROJECT_START_DATE_PAST_INVALID_MESSAGE
+                            : undefined)
+                        }
+                        onChange={(iso) => patchBoundaryWall({ executionTimelineCustomDate: iso })}
+                      />
+                    </div>
                   )}
                 </div>
               ) : (
