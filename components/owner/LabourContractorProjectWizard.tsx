@@ -22,7 +22,6 @@ import { todayLocalDateString } from '@/lib/projectStartTime';
 import type { BuildingType } from '@/lib/buildingConfig';
 import { ASSAM_BUILDING_TYPE } from '@/lib/buildingConfig';
 import {
-  getCustomFloorSequenceInvalidMessage,
   FOUNDATION_CAPACITY_INVALID_MESSAGE,
   FOUNDATION_CUSTOM_FLOORS_INVALID_MESSAGE,
   FOUNDATION_PROVISION_NOTE,
@@ -1086,18 +1085,13 @@ export function LabourContractorProjectWizard() {
     }
 
     if (form.houseType === 'rcc') {
-      if (form.buildingTypes.length === 0 && !form.customFloorSelected) {
+      const hasCustomFloors = Boolean(parsedCustomSequence && parsedCustomSequence.length > 0);
+      if (form.buildingTypes.length === 0 && !hasCustomFloors) {
         errors.floors = 'Select at least one RCC floor.';
       }
     } else if (form.houseType === 'assam') {
       if (!form.buildingTypes.includes(ASSAM_BUILDING_TYPE)) {
         errors.floors = 'Assam Type house must stay selected.';
-      }
-    }
-
-    if (form.houseType === 'rcc' && form.customFloorSelected) {
-      if (!parsedCustomSequence || parsedCustomSequence.length === 0) {
-        errors.customFloor = getCustomFloorSequenceInvalidMessage(false, true);
       }
     }
 

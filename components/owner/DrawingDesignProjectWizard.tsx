@@ -161,14 +161,11 @@ export function DrawingDesignProjectWizard() {
     if (!form.houseStructure) {
       errors.houseStructure = 'Select Assam Type or RCC Structure.';
     } else if (form.houseStructure === 'rcc') {
-      if (form.buildingTypes.length === 0 && !form.customFloorSelected) {
+      const customSequence = form.customFloorSelected
+        ? parseCustomFloorSequence(form.customFloors, { allowGaps: true })
+        : null;
+      if (form.buildingTypes.length === 0 && !customSequence?.length) {
         errors.floors = 'Select at least one target work floor.';
-      }
-      if (form.customFloorSelected) {
-        const sequence = parseCustomFloorSequence(form.customFloors, { allowGaps: true });
-        if (!sequence) {
-          errors.customFloor = 'Add at least one floor number above 4th.';
-        }
       }
     }
 

@@ -634,9 +634,6 @@ export function validatePainterDetailsInput(input: {
     isRcc && targetFloors.includes('custom')
       ? parsePainterCustomFloors(input.customTargetFloors)
       : null;
-  if (isRcc && targetFloors.includes('custom') && !customTargetFloors) {
-    fieldErrors.customFloor = 'Add at least one floor number above 4th.';
-  }
   if (input.projectStartTimeType === 'specific') {
     const date = input.projectStartTimeSpecificDate.trim();
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {

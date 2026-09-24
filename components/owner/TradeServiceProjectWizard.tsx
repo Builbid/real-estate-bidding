@@ -47,7 +47,6 @@ import {
   type PainterSurfaceCondition,
 } from '@/lib/painterDetails';
 import type { BuildingType } from '@/lib/buildingConfig';
-import { parseCustomFloorSequence } from '@/lib/mistriDetails';
 import {
   PLUMBING_HOUSE_STRUCTURE_OPTIONS,
   buildingTypesFromTargetFloors,
@@ -315,16 +314,9 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
       if (!form.houseStructure) {
         errors.houseStructure = 'Select RCC Building or Assam Type.';
       }
-      if (form.houseStructure === 'rcc' && form.targetFloors.length === 0) {
-        errors.targetWorkFloor = 'Select at least one target work floor.';
-      }
-      if (
-        form.houseStructure === 'rcc' &&
-        form.targetFloors.includes('custom') &&
-        !parseCustomFloorSequence(form.customTargetFloors, { allowGaps: true })
-      ) {
-        errors.customTargetFloors = 'Add at least one floor number above 4th.';
-      }
+    if (form.houseStructure === 'rcc' && form.targetFloors.length === 0) {
+      errors.targetWorkFloor = 'Select at least one target work floor.';
+    }
       if (trade === 'false_ceiling_work') {
         const area = parseFloat(form.approxBuiltUpAreaSqft.replace(/,/g, '').trim());
         if (!Number.isFinite(area) || area <= 0) {
@@ -409,12 +401,6 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
     if (isPainter && form.track_type === 'RCC') {
       if (form.targetFloors.length === 0) {
         errors.floors = 'Select at least one target work floor.';
-      }
-      if (
-        form.targetFloors.includes('custom') &&
-        !parseCustomFloorSequence(form.customTargetFloors, { allowGaps: true })
-      ) {
-        errors.customFloor = 'Add at least one floor number above 4th.';
       }
     }
     if (isPainter) {

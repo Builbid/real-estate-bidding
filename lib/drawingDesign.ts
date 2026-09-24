@@ -507,29 +507,20 @@ export function validateDrawingDetailsInput(input: {
   if (!structureOk) {
     fieldErrors.structure = 'Select Assam Type or RCC Structure.';
   }
-  if (input.houseStructure === 'rcc') {
-    const namedFloors = resolveDrawingBuildingTypes({
-      houseStructure: 'rcc',
-      buildingTypes: input.buildingTypes,
-    });
-    if (namedFloors.length === 0 && !input.customFloorSelected) {
-      fieldErrors.floors = 'Select at least one target work floor.';
-    }
-    if (input.customFloorSelected) {
-      const sequence = parseCustomFloorSequence(
-        input.customFloors ?? input.customFloorNumber,
-        { allowGaps: true },
-      );
-      if (!sequence) {
-        fieldErrors.customFloor = 'Add at least one floor number above 4th.';
-      }
-    }
-  }
   const buildingTypes = resolveDrawingBuildingTypes(input);
   const customFloors =
     input.houseStructure === 'rcc' && input.customFloorSelected
       ? normalizeCustomFloors(input.customFloors ?? input.customFloorNumber)
       : [];
+  if (input.houseStructure === 'rcc') {
+    const namedFloors = resolveDrawingBuildingTypes({
+      houseStructure: 'rcc',
+      buildingTypes: input.buildingTypes,
+    });
+    if (namedFloors.length === 0 && customFloors.length === 0) {
+      fieldErrors.floors = 'Select at least one target work floor.';
+    }
+  }
   const customFloorNumber = customFloors.length ? formatCustomFloorsList(customFloors) : null;
   const floors = structureOk
     ? formatDrawingFloorSelection({

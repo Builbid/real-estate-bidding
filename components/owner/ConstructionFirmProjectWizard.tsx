@@ -155,12 +155,6 @@ export function ConstructionFirmProjectWizard() {
     if (form.building_types.length === 0) {
       errors.floors = 'Please select at least one floor.';
     }
-    if (form.customFloorSelected) {
-      const sequence = parseCustomFloorSequence(form.customFloors, { allowGaps: true });
-      if (!sequence) {
-        errors.customFloor = 'Add at least one floor number above 4th.';
-      }
-    }
     const area = Number(form.floor_area_sqft);
     if (!form.floor_area_sqft.trim() || !Number.isFinite(area) || area < 100 || area > 50000) {
       errors.floorArea = 'Enter the total slab area in sq. ft.';

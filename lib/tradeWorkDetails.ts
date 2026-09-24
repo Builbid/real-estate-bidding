@@ -3577,9 +3577,6 @@ export function validateTradeDetailsInput(
     const customTargetFloors = targetFloors.includes('custom')
       ? parseCustomTargetFloorNumbers(input.customTargetFloors)
       : null;
-    if (targetFloors.includes('custom') && !customTargetFloors) {
-      return { error: 'Add at least one floor number above 4th.' };
-    }
     const targetWorkFloor = targetFloors[0];
     const buildingStoreys =
       input.buildingStoreys && PLUMBING_BUILDING_STOREYS_SET.has(input.buildingStoreys)
@@ -3705,9 +3702,6 @@ export function validateTradeDetailsInput(
     const customTargetFloors = targetFloors.includes('custom')
       ? parseCustomTargetFloorNumbers(input.customTargetFloors)
       : null;
-    if (targetFloors.includes('custom') && !customTargetFloors) {
-      return { error: 'Add at least one floor number above 4th.' };
-    }
     const targetWorkFloor = targetFloors[0];
     const floorFixtureCounts = parseElectricianFixtureInput(
       targetFloors,
@@ -3811,9 +3805,6 @@ export function validateTradeDetailsInput(
     const customTargetFloors = targetFloors.includes('custom')
       ? parseCustomTargetFloorNumbers(input.customTargetFloors)
       : null;
-    if (targetFloors.includes('custom') && !customTargetFloors) {
-      return { error: 'Add at least one floor number above 4th.' };
-    }
     const targetWorkFloor = targetFloors[0];
     const approxBuiltUpAreaSqft = parsePositiveNumber(input.approxBuiltUpAreaSqft);
     if (approxBuiltUpAreaSqft == null) {
