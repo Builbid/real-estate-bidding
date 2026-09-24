@@ -88,18 +88,26 @@ export interface PlumbingFloorFixtureCounts extends PlumbingFixtureCounts {
 export type PlumbingFixtureCountDraft = Record<PlumbingFixtureKind, string>;
 
 export type ElectricianFixtureKind =
-  | 'ceiling_light'
+  | 'light_points'
   | 'ceiling_fan'
+  | 'exhaust_fan'
+  | 'socket_points'
   | 'ac'
   | 'refrigerator'
-  | 'inverter';
+  | 'geyser'
+  | 'washing_machine'
+  | 'decorative_light';
 
 export interface ElectricianFixtureCounts {
-  ceiling_light: number;
+  light_points: number;
   ceiling_fan: number;
+  exhaust_fan: number;
+  socket_points: number;
   ac: number;
   refrigerator: number;
-  inverter: number;
+  geyser: number;
+  washing_machine: number;
+  decorative_light: number;
 }
 
 export interface ElectricianFloorFixtureCounts extends ElectricianFixtureCounts {
@@ -385,6 +393,10 @@ export interface ElectricianDetails extends TradeDetailsBase {
   floorFixtureCounts?: ElectricianFloorFixtureCounts[];
   /** Concealed vs surface casing wiring selected by the owner. */
   electricianWiringType?: ElectricianWiringType | null;
+  /** House-wide inverter connection points. Optional. */
+  inverterConnectionPoints?: number | null;
+  /** House-wide main MCB / distribution boxes. Optional. */
+  mainDistributionBoxCount?: number | null;
 }
 
 export interface CarpenterDetails extends TradeDetailsBase {
@@ -729,11 +741,15 @@ export const ELECTRICIAN_FIXTURE_FIELDS: {
   label: string;
   points: number;
 }[] = [
-  { key: 'ceiling_light', label: 'No. of Ceiling Light', points: 1 },
+  { key: 'light_points', label: 'No. of Light Points (Ceiling, Wall, Tube light)', points: 1 },
   { key: 'ceiling_fan', label: 'No. of Ceiling Fan', points: 1 },
-  { key: 'ac', label: 'No. of AC', points: 2 },
-  { key: 'refrigerator', label: 'No. of Refrigerator', points: 2 },
-  { key: 'inverter', label: 'No. of Inverter', points: 2 },
+  { key: 'exhaust_fan', label: 'No. of Exhaust Fan / Wall Fan', points: 1 },
+  { key: 'socket_points', label: 'No. of TV / Mobile Charger / Laptop Socket Points', points: 1 },
+  { key: 'ac', label: 'No. of AC Points', points: 2 },
+  { key: 'refrigerator', label: 'No. of Refrigerator Point', points: 1 },
+  { key: 'geyser', label: 'No. of Geyser Point', points: 1 },
+  { key: 'washing_machine', label: 'No. of Washing Machine Point', points: 1 },
+  { key: 'decorative_light', label: 'No. of Decorative / Profile / Strip Light Points', points: 1 },
 ];
 
 export const ELECTRICIAN_FIXTURE_KIND_KEYS: ElectricianFixtureKind[] = ELECTRICIAN_FIXTURE_FIELDS.map(
@@ -741,7 +757,17 @@ export const ELECTRICIAN_FIXTURE_KIND_KEYS: ElectricianFixtureKind[] = ELECTRICI
 );
 
 export function emptyElectricianFixtureDraft(): ElectricianFixtureCountDraft {
-  return { ceiling_light: '', ceiling_fan: '', ac: '', refrigerator: '', inverter: '' };
+  return {
+    light_points: '',
+    ceiling_fan: '',
+    exhaust_fan: '',
+    socket_points: '',
+    ac: '',
+    refrigerator: '',
+    geyser: '',
+    washing_machine: '',
+    decorative_light: '',
+  };
 }
 
 export const PLUMBING_BUILDING_STOREYS_OPTIONS: {
@@ -1729,7 +1755,33 @@ export function alignPlumbingSubOptionsToFitting(
 }
 
 export function emptyElectricianFixtureCounts(): ElectricianFixtureCounts {
-  return { ceiling_light: 0, ceiling_fan: 0, ac: 0, refrigerator: 0, inverter: 0 };
+  return {
+    light_points: 0,
+    ceiling_fan: 0,
+    exhaust_fan: 0,
+    socket_points: 0,
+    ac: 0,
+    refrigerator: 0,
+    geyser: 0,
+    washing_machine: 0,
+    decorative_light: 0,
+  };
+}
+
+const ELECTRICIAN_FIXTURE_LEGACY_KEYS: Partial<Record<ElectricianFixtureKind, string[]>> = {
+  light_points: ['ceiling_light'],
+};
+
+function readElectricianFixtureCount(
+  row: Record<string, unknown>,
+  key: ElectricianFixtureKind,
+): number | null {
+  const legacy = ELECTRICIAN_FIXTURE_LEGACY_KEYS[key] ?? [];
+  const raw = [row[key], ...legacy.map((name) => row[name])].find(
+    (value) => value != null && value !== '',
+  );
+  if (raw == null) return 0;
+  return parseCount(raw, 0, 50);
 }
 
 export function parseElectricianFixtureCounts(raw: unknown): ElectricianFixtureCounts | null {
@@ -1737,11 +1789,16 @@ export function parseElectricianFixtureCounts(raw: unknown): ElectricianFixtureC
   const row = raw as Record<string, unknown>;
   const counts = emptyElectricianFixtureCounts();
   for (const key of ELECTRICIAN_FIXTURE_KIND_KEYS) {
-    const n = parseCount(row[key], 0, 50);
+    const n = readElectricianFixtureCount(row, key);
     if (n == null) return null;
     counts[key] = n;
   }
   return counts;
+}
+
+export function parseOptionalHouseCount(raw: unknown): number | null {
+  if (raw == null || raw === '') return null;
+  return parseCount(raw, 0, 50);
 }
 
 export function parseElectricianFloorFixtureCounts(raw: unknown): ElectricianFloorFixtureCounts[] {
@@ -2691,6 +2748,8 @@ export function parseTradeDetails(value: unknown): TradeDetails | null {
         selectedSubOptions,
         floorFixtureCounts,
         electricianWiringType,
+        inverterConnectionPoints: parseOptionalHouseCount(v.inverterConnectionPoints),
+        mainDistributionBoxCount: parseOptionalHouseCount(v.mainDistributionBoxCount),
         concealedWiring:
           electricianWiringType === 'concealed'
             ? true
@@ -3235,6 +3294,18 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
           value: getElectricianWiringTypeLabel(details.electricianWiringType),
         });
       }
+      if (details.inverterConnectionPoints != null && details.inverterConnectionPoints > 0) {
+        blocks.push({
+          label: 'No. of Inverter Connection Points (House Common)',
+          value: String(details.inverterConnectionPoints),
+        });
+      }
+      if (details.mainDistributionBoxCount != null && details.mainDistributionBoxCount > 0) {
+        blocks.push({
+          label: 'No. of Main MCB / Distribution Box (House Common)',
+          value: String(details.mainDistributionBoxCount),
+        });
+      }
       blocks.push({
         label: 'Material Scope',
         value: ELECTRICIAN_LABOUR_ONLY_DISCLAIMER,
@@ -3513,6 +3584,8 @@ export interface TradeDetailsFormInput {
     | Partial<Record<PlumbingTargetFloor, ElectricianFixtureCountDraft>>
     | ElectricianFloorFixtureCounts[];
   electricianWiringType?: ElectricianWiringType | null;
+  inverterConnectionPoints?: string | number | null;
+  mainDistributionBoxCount?: string | number | null;
   electricianScope?: ElectricianScopeType | null;
   pointEstimate?: ElectricianPointEstimate | null;
   heavyAppliances?: ElectricianHeavyAppliance[];
@@ -3722,6 +3795,22 @@ export function validateTradeDetailsInput(
     if (!electricianWiringType) {
       return { error: 'Select Concealed Wiring or Surface Casing Wiring.' };
     }
+    const inverterRaw = input.inverterConnectionPoints;
+    const mcbRaw = input.mainDistributionBoxCount;
+    const inverterConnectionPoints =
+      inverterRaw == null || String(inverterRaw).trim() === ''
+        ? null
+        : parseOptionalHouseCount(inverterRaw);
+    const mainDistributionBoxCount =
+      mcbRaw == null || String(mcbRaw).trim() === ''
+        ? null
+        : parseOptionalHouseCount(mcbRaw);
+    if (inverterRaw != null && String(inverterRaw).trim() !== '' && inverterConnectionPoints == null) {
+      return { error: 'No. of Inverter Connection Points (House Common) must be a whole number from 0 to 50.' };
+    }
+    if (mcbRaw != null && String(mcbRaw).trim() !== '' && mainDistributionBoxCount == null) {
+      return { error: 'No. of Main MCB / Distribution Box (House Common) must be a whole number from 0 to 50.' };
+    }
     return {
       details: {
         ...base,
@@ -3736,6 +3825,8 @@ export function validateTradeDetailsInput(
         floorFixtureCounts,
         electricianWiringType,
         concealedWiring: electricianWiringType === 'concealed',
+        inverterConnectionPoints,
+        mainDistributionBoxCount,
       },
     };
   }

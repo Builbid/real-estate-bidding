@@ -6,6 +6,7 @@ import { InteriorPackageForm } from '@/components/owner/interior/InteriorPackage
 import { OptionSelectGrid } from '@/components/owner/wizard/OptionSelectCard';
 import { FieldError, messageMatches } from '@/components/owner/wizard/fieldValidation';
 import { StartTimeAndNotes, WIZARD_SECTION_LABEL, withSectionColon } from '@/components/owner/wizard/StartTimeAndNotes';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import {
   EARTHWORK_SOIL_VEHICLE_OPTIONS,
@@ -79,6 +80,8 @@ export interface TradeWorkFormFields {
   electricianSubOptions: ElectricianSubOptionId[];
   electricianFloorFixtureCounts: Partial<Record<PlumbingTargetFloor, ElectricianFixtureCountDraft>>;
   electricianWiringType: ElectricianWiringType | null;
+  inverterConnectionPoints: string;
+  mainDistributionBoxCount: string;
   interiorPackages: InteriorDesignerPackageKind[];
   interiorSubOptions: InteriorDesignerSubOptionId[];
   doorWindowFramesQuantity: string;
@@ -159,6 +162,20 @@ export function TradeWorkRequirementsFields({
               columns={2}
             />
           </FieldGroup>
+          <Input
+            label="No. of Inverter Connection Points (House Common)"
+            type="text"
+            inputMode="numeric"
+            value={form.inverterConnectionPoints}
+            onChange={(e) => onChange('inverterConnectionPoints', e.target.value.replace(/[^\d]/g, '').slice(0, 2))}
+          />
+          <Input
+            label="No. of Main MCB / Distribution Box (House Common)"
+            type="text"
+            inputMode="numeric"
+            value={form.mainDistributionBoxCount}
+            onChange={(e) => onChange('mainDistributionBoxCount', e.target.value.replace(/[^\d]/g, '').slice(0, 2))}
+          />
         </>
       )}
 
