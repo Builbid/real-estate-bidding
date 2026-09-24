@@ -1597,7 +1597,7 @@ export function LabourContractorProjectWizard() {
                   >
                     <div className="space-y-1.5">
                       <p className={FORM_BADGE}>
-                        {title}
+                        {isAssam ? 'Main House' : title}
                       </p>
                       <p className={HELPER_TEXT}>
                         {isAssam

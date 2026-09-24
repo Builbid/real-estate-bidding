@@ -1901,7 +1901,7 @@ export function plumbingFloorLabel(
   customText?: string | number[] | null,
   houseStructure?: PlumbingHouseStructure | null,
 ): string {
-  if (houseStructure === 'assam_type' && floor === 'ground') return 'Ground Floor';
+  if (houseStructure === 'assam_type' && floor === 'ground') return 'Main House';
   if (floor === 'custom') {
     const label = formatCustomFloorsList(customText);
     if (label) return label;

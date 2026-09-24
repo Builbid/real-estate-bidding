@@ -55,9 +55,7 @@ export function ElectricianFloorFixtureForm({
           >
             <div className="bg-blue-600 px-4 py-2.5">
               <h3 className="text-sm font-bold tracking-wide text-white">
-                {houseStructure === 'assam_type' && floor === 'ground'
-                  ? 'Ground Floor'
-                  : plumbingFloorLabel(floor, customTargetFloors)}
+                {plumbingFloorLabel(floor, customTargetFloors, houseStructure)}
               </h3>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4">
