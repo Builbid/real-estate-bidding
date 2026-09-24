@@ -16,28 +16,32 @@ export interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElem
   suffix?: React.ReactNode;
   /** Extra classes for the field label. */
   labelClassName?: string;
+  /** Tight label-to-input spacing without the wizard bullet. */
+  compact?: boolean;
   /** Force wizard accent labels on/off. Defaults to the surrounding wizard context. */
   accentLabel?: boolean;
 }
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ className, type, label, error, prefix, suffix, labelClassName, accentLabel, ...props }, ref) => {
+  ({ className, type, label, error, prefix, suffix, labelClassName, compact, accentLabel, ...props }, ref) => {
     const useAccent = useWizardAccentLabel(accentLabel);
     return (
       <div
-        className="flex w-full flex-col gap-1.5"
+        className={cn('flex w-full flex-col', compact ? 'gap-1' : 'gap-1.5')}
         data-field-invalid={error ? 'true' : undefined}
       >
         {label && (
           <label
             className={cn(
-              useAccent
-                ? WIZARD_SECTION_LABEL_BASE
-                : 'text-xs font-semibold text-slate-800 dark:text-zinc-100 uppercase tracking-wider',
+              compact
+                ? 'flex items-end text-sm font-medium leading-5 text-slate-800 dark:text-zinc-100 md:min-h-10'
+                : useAccent
+                  ? WIZARD_SECTION_LABEL_BASE
+                  : 'text-xs font-semibold text-slate-800 dark:text-zinc-100 uppercase tracking-wider',
               labelClassName,
             )}
           >
-            {useAccent ? withSectionColon(label) : label}
+            {compact || useAccent ? withSectionColon(label) : label}
           </label>
         )}
         <div className="relative flex items-center">
@@ -67,7 +71,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             <div className="absolute right-3 text-muted-foreground text-sm">{suffix}</div>
           )}
         </div>
-        <FieldError message={error} />
+        {compact ? (error ? <FieldError message={error} /> : null) : <FieldError message={error} />}
       </div>
     );
   }

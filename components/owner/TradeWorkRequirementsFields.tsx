@@ -144,10 +144,10 @@ export function TradeWorkRequirementsFields({
             columns={2}
           />
         </FieldGroup>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6 items-start">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 items-start">
           <Input
-            label="Total Water Tank Connections Needed"
-            labelClassName="text-sm font-medium leading-5 items-start whitespace-normal md:min-h-[3.75rem]"
+            compact
+            label="No. of Water Tank Connections Needed"
             className="h-10 px-3 py-1.5"
             type="text"
             inputMode="numeric"
@@ -155,8 +155,8 @@ export function TradeWorkRequirementsFields({
             onChange={(e) => onChange('waterTankConnections', e.target.value.replace(/[^\d]/g, '').slice(0, 2))}
           />
           <Input
-            label="Total Motor / Submersible Connection Needed"
-            labelClassName="text-sm font-medium leading-5 items-start whitespace-normal md:min-h-[3.75rem]"
+            compact
+            label="No. of Water Pump Connections Needed"
             className="h-10 px-3 py-1.5"
             type="text"
             inputMode="numeric"
@@ -184,10 +184,10 @@ export function TradeWorkRequirementsFields({
               columns={2}
             />
           </FieldGroup>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6 items-start">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 items-start">
             <Input
+              compact
               label="No. of Inverter Connection Points"
-              labelClassName="text-sm font-medium leading-5 items-start whitespace-normal md:min-h-[3.75rem]"
               className="h-10 px-3 py-1.5"
               type="text"
               inputMode="numeric"
@@ -195,8 +195,8 @@ export function TradeWorkRequirementsFields({
               onChange={(e) => onChange('inverterConnectionPoints', e.target.value.replace(/[^\d]/g, '').slice(0, 2))}
             />
             <Input
+              compact
               label="No. of Main MCB / Distribution Box"
-              labelClassName="text-sm font-medium leading-5 items-start whitespace-normal md:min-h-[3.75rem]"
               className="h-10 px-3 py-1.5"
               type="text"
               inputMode="numeric"

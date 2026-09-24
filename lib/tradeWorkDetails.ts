@@ -3027,13 +3027,13 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
       }
       if (details.waterTankConnections != null && details.waterTankConnections > 0) {
         blocks.push({
-          label: 'Total Water Tank Connections Needed',
+          label: 'No. of Water Tank Connections Needed',
           value: String(details.waterTankConnections),
         });
       }
       if (details.motorConnections != null && details.motorConnections > 0) {
         blocks.push({
-          label: 'Total Motor / Submersible Connection Needed',
+          label: 'No. of Water Pump Connections Needed',
           value: String(details.motorConnections),
         });
       }
@@ -3756,10 +3756,10 @@ export function validateTradeDetailsInput(
     const motorConnections =
       motorRaw == null || String(motorRaw).trim() === '' ? null : parseOptionalHouseCount(motorRaw);
     if (tankRaw != null && String(tankRaw).trim() !== '' && waterTankConnections == null) {
-      return { error: 'Total Water Tank Connections Needed must be a whole number from 0 to 50.' };
+      return { error: 'No. of Water Tank Connections Needed must be a whole number from 0 to 50.' };
     }
     if (motorRaw != null && String(motorRaw).trim() !== '' && motorConnections == null) {
-      return { error: 'Total Motor / Submersible Connection Needed must be a whole number from 0 to 50.' };
+      return { error: 'No. of Water Pump Connections Needed must be a whole number from 0 to 50.' };
     }
     if ((waterTankConnections ?? 0) > 0 && !selectedSubOptions.includes('water_tank_unit')) {
       selectedSubOptions = [...selectedSubOptions, 'water_tank_unit'];
