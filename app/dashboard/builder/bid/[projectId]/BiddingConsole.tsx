@@ -42,6 +42,7 @@ import {
   ProjectLocationWithMapsLink,
   isLocationSpecLabel,
 } from '@/components/project/ProjectLocationWithMapsLink';
+import { earthworkCardLocation } from '@/lib/validation/earthworkLocation';
 import { ASSAM_BUILDING_TYPE } from '@/lib/buildingConfig';
 import { UserAvatar } from '@/components/shared/UserAvatar';
 import { BidFloorRatesBreakdown } from '@/components/shared/BidFloorRatesBreakdown';
@@ -1107,8 +1108,17 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                 <dd className="mt-0.5 text-sm font-semibold leading-snug text-foreground whitespace-pre-line">
                   {isLocationSpecLabel(block.label) ? (
                     <ProjectLocationWithMapsLink
-                      placeName={block.value}
+                      placeName={
+                        project.service_type === 'earthwork' && block.label === 'Project Address'
+                          ? (earthworkCardLocation(project)?.address ?? block.value)
+                          : block.value
+                      }
                       pincode={project.pincode}
+                      mapsQuery={
+                        project.service_type === 'earthwork' && isLocationSpecLabel(block.label)
+                          ? earthworkCardLocation(project)?.mapsQuery
+                          : undefined
+                      }
                     />
                   ) : (
                     block.value

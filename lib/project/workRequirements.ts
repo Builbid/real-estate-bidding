@@ -19,6 +19,7 @@ import {
   parseTradeDetails,
 } from '@/lib/tradeWorkDetails';
 import type { Project, ServiceType } from '@/lib/types';
+import { earthworkCardLocation } from '@/lib/validation/earthworkLocation';
 
 export type WorkRequirementBlock = { label: string; value: string };
 
@@ -39,6 +40,8 @@ function filterDisplayRequirementBlocks(blocks: WorkRequirementBlock[]): WorkReq
 
 export function getProjectWorkRequirementBlocks(project: {
   service_type?: ServiceType | null;
+  district?: string | null;
+  pincode?: string | null;
   sub_configuration?: Project['sub_configuration'];
   painter_details?: Project['painter_details'];
   mistri_details?: Project['mistri_details'];
@@ -85,12 +88,20 @@ export function getProjectWorkRequirementBlocks(project: {
       earthwork: 'Earthwork Requirements',
     };
     const blocks = filterDisplayRequirementBlocks(getTradeWorkRequirementBlocks(details));
+    const visibleBlocks =
+      serviceType === 'plumber' || serviceType === 'electrician'
+        ? blocks.filter((block) => block.label !== 'Approx Built-Up Area')
+        : blocks;
+    const earthworkLocation = earthworkCardLocation(project);
     return {
       title: titles[serviceType],
-      blocks:
-        serviceType === 'plumber' || serviceType === 'electrician'
-          ? blocks.filter((block) => block.label !== 'Approx Built-Up Area')
-          : blocks,
+      blocks: earthworkLocation
+        ? visibleBlocks.map((block) =>
+            block.label === 'Project Address'
+              ? { ...block, value: earthworkLocation.address }
+              : block,
+          )
+        : visibleBlocks,
     };
   }
 

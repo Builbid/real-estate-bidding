@@ -533,13 +533,6 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
 
     const result = await createProjectAction({
       title: autoTitle,
-      description: isEarthwork
-        ? formatEarthworkProjectLocation(
-            districtSelection.district,
-            form.villageTownName,
-            form.pincode,
-          )
-        : undefined,
       track_type: form.track_type ?? 'RCC',
       district: districtSelection.district,
       state: districtSelection.state,

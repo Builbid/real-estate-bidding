@@ -27,6 +27,7 @@ import {
 } from '@/lib/project/formatFloorSummary';
 import { FloorScopeBadges } from '@/components/project/FloorScopeBadges';
 import { CheckLocationLink } from '@/components/project/ProjectLocationWithMapsLink';
+import { earthworkCardLocation, earthworkSpecificDetailsText } from '@/lib/validation/earthworkLocation';
 import { getLiveAuctionDisplayTitle } from '@/lib/generateProjectTitle';
 import { useTranslation } from '@/lib/context/LanguageProvider';
 import type { Project, ProjectStatus } from '@/lib/types';
@@ -72,6 +73,8 @@ export function ProjectCard({
     ) ?? null;
   const visibleDetailBlocks =
     detailBlocks && detailBlocks.length > 0 ? detailBlocks : null;
+  const earthworkLocation = earthworkCardLocation(project);
+  const specificDetails = earthworkSpecificDetailsText(project.description, earthworkLocation);
 
   return (
     <Card className={cn(
@@ -156,6 +159,7 @@ export function ProjectCard({
                   <CheckLocationLink
                     placeName={[project.district, project.state].filter(Boolean).join(', ')}
                     pincode={project.pincode}
+                    mapsQuery={earthworkLocation?.mapsQuery}
                   />
                 </p>
               </div>
@@ -188,11 +192,11 @@ export function ProjectCard({
                   </p>
                 </div>
               ))}
-              {project.description?.trim() && (
+              {specificDetails && (
                 <div className="col-span-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 dark:border-slate-700 dark:bg-slate-800/60">
                   <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider">Specific Details</p>
                   <p className="mt-0.5 text-sm font-medium leading-snug text-slate-900 dark:text-slate-100 line-clamp-3">
-                    {project.description.trim()}
+                    {specificDetails}
                   </p>
                 </div>
               )}
@@ -206,6 +210,7 @@ export function ProjectCard({
                   <CheckLocationLink
                     placeName={[project.district, project.state].filter(Boolean).join(', ')}
                     pincode={project.pincode}
+                    mapsQuery={earthworkLocation?.mapsQuery}
                   />
                 </p>
               </div>

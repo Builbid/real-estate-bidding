@@ -19,6 +19,8 @@ import {
   getProjectLocationLabel,
 } from '@/lib/project/formatFloorSummary';
 import { FloorScopeBadges } from '@/components/project/FloorScopeBadges';
+import { CheckLocationLink } from '@/components/project/ProjectLocationWithMapsLink';
+import { earthworkCardLocation } from '@/lib/validation/earthworkLocation';
 import { isDrawingDesignServiceType } from '@/lib/drawingDesign';
 import { formatBidUnitSuffix } from '@/lib/bid/earthworkBid';
 import {
@@ -55,7 +57,8 @@ export function AuctionRow({
   const isDrawing = isDrawingDesignServiceType(project.service_type);
   const serviceBadge = getProjectServiceBadgeLabel(project);
   const floorScopes = formatFloorSummary(project);
-  const locationLabel = getProjectLocationLabel(project);
+  const earthworkLocation = earthworkCardLocation(project);
+  const locationLabel = earthworkLocation?.address || getProjectLocationLabel(project);
   const buildingTypeLabel = getProjectBuildingTypeLabel(project);
   const builtUpLabel = getProjectBuiltUpAreaLabel(project);
   const configLabel =
@@ -116,7 +119,14 @@ export function AuctionRow({
                   •
                 </span>
               ) : null}
-              <span>{part}</span>
+              {index === 0 && earthworkLocation ? (
+                <span className="inline-flex flex-wrap items-center">
+                  <span>{part}</span>
+                  <CheckLocationLink mapsQuery={earthworkLocation.mapsQuery} pincode={project.pincode} />
+                </span>
+              ) : (
+                <span>{part}</span>
+              )}
             </span>
           ))}
           {postedAt && (

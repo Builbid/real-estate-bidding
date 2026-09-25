@@ -18,6 +18,8 @@ import {
   getProjectLocationLabel,
 } from '@/lib/project/formatFloorSummary';
 import { FloorScopeBadges } from '@/components/project/FloorScopeBadges';
+import { CheckLocationLink } from '@/components/project/ProjectLocationWithMapsLink';
+import { earthworkCardLocation } from '@/lib/validation/earthworkLocation';
 import { Badge } from '@/components/ui/badge';
 import type { Project, Bid, PublicFirmProfile } from '@/lib/types';
 
@@ -50,7 +52,8 @@ function OwnerLiveProjectCardBody({
   const isFirm = isFirmProject(project);
   const serviceBadge = getProjectServiceBadgeLabel(project);
   const postedAt = formatProjectPostedAt(project.created_at);
-  const locationLabel = getProjectLocationLabel(project);
+  const earthworkLocation = earthworkCardLocation(project);
+  const locationLabel = earthworkLocation?.address || getProjectLocationLabel(project);
   const buildingTypeLabel = getProjectBuildingTypeLabel(project);
   const builtUpLabel = getProjectBuiltUpAreaLabel(project);
   const floorScopes = formatFloorSummary(project);
@@ -104,6 +107,11 @@ function OwnerLiveProjectCardBody({
                   <span className="inline-flex items-center gap-1">
                     <Users className="h-3 w-3" />
                     {part}
+                  </span>
+                ) : index === 0 && earthworkLocation ? (
+                  <span className="inline-flex flex-wrap items-center">
+                    <span>{part}</span>
+                    <CheckLocationLink mapsQuery={earthworkLocation.mapsQuery} pincode={project.pincode} />
                   </span>
                 ) : (
                   <span>{part}</span>

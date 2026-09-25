@@ -15,11 +15,14 @@ const CHECK_LOCATION_CLASS =
 const CHECK_LOCATION_CARD_CLASS =
   'relative z-10 appearance-none bg-transparent p-0 border-0 text-[#387ed1] hover:underline cursor-pointer text-xs font-medium ml-2 inline-flex items-center gap-1 shrink-0';
 
-function mapsHref(pincode?: string | null, placeName?: string | null): string | null {
-  const pin = (pincode ?? '').trim();
-  const place = (placeName ?? '').trim();
-  if (place && pin && place.includes(pin)) return googleMapsSearchUrl(place);
-  const query = pin || place;
+function mapsHref(
+  pincode?: string | null,
+  placeName?: string | null,
+  mapsQuery?: string | null,
+): string | null {
+  const explicit = (mapsQuery ?? '').trim();
+  if (explicit) return googleMapsSearchUrl(explicit);
+  const query = (pincode ?? '').trim() || (placeName ?? '').trim();
   if (!query) return null;
   return googleMapsSearchUrl(query);
 }
@@ -37,13 +40,15 @@ function openMaps(event: MouseEvent<HTMLButtonElement>, href: string) {
 export function CheckLocationLink({
   placeName,
   pincode,
+  mapsQuery,
   className,
 }: {
   placeName?: string | null;
   pincode?: string | null;
+  mapsQuery?: string | null;
   className?: string;
 }) {
-  const href = mapsHref(pincode, placeName);
+  const href = mapsHref(pincode, placeName, mapsQuery);
   if (!href) return null;
 
   return (
@@ -66,15 +71,17 @@ export function CheckLocationLink({
 export function ProjectLocationWithMapsLink({
   placeName,
   pincode,
+  mapsQuery,
   className,
 }: {
   placeName: string;
   pincode?: string | null;
+  mapsQuery?: string | null;
   className?: string;
 }) {
   const place = placeName.trim();
   const pin = (pincode ?? '').trim();
-  const href = mapsHref(pin, place);
+  const href = mapsHref(pin, place, mapsQuery);
   if (!place && !pin) return <span className={className}>—</span>;
   if (!href) return <span className={className}>{place || '—'}</span>;
 

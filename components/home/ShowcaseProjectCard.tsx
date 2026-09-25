@@ -36,6 +36,7 @@ import {
 } from '@/lib/project/formatFloorSummary';
 import { FloorScopeBadges } from '@/components/project/FloorScopeBadges';
 import { CheckLocationLink } from '@/components/project/ProjectLocationWithMapsLink';
+import { earthworkCardLocation, earthworkSpecificDetailsText } from '@/lib/validation/earthworkLocation';
 import {
   formatShowcaseRemaining,
   getShowcaseCardAction,
@@ -249,6 +250,8 @@ export function ShowcaseProjectCard({
     filteredRequirementBlocks && filteredRequirementBlocks.length > 0
       ? filteredRequirementBlocks
       : null;
+  const earthworkLocation = earthworkCardLocation(project);
+  const specificDetails = earthworkSpecificDetailsText(project.description, earthworkLocation);
 
   const statCells: { label: string; value: string }[] = requirementBlocks
     ? requirementBlocks
@@ -317,26 +320,26 @@ export function ShowcaseProjectCard({
           items={floorScopes}
           badgeClassName="border-slate-200 bg-slate-50 text-slate-800 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-200"
         />
-        {project.description?.trim() ? (
+        {specificDetails ? (
           <div className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 dark:border-slate-700 dark:bg-slate-800/60">
             <p className="text-[9px] font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
               Specific Details
             </p>
             <p className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-slate-900 dark:text-slate-100">
-              {project.description.trim()}
+              {specificDetails}
             </p>
           </div>
         ) : null}
       </div>
     );
-  } else if (requirementBlocks && project.description?.trim()) {
+  } else if (requirementBlocks && specificDetails) {
     metaBlock = (
       <div className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 dark:border-slate-700 dark:bg-slate-800/60">
         <p className="text-[9px] font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
           Specific Details
         </p>
         <p className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-slate-900 dark:text-slate-100">
-          {project.description.trim()}
+          {specificDetails}
         </p>
       </div>
     );
@@ -418,8 +421,9 @@ export function ShowcaseProjectCard({
                 {project.state ? `, ${project.state}` : ''}
               </span>
               <CheckLocationLink
-                placeName={[project.district, project.state].filter(Boolean).join(', ')}
+                placeName={earthworkLocation?.address ?? [project.district, project.state].filter(Boolean).join(', ')}
                 pincode={project.pincode}
+                mapsQuery={earthworkLocation?.mapsQuery}
                 className="ml-1"
               />
             </p>
