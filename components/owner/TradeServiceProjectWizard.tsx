@@ -1094,7 +1094,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                 />
               )}
 
-              <StepGuidanceNotes />
+              <StepGuidanceNotes showWastePiping={trade === 'plumber'} />
 
               <div className="flex gap-3">
                 <Button variant="outline" size="lg" className="flex-1" onClick={() => setStep(1)}>
