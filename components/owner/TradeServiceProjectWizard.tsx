@@ -23,6 +23,7 @@ import { StepGuidanceNotes } from '@/components/owner/wizard/StepGuidanceNotes';
 import { laborOnlyMaterialsNote } from '@/lib/laborMaterialsNote';
 import { generateProjectTitle } from '@/lib/generateProjectTitle';
 import { hasContactInfo } from '@/lib/validation/projectContactInfo';
+import { formatEarthworkProjectLocation, validateEarthworkVillageTownName } from '@/lib/validation/earthworkLocation';
 import { formatPincodeInput, validatePincode } from '@/lib/validation/pincode';
 import { getTradeLabel } from '@/lib/trades';
 import {
@@ -298,12 +299,10 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
     }
 
     if (isEarthwork) {
-      const villageTownName = form.villageTownName.trim();
-      if (!villageTownName) {
-        errors.villageTownName = 'Enter the village or town name.';
-      } else if (villageTownName.length < 2) {
-        errors.villageTownName = 'Village / town name must be at least 2 characters.';
-      } else if (hasContactInfo(villageTownName)) {
+      const villageError = validateEarthworkVillageTownName(form.villageTownName);
+      if (villageError) {
+        errors.villageTownName = villageError;
+      } else if (hasContactInfo(form.villageTownName.trim())) {
         errors.villageTownName = 'Village / town name cannot include contact details.';
       }
     }
@@ -405,6 +404,13 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
       targetSpaces: form.targetSpaces,
       interiorArea: form.interiorArea,
       villageTownName: isEarthwork ? form.villageTownName : '',
+      projectAddress: isEarthwork
+        ? formatEarthworkProjectLocation(
+            districtSelection?.district ?? form.location,
+            form.villageTownName,
+            form.pincode,
+          )
+        : undefined,
       earthworkType: form.earthworkType,
       machineRequirement: form.machineRequirement,
     });
@@ -527,7 +533,13 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
 
     const result = await createProjectAction({
       title: autoTitle,
-      description: isEarthwork ? form.villageTownName.trim() : undefined,
+      description: isEarthwork
+        ? formatEarthworkProjectLocation(
+            districtSelection.district,
+            form.villageTownName,
+            form.pincode,
+          )
+        : undefined,
       track_type: form.track_type ?? 'RCC',
       district: districtSelection.district,
       state: districtSelection.state,
@@ -554,6 +566,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
       ? getTradeWorkRequirementBlocks(reviewTradeDetails.details).filter(
           (block) =>
             block.label !== 'Village / Town Name' &&
+            !(isEarthwork && block.label === 'Project Address') &&
             block.label !== 'Estimated Depth' &&
             block.label !== 'Area / Volume' &&
             block.label !== 'Point Weights' &&
@@ -1117,7 +1130,17 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                   { label: 'Project Title', value: previewTitle },
                   { label: 'District', value: form.location },
                   ...(isEarthwork
-                    ? [{ label: 'Village / Town Name', value: form.villageTownName.trim() }]
+                    ? [
+                        { label: 'Village / Town Name', value: form.villageTownName.trim() },
+                        {
+                          label: 'Location',
+                          value: formatEarthworkProjectLocation(
+                            districtSelection?.district ?? form.location,
+                            form.villageTownName,
+                            form.pincode,
+                          ),
+                        },
+                      ]
                     : []),
                   { label: 'Pincode', value: form.pincode.trim() || 'Not specified' },
                   ...(isPainter

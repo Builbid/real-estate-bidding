@@ -16,7 +16,10 @@ const CHECK_LOCATION_CARD_CLASS =
   'relative z-10 appearance-none bg-transparent p-0 border-0 text-[#387ed1] hover:underline cursor-pointer text-xs font-medium ml-2 inline-flex items-center gap-1 shrink-0';
 
 function mapsHref(pincode?: string | null, placeName?: string | null): string | null {
-  const query = (pincode ?? '').trim() || (placeName ?? '').trim();
+  const pin = (pincode ?? '').trim();
+  const place = (placeName ?? '').trim();
+  if (place && pin && place.includes(pin)) return googleMapsSearchUrl(place);
+  const query = pin || place;
   if (!query) return null;
   return googleMapsSearchUrl(query);
 }

@@ -15,6 +15,7 @@ import {
 import { parseCustomFloorSequence } from './mistriDetails';
 import { CUSTOM_FLOOR_CHECKED_WITHOUT_FLOORS_MESSAGE, formatCustomFloorsList } from './customFloors';
 import { laborOnlyMaterialsNote } from './laborMaterialsNote';
+import { validateEarthworkVillageTownName } from './validation/earthworkLocation';
 
 export type { ProjectStartTimeType };
 
@@ -3629,6 +3630,7 @@ export interface TradeDetailsFormInput {
   interiorPackages?: InteriorDesignerPackageKind[];
   interiorSubOptions?: InteriorDesignerSubOptionId[];
   villageTownName?: string;
+  projectAddress?: string;
   earthworkType: EarthworkType | null;
   machineRequirement: EarthworkMachine | null;
 }
@@ -3643,9 +3645,14 @@ export function validateTradeDetailsInput(
   if ('error' in start) return start;
 
   const additional = input.additionalRequirements.trim() || null;
-  const villageTownName = normalizeVillageTownName(input.villageTownName);
-  if (input.service === 'earthwork' && !villageTownName) {
-    return { error: 'Enter the village or town name.' };
+  const villageTownName = input.service === 'earthwork'
+    ? input.villageTownName?.trim() || ''
+    : normalizeVillageTownName(input.villageTownName);
+  if (input.service === 'earthwork') {
+    const villageError = validateEarthworkVillageTownName(
+      typeof villageTownName === 'string' ? villageTownName : '',
+    );
+    if (villageError) return { error: villageError };
   }
   const base = {
     projectStartTimeType: start.type,
@@ -4006,10 +4013,12 @@ export function validateTradeDetailsInput(
     } else {
       machineRequirement = 'jcb_excavator';
     }
+    const projectAddress = input.projectAddress?.trim() || null;
     return {
       details: {
         ...base,
         service: 'earthwork',
+        projectAddress,
         workType: input.earthworkType,
         machineRequirement,
       },
