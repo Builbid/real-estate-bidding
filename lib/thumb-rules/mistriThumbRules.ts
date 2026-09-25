@@ -56,6 +56,7 @@ export interface SectionDiagrams {
     columnWidthMm: number;
     columnDepthMm: number;
     meshDiaMm: number;
+    meshSpacingMm: number;
     coverMm: number;
     label: string;
   };
@@ -95,10 +96,15 @@ export interface MistriThumbRulesGuide {
 
 /** Assam / NE India is IS 1893 Zone V. There is no official Zone VI - use Zone V + IS 13920. */
 const SEISMIC_ZONE_LABEL = 'IS 1893 Zone V (Assam / North-East) - design as highest Indian zone';
-const FLOOR_LOAD_KN_M2 = 13;
+/** Client rule: no RCC room / beam clear span beyond 15-16 ft. */
+const DESIGN_SPAN_FT = 15.5;
+const MAX_SPAN_FT = 16;
+const SPAN_LABEL = '15-16';
+const TYPICAL_TRIBUTARY_M2 = (DESIGN_SPAN_FT * 0.3048) ** 2;
+const FLOOR_LOAD_KN_M2 = 14;
 const SBC_KN_M2 = 125;
 const SEISMIC_FOOTING_FACTOR = 1.15;
-const TYPICAL_TRIBUTARY_M2 = 12;
+const STEEL_FY = 500;
 
 function siteAddress(project: MistriThumbRulesProjectInput): string {
   const parts = [project.district?.trim(), project.state?.trim(), project.pincode?.trim()].filter(
@@ -236,7 +242,42 @@ function assamRoofSummary(floors: MistriFloorWork[] | null | undefined): string 
 function estimatedColumnCount(floorSqft: number): number {
   const areaM2 = sqftToM2(Math.max(floorSqft, 600));
   const raw = Math.round(areaM2 / TYPICAL_TRIBUTARY_M2);
-  return Math.max(9, Math.min(25, raw));
+  return Math.max(6, Math.min(25, raw));
+}
+
+function barAreaMm2(count: number, diaMm: number): number {
+  return count * (Math.PI * diaMm * diaMm) / 4;
+}
+
+function shortColumnCapacityKn(
+  widthMm: number,
+  depthMm: number,
+  barCount: number,
+  barDiaMm: number,
+  fck: number,
+): number {
+  const ac = widthMm * depthMm;
+  const asc = barAreaMm2(barCount, barDiaMm);
+  return (0.4 * fck * ac + 0.67 * STEEL_FY * asc) / 1000;
+}
+
+function beamMomentCapacityKnm(
+  widthMm: number,
+  overallMm: number,
+  barCount: number,
+  barDiaMm: number,
+  fck: number,
+): number {
+  const d = overallMm - 25 - 8 - barDiaMm / 2;
+  const ast = barAreaMm2(barCount, barDiaMm);
+  const lever = 1 - (ast * STEEL_FY) / (widthMm * d * fck);
+  return (0.87 * STEEL_FY * ast * d * Math.max(0.55, lever)) / 1e6;
+}
+
+function footingMeshCtcMm(sideFt: number): number {
+  if (sideFt >= 12) return 100;
+  if (sideFt >= 10) return 125;
+  return 150;
 }
 
 function columnServiceLoadKn(floorSqft: number, storeys: number, columnCount: number): number {
@@ -264,6 +305,8 @@ interface HouseAnalysis {
   floorBeamSize: string;
   floorBeamBars: string;
   floorBeamStirrups: string;
+  typicalBeamNote: string;
+  longBeamNote: string;
   slabThk: string;
   concreteGrade: string;
   columnWidthMm: number;
@@ -280,6 +323,10 @@ interface HouseAnalysis {
   plinthDepthMm: number;
   plinthBarCount: number;
   plinthBarDiaMm: number;
+  footingMeshCtcMm: number;
+  columnCapacityKn: number;
+  columnFactoredKn: number;
+  beamCapacityKnm: number;
   diagrams: SectionDiagrams;
 }
 
@@ -290,41 +337,28 @@ function analyzeHouse(floorSqft: number, storeys: number): HouseAnalysis {
   const designLoadKn = serviceLoadKn * SEISMIC_FOOTING_FACTOR;
   const sideM = Math.sqrt(designLoadKn / SBC_KN_M2);
   const footingSideFt = Math.max(4, roundHalfFt(sideM * 3.28084));
-  const footingThickIn = storeys <= 1 ? 12 : storeys === 2 ? 15 : storeys === 3 ? 18 : storeys === 4 ? 21 : 24;
-  const heavy = floorSqft >= 1500;
+  const thickFromStorey = storeys <= 1 ? 12 : storeys === 2 ? 15 : storeys === 3 ? 18 : storeys === 4 ? 21 : 24;
+  const thickFromPlan = footingSideFt >= 12 ? 24 : footingSideFt >= 10 ? 21 : footingSideFt >= 8 ? 18 : 15;
+  const footingThickIn = Math.max(thickFromStorey, thickFromPlan);
+  const footingMeshCtc = footingMeshCtcMm(footingSideFt);
+  const columnFactoredKn = serviceLoadKn * 1.5;
 
   let columnSizeIn = '12" x 12"';
-  let columnSizeMm = '300 x 300 mm';
+  let columnSizeMm = '300 x 300 mm (Zone V minimum; do not use 9" x 9")';
   let columnBars = '6 nos 16 mm TMT Fe 500D';
   let columnWidthMm = 300;
   let columnDepthMm = 300;
   let columnBarCount = 6;
   let columnBarDiaMm = 16;
-  if (storeys <= 1 && !heavy) {
-    columnSizeIn = '12" x 12"';
-    columnSizeMm = '300 x 300 mm (Zone V minimum; do not use 9" x 9")';
-    columnBars = '4 nos 16 mm TMT Fe 500D (prefer 6 nos 16 mm)';
-    columnBarCount = 4;
-  } else if (storeys <= 2 && !heavy) {
-    columnSizeIn = '12" x 12"';
-    columnSizeMm = '300 x 300 mm';
-    columnBars = '6 nos 16 mm TMT Fe 500D';
-  } else if (storeys <= 3 && !heavy) {
-    columnSizeIn = '12" x 15"';
-    columnSizeMm = '300 x 380 mm';
-    columnBars = '8 nos 16 mm TMT Fe 500D';
-    columnWidthMm = 300;
-    columnDepthMm = 380;
-    columnBarCount = 8;
-  } else if (storeys <= 3 || (storeys === 4 && !heavy)) {
-    columnSizeIn = '15" x 15"';
-    columnSizeMm = '380 x 380 mm';
-    columnBars = storeys >= 4 ? '8 nos 20 mm TMT Fe 500D' : '8 nos 16 mm TMT Fe 500D';
+  if (storeys >= 5 || columnFactoredKn > 2100) {
+    columnSizeIn = '15" x 18"';
+    columnSizeMm = '380 x 450 mm';
+    columnBars = '8 nos 20 mm TMT Fe 500D. Do not drop below 8 bars.';
     columnWidthMm = 380;
-    columnDepthMm = 380;
+    columnDepthMm = 450;
     columnBarCount = 8;
-    columnBarDiaMm = storeys >= 4 ? 20 : 16;
-  } else if (storeys === 4) {
+    columnBarDiaMm = 20;
+  } else if (storeys >= 4 || columnFactoredKn > 1650) {
     columnSizeIn = '15" x 15"';
     columnSizeMm = '380 x 380 mm';
     columnBars = '8 nos 20 mm TMT Fe 500D';
@@ -332,15 +366,30 @@ function analyzeHouse(floorSqft: number, storeys: number): HouseAnalysis {
     columnDepthMm = 380;
     columnBarCount = 8;
     columnBarDiaMm = 20;
-  } else {
-    columnSizeIn = '15" x 18"';
-    columnSizeMm = '380 x 450 mm';
-    columnBars = '8 nos 20 mm TMT Fe 500D (add 4 extra 16 mm if spans are long)';
+  } else if (storeys >= 3 || columnFactoredKn > 1100) {
+    columnSizeIn = '15" x 15"';
+    columnSizeMm = '380 x 380 mm';
+    columnBars = '8 nos 16 mm TMT Fe 500D';
     columnWidthMm = 380;
-    columnDepthMm = 450;
+    columnDepthMm = 380;
     columnBarCount = 8;
-    columnBarDiaMm = 20;
+  } else if (storeys >= 2 || columnFactoredKn > 700) {
+    columnSizeIn = '12" x 15"';
+    columnSizeMm = '300 x 380 mm';
+    columnBars = '8 nos 16 mm TMT Fe 500D';
+    columnWidthMm = 300;
+    columnDepthMm = 380;
+    columnBarCount = 8;
   }
+
+  const columnFck = storeys >= 4 ? 25 : 20;
+  const columnCapacityKn = shortColumnCapacityKn(
+    columnWidthMm,
+    columnDepthMm,
+    columnBarCount,
+    columnBarDiaMm,
+    columnFck,
+  );
 
   let plinthSize = '9" x 12" (230 x 300 mm)';
   let plinthBars = '4 nos 16 mm TMT (2 top + 2 bottom) - do not use 12 mm here';
@@ -348,51 +397,42 @@ function analyzeHouse(floorSqft: number, storeys: number): HouseAnalysis {
   let plinthDepthMm = 300;
   let plinthBarCount = 4;
   let plinthBarDiaMm = 16;
-  if (storeys >= 4 || (storeys >= 3 && heavy)) {
+  if (storeys >= 4) {
     plinthSize = '12" x 15" (300 x 380 mm)';
     plinthBars = '6 nos 16 mm TMT (3 top + 3 bottom). Alternate: 4 nos 20 mm TMT';
     plinthWidthMm = 300;
     plinthDepthMm = 380;
     plinthBarCount = 6;
-  } else if (storeys >= 2 || heavy) {
+  } else if (storeys >= 2) {
     plinthSize = '9" x 15" (230 x 380 mm)';
-    plinthBars = '4 nos 16 mm TMT (2 top + 2 bottom). Prefer 6 nos 16 mm if soil is soft';
+    plinthBars = '6 nos 16 mm TMT (3 top + 3 bottom) for a 15-16 ft grade-beam span';
     plinthDepthMm = 380;
+    plinthBarCount = 6;
   }
 
   const plinthStirrups =
     '8 mm 2-legged @ 100 mm c/c throughout (Zone V grade beam). 135-degree hooks. No 150-200 mm spacing.';
 
-  let floorBeamSize = '9" x 12" (230 x 300 mm) for rooms up to 12 ft. Depth about span/12.';
-  let floorBeamBars = 'Bottom 2 nos 16 mm + top 2 nos 16 mm continuous through the joint';
-  let beamWidthMm = 230;
-  let beamDepthMm = 300;
-  let beamTopBars = 2;
-  let beamTopDiaMm = 16;
-  let beamBottomBars = 2;
-  let beamBottomDiaMm = 16;
-  if (storeys >= 4 || heavy) {
-    floorBeamSize = '12" x 18" (300 x 450 mm) typical. Long hall: depth = span/12.';
-    floorBeamBars = 'Bottom 2 nos 20 mm + 1 no 16 mm; top 2 nos 16 mm continuous through the joint';
-    beamWidthMm = 300;
-    beamDepthMm = 450;
-    beamBottomBars = 3;
-    beamBottomDiaMm = 20;
-  } else if (storeys >= 3) {
-    floorBeamSize = '9" x 15" (230 x 380 mm) typical; long-span 12" x 18". Depth about span/12.';
-    floorBeamBars = 'Bottom 2 nos 16 mm + 1 no 16 mm if span > 12 ft; top 2 nos 16 mm continuous';
-    beamWidthMm = 230;
-    beamDepthMm = 380;
-    beamBottomBars = 3;
-  }
+  const floorBeamSize = '12" x 18" (300 x 450 mm)';
+  const floorBeamBars =
+    'Bottom 3 nos 20 mm. Top 3 nos 20 mm. Same size both faces. Two bars of each face must run through the joint.';
+  const typicalBeamNote =
+    `Maximum clear span for this booklet is ${MAX_SPAN_FT} ft. Depth 18" is about span/10.5. Do not reduce it on site.`;
+  const longBeamNote =
+    `If a full-height 9" brick wall sits on this ${MAX_SPAN_FT} ft beam, use 12" x 21" (300 x 525 mm) with the same 3-20 mm bars. Clear span over ${MAX_SPAN_FT} ft, or a beam that carries another beam, is outside this booklet.`;
+  const beamWidthMm = 300;
+  const beamDepthMm = 450;
+  const beamTopBars = 3;
+  const beamTopDiaMm = 20;
+  const beamBottomBars = 3;
+  const beamBottomDiaMm = 20;
+  const beamCapacityKnm = beamMomentCapacityKnm(beamWidthMm, beamDepthMm, beamTopBars, beamTopDiaMm, 20);
 
   const floorBeamStirrups =
-    '8 mm 2-legged @ 100 mm c/c for 2d from each column face (confinement). Mid-span 8 mm @ 150 mm. 135-degree hooks.';
+    '8 mm 2-legged @ 100 mm c/c for 3 ft (about 2d) from each column face. Mid-span 8 mm @ 150 mm. 135-degree hooks. First stirrup within 50 mm of the column face.';
 
   const slabThk =
-    floorSqft >= 1800 || storeys >= 3
-      ? '5" to 6" (125-150 mm). Use 150 mm where room span exceeds 12 ft.'
-      : '5" (125 mm) for rooms up to 12 ft span. Use 150 mm for larger halls.';
+    '6" (150 mm) for 15-16 ft rooms. Main bars 10 mm @ 150 mm c/c. Distribution 8 mm @ 200 mm c/c.';
 
   const concreteGrade = storeys >= 4 ? 'M25 for columns and footings; M20 minimum for slab / beam' : 'M20 (1:1.5:3) minimum; M25 better for Zone V columns';
 
@@ -412,6 +452,8 @@ function analyzeHouse(floorSqft: number, storeys: number): HouseAnalysis {
     floorBeamSize,
     floorBeamBars,
     floorBeamStirrups,
+    typicalBeamNote,
+    longBeamNote,
     slabThk,
     concreteGrade,
     columnWidthMm,
@@ -428,6 +470,10 @@ function analyzeHouse(floorSqft: number, storeys: number): HouseAnalysis {
     plinthDepthMm,
     plinthBarCount,
     plinthBarDiaMm,
+    footingMeshCtcMm: footingMeshCtc,
+    columnCapacityKn,
+    columnFactoredKn,
+    beamCapacityKnm,
     diagrams: {
       column: {
         widthMm: columnWidthMm,
@@ -436,7 +482,7 @@ function analyzeHouse(floorSqft: number, storeys: number): HouseAnalysis {
         barDiaMm: columnBarDiaMm,
         coverMm: 40,
         tieDiaMm: 8,
-        label: `${columnSizeIn} with ${columnBarCount} nos ${columnBarDiaMm} mm`,
+        label: `${columnSizeIn} - ${columnBarCount} nos ${columnBarDiaMm} mm - cover 40 mm`,
       },
       beam: {
         widthMm: beamWidthMm,
@@ -447,7 +493,7 @@ function analyzeHouse(floorSqft: number, storeys: number): HouseAnalysis {
         bottomDiaMm: beamBottomDiaMm,
         coverMm: 25,
         stirrupDiaMm: 8,
-        label: `${beamWidthMm} x ${beamDepthMm} mm floor beam`,
+        label: `12" x 18" - 3-20 mm top and bottom - max span ${MAX_SPAN_FT} ft`,
       },
       footing: {
         sideFt: footingSideFt,
@@ -456,8 +502,9 @@ function analyzeHouse(floorSqft: number, storeys: number): HouseAnalysis {
         columnWidthMm,
         columnDepthMm,
         meshDiaMm: 12,
+        meshSpacingMm: footingMeshCtc,
         coverMm: 50,
-        label: `${footingSideFt.toFixed(1)} ft x ${footingSideFt.toFixed(1)} ft x ${footingThickIn}"`,
+        label: `${footingSideFt.toFixed(1)} ft sq x ${footingThickIn}" - 12 mm @ ${footingMeshCtc} mm - cover 50 mm`,
       },
     },
   };
@@ -485,7 +532,7 @@ function estimateQuantities(
   const buildingSide = Math.sqrt(floorM2);
   const beamLen = 2 * grid * buildingSide * currentStoreys;
   const beams = beamLen * (analysis.beamWidthMm / 1000) * (analysis.beamDepthMm / 1000);
-  const slab = floorM2 * 0.125 * currentStoreys;
+  const slab = floorM2 * 0.15 * currentStoreys;
   const rcc = footing + plinth + columns + beams + slab;
   const cementBags = Math.round(rcc * 8.4 + pcc * 5.5);
   const sand = rcc * 0.45 + pcc * 0.45;
@@ -500,8 +547,10 @@ function estimateQuantities(
     beamLen *
     (analysis.beamTopBars * barKgPerMetre(analysis.beamTopDiaMm) +
       analysis.beamBottomBars * barKgPerMetre(analysis.beamBottomDiaMm));
-  const slabSteel = floorM2 * currentStoreys * 2 * (1 / 0.15) * 0.395;
-  const footingSteel = n * 2 * (sideM / 0.15) * sideM * 0.888;
+  const slabSteel =
+    floorM2 * currentStoreys * ((1 / 0.15) * barKgPerMetre(10) + (1 / 0.2) * barKgPerMetre(8));
+  const footingSteel =
+    n * 2 * (sideM / (analysis.footingMeshCtcMm / 1000)) * sideM * barKgPerMetre(12);
   const steel = colSteel + colTies + plinthSteel + beamSteel + slabSteel + footingSteel;
 
   return [
@@ -601,25 +650,38 @@ export function buildMistriThumbRulesGuide(
       value: floorPlanLabel(mistri?.futureFloorPlan ?? mistri?.currentFloorPlan, designStoreys),
     },
     { label: 'Seismic zone', value: SEISMIC_ZONE_LABEL },
+    { label: 'Maximum RCC span', value: `${SPAN_LABEL} ft clear. Rooms longer than ${MAX_SPAN_FT} ft are outside this booklet.` },
   ];
 
   const analysisRows: ThumbRuleRow[] = [
     {
       label: 'Method',
       value:
-        'Approximate gravity + seismic check for a regular house grid. No architectural drawing, so spans and exact column positions are assumed.',
+        `Approximate gravity + seismic check. Every RCC beam and slab is designed for a ${SPAN_LABEL} ft clear span. No architectural drawing, so a regular grid at that spacing is assumed.`,
     },
     {
       label: 'Assumed grid',
-      value: `${analysis.columnCount} columns, about ${analysis.tributaryM2.toFixed(1)} sq. m tributary each (3.3-3.6 m spacing).`,
+      value: `${analysis.columnCount} columns, about ${analysis.tributaryM2.toFixed(1)} sq. m tributary each (${SPAN_LABEL} ft / 4.6-4.9 m).`,
     },
     {
       label: 'Floor load used',
-      value: `${FLOOR_LOAD_KN_M2} kN/sq. m (125 mm slab + finish + partitions + 2 kN live + wall share).`,
+      value: `${FLOOR_LOAD_KN_M2} kN/sq. m (150 mm slab 3.75 + finish 1.5 + partitions 1 + live 2 + beam/wall share ~5.8).`,
     },
     {
       label: 'Service load / column',
-      value: `About ${Math.round(analysis.serviceLoadKn)} kN for ${designStoreys} storeys on this plinth area.`,
+      value: `About ${Math.round(analysis.serviceLoadKn)} kN for ${designStoreys} storeys on this plinth area (includes 10% uncertainty).`,
+    },
+    {
+      label: 'Column check (IS 456 short column)',
+      value: `Factored ${Math.round(analysis.columnFactoredKn)} kN vs capacity ${Math.round(analysis.columnCapacityKn)} kN (${analysis.columnSizeIn}, ${analysis.columnBarCount}-${analysis.columnBarDiaMm} mm, ${designStoreys >= 4 ? 'M25' : 'M20'}).`,
+    },
+    {
+      label: 'Beam check (16 ft continuous)',
+      value: `Support moment about 120 kNm for a normal house load. ${analysis.floorBeamSize} with 3-20 mm gives about ${analysis.beamCapacityKnm.toFixed(0)} kNm. 3-16 mm would be about 93 kNm - too little.`,
+    },
+    {
+      label: 'Slab check (two-way on beams)',
+      value: `150 mm slab, d about 125 mm. Two-way moment about 16 kNm/m; 10 mm @ 150 mm gives about 25 kNm/m. If the slab has beams on only two sides (one-way), use 10 mm @ 125 mm.`,
     },
     {
       label: 'Footing load (Zone V)',
@@ -631,7 +693,7 @@ export function buildMistriThumbRulesGuide(
     },
     {
       label: 'Required footing plan',
-      value: `${analysis.footingSideFt.toFixed(1)} ft x ${analysis.footingSideFt.toFixed(1)} ft x ${analysis.footingThickIn}" from P/SBC. Isolated footing; combine if columns are closer than 6 ft.`,
+      value: `${analysis.footingSideFt.toFixed(1)} ft x ${analysis.footingSideFt.toFixed(1)} ft x ${analysis.footingThickIn}" from P/SBC. Mesh 12 mm @ ${analysis.footingMeshCtcMm} mm. Combine if columns are closer than 6 ft.`,
     },
   ];
 
@@ -654,12 +716,12 @@ export function buildMistriThumbRulesGuide(
     {
       label: 'Beam confinement',
       value:
-        '8 mm stirrups @ 100 mm c/c for 2 times beam depth from each column face. Two bars top and two bars bottom must run through the joint.',
+        '8 mm stirrups @ 100 mm c/c for 2 times beam depth from each column face (about 3 ft on this 18" beam). Two of the three 20 mm bars on each face must run through the joint.',
     },
     {
       label: 'Do not do this',
       value:
-        'Do not use 4 nos 12 mm in the plinth beam for G+1 and above. Do not use 9" x 9" columns. Do not lap bars in the joint or at mid-span beam bottom.',
+        'Do not use 4 nos 12 mm in the plinth. Do not use 9" x 9" columns. Do not cut the floor beam below 12" x 18" or drop below 3 nos 20 mm each face. Do not lap bars in the joint or at mid-span beam bottom.',
     },
   ];
 
@@ -672,7 +734,7 @@ export function buildMistriThumbRulesGuide(
     },
     { label: 'PCC below footing', value: '4" (100 mm) PCC 1:4:8' },
     { label: 'Footing concrete', value: analysis.concreteGrade },
-    { label: 'Footing steel (thumb)', value: '12 mm mesh @ 150 mm c/c both ways, extra 12 mm across the column. Cover 50 mm.' },
+    { label: 'Footing steel (thumb)', value: `12 mm mesh @ ${analysis.footingMeshCtcMm} mm c/c both ways, extra 12 mm across the column. Cover 50 mm.` },
     { label: 'Plinth beam size', value: analysis.plinthSize },
     { label: 'Plinth beam steel', value: analysis.plinthBars },
     { label: 'Plinth stirrups', value: analysis.plinthStirrups },
@@ -705,9 +767,16 @@ export function buildMistriThumbRulesGuide(
 
   const beamRows: ThumbRuleRow[] = frame
     ? [
-        { label: 'Typical floor beam', value: analysis.floorBeamSize },
+        { label: 'Design span', value: `Maximum ${MAX_SPAN_FT} ft clear. Depth 18" is about span/10.5. IS 456 continuous L/d is satisfied. 24" (span/8) is only for transfer / heavy beams.` },
+        { label: 'Floor beam size', value: `${analysis.floorBeamSize}. ${analysis.typicalBeamNote}` },
         { label: 'Main steel', value: analysis.floorBeamBars },
         { label: 'Stirrups', value: analysis.floorBeamStirrups },
+        { label: 'Wall on the beam / longer span', value: analysis.longBeamNote },
+        {
+          label: 'Why this size',
+          value:
+            `At ${MAX_SPAN_FT} ft, factored support moment is about 120 kNm for slab + finish + live + a light wall share. 3-20 mm in 300 x 450 mm M20 gives about ${analysis.beamCapacityKnm.toFixed(0)} kNm. Keep the same 3 bars on top and bottom so they can be counted on site.`,
+        },
         {
           label: 'Lintel / sunshade',
           value:
@@ -727,12 +796,11 @@ export function buildMistriThumbRulesGuide(
           { label: 'Slab thickness', value: analysis.slabThk },
           {
             label: 'Slab steel',
-            value:
-              'Main bars 8 mm @ 150 mm c/c (or 10 mm @ 200 mm for longer spans). Distribution 8 mm @ 200 mm c/c.',
+            value: 'Main bars 10 mm @ 150 mm c/c. Distribution 8 mm @ 200 mm c/c. Do not drop to 8 mm main on a 16 ft room.',
           },
           {
             label: 'Extra steel',
-            value: 'Extra top bars 8 mm at supports for L/4. Extra around openings and sunken toilets. Corner torsion steel.',
+            value: 'Extra top bars 10 mm at supports for L/4. Extra around openings and sunken toilets. Corner torsion steel.',
           },
           { label: 'Staircase waist', value: '6" (150 mm) waist slab; riser 6"-7", tread 10"-12"' },
         ]
@@ -741,7 +809,7 @@ export function buildMistriThumbRulesGuide(
             label: 'RCC slab',
             value: assamOnly
               ? 'Assam Type roof is not a typical RCC floor slab. See Assam roof notes below. Foundation still follows Zone V.'
-              : 'No RCC slab selected. If a slab is added, use 125-150 mm with 8 mm @ 150 mm as a starting rule.',
+              : 'No RCC slab selected. If a slab is added, use 150 mm with 10 mm @ 150 mm for 15-16 ft rooms.',
           },
         ];
 
@@ -836,11 +904,11 @@ export function buildMistriThumbRulesGuide(
   const clientSummaryRows: ThumbRuleRow[] = [
     {
       label: 'In one line',
-      value: `${formatSqft(typicalFloor)} house, ${floorPlanLabel(mistri?.currentFloorPlan, currentStoreys)} now, foundation ready for ${floorPlanLabel(mistri?.futureFloorPlan ?? mistri?.currentFloorPlan, designStoreys)}. Assam earthquake Zone V.`,
+      value: `${formatSqft(typicalFloor)} house, ${floorPlanLabel(mistri?.currentFloorPlan, currentStoreys)} now, foundation ready for ${floorPlanLabel(mistri?.futureFloorPlan ?? mistri?.currentFloorPlan, designStoreys)}. Max RCC room span ${MAX_SPAN_FT} ft. Assam earthquake Zone V.`,
     },
     {
       label: 'What the owner should remember',
-      value: `Plinth beam ${analysis.plinthBars.split('.')[0]}. Columns ${analysis.columnSizeIn} with ${analysis.columnBarCount} nos ${analysis.columnBarDiaMm} mm. Do not allow 4 nos 12 mm in the plinth.`,
+      value: `Floor beams ${analysis.floorBeamSize}, 3 nos 20 mm top and bottom, for 15-16 ft rooms. Plinth ${analysis.plinthBars.split('.')[0]}. Columns ${analysis.columnSizeIn} with ${analysis.columnBarCount} nos ${analysis.columnBarDiaMm} mm.`,
     },
     {
       label: 'What this PDF is',
@@ -861,11 +929,12 @@ export function buildMistriThumbRulesGuide(
   ];
 
   const scheduleRows: ThumbRuleRow[] = [
-    { label: 'Footing', value: `${analysis.footingSideFt.toFixed(1)} ft square x ${analysis.footingThickIn}" thick. 12 mm mesh @ 150 mm both ways. Cover 50 mm.` },
+    { label: 'Footing', value: `${analysis.footingSideFt.toFixed(1)} ft square x ${analysis.footingThickIn}" thick. 12 mm mesh @ ${analysis.footingMeshCtcMm} mm both ways. Cover 50 mm.` },
     { label: 'Plinth / grade beam', value: `${analysis.plinthSize}. ${analysis.plinthBars}. Stirrups 8 mm @ 100 mm. Cover 25 mm.` },
     { label: 'Column', value: `${analysis.columnSizeIn}. ${analysis.columnBars}. Ties 8 mm @ 100 / 150 mm. Cover 40 mm.` },
-    { label: 'Floor beam', value: `${analysis.floorBeamSize} ${analysis.floorBeamBars}. Stirrups 8 mm @ 100 mm near ends. Cover 25 mm.` },
-    { label: 'Slab', value: `${analysis.slabThk} Main 8 mm @ 150 mm. Distribution 8 mm @ 200 mm. Cover 20 mm.` },
+    { label: 'Floor beam (15-16 ft span)', value: `${analysis.floorBeamSize}. ${analysis.floorBeamBars} Stirrups 8 mm @ 100 mm near ends, 150 mm mid-span. Cover 25 mm.` },
+    { label: 'Wall on beam / over 16 ft', value: analysis.longBeamNote },
+    { label: 'Slab', value: `${analysis.slabThk} Cover 20 mm.` },
   ];
 
   const quantityRows = estimateQuantities(analysis, typicalFloor || 1000, currentStoreys);
@@ -883,15 +952,16 @@ export function buildMistriThumbRulesGuide(
   const ownerCheckRows: ThumbRuleRow[] = [
     { label: 'Footing day', value: 'Is the pit deep enough? Is PCC visible? Can you see 50 mm cover under the mesh?' },
     { label: 'Plinth day', value: `Count ${analysis.plinthBarCount} bars of ${analysis.plinthBarDiaMm} mm. Stirrups should be 100 mm, not 200 mm.` },
-    { label: 'Column day', value: `Count ${analysis.columnBarCount} bars of ${analysis.columnBarDiaMm} mm. Ties need 135-degree hooks.` },
-    { label: 'Slab day', value: 'Top mesh must sit on chairs. Extra bars at supports. Pipes already in place.' },
+    { label: 'Column day', value: `Count ${analysis.columnBarCount} bars of ${analysis.columnBarDiaMm} mm. Size ${analysis.columnSizeIn}. Ties need 135-degree hooks.` },
+    { label: 'Beam day', value: `Depth 18" (450 mm), not less. Count 3 nos 20 mm on top and 3 nos 20 mm at the bottom. Stirrups 8 mm @ 100 mm near the columns.` },
+    { label: 'Slab day', value: '150 mm thick. Main 10 mm @ 150 mm on chairs. Extra 10 mm top at supports. Pipes already in place.' },
     { label: 'After casting', value: 'Start curing the same evening. Honeycomb or tilted columns need an engineer, not a plaster cover-up.' },
   ];
 
   const redFlagRows: ThumbRuleRow[] = [
     { label: 'Call an engineer if', value: 'Soil is very soft, water stands in the pit, or neighbouring houses have settlement cracks.' },
-    { label: 'Plan is not simple', value: 'L-shape, long hall over 15 ft, floating column, or a floor higher than this booklet allows.' },
-    { label: 'Someone reduces steel', value: 'Any request to use 12 mm in the plinth, 9" x 9" columns, or fewer bars than this sheet.' },
+    { label: 'Plan is not simple', value: `L-shape, clear span over ${MAX_SPAN_FT} ft, floating column, or a floor higher than this booklet allows.` },
+    { label: 'Someone reduces steel', value: 'Any request to use 12 mm in the plinth, 9" x 9" columns, a beam shallower than 18", or fewer than 3-20 mm in the floor beam.' },
     { label: 'Extra floor later', value: `This foundation is for ${floorPlanLabel(mistri?.futureFloorPlan ?? mistri?.currentFloorPlan, designStoreys)}. Going higher needs a new design.` },
   ];
 
@@ -939,6 +1009,6 @@ export function buildMistriThumbRulesGuide(
     isAssamOnly: assamOnly,
     hasRccFrame: frame && !assamOnly,
     disclaimer:
-      'Approximate practical sizes for a regular Assam house using IS 456, IS 1893 Zone V and IS 13920 detailing. No room-by-room drawing was available, so a standard 3.3-3.6 m grid and 125 kN/sq. m SBC were assumed. This is NOT a signed structural design. Soft soil, irregular plans, long spans, or floating columns need a licensed structural engineer before casting.',
+      `Approximate practical sizes for a regular Assam house using IS 456, IS 1893 Zone V and IS 13920 detailing. Maximum RCC clear span taken as ${MAX_SPAN_FT} ft. SBC assumed ${SBC_KN_M2} kN/sq. m. This is NOT a signed structural design. Soft soil, irregular plans, spans over ${MAX_SPAN_FT} ft, or floating columns need a licensed structural engineer before casting.`,
   };
 }

@@ -14,7 +14,11 @@ function drawBar(doc: jsPDF, x: number, y: number, r: number) {
   doc.circle(x, y, r, 'F');
 }
 
-function drawCaption(doc: jsPDF, x: number, y: number, title: string, detail: string) {
+function mmAndIn(mm: number): string {
+  return `${mm} mm (${Math.round(mm / 25.4)}")`;
+}
+
+function drawCaption(doc: jsPDF, x: number, y: number, title: string, detail: string, maxW = 90) {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
   doc.setTextColor(...INK);
@@ -22,7 +26,8 @@ function drawCaption(doc: jsPDF, x: number, y: number, title: string, detail: st
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7);
   doc.setTextColor(...DIM);
-  doc.text(detail, x, y + 3.6);
+  const lines = doc.splitTextToSize(detail, maxW) as string[];
+  doc.text(lines, x, y + 3.6);
 }
 
 function evenly(count: number, start: number, end: number): number[] {
@@ -99,12 +104,12 @@ function drawColumnSection(
   doc.setFontSize(6.5);
   doc.setTextColor(...DIM);
   doc.text(`${section.depthMm}`, x - 12, y + h / 2 - 2);
-  doc.text('mm', x - 12, y + h / 2 + 1.6);
+  doc.text(`(${Math.round(section.depthMm / 25.4)}")`, x - 12, y + h / 2 + 1.6);
 
   doc.line(x, y + h + 5, x + w, y + h + 5);
   doc.line(x, y + h + 3.5, x, y + h + 6.5);
   doc.line(x + w, y + h + 3.5, x + w, y + h + 6.5);
-  doc.text(`${section.widthMm} mm`, x + w / 2, y + h + 9, { align: 'center' });
+  doc.text(mmAndIn(section.widthMm), x + w / 2, y + h + 9, { align: 'center' });
 
   doc.setFontSize(6);
   doc.text(`cover ${section.coverMm} mm`, x + w + 1.5, y + 6);
@@ -155,12 +160,12 @@ function drawBeamSection(
   doc.setFontSize(6.5);
   doc.setTextColor(...DIM);
   doc.text(`${section.depthMm}`, x - 12, y + h / 2 - 2);
-  doc.text('mm', x - 12, y + h / 2 + 1.6);
+  doc.text(`(${Math.round(section.depthMm / 25.4)}")`, x - 12, y + h / 2 + 1.6);
 
   doc.line(x, y + h + 5, x + w, y + h + 5);
   doc.line(x, y + h + 3.5, x, y + h + 6.5);
   doc.line(x + w, y + h + 3.5, x + w, y + h + 6.5);
-  doc.text(`${section.widthMm} mm`, x + w / 2, y + h + 9, { align: 'center' });
+  doc.text(mmAndIn(section.widthMm), x + w / 2, y + h + 9, { align: 'center' });
 
   doc.setFontSize(6);
   doc.text(`top ${section.topBars}-${section.topDiaMm}`, x + w + 1.5, y + 6);
@@ -227,7 +232,7 @@ function drawFootingSection(
   doc.setFontSize(6);
   doc.text('column', colX + colW / 2, colY - 1.6, { align: 'center' });
   doc.text(`PCC ${section.pccIn}"`, x + 2, pccY + pccH - 1);
-  doc.text(`${section.meshDiaMm} mm mesh`, x + 3, meshY - 2.2);
+  doc.text(`${section.meshDiaMm} mm @ ${section.meshSpacingMm} mm`, x + 3, meshY - 2.2);
 }
 
 export function drawStructuralSectionDiagrams(
@@ -242,16 +247,16 @@ export function drawStructuralSectionDiagrams(
 
   const colW = (usable - 4) / 2;
   const topH = 68;
-  drawCaption(doc, margin, y, 'A. Column cross-section', diagrams.column.label);
-  drawCaption(doc, margin + colW + 4, y, 'B. Beam cross-section', diagrams.beam.label);
-  y += 6;
+  drawCaption(doc, margin, y, 'A. Column cross-section', diagrams.column.label, colW - 2);
+  drawCaption(doc, margin + colW + 4, y, 'B. Beam cross-section', diagrams.beam.label, colW - 2);
+  y += 12;
   drawColumnSection(doc, margin, y, colW, topH, diagrams.column);
   drawBeamSection(doc, margin + colW + 4, y, colW, topH, diagrams.beam);
   y += topH + 8;
 
   y = ensurePage(doc, y, 78, margin);
-  drawCaption(doc, margin, y, 'C. Footing cross-section', diagrams.footing.label);
-  y += 6;
+  drawCaption(doc, margin, y, 'C. Footing cross-section', diagrams.footing.label, usable - 2);
+  y += 12;
   drawFootingSection(doc, margin, y, usable, 64, diagrams.footing);
   y += 68;
 
@@ -259,7 +264,7 @@ export function drawStructuralSectionDiagrams(
   doc.setFontSize(7);
   doc.setTextColor(...DIM);
   const note =
-    'Typical mid-span sketches for this project. Not to scale. Black dots = main bars. Teal line = tie / stirrup / mesh. Confirm cover and bar count on site before casting.';
+    'Typical mid-span sketches for this project. Not to scale. Black dots = main bars. Teal line = tie / stirrup / mesh. Beam is for a maximum 15-16 ft clear span. Confirm cover and bar count on site before casting.';
   const lines = doc.splitTextToSize(note, usable) as string[];
   doc.text(lines, margin, y);
   return y + lines.length * 3.4 + 3;
