@@ -12,6 +12,7 @@ import {
   PROJECT_START_DATE_RANGE_INVALID_MESSAGE,
   PROJECT_START_TIME_OPTIONS,
 } from './projectStartTime';
+import { laborOnlyMaterialsNote } from './laborMaterialsNote';
 import {
   ASSAM_BUILDING_TYPE,
   BOUNDARY_WALL_BUILDING_TYPE,
@@ -3238,6 +3239,10 @@ export function getMistriWorkRequirementBlocks(details: MistriDetails): {
       });
     }
 
+    blocks.push({
+      label: 'Materials:',
+      value: laborOnlyMaterialsNote('Builder'),
+    });
     return blocks;
   }
 
@@ -3415,7 +3420,11 @@ export function getMistriWorkRequirementBlocks(details: MistriDetails): {
     });
   }
 
-  return blocks;
+  blocks.push({
+      label: 'Materials:',
+      value: laborOnlyMaterialsNote('Builder'),
+    });
+    return blocks;
 }
 
 /**

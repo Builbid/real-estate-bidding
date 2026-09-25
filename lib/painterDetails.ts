@@ -11,6 +11,7 @@ import {
 } from './projectStartTime';
 import { parseCustomFloorSequence } from './mistriDetails';
 import { formatCustomFloorsList, CUSTOM_FLOOR_CHECKED_WITHOUT_FLOORS_MESSAGE } from './customFloors';
+import { laborOnlyMaterialsNote } from './laborMaterialsNote';
 import { readNestedProjectDetail } from './project/storedDetails';
 
 export type PainterStartTimeType = ProjectStartTimeType;
@@ -558,13 +559,10 @@ export function getPainterWorkRequirementBlocks(details: PainterDetails): {
     });
   }
 
-  // Legacy rows only — materials is no longer collected on the form.
-  if (typeof details.materialsIncludeClient === 'boolean') {
-    blocks.push({
-      label: 'Materials',
-      value: formatPainterMaterials(details.materialsIncludeClient),
-    });
-  }
+  blocks.push({
+    label: 'Materials:',
+    value: laborOnlyMaterialsNote('Painter'),
+  });
 
   blocks.push({
       label: 'Work Start Timeline',

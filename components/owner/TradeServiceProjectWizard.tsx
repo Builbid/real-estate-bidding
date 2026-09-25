@@ -20,6 +20,7 @@ import { FieldError, useScrollToFirstInvalid } from '@/components/owner/wizard/f
 import { ADDITIONAL_REQUIREMENTS_PLACEHOLDER, ProjectStartDatePicker, WIZARD_SECTION_LABEL, WizardAccentLabels, withSectionColon } from '@/components/owner/wizard/StartTimeAndNotes';
 import { ReviewSummaryList, WizardStepper } from '@/components/owner/wizard/ReviewSummary';
 import { StepGuidanceNotes } from '@/components/owner/wizard/StepGuidanceNotes';
+import { laborOnlyMaterialsNote } from '@/lib/laborMaterialsNote';
 import { generateProjectTitle } from '@/lib/generateProjectTitle';
 import { hasContactInfo } from '@/lib/validation/projectContactInfo';
 import { formatPincodeInput, validatePincode } from '@/lib/validation/pincode';
@@ -1147,6 +1148,9 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                       })
                     : []),
                   ...reviewTradeBlocks,
+                  ...(!isPainter && !reviewTradeBlocks.some((block) => block.label === 'Materials:')
+                    ? [{ label: 'Materials:', value: laborOnlyMaterialsNote(tradeLabel) }]
+                    : []),
                   {
                     label: 'Bidding Window',
                     value:

@@ -31,6 +31,7 @@ import { FORM_CONTINUE_BTN, FORM_SECTION_CARD, FORM_SHELL_CARD } from '@/compone
 import { WIZARD_SECTION_LABEL, WizardAccentLabels, withSectionColon } from '@/components/owner/wizard/StartTimeAndNotes';
 import { ReviewSummaryList, WizardStepper } from '@/components/owner/wizard/ReviewSummary';
 import { StepGuidanceNotes } from '@/components/owner/wizard/StepGuidanceNotes';
+import { laborOnlyMaterialsNote } from '@/lib/laborMaterialsNote';
 import { parseCustomFloorSequence } from '@/lib/mistriDetails';
 import { formatCustomFloorsList, missingCustomFloorSelectionMessage } from '@/lib/customFloors';
 import { formatPincodeInput, validatePincode } from '@/lib/validation/pincode';
@@ -472,6 +473,7 @@ export function ConstructionFirmProjectWizard() {
                         ? '7 minutes (Quick)'
                         : '24 hours (Standard)',
                   },
+                  { label: 'Materials:', value: laborOnlyMaterialsNote('Builder') },
                   { label: 'Select firm', value: '5 min window after bids close' },
                 ]}
               />

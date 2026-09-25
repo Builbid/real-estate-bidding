@@ -14,6 +14,7 @@ import {
 } from './projectStartTime';
 import { parseCustomFloorSequence } from './mistriDetails';
 import { CUSTOM_FLOOR_CHECKED_WITHOUT_FLOORS_MESSAGE, formatCustomFloorsList } from './customFloors';
+import { laborOnlyMaterialsNote } from './laborMaterialsNote';
 
 export type { ProjectStartTimeType };
 
@@ -883,8 +884,7 @@ export const LEGACY_PLUMBING_SUB_OPTIONS: PlumbingSubOptionDef[] = [
   },
 ];
 
-export const PLUMBING_LABOUR_ONLY_DISCLAIMER =
-  'All bids are strictly for PLUMBER CHARGES. Materials must be supplied by the Property Owner.';
+export const PLUMBING_LABOUR_ONLY_DISCLAIMER = laborOnlyMaterialsNote('Plumber');
 
 export const ALL_PLUMBING_SUB_OPTIONS = [
   ...PLUMBING_SCOPE_PACKAGES.flatMap((pkg) => pkg.options),
@@ -1038,8 +1038,7 @@ export const ELECTRICIAN_MATERIAL_OPTIONS: {
   { value: 'labour_plus_wire', label: 'Electrician charges + Wire/Conduits' },
 ];
 
-export const ELECTRICIAN_LABOUR_ONLY_DISCLAIMER =
-  'All bids are strictly for ELECTRICIAN CHARGES. Materials must be supplied by the Property Owner.';
+export const ELECTRICIAN_LABOUR_ONLY_DISCLAIMER = laborOnlyMaterialsNote('Electrician');
 
 export const ELECTRICIAN_SCOPE_PACKAGES: {
   id: ElectricianPackageKind;
@@ -1157,8 +1156,7 @@ export const ELECTRICIAN_SCOPE_PACKAGES: {
   },
 ];
 
-export const INTERIOR_DESIGNER_LABOUR_ONLY_DISCLAIMER =
-  'All bids are strictly for INTERIOR DESIGNER CHARGES. Materials must be supplied by the Property Owner.';
+export const INTERIOR_DESIGNER_LABOUR_ONLY_DISCLAIMER = laborOnlyMaterialsNote('Interior Designer');
 
 export const INTERIOR_DESIGNER_SCOPE_PACKAGES: {
   id: InteriorDesignerPackageKind;
@@ -1918,8 +1916,8 @@ function parseElectricianFixtureInput(
 }
 
 export function formatElectricianFloorFixtureLine(item: ElectricianFixtureCounts): string {
-  return ELECTRICIAN_FIXTURE_FIELDS.map(
-    (field) => `${field.label.replace('No. of ', '')}: ${item[field.key]}`,
+  return ELECTRICIAN_FIXTURE_FIELDS.flatMap((field) =>
+    item[field.key] > 0 ? [`${field.label.replace('No. of ', '')}: ${item[field.key]}`] : [],
   ).join(' · ');
 }
 
@@ -3057,7 +3055,7 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
         });
       }
       blocks.push({
-        label: 'Material Scope',
+        label: 'Materials:',
         value: PLUMBING_LABOUR_ONLY_DISCLAIMER,
       });
     } else if (hasPackageSystem) {
@@ -3280,7 +3278,7 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
     }
     if (details.materialScope && !hasUnitRateScope) {
       blocks.push({
-        label: 'Material Scope',
+        label: 'Materials:',
         value: optionLabel(PLUMBER_MATERIAL_OPTIONS, details.materialScope),
       });
     }
@@ -3335,7 +3333,7 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
         });
       }
       blocks.push({
-        label: 'Material Scope',
+        label: 'Materials:',
         value: ELECTRICIAN_LABOUR_ONLY_DISCLAIMER,
       });
       if (!hasPointRateScope) {
@@ -3378,7 +3376,7 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
     }
     if (details.materialScope && !hasUnitRateScope) {
       blocks.push({
-        label: 'Material Scope',
+        label: 'Materials:',
         value: optionLabel(ELECTRICIAN_MATERIAL_OPTIONS, details.materialScope),
       });
     }
@@ -3442,7 +3440,7 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
         });
       }
       blocks.push({
-        label: 'Material Scope',
+        label: 'Materials:',
         value: INTERIOR_DESIGNER_LABOUR_ONLY_DISCLAIMER,
       });
       const bidLabels: string[] = [];

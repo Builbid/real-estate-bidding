@@ -25,6 +25,7 @@ export type WorkRequirementBlock = { label: string; value: string };
 /** Redundant on project summary cards — hidden from all display grids. */
 const HIDDEN_DISPLAY_LABELS = new Set([
   'Material Scope',
+  'Materials:',
   'Bidding Options',
   'Bidding Options (₹ / Running Foot)',
   'Billing Notice',

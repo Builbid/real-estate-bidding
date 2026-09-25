@@ -15,6 +15,7 @@ import { FORM_CONTINUE_BTN, FORM_SECTION_CARD, FORM_SHELL_CARD } from '@/compone
 import { FieldError, useScrollToFirstInvalid } from '@/components/owner/wizard/fieldValidation';
 import { ReviewSummaryList, WizardStepper } from '@/components/owner/wizard/ReviewSummary';
 import { StepGuidanceNotes } from '@/components/owner/wizard/StepGuidanceNotes';
+import { laborOnlyMaterialsNote } from '@/lib/laborMaterialsNote';
 import { BuildingTypeSelector } from '@/components/construction/BuildingTypeSelector';
 import {
   AssamDistrictAutocomplete,
@@ -530,6 +531,7 @@ export function DrawingDesignProjectWizard() {
                   { label: 'District', value: form.location },
                   { label: 'Pincode', value: form.pincode.trim() || 'Not specified' },
                   ...reviewBlocks,
+                  { label: 'Materials:', value: laborOnlyMaterialsNote('Drawing & Design') },
                   {
                     label: 'Bidding window',
                     value:

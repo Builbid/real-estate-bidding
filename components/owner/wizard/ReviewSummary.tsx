@@ -68,10 +68,51 @@ function isFloorOrSectionLabel(label: string) {
   );
 }
 
+function isBlankReviewValue(value: ReactNode): boolean {
+  if (value == null || value === false) return true;
+  if (typeof value === 'number') return value <= 0;
+  if (typeof value !== 'string') return false;
+  const trimmed = value.trim();
+  return (
+    trimmed === '' ||
+    trimmed === '0' ||
+    trimmed === '0 pts' ||
+    trimmed === '—' ||
+    trimmed === '-' ||
+    trimmed === 'Not specified' ||
+    trimmed === 'null' ||
+    trimmed === 'undefined'
+  );
+}
+
+function parseCountPills(value: string): { label: string; count: number }[] | null {
+  const parts = value.split(' · ').map((part) => part.trim()).filter(Boolean);
+  if (parts.length === 0) return null;
+  const pills: { label: string; count: number }[] = [];
+  for (const part of parts) {
+    const match = part.match(/^(.*):\s*(\d+)$/);
+    if (!match) return null;
+    pills.push({ label: match[1].trim(), count: Number(match[2]) });
+  }
+  return pills.filter((pill) => pill.count > 0);
+}
+
 export function ReviewSummaryList({ items }: { items: ReviewSummaryItem[] }) {
+  const visible = items.flatMap((item) => {
+    if (typeof item.value === 'string') {
+      const pills = parseCountPills(item.value);
+      if (pills) {
+        if (pills.length === 0) return [];
+        return [{ ...item, value: <ReviewCountPills pills={pills} /> }];
+      }
+    }
+    if (isBlankReviewValue(item.value)) return [];
+    return [item];
+  });
+
   return (
     <div>
-      {items.map((item) => {
+      {visible.map((item) => {
         const highlight = item.highlight ?? isFloorOrSectionLabel(item.label);
         return (
           <div
@@ -87,6 +128,21 @@ export function ReviewSummaryList({ items }: { items: ReviewSummaryItem[] }) {
           </div>
         );
       })}
+    </div>
+  );
+}
+
+function ReviewCountPills({ pills }: { pills: { label: string; count: number }[] }) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {pills.map((pill) => (
+        <span
+          key={`${pill.label}-${pill.count}`}
+          className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium leading-4 text-blue-800 dark:bg-blue-950/50 dark:text-blue-100"
+        >
+          {pill.label} {pill.count}
+        </span>
+      ))}
     </div>
   );
 }
