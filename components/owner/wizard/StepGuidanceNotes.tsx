@@ -4,9 +4,9 @@ export function StepGuidanceNotes({ showWastePiping = false }: { showWastePiping
       <p className="text-sm font-semibold leading-5 text-slate-700 dark:text-slate-200">
         Important Notes:
       </p>
-      <p>• Fill only the items required for your project. You can leave fields empty if they are not needed for your work.</p>
-      <p>• Quantities provided are estimated. Final billing will be calculated based on actual joint site measurement during site visit.</p>
-      <p>• Contractor bid rates remain fixed and transparent once finalized.</p>
+      <p>• Fill only the work details required for your project. You can leave fields empty if that work is not needed.</p>
+      <p>• Quantities of work you provide are counted as estimated values. Final billing will be calculated based on actual joint site measurement during site visit.</p>
+      <p>• Once bidding closes and you select a bid rate, your chosen bid rates are fixed and non-negotiable.</p>
       {showWastePiping && (
         <div>
           <p>

@@ -1441,6 +1441,8 @@ export function LabourContractorProjectWizard() {
                 </p>
               </div>
 
+              <StepGuidanceNotes />
+
               <Button size="lg" className={cn('w-full', FORM_CONTINUE_BTN)} onClick={tryGoStep2}>
                 Continue <ArrowRight className="w-4 h-4" />
               </Button>
@@ -1984,8 +1986,6 @@ export function LabourContractorProjectWizard() {
                   className={FORM_TEXTAREA}
                 />
               </div>
-
-              <StepGuidanceNotes />
 
               <div className="flex gap-3">
                 <Button variant="outline" size="lg" className="flex-1" onClick={() => setStep(1)}>

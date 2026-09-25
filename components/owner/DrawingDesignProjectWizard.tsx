@@ -400,6 +400,8 @@ export function DrawingDesignProjectWizard() {
                 <FieldError message={step1ValidationAttempted ? step1Errors.bidding : undefined} />
               </div>
 
+              <StepGuidanceNotes />
+
               <Button size="lg" className={cn('w-full', FORM_CONTINUE_BTN)} onClick={tryGoStep2}>
                 Continue <ArrowRight className="h-4 w-4" />
               </Button>
@@ -507,8 +509,6 @@ export function DrawingDesignProjectWizard() {
                   clearStep2();
                 }}
               />
-
-              <StepGuidanceNotes />
 
               <div className="flex gap-3">
                 <Button variant="outline" size="lg" className="flex-1" onClick={() => setStep(1)}>

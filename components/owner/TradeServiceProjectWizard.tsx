@@ -793,6 +793,8 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                 </p>
               </div>
 
+              <StepGuidanceNotes showWastePiping={trade === 'plumber'} />
+
               <Button size="lg" className={cn('w-full', FORM_CONTINUE_BTN)} onClick={tryGoStep2}>
                 Continue <ArrowRight className="w-4 h-4" />
               </Button>
@@ -1106,8 +1108,6 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                   }}
                 />
               )}
-
-              <StepGuidanceNotes showWastePiping={trade === 'plumber'} />
 
               <div className="flex gap-3">
                 <Button variant="outline" size="lg" className="flex-1" onClick={() => setStep(1)}>
