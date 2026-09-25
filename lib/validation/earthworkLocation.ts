@@ -20,13 +20,14 @@ export function formatEarthworkProjectLocation(
   return [district.trim(), villageOrTown.trim(), pincode.trim()].filter(Boolean).join(', ');
 }
 
-/** Maps search query, e.g. "Barbari Village, Baksa, Assam, 781344". */
+/** Maps search query, e.g. "Barbari Village 781344, Baksa, Assam". */
 export function formatEarthworkMapsQuery(
   villageOrTown: string,
   district: string,
   pincode: string,
 ): string {
-  return [villageOrTown.trim(), district.trim(), 'Assam', pincode.trim()].filter(Boolean).join(', ');
+  const villageAndPin = [villageOrTown.trim(), pincode.trim()].filter(Boolean).join(' ');
+  return [villageAndPin, district.trim(), 'Assam'].filter(Boolean).join(', ');
 }
 
 export function readEarthworkVillageName(tradeDetails: unknown): string {
