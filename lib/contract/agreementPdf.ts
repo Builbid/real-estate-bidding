@@ -54,7 +54,14 @@ export function formatInrAmount(value: number): string {
 }
 
 export function pdfSafeText(text: string): string {
-  return text.replace(/₹/g, 'Rs.');
+  return text
+    .replace(/₹/g, 'Rs.')
+    .replace(/[—–]/g, '-')
+    .replace(/[’‘]/g, "'")
+    .replace(/[“”]/g, '"')
+    .replace(/×/g, 'x')
+    .replace(/≈/g, '~')
+    .replace(/\u00A0/g, ' ');
 }
 
 /** Strip accidental trailing punctuation like ". ." from formatted strings. */

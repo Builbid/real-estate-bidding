@@ -35,6 +35,8 @@ export interface MistriThumbRulesGuide {
   siteAddress: string;
   generatedAtLabel: string;
   snapshotRows: ThumbRuleRow[];
+  analysisRows: ThumbRuleRow[];
+  seismicRows: ThumbRuleRow[];
   foundationRows: ThumbRuleRow[];
   columnRows: ThumbRuleRow[];
   beamRows: ThumbRuleRow[];
@@ -49,16 +51,27 @@ export interface MistriThumbRulesGuide {
   disclaimer: string;
 }
 
+/** Assam / NE India is IS 1893 Zone V. There is no official Zone VI - use Zone V + IS 13920. */
+const SEISMIC_ZONE_LABEL = 'IS 1893 Zone V (Assam / North-East) - design as highest Indian zone';
+const FLOOR_LOAD_KN_M2 = 13;
+const SBC_KN_M2 = 125;
+const SEISMIC_FOOTING_FACTOR = 1.15;
+const TYPICAL_TRIBUTARY_M2 = 12;
+
 function siteAddress(project: MistriThumbRulesProjectInput): string {
   const parts = [project.district?.trim(), project.state?.trim(), project.pincode?.trim()].filter(
     Boolean,
   );
-  return parts.length > 0 ? parts.join(', ') : '—';
+  return parts.length > 0 ? parts.join(', ') : '-';
 }
 
 function formatSqft(value: number): string {
-  if (!Number.isFinite(value) || value <= 0) return '—';
+  if (!Number.isFinite(value) || value <= 0) return '-';
   return `${Math.round(value).toLocaleString('en-IN')} sq. ft.`;
+}
+
+function sqftToM2(sqft: number): number {
+  return Math.max(0, sqft) * 0.092903;
 }
 
 function storeysFromGPlus(upper: number | null, fallbackFloors?: number | null): number {
@@ -70,7 +83,7 @@ function storeysFromGPlus(upper: number | null, fallbackFloors?: number | null):
 function floorPlanLabel(value: string | null | undefined, storeys: number): string {
   const upper = floorPlanUpperCount(value);
   if (upper === 0) return 'G+0 (ground floor only)';
-  if (upper != null) return `G+${upper} (${storeys} storey${storeys === 1 ? '' : 's'})`;
+  if (upper != null) return `G+${upper} (${storeys} storeys)`;
   if (storeys === 1) return 'Ground floor only (assumed)';
   return `${storeys} storeys (from project floors)`;
 }
@@ -83,9 +96,7 @@ function typicalFloorAreaSqft(
     mistri?.floorWork
       ?.map((floor) => floor.slabAreaSqft)
       .filter((value): value is number => typeof value === 'number' && value > 0) ?? [];
-  if (slabAreas.length > 0) {
-    return Math.max(...slabAreas);
-  }
+  if (slabAreas.length > 0) return Math.max(...slabAreas);
   if (mistri && mistri.approximateAreaSqft > 0) return mistri.approximateAreaSqft;
   if (project.floor_area_sqft && project.floor_area_sqft > 0) return project.floor_area_sqft;
   if (project.plot_area_sqft && project.plot_area_sqft > 0) return project.plot_area_sqft;
@@ -180,64 +191,141 @@ function assamRoofSummary(floors: MistriFloorWork[] | null | undefined): string 
   return parts.length > 0 ? parts.join(' + ') : null;
 }
 
-function columnSize(storeys: number, typicalFloor: number): string {
-  const heavy = typicalFloor >= 1200;
-  if (storeys <= 1) {
-    return heavy
-      ? '9" x 12" (230 x 300 mm)'
-      : '9" x 9" (230 x 230 mm) minimum; prefer 9" x 12" (230 x 300 mm)';
+function estimatedColumnCount(floorSqft: number): number {
+  const areaM2 = sqftToM2(Math.max(floorSqft, 600));
+  const raw = Math.round(areaM2 / TYPICAL_TRIBUTARY_M2);
+  return Math.max(9, Math.min(25, raw));
+}
+
+function columnServiceLoadKn(floorSqft: number, storeys: number, columnCount: number): number {
+  const trib = sqftToM2(Math.max(floorSqft, 600)) / columnCount;
+  return trib * FLOOR_LOAD_KN_M2 * storeys * 1.1;
+}
+
+function roundHalfFt(value: number): number {
+  return Math.ceil(value * 2) / 2;
+}
+
+interface HouseAnalysis {
+  columnCount: number;
+  tributaryM2: number;
+  serviceLoadKn: number;
+  designLoadKn: number;
+  footingSideFt: number;
+  footingThickIn: number;
+  columnSizeIn: string;
+  columnSizeMm: string;
+  columnBars: string;
+  plinthSize: string;
+  plinthBars: string;
+  plinthStirrups: string;
+  floorBeamSize: string;
+  floorBeamBars: string;
+  floorBeamStirrups: string;
+  slabThk: string;
+  concreteGrade: string;
+}
+
+function analyzeHouse(floorSqft: number, storeys: number): HouseAnalysis {
+  const columnCount = estimatedColumnCount(floorSqft);
+  const tributaryM2 = sqftToM2(Math.max(floorSqft, 600)) / columnCount;
+  const serviceLoadKn = columnServiceLoadKn(floorSqft, storeys, columnCount);
+  const designLoadKn = serviceLoadKn * SEISMIC_FOOTING_FACTOR;
+  const sideM = Math.sqrt(designLoadKn / SBC_KN_M2);
+  const footingSideFt = Math.max(4, roundHalfFt(sideM * 3.28084));
+  const footingThickIn = storeys <= 1 ? 12 : storeys === 2 ? 15 : storeys === 3 ? 18 : storeys === 4 ? 21 : 24;
+  const heavy = floorSqft >= 1500;
+
+  let columnSizeIn = '12" x 12"';
+  let columnSizeMm = '300 x 300 mm';
+  let columnBars = '6 nos 16 mm TMT Fe 500D';
+  if (storeys <= 1 && !heavy) {
+    columnSizeIn = '12" x 12"';
+    columnSizeMm = '300 x 300 mm (Zone V minimum; do not use 9" x 9")';
+    columnBars = '4 nos 16 mm TMT Fe 500D (prefer 6 nos 16 mm)';
+  } else if (storeys <= 2 && !heavy) {
+    columnSizeIn = '12" x 12"';
+    columnSizeMm = '300 x 300 mm';
+    columnBars = '6 nos 16 mm TMT Fe 500D';
+  } else if (storeys <= 3 && !heavy) {
+    columnSizeIn = '12" x 15"';
+    columnSizeMm = '300 x 380 mm';
+    columnBars = '8 nos 16 mm TMT Fe 500D';
+  } else if (storeys <= 3 || (storeys === 4 && !heavy)) {
+    columnSizeIn = '15" x 15"';
+    columnSizeMm = '380 x 380 mm';
+    columnBars = storeys >= 4 ? '8 nos 20 mm TMT Fe 500D' : '8 nos 16 mm TMT Fe 500D';
+  } else if (storeys === 4) {
+    columnSizeIn = '15" x 15"';
+    columnSizeMm = '380 x 380 mm';
+    columnBars = '8 nos 20 mm TMT Fe 500D';
+  } else {
+    columnSizeIn = '15" x 18"';
+    columnSizeMm = '380 x 450 mm';
+    columnBars = '8 nos 20 mm TMT Fe 500D (add 4 extra 16 mm if spans are long)';
   }
-  if (storeys === 2) return '9" x 12" (230 x 300 mm)';
-  if (storeys === 3) return heavy ? '12" x 15" (300 x 380 mm)' : '12" x 12" (300 x 300 mm)';
-  if (storeys === 4) return '12" x 15" (300 x 380 mm)';
-  return '15" x 15" (380 x 380 mm) or as per structural drawing';
-}
 
-function columnBars(storeys: number): string {
-  if (storeys <= 1) return '4 - 12 mm HYSD (Fe 500) minimum';
-  if (storeys === 2) return '4 - 16 mm HYSD (Fe 500)';
-  if (storeys === 3) return '6 - 16 mm HYSD (Fe 500)';
-  if (storeys === 4) return '6 - 20 mm or 8 - 16 mm HYSD (Fe 500)';
-  return '8 - 20 mm HYSD - confirm with structural drawing';
-}
-
-function beamSize(storeys: number, typicalFloor: number): string {
-  if (storeys <= 2 && typicalFloor < 1500) {
-    return '9" x 12" (230 x 300 mm) for rooms up to ~12 ft span. Beam depth about span / 12.';
+  let plinthSize = '9" x 12" (230 x 300 mm)';
+  let plinthBars = '4 nos 16 mm TMT (2 top + 2 bottom) - do not use 12 mm here';
+  if (storeys >= 4 || (storeys >= 3 && heavy)) {
+    plinthSize = '12" x 15" (300 x 380 mm)';
+    plinthBars = '6 nos 16 mm TMT (3 top + 3 bottom). Alternate: 4 nos 20 mm TMT';
+  } else if (storeys >= 2 || heavy) {
+    plinthSize = '9" x 15" (230 x 380 mm)';
+    plinthBars = '4 nos 16 mm TMT (2 top + 2 bottom). Prefer 6 nos 16 mm if soil is soft';
   }
-  if (storeys <= 3) {
-    return '9" x 15" (230 x 380 mm) typical; long-span / heavy beams 12" x 18" (300 x 450 mm). Depth about span / 12.';
+
+  const plinthStirrups =
+    '8 mm 2-legged @ 100 mm c/c throughout (Zone V grade beam). 135-degree hooks. No 150-200 mm spacing.';
+
+  let floorBeamSize = '9" x 12" (230 x 300 mm) for rooms up to 12 ft. Depth about span/12.';
+  let floorBeamBars = 'Bottom 2 nos 16 mm + top 2 nos 16 mm continuous through the joint';
+  if (storeys >= 4 || heavy) {
+    floorBeamSize = '12" x 18" (300 x 450 mm) typical. Long hall: depth = span/12.';
+    floorBeamBars = 'Bottom 2 nos 20 mm + 1 no 16 mm; top 2 nos 16 mm continuous through the joint';
+  } else if (storeys >= 3) {
+    floorBeamSize = '9" x 15" (230 x 380 mm) typical; long-span 12" x 18". Depth about span/12.';
+    floorBeamBars = 'Bottom 2 nos 16 mm + 1 no 16 mm if span > 12 ft; top 2 nos 16 mm continuous';
   }
-  return '12" x 18" (300 x 450 mm) typical. Always check depth about span / 12.';
-}
 
-function beamMainBars(storeys: number): string {
-  if (storeys <= 1) return 'Bottom 2-16 mm + top 2-12 mm HYSD';
-  if (storeys === 2) return 'Bottom 2-16 mm (add 1-16 mm if span > 12 ft) + top 2-12 mm HYSD';
-  return 'Bottom 2-20 mm + 1-16 mm; top 2-16 mm at supports';
-}
+  const floorBeamStirrups =
+    '8 mm 2-legged @ 100 mm c/c for 2d from each column face (confinement). Mid-span 8 mm @ 150 mm. 135-degree hooks.';
 
-function slabThickness(typicalFloor: number): string {
-  if (typicalFloor >= 1800) {
-    return '5"-6" (125-150 mm). Use 150 mm where room span exceeds 12 ft.';
-  }
-  return '5" (125 mm) typical for rooms up to 12 ft span. Use 150 mm for larger halls.';
-}
+  const slabThk =
+    floorSqft >= 1800 || storeys >= 3
+      ? '5" to 6" (125-150 mm). Use 150 mm where room span exceeds 12 ft.'
+      : '5" (125 mm) for rooms up to 12 ft span. Use 150 mm for larger halls.';
 
-function footingSize(storeys: number): string {
-  if (storeys <= 1) return 'About 4\' x 4\' x 12" (1.2 x 1.2 m x 300 mm) on medium soil';
-  if (storeys === 2) return 'About 4.5\' x 4.5\' x 12"-15" on medium soil';
-  if (storeys === 3) return 'About 5\' x 5\' x 15" on medium soil';
-  return 'About 6\' x 6\' x 18" or combined footing - confirm with soil SBC';
+  const concreteGrade = storeys >= 4 ? 'M25 for columns and footings; M20 minimum for slab / beam' : 'M20 (1:1.5:3) minimum; M25 better for Zone V columns';
+
+  return {
+    columnCount,
+    tributaryM2,
+    serviceLoadKn,
+    designLoadKn,
+    footingSideFt,
+    footingThickIn,
+    columnSizeIn,
+    columnSizeMm,
+    columnBars,
+    plinthSize,
+    plinthBars,
+    plinthStirrups,
+    floorBeamSize,
+    floorBeamBars,
+    floorBeamStirrups,
+    slabThk,
+    concreteGrade,
+  };
 }
 
 function foundationDepthLabel(storeys: number, projectDepthFt: number | null): string {
   if (projectDepthFt && projectDepthFt > 0) {
-    return `${projectDepthFt} ft as entered on this project. Still check hard strata / water table on site (minimum usually 4 ft below GL).`;
+    return `${projectDepthFt} ft as entered on this project. Still reach hard strata / check water table (minimum usually 4 ft below GL).`;
   }
   if (storeys <= 2) return 'Minimum 4 ft (1.2 m) below existing ground, or to hard strata';
   if (storeys === 3) return 'Minimum 5 ft (1.5 m) below existing ground, or to hard strata';
-  return 'Minimum 5-6 ft (1.5-1.8 m) below GL. Soil test recommended.';
+  return 'Minimum 6 ft (1.8 m) below GL for G+3 and above. Soil test recommended in Assam alluvium.';
 }
 
 function looseMistriDetails(raw: unknown): MistriDetails | null {
@@ -291,6 +379,7 @@ export function buildMistriThumbRulesGuide(
   const frame = hasFrameScope(mistri) || rcc;
   const projectDepth = assamFoundationDepthFt(mistri);
   const roof = assamRoofSummary(mistri?.floorWork);
+  const analysis = analyzeHouse(typicalFloor || 1000, designStoreys);
   const generatedAtLabel = new Date().toLocaleString('en-IN', {
     dateStyle: 'medium',
     timeStyle: 'short',
@@ -307,15 +396,82 @@ export function buildMistriThumbRulesGuide(
       label: 'Foundation sized for',
       value: floorPlanLabel(mistri?.futureFloorPlan ?? mistri?.currentFloorPlan, designStoreys),
     },
+    { label: 'Seismic zone', value: SEISMIC_ZONE_LABEL },
+  ];
+
+  const analysisRows: ThumbRuleRow[] = [
+    {
+      label: 'Method',
+      value:
+        'Approximate gravity + seismic check for a regular house grid. No architectural drawing, so spans and exact column positions are assumed.',
+    },
+    {
+      label: 'Assumed grid',
+      value: `${analysis.columnCount} columns, about ${analysis.tributaryM2.toFixed(1)} sq. m tributary each (3.3-3.6 m spacing).`,
+    },
+    {
+      label: 'Floor load used',
+      value: `${FLOOR_LOAD_KN_M2} kN/sq. m (125 mm slab + finish + partitions + 2 kN live + wall share).`,
+    },
+    {
+      label: 'Service load / column',
+      value: `About ${Math.round(analysis.serviceLoadKn)} kN for ${designStoreys} storeys on this plinth area.`,
+    },
+    {
+      label: 'Footing load (Zone V)',
+      value: `About ${Math.round(analysis.designLoadKn)} kN after 1.15 seismic / settlement factor.`,
+    },
+    {
+      label: 'Assumed SBC',
+      value: `${SBC_KN_M2} kN/sq. m (medium Assam alluvium, no soil report). Soft soil needs a larger footing.`,
+    },
+    {
+      label: 'Required footing plan',
+      value: `${analysis.footingSideFt.toFixed(1)} ft x ${analysis.footingSideFt.toFixed(1)} ft x ${analysis.footingThickIn}" from P/SBC. Isolated footing; combine if columns are closer than 6 ft.`,
+    },
+  ];
+
+  const seismicRows: ThumbRuleRow[] = [
+    {
+      label: 'Why Zone V',
+      value:
+        'Assam is IS 1893 Seismic Zone V. India has no Zone VI. Detailing follows IS 13920 ductile detailing as for the highest Indian zone.',
+    },
+    {
+      label: 'Tie the building',
+      value:
+        'Continuous plinth / grade beam through every footing. Continuous lintel / roof band. No floating columns. No offset columns without an engineer.',
+    },
+    {
+      label: 'Column confinement',
+      value:
+        '8 mm ties @ 100 mm c/c in the confinement zone (larger of column depth, 450 mm, or 1/6 clear height from each joint). Mid-height 8 mm @ 150 mm. 135-degree hooks.',
+    },
+    {
+      label: 'Beam confinement',
+      value:
+        '8 mm stirrups @ 100 mm c/c for 2 times beam depth from each column face. Two bars top and two bars bottom must run through the joint.',
+    },
+    {
+      label: 'Do not do this',
+      value:
+        'Do not use 4 nos 12 mm in the plinth beam for G+1 and above. Do not use 9" x 9" columns. Do not lap bars in the joint or at mid-span beam bottom.',
+    },
   ];
 
   const foundationRows: ThumbRuleRow[] = [
-    { label: 'Foundation type', value: 'Isolated column footings + plinth beam (typical house)' },
+    { label: 'Foundation type', value: 'Isolated column footings + continuous plinth / grade beam tying every footing' },
     { label: 'Founding depth', value: foundationDepthLabel(designStoreys, projectDepth) },
-    { label: 'Footing size (thumb)', value: footingSize(designStoreys) },
-    { label: 'PCC below footing', value: '3"-4" (75-100 mm) PCC 1:4:8' },
-    { label: 'Footing concrete', value: 'M20 (1:1.5:3) minimum' },
-    { label: 'Plinth beam', value: '9" x 12" (230 x 300 mm), 4 - 12 mm bars + 8 mm stirrups @ 150-200 mm' },
+    {
+      label: 'Footing size (this job)',
+      value: `${analysis.footingSideFt.toFixed(1)} ft x ${analysis.footingSideFt.toFixed(1)} ft x ${analysis.footingThickIn}" (from load / SBC above)`,
+    },
+    { label: 'PCC below footing', value: '4" (100 mm) PCC 1:4:8' },
+    { label: 'Footing concrete', value: analysis.concreteGrade },
+    { label: 'Footing steel (thumb)', value: '12 mm mesh @ 150 mm c/c both ways, extra 12 mm across the column. Cover 50 mm.' },
+    { label: 'Plinth beam size', value: analysis.plinthSize },
+    { label: 'Plinth beam steel', value: analysis.plinthBars },
+    { label: 'Plinth stirrups', value: analysis.plinthStirrups },
     {
       label: 'Plinth height',
       value: 'Minimum 1.5-2 ft (450-600 mm) above existing ground / road level',
@@ -324,57 +480,55 @@ export function buildMistriThumbRulesGuide(
 
   const columnRows: ThumbRuleRow[] = frame
     ? [
-        { label: 'Column size (thumb)', value: columnSize(designStoreys, typicalFloor) },
-        { label: 'Main bars', value: columnBars(designStoreys) },
+        { label: 'Column size (this job)', value: `${analysis.columnSizeIn} (${analysis.columnSizeMm})` },
+        { label: 'Main bars', value: analysis.columnBars },
         {
-          label: 'Ties / stirrups',
-          value: '8 mm ties @ 150 mm c/c near ends (and at beam junctions); 8 mm @ 200 mm at mid-height',
+          label: 'Ties',
+          value:
+            '8 mm ties @ 100 mm c/c in confinement zone; 8 mm @ 150 mm at mid-height. 135-degree hooks. Every tie must hold a bar.',
         },
         {
           label: 'Why this size',
-          value: `Columns and footings are sized for ${designStoreys} storey${designStoreys === 1 ? '' : 's'} (future provision if entered), not only the floor being built now.`,
+          value: `Sized for ${designStoreys} storeys, ${formatSqft(typicalFloor)} typical floor, Zone V. Future floors entered on the project control this, not only the floor being built now.`,
         },
       ]
     : [
         {
           label: 'RCC frame',
-          value: 'No full RCC frame selected on this project. Use these sizes if a frame is added later.',
+          value: 'No full RCC frame selected. If a frame is added later, use the Zone V sizes in this sheet.',
         },
       ];
 
   const beamRows: ThumbRuleRow[] = frame
     ? [
-        { label: 'Typical beam size', value: beamSize(designStoreys, typicalFloor) },
-        { label: 'Main steel', value: beamMainBars(designStoreys) },
-        {
-          label: 'Stirrups',
-          value:
-            '8 mm 2-legged @ 150 mm c/c for L/4 from each support; 8 mm @ 200-250 mm at mid-span. Always closer at beam-column joints.',
-        },
+        { label: 'Typical floor beam', value: analysis.floorBeamSize },
+        { label: 'Main steel', value: analysis.floorBeamBars },
+        { label: 'Stirrups', value: analysis.floorBeamStirrups },
         {
           label: 'Lintel / sunshade',
-          value: 'Lintel 6" x 9" (150 x 230 mm) with 2-10 mm + 8 mm stirrups @ 150 mm. Sunshade slab 3" (75 mm).',
+          value:
+            'Lintel band continuous: 6" x 9" (150 x 230 mm), 2 nos 12 mm + 8 mm stirrups @ 100-150 mm. Sunshade 3" (75 mm).',
         },
       ]
     : [
         {
           label: 'Beams',
-          value: 'RCC beam schedule applies when a frame / slab is in scope. Lintel 6" x 9" still recommended over openings.',
+          value: 'Provide a continuous lintel band 6" x 9" with 2 nos 12 mm even if there is no full RCC frame.',
         },
       ];
 
   const slabRows: ThumbRuleRow[] =
     frame && !assamOnly
       ? [
-          { label: 'Slab thickness', value: slabThickness(typicalFloor) },
+          { label: 'Slab thickness', value: analysis.slabThk },
           {
             label: 'Slab steel',
             value:
-              'Main bars 8 mm @ 150 mm c/c (or 10 mm @ 200 mm for longer spans). Distribution 8 mm @ 200-250 mm c/c.',
+              'Main bars 8 mm @ 150 mm c/c (or 10 mm @ 200 mm for longer spans). Distribution 8 mm @ 200 mm c/c.',
           },
           {
             label: 'Extra steel',
-            value: 'Extra top bars 8 mm at supports for L/4. Provide extra around openings / sunken toilets.',
+            value: 'Extra top bars 8 mm at supports for L/4. Extra around openings and sunken toilets. Corner torsion steel.',
           },
           { label: 'Staircase waist', value: '6" (150 mm) waist slab; riser 6"-7", tread 10"-12"' },
         ]
@@ -382,40 +536,48 @@ export function buildMistriThumbRulesGuide(
           {
             label: 'RCC slab',
             value: assamOnly
-              ? 'Assam Type roof is not a typical RCC floor slab. See Assam roof notes below.'
-              : 'No RCC slab selected. If a slab is added, use 125 mm with 8 mm @ 150 mm as a starting thumb rule.',
+              ? 'Assam Type roof is not a typical RCC floor slab. See Assam roof notes below. Foundation still follows Zone V.'
+              : 'No RCC slab selected. If a slab is added, use 125-150 mm with 8 mm @ 150 mm as a starting rule.',
           },
         ];
 
   const steelRows: ThumbRuleRow[] = [
-    { label: 'Steel grade', value: 'HYSD / TMT Fe 500 (or Fe 500D). Do not mix rusted / undersized bars.' },
-    { label: 'Lap length', value: 'Tension lap about 50 x bar dia. Stagger laps. No lap at mid-span bottom of beams.' },
-    { label: 'Development / hook', value: 'Standard 90-degree hook at beam ends. Column starter bars min. 45-50 x dia into footing.' },
+    { label: 'Steel grade', value: 'TMT Fe 500D. Do not mix rusted or undersized bars.' },
+    { label: 'Lap length', value: 'Tension lap 50 x bar dia (Zone V). Stagger laps. No lap in the joint or at mid-span beam bottom.' },
+    {
+      label: 'Development',
+      value: 'Column starter bars 50 x dia into the footing. Beam bars through the joint with standard 90-degree hook if they stop.',
+    },
     {
       label: 'Chairs / cover blocks',
-      value: 'Use proper cover blocks. Slab chairs so top mesh cannot sink during concreting.',
+      value: 'Use proper cover blocks. Slab chairs so the top mesh cannot sink during concreting.',
     },
   ];
 
   const coverRows: ThumbRuleRow[] = [
     { label: 'Slab clear cover', value: '20 mm' },
-    { label: 'Beam clear cover', value: '25 mm' },
+    { label: 'Beam / plinth clear cover', value: '25 mm' },
     { label: 'Column clear cover', value: '40 mm' },
     { label: 'Footing clear cover', value: '50 mm' },
-    { label: 'RCC concrete grade', value: 'M20 (1:1.5:3) minimum for slab, beam, column, footing' },
-    { label: 'Curing', value: 'Keep wet for 7-14 days (10 days typical in Assam humidity / heat)' },
+    { label: 'RCC concrete grade', value: analysis.concreteGrade },
+    { label: 'Curing', value: 'Keep wet for 10-14 days (Assam heat / humidity)' },
   ];
 
   const masonryRows: ThumbRuleRow[] = [];
   if (hasBrickScope(mistri) || hasPlasterScope(mistri) || hasBoundaryScope(mistri) || hasFlooringScope(mistri)) {
-    const brick = mistri?.floorWork?.find((floor) => floor.brickMaterial)?.brickMaterial
-      ?? mistri?.brickworkDetails?.materialType;
+    const brick =
+      mistri?.floorWork?.find((floor) => floor.brickMaterial)?.brickMaterial ??
+      mistri?.brickworkDetails?.materialType;
     masonryRows.push({
       label: 'Wall thickness',
       value:
         brick === 'aac_block'
-          ? 'AAC: external 6"-8" (150-200 mm), internal 4" (100 mm) typical'
-          : 'Red brick: external 9" (230 mm), internal 4.5" (115 mm) typical',
+          ? 'AAC: external 6"-8" (150-200 mm), internal 4" (100 mm). Tie to columns with bars / bands.'
+          : 'Red brick: external 9" (230 mm), internal 4.5" (115 mm). Toothed / tied to RCC columns.',
+    });
+    masonryRows.push({
+      label: 'Seismic walls',
+      value: 'Do not leave full-height unrestrained walls. Provide lintel band and, if walls are long, a sill band.',
     });
     if (hasPlasterScope(mistri)) {
       masonryRows.push({
@@ -426,7 +588,7 @@ export function buildMistriThumbRulesGuide(
     if (hasFlooringScope(mistri)) {
       masonryRows.push({
         label: 'Flooring bed',
-        value: '25-40 mm bedding mortar for tiles / marble. Keep floor trap / slope 1:60 to 1:80 in wet areas.',
+        value: '25-40 mm bedding mortar for tiles / marble. Wet-area slope 1:60 to 1:80.',
       });
     }
     if (hasBoundaryScope(mistri) && mistri?.boundaryWallDetails) {
@@ -434,7 +596,7 @@ export function buildMistriThumbRulesGuide(
         mistri.boundaryWallDetails.thickness === '3_inch' ? '3" (75 mm)' : '5" (125 mm)';
       masonryRows.push({
         label: 'Boundary wall',
-        value: `${thickness} ${mistri.boundaryWallDetails.structureType === 'half_grill' ? 'half-grill' : 'full solid'}. Intermediate 9" x 9" columns every 8-10 ft, foundation 2.5-3 ft.`,
+        value: `${thickness} ${mistri.boundaryWallDetails.structureType === 'half_grill' ? 'half-grill' : 'full solid'}. Intermediate 9" x 12" columns every 8 ft, 3 ft foundation, plinth band.`,
       });
     }
   }
@@ -444,7 +606,7 @@ export function buildMistriThumbRulesGuide(
     assamRows.push({
       label: 'Assam Type note',
       value:
-        'Light roof house: size foundation and plinth for the future floors entered. Superstructure follows timber / steel / RCC truss - not a full multi-storey RCC slab building.',
+        'Light roof house: still size foundation, plinth beam and posts for the future floors and Zone V. Do not rest a heavy RCC slab on Assam walls without an engineer.',
     });
     if (roof) {
       assamRows.push({ label: 'Roof on this project', value: roof });
@@ -452,30 +614,33 @@ export function buildMistriThumbRulesGuide(
     assamRows.push({
       label: 'Truss / purlin (thumb)',
       value:
-        'Steel truss: rafters about 75 x 40 mm or as designed, purlins 2-3 ft c/c. Wood truss: treat timber against moisture / termite. RCC truss: follow the same cover and M20 rules.',
+        'Steel truss: rafters about 75 x 40 mm or as designed, purlins 2-3 ft c/c, bracings both ways. Wood truss: treat against moisture / termite. Anchor to plinth / ring beam.',
     });
     assamRows.push({
       label: 'Posts / walls',
-      value: 'Hold posts plumb. Provide bracings. Tie walls to plinth beam. Do not rest heavy RCC slab on Assam walls without an engineer.',
+      value: 'Hold posts plumb. Provide cross bracings. Tie walls to the plinth beam.',
     });
   }
 
   const checklistRows: ThumbRuleRow[] = [
-    { label: 'Before casting', value: 'Check cover, bar count, stirrup spacing, and lap positions with the Mistri / owner together.' },
-    { label: 'Column alignment', value: 'Columns must be in one line plumb from footing to terrace. Offset later floors only with an engineer.' },
-    { label: 'Water / electrical sleeves', value: 'Fix sleeves in slab / beam before concrete. Do not chase a structural beam later.' },
-    { label: 'This sheet', value: 'Site guidance only. Not a signed structural design, bar-bending schedule, or municipal drawing.' },
+    { label: 'Before casting', value: 'Check cover, bar count, 135-degree hooks, and lap positions with the Mistri and owner together.' },
+    { label: 'Column alignment', value: 'Columns must stay in one line plumb from footing to terrace.' },
+    { label: 'Sleeves', value: 'Fix water / electrical sleeves in slab and beam before concrete. Do not chase a structural beam later.' },
+    { label: 'This sheet', value: 'Site guidance from an approximate check. Not a signed structural drawing or bar-bending schedule.' },
   ];
 
   return {
     projectId: project.id,
-    numericProjectId: project.numeric_id?.trim() && /^[0-9]{6}$/.test(project.numeric_id.trim())
-      ? project.numeric_id.trim()
-      : '',
+    numericProjectId:
+      project.numeric_id?.trim() && /^[0-9]{6}$/.test(project.numeric_id.trim())
+        ? project.numeric_id.trim()
+        : '',
     projectTitle: project.title?.trim() || 'Mistri project',
     siteAddress: siteAddress(project),
     generatedAtLabel,
     snapshotRows,
+    analysisRows,
+    seismicRows,
     foundationRows,
     columnRows,
     beamRows,
@@ -488,6 +653,6 @@ export function buildMistriThumbRulesGuide(
     isAssamOnly: assamOnly,
     hasRccFrame: frame && !assamOnly,
     disclaimer:
-      'These are common Indian residential site thumb rules (IS 456 / usual Assam house practice) scaled to this project\'s area and storeys. They are NOT a structural design. Soil SBC, exact room spans, seismic detailing, and final bar schedules must be checked by a licensed structural engineer before casting.',
+      'Approximate practical sizes for a regular Assam house using IS 456, IS 1893 Zone V and IS 13920 detailing. No room-by-room drawing was available, so a standard 3.3-3.6 m grid and 125 kN/sq. m SBC were assumed. This is NOT a signed structural design. Soft soil, irregular plans, long spans, or floating columns need a licensed structural engineer before casting.',
   };
 }

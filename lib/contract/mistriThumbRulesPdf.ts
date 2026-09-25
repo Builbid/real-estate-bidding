@@ -35,7 +35,7 @@ export function generateMistriThumbRulesPdfFromGuide(guide: MistriThumbRulesGuid
 
   y = drawParagraph(
     doc,
-    'Indicative sizes for the Head Mason and owner — generated from this uploaded Mistri project. Not a structural drawing.',
+    'Site sizes for the Head Mason and owner from this uploaded Mistri project. Approximate analysis for a regular house in Seismic Zone V. Not a signed structural drawing.',
     y,
     margin,
     { bold: true, fill: [254, 243, 199], bordered: true },
@@ -47,31 +47,42 @@ export function generateMistriThumbRulesPdfFromGuide(guide: MistriThumbRulesGuid
   y = drawSectionTitle(doc, '2. Read this first', y, margin);
   y = drawParagraph(doc, guide.disclaimer, y, margin, { fill: [255, 247, 237], bordered: true });
 
-  y = drawSectionTitle(doc, '3. Foundation & plinth', y, margin);
+  y = drawSectionTitle(doc, '3. Assumed analysis', y, margin);
+  y = drawRows(doc, guide.analysisRows, y, margin);
+
+  y = drawSectionTitle(doc, '4. Seismic Zone V (Assam)', y, margin);
+  y = drawRows(doc, guide.seismicRows, y, margin);
+
+  y = drawSectionTitle(doc, '5. Foundation and plinth', y, margin);
   y = drawRows(doc, guide.foundationRows, y, margin);
 
-  y = drawSectionTitle(doc, '4. Columns', y, margin);
+  y = drawSectionTitle(doc, '6. Columns', y, margin);
   y = drawRows(doc, guide.columnRows, y, margin);
 
-  y = drawSectionTitle(doc, '5. Beams & lintels', y, margin);
+  y = drawSectionTitle(doc, '7. Beams and lintels', y, margin);
   y = drawRows(doc, guide.beamRows, y, margin);
 
-  y = drawSectionTitle(doc, '6. Slabs', y, margin);
+  y = drawSectionTitle(doc, '8. Slabs', y, margin);
   y = drawRows(doc, guide.slabRows, y, margin);
 
-  y = drawSectionTitle(doc, '7. Steel fixing', y, margin);
+  y = drawSectionTitle(doc, '9. Steel fixing', y, margin);
   y = drawRows(doc, guide.steelRows, y, margin);
 
-  y = drawSectionTitle(doc, '8. Clear cover & concrete', y, margin);
+  y = drawSectionTitle(doc, '10. Clear cover and concrete', y, margin);
   y = drawRows(doc, guide.coverRows, y, margin);
 
   if (guide.masonryRows.length > 0) {
-    y = drawSectionTitle(doc, '9. Walls, plaster & flooring', y, margin);
+    y = drawSectionTitle(doc, '11. Walls, plaster and flooring', y, margin);
     y = drawRows(doc, guide.masonryRows, y, margin);
   }
 
   if (guide.assamRows.length > 0) {
-    y = drawSectionTitle(doc, guide.masonryRows.length > 0 ? '10. Assam Type roof' : '9. Assam Type roof', y, margin);
+    y = drawSectionTitle(
+      doc,
+      guide.masonryRows.length > 0 ? '12. Assam Type roof' : '11. Assam Type roof',
+      y,
+      margin,
+    );
     y = drawRows(doc, guide.assamRows, y, margin);
   }
 
@@ -80,7 +91,7 @@ export function generateMistriThumbRulesPdfFromGuide(guide: MistriThumbRulesGuid
 
   y = drawParagraph(
     doc,
-    'BuilBid issues this sheet to help the Mistri and client talk in the same numbers on site. Casting without an engineer’s drawing is at the parties’ own risk.',
+    'BuilBid issues this sheet so the Mistri and client use the same site numbers. Casting without an engineer drawing is at the parties own risk.',
     y,
     margin,
     { bordered: true },
