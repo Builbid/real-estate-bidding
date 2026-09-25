@@ -44,8 +44,9 @@ export function MistriThumbRulesCard({ projectId }: { projectId: string }) {
       </CardHeader>
       <CardContent className="space-y-3">
         <p className="text-sm leading-relaxed text-muted-foreground">
-          Beam, column, slab, cover, foundation depth, and bar / stirrup spacing for this Mistri
-          job — sized from the uploaded area and floors. Guidance only, not a structural design.
+          A site booklet for you and the Head Mason: plain-language summary, sketches, bar
+          schedule, and a material check-list from this project. Guidance only, not a structural
+          design.
         </p>
         <Button type="button" variant="outline" onClick={() => void downloadPdf()} disabled={downloading}>
           <Download className="h-4 w-4" />

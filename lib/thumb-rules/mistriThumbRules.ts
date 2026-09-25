@@ -28,6 +28,39 @@ export interface MistriThumbRulesProjectInput {
   mistri_details?: unknown;
 }
 
+export interface SectionDiagrams {
+  column: {
+    widthMm: number;
+    depthMm: number;
+    barCount: number;
+    barDiaMm: number;
+    coverMm: number;
+    tieDiaMm: number;
+    label: string;
+  };
+  beam: {
+    widthMm: number;
+    depthMm: number;
+    topBars: number;
+    topDiaMm: number;
+    bottomBars: number;
+    bottomDiaMm: number;
+    coverMm: number;
+    stirrupDiaMm: number;
+    label: string;
+  };
+  footing: {
+    sideFt: number;
+    thickIn: number;
+    pccIn: number;
+    columnWidthMm: number;
+    columnDepthMm: number;
+    meshDiaMm: number;
+    coverMm: number;
+    label: string;
+  };
+}
+
 export interface MistriThumbRulesGuide {
   projectId: string;
   numericProjectId: string;
@@ -46,6 +79,15 @@ export interface MistriThumbRulesGuide {
   masonryRows: ThumbRuleRow[];
   assamRows: ThumbRuleRow[];
   checklistRows: ThumbRuleRow[];
+  clientSummaryRows: ThumbRuleRow[];
+  howToRows: ThumbRuleRow[];
+  scheduleRows: ThumbRuleRow[];
+  quantityRows: ThumbRuleRow[];
+  stageRows: ThumbRuleRow[];
+  ownerCheckRows: ThumbRuleRow[];
+  redFlagRows: ThumbRuleRow[];
+  glossaryRows: ThumbRuleRow[];
+  diagrams: SectionDiagrams;
   isAssamOnly: boolean;
   hasRccFrame: boolean;
   disclaimer: string;
@@ -224,6 +266,21 @@ interface HouseAnalysis {
   floorBeamStirrups: string;
   slabThk: string;
   concreteGrade: string;
+  columnWidthMm: number;
+  columnDepthMm: number;
+  columnBarCount: number;
+  columnBarDiaMm: number;
+  beamWidthMm: number;
+  beamDepthMm: number;
+  beamTopBars: number;
+  beamTopDiaMm: number;
+  beamBottomBars: number;
+  beamBottomDiaMm: number;
+  plinthWidthMm: number;
+  plinthDepthMm: number;
+  plinthBarCount: number;
+  plinthBarDiaMm: number;
+  diagrams: SectionDiagrams;
 }
 
 function analyzeHouse(floorSqft: number, storeys: number): HouseAnalysis {
@@ -239,10 +296,15 @@ function analyzeHouse(floorSqft: number, storeys: number): HouseAnalysis {
   let columnSizeIn = '12" x 12"';
   let columnSizeMm = '300 x 300 mm';
   let columnBars = '6 nos 16 mm TMT Fe 500D';
+  let columnWidthMm = 300;
+  let columnDepthMm = 300;
+  let columnBarCount = 6;
+  let columnBarDiaMm = 16;
   if (storeys <= 1 && !heavy) {
     columnSizeIn = '12" x 12"';
     columnSizeMm = '300 x 300 mm (Zone V minimum; do not use 9" x 9")';
     columnBars = '4 nos 16 mm TMT Fe 500D (prefer 6 nos 16 mm)';
+    columnBarCount = 4;
   } else if (storeys <= 2 && !heavy) {
     columnSizeIn = '12" x 12"';
     columnSizeMm = '300 x 300 mm';
@@ -251,28 +313,51 @@ function analyzeHouse(floorSqft: number, storeys: number): HouseAnalysis {
     columnSizeIn = '12" x 15"';
     columnSizeMm = '300 x 380 mm';
     columnBars = '8 nos 16 mm TMT Fe 500D';
+    columnWidthMm = 300;
+    columnDepthMm = 380;
+    columnBarCount = 8;
   } else if (storeys <= 3 || (storeys === 4 && !heavy)) {
     columnSizeIn = '15" x 15"';
     columnSizeMm = '380 x 380 mm';
     columnBars = storeys >= 4 ? '8 nos 20 mm TMT Fe 500D' : '8 nos 16 mm TMT Fe 500D';
+    columnWidthMm = 380;
+    columnDepthMm = 380;
+    columnBarCount = 8;
+    columnBarDiaMm = storeys >= 4 ? 20 : 16;
   } else if (storeys === 4) {
     columnSizeIn = '15" x 15"';
     columnSizeMm = '380 x 380 mm';
     columnBars = '8 nos 20 mm TMT Fe 500D';
+    columnWidthMm = 380;
+    columnDepthMm = 380;
+    columnBarCount = 8;
+    columnBarDiaMm = 20;
   } else {
     columnSizeIn = '15" x 18"';
     columnSizeMm = '380 x 450 mm';
     columnBars = '8 nos 20 mm TMT Fe 500D (add 4 extra 16 mm if spans are long)';
+    columnWidthMm = 380;
+    columnDepthMm = 450;
+    columnBarCount = 8;
+    columnBarDiaMm = 20;
   }
 
   let plinthSize = '9" x 12" (230 x 300 mm)';
   let plinthBars = '4 nos 16 mm TMT (2 top + 2 bottom) - do not use 12 mm here';
+  let plinthWidthMm = 230;
+  let plinthDepthMm = 300;
+  let plinthBarCount = 4;
+  let plinthBarDiaMm = 16;
   if (storeys >= 4 || (storeys >= 3 && heavy)) {
     plinthSize = '12" x 15" (300 x 380 mm)';
     plinthBars = '6 nos 16 mm TMT (3 top + 3 bottom). Alternate: 4 nos 20 mm TMT';
+    plinthWidthMm = 300;
+    plinthDepthMm = 380;
+    plinthBarCount = 6;
   } else if (storeys >= 2 || heavy) {
     plinthSize = '9" x 15" (230 x 380 mm)';
     plinthBars = '4 nos 16 mm TMT (2 top + 2 bottom). Prefer 6 nos 16 mm if soil is soft';
+    plinthDepthMm = 380;
   }
 
   const plinthStirrups =
@@ -280,12 +365,25 @@ function analyzeHouse(floorSqft: number, storeys: number): HouseAnalysis {
 
   let floorBeamSize = '9" x 12" (230 x 300 mm) for rooms up to 12 ft. Depth about span/12.';
   let floorBeamBars = 'Bottom 2 nos 16 mm + top 2 nos 16 mm continuous through the joint';
+  let beamWidthMm = 230;
+  let beamDepthMm = 300;
+  let beamTopBars = 2;
+  let beamTopDiaMm = 16;
+  let beamBottomBars = 2;
+  let beamBottomDiaMm = 16;
   if (storeys >= 4 || heavy) {
     floorBeamSize = '12" x 18" (300 x 450 mm) typical. Long hall: depth = span/12.';
     floorBeamBars = 'Bottom 2 nos 20 mm + 1 no 16 mm; top 2 nos 16 mm continuous through the joint';
+    beamWidthMm = 300;
+    beamDepthMm = 450;
+    beamBottomBars = 3;
+    beamBottomDiaMm = 20;
   } else if (storeys >= 3) {
     floorBeamSize = '9" x 15" (230 x 380 mm) typical; long-span 12" x 18". Depth about span/12.';
     floorBeamBars = 'Bottom 2 nos 16 mm + 1 no 16 mm if span > 12 ft; top 2 nos 16 mm continuous';
+    beamWidthMm = 230;
+    beamDepthMm = 380;
+    beamBottomBars = 3;
   }
 
   const floorBeamStirrups =
@@ -316,7 +414,113 @@ function analyzeHouse(floorSqft: number, storeys: number): HouseAnalysis {
     floorBeamStirrups,
     slabThk,
     concreteGrade,
+    columnWidthMm,
+    columnDepthMm,
+    columnBarCount,
+    columnBarDiaMm,
+    beamWidthMm,
+    beamDepthMm,
+    beamTopBars,
+    beamTopDiaMm,
+    beamBottomBars,
+    beamBottomDiaMm,
+    plinthWidthMm,
+    plinthDepthMm,
+    plinthBarCount,
+    plinthBarDiaMm,
+    diagrams: {
+      column: {
+        widthMm: columnWidthMm,
+        depthMm: columnDepthMm,
+        barCount: columnBarCount,
+        barDiaMm: columnBarDiaMm,
+        coverMm: 40,
+        tieDiaMm: 8,
+        label: `${columnSizeIn} with ${columnBarCount} nos ${columnBarDiaMm} mm`,
+      },
+      beam: {
+        widthMm: beamWidthMm,
+        depthMm: beamDepthMm,
+        topBars: beamTopBars,
+        topDiaMm: beamTopDiaMm,
+        bottomBars: beamBottomBars,
+        bottomDiaMm: beamBottomDiaMm,
+        coverMm: 25,
+        stirrupDiaMm: 8,
+        label: `${beamWidthMm} x ${beamDepthMm} mm floor beam`,
+      },
+      footing: {
+        sideFt: footingSideFt,
+        thickIn: footingThickIn,
+        pccIn: 4,
+        columnWidthMm,
+        columnDepthMm,
+        meshDiaMm: 12,
+        coverMm: 50,
+        label: `${footingSideFt.toFixed(1)} ft x ${footingSideFt.toFixed(1)} ft x ${footingThickIn}"`,
+      },
+    },
   };
+}
+
+function barKgPerMetre(diaMm: number): number {
+  return (diaMm * diaMm) / 162;
+}
+
+function estimateQuantities(
+  analysis: HouseAnalysis,
+  floorSqft: number,
+  currentStoreys: number,
+): ThumbRuleRow[] {
+  const floorM2 = sqftToM2(Math.max(floorSqft, 600));
+  const n = analysis.columnCount;
+  const sideM = analysis.footingSideFt * 0.3048;
+  const storeyH = 3;
+  const footing = n * sideM * sideM * (analysis.footingThickIn * 0.0254);
+  const pcc = n * sideM * sideM * 0.1;
+  const perim = 4 * Math.sqrt(floorM2) * 1.12;
+  const plinth = perim * (analysis.plinthWidthMm / 1000) * (analysis.plinthDepthMm / 1000);
+  const columns = n * currentStoreys * storeyH * (analysis.columnWidthMm / 1000) * (analysis.columnDepthMm / 1000);
+  const grid = Math.max(3, Math.round(Math.sqrt(n)));
+  const buildingSide = Math.sqrt(floorM2);
+  const beamLen = 2 * grid * buildingSide * currentStoreys;
+  const beams = beamLen * (analysis.beamWidthMm / 1000) * (analysis.beamDepthMm / 1000);
+  const slab = floorM2 * 0.125 * currentStoreys;
+  const rcc = footing + plinth + columns + beams + slab;
+  const cementBags = Math.round(rcc * 8.4 + pcc * 5.5);
+  const sand = rcc * 0.45 + pcc * 0.45;
+  const aggregate = rcc * 0.85 + pcc * 0.9;
+  const brickM2 = perim * 2.7 * currentStoreys * 0.65;
+  const bricks = Math.round(brickM2 * 52);
+
+  const colSteel = n * currentStoreys * 3.15 * analysis.columnBarCount * barKgPerMetre(analysis.columnBarDiaMm);
+  const colTies = n * currentStoreys * storeyH * (2 * (analysis.columnWidthMm + analysis.columnDepthMm) / 1000) / 0.12 * 0.395;
+  const plinthSteel = perim * analysis.plinthBarCount * barKgPerMetre(analysis.plinthBarDiaMm);
+  const beamSteel =
+    beamLen *
+    (analysis.beamTopBars * barKgPerMetre(analysis.beamTopDiaMm) +
+      analysis.beamBottomBars * barKgPerMetre(analysis.beamBottomDiaMm));
+  const slabSteel = floorM2 * currentStoreys * 2 * (1 / 0.15) * 0.395;
+  const footingSteel = n * 2 * (sideM / 0.15) * sideM * 0.888;
+  const steel = colSteel + colTies + plinthSteel + beamSteel + slabSteel + footingSteel;
+
+  return [
+    {
+      label: 'What this covers',
+      value: `Foundation for the future floors. Frame, slab and walls for the ${currentStoreys} storey(s) being built now. Plus or minus about 20%.`,
+    },
+    { label: 'RCC concrete', value: `About ${rcc.toFixed(1)} cubic metres (footings, plinth, columns, beams, slabs)` },
+    { label: 'PCC (plain concrete)', value: `About ${pcc.toFixed(1)} cubic metres under footings` },
+    { label: 'TMT steel', value: `About ${Math.round(steel / 10) * 10} kg (order 10-15% extra for laps, chairs and wastage)` },
+    { label: 'Cement', value: `About ${cementBags} bags of 50 kg (M20 mix). Keep extras dry.` },
+    { label: 'Sand', value: `About ${sand.toFixed(1)} cubic metres` },
+    { label: 'Stone aggregate', value: `About ${aggregate.toFixed(1)} cubic metres (20 mm down)` },
+    { label: 'Bricks (if 9" outer walls)', value: `About ${bricks.toLocaleString('en-IN')} nos - only a check figure` },
+    {
+      label: 'How to use this',
+      value: 'Ask your Mistri for a written material list and compare. Large gaps mean someone is guessing or cutting size.',
+    },
+  ];
 }
 
 function foundationDepthLabel(storeys: number, projectDepthFt: number | null): string {
@@ -629,6 +833,79 @@ export function buildMistriThumbRulesGuide(
     { label: 'This sheet', value: 'Site guidance from an approximate check. Not a signed structural drawing or bar-bending schedule.' },
   ];
 
+  const clientSummaryRows: ThumbRuleRow[] = [
+    {
+      label: 'In one line',
+      value: `${formatSqft(typicalFloor)} house, ${floorPlanLabel(mistri?.currentFloorPlan, currentStoreys)} now, foundation ready for ${floorPlanLabel(mistri?.futureFloorPlan ?? mistri?.currentFloorPlan, designStoreys)}. Assam earthquake Zone V.`,
+    },
+    {
+      label: 'What the owner should remember',
+      value: `Plinth beam ${analysis.plinthBars.split('.')[0]}. Columns ${analysis.columnSizeIn} with ${analysis.columnBarCount} nos ${analysis.columnBarDiaMm} mm. Do not allow 4 nos 12 mm in the plinth.`,
+    },
+    {
+      label: 'What this PDF is',
+      value: 'A shared site booklet so you and the Head Mason talk in the same numbers. It is not a municipal drawing and not a signed structural design.',
+    },
+    {
+      label: 'What you do on site',
+      value: 'Before every casting, count bars, check cover blocks, and match the sketches. If the Mistri wants a smaller size, stop and ask why.',
+    },
+  ];
+
+  const howToRows: ThumbRuleRow[] = [
+    { label: 'Black dots', value: 'Main steel bars in the cross-section sketches' },
+    { label: 'Teal line', value: 'Stirrup / column tie / footing mesh' },
+    { label: 'Cover', value: 'Clear gap from the outer concrete face to the bar. Never skip cover blocks.' },
+    { label: 'c/c', value: 'Centre to centre spacing of bars or stirrups' },
+    { label: 'Pages', value: 'Start with "In simple words", then sketches, then the detailed tables.' },
+  ];
+
+  const scheduleRows: ThumbRuleRow[] = [
+    { label: 'Footing', value: `${analysis.footingSideFt.toFixed(1)} ft square x ${analysis.footingThickIn}" thick. 12 mm mesh @ 150 mm both ways. Cover 50 mm.` },
+    { label: 'Plinth / grade beam', value: `${analysis.plinthSize}. ${analysis.plinthBars}. Stirrups 8 mm @ 100 mm. Cover 25 mm.` },
+    { label: 'Column', value: `${analysis.columnSizeIn}. ${analysis.columnBars}. Ties 8 mm @ 100 / 150 mm. Cover 40 mm.` },
+    { label: 'Floor beam', value: `${analysis.floorBeamSize} ${analysis.floorBeamBars}. Stirrups 8 mm @ 100 mm near ends. Cover 25 mm.` },
+    { label: 'Slab', value: `${analysis.slabThk} Main 8 mm @ 150 mm. Distribution 8 mm @ 200 mm. Cover 20 mm.` },
+  ];
+
+  const quantityRows = estimateQuantities(analysis, typicalFloor || 1000, currentStoreys);
+
+  const stageRows: ThumbRuleRow[] = [
+    { label: '1. Layout', value: 'Mark the plot, column grid and founding depth. Keep the building square.' },
+    { label: '2. Excavation + PCC', value: 'Reach the depth in this booklet. Lay 4" PCC 1:4:8 and let it set.' },
+    { label: '3. Footings', value: 'Place mesh with 50 mm cover. Cast footings. Keep column starter bars in the exact grid.' },
+    { label: '4. Plinth beam', value: 'Tie every footing with the grade beam. Same day or next, but bars must be continuous.' },
+    { label: '5. Columns', value: 'Raise columns storey by storey. Do not offset them. Confinement ties at every joint.' },
+    { label: '6. Beams and slab', value: 'Fix chairs, extra top steel, and sleeves before the mixer arrives.' },
+    { label: '7. Walls + curing', value: 'Brickwork after the slab has cured. Keep concrete wet 10-14 days.' },
+  ];
+
+  const ownerCheckRows: ThumbRuleRow[] = [
+    { label: 'Footing day', value: 'Is the pit deep enough? Is PCC visible? Can you see 50 mm cover under the mesh?' },
+    { label: 'Plinth day', value: `Count ${analysis.plinthBarCount} bars of ${analysis.plinthBarDiaMm} mm. Stirrups should be 100 mm, not 200 mm.` },
+    { label: 'Column day', value: `Count ${analysis.columnBarCount} bars of ${analysis.columnBarDiaMm} mm. Ties need 135-degree hooks.` },
+    { label: 'Slab day', value: 'Top mesh must sit on chairs. Extra bars at supports. Pipes already in place.' },
+    { label: 'After casting', value: 'Start curing the same evening. Honeycomb or tilted columns need an engineer, not a plaster cover-up.' },
+  ];
+
+  const redFlagRows: ThumbRuleRow[] = [
+    { label: 'Call an engineer if', value: 'Soil is very soft, water stands in the pit, or neighbouring houses have settlement cracks.' },
+    { label: 'Plan is not simple', value: 'L-shape, long hall over 15 ft, floating column, or a floor higher than this booklet allows.' },
+    { label: 'Someone reduces steel', value: 'Any request to use 12 mm in the plinth, 9" x 9" columns, or fewer bars than this sheet.' },
+    { label: 'Extra floor later', value: `This foundation is for ${floorPlanLabel(mistri?.futureFloorPlan ?? mistri?.currentFloorPlan, designStoreys)}. Going higher needs a new design.` },
+  ];
+
+  const glossaryRows: ThumbRuleRow[] = [
+    { label: 'TMT / Fe 500D', value: 'Ribbed steel bar used today. Fe 500D is the grade to ask for.' },
+    { label: 'Cover', value: 'Gap from concrete face to bar. It protects steel from rust and fire.' },
+    { label: 'Stirrup / tie', value: 'Closed hoop that holds the long bars. 135-degree hook for earthquakes.' },
+    { label: 'Plinth / grade beam', value: 'Beam at ground that ties all footings so the house moves as one in a quake.' },
+    { label: 'SBC', value: 'Safe bearing capacity of soil. We assumed 125 kN/sq. m because there is no soil test.' },
+    { label: 'M20 / M25', value: 'Concrete strength. M25 is richer (more cement) and better for tall Zone V columns.' },
+    { label: 'c/c', value: 'Centre-to-centre spacing. 8 mm @ 100 mm c/c means a stirrup every 100 mm.' },
+    { label: 'Lap', value: 'Where two bars join. Keep laps away from the middle of a beam bottom and away from joints.' },
+  ];
+
   return {
     projectId: project.id,
     numericProjectId:
@@ -650,6 +927,15 @@ export function buildMistriThumbRulesGuide(
     masonryRows,
     assamRows,
     checklistRows,
+    clientSummaryRows,
+    howToRows,
+    scheduleRows,
+    quantityRows,
+    stageRows,
+    ownerCheckRows,
+    redFlagRows,
+    glossaryRows,
+    diagrams: analysis.diagrams,
     isAssamOnly: assamOnly,
     hasRccFrame: frame && !assamOnly,
     disclaimer:
