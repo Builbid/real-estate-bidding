@@ -793,7 +793,10 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                 </p>
               </div>
 
-              <StepGuidanceNotes showWastePiping={trade === 'plumber'} />
+              <StepGuidanceNotes
+                fillInWorkDetails={trade === 'plumber' || trade === 'electrician'}
+                showWastePiping={trade === 'plumber'}
+              />
 
               <Button size="lg" className={cn('w-full', FORM_CONTINUE_BTN)} onClick={tryGoStep2}>
                 Continue <ArrowRight className="w-4 h-4" />
