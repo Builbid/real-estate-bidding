@@ -144,26 +144,16 @@ export function TradeWorkRequirementsFields({
             columns={2}
           />
         </FieldGroup>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 items-start">
-          <Input
-            compact
-            label="No. of Water Tank Connections Needed"
-            className="h-10 px-3 py-1.5"
-            type="text"
-            inputMode="numeric"
-            value={form.waterTankConnections}
-            onChange={(e) => onChange('waterTankConnections', e.target.value.replace(/[^\d]/g, '').slice(0, 2))}
-          />
-          <Input
-            compact
-            label="No. of Water Pump Connections Needed"
-            className="h-10 px-3 py-1.5"
-            type="text"
-            inputMode="numeric"
-            value={form.motorConnections}
-            onChange={(e) => onChange('motorConnections', e.target.value.replace(/[^\d]/g, '').slice(0, 2))}
-          />
-        </div>
+        <Input
+          compact
+          label="No. of Water Tank Connections"
+          labelClassName="text-blue-600 dark:text-blue-400"
+          className="h-10 px-3 py-1.5"
+          type="text"
+          inputMode="numeric"
+          value={form.waterTankConnections}
+          onChange={(e) => onChange('waterTankConnections', e.target.value.replace(/[^\d]/g, '').slice(0, 2))}
+        />
         </>
       )}
 

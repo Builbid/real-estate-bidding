@@ -3026,14 +3026,8 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
       }
       if (details.waterTankConnections != null && details.waterTankConnections > 0) {
         blocks.push({
-          label: 'No. of Water Tank Connections Needed',
+          label: 'No. of Water Tank Connections',
           value: String(details.waterTankConnections),
-        });
-      }
-      if (details.motorConnections != null && details.motorConnections > 0) {
-        blocks.push({
-          label: 'No. of Water Pump Connections Needed',
-          value: String(details.motorConnections),
         });
       }
       if (details.estimatedLongConnectionLengthFt != null) {
@@ -3761,7 +3755,7 @@ export function validateTradeDetailsInput(
     const motorConnections =
       motorRaw == null || String(motorRaw).trim() === '' ? null : parseOptionalHouseCount(motorRaw);
     if (tankRaw != null && String(tankRaw).trim() !== '' && waterTankConnections == null) {
-      return { error: 'No. of Water Tank Connections Needed must be a whole number from 0 to 50.' };
+      return { error: 'No. of Water Tank Connections must be a whole number from 0 to 50.' };
     }
     if (motorRaw != null && String(motorRaw).trim() !== '' && motorConnections == null) {
       return { error: 'No. of Water Pump Connections Needed must be a whole number from 0 to 50.' };
