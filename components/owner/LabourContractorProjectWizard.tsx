@@ -1070,7 +1070,7 @@ export function LabourContractorProjectWizard() {
       errors.location = 'Please select a district from the list.';
     }
 
-    const pincodeError = validatePincode(form.pincode, { required: true });
+    const pincodeError = validatePincode(form.pincode, { required: true, assamOnly: true });
     if (pincodeError) {
       errors.pincode = pincodeError;
     }
@@ -1305,7 +1305,7 @@ export function LabourContractorProjectWizard() {
       setStep((current) => (current === 3 ? 2 : 1));
       return;
     }
-    router.push('/');
+    router.push('/dashboard/owner');
   }
 
   return (

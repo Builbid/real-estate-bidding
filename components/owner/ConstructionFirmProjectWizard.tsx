@@ -128,7 +128,7 @@ export function ConstructionFirmProjectWizard() {
       errors.location = 'Please select a district from the list.';
     }
 
-    const pincodeError = validatePincode(form.pincode, { required: true });
+    const pincodeError = validatePincode(form.pincode, { required: true, assamOnly: true });
     if (pincodeError) {
       errors.pincode = pincodeError;
     }
@@ -184,7 +184,7 @@ export function ConstructionFirmProjectWizard() {
     setLoading(true);
     setError(null);
 
-    const pincodeError = validatePincode(form.pincode, { required: true });
+    const pincodeError = validatePincode(form.pincode, { required: true, assamOnly: true });
     if (pincodeError) {
       setError(pincodeError);
       setLoading(false);
@@ -246,11 +246,23 @@ export function ConstructionFirmProjectWizard() {
     setLoading(false);
   }
 
+  function goWizardBack() {
+    if (step === 3) {
+      setStep(2);
+      return;
+    }
+    if (step === 2) {
+      setStep(1);
+      return;
+    }
+    router.push('/dashboard/owner');
+  }
+
   return (
     <WizardAccentLabels>
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
-        <HistoryBackButton className="mb-2" />
+        <HistoryBackButton className="mb-2" onClick={goWizardBack} />
         <h1 className="text-xl font-bold text-foreground">Post Construction Firm Project</h1>
       </div>
 

@@ -155,7 +155,7 @@ export function DrawingDesignProjectWizard() {
     if (!parseAssamDistrictSelection(form.location)) {
       errors.location = 'Please select a district from the list.';
     }
-    const pincodeError = validatePincode(form.pincode, { required: true });
+    const pincodeError = validatePincode(form.pincode, { required: true, assamOnly: true });
     if (pincodeError) errors.pincode = pincodeError;
     if (form.bidding_minutes !== '7' && form.bidding_minutes !== '1440') {
       errors.bidding = 'Select a bidding duration.';
@@ -262,11 +262,23 @@ export function DrawingDesignProjectWizard() {
   const reviewBlocks =
     'error' in reviewDetails ? [] : getDrawingWorkRequirementBlocks(reviewDetails.details);
 
+  function goWizardBack() {
+    if (step === 3) {
+      setStep(2);
+      return;
+    }
+    if (step === 2) {
+      setStep(1);
+      return;
+    }
+    router.push('/dashboard/owner');
+  }
+
   return (
     <WizardAccentLabels>
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
-        <HistoryBackButton className="mb-2" />
+        <HistoryBackButton className="mb-2" onClick={goWizardBack} />
         <h1 className="text-xl font-bold text-foreground">Post Drawing and Design Project</h1>
       </div>
 

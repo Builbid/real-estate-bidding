@@ -307,7 +307,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
       }
     }
 
-    const pincodeError = validatePincode(form.pincode, { required: true });
+    const pincodeError = validatePincode(form.pincode, { required: true, assamOnly: true });
     if (pincodeError) {
       errors.pincode = pincodeError;
     }
@@ -572,11 +572,23 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
 
   const progressLabels = DEFAULT_PROGRESS_LABELS;
 
+  function goWizardBack() {
+    if (step === 3) {
+      setStep(2);
+      return;
+    }
+    if (step === 2) {
+      setStep(1);
+      return;
+    }
+    router.push('/dashboard/owner');
+  }
+
   return (
     <WizardAccentLabels>
     <div className="mx-auto max-w-2xl space-y-6">
       <div>
-        <HistoryBackButton className="mb-2" />
+        <HistoryBackButton className="mb-2" onClick={goWizardBack} />
         <h1 className="text-xl font-bold text-foreground">Post {tradeLabel} Project</h1>
       </div>
 
