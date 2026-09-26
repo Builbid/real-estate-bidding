@@ -13,6 +13,8 @@ interface StaticPageShellProps {
   children: React.ReactNode;
   className?: string;
   headerClassName?: string;
+  titleClassName?: string;
+  eyebrowClassName?: string;
 }
 
 export function StaticPageShell({
@@ -24,6 +26,8 @@ export function StaticPageShell({
   children,
   className,
   headerClassName,
+  titleClassName,
+  eyebrowClassName,
 }: StaticPageShellProps) {
   const content = (
     <>
@@ -35,7 +39,12 @@ export function StaticPageShell({
         </NavLink>
 
         {eyebrow && (
-          <p className="mb-4 text-xl font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+          <p
+            className={cn(
+              'mb-4 text-xl font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400',
+              eyebrowClassName,
+            )}
+          >
             {eyebrow}
           </p>
         )}
@@ -46,7 +55,9 @@ export function StaticPageShell({
             headerClassName,
           )}
         >
-          <h1 className="text-3xl sm:text-4xl font-bold text-foreground tracking-tight">{title}</h1>
+          <h1 className={cn('text-3xl sm:text-4xl font-bold text-foreground tracking-tight', titleClassName)}>
+            {title}
+          </h1>
           {subtitle && (
             <p className="mt-3 text-base sm:text-lg text-muted-foreground leading-relaxed">{subtitle}</p>
           )}

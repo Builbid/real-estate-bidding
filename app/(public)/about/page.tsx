@@ -1,156 +1,95 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { Activity, BadgeCheck, Layers3, Shield, Sparkles, Users } from 'lucide-react';
 import { StaticPageShell } from '@/components/marketing/StaticPageShell';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
 
 export const metadata: Metadata = {
   title: 'About Us',
   description:
-    'BuilBid is a next-generation bidding ecosystem transforming real estate development through algorithmic transparency, real-time rate discovery, and verified trade networks.',
+    'BuilBid supports transparent contractor estimates and quality site supervision for construction projects in Assam.',
 };
 
-const GLASS_CARD =
-  'rounded-2xl border border-black/10 bg-black/[0.03] backdrop-blur-md dark:border-white/10 dark:bg-white/5';
-
-const PILLARS = [
-  {
-    icon: Activity,
-    title: 'Real-Time Bidding Engine',
-    body: 'Transparent live leaderboards surface the most competitive rates as they land — driving optimal sourcing costs without back-channel deals.',
-  },
-  {
-    icon: BadgeCheck,
-    title: 'Verified Trade Network',
-    body: 'Vetted skilled specialists across Mistri, Electricians, Painters, and Plumbers — so every bid comes from a qualified professional.',
-  },
-  {
-    icon: Layers3,
-    title: 'Standardized Pricing',
-    body: 'Clear per-sqft and per-point bidding parameters replace guesswork and hidden extras. Every participant competes on the same unit-rate rules.',
-  },
+const MISSION = [
+  'Transparent project rates and open bid comparisons.',
+  'Digital contractor estimation with clear, comparable unit rates.',
+  'Quality site supervision for construction work in Assam.',
 ] as const;
 
-const AUDIENCES = [
-  {
-    icon: Users,
-    title: 'Property Owners & Builders',
-    body: 'Post scoped work, watch live auctions unfold, and select partners on verified rates — not relationships or middleman markups.',
-  },
-  {
-    icon: Shield,
-    title: 'Verified Contractors & Trade Professionals',
-    body: 'Compete on a level field. Win work through transparent rankings, standardized unit rates, and a profile that travels with every bid.',
-  },
+const VALUES = [
+  'Transparency in pricing, scope, and project records.',
+  'Digital estimates that owners and contractors can review side by side.',
+  'Consistent site supervision from measurement through progress.',
 ] as const;
 
-function GlassSection({
-  eyebrow,
+const SUMMARY = [
+  'Owners post scoped work and compare contractor estimates in one place.',
+  'Verified trades submit rates under the same unit rules.',
+  'Field supervision stays tied to the project record in Assam.',
+] as const;
+
+function OpenSection({
   title,
   children,
-  className,
 }: {
-  eyebrow?: string;
   title: string;
   children: React.ReactNode;
-  className?: string;
 }) {
   return (
-    <section className={cn(GLASS_CARD, 'p-6 sm:p-8', className)}>
-      {eyebrow && (
-        <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-600 dark:text-emerald-400">
-          {eyebrow}
-        </p>
-      )}
-      <h2 className="text-xl sm:text-2xl font-semibold tracking-tight text-foreground">{title}</h2>
-      <div className="mt-4 space-y-3 text-[15px] leading-relaxed text-muted-foreground">{children}</div>
+    <section className="border-t border-border/40 pt-8">
+      <h2 className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+        {title}
+      </h2>
+      <div className="mt-5">{children}</div>
     </section>
+  );
+}
+
+function PointList({ items }: { items: readonly string[] }) {
+  return (
+    <ul className="space-y-3 text-sm leading-relaxed text-muted-foreground">
+      {items.map((item) => (
+        <li key={item} className="flex gap-3">
+          <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-emerald-600 dark:bg-emerald-400" aria-hidden />
+          <span>{item}</span>
+        </li>
+      ))}
+    </ul>
   );
 }
 
 export default function AboutPage() {
   return (
     <StaticPageShell
-      className="max-w-4xl"
-      headerClassName="border-slate-200/80 bg-white/80 backdrop-blur-md p-8 sm:p-10 dark:border-white/10 dark:bg-white/5"
+      className="max-w-3xl"
+      headerClassName="mb-8 rounded-none border-0 bg-transparent p-0 shadow-none backdrop-blur-none"
+      eyebrowClassName="mb-2 text-xs font-medium tracking-[0.16em]"
+      titleClassName="text-2xl font-medium sm:text-3xl"
       eyebrow="About Us"
-      backgroundImage="https://images.unsplash.com/photo-1541888946425-d0fbb18f2f82?q=80&w=2000&auto=format&fit=crop"
       title="Empowering Modern Construction Bidding"
-      subtitle="BuilBid is a next-generation bidding ecosystem transforming real estate construction bidding through algorithmic transparency, real-time rate discovery, and verified trade networks."
+      subtitle="BuilBid helps owners and contractors in Assam compare digital estimates and supervise site work with clear records."
     >
-      <GlassSection eyebrow="Mission" title="Open markets. Clear rates. No middlemen.">
-        <p>
-          BuilBid replaces hidden, relationship-driven construction deals with competitive live
-          auctions — where every qualified professional competes in the open. Property owners
-          get market-clear pricing. Trade specialists get a fair shot at winning work on merit,
-          not on who they know.
+      <OpenSection title="Our Mission">
+        <PointList items={MISSION} />
+      </OpenSection>
+
+      <OpenSection title="Core Values">
+        <PointList items={VALUES} />
+      </OpenSection>
+
+      <OpenSection title="What we do">
+        <PointList items={SUMMARY} />
+      </OpenSection>
+
+      <section className="border-t border-border/40 pt-8">
+        <h2 className="text-base font-medium tracking-tight text-foreground">
+          Start a project in Assam
+        </h2>
+        <p className="mt-3 max-w-prose text-sm leading-relaxed text-muted-foreground">
+          Post work, compare contractor estimates, and keep site supervision on record.
         </p>
-        <p>
-          Standardized unit-rate benchmarking (₹/sqft, ₹/point, and scoped add-on rates) makes
-          bids comparable in real time. Algorithmic leaderboards remove guesswork. Direct
-          owner-to-contractor matching eliminates middleman markups that quietly inflate
-          project costs across all modern developments.
-        </p>
-      </GlassSection>
-
-      <div className="grid gap-4 sm:grid-cols-3">
-        {PILLARS.map(({ icon: Icon, title, body }) => (
-          <article key={title} className={cn(GLASS_CARD, 'p-5 sm:p-6')}>
-            <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl border border-emerald-500/20 bg-emerald-500/10">
-              <Icon className="h-5 w-5 text-emerald-500 dark:text-emerald-400" />
-            </div>
-            <h3 className="text-base font-semibold tracking-tight text-foreground">{title}</h3>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{body}</p>
-          </article>
-        ))}
-      </div>
-
-      <GlassSection eyebrow="Who we serve" title="Built for owners and verified trades.">
-        <div className="grid gap-4 not-prose sm:grid-cols-2">
-          {AUDIENCES.map(({ icon: Icon, title, body }) => (
-            <div key={title} className={cn(GLASS_CARD, 'p-5')}>
-              <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-white/5">
-                <Icon className="h-4 w-4 text-emerald-500 dark:text-emerald-400" />
-              </div>
-              <h3 className="text-sm font-semibold text-foreground">{title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{body}</p>
-            </div>
-          ))}
-        </div>
-      </GlassSection>
-
-      <GlassSection eyebrow="Principles" title="What we optimize for">
-        <ul className="grid gap-3 sm:grid-cols-2 list-none pl-0">
-          <li>
-            <strong className="text-foreground">Transparency</strong>
-            <span className="block mt-1">Open live rankings, explicit specs, and standardized unit pricing.</span>
-          </li>
-          <li>
-            <strong className="text-foreground">Privacy</strong>
-            <span className="block mt-1">Contact information is managed securely to maintain professional communication standards.</span>
-          </li>
-          <li>
-            <strong className="text-foreground">Fair competition</strong>
-            <span className="block mt-1">Verified participants, standardized rules, equal visibility.</span>
-          </li>
-          <li>
-            <strong className="text-foreground">Trust</strong>
-            <span className="block mt-1">Verified trade networks so owners can award work with confidence.</span>
-          </li>
-        </ul>
-      </GlassSection>
-
-      <section className={cn(GLASS_CARD, 'p-6 sm:p-8 text-center')}>
-        <Sparkles className="mx-auto mb-3 h-5 w-5 text-emerald-500 dark:text-emerald-400" />
-        <h2 className="text-xl font-semibold tracking-tight text-foreground">Ready to hire smarter?</h2>
-        <p className="mx-auto mt-3 max-w-xl text-[15px] leading-relaxed text-muted-foreground">
-          Whether you are building your next property or scaling a verified trade practice,
-          BuilBid is live nationwide.
-        </p>
-        <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+        <div className="mt-5 flex flex-wrap items-center gap-3">
           <Button asChild>
-            <Link href="/signup">Create a free account</Link>
+            <Link href="/signup">Create Account</Link>
           </Button>
           <Button variant="outline" asChild>
             <Link href="/#live-auctions">Explore live auctions</Link>
