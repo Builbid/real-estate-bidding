@@ -3,9 +3,9 @@
 import { useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { AlertCircle, ArrowRight, KeyRound, Mail } from 'lucide-react';
+import { AlertCircle, ArrowRight, KeyRound, Lock, Mail } from 'lucide-react';
 import {
-  sendOfficialAdminOtpAction,
+  submitOfficialAdminPasswordAction,
   verifyOfficialAdminOtpAction,
 } from '@/app/admin/otp-actions';
 import {
@@ -17,18 +17,22 @@ import { BuilBidLogo } from '@/components/shared/BuilBidLogo';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
-type Step = 'email' | 'otp';
+type Step = 'password' | 'otp';
+
+const FIELD_LABEL =
+  'w-full text-center text-xs font-semibold tracking-wide text-slate-600 dark:text-slate-400';
 
 export function AdminLoginForm() {
   const router = useRouter();
-  const [step, setStep] = useState<Step>('email');
+  const [step, setStep] = useState<Step>('password');
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [otp, setOtp] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [info, setInfo] = useState<string | null>(null);
 
-  async function handleEmailSubmit(event: FormEvent) {
+  async function handlePasswordSubmit(event: FormEvent) {
     event.preventDefault();
     setError(null);
     setInfo(null);
@@ -38,9 +42,13 @@ export function AdminLoginForm() {
       setError(ADMIN_UNAUTHORIZED_MESSAGE);
       return;
     }
+    if (!password) {
+      setError('Enter your password.');
+      return;
+    }
 
     setPending(true);
-    const result = await sendOfficialAdminOtpAction(BUILBID_OFFICIAL_ADMIN_EMAIL);
+    const result = await submitOfficialAdminPasswordAction(trimmed, password);
     setPending(false);
 
     if (result.error) {
@@ -49,6 +57,7 @@ export function AdminLoginForm() {
     }
 
     setEmail(BUILBID_OFFICIAL_ADMIN_EMAIL);
+    setPassword('');
     setInfo(
       `OTP emailed to ${BUILBID_OFFICIAL_ADMIN_EMAIL}. Check Inbox, Spam, and Gmail Sent (SMTP account).`,
     );
@@ -93,16 +102,13 @@ export function AdminLoginForm() {
         </div>
       ) : null}
 
-      {step === 'email' ? (
-        <form onSubmit={handleEmailSubmit} className="space-y-4">
-          <div className="space-y-1.5">
-            <label
-              htmlFor="admin-email"
-              className="text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-400"
-            >
+      {step === 'password' ? (
+        <form onSubmit={handlePasswordSubmit} className="space-y-4">
+          <div className="flex w-full flex-col items-center gap-1.5">
+            <label htmlFor="admin-email" className={FIELD_LABEL}>
               EMAIL
             </label>
-            <div className="relative">
+            <div className="relative w-full">
               <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <Input
                 id="admin-email"
@@ -116,16 +122,28 @@ export function AdminLoginForm() {
               />
             </div>
           </div>
+          <div className="flex w-full flex-col items-center gap-1.5">
+            <label htmlFor="admin-password" className={FIELD_LABEL}>
+              PASSWORD
+            </label>
+            <div className="relative w-full">
+              <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <Input
+                id="admin-password"
+                type="password"
+                autoComplete="current-password"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="pl-10"
+                required
+              />
+            </div>
+          </div>
           <Button type="submit" className="w-full" disabled={pending}>
-            {pending ? 'Sending code…' : 'Send OTP'}
+            {pending ? 'Checking password…' : 'Submit Password'}
             <ArrowRight className="h-4 w-4" />
           </Button>
-          <Link
-            href="/register"
-            className="block w-full text-center text-sm font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-          >
-            Sign Up / Register New Account
-          </Link>
         </form>
       ) : (
         <form onSubmit={handleOtpSubmit} className="space-y-4">
@@ -135,14 +153,11 @@ export function AdminLoginForm() {
               {BUILBID_OFFICIAL_ADMIN_EMAIL}
             </span>
           </p>
-          <div className="space-y-1.5">
-            <label
-              htmlFor="admin-otp"
-              className="text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-400"
-            >
+          <div className="flex w-full flex-col items-center gap-1.5">
+            <label htmlFor="admin-otp" className={FIELD_LABEL}>
               6-digit OTP
             </label>
-            <div className="relative">
+            <div className="relative w-full">
               <KeyRound className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <Input
                 id="admin-otp"
@@ -158,13 +173,13 @@ export function AdminLoginForm() {
             </div>
           </div>
           <Button type="submit" className="w-full" disabled={pending || otp.length !== 6}>
-            {pending ? 'Verifying…' : 'Verify & enter portal'}
+            {pending ? 'Verifying…' : 'Verify & Login'}
           </Button>
           <button
             type="button"
             className="w-full text-center text-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
             onClick={() => {
-              setStep('email');
+              setStep('password');
               setOtp('');
               setError(null);
               setInfo(null);
@@ -174,6 +189,12 @@ export function AdminLoginForm() {
           </button>
         </form>
       )}
+      <Link
+        href="/register"
+        className="mt-4 block w-full text-center text-sm font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+      >
+        Sign Up / Register New Account
+      </Link>
     </div>
   );
 }

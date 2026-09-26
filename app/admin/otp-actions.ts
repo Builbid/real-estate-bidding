@@ -1,6 +1,7 @@
 'use server';
 
 import { createHash, randomInt } from 'crypto';
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getMailTransporter } from '@/lib/email/sendNotification';
@@ -101,6 +102,41 @@ async function sendOtpEmail(otpCode: string): Promise<{ ok: true } | { error: st
       error: `OTP email failed: ${message}. Check GMAIL_USER / GMAIL_APP_PASSWORD on Vercel (Production) and redeploy.`,
     };
   }
+}
+
+/**
+ * Confirm the official admin password without opening a portal session, then email the OTP.
+ */
+export async function submitOfficialAdminPasswordAction(
+  email: string,
+  password: string,
+): Promise<{ ok?: true; error?: string }> {
+  if (!isOfficialAdminEmail(email)) {
+    return { error: ADMIN_UNAUTHORIZED_MESSAGE };
+  }
+  if (!password) {
+    return { error: 'Enter your password.' };
+  }
+
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !anonKey) {
+    return { error: 'Sign-in is not configured.' };
+  }
+
+  const anon = createSupabaseClient(url, anonKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const { error } = await anon.auth.signInWithPassword({
+    email: BUILBID_OFFICIAL_ADMIN_EMAIL,
+    password,
+  });
+  await anon.auth.signOut();
+  if (error) {
+    return { error: 'Incorrect email or password.' };
+  }
+
+  return sendOfficialAdminOtpAction(BUILBID_OFFICIAL_ADMIN_EMAIL);
 }
 
 /**
