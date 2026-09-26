@@ -1,106 +1,113 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { Mail, MapPin, Clock, MessageSquare } from 'lucide-react';
-import { StaticPageShell, StaticSection } from '@/components/marketing/StaticPageShell';
+import { Clock, Mail, MapPin, MessageCircle, Phone } from 'lucide-react';
+import { StaticPageShell } from '@/components/marketing/StaticPageShell';
+import { BUILBID_MATERIALS_CONTACT } from '@/lib/contact/official';
 
 export const metadata: Metadata = {
-  title: 'Contact',
-  description: 'Get in touch with the BuilBid team for support, partnerships, and general inquiries.',
+  title: 'Contact Us',
+  description: 'Reach BuilBid customer support at support@builbid.in, by phone, or on WhatsApp.',
 };
 
-const CONTACT_CHANNELS = [
-  {
-    icon: Mail,
-    label: 'General inquiries',
-    value: 'hello@builbid.in',
-    href: 'mailto:hello@builbid.in',
-  },
-  {
-    icon: MessageSquare,
-    label: 'Customer support',
-    value: 'support@builbid.in',
-    href: 'mailto:support@builbid.in',
-  },
-  {
-    icon: Mail,
-    label: 'Partnerships & media',
-    value: 'partners@builbid.in',
-    href: 'mailto:partners@builbid.in',
-  },
-] as const;
+const COPY = 'max-w-prose text-[15px] leading-7 text-muted-foreground sm:text-base sm:leading-8';
+
+const WHATSAPP_HREF = `https://wa.me/${BUILBID_MATERIALS_CONTACT.whatsappE164}`;
+
+function OpenSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="border-t border-border/40 pt-8">
+      <h2 className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+        {title}
+      </h2>
+      <div className="mt-4 space-y-4">{children}</div>
+    </section>
+  );
+}
 
 export default function ContactPage() {
   return (
     <StaticPageShell
+      className="max-w-3xl"
+      headerClassName="mb-8 rounded-none border-0 bg-transparent p-0 shadow-none backdrop-blur-none"
+      eyebrowClassName="mb-2 text-xs font-medium tracking-[0.16em]"
+      titleClassName="text-2xl font-medium sm:text-3xl"
       title="Contact Us"
-      subtitle="We are here to help clients, contractors, and construction firms get the most out of BuilBid."
+      subtitle="Customer support for project owners and contractors."
     >
-      <StaticSection title="Reach our team">
-        <p>
-          Have a question about posting a project, placing a bid, or verifying your account?
-          Send us an email and we will respond within one business day. For urgent auction-related
-          issues during a live bidding window, mention &ldquo;Urgent&rdquo; in your subject line.
+      <OpenSection title="Customer Support">
+        <a
+          href="mailto:support@builbid.in"
+          className="inline-flex items-center gap-2 text-base font-medium text-foreground hover:text-emerald-700 dark:hover:text-emerald-400"
+        >
+          <Mail className="h-4 w-4 text-emerald-600 dark:text-emerald-400" aria-hidden />
+          support@builbid.in
+        </a>
+        <p className={COPY}>
+          Questions about posting a project, placing a bid, or your account can be sent to this
+          address.
         </p>
-        <div className="grid gap-4 not-prose mt-4">
-          {CONTACT_CHANNELS.map(({ icon: Icon, label, value, href }) => (
-            <a
-              key={value}
-              href={href}
-              className="flex items-start gap-4 rounded-xl border border-border bg-card/60 p-4 transition-colors hover:border-emerald-500/30 hover:bg-card"
-            >
-              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-                <Icon className="h-5 w-5 text-emerald-500" />
-              </div>
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
-                <p className="mt-0.5 text-base font-semibold text-foreground">{value}</p>
-              </div>
-            </a>
-          ))}
-        </div>
-      </StaticSection>
+      </OpenSection>
 
-      <StaticSection title="Office">
-        <div className="flex items-start gap-3">
-          <MapPin className="h-5 w-5 text-violet-400 flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="font-medium text-foreground">BuilBid</p>
-            <p>Guwahati, Assam, India</p>
-            <p className="text-xs mt-1">Serving clients and builders across Assam and Northeast India.</p>
-          </div>
-        </div>
-      </StaticSection>
-
-      <StaticSection title="Support hours">
-        <div className="flex items-start gap-3">
-          <Clock className="h-5 w-5 text-amber-400 flex-shrink-0 mt-0.5" />
-          <div>
-            <p>Monday – Saturday: 9:00 AM – 6:00 PM IST</p>
-            <p>Sunday & public holidays: email only (next business day response)</p>
-          </div>
-        </div>
-      </StaticSection>
-
-      <StaticSection title="Before you write">
-        <p>
-          <strong className="text-foreground">Account & login issues:</strong> include the email
-          address registered on BuilBid and a brief description of the problem.
+      <OpenSection title="Office">
+        <p className="inline-flex items-start gap-2 text-[15px] leading-7 text-foreground sm:text-base sm:leading-8">
+          <MapPin className="mt-1 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden />
+          <span>Dispur, Guwahati - 781006, Assam, India</span>
         </p>
-        <p>
-          <strong className="text-foreground">Bidding disputes:</strong> reference the project
-          title and auction date so we can locate the record quickly.
+      </OpenSection>
+
+      <OpenSection title="Working Hours">
+        <p className="inline-flex items-start gap-2 text-[15px] leading-7 text-foreground sm:text-base sm:leading-8">
+          <Clock className="mt-1 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden />
+          <span>Monday to Saturday: 9:00 AM – 6:00 PM</span>
         </p>
-        <p>
-          <strong className="text-foreground">New to BuilBid?</strong> Start with our{' '}
-          <Link href="/about" className="text-emerald-600 dark:text-emerald-400 hover:underline">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
+          <a
+            href={`tel:${BUILBID_MATERIALS_CONTACT.phoneTel}`}
+            className="inline-flex items-center gap-2 text-sm font-medium text-foreground hover:text-emerald-700 dark:hover:text-emerald-400"
+          >
+            <Phone className="h-4 w-4 text-emerald-600 dark:text-emerald-400" aria-hidden />
+            Call {BUILBID_MATERIALS_CONTACT.phoneDisplay}
+          </a>
+          <a
+            href={WHATSAPP_HREF}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 text-sm font-medium text-foreground hover:text-emerald-700 dark:hover:text-emerald-400"
+          >
+            <MessageCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400" aria-hidden />
+            WhatsApp {BUILBID_MATERIALS_CONTACT.phoneDisplay}
+          </a>
+        </div>
+      </OpenSection>
+
+      <OpenSection title="Before You Write">
+        <p className={COPY}>
+          <span className="font-medium text-foreground">Account and login issues. </span>
+          Include the email address registered on BuilBid and a brief description of the problem.
+        </p>
+        <p className={COPY}>
+          <span className="font-medium text-foreground">Bidding questions. </span>
+          Reference the project title and auction date so the record is easy to find.
+        </p>
+        <p className={COPY}>
+          <span className="font-medium text-foreground">New to BuilBid? </span>
+          Start with the{' '}
+          <Link href="/about" className="text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-400">
             About page
           </Link>{' '}
           or{' '}
-          <Link href="/signup" className="text-emerald-600 dark:text-emerald-400 hover:underline">
+          <Link href="/signup" className="text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-400">
             create an account
-          </Link>.
+          </Link>
+          .
         </p>
-      </StaticSection>
+      </OpenSection>
     </StaticPageShell>
   );
 }

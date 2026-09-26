@@ -65,7 +65,7 @@ export const as: Messages = {
     admin: 'Admin',
     materials: 'Materials',
     aboutUs: 'About Us',
-    contact: 'Contact',
+    contact: 'Contact Us',
     careers: 'Careers',
     privacyPolicy: 'Privacy Policy',
     termsOfService: 'Terms of Service',
