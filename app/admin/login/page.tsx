@@ -7,7 +7,17 @@ import { AdminLoginForm } from './AdminLoginForm';
 
 export const dynamic = 'force-dynamic';
 
-export default async function AdminLoginPage() {
+export default async function AdminLoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ registered?: string }>;
+}) {
+  const params = await searchParams;
+  const registrationNotice =
+    params.registered === '1'
+      ? 'Registration successful! Please login with your credentials.'
+      : null;
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -27,7 +37,7 @@ export default async function AdminLoginPage() {
           <ArrowLeft className="h-4 w-4" aria-hidden />
           Back to Home
         </Link>
-        <AdminLoginForm />
+        <AdminLoginForm registrationNotice={registrationNotice} />
       </div>
     </div>
   );

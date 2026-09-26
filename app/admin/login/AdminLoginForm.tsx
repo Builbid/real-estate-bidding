@@ -30,7 +30,11 @@ function FieldIcon({ children }: { children: ReactNode }) {
   );
 }
 
-export function AdminLoginForm() {
+export function AdminLoginForm({
+  registrationNotice = null,
+}: {
+  registrationNotice?: string | null;
+}) {
   const router = useRouter();
   const [step, setStep] = useState<Step>('password');
   const [email, setEmail] = useState('');
@@ -101,6 +105,12 @@ export function AdminLoginForm() {
         <div className="mb-4 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
           <p>{error}</p>
+        </div>
+      ) : null}
+
+      {registrationNotice ? (
+        <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300">
+          {registrationNotice}
         </div>
       ) : null}
 
