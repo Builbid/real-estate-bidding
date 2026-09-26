@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { HardHat, MapPinned, TrendingUp, Wallet } from 'lucide-react';
-import { StaticPageShell, StaticSection } from '@/components/marketing/StaticPageShell';
+import { StaticPageShell } from '@/components/marketing/StaticPageShell';
 import { Button } from '@/components/ui/button';
 
 export const metadata: Metadata = {
@@ -36,9 +36,11 @@ const WHAT_WE_OFFER = [
   },
 ] as const;
 
-function FeatureCards({
+function OpenFeatures({
+  title,
   items,
 }: {
+  title: string;
   items: readonly {
     title: string;
     body: string;
@@ -46,23 +48,27 @@ function FeatureCards({
   }[];
 }) {
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
-      {items.map((item) => {
-        const Icon = item.icon;
-        return (
-          <div
-            key={item.title}
-            className="rounded-xl border border-border bg-card/70 p-4"
-          >
-            <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-              <Icon className="h-4 w-4" aria-hidden />
+    <section className="border-t border-border/40 pt-8">
+      <h2 className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+        {title}
+      </h2>
+      <div className="mt-5 grid gap-6 sm:grid-cols-2 sm:gap-8">
+        {items.map((item) => {
+          const Icon = item.icon;
+          return (
+            <div key={item.title} className="min-w-0">
+              <div className="mb-2 flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
+                <Icon className="h-4 w-4 shrink-0" aria-hidden />
+                <h3 className="text-base font-semibold tracking-tight text-foreground">
+                  {item.title}
+                </h3>
+              </div>
+              <p className="text-sm leading-relaxed text-muted-foreground">{item.body}</p>
             </div>
-            <h3 className="text-sm font-semibold text-foreground">{item.title}</h3>
-            <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{item.body}</p>
-          </div>
-        );
-      })}
-    </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
@@ -71,41 +77,43 @@ export default function CareersPage() {
     <StaticPageShell
       title="Careers at BuilBid"
       subtitle="Join BuilBid in transforming construction operations across Assam. We are looking for dedicated team members to lead field management and site supervision."
+      headerClassName="mb-8 rounded-none border-0 bg-transparent p-0 shadow-none backdrop-blur-none"
     >
-      <StaticSection title="Why join us">
-        <FeatureCards items={WHY_JOIN} />
-      </StaticSection>
+      <OpenFeatures title="Why join us" items={WHY_JOIN} />
+      <OpenFeatures title="What we offer" items={WHAT_WE_OFFER} />
 
-      <StaticSection title="What we offer">
-        <FeatureCards items={WHAT_WE_OFFER} />
-      </StaticSection>
-
-      <StaticSection title="Open roles">
-        <div className="rounded-xl border border-border bg-card/70 p-5">
-          <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
-            <h3 className="text-base font-semibold text-foreground">
+      <section className="border-t border-border/40 pt-8">
+        <h2 className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+          Open roles
+        </h2>
+        <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <h3 className="text-lg font-semibold tracking-tight text-foreground">
               Field Construction Supervisor / Site Officer
             </h3>
-            <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-300">
-              Full-Time / On-Site
-            </span>
+            <p className="mt-1 text-sm text-muted-foreground">All Over Assam</p>
           </div>
-          <p className="mb-2 text-xs text-muted-foreground">
-            Assam (Nagaon, Morigaon & Nearby Regions)
-          </p>
-          <p>
-            Responsible for site measurements, contractor agreements, site visits, cost
-            estimates, and real-time project supervision on the BuilBid platform.
-          </p>
+          <span className="inline-flex w-fit shrink-0 rounded-full border border-border/70 px-2.5 py-1 text-[11px] font-medium tracking-wide text-foreground/80">
+            Full-Time / On-Site
+          </span>
         </div>
-      </StaticSection>
+        <p className="mt-4 max-w-prose text-sm leading-relaxed text-muted-foreground">
+          Responsible for site measurements, contractor agreements, site visits, cost
+          estimates, and real-time project supervision on the BuilBid platform.
+        </p>
+      </section>
 
-      <StaticSection title="How to apply">
-        <p>Apply for the Field Construction Supervisor role using the registration form.</p>
-        <Button asChild className="mt-1">
+      <section className="border-t border-border/40 pt-8">
+        <h2 className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+          How to apply
+        </h2>
+        <p className="mt-5 text-sm leading-relaxed text-muted-foreground">
+          Apply for the Field Construction Supervisor role using the registration form.
+        </p>
+        <Button asChild className="mt-4">
           <Link href="/admin/signup">Apply for Supervisor Role</Link>
         </Button>
-      </StaticSection>
+      </section>
     </StaticPageShell>
   );
 }
