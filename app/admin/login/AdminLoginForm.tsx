@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AlertCircle, ArrowRight, KeyRound, Mail, Shield } from 'lucide-react';
 import {
@@ -79,7 +80,7 @@ export function AdminLoginForm() {
           Official Staff Portal
         </div>
         <h1 className="mt-4 text-xl font-bold tracking-tight text-slate-900 dark:text-white">
-          Secure admin access
+          Admin & Supervisor Portal
         </h1>
         <p className="mt-1.5 text-sm text-slate-600 dark:text-slate-400">
           OTP is emailed through BuilBid Gmail SMTP (not Supabase default mail).
@@ -126,6 +127,12 @@ export function AdminLoginForm() {
             {pending ? 'Sending code…' : 'Send OTP'}
             <ArrowRight className="h-4 w-4" />
           </Button>
+          <Link
+            href="/register"
+            className="block w-full text-center text-sm font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+          >
+            Sign Up / Register New Account
+          </Link>
         </form>
       ) : (
         <form onSubmit={handleOtpSubmit} className="space-y-4">
