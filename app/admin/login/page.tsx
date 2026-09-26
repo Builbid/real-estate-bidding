@@ -18,15 +18,15 @@ export default async function AdminLoginPage() {
   }
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-slate-100 via-emerald-50/40 to-slate-200 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
-      <Link
-        href="/"
-        className="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-semibold text-slate-700 hover:text-slate-900 dark:text-slate-200 dark:hover:text-white"
-      >
-        <ArrowLeft className="h-4 w-4" aria-hidden />
-        Back to Home
-      </Link>
-      <div className="flex min-h-screen items-center justify-center px-4 py-16">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-100 via-emerald-50/40 to-slate-200 px-4 py-16 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+      <div className="flex w-full max-w-md flex-col items-center gap-4">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-700 hover:text-slate-900 dark:text-slate-200 dark:hover:text-white"
+        >
+          <ArrowLeft className="h-4 w-4" aria-hidden />
+          Back to Home
+        </Link>
         <AdminLoginForm />
       </div>
     </div>

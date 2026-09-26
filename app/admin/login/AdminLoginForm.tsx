@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { AlertCircle, ArrowRight, KeyRound, Mail, Shield } from 'lucide-react';
+import { AlertCircle, ArrowRight, KeyRound, Mail } from 'lucide-react';
 import {
   sendOfficialAdminOtpAction,
   verifyOfficialAdminOtpAction,
@@ -75,16 +75,9 @@ export function AdminLoginForm() {
     <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-xl shadow-slate-200/60 dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
       <div className="mb-8 flex flex-col items-center text-center">
         <BuilBidLogo size="md" />
-        <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300">
-          <Shield className="h-3.5 w-3.5" />
-          Official Staff Portal
-        </div>
         <h1 className="mt-4 text-xl font-bold tracking-tight text-slate-900 dark:text-white">
-          Admin & Supervisor Portal
+          Login
         </h1>
-        <p className="mt-1.5 text-sm text-slate-600 dark:text-slate-400">
-          OTP is emailed through BuilBid Gmail SMTP (not Supabase default mail).
-        </p>
       </div>
 
       {error ? (
@@ -107,7 +100,7 @@ export function AdminLoginForm() {
               htmlFor="admin-email"
               className="text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-400"
             >
-              Staff email
+              EMAIL
             </label>
             <div className="relative">
               <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
