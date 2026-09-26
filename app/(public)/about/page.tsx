@@ -6,26 +6,11 @@ import { Button } from '@/components/ui/button';
 export const metadata: Metadata = {
   title: 'About Us',
   description:
-    'BuilBid supports transparent contractor estimates and quality site supervision.',
+    'BuilBid empowers property owners and contractors with a modern platform to streamline construction bidding, digital estimations, and real-time site supervision.',
 };
 
-const MISSION = [
-  'Transparent project rates and open bid comparisons.',
-  'Digital contractor estimation with clear, comparable unit rates.',
-  'Quality site supervision from measurement through progress.',
-] as const;
-
-const VALUES = [
-  'Transparency in pricing and project records.',
-  'Digital estimates owners and contractors can compare.',
-  'Consistent site supervision through each project stage.',
-] as const;
-
-const SUMMARY = [
-  'Owners post project requirements and compare contractor estimates.',
-  'Verified trades submit rates under the same unit rules.',
-  'Field supervision stays tied to the project record.',
-] as const;
+const PARAGRAPH =
+  'max-w-prose text-[15px] leading-7 text-muted-foreground sm:text-base sm:leading-8';
 
 function OpenSection({
   title,
@@ -39,21 +24,8 @@ function OpenSection({
       <h2 className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
         {title}
       </h2>
-      <div className="mt-5">{children}</div>
+      <div className="mt-4 space-y-4">{children}</div>
     </section>
-  );
-}
-
-function PointList({ items }: { items: readonly string[] }) {
-  return (
-    <ul className="space-y-3 text-sm leading-relaxed text-muted-foreground">
-      {items.map((item) => (
-        <li key={item} className="flex gap-3">
-          <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-emerald-600 dark:bg-emerald-400" aria-hidden />
-          <span>{item}</span>
-        </li>
-      ))}
-    </ul>
   );
 }
 
@@ -66,28 +38,40 @@ export default function AboutPage() {
       titleClassName="text-2xl font-medium sm:text-3xl"
       eyebrow="About Us"
       title="Empowering Modern Construction Bidding"
-      subtitle="BuilBid helps owners and contractors compare digital estimates and supervise site work with clear records."
+      subtitle="BuilBid empowers property owners and contractors with a modern platform to streamline construction bidding, digital estimations, and real-time site supervision."
     >
       <OpenSection title="Our Mission">
-        <PointList items={MISSION} />
+        <p className={PARAGRAPH}>
+          Our mission is to bring absolute clarity and transparency to everyday construction
+          projects. We enable project owners to evaluate comparable estimates while giving
+          contractors a structured platform to submit clear, standardized rates.
+        </p>
       </OpenSection>
 
       <OpenSection title="Core Values">
-        <PointList items={VALUES} />
+        <p className={PARAGRAPH}>
+          Pricing and project records stay open, so owners and contractors can compare digital
+          estimates on the same terms. Site supervision remains consistent from the first
+          measurement through later progress.
+        </p>
       </OpenSection>
 
-      <OpenSection title="What we do">
-        <PointList items={SUMMARY} />
+      <OpenSection title="What We Do">
+        <p className={PARAGRAPH}>
+          BuilBid connects project requirements with verified site supervision. From accurate
+          measurements to ongoing progress tracking, we ensure every project stays organized,
+          recorded, and on schedule.
+        </p>
       </OpenSection>
 
       <section className="border-t border-border/40 pt-8">
         <h2 className="text-base font-medium tracking-tight text-foreground">
           Start a project
         </h2>
-        <p className="mt-3 max-w-prose text-sm leading-relaxed text-muted-foreground">
+        <p className={`mt-4 ${PARAGRAPH}`}>
           Post work, compare contractor estimates, and keep site supervision on record.
         </p>
-        <div className="mt-5 flex flex-wrap items-center gap-3">
+        <div className="mt-6 flex flex-wrap items-center gap-3">
           <Button asChild>
             <Link href="/signup">Create Account</Link>
           </Button>
