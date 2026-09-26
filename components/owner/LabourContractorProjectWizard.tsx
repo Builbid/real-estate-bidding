@@ -1471,13 +1471,13 @@ export function LabourContractorProjectWizard() {
             <div className="space-y-4">
               <div>
                 <h2 className={FORM_HEADING}>Work Requirements</h2>
+                {form.houseType === 'boundary_wall' || form.buildingTypes.includes(ASSAM_BUILDING_TYPE) ? (
                 <p className="text-xs font-medium text-slate-500 mt-1">
                   {form.houseType === 'boundary_wall'
                     ? 'Enter boundary wall dimensions, material, plastering, and execution timeline.'
-                    : form.buildingTypes.includes(ASSAM_BUILDING_TYPE)
-                    ? 'Assam Type — Full finishing upto Plastering and Roof work is included. Choose roof truss, roofing sheet, flooring, and foundation depth.'
-                    : "Choose one Scope of Work for each selected floor based on your site's current status."}
+                    : 'Assam Type — Full finishing upto Plastering and Roof work is included. Choose roof truss, roofing sheet, flooring, and foundation depth.'}
                 </p>
+                ) : null}
               </div>
 
               {step2Error && (
@@ -1622,7 +1622,7 @@ export function LabourContractorProjectWizard() {
                       <p className={HELPER_TEXT}>
                         {isAssam
                           ? 'Full finishing upto Plastering and Roof work is included. Select roof truss, roofing sheet, flooring, and foundation depth.'
-                          : 'Select the scope of work for this floor. Flooring can be combined with Full Construction or Wall Brick Work.'}
+                          : 'Select work type for this floor'}
                       </p>
                     </div>
 
