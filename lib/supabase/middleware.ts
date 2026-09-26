@@ -33,6 +33,10 @@ export async function updateSession(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (pathname.startsWith('/admin')) {
+    if (pathname === '/admin/signup') {
+      return supabaseResponse;
+    }
+
     if (pathname === '/admin/login') {
       if (user && isOfficialAdminEmail(user.email)) {
         const url = request.nextUrl.clone();

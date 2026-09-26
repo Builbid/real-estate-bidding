@@ -43,6 +43,7 @@ export async function proxy(request: NextRequest) {
 
   const isAdminRoute = pathname.startsWith('/admin')
   const isAdminLogin = pathname === '/admin/login'
+  const isAdminSignup = pathname === '/admin/signup'
   const needsAuthServerCheck =
     pathname.startsWith('/dashboard') ||
     pathname.startsWith('/provider') ||
@@ -84,6 +85,10 @@ export async function proxy(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   if (isAdminRoute) {
+    if (isAdminSignup) {
+      return supabaseResponse;
+    }
+
     if (isAdminLogin) {
       if (user && isOfficialAdminEmail(user.email)) {
         const url = request.nextUrl.clone();

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useState, type FormEvent, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AlertCircle, ArrowRight, KeyRound, Lock, Mail } from 'lucide-react';
@@ -20,7 +20,15 @@ import { Input } from '@/components/ui/input';
 type Step = 'password' | 'otp';
 
 const FIELD_LABEL =
-  'w-full text-center text-xs font-semibold tracking-wide text-slate-600 dark:text-slate-400';
+  'block text-left text-xs font-semibold tracking-wide text-slate-600 dark:text-slate-400';
+
+function FieldIcon({ children }: { children: ReactNode }) {
+  return (
+    <span className="pointer-events-none absolute left-0 top-0 z-10 flex h-11 w-10 items-center justify-center text-slate-400">
+      {children}
+    </span>
+  );
+}
 
 export function AdminLoginForm() {
   const router = useRouter();
@@ -103,13 +111,15 @@ export function AdminLoginForm() {
       ) : null}
 
       {step === 'password' ? (
-        <form onSubmit={handlePasswordSubmit} className="space-y-4">
-          <div className="flex w-full flex-col items-center gap-1.5">
+        <form onSubmit={handlePasswordSubmit} className="flex flex-col gap-2">
+          <div className="flex w-full flex-col gap-1">
             <label htmlFor="admin-email" className={FIELD_LABEL}>
               EMAIL
             </label>
             <div className="relative w-full">
-              <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <FieldIcon>
+                <Mail className="h-4 w-4" aria-hidden />
+              </FieldIcon>
               <Input
                 id="admin-email"
                 type="email"
@@ -118,16 +128,19 @@ export function AdminLoginForm() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="pl-10"
+                compact
                 required
               />
             </div>
           </div>
-          <div className="flex w-full flex-col items-center gap-1.5">
+          <div className="flex w-full flex-col gap-1">
             <label htmlFor="admin-password" className={FIELD_LABEL}>
               PASSWORD
             </label>
             <div className="relative w-full">
-              <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <FieldIcon>
+                <Lock className="h-4 w-4" aria-hidden />
+              </FieldIcon>
               <Input
                 id="admin-password"
                 type="password"
@@ -136,11 +149,12 @@ export function AdminLoginForm() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="pl-10"
+                compact
                 required
               />
             </div>
           </div>
-          <Button type="submit" className="w-full" disabled={pending}>
+          <Button type="submit" className="mt-2 w-full" disabled={pending}>
             {pending ? 'Checking password…' : 'Submit Password'}
             <ArrowRight className="h-4 w-4" />
           </Button>
@@ -153,12 +167,14 @@ export function AdminLoginForm() {
               {BUILBID_OFFICIAL_ADMIN_EMAIL}
             </span>
           </p>
-          <div className="flex w-full flex-col items-center gap-1.5">
+          <div className="flex w-full flex-col gap-1">
             <label htmlFor="admin-otp" className={FIELD_LABEL}>
               6-digit OTP
             </label>
             <div className="relative w-full">
-              <KeyRound className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <FieldIcon>
+                <KeyRound className="h-4 w-4" aria-hidden />
+              </FieldIcon>
               <Input
                 id="admin-otp"
                 inputMode="numeric"
@@ -168,6 +184,7 @@ export function AdminLoginForm() {
                 value={otp}
                 onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
                 className="pl-10 tracking-[0.35em] font-mono text-center text-lg"
+                compact
                 required
               />
             </div>
@@ -190,7 +207,7 @@ export function AdminLoginForm() {
         </form>
       )}
       <Link
-        href="/register"
+        href="/admin/signup"
         className="mt-4 block w-full text-center text-sm font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
       >
         Sign Up / Register New Account
