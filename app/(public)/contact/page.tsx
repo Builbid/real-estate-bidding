@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { Clock, Mail, MapPin, MessageCircle, Phone } from 'lucide-react';
 import { StaticPageShell } from '@/components/marketing/StaticPageShell';
 import { BUILBID_MATERIALS_CONTACT } from '@/lib/contact/official';
@@ -86,26 +85,23 @@ export default function ContactPage() {
         </div>
       </OpenSection>
 
-      <OpenSection title="Before You Write">
+      <OpenSection title="Issue & Complaint Guidelines">
         <p className={COPY}>
-          <span className="font-medium text-foreground">Account and login issues. </span>
-          Include the email address registered on BuilBid and a brief description of the problem.
+          <span className="font-medium text-foreground">Account & Login Issues. </span>
+          For account access, email problems, or login help, include the email address registered
+          on BuilBid and a short description of what happens when you try to sign in.
         </p>
         <p className={COPY}>
-          <span className="font-medium text-foreground">Bidding questions. </span>
-          Reference the project title and auction date so the record is easy to find.
+          <span className="font-medium text-foreground">Site Workmanship & Quality Control Complaints. </span>
+          Property owners can report a contractor or worker who skips the site checklist, delivers
+          sub-standard work, or breaks quality control standards. Include the project title and
+          what was found on site.
         </p>
         <p className={COPY}>
-          <span className="font-medium text-foreground">New to BuilBid? </span>
-          Start with the{' '}
-          <Link href="/about" className="text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-400">
-            About page
-          </Link>{' '}
-          or{' '}
-          <Link href="/signup" className="text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-400">
-            create an account
-          </Link>
-          .
+          <span className="font-medium text-foreground">Payment & Billing Support. </span>
+          Property owners and contractors or labour can report payment delays, billing disputes, or
+          escrow and transaction issues. Include the project title, the amount, and the date of the
+          payment or invoice.
         </p>
       </OpenSection>
     </StaticPageShell>
