@@ -16,7 +16,7 @@ export function StepGuidanceNotes({
         Important Notes:
       </p>
       <p>• {fillInWorkDetails ? FILL_IN_NOTE : SELECT_NOTE}</p>
-      <p>• Project quantities and calculated total values are estimated based on your input. Final billing will be calculated after actual joint site measurement during site visit.</p>
+      <p>• Project quantities and calculated total values are considered estimates based on your input. Final billing will be calculated after actual joint site measurement during worker site visit.</p>
       <p>• Once bidding closes and you select an estimated total value, the underlying unit rates for that offer remain fixed and non-negotiable for final billing.</p>
       {showWastePiping && (
         <div>
