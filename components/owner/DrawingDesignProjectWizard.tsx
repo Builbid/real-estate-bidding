@@ -21,7 +21,9 @@ import {
   AssamDistrictAutocomplete,
   parseAssamDistrictSelection,
 } from '@/components/shared/AssamDistrictAutocomplete';
+import { verifyAssamPincodeAction } from '@/app/actions/verifyAssamPincode';
 import { formatPincodeInput, validatePincode } from '@/lib/validation/pincode';
+import { useAssamLocationCheck } from '@/components/owner/wizard/useAssamLocationCheck';
 import { hasContactInfo } from '@/lib/validation/projectContactInfo';
 import { parseCustomFloorSequence } from '@/lib/mistriDetails';
 import { missingCustomFloorSelectionMessage } from '@/lib/customFloors';
@@ -150,7 +152,12 @@ export function DrawingDesignProjectWizard() {
     });
   }
 
-  function tryGoStep2() {
+  const livePincodeError = useAssamLocationCheck({
+    district: form.location,
+    pincode: form.pincode,
+  });
+
+  async function tryGoStep2() {
     const errors: typeof step1Errors = {};
     if (!parseAssamDistrictSelection(form.location)) {
       errors.location = 'Please select a district from the list.';
@@ -182,6 +189,17 @@ export function DrawingDesignProjectWizard() {
       revealInvalid();
       return;
     }
+    const lookup = await verifyAssamPincodeAction({
+      district: form.location,
+      pincode: form.pincode,
+    });
+    if (!lookup.ok) {
+      setStep1ValidationAttempted(true);
+      setStep1Errors({ pincode: lookup.error });
+      revealInvalid();
+      return;
+    }
+
     setStep1ValidationAttempted(false);
     setStep1Errors({});
     setStep(2);
@@ -271,7 +289,7 @@ export function DrawingDesignProjectWizard() {
       setStep(1);
       return;
     }
-    router.push('/dashboard/owner');
+    router.push('/');
   }
 
   return (
@@ -314,7 +332,7 @@ export function DrawingDesignProjectWizard() {
                 placeholder=""
                 value={form.pincode}
                 onChange={(e) => update('pincode', formatPincodeInput(e.target.value))}
-                error={step1ValidationAttempted ? step1Errors.pincode : undefined}
+                error={(step1ValidationAttempted ? step1Errors.pincode : undefined) || livePincodeError || undefined}
               />
 
               <div

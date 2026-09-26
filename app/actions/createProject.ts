@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import type { BuildingType, ConstructionTypesMap } from '@/lib/buildingConfig'
 import { deriveLegacyProjectFields, ASSAM_BUILDING_TYPE, RCC_BUILDING_TYPES } from '@/lib/buildingConfig'
 import { buildFirmConstructionTypes } from '@/lib/firm/projectDefaults'
+import { verifyAssamProjectLocation } from '@/lib/validation/assamLocation'
 import { validatePincode } from '@/lib/validation/pincode'
 import type {
   DrawingDesignType,
@@ -141,6 +142,11 @@ export async function createProjectAction(
   const pincodeRaw = input.pincode?.trim() ?? ''
   const pincodeError = validatePincode(pincodeRaw, { required: true, assamOnly: true })
   if (pincodeError) return { error: pincodeError }
+  const locationCheck = await verifyAssamProjectLocation({
+    district: input.district,
+    pincode: pincodeRaw,
+  })
+  if (!locationCheck.ok) return { error: locationCheck.error }
 
   const isFirm = input.service_type === 'construction_firm'
   if (isFirm && !isConstructionFirmEnabled()) {

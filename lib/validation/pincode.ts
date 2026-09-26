@@ -3,7 +3,7 @@ export function formatPincodeInput(value: string): string {
 }
 
 export const ASSAM_PINCODE_ERROR =
-  'Please enter a valid 6-digit Assam Pincode (must start with 78).';
+  'This pincode does not exist within Assam. Please enter a valid Assam pincode.';
 
 /** Returns an error message, or null when valid. Empty is allowed unless `required` is set. */
 export function validatePincode(

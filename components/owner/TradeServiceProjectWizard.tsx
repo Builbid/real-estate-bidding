@@ -24,7 +24,9 @@ import { laborOnlyMaterialsNote } from '@/lib/laborMaterialsNote';
 import { generateProjectTitle } from '@/lib/generateProjectTitle';
 import { hasContactInfo } from '@/lib/validation/projectContactInfo';
 import { formatEarthworkProjectLocation, validateEarthworkVillageTownName } from '@/lib/validation/earthworkLocation';
+import { verifyAssamPincodeAction } from '@/app/actions/verifyAssamPincode';
 import { formatPincodeInput, validatePincode } from '@/lib/validation/pincode';
+import { useAssamLocationCheck } from '@/components/owner/wizard/useAssamLocationCheck';
 import { getTradeLabel } from '@/lib/trades';
 import {
   PAINTER_PAINT_AREA_DISCLAIMER,
@@ -291,7 +293,13 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
     }
   }
 
-  function tryGoStep2() {
+  const livePincodeError = useAssamLocationCheck({
+    district: form.location,
+    pincode: form.pincode,
+    villageOrTown: isEarthwork ? form.villageTownName : '',
+  });
+
+  async function tryGoStep2() {
     const errors: typeof step1Errors = {};
 
     if (!parseAssamDistrictSelection(form.location)) {
@@ -340,6 +348,18 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
     if (Object.keys(errors).length > 0) {
       setStep1ValidationAttempted(true);
       setStep1Errors(errors);
+      revealInvalid();
+      return;
+    }
+
+    const lookup = await verifyAssamPincodeAction({
+      villageOrTown: isEarthwork ? form.villageTownName : '',
+      district: form.location,
+      pincode: form.pincode,
+    });
+    if (!lookup.ok) {
+      setStep1ValidationAttempted(true);
+      setStep1Errors({ pincode: lookup.error });
       revealInvalid();
       return;
     }
@@ -581,7 +601,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
       setStep(1);
       return;
     }
-    router.push('/dashboard/owner');
+    router.push('/');
   }
 
   return (
@@ -636,7 +656,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                 placeholder=""
                 value={form.pincode}
                 onChange={(e) => update('pincode', formatPincodeInput(e.target.value))}
-                error={step1ValidationAttempted ? step1Errors.pincode : undefined}
+                error={(step1ValidationAttempted ? step1Errors.pincode : undefined) || livePincodeError || undefined}
               />
 
               {(trade === 'plumber' || trade === 'electrician' || trade === 'false_ceiling_work') && (

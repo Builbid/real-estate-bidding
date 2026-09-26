@@ -34,7 +34,9 @@ import { StepGuidanceNotes } from '@/components/owner/wizard/StepGuidanceNotes';
 import { laborOnlyMaterialsNote } from '@/lib/laborMaterialsNote';
 import { parseCustomFloorSequence } from '@/lib/mistriDetails';
 import { formatCustomFloorsList, missingCustomFloorSelectionMessage } from '@/lib/customFloors';
+import { verifyAssamPincodeAction } from '@/app/actions/verifyAssamPincode';
 import { formatPincodeInput, validatePincode } from '@/lib/validation/pincode';
+import { useAssamLocationCheck } from '@/components/owner/wizard/useAssamLocationCheck';
 import { cn } from '@/lib/utils';
 
 type Step = 1 | 2 | 3 | 4;
@@ -121,7 +123,12 @@ export function ConstructionFirmProjectWizard() {
     district: districtSelection?.district ?? form.location,
   });
 
-  function tryGoStep2() {
+  const livePincodeError = useAssamLocationCheck({
+    district: form.location,
+    pincode: form.pincode,
+  });
+
+  async function tryGoStep2() {
     const errors: typeof step1Errors = {};
 
     if (!parseAssamDistrictSelection(form.location)) {
@@ -142,6 +149,17 @@ export function ConstructionFirmProjectWizard() {
     if (Object.keys(errors).length > 0) {
       setStep1ValidationAttempted(true);
       setStep1Errors(errors);
+      revealInvalid();
+      return;
+    }
+
+    const lookup = await verifyAssamPincodeAction({
+      district: form.location,
+      pincode: form.pincode,
+    });
+    if (!lookup.ok) {
+      setStep1ValidationAttempted(true);
+      setStep1Errors({ pincode: lookup.error });
       revealInvalid();
       return;
     }
@@ -255,7 +273,7 @@ export function ConstructionFirmProjectWizard() {
       setStep(1);
       return;
     }
-    router.push('/dashboard/owner');
+    router.push('/');
   }
 
   return (
@@ -299,7 +317,7 @@ export function ConstructionFirmProjectWizard() {
                 placeholder=""
                 value={form.pincode}
                 onChange={(e) => update('pincode', formatPincodeInput(e.target.value))}
-                error={step1ValidationAttempted ? step1Errors.pincode : undefined}
+                error={(step1ValidationAttempted ? step1Errors.pincode : undefined) || livePincodeError || undefined}
               />
 
               <div>
