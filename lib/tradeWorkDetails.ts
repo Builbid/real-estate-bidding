@@ -1348,7 +1348,7 @@ export const EARTHWORK_SOIL_VEHICLE_OPTIONS: {
   label: string;
 }[] = [
   { value: 'tractor', label: 'Tractor' },
-  { value: 'dumper', label: 'Dumper' },
+  { value: 'dumper', label: 'Dumper (6 Wheelers)' },
 ];
 
 const PLUMBER_SCOPE_SET = new Set<PlumberScopeType>([

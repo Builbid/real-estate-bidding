@@ -831,12 +831,14 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
 
           {step === 2 && (
             <div className="space-y-4">
+              {!isEarthwork && (
               <h2 className={WIZARD_SECTION_LABEL}>
                 {withSectionColon(
                   isPainter ? 'Building Type & Work Requirements' : 'Work Requirements',
                 )}
               </h2>
-              {!isPainter && (
+              )}
+              {!isPainter && !isEarthwork && (
               <p className="text-xs font-medium text-gray-700 dark:text-zinc-300 -mt-3">
                 {trade === 'plumber'
                     ? 'Enter the plumbing package points you need on each selected floor. Leave unused items empty.'
