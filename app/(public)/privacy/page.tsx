@@ -5,7 +5,7 @@ import { StaticPageShell } from '@/components/marketing/StaticPageShell';
 export const metadata: Metadata = {
   title: 'Privacy Policy',
   description:
-    'How BuilBid collects and protects information for property owners, contractors, and site supervisors.',
+    'BuilBid does not sell your data. We collect only what is needed for estimates, bidding, and project records.',
 };
 
 const COPY = 'max-w-prose text-[15px] leading-7 text-muted-foreground sm:text-base sm:leading-8';
@@ -32,64 +32,77 @@ export default function PrivacyPage() {
       headerClassName="mb-8 rounded-none border-0 bg-transparent p-0 shadow-none backdrop-blur-none"
       titleClassName="text-2xl font-medium sm:text-3xl"
       title="Privacy Policy"
-      subtitle="This policy explains how BuilBid handles information for property owners, contractors, and site supervisors."
+      subtitle="Your project details stay on BuilBid. We use them to prepare estimates and run verified bidding, and for nothing else."
       lastUpdated="26 September 2026"
     >
-      <OpenSection title="Information We Collect">
+      <OpenSection title="What we do not do">
         <p className={COPY}>
-          When you create an account, we collect your name and contact details, including email
-          and phone number. Property owners also provide project specifications. Contractors and
-          site supervisors provide the details needed to take part in bidding and site work.
+          BuilBid never sells, rents, or monetizes your data to marketers or advertisers. Your
+          name, phone number, project files, and bid records are not a product we offer to
+          anyone else.
         </p>
         <p className={COPY}>
-          As a project moves forward, we store site measurement data and the records tied to
-          estimates, bids, and supervision. We keep only what is needed to run the account and
-          the project.
-        </p>
-      </OpenSection>
-
-      <OpenSection title="How We Use Data">
-        <p className={COPY}>
-          We use this information to run transparent bidding, send digital estimates, and keep
-          project records that owners, contractors, and site supervisors can refer to. That
-          includes matching a posted project with verified participants and showing comparable
-          rates.
-        </p>
-        <p className={COPY}>
-          We also use account data to sign you in, send notices about your projects, and keep
-          the platform secure. We do not use your information for unrelated marketing lists.
+          We do not collect background personal data you did not choose to give us, and we do
+          not track you on other websites after you leave BuilBid. If it is not needed to run
+          your account or your project, we do not ask for it.
         </p>
       </OpenSection>
 
-      <OpenSection title="Data Protection & Rights">
+      <OpenSection title="What we collect">
         <p className={COPY}>
-          BuilBid does not sell personal information to third parties. Access to project and
-          account data is limited to operating the platform, and connections are protected in
-          transit. You can ask us to correct your details or close your account.
+          We collect only what a property owner, contractor, or site supervisor needs to use
+          the platform. That is your name and contact details, the project specifications you
+          post, and the site measurement data used to generate an estimate.
         </p>
         <p className={COPY}>
-          Privacy requests can be sent to{' '}
+          Those details let us send a digital estimate, match the project with verified
+          bidders, and keep a clear project record. We do not build a separate profile of your
+          life outside that work.
+        </p>
+      </OpenSection>
+
+      <OpenSection title="How your data is protected">
+        <p className={COPY}>
+          Every bid and project document is stored under access controls, with encryption in
+          transit and secure database controls on the systems that hold your records. Only the
+          people and services required to operate BuilBid can reach that information.
+        </p>
+        <p className={COPY}>
+          We use modern security standards so a posted rate, a measurement, or a contact
+          detail is not left open on the public internet. Protection of the project record is
+          part of how the platform works, not an optional extra.
+        </p>
+      </OpenSection>
+
+      <OpenSection title="Your choices">
+        <p className={COPY}>
+          You can view and update the details on your account at any time. If you want your
+          account data deleted, email{' '}
           <a
             href="mailto:support@builbid.in"
             className="font-medium text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-400"
           >
             support@builbid.in
-          </a>
-          . You can also use the{' '}
+          </a>{' '}
+          from your registered address, or write through{' '}
           <Link
             href="/contact"
             className="font-medium text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-400"
           >
             Contact Us
-          </Link>{' '}
-          page. Our{' '}
+          </Link>
+          . We will confirm once the request is done.
+        </p>
+        <p className={COPY}>
+          Questions about this policy are welcome at the same address. How the platform is used
+          is set out in the{' '}
           <Link
             href="/terms"
             className="font-medium text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-400"
           >
             Terms of Service
-          </Link>{' '}
-          explain how the platform is used.
+          </Link>
+          .
         </p>
       </OpenSection>
     </StaticPageShell>
