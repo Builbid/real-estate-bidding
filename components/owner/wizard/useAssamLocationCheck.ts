@@ -15,7 +15,7 @@ export function useAssamLocationCheck(input: {
 
   useEffect(() => {
     const pin = formatPincodeInput(input.pincode);
-    if (pin.length < 6 || !input.district.trim()) {
+    if (pin.length < 6) {
       setLiveError(null);
       return;
     }

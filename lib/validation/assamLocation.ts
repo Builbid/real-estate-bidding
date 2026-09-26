@@ -20,33 +20,22 @@ function compactPlace(value: string): string {
     .replace(/[^a-z0-9]/g, '');
 }
 
-function placesAlign(expected: string, actual: string): boolean {
-  const left = compactPlace(expected);
-  const right = compactPlace(actual);
-  if (!left || !right || left.length < 3 || right.length < 3) return false;
-  return left === right || left.includes(right) || right.includes(left);
+/** Pincode-first map target. Village spelling is not required. */
+export function assamPincodeMapQuery(pincode: string, district: string): string {
+  return [formatPincodeInput(pincode) || pincode.trim(), district.trim(), 'Assam'].filter(Boolean).join(', ');
 }
 
-export function assamLocationQuery(villageOrTown: string, district: string, pincode: string): string {
-  const village = villageOrTown.trim();
-  const pin = formatPincodeInput(pincode);
-  return `${village ? `${village}, ` : ''}${district.trim()},${pin}, Assam`;
-}
-
-/** Confirms the pincode is a real Assam location for the selected district and village. */
+/** A 6-digit pincode starting with 78 passes when India Post lists it inside Assam. */
 export async function verifyAssamProjectLocation(input: {
   villageOrTown?: string;
-  district: string;
+  district?: string;
   pincode: string;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
   const pincodeError = validatePincode(input.pincode, { required: true, assamOnly: true });
   if (pincodeError) return { ok: false, error: pincodeError };
 
   const pincode = formatPincodeInput(input.pincode);
-  const district = input.district.trim();
-  const village = input.villageOrTown?.trim() ?? '';
 
-  let offices: PostalOffice[] = [];
   try {
     const response = await fetch(`https://api.postalpincode.in/pincode/${pincode}`, {
       cache: 'no-store',
@@ -58,19 +47,9 @@ export async function verifyAssamProjectLocation(input: {
     if (record?.Status !== 'Success' || !record.PostOffice?.length) {
       return { ok: false, error: ASSAM_PINCODE_ERROR };
     }
-    offices = record.PostOffice.filter((office) => compactPlace(office.State ?? '') === 'assam');
+    const inAssam = record.PostOffice.some((office) => compactPlace(office.State ?? '') === 'assam');
+    if (!inAssam) return { ok: false, error: ASSAM_PINCODE_ERROR };
   } catch {
-    return { ok: false, error: ASSAM_PINCODE_ERROR };
-  }
-
-  if (offices.length === 0) return { ok: false, error: ASSAM_PINCODE_ERROR };
-
-  const inDistrict = district
-    ? offices.filter((office) => placesAlign(district, office.District ?? ''))
-    : offices;
-  if (inDistrict.length === 0) return { ok: false, error: ASSAM_PINCODE_ERROR };
-
-  if (village && !assamLocationQuery(village, district, pincode).includes(pincode)) {
     return { ok: false, error: ASSAM_PINCODE_ERROR };
   }
 

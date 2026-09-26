@@ -1,3 +1,5 @@
+import { assamPincodeMapQuery } from '@/lib/validation/assamLocation';
+
 export const EARTHWORK_VILLAGE_TOWN_ERROR =
   'Please enter a valid Village or Town name in Assam (numbers are not allowed).';
 
@@ -20,14 +22,13 @@ export function formatEarthworkProjectLocation(
   return [district.trim(), villageOrTown.trim(), pincode.trim()].filter(Boolean).join(', ');
 }
 
-/** Maps search query, e.g. "Barbari Village 781344, Baksa, Assam". */
+/** Maps search uses the pincode and district. A misspelled village does not change the target. */
 export function formatEarthworkMapsQuery(
-  villageOrTown: string,
+  _villageOrTown: string,
   district: string,
   pincode: string,
 ): string {
-  const villageAndPin = [villageOrTown.trim(), pincode.trim()].filter(Boolean).join(' ');
-  return [villageAndPin, district.trim(), 'Assam'].filter(Boolean).join(', ');
+  return assamPincodeMapQuery(pincode, district);
 }
 
 export function readEarthworkVillageName(tradeDetails: unknown): string {
