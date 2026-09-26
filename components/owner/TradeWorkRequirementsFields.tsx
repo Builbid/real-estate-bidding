@@ -174,26 +174,6 @@ export function TradeWorkRequirementsFields({
               columns={2}
             />
           </FieldGroup>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 items-start">
-            <Input
-              compact
-              label="No. of Inverter Connection Points"
-              className="h-10 px-3 py-1.5"
-              type="text"
-              inputMode="numeric"
-              value={form.inverterConnectionPoints}
-              onChange={(e) => onChange('inverterConnectionPoints', e.target.value.replace(/[^\d]/g, '').slice(0, 2))}
-            />
-            <Input
-              compact
-              label="No. of Main MCB / Distribution Box"
-              className="h-10 px-3 py-1.5"
-              type="text"
-              inputMode="numeric"
-              value={form.mainDistributionBoxCount}
-              onChange={(e) => onChange('mainDistributionBoxCount', e.target.value.replace(/[^\d]/g, '').slice(0, 2))}
-            />
-          </div>
         </>
       )}
 

@@ -3315,18 +3315,6 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
           value: getElectricianWiringTypeLabel(details.electricianWiringType),
         });
       }
-      if (details.inverterConnectionPoints != null && details.inverterConnectionPoints > 0) {
-        blocks.push({
-          label: 'No. of Inverter Connection Points',
-          value: String(details.inverterConnectionPoints),
-        });
-      }
-      if (details.mainDistributionBoxCount != null && details.mainDistributionBoxCount > 0) {
-        blocks.push({
-          label: 'No. of Main MCB / Distribution Box',
-          value: String(details.mainDistributionBoxCount),
-        });
-      }
       blocks.push({
         label: 'Materials:',
         value: ELECTRICIAN_LABOUR_ONLY_DISCLAIMER,
