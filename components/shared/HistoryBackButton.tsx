@@ -7,9 +7,11 @@ import { cn } from '@/lib/utils';
 
 export function HistoryBackButton({
   className,
+  label = 'Back',
   onClick,
 }: {
   className?: string;
+  label?: string;
   onClick?: () => void;
 }) {
   const router = useRouter();
@@ -32,7 +34,7 @@ export function HistoryBackButton({
       )}
     >
       <ArrowLeft className="w-4 h-4" aria-hidden />
-      Back
+      {label}
     </button>
   );
 }

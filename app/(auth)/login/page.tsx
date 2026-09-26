@@ -3,16 +3,14 @@
 import { Suspense, useEffect, useState, type FormEvent } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { Mail, Lock, Eye, EyeOff, ArrowRight, ArrowLeft, AlertCircle } from 'lucide-react'
+import { Mail, Lock, Eye, EyeOff, ArrowRight, AlertCircle } from 'lucide-react'
 import { BuilBidLogo } from '@/components/shared/BuilBidLogo'
 import { clientSignIn } from '@/lib/auth/clientSignIn'
 import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton'
 import { AuthDivider } from '@/components/auth/AuthDivider'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { NavLink } from '@/components/shared/NavLink'
-import { NAV_BACK_LINK } from '@/lib/navStyles'
-import { cn } from '@/lib/utils'
+import { HistoryBackButton } from '@/components/shared/HistoryBackButton'
 
 type RoleParam = 'owner' | 'bidder' | null
 
@@ -170,9 +168,7 @@ function LoginPageContent() {
 
       <div className="relative w-full max-w-md">
         {roleParam && (
-          <NavLink href="/" prefetch className={cn(NAV_BACK_LINK, 'mb-4')}>
-            <ArrowLeft className="w-4 h-4" /> Back
-          </NavLink>
+          <HistoryBackButton className="mb-4" />
         )}
 
         <div className="flex flex-col items-center gap-3 mb-8">

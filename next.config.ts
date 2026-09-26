@@ -22,6 +22,7 @@ const nextConfig: NextConfig = {
       dynamic: 30,
       static: 180,
     },
+    scrollRestoration: true,
   },
   compiler: {
     removeConsole:

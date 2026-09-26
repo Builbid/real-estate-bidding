@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import { HistoryBackButton } from '@/components/shared/HistoryBackButton';
 import { BuilBidLogo } from '@/components/shared/BuilBidLogo';
 import { cn } from '@/lib/utils';
 
@@ -28,12 +28,7 @@ export function SignupAccountTypeSelection() {
       </div>
 
       <div className="relative w-full max-w-lg">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
-        >
-          <ArrowLeft className="w-4 h-4" /> Back
-        </Link>
+        <HistoryBackButton className="mb-4" />
 
         <div className="flex flex-col items-center gap-3 mb-8">
           <Link href="/" className="hover:opacity-90 transition-opacity">

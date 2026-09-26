@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from 'react';
 import { ThemeProvider } from '@/components/providers/ThemeProvider';
 import { LanguageProvider } from '@/lib/context/LanguageProvider';
 import { PostProjectGuardProvider } from '@/components/auth/PostProjectGuardProvider';
@@ -9,7 +10,9 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
   return (
     <ThemeProvider>
       <LanguageProvider>
-        <ScrollToTopOnRouteChange />
+        <Suspense fallback={null}>
+          <ScrollToTopOnRouteChange />
+        </Suspense>
         <PostProjectGuardProvider>{children}</PostProjectGuardProvider>
       </LanguageProvider>
     </ThemeProvider>

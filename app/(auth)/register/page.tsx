@@ -8,6 +8,7 @@ import {
   ArrowRight, ArrowLeft, AlertCircle, CheckCircle2, Check, X,
 } from 'lucide-react';
 import { BuilBidLogo } from '@/components/shared/BuilBidLogo';
+import { HistoryBackButton } from '@/components/shared/HistoryBackButton';
 import { signUpAction } from '@/app/actions/auth';
 import {
   TRADE_SERVICE_OPTIONS,
@@ -394,12 +395,7 @@ function RegisterPageContent() {
 
       <div className="relative w-full max-w-lg">
         {roleParam && (
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
-          >
-            <ArrowLeft className="w-4 h-4" /> Back
-          </Link>
+          <HistoryBackButton className="mb-4" />
         )}
 
         <div className="flex flex-col items-center gap-3 mb-8">
@@ -670,8 +666,8 @@ function RegisterPageContent() {
 
               <div className="flex gap-3 pt-2">
                 {roleParam === 'owner' ? (
-                  <Button type="button" variant="outline" size="lg" className="flex-1" asChild>
-                    <Link href="/"><ArrowLeft className="w-4 h-4" /> Back</Link>
+                  <Button type="button" variant="outline" size="lg" className="flex-1" onClick={() => router.back()}>
+                    <ArrowLeft className="w-4 h-4" /> Back
                   </Button>
                 ) : (
                   <Button type="button" variant="outline" size="lg" className="flex-1" onClick={() => setStep(1)}>
