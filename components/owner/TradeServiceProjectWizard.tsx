@@ -846,7 +846,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                       ? 'Enter the required electrical points, switches, lights, and fans for each selected floor.'
                       : trade === 'false_ceiling_work'
                         ? 'Check the interior design categories you need, then pick the sub-options designers should quote as interior designer unit rates.'
-                    : `Describe the ${tradeLabel.toLowerCase()} work so bidders can quote without scope conflicts.`}
+                    : `Describe the ${tradeLabel.toLowerCase()} work so bidders can quote from the work specifications.`}
               </p>
               )}
 

@@ -2514,7 +2514,7 @@ export function getCarpenterScopeLabel(value: CarpenterScopeType): string {
 export function formatCarpenterScopesSummary(
   scopes: CarpenterScopeType[] | null | undefined,
 ): string {
-  if (!scopes?.length) return 'No scope selected';
+  if (!scopes?.length) return 'No work specifications selected';
   return scopes.map((value) => getCarpenterScopeLabel(value)).join(', ');
 }
 
@@ -3069,7 +3069,7 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
           const included = getBathroomPackageIncluded(item.package);
           if (included.length > 0) {
             blocks.push({
-              label: `${getBathroomPackageShortLabel(item.package)} included scope`,
+              label: `${getBathroomPackageShortLabel(item.package)} included work specifications`,
               value: included.join(' · '),
             });
           }
@@ -3097,7 +3097,7 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
         const included = getBathroomPackageIncluded(details.bathroomPackage);
         if (included.length > 0) {
           blocks.push({
-            label: 'Included Work Scope',
+            label: 'Included Work Specifications',
             value: included.join(' · '),
           });
         }
@@ -3134,7 +3134,7 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
       }
     } else {
       blocks.push(
-        { label: 'Scope Type', value: LEGACY_PLUMBER_SCOPE_LABELS[details.scopeType] },
+        { label: 'Work Specifications', value: LEGACY_PLUMBER_SCOPE_LABELS[details.scopeType] },
         { label: 'Bathrooms', value: formatStepperCount(details.bathrooms, 3) },
         { label: 'Kitchens', value: formatStepperCount(details.kitchens, 3) },
         { label: 'Overhead Water Tank', value: yesNo(details.overheadTank) },
@@ -3147,7 +3147,7 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
         });
         if (included.length > 0) {
           blocks.push({
-            label: 'Included Work Scope',
+            label: 'Included Work Specifications',
             value: included.join(' · '),
           });
         }
@@ -3337,7 +3337,7 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
       }
     } else {
       blocks.push(
-        { label: 'Scope Type', value: LEGACY_ELECTRICIAN_SCOPE_LABELS[details.scopeType] },
+        { label: 'Work Specifications', value: LEGACY_ELECTRICIAN_SCOPE_LABELS[details.scopeType] },
         {
           label: 'Approximate Points',
           value: details.pointEstimate
@@ -3365,7 +3365,7 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
     }
   } else if (details.service === 'carpenter') {
     blocks.push({
-      label: 'Scope Type',
+      label: 'Work Specifications',
       value: formatCarpenterScopesSummary(details.scopeTypes),
     });
     if (details.scopeTypes.includes('door_window_frames')) {
@@ -3442,7 +3442,7 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
       }
     } else {
       blocks.push(
-        { label: 'Scope Type', value: optionLabel(INTERIOR_SCOPE_OPTIONS, details.scopeType) },
+        { label: 'Work Specifications', value: optionLabel(INTERIOR_SCOPE_OPTIONS, details.scopeType) },
         {
           label: 'Target Space',
           value: (details.targetSpaces ?? [])
@@ -3877,7 +3877,7 @@ export function validateTradeDetailsInput(
       SELECTABLE_CARPENTER_SCOPE_SET.has(value),
     );
     if (scopeTypes.length === 0) {
-      return { error: 'Select at least one carpentry scope type.' };
+      return { error: 'Select at least one carpentry work specification.' };
     }
     const hasChowkhat = scopeTypes.includes('door_window_frames');
     const hasModularKitchen = scopeTypes.includes('modular_kitchen');

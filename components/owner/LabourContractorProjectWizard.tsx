@@ -1918,7 +1918,7 @@ export function LabourContractorProjectWizard() {
                   data-field-invalid={messageMatches(step2Error, 'contract type') ? 'true' : undefined}
                 >
                   <label className={SECTION_LABEL}>
-                    {withSectionColon('Contract Type (Work Scope)')}
+                    {withSectionColon('Contract Type (Work Specifications)')}
                   </label>
                   <div className="grid grid-cols-1 gap-2.5">
                     {MISTRI_CONTRACT_TYPE_OPTIONS.map((opt) => (

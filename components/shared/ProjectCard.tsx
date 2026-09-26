@@ -166,7 +166,7 @@ export function ProjectCard({
               {floorScopes.length > 0 ? (
                 <div className="col-span-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 dark:border-slate-700 dark:bg-slate-800/60">
                   <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
-                    Floor scope
+                    Floor work specifications
                   </p>
                   <FloorScopeBadges items={floorScopes} />
                 </div>
@@ -184,7 +184,9 @@ export function ProjectCard({
                     'mt-0.5 text-sm font-semibold leading-snug text-slate-900 dark:text-slate-100 break-words',
                     (block.label === 'Additional Requirements' || block.label === 'Additional Notes')
                       ? 'line-clamp-3 font-medium'
-                      : block.label === 'Civil Work Type' || block.label === 'Included Work Scope'
+                      : block.label === 'Civil Work Type' ||
+                        block.label === 'Included Work Specifications' ||
+                        block.label === 'Included Work Scope'
                         ? 'line-clamp-4'
                         : 'line-clamp-2',
                   )}>
@@ -235,7 +237,7 @@ export function ProjectCard({
               {floorScopes.length > 0 ? (
                 <div className="col-span-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 dark:border-slate-700 dark:bg-slate-800/60">
                   <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
-                    Floor scope
+                    Floor work specifications
                   </p>
                   <FloorScopeBadges items={floorScopes} />
                 </div>

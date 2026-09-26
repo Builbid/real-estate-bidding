@@ -295,7 +295,7 @@ export function generatePlumberAgreementPdfBytes(
     margin,
   );
 
-  y = drawSectionTitle(doc, '2. Scope of Work & Site Verification', y, margin);
+  y = drawSectionTitle(doc, '2. Work Specifications & Site Verification', y, margin);
   y = drawParagraph(
     doc,
     'Joint Site Review: Homeowner, Plumber, and BuilBid Field Coordinator must jointly review the site to confirm fixture counts, pipe routing, and running-foot measurements before execution.',
@@ -304,7 +304,7 @@ export function generatePlumberAgreementPdfBytes(
   );
   y = drawParagraph(
     doc,
-    'Plumber-Only Scope: All bids are strictly for PLUMBER CHARGES. Materials must be supplied by the Property Owner. Extra bathrooms, decorative fixtures, or work outside the awarded bid must be negotiated separately without BuilBid involvement.',
+    'Plumber work specifications: All bids are strictly for PLUMBER CHARGES. Materials must be supplied by the Property Owner. Extra bathrooms, decorative fixtures, or work outside the awarded bid must be negotiated separately without BuilBid involvement.',
     y,
     margin,
   );

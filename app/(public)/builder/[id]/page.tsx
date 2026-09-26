@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
+import { HistoryBackButton } from '@/components/shared/HistoryBackButton';
 import { Navbar } from '@/components/shared/Navbar';
 import { DemoLabourPortfolioView } from '@/components/marketing/DemoLabourPortfolioView';
 import { getDemoLabourProfile, isDemoLabourSlug } from '@/lib/data/demoPortfolios';
@@ -32,12 +31,7 @@ export default async function DemoBuilderPortfolioPage({ params }: PageProps) {
     <>
       <Navbar />
       <div className="container mx-auto px-4 py-8">
-        <Link
-          href="/"
-          className="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="h-4 w-4" /> Back to Home
-        </Link>
+        <HistoryBackButton className="mb-6" />
         <DemoLabourPortfolioView profile={profile} />
       </div>
     </>

@@ -604,7 +604,7 @@ export function validatePainterDetailsInput(input: {
     fieldErrors.paintArea = 'Enter a valid estimated paint area in sq.ft.';
   }
   if (!input.paintingScope || !SCOPE_SET.has(input.paintingScope)) {
-    fieldErrors.paintingScope = 'Select a painting scope.';
+    fieldErrors.paintingScope = 'Select the painting work specifications.';
   }
   if (!input.surfaceCondition || !SURFACE_SET.has(input.surfaceCondition)) {
     fieldErrors.surface = 'Select a surface condition.';

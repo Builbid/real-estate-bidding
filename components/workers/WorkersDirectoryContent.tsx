@@ -1,11 +1,10 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { ArrowLeft, HardHat } from 'lucide-react';
+import { HardHat } from 'lucide-react';
 import { Navbar } from '@/components/shared/Navbar';
 import { WorkerCard } from '@/components/workers/WorkerCard';
-import { NavLink } from '@/components/shared/NavLink';
-import { NAV_BACK_LINK } from '@/lib/navStyles';
+import { HistoryBackButton } from '@/components/shared/HistoryBackButton';
 import { cn } from '@/lib/utils';
 import {
   WORKER_CATEGORY_FILTERS,
@@ -31,10 +30,7 @@ export function WorkersDirectoryContent({ workers }: WorkersDirectoryContentProp
     <>
       <Navbar />
       <main className="mx-auto max-w-7xl px-4 py-8 pb-16 sm:px-6 sm:py-10">
-        <NavLink href="/" prefetch className={cn(NAV_BACK_LINK, 'mb-6')}>
-          <ArrowLeft className="h-4 w-4" />
-          Back to Home
-        </NavLink>
+        <HistoryBackButton className="mb-6" />
 
         <header className="mb-6 sm:mb-8">
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">

@@ -105,7 +105,7 @@ const LABOUR_EXTRAS: Record<
     projectsCompleted: 86,
     isVerified: true,
     about:
-      'Kamrup Infra Works is a Guwahati-based mistri worker specialising in RCC residential builds across Kamrup Metropolitan. Our crews handle foundation, column, slab, and full finishing scopes with on-site supervision and transparent milestone reporting for clients.',
+      'Kamrup Infra Works is a Guwahati-based mistri worker specialising in RCC residential builds across Kamrup Metropolitan. Our crews handle foundation, column, slab, and full finishing work specifications with on-site supervision and transparent milestone reporting for clients.',
     portfolio: labourPortfolio('kamrup-infra-works', [
       {
         id: 'kiw-1',
@@ -160,7 +160,7 @@ const LABOUR_EXTRAS: Record<
         id: 'hs-3',
         title: 'Assam Type Duplex — Tinsukia',
         description:
-          'Two-unit Assam-type Mistri package including roofing, verandah columns, and complete plaster & paint scope.',
+          'Two-unit Assam-type Mistri package including roofing, verandah columns, and complete plaster and paint work specifications.',
         photo_urls: [PHOTOS.bungalow, PHOTOS.plaster, PHOTOS.assamHouse, PHOTOS.interior],
         sort_order: 2,
       },

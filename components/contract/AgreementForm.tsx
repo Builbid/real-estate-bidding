@@ -199,7 +199,7 @@ export function AgreementForm({
         {scopePreview.length > 0 && (
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-              Scope of work (from project posting)
+              Work specifications (from project posting)
             </p>
             <ul className="space-y-1.5">
               {scopePreview.slice(0, 8).map((row) => (

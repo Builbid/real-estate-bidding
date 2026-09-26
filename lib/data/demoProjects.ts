@@ -48,7 +48,7 @@ const LABOUR_TEMPLATES: DemoProjectTemplate[] = [
   {
     id: 'demo-labour-2',
     title: 'Assam Type Bungalow — Jorhat Town',
-    description: 'Traditional Assam-type frame to roof with full finishing scope.',
+    description: 'Traditional Assam-type frame to roof with full finishing work specifications.',
     district: 'Jorhat',
     service_type: 'labour_contractor',
     building_types: ['Assam Type'],
@@ -82,7 +82,7 @@ const LABOUR_TEMPLATES: DemoProjectTemplate[] = [
   {
     id: 'demo-labour-4',
     title: 'Single Floor RCC — Nagaon Residential Plot',
-    description: 'Compact ground-floor RCC home with full finishing Mistri scope.',
+    description: 'Compact ground-floor RCC home with full finishing Mistri work specifications.',
     district: 'Nagaon',
     service_type: 'labour_contractor',
     building_types: ['RCC Ground Floor'],

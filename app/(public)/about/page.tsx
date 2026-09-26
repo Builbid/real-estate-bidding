@@ -6,25 +6,25 @@ import { Button } from '@/components/ui/button';
 export const metadata: Metadata = {
   title: 'About Us',
   description:
-    'BuilBid supports transparent contractor estimates and quality site supervision for construction projects in Assam.',
+    'BuilBid supports transparent contractor estimates and quality site supervision.',
 };
 
 const MISSION = [
   'Transparent project rates and open bid comparisons.',
   'Digital contractor estimation with clear, comparable unit rates.',
-  'Quality site supervision for construction work in Assam.',
+  'Quality site supervision from measurement through progress.',
 ] as const;
 
 const VALUES = [
-  'Transparency in pricing, scope, and project records.',
-  'Digital estimates that owners and contractors can review side by side.',
-  'Consistent site supervision from measurement through progress.',
+  'Transparency in pricing and project records.',
+  'Digital estimates owners and contractors can compare.',
+  'Consistent site supervision through each project stage.',
 ] as const;
 
 const SUMMARY = [
-  'Owners post scoped work and compare contractor estimates in one place.',
+  'Owners post project requirements and compare contractor estimates.',
   'Verified trades submit rates under the same unit rules.',
-  'Field supervision stays tied to the project record in Assam.',
+  'Field supervision stays tied to the project record.',
 ] as const;
 
 function OpenSection({
@@ -66,7 +66,7 @@ export default function AboutPage() {
       titleClassName="text-2xl font-medium sm:text-3xl"
       eyebrow="About Us"
       title="Empowering Modern Construction Bidding"
-      subtitle="BuilBid helps owners and contractors in Assam compare digital estimates and supervise site work with clear records."
+      subtitle="BuilBid helps owners and contractors compare digital estimates and supervise site work with clear records."
     >
       <OpenSection title="Our Mission">
         <PointList items={MISSION} />
@@ -82,7 +82,7 @@ export default function AboutPage() {
 
       <section className="border-t border-border/40 pt-8">
         <h2 className="text-base font-medium tracking-tight text-foreground">
-          Start a project in Assam
+          Start a project
         </h2>
         <p className="mt-3 max-w-prose text-sm leading-relaxed text-muted-foreground">
           Post work, compare contractor estimates, and keep site supervision on record.

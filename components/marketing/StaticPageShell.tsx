@@ -1,8 +1,6 @@
-import { ArrowLeft } from 'lucide-react';
 import { Navbar } from '@/components/shared/Navbar';
-import { NavLink } from '@/components/shared/NavLink';
+import { HistoryBackButton } from '@/components/shared/HistoryBackButton';
 import { cn } from '@/lib/utils';
-import { NAV_BACK_LINK } from '@/lib/navStyles';
 
 interface StaticPageShellProps {
   title: string;
@@ -33,10 +31,7 @@ export function StaticPageShell({
     <>
       <Navbar />
       <main className={cn('relative z-10 max-w-3xl mx-auto px-4 sm:px-6 py-10 pb-16', className)}>
-        <NavLink href="/" prefetch className={cn(NAV_BACK_LINK, 'mb-8')}>
-          <ArrowLeft className="w-4 h-4" />
-          Back to Home
-        </NavLink>
+        <HistoryBackButton className="mb-8" />
 
         {eyebrow && (
           <p

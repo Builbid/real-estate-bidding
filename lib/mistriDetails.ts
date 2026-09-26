@@ -4103,7 +4103,7 @@ export function mistriNestedDetailsCreateError(details: MistriDetails): string |
     details.civilWorkTypes.includes('brickwork_aac') &&
     !normalizeBrickworkDetails(details.brickworkDetails)
   ) {
-    return 'Answer all brickwork questions (wall material and plastering scope).';
+    return 'Answer all brickwork questions (wall material and plastering work specifications).';
   }
   if (
     details.civilWorkTypes.includes('boundary_wall_fencing') &&

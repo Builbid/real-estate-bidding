@@ -206,7 +206,7 @@ const LabourFloorBlock = forwardRef<HTMLDivElement, LabourFloorBlockProps>(
             </p>
           )}
 
-          <div className="space-y-2" role="radiogroup" aria-label={`${displayName} construction scope`}>
+          <div className="space-y-2" role="radiogroup" aria-label={`${displayName} work specifications`}>
             {options.map((opt) => {
               const isSelected = selected === opt.value;
               return (

@@ -142,7 +142,7 @@ export const en = {
     features: {
       sectionTitle: 'Built for Professional Construction Procurement',
       sectionDesc:
-        'Every feature is designed around the actual workflow of real estate project bidding in Assam and beyond.',
+        'Every feature is designed around the actual workflow of real estate project bidding.',
       privacyTitle: 'Privacy-First Architecture',
       privacyDesc:
         'Builder names and photos are visible on live leaderboards. Contact details stay private.',
@@ -175,7 +175,7 @@ export const en = {
     biddingClosesIn: 'Bidding Closes In',
     selectionWindow: 'Selection Window',
     postedOn: 'Posted',
-    constructionScope: 'Construction Scope',
+    constructionScope: 'Work Specifications',
     backToAuctions: 'Back to Auctions',
     viewProject: 'View Project',
   },
@@ -194,7 +194,7 @@ export const en = {
     secondFloorDetail:
       'Upper roof slab construction, beam framing, partition layout installations, and advanced weather-proofing preparation.',
     matrixHelper:
-      'Select the construction stage your builder should complete for each floor. Scope details are shown below each option.',
+      'Select the construction stage your builder should complete for each floor. Work specifications are shown below each option.',
     matrixHelperAs:
       'প্ৰতিটো FLOOR ৰ বাবে নিৰ্মাণৰ কোন পৰ্যায়লৈ কাম কৰিব লাগিব বাছক।',
     assamHelper:

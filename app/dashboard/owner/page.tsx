@@ -4,14 +4,13 @@ import { getAuthUser } from '@/lib/supabase/getUser';
 import { processAuctionTransitions } from '@/app/actions/auction';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { Plus, Building, ArrowLeft } from 'lucide-react';
+import { Plus, Building } from 'lucide-react';
 import { OwnerLiveProjectCard } from './OwnerLiveProjectCard';
 import { CompletedProjectsPreview } from '@/components/dashboard/CompletedProjectsPreview';
 import { DashboardWorkSection } from '@/components/dashboard/DashboardWorkSection';
 import { Button } from '@/components/ui/button';
-import { NavLink } from '@/components/shared/NavLink';
-import { NAV_BACK_LINK } from '@/lib/navStyles';
-import { cn, getProjectPhase, isInteractiveProjectPhase, type ProjectPhase } from '@/lib/utils';
+import { HistoryBackButton } from '@/components/shared/HistoryBackButton';
+import { getProjectPhase, isInteractiveProjectPhase, type ProjectPhase } from '@/lib/utils';
 import type { Project, Bid } from '@/lib/types';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
@@ -137,10 +136,7 @@ export default async function OwnerDashboard() {
   return (
     <div className="space-y-4 pb-24">
       <div>
-        <NavLink href="/" prefetch className={cn(NAV_BACK_LINK, 'mb-3')}>
-          <ArrowLeft className="w-4 h-4" />
-          Back to Home
-        </NavLink>
+        <HistoryBackButton className="mb-3" />
         <div className="flex items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-foreground">Owner Dashboard</h1>

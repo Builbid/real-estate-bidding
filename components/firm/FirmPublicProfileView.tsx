@@ -131,7 +131,7 @@ export function FirmPublicProfileView({
                     Company Brochure
                   </h2>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Packages, scope, and company details from the firm.
+                    Packages, work specifications, and company details from the firm.
                   </p>
                 </div>
               </div>

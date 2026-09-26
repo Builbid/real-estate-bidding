@@ -475,11 +475,11 @@ function generateGenericDigitalContractPdf(input: {
     y,
     margin,
   );
-  y = drawSectionTitle(doc, '2. Scope of Work', y, margin);
+  y = drawSectionTitle(doc, '2. Work Specifications', y, margin);
   y = drawParagraph(
     doc,
     input.description?.trim() ||
-      'Scope of work is as awarded on BuilBid from the project posting and accepted bid.',
+      'Work specifications are as awarded on BuilBid from the project posting and accepted bid.',
     y,
     margin,
   );

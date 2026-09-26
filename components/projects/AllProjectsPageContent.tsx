@@ -2,15 +2,14 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Search, Sparkles } from 'lucide-react';
+import { Search, Sparkles } from 'lucide-react';
 import { Navbar } from '@/components/shared/Navbar';
 import { ShowcaseProjectCard } from '@/components/home/ShowcaseProjectCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { loadActiveProjectsPage } from '@/app/actions/projects';
 import type { ShowcaseProject } from '@/lib/projectShowcase';
-import { NavLink } from '@/components/shared/NavLink';
-import { NAV_BACK_LINK } from '@/lib/navStyles';
+import { HistoryBackButton } from '@/components/shared/HistoryBackButton';
 import { cn } from '@/lib/utils';
 import { ProjectServiceFilterPills } from '@/components/projects/ProjectServiceFilterPills';
 import { getProjectServiceType } from '@/lib/project/display';
@@ -104,10 +103,7 @@ export function AllProjectsPageContent({
     <>
       <Navbar />
       <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-10 pb-16">
-        <NavLink href="/" prefetch className={cn(NAV_BACK_LINK, 'mb-6')}>
-          <ArrowLeft className="w-4 h-4" />
-          Back to Home
-        </NavLink>
+        <HistoryBackButton className="mb-6" />
 
         <header className="mb-6">
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">

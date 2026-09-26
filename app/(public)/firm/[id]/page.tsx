@@ -1,8 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import { notFound } from 'next/navigation';
-import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import { HistoryBackButton } from '@/components/shared/HistoryBackButton';
 import { getPublicFirmProfileAction } from '@/app/actions/firm';
 import { FirmPublicProfileView } from '@/components/firm/FirmPublicProfileView';
 import { Navbar } from '@/components/shared/Navbar';
@@ -23,12 +22,7 @@ export default async function PublicFirmProfilePage({ params }: PageProps) {
       <>
         <Navbar />
         <div className="container mx-auto px-4 py-8">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6"
-          >
-            <ArrowLeft className="w-4 h-4" /> Back to Home
-          </Link>
+          <HistoryBackButton className="mb-6" />
           <FirmPublicProfileView
             firm={demo.firm}
             portfolio={demo.portfolio}
@@ -50,12 +44,7 @@ export default async function PublicFirmProfilePage({ params }: PageProps) {
     <>
       <Navbar />
       <div className="container mx-auto px-4 py-8">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6"
-        >
-          <ArrowLeft className="w-4 h-4" /> Back
-        </Link>
+        <HistoryBackButton className="mb-6" />
         <FirmPublicProfileView firm={firm} portfolio={portfolio} />
       </div>
     </>

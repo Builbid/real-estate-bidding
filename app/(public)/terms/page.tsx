@@ -44,7 +44,7 @@ export default function TermsPage() {
       <StaticSection title="4. User roles & responsibilities">
         <p><strong className="text-foreground">Clients</strong> agree to:</p>
         <ul className="list-disc pl-5 space-y-2 mt-2 mb-4">
-          <li>Post accurate project specifications, including scope, area, location, and construction type.</li>
+          <li>Post accurate project details, including work specifications, area, location, and construction type.</li>
           <li>Run auctions in good faith and honour the selection process after bidding closes.</li>
           <li>Not solicit off-platform deals intended to circumvent BuilBid fees or auction rules during an active listing.</li>
         </ul>

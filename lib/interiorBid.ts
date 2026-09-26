@@ -74,7 +74,7 @@ export function interiorPackageGroupsForOptions(options: InteriorBidOption[]): A
   const groupedIds = new Set(grouped.flatMap((group) => group.options.map((option) => option.id)));
   const leftover = options.filter((option) => !groupedIds.has(option.id));
   if (leftover.length === 0) return grouped;
-  return [...grouped, { id: 'other', label: 'Other Scope', options: leftover }];
+  return [...grouped, { id: 'other', label: 'Other Work Specifications', options: leftover }];
 }
 
 export function resolveInteriorBidOptions(raw: unknown): InteriorBidOption[] {

@@ -283,7 +283,7 @@ export function generateElectricianAgreementPdfBytes(
     margin,
   );
 
-  y = drawSectionTitle(doc, '2. Scope of Work & Site Verification', y, margin);
+  y = drawSectionTitle(doc, '2. Work Specifications & Site Verification', y, margin);
   y = drawParagraph(
     doc,
     'Joint Site Review: Homeowner, Electrician, and BuilBid Field Coordinator must jointly review the site to confirm fixture counts, wiring routes, and point measurements before execution.',
@@ -292,7 +292,7 @@ export function generateElectricianAgreementPdfBytes(
   );
   y = drawParagraph(
     doc,
-    'Electrician-Only Scope: All bids are strictly for ELECTRICIAN CHARGES. Materials must be supplied by the Property Owner. Extra points, decorative fixtures, or work outside the awarded bid must be negotiated separately without BuilBid involvement.',
+    'Electrician work specifications: All bids are strictly for ELECTRICIAN CHARGES. Materials must be supplied by the Property Owner. Extra points, decorative fixtures, or work outside the awarded bid must be negotiated separately without BuilBid involvement.',
     y,
     margin,
   );

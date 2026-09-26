@@ -312,7 +312,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                       />
                       {!isFirmProject(project) && (
                         <>
-                          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Construction Scope</p>
+                          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Work Specifications</p>
                           <BuildingConfigSummary project={project} className="space-y-3" />
                         </>
                       )}

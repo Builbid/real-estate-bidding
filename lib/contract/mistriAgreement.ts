@@ -382,7 +382,7 @@ export function generateMistriAgreementPdfBytes(
     margin,
   );
 
-  y = drawSectionTitle(doc, '2. Scope of Work & Blueprint Verification', y, margin);
+  y = drawSectionTitle(doc, '2. Work Specifications & Blueprint Verification', y, margin);
   y = drawParagraph(
     doc,
     'Joint Blueprint Review: Homeowner, Mistri, and BuilBid Field Coordinator must jointly review site blueprints to finalize the Plinth Area (Sq. Ft.) and on-site structural dimensions before execution.',

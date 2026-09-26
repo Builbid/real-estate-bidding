@@ -2,10 +2,9 @@ export const dynamic = 'force-dynamic'
 
 import { getAuthUser } from '@/lib/supabase/getUser';
 import { redirect } from 'next/navigation';
-import { ArrowLeft, Building } from 'lucide-react';
-import { NavLink } from '@/components/shared/NavLink';
-import { NAV_BACK_LINK } from '@/lib/navStyles';
-import { STATUS_CONFIG, cn } from '@/lib/utils';
+import { Building } from 'lucide-react';
+import { HistoryBackButton } from '@/components/shared/HistoryBackButton';
+import { STATUS_CONFIG } from '@/lib/utils';
 import { AuctionRow } from '../builder/AuctionRow';
 import { formatBidUnitSuffix } from '@/lib/bid/earthworkBid';
 import { canWorkerBidOnProject } from '@/lib/bid/workerBidEligibility';
@@ -83,10 +82,7 @@ export default async function ProviderDashboard() {
   return (
     <div className="space-y-8">
       <div>
-        <NavLink href="/" prefetch className={cn(NAV_BACK_LINK, 'mb-3')}>
-          <ArrowLeft className="w-4 h-4" />
-          Back to Home
-        </NavLink>
+        <HistoryBackButton className="mb-3" />
         <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
           <span>{tradeEmoji}</span> Worker Dashboard
         </h1>

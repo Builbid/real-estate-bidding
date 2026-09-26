@@ -59,7 +59,7 @@ export function BathroomPackageSelector({
           {selectedPackage && (
             <ul className="mt-3 space-y-1.5 rounded-lg border border-slate-700/30 bg-slate-800/40 p-3">
               <li className="text-[10px] font-semibold uppercase tracking-wider text-blue-400">
-                {selectedPackage.label} — included work scope
+                {selectedPackage.label} — included work specifications
               </li>
               {selectedPackage.included.map((item) => (
                 <li

@@ -177,7 +177,7 @@ export const as: Messages = {
     biddingClosesIn: 'Bidding বন্ধ হ’ব',
     selectionWindow: 'Selection Window',
     postedOn: 'Posted',
-    constructionScope: 'Construction Scope',
+    constructionScope: 'Work Specifications',
     backToAuctions: 'Auctions লৈ উভতি যাওক',
     viewProject: 'Project চাওক',
   },
@@ -196,7 +196,7 @@ export const as: Messages = {
     secondFloorDetail:
       'Upper roof slab construction, beam framing, partition layout installations, and advanced weather-proofing preparation.',
     matrixHelper:
-      'প্ৰতিটো floor ৰ বাবে builder এ কোন stage লৈকে কাম কৰিব লাগিব বাছক। Scope details তলত দেখুওৱা হৈছে।',
+      'প্ৰতিটো floor ৰ বাবে builder এ কোন stage লৈকে কাম কৰিব লাগিব বাছক। Work specifications তলত দেখুওৱা হৈছে।',
     matrixHelperAs:
       'প্ৰতিটো FLOOR ৰ বাবে নিৰ্মাণৰ কোন পৰ্যায়লৈ কাম কৰিব লাগিব বাছক।',
     assamHelper:

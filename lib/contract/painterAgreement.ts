@@ -248,7 +248,7 @@ export function generatePainterAgreementPdfBytes(
     margin,
   );
 
-  y = drawSectionTitle(doc, '2. Scope of Work & Site Verification', y, margin);
+  y = drawSectionTitle(doc, '2. Work Specifications & Site Verification', y, margin);
   y = drawParagraph(
     doc,
     'Joint Site Review: Homeowner, Painter, and BuilBid Field Coordinator must jointly review the site to confirm surfaces, coats, and the actual painting area before execution.',
@@ -257,7 +257,7 @@ export function generatePainterAgreementPdfBytes(
   );
   y = drawParagraph(
     doc,
-    'Painter-Only Scope: All bids are strictly for PAINTER CHARGES. Materials must be supplied by the Property Owner. Extra coats, decorative finishes, or work outside the awarded bid must be negotiated separately without BuilBid involvement.',
+    'Painter work specifications: All bids are strictly for PAINTER CHARGES. Materials must be supplied by the Property Owner. Extra coats, decorative finishes, or work outside the awarded bid must be negotiated separately without BuilBid involvement.',
     y,
     margin,
   );
