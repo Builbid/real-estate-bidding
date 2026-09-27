@@ -14,7 +14,7 @@ export default function TermsPage() {
   return (
     <StaticPageShell
       title="Terms of Service"
-      subtitle="These terms govern estimates, contractor selection, site verification, and project execution on BuilBid."
+      subtitle="These terms apply to project estimates, contractor bidding selection, site verification protocols, and execution standards on BuilBid."
       lastUpdated="27 September 2026"
     >
       <StaticSection title="Estimation & 24-Hour Bidding">
@@ -26,6 +26,11 @@ export default function TermsPage() {
           When verified contractors and skilled workers (Mistris) submit bids, the property
           owner has a 24-hour decision window to select the preferred contractor or Mistri.
         </p>
+        <p className={COPY}>
+          The rate submitted by the contractor during the 24-hour bidding window remains fixed
+          for the defined requirements and will NOT change during or after the physical site
+          visit.
+        </p>
       </StaticSection>
 
       <StaticSection title="Field Visit & e-Sign Agreement">
@@ -34,8 +39,8 @@ export default function TermsPage() {
           contractor is mandatory. The visit confirms measurements before work starts.
         </p>
         <p className={COPY}>
-          Both parties then execute a binding digital agreement via e-Sign. The agreement covers
-          timelines, guarantees, and quality standards for the project.
+          Both parties then execute a binding digital agreement via e-Sign. The agreement
+          specifies project completion timelines, quality protocols, and execution standards.
         </p>
       </StaticSection>
 
