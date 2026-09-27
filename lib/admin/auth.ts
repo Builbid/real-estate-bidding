@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import {
   BUILBID_OFFICIAL_ADMIN_EMAIL,
+  isActiveTestingSupervisor,
   isOfficialAdminEmail,
 } from '@/lib/admin/constants';
 
@@ -20,8 +21,27 @@ export async function requireOfficialAdmin(): Promise<OfficialAdminSession> {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user?.id || !isOfficialAdminEmail(user.email)) {
+  if (!user?.id) {
     redirect('/admin/login');
+  }
+
+  if (!isOfficialAdminEmail(user.email)) {
+    // TESTING: verified field supervisors enter the dashboard without an approval hold.
+    // Re-enable interview / pending review before official production.
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role, is_verified')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    if (!isActiveTestingSupervisor(profile) || !user.email) {
+      redirect('/admin/login');
+    }
+
+    return {
+      userId: user.id,
+      email: user.email,
+    };
   }
 
   // Keep profile flags in sync for RLS helpers (best-effort).

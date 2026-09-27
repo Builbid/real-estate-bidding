@@ -6,13 +6,10 @@ import { useRouter } from 'next/navigation';
 import { AlertCircle, ArrowRight, KeyRound, Lock, Mail } from 'lucide-react';
 import {
   submitOfficialAdminPasswordAction,
+  submitSupervisorPortalLoginAction,
   verifyOfficialAdminOtpAction,
 } from '@/app/admin/otp-actions';
-import {
-  ADMIN_UNAUTHORIZED_MESSAGE,
-  BUILBID_OFFICIAL_ADMIN_EMAIL,
-  isOfficialAdminEmail,
-} from '@/lib/admin/constants';
+import { BUILBID_OFFICIAL_ADMIN_EMAIL, isOfficialAdminEmail } from '@/lib/admin/constants';
 import { BuilBidLogo } from '@/components/shared/BuilBidLogo';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -50,16 +47,26 @@ export function AdminLoginForm({
     setInfo(null);
 
     const trimmed = email.trim().toLowerCase();
-    if (!isOfficialAdminEmail(trimmed)) {
-      setError(ADMIN_UNAUTHORIZED_MESSAGE);
-      return;
-    }
     if (!password) {
       setError('Enter your password.');
       return;
     }
 
     setPending(true);
+
+    if (!isOfficialAdminEmail(trimmed)) {
+      // TESTING: active supervisors sign in with password only. No pending approval step.
+      const supervisorLogin = await submitSupervisorPortalLoginAction(trimmed, password);
+      setPending(false);
+      if (supervisorLogin.error) {
+        setError(supervisorLogin.error);
+        return;
+      }
+      router.replace('/admin/dashboard');
+      router.refresh();
+      return;
+    }
+
     const result = await submitOfficialAdminPasswordAction(trimmed, password);
     setPending(false);
 
@@ -134,7 +141,7 @@ export function AdminLoginForm({
                 id="admin-email"
                 type="email"
                 autoComplete="email"
-                placeholder="builbidcorp@gmail.com"
+                placeholder="Email address"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="pl-10"

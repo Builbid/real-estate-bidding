@@ -8,6 +8,7 @@ import { getMailTransporter } from '@/lib/email/sendNotification';
 import {
   ADMIN_UNAUTHORIZED_MESSAGE,
   BUILBID_OFFICIAL_ADMIN_EMAIL,
+  isActiveTestingSupervisor,
   isOfficialAdminEmail,
 } from '@/lib/admin/constants';
 
@@ -259,4 +260,56 @@ export async function verifyOfficialAdminOtpAction(tokenRaw: string): Promise<{
     const message = err instanceof Error ? err.message : 'Invalid or expired OTP.';
     return { error: message };
   }
+}
+
+/**
+ * Password login for a dedicated supervisor account.
+ * TESTING: verified field_supervisor profiles are already active, so this does not
+ * wait for interview approval. Re-enable that gate before official production.
+ */
+export async function submitSupervisorPortalLoginAction(
+  email: string,
+  password: string,
+): Promise<{ ok?: true; error?: string }> {
+  const trimmed = email.trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+    return { error: 'Enter a valid email address.' };
+  }
+  if (isOfficialAdminEmail(trimmed)) {
+    return { error: ADMIN_UNAUTHORIZED_MESSAGE };
+  }
+  if (!password) {
+    return { error: 'Enter your password.' };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.signInWithPassword({
+    email: trimmed,
+    password,
+  });
+  if (error) {
+    return { error: 'Incorrect email or password.' };
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user?.id) {
+    return { error: 'Incorrect email or password.' };
+  }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role, is_verified')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  if (!isActiveTestingSupervisor(profile)) {
+    await supabase.auth.signOut();
+    return {
+      error: 'Use a dedicated supervisor email. This account is not an active supervisor profile.',
+    };
+  }
+
+  return { ok: true };
 }
