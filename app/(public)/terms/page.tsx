@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     'BuilBid terms for benchmark estimates, the 24-hour bid window, field visits, e-Sign agreements, quality checklists, and material supply.',
 };
 
-const COPY = 'max-w-prose text-[15px] leading-7 text-muted-foreground sm:text-base sm:leading-8';
+const COPY = 'text-[15px] leading-7 text-muted-foreground sm:text-base sm:leading-8';
 
 export default function TermsPage() {
   return (
@@ -23,8 +23,8 @@ export default function TermsPage() {
           owners a fair basis for comparison. They are not a final fixed quote.
         </p>
         <p className={COPY}>
-          When verified contractors and skilled workers (Mistris) submit bids, the property
-          owner has a 24-hour decision window to select the preferred contractor or Mistri.
+          When verified contractors and skilled workers submit bids, the property owner has a
+          24-hour decision window to select the preferred contractor or skilled worker.
         </p>
         <p className={COPY}>
           The rate submitted by the contractor during the 24-hour bidding window remains fixed

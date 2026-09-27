@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     'BuilBid empowers property owners and contractors with a modern platform to streamline construction bidding, digital estimations, and real-time site supervision.',
 };
 
-const PARAGRAPH = `max-w-prose ${PLATFORM_COPY}`;
+const PARAGRAPH = PLATFORM_COPY;
 
 export default function AboutPage() {
   return (

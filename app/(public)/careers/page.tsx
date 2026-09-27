@@ -96,7 +96,7 @@ export default function CareersPage() {
             Full-Time / On-Site
           </span>
         </div>
-        <p className={`mt-4 max-w-prose ${PLATFORM_COPY}`}>
+        <p className={`mt-4 ${PLATFORM_COPY}`}>
           Responsible for site measurements, contractor agreements, site visits, cost
           estimates, and real-time project supervision on the BuilBid platform.
         </p>
@@ -104,7 +104,7 @@ export default function CareersPage() {
 
       <section className="border-t border-border/40 pt-8">
         <h2 className={PLATFORM_H2}>How to apply</h2>
-        <p className={`mt-4 max-w-prose ${PLATFORM_COPY}`}>
+        <p className={`mt-4 ${PLATFORM_COPY}`}>
           Apply for the Field Construction Supervisor role using the registration form.
         </p>
         <Button asChild className="mt-4">

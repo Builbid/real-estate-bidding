@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     'How BuilBid collects account, site, and estimate information, and how that data is protected for construction bidding.',
 };
 
-const COPY = 'max-w-prose text-[15px] leading-7 text-muted-foreground sm:text-base sm:leading-8';
+const COPY = 'text-[15px] leading-7 text-muted-foreground sm:text-base sm:leading-8';
 
 export default function PrivacyPage() {
   return (

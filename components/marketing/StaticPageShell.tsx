@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 
 /** Shared footer-page column: privacy, terms, about, careers, contact, materials. */
 export const PLATFORM_PAGE_MAIN =
-  'relative z-10 mx-auto max-w-4xl px-4 py-8 sm:px-6';
+  'relative z-10 mx-auto max-w-6xl px-6 py-10 sm:px-10';
 
 export const PLATFORM_H1 =
   'text-2xl font-semibold tracking-tight text-foreground sm:text-3xl';

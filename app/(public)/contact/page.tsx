@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   description: 'Reach BuilBid customer support at support@builbid.in, by phone, or on WhatsApp.',
 };
 
-const COPY = `max-w-prose ${PLATFORM_COPY}`;
+const COPY = PLATFORM_COPY;
 
 const WHATSAPP_HREF = `https://wa.me/${BUILBID_MATERIALS_CONTACT.whatsappE164}`;
 

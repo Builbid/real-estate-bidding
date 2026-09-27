@@ -39,14 +39,14 @@ export function WorkersDirectoryContent({ workers }: WorkersDirectoryContentProp
 
         <header className="mb-8">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className={PLATFORM_H1}>Mistri Workers</h1>
+            <h1 className={PLATFORM_H1}>Skilled Workers</h1>
             <HardHat className="h-5 w-5 text-amber-700 dark:text-amber-300" aria-hidden />
             <span className="rounded-full border border-amber-500/25 bg-amber-500/10 px-2.5 py-0.5 text-xs font-semibold text-amber-800 dark:text-amber-300">
               {filtered.length} ranked
             </span>
           </div>
-          <p className={cn('mt-3 max-w-prose', PLATFORM_COPY)}>
-            Browse verified mistri workers and trade professionals, ranked by rating and
+          <p className={cn('mt-3', PLATFORM_COPY)}>
+            Browse verified skilled workers and trade professionals, ranked by rating and
             completed reviews.
           </p>
         </header>
@@ -79,7 +79,7 @@ export function WorkersDirectoryContent({ workers }: WorkersDirectoryContentProp
         </div>
 
         {filtered.length > 0 ? (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
             {filtered.map((worker) => (
               <WorkerCard key={worker.id} worker={worker} />
             ))}
