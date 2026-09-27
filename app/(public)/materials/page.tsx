@@ -54,7 +54,7 @@ export default function MaterialsPage() {
           supplies, our team can connect you with verified suppliers and help you compare options
           for projects across Assam and Northeast India.
         </p>
-        <div className="grid gap-4 not-prose mt-4">
+        <div className="mt-3 grid gap-3">
           {CONTACT_CHANNELS.map(({ icon: Icon, label, value, href, hint, ...rest }) => {
             const external = 'external' in rest && rest.external;
             return (
@@ -83,22 +83,18 @@ export default function MaterialsPage() {
       <StaticSection title="Support hours">
         <div className="flex items-start gap-3">
           <Clock className="h-5 w-5 text-amber-400 flex-shrink-0 mt-0.5" />
-          <div>
-            <p className={PLATFORM_COPY}>Monday – Saturday: 9:00 AM – 6:00 PM IST</p>
-            <p className={PLATFORM_COPY}>
-              Sunday & public holidays: email and WhatsApp only (next business day response)
-            </p>
-          </div>
+          <p className={PLATFORM_COPY}>
+            Monday – Saturday: 9:00 AM – 6:00 PM IST. Sunday and public holidays: email and
+            WhatsApp only, with a response on the next business day.
+          </p>
         </div>
       </StaticSection>
 
       <StaticSection title="Before you write">
         <p className={PLATFORM_COPY}>
           Include the project location, material type, approximate quantity, and preferred brand or
-          grade so we can route your enquiry quickly.
-        </p>
-        <p className={PLATFORM_COPY}>
-          Looking for labour or a construction firm instead? Browse{' '}
+          grade so we can route your enquiry quickly. Looking for labour or a construction firm
+          instead? Browse{' '}
           <Link href="/projects" className="text-emerald-600 dark:text-emerald-400 hover:underline">
             All Projects
           </Link>{' '}

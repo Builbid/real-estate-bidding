@@ -85,12 +85,10 @@ export function WorkersDirectoryContent({ workers }: WorkersDirectoryContentProp
             ))}
           </div>
         ) : (
-          <div className="rounded-2xl border border-dashed border-border bg-card/40 px-6 py-16 text-center">
-            <p className="text-sm font-medium text-foreground">No workers in this category yet</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Try another trade filter, or check back soon as more professionals join.
-            </p>
-          </div>
+          <p className={PLATFORM_COPY}>
+            No workers in this category yet. Try another trade filter, or check back soon as more
+            professionals join.
+          </p>
         )}
       </main>
     </>

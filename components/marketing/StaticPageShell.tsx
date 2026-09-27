@@ -15,8 +15,7 @@ export const PLATFORM_H2 =
 export const PLATFORM_H3 =
   'text-base font-medium tracking-tight text-foreground';
 
-export const PLATFORM_COPY =
-  'text-[15px] leading-7 text-muted-foreground sm:text-base sm:leading-8';
+export const PLATFORM_COPY = 'leading-relaxed text-muted-foreground';
 
 interface StaticPageShellProps {
   title: string;
@@ -102,9 +101,9 @@ export function StaticSection({
   children: React.ReactNode;
 }) {
   return (
-    <section className="border-t border-border/40 pt-8">
+    <section className="border-t border-border/40 pt-6">
       <h2 className={PLATFORM_H2}>{title}</h2>
-      <div className="mt-4 space-y-4">{children}</div>
+      <div className="mt-2">{children}</div>
     </section>
   );
 }

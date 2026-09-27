@@ -46,7 +46,7 @@ export default function AboutPage() {
         <p className={PARAGRAPH}>
           Post work, compare contractor estimates, and keep site supervision on record.
         </p>
-        <div className="mt-6 flex flex-wrap items-center gap-3">
+        <div className="mt-3 flex flex-wrap items-center gap-3">
           <Button asChild>
             <Link href="/signup">Create Account</Link>
           </Button>
