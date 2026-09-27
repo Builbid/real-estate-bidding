@@ -2,6 +2,7 @@
 
 import { createHash, createHmac, randomInt, timingSafeEqual } from 'crypto';
 import { createAdminClient } from '@/lib/supabase/admin';
+import type { User } from '@supabase/supabase-js';
 import { getMailTransporter } from '@/lib/email/sendNotification';
 import { isOfficialAdminEmail } from '@/lib/admin/constants';
 import { validateAadhaarNumber, normalizeAadhaarNumber } from '@/lib/validation/aadhaar';
@@ -43,13 +44,26 @@ function imageExtension(type: string): string {
  * public.supervisor_signup_otps is created by supabase/migrations/052_supervisor_signup.sql.
  * PostgREST returns PGRST205 / 42P01 when that table is missing or the schema cache is stale.
  */
-function isMissingOtpTableError(error: { code?: string; message?: string } | null | undefined): boolean {
+function isMissingTableError(
+  error: { code?: string; message?: string } | null | undefined,
+  table: string,
+): boolean {
   if (!error) return false;
   const message = `${error.code ?? ''} ${error.message ?? ''}`.toLowerCase();
   return (
     error.code === '42P01' ||
     error.code === 'PGRST205' ||
-    message.includes('supervisor_signup_otps') ||
+    message.includes(table.toLowerCase()) ||
+    (message.includes('schema cache') && message.includes(table.toLowerCase())) ||
+    (message.includes('does not exist') && message.includes(table.toLowerCase()))
+  );
+}
+
+function isMissingOtpTableError(error: { code?: string; message?: string } | null | undefined): boolean {
+  if (!error) return false;
+  const message = `${error.code ?? ''} ${error.message ?? ''}`.toLowerCase();
+  return (
+    isMissingTableError(error, 'supervisor_signup_otps') ||
     message.includes('schema cache') ||
     message.includes('does not exist')
   );
@@ -257,6 +271,189 @@ export async function sendSupervisorSignupOtpAction(
   }
 }
 
+type AdminClient = ReturnType<typeof createAdminClient>;
+
+function accountAlreadyExists(message: string): boolean {
+  return /already|registered|exists/i.test(message);
+}
+
+/** Find an existing auth user so supervisor signup can link instead of blocking. */
+async function findAuthUserByEmail(admin: AdminClient, email: string): Promise<User | null> {
+  const { data: profile } = await admin
+    .from('profiles')
+    .select('id')
+    .ilike('email', email)
+    .maybeSingle();
+
+  if (profile?.id) {
+    const { data } = await admin.auth.admin.getUserById(profile.id);
+    if (data.user) return data.user;
+  }
+
+  for (let page = 1; page <= 10; page += 1) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 200 });
+    if (error || !data.users.length) break;
+    const match = data.users.find((user) => (user.email ?? '').toLowerCase() === email);
+    if (match) return match;
+    if (data.users.length < 200) break;
+  }
+
+  return null;
+}
+
+/**
+ * Supervisor name, ID documents, and photo live in public.supervisors
+ * (supabase/migrations/053_supervisor_profile_link.sql), not on the homeowner/contractor profile.
+ */
+async function saveSupervisorRecord(
+  admin: AdminClient,
+  input: {
+    userId: string;
+    email: string;
+    supervisorName: string;
+    phone: string;
+    staffPosition: string;
+    idDocumentNumber: string;
+    idFrontPath: string;
+    idBackPath: string;
+    photoPath: string | null;
+  },
+): Promise<{ ok: true } | { error: string }> {
+  const now = new Date().toISOString();
+  const { error } = await admin.from('supervisors').upsert(
+    {
+      user_id: input.userId,
+      email: input.email,
+      supervisor_name: input.supervisorName,
+      phone: input.phone,
+      staff_position: input.staffPosition,
+      id_document_number: input.idDocumentNumber,
+      id_front_path: input.idFrontPath,
+      id_back_path: input.idBackPath,
+      photo_path: input.photoPath,
+      updated_at: now,
+    },
+    { onConflict: 'user_id' },
+  );
+
+  if (!error) return { ok: true };
+
+  if (isMissingTableError(error, 'supervisors')) {
+    console.error(
+      '[supervisor-signup] public.supervisors is missing. Apply supabase/migrations/053_supervisor_profile_link.sql. Falling back to supervisor_registrations.',
+      error,
+    );
+    const legacy = await admin.from('supervisor_registrations').upsert(
+      {
+        user_id: input.userId,
+        email: input.email,
+        full_name: input.supervisorName,
+        phone: input.phone,
+        staff_position: input.staffPosition,
+        aadhaar_number: input.idDocumentNumber,
+        aadhaar_front_path: input.idFrontPath,
+        aadhaar_back_path: input.idBackPath,
+      },
+      { onConflict: 'user_id' },
+    );
+    if (!legacy.error) return { ok: true };
+    console.error(
+      '[supervisor-signup] Could not save the supervisor record. Apply supabase/migrations/053_supervisor_profile_link.sql.',
+      legacy.error,
+    );
+    return {
+      error: `Could not save the supervisor profile (${legacy.error.message}). Run supabase/migrations/053_supervisor_profile_link.sql.`,
+    };
+  }
+
+  console.error('[supervisor-signup] Could not upsert public.supervisors.', error);
+  return { error: `Could not save the supervisor profile (${error.message}).` };
+}
+
+/**
+ * Marks the existing auth user as supervisor staff via profiles.staff_position.
+ * profiles.role, name, and contact stay as the homeowner or contractor record.
+ */
+async function linkSupervisorOnProfile(
+  admin: AdminClient,
+  input: {
+    userId: string;
+    email: string;
+    fullName: string;
+    phone: string;
+    staffPosition: string;
+    createdNew: boolean;
+  },
+): Promise<void> {
+  const updatedAt = new Date().toISOString();
+
+  if (input.createdNew) {
+    const { error } = await admin.from('profiles').upsert(
+      {
+        id: input.userId,
+        email: input.email,
+        full_name: input.fullName,
+        mobile: input.phone,
+        role: 'labour_contractor',
+        staff_position: input.staffPosition,
+        is_admin: false,
+        is_verified: true,
+        updated_at: updatedAt,
+      },
+      { onConflict: 'id' },
+    );
+    if (error) {
+      console.error('[supervisor-signup] Could not create the profile row.', error);
+    }
+    return;
+  }
+
+  const { data: profile, error: readError } = await admin
+    .from('profiles')
+    .select('id')
+    .eq('id', input.userId)
+    .maybeSingle();
+
+  if (readError) {
+    console.error('[supervisor-signup] Could not read the existing profile.', readError);
+  }
+
+  if (!profile) {
+    const { error } = await admin.from('profiles').upsert(
+      {
+        id: input.userId,
+        email: input.email,
+        full_name: input.fullName,
+        mobile: input.phone,
+        role: 'labour_contractor',
+        staff_position: input.staffPosition,
+        is_admin: false,
+        is_verified: true,
+        updated_at: updatedAt,
+      },
+      { onConflict: 'id' },
+    );
+    if (error) console.error('[supervisor-signup] Could not create a missing profile.', error);
+    return;
+  }
+
+  const { error } = await admin
+    .from('profiles')
+    .update({
+      staff_position: input.staffPosition,
+      is_verified: true,
+      updated_at: updatedAt,
+    })
+    .eq('id', input.userId);
+
+  if (error) {
+    console.error(
+      '[supervisor-signup] Could not set profiles.staff_position for the existing account. Homeowner/contractor role was left unchanged.',
+      error,
+    );
+  }
+}
+
 export async function completeSupervisorSignupAction(
   formData: FormData,
 ): Promise<{ ok?: true; error?: string }> {
@@ -318,6 +515,9 @@ export async function completeSupervisorSignupAction(
       return { error: 'Invalid or expired OTP.' };
     }
 
+    let userId = '';
+    let createdNew = false;
+
     const { data: created, error: createError } = await admin.auth.admin.createUser({
       email: draft.email,
       password: draft.password,
@@ -329,74 +529,92 @@ export async function completeSupervisorSignupAction(
       },
     });
 
-    if (createError || !created.user) {
-      const message = createError?.message ?? 'Could not create the account.';
-      if (/already|registered|exists/i.test(message)) {
-        return { error: 'An account with this email already exists. Please login.' };
+    if (created?.user) {
+      userId = created.user.id;
+      createdNew = true;
+    } else if (createError && accountAlreadyExists(createError.message)) {
+      const existing = await findAuthUserByEmail(admin, draft.email);
+      if (!existing) {
+        console.error(
+          '[supervisor-signup] Email is already registered, but the auth user could not be loaded for linking.',
+          createError,
+        );
+        return {
+          error: 'This email is already registered, but the account could not be linked. Try again.',
+        };
       }
+
+      userId = existing.id;
+      const { error: updateError } = await admin.auth.admin.updateUserById(userId, {
+        password: draft.password,
+        email_confirm: true,
+        user_metadata: {
+          ...(existing.user_metadata ?? {}),
+          staff_position: draft.role,
+          supervisor_name: draft.fullName,
+        },
+      });
+      if (updateError) {
+        console.error(
+          '[supervisor-signup] Existing account was found. Password update failed; supervisor link will still continue.',
+          updateError,
+        );
+      }
+    } else {
+      const message = createError?.message ?? 'Could not create the account.';
+      console.error('[supervisor-signup] Could not create the auth user.', createError);
       return { error: message };
     }
 
-    const userId = created.user.id;
     const frontPath = `${userId}/front.${imageExtension(front.contentType)}`;
     const backPath = `${userId}/back.${imageExtension(back.contentType)}`;
+    const frontBytes = Buffer.from(await front.file.arrayBuffer());
+    const backBytes = Buffer.from(await back.file.arrayBuffer());
 
-    const frontUpload = await admin.storage
-      .from('supervisor-aadhaar')
-      .upload(frontPath, Buffer.from(await front.file.arrayBuffer()), {
-        contentType: front.contentType,
-        upsert: true,
-      });
+    const frontUpload = await admin.storage.from('supervisor-aadhaar').upload(frontPath, frontBytes, {
+      contentType: front.contentType,
+      upsert: true,
+    });
     if (frontUpload.error) {
-      await admin.auth.admin.deleteUser(userId);
-      return { error: `Could not store the Aadhaar front image (${frontUpload.error.message}).` };
+      if (createdNew) await admin.auth.admin.deleteUser(userId);
+      return { error: `Could not store the identification front image (${frontUpload.error.message}).` };
     }
 
-    const backUpload = await admin.storage
-      .from('supervisor-aadhaar')
-      .upload(backPath, Buffer.from(await back.file.arrayBuffer()), {
-        contentType: back.contentType,
-        upsert: true,
-      });
+    const backUpload = await admin.storage.from('supervisor-aadhaar').upload(backPath, backBytes, {
+      contentType: back.contentType,
+      upsert: true,
+    });
     if (backUpload.error) {
       await admin.storage.from('supervisor-aadhaar').remove([frontPath]);
-      await admin.auth.admin.deleteUser(userId);
-      return { error: `Could not store the Aadhaar back image (${backUpload.error.message}).` };
+      if (createdNew) await admin.auth.admin.deleteUser(userId);
+      return { error: `Could not store the identification back image (${backUpload.error.message}).` };
     }
 
-    const { error: recordError } = await admin.from('supervisor_registrations').insert({
-      user_id: userId,
+    const saved = await saveSupervisorRecord(admin, {
+      userId,
       email: draft.email,
-      full_name: draft.fullName,
+      supervisorName: draft.fullName,
       phone: draft.phone,
-      staff_position: draft.role,
-      aadhaar_number: draft.aadhaarNumber,
-      aadhaar_front_path: frontPath,
-      aadhaar_back_path: backPath,
+      staffPosition: draft.role,
+      idDocumentNumber: draft.aadhaarNumber,
+      idFrontPath: frontPath,
+      idBackPath: backPath,
+      photoPath: frontPath,
     });
-
-    if (recordError) {
+    if ('error' in saved) {
       await admin.storage.from('supervisor-aadhaar').remove([frontPath, backPath]);
-      await admin.auth.admin.deleteUser(userId);
-      return {
-        error: `Could not save registration (${recordError.message}). Run migration 052_supervisor_signup.sql.`,
-      };
+      if (createdNew) await admin.auth.admin.deleteUser(userId);
+      return { error: saved.error };
     }
 
-    await admin.from('profiles').upsert(
-      {
-        id: userId,
-        email: draft.email,
-        full_name: draft.fullName,
-        mobile: draft.phone,
-        role: 'labour_contractor',
-        staff_position: draft.role,
-        is_admin: false,
-        is_verified: true,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'id' },
-    );
+    await linkSupervisorOnProfile(admin, {
+      userId,
+      email: draft.email,
+      fullName: draft.fullName,
+      phone: draft.phone,
+      staffPosition: draft.role,
+      createdNew,
+    });
 
     await admin.from('supervisor_signup_otps').delete().eq('email', draft.email);
     return { ok: true };
