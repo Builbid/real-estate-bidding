@@ -7,13 +7,13 @@ import { Button } from '@/components/ui/button';
 export const metadata: Metadata = {
   title: 'Careers',
   description:
-    'Join BuilBid as a Field Construction Supervisor and lead site management across Assam.',
+    'Join BuilBid as a Field Construction Supervisor and lead field operations, site supervision, and quality execution.',
 };
 
 const WHY_JOIN = [
   {
-    title: 'Local construction impact',
-    body: 'Help owners and contractors across Assam run clearer site work, from first measurement through handover.',
+    title: 'Direct construction impact',
+    body: 'Help owners and contractors execute seamless site work, from initial measurement through final project handover.',
     icon: MapPinned,
   },
   {
@@ -76,7 +76,7 @@ export default function CareersPage() {
   return (
     <StaticPageShell
       title="Careers at BuilBid"
-      subtitle="Join BuilBid in transforming construction operations across Assam. We are looking for dedicated team members to lead field management and site supervision."
+      subtitle="Join BuilBid in transforming construction operations and site management. We are looking for dedicated team members to lead field operations, site supervision, and quality execution."
       headerClassName="mb-8 rounded-none border-0 bg-transparent p-0 shadow-none backdrop-blur-none"
     >
       <OpenFeatures title="Why join us" items={WHY_JOIN} />
