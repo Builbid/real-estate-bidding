@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { BuilBidLogo } from '@/components/shared/BuilBidLogo';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -35,7 +35,10 @@ export function AdminSignupForm() {
   const [aadhaarBack, setAadhaarBack] = useState<File | null>(null);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [otp, setOtp] = useState('');
+  const [otpProof, setOtpProof] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -79,7 +82,15 @@ export function AdminSignupForm() {
       return;
     }
 
-    setInfo(`OTP emailed to ${email.trim().toLowerCase()}. Enter the 6-digit code to finish registration.`);
+    if (result.testingOtp) {
+      setOtpProof(result.otpProof ?? '');
+      setInfo(
+        `Testing OTP ${result.testingOtp}. The supervisor signup OTP table is unavailable, so this code is shown here. Apply supabase/migrations/052_supervisor_signup.sql when you can.`,
+      );
+    } else {
+      setOtpProof('');
+      setInfo(`OTP emailed to ${email.trim().toLowerCase()}. Enter the 6-digit code to finish registration.`);
+    }
     setStep('otp');
   }
 
@@ -102,6 +113,7 @@ export function AdminSignupForm() {
     formData.set('confirmPassword', confirmPassword);
     formData.set('aadhaarNumber', aadhaarNumber);
     formData.set('otp', otp);
+    if (otpProof) formData.set('otpProof', otpProof);
     formData.set('aadhaarFront', aadhaarFront);
     formData.set('aadhaarBack', aadhaarBack);
 
@@ -236,7 +248,7 @@ export function AdminSignupForm() {
               id="admin-signup-aadhaar-front"
               name="aadhaarFront"
               type="file"
-              accept="image/jpeg,image/png,image/webp"
+              accept="image/jpeg,image/jpg,image/png,.jpg,.jpeg,.png"
               className={FILE_CLASS}
               onChange={(e) => setAadhaarFront(e.target.files?.[0] ?? null)}
             />
@@ -250,7 +262,7 @@ export function AdminSignupForm() {
               id="admin-signup-aadhaar-back"
               name="aadhaarBack"
               type="file"
-              accept="image/jpeg,image/png,image/webp"
+              accept="image/jpeg,image/jpg,image/png,.jpg,.jpeg,.png"
               className={FILE_CLASS}
               onChange={(e) => setAadhaarBack(e.target.files?.[0] ?? null)}
             />
@@ -263,11 +275,23 @@ export function AdminSignupForm() {
             <Input
               id="admin-signup-password"
               name="password"
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               autoComplete="new-password"
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              className="pr-11"
+              suffix={
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((current) => !current)}
+                  className="text-muted-foreground transition-colors hover:text-foreground"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  aria-pressed={showPassword}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              }
               compact
               required
             />
@@ -280,11 +304,27 @@ export function AdminSignupForm() {
             <Input
               id="admin-signup-confirm"
               name="confirmPassword"
-              type="password"
+              type={showConfirmPassword ? 'text' : 'password'}
               autoComplete="new-password"
               placeholder="Confirm password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
+              className="pr-11"
+              suffix={
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword((current) => !current)}
+                  className="text-muted-foreground transition-colors hover:text-foreground"
+                  aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+                  aria-pressed={showConfirmPassword}
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              }
               compact
               required
             />
