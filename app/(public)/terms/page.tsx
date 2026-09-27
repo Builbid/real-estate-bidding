@@ -5,7 +5,7 @@ import { StaticPageShell } from '@/components/marketing/StaticPageShell';
 export const metadata: Metadata = {
   title: 'Terms of Service',
   description:
-    'Rules for property owners and verified contractors using the BuilBid bidding platform.',
+    'BuilBid terms for benchmark estimates, the 24-hour bid selection window, site visits, Aadhaar e-Sign, and material supply.',
 };
 
 const COPY = 'max-w-prose text-[15px] leading-7 text-muted-foreground sm:text-base sm:leading-8';
@@ -32,51 +32,52 @@ export default function TermsPage() {
       headerClassName="mb-8 rounded-none border-0 bg-transparent p-0 shadow-none backdrop-blur-none"
       titleClassName="text-2xl font-medium sm:text-3xl"
       title="Terms of Service"
-      subtitle="These terms set the rules for property owners and verified contractors using BuilBid."
-      lastUpdated="26 September 2026"
+      subtitle="These terms describe how estimates, bidding, site visits, and digital agreements work on BuilBid."
+      lastUpdated="27 September 2026"
     >
-      <OpenSection title="Platform Usage">
+      <OpenSection title="Benchmark Estimation & Bidding Process">
         <p className={COPY}>
-          BuilBid is a bidding platform. Digital estimates and bids are provided so property
-          owners can compare offers and evaluate a project fairly. Contractors use the same
-          records to submit clear, standardized rates.
+          Initial project specifications and rates are virtual benchmark estimates. They exist
+          so property owners can compare offers fairly. They are not a final fixed quote.
         </p>
         <p className={COPY}>
-          Estimates and rankings are tools for that evaluation. They do not replace the
-          agreement you make for the work itself. By using BuilBid, you agree to these terms.
-        </p>
-      </OpenSection>
-
-      <OpenSection title="Contractor & Owner Responsibilities">
-        <p className={COPY}>
-          Property owners must post accurate project requirements, including work specifications
-          and site details. Verified contractors must submit rates they are prepared to stand
-          by and follow the site verification standards shown for the project.
-        </p>
-        <p className={COPY}>
-          Both sides are responsible for the information they enter. Site checks, measurements,
-          and quality records should match what was posted and bid. BuilBid does not replace
-          either party’s duty to review the work on site.
+          After verified contractors and skilled workers (Mistris) submit competitive bids, the
+          property owner has a 24-hour decision window to select a preferred bid.
         </p>
       </OpenSection>
 
-      <OpenSection title="Account Integrity & Liability">
+      <OpenSection title="Site Visit & Digital Execution Agreement">
         <p className={COPY}>
-          Keep your login details private and tell us if you suspect unauthorized access. You
-          are responsible for activity under your account. Do not share an account or use it
-          to interfere with another user’s bids or records.
+          Once a bid is selected, BuilBid coordinates a physical site visit with a Field
+          Supervisor and the chosen contractor. That visit confirms the exact site measurements
+          before work begins.
         </p>
         <p className={COPY}>
-          Disputes about workmanship, payment, or a project record should be raised through{' '}
-          <Link
-            href="/contact"
-            className="font-medium text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-400"
-          >
-            Contact Us
-          </Link>
-          , with the project title and a short description of the issue. BuilBid provides the
-          platform and its records. It is not the contractor for the construction work, and
-          liability for the job stays with the people who agreed to perform and pay for it.
+          Before project kickoff, both parties sign a legally binding digital contract through
+          Aadhaar e-Sign. The agreement locks in the completion timeframe, quality guarantees,
+          and work milestones.
+        </p>
+      </OpenSection>
+
+      <OpenSection title="Quality Control & Contractor Obligations">
+        <p className={COPY}>
+          Contractors and Mistris agree to follow BuilBid’s Digital Quality Control Checklist
+          through the full execution of the project.
+        </p>
+        <p className={COPY}>
+          Payment schedules, billing records, and milestone payments stay on record inside the
+          platform so both sides can see the same billing history.
+        </p>
+      </OpenSection>
+
+      <OpenSection title="Property Owner Responsibilities">
+        <p className={COPY}>
+          Property owners supply the hardware, raw materials, and fittings the work requires,
+          and they deliver those items in time for the agreed schedule.
+        </p>
+        <p className={COPY}>
+          If materials arrive late, the contractor is relieved of delay penalties for that
+          waiting time, and the project timeline is adjusted to match the delay.
         </p>
         <p className={COPY}>
           Questions about these terms can be sent to{' '}
@@ -85,7 +86,14 @@ export default function TermsPage() {
             className="font-medium text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-400"
           >
             support@builbid.in
-          </a>
+          </a>{' '}
+          or through{' '}
+          <Link
+            href="/contact"
+            className="font-medium text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-400"
+          >
+            Contact Us
+          </Link>
           . See also the{' '}
           <Link
             href="/privacy"
