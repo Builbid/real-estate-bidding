@@ -30,7 +30,7 @@ export async function requireOfficialAdmin(): Promise<OfficialAdminSession> {
     // Re-enable interview / pending review before official production.
     const { data: profile } = await supabase
       .from('profiles')
-      .select('role, is_verified')
+      .select('role, is_verified, staff_position')
       .eq('id', user.id)
       .maybeSingle();
 

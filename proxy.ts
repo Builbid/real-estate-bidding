@@ -90,7 +90,7 @@ export async function proxy(request: NextRequest) {
     }
 
     const { data: portalProfile } = user
-      ? await supabase.from('profiles').select('role, is_verified').eq('id', user.id).maybeSingle()
+      ? await supabase.from('profiles').select('role, is_verified, staff_position').eq('id', user.id).maybeSingle()
       : { data: null };
     // TESTING: active field supervisors skip the approval gate. Restore it before production.
     const allowPortal = isOfficialAdminEmail(user?.email) || isActiveTestingSupervisor(portalProfile);

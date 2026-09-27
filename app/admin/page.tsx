@@ -18,7 +18,7 @@ export default async function AdminIndexPage() {
   if (user) {
     const { data: profile } = await supabase
       .from('profiles')
-      .select('role, is_verified')
+      .select('role, is_verified, staff_position')
       .eq('id', user.id)
       .maybeSingle();
     if (isActiveTestingSupervisor(profile)) {

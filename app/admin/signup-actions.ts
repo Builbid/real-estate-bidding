@@ -2,6 +2,7 @@
 
 import { createHash, createHmac, randomInt, timingSafeEqual } from 'crypto';
 import { createAdminClient } from '@/lib/supabase/admin';
+import type { User } from '@supabase/supabase-js';
 import { getMailTransporter } from '@/lib/email/sendNotification';
 import { isOfficialAdminEmail, TESTING_FIELD_SUPERVISOR_ROLE } from '@/lib/admin/constants';
 import { validateAadhaarNumber, normalizeAadhaarNumber } from '@/lib/validation/aadhaar';
@@ -277,6 +278,29 @@ function accountAlreadyExists(message: string): boolean {
   return /already|registered|exists/i.test(message);
 }
 
+async function findAuthUserByEmail(admin: AdminClient, email: string): Promise<User | null> {
+  const { data: profile } = await admin
+    .from('profiles')
+    .select('id')
+    .ilike('email', email)
+    .maybeSingle();
+
+  if (profile?.id) {
+    const { data } = await admin.auth.admin.getUserById(profile.id);
+    if (data.user) return data.user;
+  }
+
+  for (let page = 1; page <= 10; page += 1) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 200 });
+    if (error || !data.users.length) break;
+    const match = data.users.find((user) => (user.email ?? '').toLowerCase() === email);
+    if (match) return match;
+    if (data.users.length < 200) break;
+  }
+
+  return null;
+}
+
 /**
  * Supervisor name, ID documents, and photo live in public.supervisors
  * (supabase/migrations/053_supervisor_profile_link.sql), not on the homeowner/contractor profile.
@@ -359,22 +383,40 @@ async function activateSupervisorProfile(
     fullName: string;
     phone: string;
     staffPosition: string;
+    createdNew: boolean;
   },
 ): Promise<{ ok: true } | { error: string }> {
-  const { error } = await admin.from('profiles').upsert(
-    {
-      id: input.userId,
-      email: input.email,
-      full_name: input.fullName,
-      mobile: input.phone,
-      role: TESTING_FIELD_SUPERVISOR_ROLE,
-      staff_position: input.staffPosition,
-      is_admin: false,
-      is_verified: true,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: 'id' },
-  );
+  const updatedAt = new Date().toISOString();
+  const roleUpdate = {
+    role: TESTING_FIELD_SUPERVISOR_ROLE,
+    staff_position: input.staffPosition,
+    is_verified: true,
+    updated_at: updatedAt,
+  };
+
+  let writeNewProfile = input.createdNew;
+  if (!writeNewProfile) {
+    const { data: existingProfile } = await admin
+      .from('profiles')
+      .select('id')
+      .eq('id', input.userId)
+      .maybeSingle();
+    writeNewProfile = !existingProfile;
+  }
+
+  const { error } = writeNewProfile
+    ? await admin.from('profiles').upsert(
+        {
+          id: input.userId,
+          email: input.email,
+          full_name: input.fullName,
+          mobile: input.phone,
+          is_admin: false,
+          ...roleUpdate,
+        },
+        { onConflict: 'id' },
+      )
+    : await admin.from('profiles').update(roleUpdate).eq('id', input.userId);
 
   if (error) {
     console.error('[supervisor-signup] Could not activate the supervisor profile.', error);
@@ -446,6 +488,9 @@ export async function completeSupervisorSignupAction(
       return { error: 'Invalid or expired OTP.' };
     }
 
+    let userId = '';
+    let createdNew = false;
+
     const { data: created, error: createError } = await admin.auth.admin.createUser({
       email: draft.email,
       password: draft.password,
@@ -458,19 +503,41 @@ export async function completeSupervisorSignupAction(
       },
     });
 
-    if (!created?.user) {
-      const message = createError?.message ?? 'Could not create the account.';
-      if (createError && accountAlreadyExists(message)) {
-        return {
-          error:
-            'An account with this email already exists. Use a new email address for your Supervisor profile.',
-        };
+    if (created?.user) {
+      userId = created.user.id;
+      createdNew = true;
+    } else if (createError && accountAlreadyExists(createError.message)) {
+      const existing = await findAuthUserByEmail(admin, draft.email);
+      if (!existing) {
+        console.error(
+          '[supervisor-signup] Email already exists, but the auth user could not be loaded.',
+          createError,
+        );
+        return { error: 'This email is already registered, but the account could not be linked. Try again.' };
       }
+
+      userId = existing.id;
+      const { error: updateError } = await admin.auth.admin.updateUserById(userId, {
+        password: draft.password,
+        email_confirm: true,
+        user_metadata: {
+          ...(existing.user_metadata ?? {}),
+          staff_position: draft.role,
+          supervisor_name: draft.fullName,
+          account_status: 'active',
+        },
+      });
+      if (updateError) {
+        console.error(
+          '[supervisor-signup] Linked the existing auth user. Password update failed and signup will continue.',
+          updateError,
+        );
+      }
+    } else {
+      const message = createError?.message ?? 'Could not create the account.';
       console.error('[supervisor-signup] Could not create the auth user.', createError);
       return { error: message };
     }
-
-    const userId = created.user.id;
 
     const frontPath = `${userId}/front.${imageExtension(front.contentType)}`;
     const backPath = `${userId}/back.${imageExtension(back.contentType)}`;
@@ -482,7 +549,7 @@ export async function completeSupervisorSignupAction(
       upsert: true,
     });
     if (frontUpload.error) {
-      await admin.auth.admin.deleteUser(userId);
+      if (createdNew) await admin.auth.admin.deleteUser(userId);
       return { error: `Could not store the identification front image (${frontUpload.error.message}).` };
     }
 
@@ -492,7 +559,7 @@ export async function completeSupervisorSignupAction(
     });
     if (backUpload.error) {
       await admin.storage.from('supervisor-aadhaar').remove([frontPath]);
-      await admin.auth.admin.deleteUser(userId);
+      if (createdNew) await admin.auth.admin.deleteUser(userId);
       return { error: `Could not store the identification back image (${backUpload.error.message}).` };
     }
 
@@ -509,7 +576,7 @@ export async function completeSupervisorSignupAction(
     });
     if ('error' in saved) {
       await admin.storage.from('supervisor-aadhaar').remove([frontPath, backPath]);
-      await admin.auth.admin.deleteUser(userId);
+      if (createdNew) await admin.auth.admin.deleteUser(userId);
       return { error: saved.error };
     }
 
@@ -519,10 +586,11 @@ export async function completeSupervisorSignupAction(
       fullName: draft.fullName,
       phone: draft.phone,
       staffPosition: draft.role,
+      createdNew,
     });
     if ('error' in activated) {
       await admin.storage.from('supervisor-aadhaar').remove([frontPath, backPath]);
-      await admin.auth.admin.deleteUser(userId);
+      if (createdNew) await admin.auth.admin.deleteUser(userId);
       return { error: activated.error };
     }
 

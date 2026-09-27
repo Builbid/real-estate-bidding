@@ -8,6 +8,7 @@ import { getMailTransporter } from '@/lib/email/sendNotification';
 import {
   ADMIN_UNAUTHORIZED_MESSAGE,
   BUILBID_OFFICIAL_ADMIN_EMAIL,
+  TESTING_FIELD_SUPERVISOR_ROLE,
   isActiveTestingSupervisor,
   isOfficialAdminEmail,
 } from '@/lib/admin/constants';
@@ -300,15 +301,42 @@ export async function submitSupervisorPortalLoginAction(
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role, is_verified')
+    .select('role, is_verified, staff_position')
     .eq('id', user.id)
     .maybeSingle();
 
-  if (!isActiveTestingSupervisor(profile)) {
+  let supervisorLinked = isActiveTestingSupervisor(profile);
+  if (!supervisorLinked) {
+    const admin = createAdminClient();
+    const { data: supervisor } = await admin
+      .from('supervisors')
+      .select('user_id')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    supervisorLinked = !!supervisor?.user_id;
+    if (!supervisorLinked) {
+      const { data: legacy } = await admin
+        .from('supervisor_registrations')
+        .select('user_id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      supervisorLinked = !!legacy?.user_id;
+    }
+    if (supervisorLinked) {
+      await admin
+        .from('profiles')
+        .update({
+          role: TESTING_FIELD_SUPERVISOR_ROLE,
+          is_verified: true,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', user.id);
+    }
+  }
+
+  if (!supervisorLinked) {
     await supabase.auth.signOut();
-    return {
-      error: 'Use a dedicated supervisor email. This account is not an active supervisor profile.',
-    };
+    return { error: 'This account does not have an active supervisor profile.' };
   }
 
   return { ok: true };

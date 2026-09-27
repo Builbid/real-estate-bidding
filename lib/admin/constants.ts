@@ -15,9 +15,15 @@ export const ADMIN_UNAUTHORIZED_MESSAGE =
  */
 export const TESTING_FIELD_SUPERVISOR_ROLE = 'field_supervisor';
 
+const SUPERVISOR_PROFILE_ROLES = new Set(['field_supervisor', 'supervisor']);
+const SUPERVISOR_STAFF_POSITIONS = new Set(['field_supervisor', 'admin_staff', 'supervisor']);
+
 export function isActiveTestingSupervisor(profile: {
   role?: string | null;
   is_verified?: boolean | null;
+  staff_position?: string | null;
 } | null | undefined): boolean {
-  return profile?.role === TESTING_FIELD_SUPERVISOR_ROLE && profile.is_verified === true;
+  if (!profile?.is_verified) return false;
+  if (profile.role && SUPERVISOR_PROFILE_ROLES.has(profile.role)) return true;
+  return !!profile.staff_position && SUPERVISOR_STAFF_POSITIONS.has(profile.staff_position);
 }
