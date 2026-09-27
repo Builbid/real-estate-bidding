@@ -5,7 +5,7 @@ import { StaticPageShell } from '@/components/marketing/StaticPageShell';
 export const metadata: Metadata = {
   title: 'Privacy Policy',
   description:
-    'BuilBid keeps names, contact details, project records, and bids encrypted and confidential, and uses them only to run estimates and verified bidding.',
+    'How BuilBid collects account, site, and estimate information, and how that data is protected for construction bidding.',
 };
 
 const COPY = 'max-w-prose text-[15px] leading-7 text-muted-foreground sm:text-base sm:leading-8';
@@ -32,55 +32,69 @@ export default function PrivacyPage() {
       headerClassName="mb-8 rounded-none border-0 bg-transparent p-0 shadow-none backdrop-blur-none"
       titleClassName="text-2xl font-medium sm:text-3xl"
       title="Privacy Policy"
-      subtitle="Your name, contact details, and project records stay confidential on BuilBid and are used to serve your account."
-      lastUpdated="26 September 2026"
+      subtitle="This policy explains the information BuilBid uses to run construction estimates, bidding, and site coordination."
+      lastUpdated="27 September 2026"
     >
-      <OpenSection title="Our Privacy Commitment">
+      <OpenSection title="Information Collected">
         <p className={COPY}>
-          BuilBid respects your autonomy. Names, contact information, project details, and bid
-          records are encrypted, kept strictly confidential, and used solely to service BuilBid
-          operations.
+          BuilBid collects account identifiers, site locations, measurement checklists, and
+          estimate inputs. These are the details required to post a project, compare bids, and
+          keep a construction record.
         </p>
         <p className={COPY}>
-          Robust access controls mean those records stay with the people and systems that run
-          your estimates, bids, and project files. BuilBid never shares your information with
-          unauthorized third parties.
+          Account identifiers include your name and contact details. Site locations and
+          measurement checklists describe where the work is and what was measured. Estimate
+          inputs are the specifications used to prepare a digital estimate.
         </p>
       </OpenSection>
 
-      <OpenSection title="Purpose-Bound Collection">
+      <OpenSection title="Use of Information">
         <p className={COPY}>
-          Data collection is limited to what facilitates transparent digital estimations and
-          verified contractor bidding. That includes the contact details on your account, the
-          project specifications you post, and the site measurements used to prepare an estimate.
+          This information is used for project coordination, digital estimate generation, field
+          supervisor scheduling, and transaction verification. Property owners, contractors, and
+          site supervisors see the records needed for the project they are on.
         </p>
         <p className={COPY}>
-          Those details let property owners, contractors, and site supervisors compare clear
-          rates and keep an accurate project record. Collection stays tied to that work.
+          The same records support a clear bid comparison and a documented path from estimate to
+          site visit and agreement.
         </p>
       </OpenSection>
 
       <OpenSection title="Data Ownership & Security">
         <p className={COPY}>
-          You remain in charge of your account. You can view and update your details at any
-          time, and you can request deletion of your account data whenever you choose.
+          Project and account records are protected with enterprise-grade encryption and strict
+          access controls. BuilBid maintains a zero data selling or monetization standard:
+          personal and project information is used to operate the platform.
         </p>
         <p className={COPY}>
-          Send that request from your registered email to{' '}
+          Records are retained for as long as the account or project needs them, including
+          dispute handling and legal record-keeping. You can ask to review or delete account
+          data by writing to{' '}
           <a
             href="mailto:support@builbid.in"
             className="font-medium text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-400"
           >
             support@builbid.in
           </a>
-          , or write through{' '}
+          .
+        </p>
+      </OpenSection>
+
+      <OpenSection title="Operational Cookies">
+        <p className={COPY}>
+          BuilBid uses minimal session cookies so you can stay signed in and move through the
+          site. These cookies support convenience and navigation. They are not used as an
+          advertising profile.
+        </p>
+        <p className={COPY}>
+          Questions about this policy can be sent through{' '}
           <Link
             href="/contact"
             className="font-medium text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-400"
           >
             Contact Us
           </Link>
-          . We will confirm when it is complete. Platform use is described in the{' '}
+          . Platform rules are in the{' '}
           <Link
             href="/terms"
             className="font-medium text-emerald-700 underline-offset-2 hover:underline dark:text-emerald-400"

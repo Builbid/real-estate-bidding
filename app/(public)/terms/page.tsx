@@ -5,7 +5,7 @@ import { StaticPageShell } from '@/components/marketing/StaticPageShell';
 export const metadata: Metadata = {
   title: 'Terms of Service',
   description:
-    'BuilBid terms for benchmark estimates, the 24-hour bid selection window, site visits, Aadhaar e-Sign, and material supply.',
+    'BuilBid terms for benchmark estimates, the 24-hour bid window, field visits, e-Sign agreements, quality checklists, and material supply.',
 };
 
 const COPY = 'max-w-prose text-[15px] leading-7 text-muted-foreground sm:text-base sm:leading-8';
@@ -32,52 +32,40 @@ export default function TermsPage() {
       headerClassName="mb-8 rounded-none border-0 bg-transparent p-0 shadow-none backdrop-blur-none"
       titleClassName="text-2xl font-medium sm:text-3xl"
       title="Terms of Service"
-      subtitle="These terms describe how estimates, bidding, site visits, and digital agreements work on BuilBid."
+      subtitle="These terms govern estimates, contractor selection, site verification, and project execution on BuilBid."
       lastUpdated="27 September 2026"
     >
-      <OpenSection title="Benchmark Estimation & Bidding Process">
+      <OpenSection title="Estimation & 24-Hour Bidding">
         <p className={COPY}>
-          Initial project specifications and rates are virtual benchmark estimates. They exist
-          so property owners can compare offers fairly. They are not a final fixed quote.
+          Initial project requirements serve as virtual benchmark estimates. They give property
+          owners a fair basis for comparison. They are not a final fixed quote.
         </p>
         <p className={COPY}>
-          After verified contractors and skilled workers (Mistris) submit competitive bids, the
-          property owner has a 24-hour decision window to select a preferred bid.
-        </p>
-      </OpenSection>
-
-      <OpenSection title="Site Visit & Digital Execution Agreement">
-        <p className={COPY}>
-          Once a bid is selected, BuilBid coordinates a physical site visit with a Field
-          Supervisor and the chosen contractor. That visit confirms the exact site measurements
-          before work begins.
-        </p>
-        <p className={COPY}>
-          Before project kickoff, both parties sign a legally binding digital contract through
-          Aadhaar e-Sign. The agreement locks in the completion timeframe, quality guarantees,
-          and work milestones.
+          When verified contractors and skilled workers (Mistris) submit bids, the property
+          owner has a 24-hour decision window to select the preferred contractor or Mistri.
         </p>
       </OpenSection>
 
-      <OpenSection title="Quality Control & Contractor Obligations">
+      <OpenSection title="Field Visit & e-Sign Agreement">
         <p className={COPY}>
-          Contractors and Mistris agree to follow BuilBid’s Digital Quality Control Checklist
-          through the full execution of the project.
+          After a bid is selected, a physical site visit by a Field Supervisor and the selected
+          contractor is mandatory. The visit confirms measurements before work starts.
         </p>
         <p className={COPY}>
-          Payment schedules, billing records, and milestone payments stay on record inside the
-          platform so both sides can see the same billing history.
+          Both parties then execute a binding digital agreement via e-Sign. The agreement covers
+          timelines, guarantees, and quality standards for the project.
         </p>
       </OpenSection>
 
-      <OpenSection title="Property Owner Responsibilities">
+      <OpenSection title="Quality Control & Material Supply">
         <p className={COPY}>
-          Property owners supply the hardware, raw materials, and fittings the work requires,
-          and they deliver those items in time for the agreed schedule.
+          Contractors strictly follow BuilBid’s Digital Quality Control Checklist for the
+          duration of the work. Checklist records stay with the project.
         </p>
         <p className={COPY}>
-          If materials arrive late, the contractor is relieved of delay penalties for that
-          waiting time, and the project timeline is adjusted to match the delay.
+          Property owners deliver hardware and construction materials in a timely manner so the
+          agreed project schedule can be maintained. Late material delivery is reflected in the
+          project timeline.
         </p>
         <p className={COPY}>
           Questions about these terms can be sent to{' '}
