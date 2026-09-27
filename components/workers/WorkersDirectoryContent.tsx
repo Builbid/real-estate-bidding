@@ -2,6 +2,11 @@
 
 import { useMemo, useState } from 'react';
 import { HardHat } from 'lucide-react';
+import {
+  PLATFORM_COPY,
+  PLATFORM_H1,
+  PLATFORM_PAGE_MAIN,
+} from '@/components/marketing/StaticPageShell';
 import { Navbar } from '@/components/shared/Navbar';
 import { WorkerCard } from '@/components/workers/WorkerCard';
 import { HistoryBackButton } from '@/components/shared/HistoryBackButton';
@@ -29,22 +34,18 @@ export function WorkersDirectoryContent({ workers }: WorkersDirectoryContentProp
   return (
     <>
       <Navbar />
-      <main className="mx-auto max-w-7xl px-4 py-8 pb-16 sm:px-6 sm:py-10">
+      <main className={PLATFORM_PAGE_MAIN}>
         <HistoryBackButton className="mb-6" />
 
-        <header className="mb-6 sm:mb-8">
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-300">
-              <HardHat className="h-5 w-5" />
-            </span>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-              Mistri Workers
-            </h1>
+        <header className="mb-8">
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className={PLATFORM_H1}>Mistri Workers</h1>
+            <HardHat className="h-5 w-5 text-amber-700 dark:text-amber-300" aria-hidden />
             <span className="rounded-full border border-amber-500/25 bg-amber-500/10 px-2.5 py-0.5 text-xs font-semibold text-amber-800 dark:text-amber-300">
               {filtered.length} ranked
             </span>
           </div>
-          <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+          <p className={cn('mt-3 max-w-prose', PLATFORM_COPY)}>
             Browse verified mistri workers and trade professionals, ranked by rating and
             completed reviews.
           </p>
@@ -78,7 +79,7 @@ export function WorkersDirectoryContent({ workers }: WorkersDirectoryContentProp
         </div>
 
         {filtered.length > 0 ? (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5">
             {filtered.map((worker) => (
               <WorkerCard key={worker.id} worker={worker} />
             ))}

@@ -1,7 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Clock, Mail, MessageCircle, Phone } from 'lucide-react';
-import { StaticPageShell, StaticSection } from '@/components/marketing/StaticPageShell';
+import {
+  PLATFORM_COPY,
+  StaticPageShell,
+  StaticSection,
+} from '@/components/marketing/StaticPageShell';
 import {
   BUILBID_MATERIALS_CONTACT,
   materialsWhatsAppHref,
@@ -45,7 +49,7 @@ export default function MaterialsPage() {
       subtitle="Source construction materials through BuilBid. Reach our materials desk directly by phone, email, or WhatsApp."
     >
       <StaticSection title="Talk to the materials desk">
-        <p>
+        <p className={PLATFORM_COPY}>
           Whether you need cement, TMT steel, bricks, sand, tiles, electrical fittings, or plumbing
           supplies, our team can connect you with verified suppliers and help you compare options
           for projects across Assam and Northeast India.
@@ -80,18 +84,20 @@ export default function MaterialsPage() {
         <div className="flex items-start gap-3">
           <Clock className="h-5 w-5 text-amber-400 flex-shrink-0 mt-0.5" />
           <div>
-            <p>Monday – Saturday: 9:00 AM – 6:00 PM IST</p>
-            <p>Sunday & public holidays: email and WhatsApp only (next business day response)</p>
+            <p className={PLATFORM_COPY}>Monday – Saturday: 9:00 AM – 6:00 PM IST</p>
+            <p className={PLATFORM_COPY}>
+              Sunday & public holidays: email and WhatsApp only (next business day response)
+            </p>
           </div>
         </div>
       </StaticSection>
 
       <StaticSection title="Before you write">
-        <p>
+        <p className={PLATFORM_COPY}>
           Include the project location, material type, approximate quantity, and preferred brand or
           grade so we can route your enquiry quickly.
         </p>
-        <p>
+        <p className={PLATFORM_COPY}>
           Looking for labour or a construction firm instead? Browse{' '}
           <Link href="/projects" className="text-emerald-600 dark:text-emerald-400 hover:underline">
             All Projects

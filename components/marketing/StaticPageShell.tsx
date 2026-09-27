@@ -2,6 +2,22 @@ import { Navbar } from '@/components/shared/Navbar';
 import { HistoryBackButton } from '@/components/shared/HistoryBackButton';
 import { cn } from '@/lib/utils';
 
+/** Shared footer-page column: privacy, terms, about, careers, contact, materials. */
+export const PLATFORM_PAGE_MAIN =
+  'relative z-10 mx-auto max-w-4xl px-4 py-8 sm:px-6';
+
+export const PLATFORM_H1 =
+  'text-2xl font-semibold tracking-tight text-foreground sm:text-3xl';
+
+export const PLATFORM_H2 =
+  'text-lg font-semibold tracking-tight text-foreground';
+
+export const PLATFORM_H3 =
+  'text-base font-medium tracking-tight text-foreground';
+
+export const PLATFORM_COPY =
+  'text-[15px] leading-7 text-muted-foreground sm:text-base sm:leading-8';
+
 interface StaticPageShellProps {
   title: string;
   subtitle?: string;
@@ -30,13 +46,13 @@ export function StaticPageShell({
   const content = (
     <>
       <Navbar />
-      <main className={cn('relative z-10 max-w-3xl mx-auto px-4 sm:px-6 py-10 pb-16', className)}>
-        <HistoryBackButton className="mb-8" />
+      <main className={cn(PLATFORM_PAGE_MAIN, className)}>
+        <HistoryBackButton className="mb-6" />
 
         {eyebrow && (
           <p
             className={cn(
-              'mb-4 text-xl font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400',
+              'mb-2 text-xs font-medium uppercase tracking-[0.16em] text-emerald-600 dark:text-emerald-400',
               eyebrowClassName,
             )}
           >
@@ -44,26 +60,17 @@ export function StaticPageShell({
           </p>
         )}
 
-        <header
-          className={cn(
-            'mb-10 rounded-2xl border border-border/70 bg-card/50 p-6 sm:p-8 shadow-sm backdrop-blur-sm',
-            headerClassName,
-          )}
-        >
-          <h1 className={cn('text-3xl sm:text-4xl font-bold text-foreground tracking-tight', titleClassName)}>
-            {title}
-          </h1>
-          {subtitle && (
-            <p className="mt-3 text-base sm:text-lg text-muted-foreground leading-relaxed">{subtitle}</p>
-          )}
+        <header className={cn('mb-8', headerClassName)}>
+          <h1 className={cn(PLATFORM_H1, titleClassName)}>{title}</h1>
+          {subtitle && <p className={cn('mt-3', PLATFORM_COPY)}>{subtitle}</p>}
           {lastUpdated && (
-            <p className="mt-4 text-xs text-muted-foreground">Last updated: {lastUpdated}</p>
+            <p className="mt-4 text-xs leading-5 text-muted-foreground">
+              Last updated: {lastUpdated}
+            </p>
           )}
         </header>
 
-        <article className="space-y-8 text-sm sm:text-[15px] leading-relaxed text-foreground">
-          {children}
-        </article>
+        <article>{children}</article>
       </main>
     </>
   );
@@ -95,9 +102,9 @@ export function StaticSection({
   children: React.ReactNode;
 }) {
   return (
-    <section className="surface-panel rounded-2xl p-5 sm:p-6">
-      <h2 className="text-lg font-semibold text-foreground mb-3">{title}</h2>
-      <div className="space-y-3 text-muted-foreground">{children}</div>
+    <section className="border-t border-border/40 pt-8">
+      <h2 className={PLATFORM_H2}>{title}</h2>
+      <div className="mt-4 space-y-4">{children}</div>
     </section>
   );
 }

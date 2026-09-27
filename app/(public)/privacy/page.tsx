@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { StaticPageShell } from '@/components/marketing/StaticPageShell';
+import { StaticPageShell, StaticSection } from '@/components/marketing/StaticPageShell';
 
 export const metadata: Metadata = {
   title: 'Privacy Policy',
@@ -10,32 +10,14 @@ export const metadata: Metadata = {
 
 const COPY = 'max-w-prose text-[15px] leading-7 text-muted-foreground sm:text-base sm:leading-8';
 
-function OpenSection({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="border-t border-border/40 pt-8">
-      <h2 className="text-base font-medium tracking-tight text-foreground">{title}</h2>
-      <div className="mt-4 space-y-4">{children}</div>
-    </section>
-  );
-}
-
 export default function PrivacyPage() {
   return (
     <StaticPageShell
-      className="max-w-3xl"
-      headerClassName="mb-8 rounded-none border-0 bg-transparent p-0 shadow-none backdrop-blur-none"
-      titleClassName="text-2xl font-medium sm:text-3xl"
       title="Privacy Policy"
       subtitle="This policy explains the information BuilBid uses to run construction estimates, bidding, and site coordination."
       lastUpdated="27 September 2026"
     >
-      <OpenSection title="Information Collected">
+      <StaticSection title="Information Collected">
         <p className={COPY}>
           BuilBid collects account identifiers, site locations, measurement checklists, and
           estimate inputs. These are the details required to post a project, compare bids, and
@@ -46,9 +28,9 @@ export default function PrivacyPage() {
           measurement checklists describe where the work is and what was measured. Estimate
           inputs are the specifications used to prepare a digital estimate.
         </p>
-      </OpenSection>
+      </StaticSection>
 
-      <OpenSection title="Use of Information">
+      <StaticSection title="Use of Information">
         <p className={COPY}>
           This information is used for project coordination, digital estimate generation, field
           supervisor scheduling, and transaction verification. Property owners, contractors, and
@@ -58,9 +40,9 @@ export default function PrivacyPage() {
           The same records support a clear bid comparison and a documented path from estimate to
           site visit and agreement.
         </p>
-      </OpenSection>
+      </StaticSection>
 
-      <OpenSection title="Data Ownership & Security">
+      <StaticSection title="Data Ownership & Security">
         <p className={COPY}>
           Project and account records are protected with enterprise-grade encryption and strict
           access controls. BuilBid maintains a zero data selling or monetization standard:
@@ -78,9 +60,9 @@ export default function PrivacyPage() {
           </a>
           .
         </p>
-      </OpenSection>
+      </StaticSection>
 
-      <OpenSection title="Operational Cookies">
+      <StaticSection title="Operational Cookies">
         <p className={COPY}>
           BuilBid uses minimal session cookies so you can stay signed in and move through the
           site. These cookies support convenience and navigation. They are not used as an
@@ -103,7 +85,7 @@ export default function PrivacyPage() {
           </Link>
           .
         </p>
-      </OpenSection>
+      </StaticSection>
     </StaticPageShell>
   );
 }

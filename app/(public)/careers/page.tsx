@@ -1,7 +1,12 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { HardHat, MapPinned, TrendingUp, Wallet } from 'lucide-react';
-import { StaticPageShell } from '@/components/marketing/StaticPageShell';
+import {
+  PLATFORM_COPY,
+  PLATFORM_H2,
+  PLATFORM_H3,
+  StaticPageShell,
+} from '@/components/marketing/StaticPageShell';
 import { Button } from '@/components/ui/button';
 
 export const metadata: Metadata = {
@@ -49,21 +54,20 @@ function OpenFeatures({
 }) {
   return (
     <section className="border-t border-border/40 pt-8">
-      <h2 className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
-        {title}
-      </h2>
-      <div className="mt-5 grid gap-6 sm:grid-cols-2 sm:gap-8">
+      <h2 className={PLATFORM_H2}>{title}</h2>
+      <div className="mt-4 grid gap-6 sm:grid-cols-2 sm:gap-8">
         {items.map((item) => {
           const Icon = item.icon;
           return (
             <div key={item.title} className="min-w-0">
-              <div className="mb-2 flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
-                <Icon className="h-4 w-4 shrink-0" aria-hidden />
-                <h3 className="text-base font-semibold tracking-tight text-foreground">
-                  {item.title}
-                </h3>
-              </div>
-              <p className="text-sm leading-relaxed text-muted-foreground">{item.body}</p>
+              <h3 className={`${PLATFORM_H3} inline-flex items-center gap-2`}>
+                {item.title}
+                <Icon
+                  className="h-4 w-4 shrink-0 text-emerald-700 dark:text-emerald-400"
+                  aria-hidden
+                />
+              </h3>
+              <p className={`mt-2 ${PLATFORM_COPY}`}>{item.body}</p>
             </div>
           );
         })}
@@ -77,37 +81,30 @@ export default function CareersPage() {
     <StaticPageShell
       title="Careers at BuilBid"
       subtitle="Join BuilBid in transforming construction operations and site management. We are looking for dedicated team members to lead field operations, site supervision, and quality execution."
-      headerClassName="mb-8 rounded-none border-0 bg-transparent p-0 shadow-none backdrop-blur-none"
     >
       <OpenFeatures title="Why join us" items={WHY_JOIN} />
       <OpenFeatures title="What we offer" items={WHAT_WE_OFFER} />
 
       <section className="border-t border-border/40 pt-8">
-        <h2 className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
-          Open roles
-        </h2>
-        <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <h2 className={PLATFORM_H2}>Open roles</h2>
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
-            <h3 className="text-lg font-semibold tracking-tight text-foreground">
-              Field Construction Supervisor / Site Officer
-            </h3>
-            <p className="mt-1 text-sm text-muted-foreground">All Over Assam</p>
+            <h3 className={PLATFORM_H3}>Field Construction Supervisor / Site Officer</h3>
+            <p className={`mt-1 ${PLATFORM_COPY}`}>All Over Assam</p>
           </div>
           <span className="inline-flex w-fit shrink-0 rounded-full border border-border/70 px-2.5 py-1 text-[11px] font-medium tracking-wide text-foreground/80">
             Full-Time / On-Site
           </span>
         </div>
-        <p className="mt-4 max-w-prose text-sm leading-relaxed text-muted-foreground">
+        <p className={`mt-4 max-w-prose ${PLATFORM_COPY}`}>
           Responsible for site measurements, contractor agreements, site visits, cost
           estimates, and real-time project supervision on the BuilBid platform.
         </p>
       </section>
 
       <section className="border-t border-border/40 pt-8">
-        <h2 className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
-          How to apply
-        </h2>
-        <p className="mt-5 text-sm leading-relaxed text-muted-foreground">
+        <h2 className={PLATFORM_H2}>How to apply</h2>
+        <p className={`mt-4 max-w-prose ${PLATFORM_COPY}`}>
           Apply for the Field Construction Supervisor role using the registration form.
         </p>
         <Button asChild className="mt-4">
