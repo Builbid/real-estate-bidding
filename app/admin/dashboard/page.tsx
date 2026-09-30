@@ -1,10 +1,16 @@
 import { requireOfficialAdmin } from '@/lib/admin/auth';
-import { loadAdminDashboardData, type AdminTab } from '@/lib/admin/data';
+import { isOfficialAdminEmail } from '@/lib/admin/constants';
+import {
+  loadAdminDashboardData,
+  loadSupervisorAccount,
+  type AdminTab,
+} from '@/lib/admin/data';
 import { AdminDashboardClient } from './AdminDashboardClient';
 
 export const dynamic = 'force-dynamic';
 
-const TABS: AdminTab[] = ['overview', 'projects', 'workers', 'clients', 'agreements'];
+const ADMIN_TABS: AdminTab[] = ['overview', 'projects', 'workers', 'clients', 'agreements'];
+const SUPERVISOR_TABS: AdminTab[] = ['overview', 'projects', 'agreements', 'completed'];
 
 export default async function AdminDashboardPage({
   searchParams,
@@ -12,18 +18,26 @@ export default async function AdminDashboardPage({
   searchParams: Promise<{ tab?: string }>;
 }) {
   const session = await requireOfficialAdmin();
+  const supervisorPortal = !isOfficialAdminEmail(session.email);
   const data = await loadAdminDashboardData();
+  const account = supervisorPortal
+    ? await loadSupervisorAccount(session.userId, session.email, data.completedWorks)
+    : null;
   const params = await searchParams;
-  const tab = TABS.includes(params.tab as AdminTab) ? (params.tab as AdminTab) : 'overview';
+  const allowed = supervisorPortal ? SUPERVISOR_TABS : ADMIN_TABS;
+  const tab = allowed.includes(params.tab as AdminTab) ? (params.tab as AdminTab) : 'overview';
 
   return (
     <AdminDashboardClient
       email={session.email}
+      supervisorPortal={supervisorPortal}
+      account={account}
       kpis={data.kpis}
       projects={data.projects}
-      workers={data.workers}
-      clients={data.clients}
+      workers={supervisorPortal ? [] : data.workers}
+      clients={supervisorPortal ? [] : data.clients}
       agreements={data.agreements}
+      completedWorks={data.completedWorks}
       initialTab={tab}
     />
   );

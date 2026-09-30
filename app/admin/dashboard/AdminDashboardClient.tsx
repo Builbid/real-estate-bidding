@@ -20,6 +20,9 @@ import {
   ExternalLink,
   TimerReset,
   FileSignature,
+  UserRound,
+  ClipboardCheck,
+  Wallet,
 } from 'lucide-react';
 import {
   adminCloseAuctionAction,
@@ -34,6 +37,8 @@ import type {
   AdminProjectRow,
   AdminTab,
   AdminWorkerRow,
+  CompletedWorkRow,
+  SupervisorAccount,
 } from '@/lib/admin/data';
 import {
   ADMIN_STATUS_FILTERS,
@@ -332,23 +337,37 @@ const TABS: { id: AdminTab; label: string; icon: typeof LayoutDashboard }[] = [
   { id: 'workers', label: 'Mistris / Workers', icon: HardHat },
   { id: 'clients', label: 'Clients', icon: Users },
   { id: 'agreements', label: 'Agreements', icon: FileText },
+  { id: 'completed', label: 'Completed Works', icon: ClipboardCheck },
 ];
+
+const SUPERVISOR_TAB_IDS = new Set<AdminTab>([
+  'overview',
+  'projects',
+  'agreements',
+  'completed',
+]);
 
 export function AdminDashboardClient({
   email,
+  supervisorPortal = false,
+  account = null,
   kpis,
   projects,
   workers,
   clients,
   agreements,
+  completedWorks,
   initialTab = 'overview',
 }: {
   email: string;
+  supervisorPortal?: boolean;
+  account?: SupervisorAccount | null;
   kpis: AdminKpis;
   projects: AdminProjectRow[];
   workers: AdminWorkerRow[];
   clients: AdminClientRow[];
   agreements: AdminAgreementRow[];
+  completedWorks: CompletedWorkRow[];
   initialTab?: AdminTab;
 }) {
   const [tab, setTab] = useState<AdminTab>(initialTab);
@@ -489,6 +508,21 @@ export function AdminDashboardClient({
     );
   }, [agreements, query]);
 
+  const visibleTabs = supervisorPortal
+    ? TABS.filter((item) => SUPERVISOR_TAB_IDS.has(item.id))
+    : TABS.filter((item) => item.id !== 'completed');
+
+  const filteredCompleted = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return completedWorks;
+    return completedWorks.filter((row) =>
+      [row.publicId, row.projectName, row.location, row.clientName]
+        .join(' ')
+        .toLowerCase()
+        .includes(q),
+    );
+  }, [completedWorks, query]);
+
   function switchTab(next: AdminTab) {
     setTab(next);
     setQuery('');
@@ -516,14 +550,14 @@ export function AdminDashboardClient({
       <aside className="hidden w-60 shrink-0 border-r border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 lg:flex lg:flex-col">
         <div className="border-b border-slate-200 px-4 py-5 dark:border-slate-800">
           <p className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
-            BuilBid Official
+            {supervisorPortal ? 'BuilBid Supervisor' : 'BuilBid Official'}
           </p>
           <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-white">
-            Admin Portal
+            {supervisorPortal ? 'Supervisor Portal' : 'Admin Portal'}
           </p>
         </div>
         <nav className="flex flex-1 flex-col gap-1 p-3">
-          {TABS.map(({ id, label, icon: Icon }) => {
+          {visibleTabs.map(({ id, label, icon: Icon }) => {
             const count =
               id === 'projects'
                 ? projects.length
@@ -533,7 +567,9 @@ export function AdminDashboardClient({
                     ? clients.length
                     : id === 'agreements'
                       ? agreements.length
-                      : null;
+                      : id === 'completed'
+                        ? completedWorks.length
+                        : null;
             return (
               <button
                 key={id}
@@ -560,18 +596,69 @@ export function AdminDashboardClient({
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900 sm:px-6">
-          <div className="flex min-w-0 items-center gap-3">
-            <Shield className="h-5 w-5 text-emerald-600" />
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">
-                {email}
-              </p>
-              <Badge variant="emerald" className="mt-0.5 text-[10px]">
-                Official admin session
-              </Badge>
+        <header className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900 sm:px-6">
+          {account ? (
+            <div className="flex min-w-0 flex-1 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
+                  <UserRound className="h-5 w-5" aria-hidden />
+                </span>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">
+                    {account.email}
+                  </p>
+                  <p className="truncate text-xs text-slate-500">{account.phone}</p>
+                  <p className="truncate text-xs font-medium text-slate-700 dark:text-slate-300">
+                    Supervisor Admin ID {account.supervisorId}
+                  </p>
+                </div>
+              </div>
+              <div className="w-full lg:max-w-xl">
+                <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                  Accounts
+                </p>
+                <div className="grid gap-2 sm:grid-cols-3">
+                <div className="rounded-lg border border-slate-200 px-3 py-2 dark:border-slate-700">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                    Total Amount Received
+                  </p>
+                  <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-white">
+                    {formatMoney(account.totalReceived)}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-slate-200 px-3 py-2 dark:border-slate-700">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                    Unpaid / Pending Balance
+                  </p>
+                  <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-white">
+                    {formatMoney(account.pendingBalance)}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-slate-200 px-3 py-2 dark:border-slate-700">
+                  <p className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                    <Wallet className="h-3 w-3" aria-hidden />
+                    Next Payment Cycle
+                  </p>
+                  <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-white">
+                    {account.nextPaymentCycle}
+                  </p>
+                </div>
+                </div>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="flex min-w-0 items-center gap-3">
+              <Shield className="h-5 w-5 text-emerald-600" />
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">
+                  {email}
+                </p>
+                <Badge variant="emerald" className="mt-0.5 text-[10px]">
+                  Official admin session
+                </Badge>
+              </div>
+            </div>
+          )}
           <form action={adminSignOutAction}>
             <Button type="submit" variant="outline" size="sm">
               <LogOut className="h-3.5 w-3.5" />
@@ -581,7 +668,7 @@ export function AdminDashboardClient({
         </header>
 
         <div className="flex gap-1 overflow-x-auto border-b border-slate-200 bg-white px-3 py-2 dark:border-slate-800 dark:bg-slate-900 lg:hidden">
-          {TABS.map(({ id, label }) => (
+          {visibleTabs.map(({ id, label }) => (
             <button
               key={id}
               type="button"
@@ -628,22 +715,38 @@ export function AdminDashboardClient({
 
           {tab === 'overview' ? (
             <section className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
-              {[
-                { label: 'Live auctions', value: kpis.liveAuctions, icon: Gavel },
-                {
-                  label: 'Projects posted',
-                  value: kpis.totalProjects,
-                  icon: Building2,
-                },
-                { label: 'Workers', value: kpis.totalWorkers, icon: HardHat },
-                { label: 'Clients', value: kpis.totalClients, icon: Users },
-                {
-                  label: 'Pending verify',
-                  value: kpis.pendingApprovals,
-                  icon: Clock,
-                },
-                { label: 'Bids placed', value: kpis.totalBids, icon: FileText },
-              ].map(({ label, value, icon: Icon }) => (
+              {(supervisorPortal
+                ? [
+                    { label: 'Live auctions', value: kpis.liveAuctions, icon: Gavel },
+                    {
+                      label: 'Projects posted',
+                      value: kpis.totalProjects,
+                      icon: Building2,
+                    },
+                    {
+                      label: 'Completed works',
+                      value: completedWorks.length,
+                      icon: ClipboardCheck,
+                    },
+                    { label: 'Bids placed', value: kpis.totalBids, icon: FileText },
+                  ]
+                : [
+                    { label: 'Live auctions', value: kpis.liveAuctions, icon: Gavel },
+                    {
+                      label: 'Projects posted',
+                      value: kpis.totalProjects,
+                      icon: Building2,
+                    },
+                    { label: 'Workers', value: kpis.totalWorkers, icon: HardHat },
+                    { label: 'Clients', value: kpis.totalClients, icon: Users },
+                    {
+                      label: 'Pending verify',
+                      value: kpis.pendingApprovals,
+                      icon: Clock,
+                    },
+                    { label: 'Bids placed', value: kpis.totalBids, icon: FileText },
+                  ]
+              ).map(({ label, value, icon: Icon }) => (
                 <div
                   key={label}
                   className="rounded-xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900"
@@ -860,7 +963,62 @@ export function AdminDashboardClient({
             </div>
           ) : null}
 
-          {tab === 'workers' ? (
+          {tab === 'completed' && supervisorPortal ? (
+            <div className={TABLE_SHELL}>
+              <div className="border-b border-slate-200 px-4 py-3 dark:border-slate-800">
+                <h2 className="text-sm font-semibold text-slate-900 dark:text-white">
+                  Completed Works
+                </h2>
+                <p className="mt-0.5 text-xs text-slate-500">
+                  Finished projects with client names only — no worker or client phone numbers.
+                </p>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-left text-sm">
+                  <thead className="border-b border-slate-200 bg-slate-50/75 dark:border-slate-800 dark:bg-slate-950/80">
+                    <tr>
+                      <th className={TH}>Project ID</th>
+                      <th className={TH}>Project Name</th>
+                      <th className={TH}>Location</th>
+                      <th className={TH}>Client Name</th>
+                      <th className={TH}>Final Total Budget</th>
+                      <th className={TH}>Supervisor Earning / Payout</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredCompleted.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="px-4 py-10 text-center text-sm text-slate-500">
+                          No completed works yet.
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredCompleted.map((row) => (
+                        <tr key={row.projectId} className={ROW_HOVER}>
+                          <td className={cn(TD, 'font-mono text-xs font-semibold text-slate-700')}>
+                            {displayProjectId(row.publicId, row.projectId)}
+                          </td>
+                          <td className={cn(TD, 'font-medium text-slate-900 dark:text-slate-100')}>
+                            {row.projectName}
+                          </td>
+                          <td className={cn(TD, 'text-slate-600')}>{row.location}</td>
+                          <td className={cn(TD, 'text-slate-700')}>{row.clientName}</td>
+                          <td className={cn(TD, 'font-semibold text-slate-900 dark:text-slate-100')}>
+                            {formatMoney(row.finalBudget)}
+                          </td>
+                          <td className={cn(TD, 'font-semibold text-slate-900 dark:text-slate-100')}>
+                            {formatMoney(row.supervisorPayout)}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : null}
+
+          {tab === 'workers' && !supervisorPortal ? (
             <div className={TABLE_SHELL}>
               <div className="overflow-x-auto">
                 <table className="min-w-full text-left text-sm">
@@ -954,7 +1112,7 @@ export function AdminDashboardClient({
             </div>
           ) : null}
 
-          {tab === 'clients' ? (
+          {tab === 'clients' && !supervisorPortal ? (
             <div className={TABLE_SHELL}>
               <div className="overflow-x-auto">
                 <table className="min-w-full text-left text-sm">

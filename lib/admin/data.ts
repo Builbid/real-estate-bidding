@@ -1,8 +1,35 @@
-import { createClient } from '@/lib/supabase/server';
+import { SUPERVISOR_PAYOUT_BPS } from '@/lib/admin/constants';
 import { formatBuilbidPublicId } from '@/lib/contract/mistriAgreement';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { createClient } from '@/lib/supabase/server';
 import type { Profile, ProjectStatus, ServiceType } from '@/lib/types';
 
-export type AdminTab = 'overview' | 'projects' | 'workers' | 'clients' | 'agreements';
+export type AdminTab =
+  | 'overview'
+  | 'projects'
+  | 'workers'
+  | 'clients'
+  | 'agreements'
+  | 'completed';
+
+export interface CompletedWorkRow {
+  projectId: string;
+  publicId: string;
+  projectName: string;
+  location: string;
+  clientName: string;
+  finalBudget: number | null;
+  supervisorPayout: number;
+}
+
+export interface SupervisorAccount {
+  email: string;
+  phone: string;
+  supervisorId: string;
+  totalReceived: number;
+  pendingBalance: number;
+  nextPaymentCycle: string;
+}
 
 export interface AdminKpis {
   liveAuctions: number;
@@ -81,12 +108,24 @@ function tradeLabel(role: string, serviceType: ServiceType | null | undefined): 
   return role;
 }
 
+export function estimateSupervisorPayout(finalBudget: number | null): number {
+  if (finalBudget == null || finalBudget <= 0) return 0;
+  return Math.round((finalBudget * SUPERVISOR_PAYOUT_BPS) / 10_000);
+}
+
+export function formatSupervisorAdminId(userId: string): string {
+  const hex = userId.replace(/-/g, '').toUpperCase();
+  if (/^[0-9A-F]{8,}$/.test(hex)) return `SUP-${hex.slice(0, 8)}`;
+  return formatBuilbidPublicId(userId).replace(/^BB-/, 'SUP-');
+}
+
 export async function loadAdminDashboardData(): Promise<{
   kpis: AdminKpis;
   projects: AdminProjectRow[];
   workers: AdminWorkerRow[];
   clients: AdminClientRow[];
   agreements: AdminAgreementRow[];
+  completedWorks: CompletedWorkRow[];
 }> {
   const supabase = await createClient();
 
@@ -99,7 +138,7 @@ export async function loadAdminDashboardData(): Promise<{
     supabase
       .from('projects')
       .select(
-        'id, numeric_id, title, district, state, status, bidding_ends_at, selection_ends_at, owner_id, selected_builder_id, service_type, created_at, updated_at',
+        'id, numeric_id, title, district, state, status, bidding_ends_at, selection_ends_at, owner_id, selected_builder_id, service_type, budget_range_min, budget_range_max, created_at, updated_at',
       )
       .order('created_at', { ascending: false })
       .limit(400),
@@ -130,6 +169,8 @@ export async function loadAdminDashboardData(): Promise<{
     owner_id: string;
     selected_builder_id: string | null;
     service_type: string | null;
+    budget_range_min: number | null;
+    budget_range_max: number | null;
     created_at: string;
     updated_at: string;
   }>;
@@ -264,5 +305,77 @@ export async function loadAdminDashboardData(): Promise<{
     totalBids: totalBids ?? 0,
   };
 
-  return { kpis, projects: projectRows, workers, clients, agreements };
+  const completedWorks: CompletedWorkRow[] = projects
+    .filter((p) => p.status === 'completed')
+    .map((p) => {
+      const row = projectRows.find((item) => item.id === p.id);
+      const finalBudget =
+        row?.winningBid ??
+        (p.budget_range_max != null ? Number(p.budget_range_max) : null) ??
+        (p.budget_range_min != null ? Number(p.budget_range_min) : null);
+      return {
+        projectId: p.id,
+        publicId: row?.publicId ?? (p.numeric_id ?? '').trim().toUpperCase(),
+        projectName: p.title,
+        location: [p.district, p.state].filter(Boolean).join(', ') || '—',
+        clientName: row?.clientName ?? '—',
+        finalBudget,
+        supervisorPayout: estimateSupervisorPayout(finalBudget),
+      };
+    });
+
+  return { kpis, projects: projectRows, workers, clients, agreements, completedWorks };
+}
+
+/** Next 10-day supervisor settlement date, counted from 1 Jan 2026. */
+export function nextSupervisorSettlementLabel(now = new Date()): string {
+  const cycleMs = 10 * 86_400_000;
+  const anchor = Date.UTC(2026, 0, 1);
+  const steps = Math.floor((now.getTime() - anchor) / cycleMs) + 1;
+  const next = new Date(anchor + steps * cycleMs);
+  const formatted = next.toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+  return `Weekly / 10-day settlement · ${formatted}`;
+}
+
+export async function loadSupervisorAccount(
+  userId: string,
+  fallbackEmail: string,
+  completedWorks: CompletedWorkRow[],
+): Promise<SupervisorAccount> {
+  const supabase = await createClient();
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('email, mobile')
+    .eq('id', userId)
+    .maybeSingle();
+
+  let supervisorPhone: string | null = null;
+  let supervisorEmail: string | null = null;
+  try {
+    const admin = createAdminClient();
+    const { data: supervisor } = await admin
+      .from('supervisors')
+      .select('email, phone')
+      .eq('user_id', userId)
+      .maybeSingle();
+    supervisorPhone = supervisor?.phone?.trim() || null;
+    supervisorEmail = supervisor?.email?.trim() || null;
+  } catch {
+    supervisorPhone = null;
+  }
+
+  const pendingBalance = completedWorks.reduce((sum, row) => sum + row.supervisorPayout, 0);
+
+  return {
+    email: supervisorEmail || profile?.email || fallbackEmail,
+    phone: supervisorPhone || profile?.mobile?.trim() || '—',
+    supervisorId: formatSupervisorAdminId(userId),
+    totalReceived: 0,
+    pendingBalance,
+    nextPaymentCycle: nextSupervisorSettlementLabel(),
+  };
 }

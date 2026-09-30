@@ -15,6 +15,9 @@ export const ADMIN_UNAUTHORIZED_MESSAGE =
  */
 export const TESTING_FIELD_SUPERVISOR_ROLE = 'field_supervisor';
 
+/** Accrued supervisor earning until a payout ledger exists (200 bps = 2% of final budget). */
+export const SUPERVISOR_PAYOUT_BPS = 200;
+
 const SUPERVISOR_PROFILE_ROLES = new Set(['field_supervisor', 'supervisor']);
 const SUPERVISOR_STAFF_POSITIONS = new Set(['field_supervisor', 'admin_staff', 'supervisor']);
 
