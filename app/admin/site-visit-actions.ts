@@ -27,17 +27,61 @@ async function resolveAssignedProject(projectRef: string, session: { userId: str
   const admin = createAdminClient();
   const { data: project } = await findProjectByAnyId<{
     id: string;
+    status: string;
     selected_builder_id: string | null;
-  }>(admin, projectRef, 'id, selected_builder_id');
+  }>(admin, projectRef, 'id, status, selected_builder_id');
   if (!project) return { error: 'Project not found.' as const };
   const territoryError = await projectTerritoryError(admin, session, project.id);
   if (territoryError) return { error: territoryError as string };
   if (!project.selected_builder_id) {
-    return {
-      error: 'A site visit can be recorded only after a Mistri / contractor is finalized for this project.' as const,
-    };
+    // Prototype testing: a closed project with bids is auto-awarded to its lowest bidder
+    // the first time the supervisor works on it (no separate accept / company step).
+    const awarded = PROTOTYPE_AUTO_AGREEMENT
+      ? await awardLowestBidder(admin, project.id, project.status)
+      : null;
+    if (!awarded || 'error' in awarded) {
+      return {
+        error:
+          (awarded && 'error' in awarded ? awarded.error : null) ??
+          ('A site visit can be recorded only after a Mistri / contractor is finalized for this project.' as const),
+      };
+    }
+    return { admin, project: { ...project, selected_builder_id: awarded.builderId } };
   }
   return { admin, project };
+}
+
+/** Awards the lowest active bid. Guarded so a concurrent owner award is never overwritten. */
+async function awardLowestBidder(
+  admin: ReturnType<typeof createAdminClient>,
+  projectId: string,
+  status: string,
+): Promise<{ builderId: string } | { error: string }> {
+  if (status === 'cancelled') return { error: 'This project was cancelled.' };
+  const { data: bid } = await admin
+    .from('bids')
+    .select('builder_id')
+    .eq('project_id', projectId)
+    .eq('is_withdrawn', false)
+    .order('total_sum_metric', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (!bid?.builder_id) return { error: 'This project has no active bids to award.' };
+
+  const { error } = await admin
+    .from('projects')
+    .update({ selected_builder_id: bid.builder_id, updated_at: new Date().toISOString() })
+    .eq('id', projectId)
+    .is('selected_builder_id', null);
+  if (error) return { error: error.message };
+
+  // Re-read in case an owner award won the race.
+  const { data: fresh } = await admin
+    .from('projects')
+    .select('selected_builder_id')
+    .eq('id', projectId)
+    .maybeSingle();
+  return { builderId: (fresh?.selected_builder_id as string | null) ?? bid.builder_id };
 }
 
 async function isAlreadyApproved(
@@ -136,54 +180,6 @@ export async function goToAgreementAction(
     .eq('project_id', project.id);
   if (error && !isMissingWorkflowTable(error)) return { error: error.message };
 
-  return { ok: true, href: `/admin/agreement/${project.id}` };
-}
-
-/**
- * Prototype "Receive / Accept Project": turns a closed project in the Agreements tab into an
- * awarded agreement. If no bidder has been formally awarded yet, the lowest active bid becomes
- * the awardee (no manual company-side step), then the agreement letter is opened.
- */
-export async function acceptProjectAction(
-  projectRef: string,
-): Promise<{ error?: string; ok?: boolean; href?: string }> {
-  const session = await requireOfficialAdmin();
-  const admin = createAdminClient();
-  const { data: project } = await findProjectByAnyId<{
-    id: string;
-    status: string;
-    selected_builder_id: string | null;
-  }>(admin, projectRef, 'id, status, selected_builder_id');
-  if (!project) return { error: 'Project not found.' };
-  const territoryError = await projectTerritoryError(admin, session, project.id);
-  if (territoryError) return { error: territoryError };
-
-  if (!project.selected_builder_id) {
-    if (!PROTOTYPE_AUTO_AGREEMENT) {
-      return { error: 'A Mistri / contractor must be finalized before the project can be accepted.' };
-    }
-    if (project.status === 'cancelled') return { error: 'This project was cancelled.' };
-
-    const { data: bid } = await admin
-      .from('bids')
-      .select('builder_id')
-      .eq('project_id', project.id)
-      .eq('is_withdrawn', false)
-      .order('total_sum_metric', { ascending: true })
-      .limit(1)
-      .maybeSingle();
-    if (!bid?.builder_id) return { error: 'This project has no active bids to award.' };
-
-    // Guarded so a concurrent owner award is never overwritten.
-    const { error } = await admin
-      .from('projects')
-      .update({ selected_builder_id: bid.builder_id, updated_at: new Date().toISOString() })
-      .eq('id', project.id)
-      .is('selected_builder_id', null);
-    if (error) return { error: error.message };
-  }
-
-  revalidatePath('/admin/dashboard');
   return { ok: true, href: `/admin/agreement/${project.id}` };
 }
 

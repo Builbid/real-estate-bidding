@@ -8,7 +8,6 @@ import {
   BadgeCheck,
   CheckCircle2,
   Circle,
-  ExternalLink,
   FileSignature,
   FileText,
   HardHat,
@@ -122,8 +121,6 @@ export function AgreementWorkspace(props: AgreementWorkspaceProps) {
   const signedAwaitingApproval = contract?.status === 'signed' && !approved;
   const sent = Boolean(contract);
 
-  const docsBase = `/admin/agreement-docs?projectId=${encodeURIComponent(project.id)}`;
-
   function send() {
     setError(null);
     setMessage(null);
@@ -169,7 +166,7 @@ export function AgreementWorkspace(props: AgreementWorkspaceProps) {
     <main className="mx-auto w-full max-w-5xl space-y-5 p-4 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Link
-          href="/admin/dashboard?tab=projects"
+          href="/admin/dashboard?tab=agreements"
           className="inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-700 hover:text-emerald-800"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -230,15 +227,6 @@ export function AgreementWorkspace(props: AgreementWorkspaceProps) {
             <FileText className="h-4 w-4 text-emerald-600" />
             Awarded Agreement Letter (auto-populated)
           </h2>
-          <a
-            href={`${docsBase}&kind=agreement`}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1 rounded-md bg-slate-900 px-2.5 py-1 text-xs font-medium text-white hover:bg-slate-800"
-          >
-            <ExternalLink className="h-3 w-3" />
-            Preview draft PDF
-          </a>
         </div>
         <RowList
           rows={[
@@ -259,17 +247,6 @@ export function AgreementWorkspace(props: AgreementWorkspaceProps) {
             <HardHat className="h-4 w-4 text-amber-600" />
             Mistri Thumb Rule instruction sheet
           </h2>
-          {thumbRule ? (
-            <a
-              href={`${docsBase}&kind=thumb`}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1 rounded-md bg-slate-900 px-2.5 py-1 text-xs font-medium text-white hover:bg-slate-800"
-            >
-              <ExternalLink className="h-3 w-3" />
-              Open thumb rule PDF
-            </a>
-          ) : null}
         </div>
         {thumbRule ? (
           <div className="space-y-4">

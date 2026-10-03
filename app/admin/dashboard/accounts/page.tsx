@@ -16,7 +16,7 @@ export default async function SupervisorAccountsPage() {
 
   const [assignedPincodes, data, profile] = await Promise.all([
     loadSupervisorTerritory(createAdminClient(), session.userId),
-    loadAdminDashboardData({ territory: null }),
+    loadAdminDashboardData({ territory: null, supervisorView: true }),
     loadSupervisorProfileDetailsAction(),
   ]);
 

@@ -34,7 +34,7 @@ export default async function AdminDashboardPage({
     : null;
   const territory = BYPASS_PINCODE_RESTRICTION ? null : assignedPincodes;
 
-  const data = await loadAdminDashboardData({ territory });
+  const data = await loadAdminDashboardData({ territory, supervisorView: supervisorPortal });
   const account = supervisorPortal
     ? await loadSupervisorAccount(
         session.userId,

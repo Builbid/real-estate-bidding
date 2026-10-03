@@ -9,3 +9,10 @@
  * Plain module (no server-only imports) so client components can read it too.
  */
 export const PROTOTYPE_AUTO_AGREEMENT = true;
+
+/**
+ * Prototype reset point (3 Oct 2026, 20:25 IST). In the Supervisor portal, auctions that ended
+ * before this instant are legacy: they never appear in Agreements, and agreements approved
+ * before it never appear in Completed Works. Both tabs therefore start at zero.
+ */
+export const PROTOTYPE_RESET_AT = '2026-10-03T14:55:00.000Z';

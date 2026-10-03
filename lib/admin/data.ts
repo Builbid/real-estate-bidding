@@ -7,7 +7,7 @@ import {
   pendingBalanceFor,
 } from '@/lib/admin/settlement';
 import { normalizePincodes } from '@/lib/admin/territory';
-import { PROTOTYPE_AUTO_AGREEMENT } from '@/lib/admin/prototype';
+import { PROTOTYPE_AUTO_AGREEMENT, PROTOTYPE_RESET_AT } from '@/lib/admin/prototype';
 import { formatBuilbidPublicId } from '@/lib/contract/mistriAgreement';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
@@ -62,6 +62,8 @@ export interface ProjectWorkflowState {
   agreementState: AgreementState;
   /** Both parties signed via Aadhaar OTP and the PDFs were dispatched. */
   approved: boolean;
+  /** When the agreement was fully signed and approved (null until then). */
+  approvedAt: string | null;
 }
 
 export interface AdminKpis {
@@ -157,6 +159,7 @@ const NO_WORKFLOW: ProjectWorkflowState = {
   siteVisitDone: false,
   agreementState: 'none',
   approved: false,
+  approvedAt: null,
 };
 
 /**
@@ -191,6 +194,7 @@ async function loadWorkflowStates(): Promise<Map<string, ProjectWorkflowState>> 
         ...prev,
         agreementState: row.status,
         approved: Boolean(row.approved_at),
+        approvedAt: row.approved_at ?? null,
       });
     }
   } catch {
@@ -212,6 +216,12 @@ export async function loadAdminDashboardData(
      * (an empty list therefore loads nothing). Leave undefined for the official admin.
      */
     territory?: string[] | null;
+    /**
+     * Supervisor portal prototype view: Projects shows only live / running work, and
+     * Agreements / Completed Works start from zero (legacy records before
+     * PROTOTYPE_RESET_AT are hidden). The official admin keeps the full history.
+     */
+    supervisorView?: boolean;
   } = {},
 ): Promise<{
   kpis: AdminKpis;
@@ -223,6 +233,7 @@ export async function loadAdminDashboardData(
 }> {
   const supabase = await createClient();
   const territory = options.territory ?? null;
+  const nowMs = Date.now();
 
   const projectsBase = supabase
     .from('projects')
@@ -375,7 +386,6 @@ export async function loadAdminDashboardData(
 
   // Prototype auto-conversion: a closed project (or one whose bidding window ended) that has
   // bids but no formal award yet becomes an agreement, with the lowest bidder as awardee.
-  const nowMs = Date.now();
   const lowestBidByProject = new Map<string, { builder_id: string; total_sum_metric: number }>();
   for (const bid of bids) {
     const current = lowestBidByProject.get(bid.project_id);
@@ -387,13 +397,25 @@ export async function loadAdminDashboardData(
     p.status !== 'cancelled' &&
     (p.status !== 'active_24h' || new Date(p.bidding_ends_at).getTime() <= nowMs);
 
+  const supervisorView = options.supervisorView ?? false;
+  const resetMs = Date.parse(PROTOTYPE_RESET_AT);
+
+  // Supervisor prototype view: an agreement exists only once a project's live bidding time
+  // has ended (naturally or via Close) AND a bidder placed a bid. Auctions that ended before
+  // the reset are legacy history and are never listed, so the tab starts at zero.
+  const qualifiesForSupervisorAgreement = (p: (typeof projects)[number]) =>
+    isClosedForAutoAgreement(p) &&
+    new Date(p.bidding_ends_at).getTime() >= resetMs &&
+    lowestBidByProject.has(p.id);
+
   const agreements: AdminAgreementRow[] = projects
-    .filter(
-      (p) =>
-        !!p.selected_builder_id ||
-        (PROTOTYPE_AUTO_AGREEMENT &&
-          isClosedForAutoAgreement(p) &&
-          lowestBidByProject.has(p.id)),
+    .filter((p) =>
+      supervisorView
+        ? qualifiesForSupervisorAgreement(p)
+        : !!p.selected_builder_id ||
+          (PROTOTYPE_AUTO_AGREEMENT &&
+            isClosedForAutoAgreement(p) &&
+            lowestBidByProject.has(p.id)),
     )
     .map((p) => {
       const owner = profileById.get(p.owner_id);
@@ -420,17 +442,33 @@ export async function loadAdminDashboardData(
 
   const pendingApprovals = workers.filter((w) => !w.isVerified).length;
 
+  // Supervisor view: Projects lists only auctions that are live right now (no legacy records).
+  const visibleProjectRows = supervisorView
+    ? projectRows.filter(
+        (p) => p.status === 'active_24h' && new Date(p.biddingEndsAt).getTime() > nowMs,
+      )
+    : projectRows;
+
   const kpis: AdminKpis = {
     liveAuctions: projects.filter((p) => p.status === 'active_24h').length,
-    totalProjects: projects.length,
+    totalProjects: visibleProjectRows.length,
     totalWorkers: workers.length,
     totalClients: clients.length,
     pendingApprovals,
     totalBids: totalBids ?? 0,
   };
 
+  // Supervisor view: a work is "completed" only after its agreement went through the full
+  // Aadhaar e-sign approval after the reset. Legacy completed records are never listed.
   const completedWorks: CompletedWorkRow[] = projects
-    .filter((p) => p.status === 'completed')
+    .filter((p) =>
+      supervisorView
+        ? p.status !== 'cancelled' &&
+          (workflowByProject.get(p.id)?.approvedAt
+            ? Date.parse(workflowByProject.get(p.id)!.approvedAt!) >= resetMs
+            : false)
+        : p.status === 'completed',
+    )
     .map((p) => {
       const row = projectRows.find((item) => item.id === p.id);
       const finalBudget =
@@ -449,7 +487,7 @@ export async function loadAdminDashboardData(
       };
     });
 
-  return { kpis, projects: projectRows, workers, clients, agreements, completedWorks };
+  return { kpis, projects: visibleProjectRows, workers, clients, agreements, completedWorks };
 }
 
 export interface AdminSupervisorRow {

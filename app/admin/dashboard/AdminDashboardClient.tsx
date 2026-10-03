@@ -63,7 +63,7 @@ import {
 } from '@/lib/utils';
 import { CreateContractAgreementModal } from '@/components/admin/CreateContractAgreementModal';
 import { SiteVisitChecklistModal } from '@/components/admin/SiteVisitChecklistModal';
-import { acceptProjectAction, goToAgreementAction } from '@/app/admin/site-visit-actions';
+import { goToAgreementAction } from '@/app/admin/site-visit-actions';
 import { PROTOTYPE_AUTO_AGREEMENT } from '@/lib/admin/prototype';
 import {
   settleSupervisorMonthAction,
@@ -736,18 +736,6 @@ export function AdminDashboardClient({
     );
   }
 
-  /** "Receive / Accept Project": awards the lowest bidder if needed, then opens the agreement letter. */
-  function acceptProject(projectId: string) {
-    startTransition(async () => {
-      const result = await acceptProjectAction(projectId);
-      if (result.error || !result.href) {
-        toast.error(result.error ?? 'Could not accept the project.');
-        return;
-      }
-      toast.success('Project accepted. Opening the agreement letter.');
-      router.push(result.href);
-    });
-  }
 
   return (
     <div className="flex min-h-screen">
@@ -844,35 +832,7 @@ export function AdminDashboardClient({
           </form>
         </header>
 
-        {account ? (
-          <section
-            aria-label="Accounts summary"
-            className="grid gap-3 border-b border-slate-200 bg-slate-50/70 px-4 py-3 dark:border-slate-800 dark:bg-slate-900/60 sm:grid-cols-2 sm:px-6"
-          >
-            <div className="rounded-lg border border-slate-200 bg-white px-4 py-2.5 dark:border-slate-700 dark:bg-slate-900">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-                Total Amount Received · {account.monthLabel}
-              </p>
-              <p className="mt-0.5 text-lg font-bold text-slate-900 dark:text-white">
-                {formatMoney(account.totalReceived)}
-              </p>
-            </div>
-            <div className="rounded-lg border border-slate-200 bg-white px-4 py-2.5 dark:border-slate-700 dark:bg-slate-900">
-              <p className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-                <Wallet className="h-3 w-3" aria-hidden />
-                Unpaid / Pending Balance
-              </p>
-              <p className="mt-0.5 text-lg font-bold text-slate-900 dark:text-white">
-                {formatMoney(account.pendingBalance)}
-              </p>
-              <p className="text-[10px] text-slate-400">
-                {account.commissionRate} commission · {account.nextPaymentCycle}
-              </p>
-            </div>
-          </section>
-        ) : null}
-
-        {/* Navigation: directly below the header and accounts summary. */}
+        {/* Navigation: directly below the header. Financials live on the full-page Accounts view. */}
         <nav
           aria-label="Sections"
           className={cn(
@@ -1182,21 +1142,6 @@ export function AdminDashboardClient({
                                     PDF
                                   </a>
                                 </>
-                              ) : PROTOTYPE_AUTO_AGREEMENT &&
-                                supervisorPortal &&
-                                p.bidCount > 0 &&
-                                p.status !== 'cancelled' &&
-                                (p.status !== 'active_24h' ||
-                                  new Date(p.biddingEndsAt).getTime() <= Date.now()) ? (
-                                <button
-                                  type="button"
-                                  disabled={pending}
-                                  onClick={() => switchTab('agreements')}
-                                  className="inline-flex items-center gap-1 rounded-md border border-emerald-300 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-800 transition hover:bg-emerald-100"
-                                >
-                                  <FileText className="h-3 w-3" />
-                                  View in Agreements
-                                </button>
                               ) : null}
                             </div>
                           </td>
@@ -1522,50 +1467,34 @@ export function AdminDashboardClient({
                           </td>
                           <td className={TD}>
                             <div className="flex flex-wrap items-center gap-1">
-                              {supervisorPortal && PROTOTYPE_AUTO_AGREEMENT && !a.workflow.approved ? (
+                              {supervisorPortal ? (
+                                // Supervisor agreement cards: exactly two actions. The checklist
+                                // modal leads on to the agreement / Aadhaar eSign once saved.
                                 <>
                                   <button
                                     type="button"
-                                    disabled={pending}
-                                    onClick={() => acceptProject(a.projectId)}
-                                    className="inline-flex items-center gap-1.5 rounded-md bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-md ring-2 ring-emerald-200 transition hover:bg-emerald-700 disabled:opacity-60 dark:ring-emerald-900"
+                                    onClick={() =>
+                                      openChecklist({
+                                        id: a.projectId,
+                                        publicId: a.publicId,
+                                        title: a.projectTitle,
+                                        clientName: a.clientName,
+                                      })
+                                    }
+                                    className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 shadow-xs transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200"
                                   >
-                                    <BadgeCheck className="h-3.5 w-3.5" />
-                                    Receive / Accept Project
+                                    <ClipboardCheck className="h-3 w-3" />
+                                    Site Visit Checklist
                                   </button>
-                                  {!a.provisional ? (
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        openChecklist({
-                                          id: a.projectId,
-                                          publicId: a.publicId,
-                                          title: a.projectTitle,
-                                          clientName: a.clientName,
-                                        })
-                                      }
-                                      className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 shadow-xs transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200"
-                                    >
-                                      <ClipboardCheck className="h-3 w-3" />
-                                      {a.workflow.siteVisitDone ? 'Edit Site Checklist' : 'Site Visit Checklist'}
-                                    </button>
-                                  ) : null}
+                                  <Link
+                                    href={`/project/${a.projectId}`}
+                                    target="_blank"
+                                    className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 transition hover:bg-slate-100 dark:border-slate-700"
+                                  >
+                                    <ExternalLink className="h-3 w-3" />
+                                    Project Details
+                                  </Link>
                                 </>
-                              ) : supervisorPortal ? (
-                                <WorkflowActions
-                                  projectId={a.projectId}
-                                  workflow={a.workflow}
-                                  busy={pending}
-                                  onOpenChecklist={() =>
-                                    openChecklist({
-                                      id: a.projectId,
-                                      publicId: a.publicId,
-                                      title: a.projectTitle,
-                                      clientName: a.clientName,
-                                    })
-                                  }
-                                  onGoToAgreement={() => goToAgreement(a.projectId)}
-                                />
                               ) : (
                                 <button
                                   type="button"
@@ -1586,23 +1515,27 @@ export function AdminDashboardClient({
                                   Create Contract Agreement
                                 </button>
                               )}
-                              <a
-                                href={`/api/agreements/pdf?projectId=${encodeURIComponent(a.publicId || a.projectId)}`}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="inline-flex items-center gap-1 rounded-md bg-slate-900 px-2.5 py-1 text-xs font-medium text-white shadow-xs transition hover:bg-slate-800"
-                              >
-                                <Download className="h-3 w-3" />
-                                PDF
-                              </a>
-                              <Link
-                                href={`/project/${a.projectId}`}
-                                target="_blank"
-                                className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 transition hover:bg-slate-100 dark:border-slate-700"
-                              >
-                                <ExternalLink className="h-3 w-3" />
-                                Project
-                              </Link>
+                              {!supervisorPortal ? (
+                                <>
+                                  <a
+                                    href={`/api/agreements/pdf?projectId=${encodeURIComponent(a.publicId || a.projectId)}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="inline-flex items-center gap-1 rounded-md bg-slate-900 px-2.5 py-1 text-xs font-medium text-white shadow-xs transition hover:bg-slate-800"
+                                  >
+                                    <Download className="h-3 w-3" />
+                                    PDF
+                                  </a>
+                                  <Link
+                                    href={`/project/${a.projectId}`}
+                                    target="_blank"
+                                    className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 transition hover:bg-slate-100 dark:border-slate-700"
+                                  >
+                                    <ExternalLink className="h-3 w-3" />
+                                    Project
+                                  </Link>
+                                </>
+                              ) : null}
                             </div>
                           </td>
                         </tr>
