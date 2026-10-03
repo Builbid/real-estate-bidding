@@ -4,7 +4,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState, useTransition } from 'react';
 import { toast, Toaster } from 'sonner';
+import { BuilBidLogo } from '@/components/shared/BuilBidLogo';
 import {
+  ArrowLeft,
   ArrowRight,
   BadgeCheck,
   Building2,
@@ -796,7 +798,28 @@ export function AdminDashboardClient({
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900 sm:px-6">
+        <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-slate-200 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900 sm:px-6">
+          <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 sm:gap-x-4">
+            {/* Brand logo (top left) and an explicit way back to the main landing page. */}
+            <Link
+              href="/"
+              aria-label="BuilBid home"
+              className="shrink-0 rounded-lg p-1 transition hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+            >
+              <BuilBidLogo size="md" compact className="sm:hidden" />
+              <BuilBidLogo size="md" className="hidden sm:inline-flex" />
+            </Link>
+            <Link
+              href="/"
+              className="group inline-flex shrink-0 items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-xs transition hover:-translate-x-0.5 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-emerald-700 dark:hover:bg-emerald-950/50 dark:hover:text-emerald-200"
+            >
+              <ArrowLeft
+                className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5"
+                aria-hidden
+              />
+              Back to Home
+            </Link>
+            <span className="hidden h-8 w-px bg-slate-200 dark:bg-slate-700 md:block" aria-hidden />
           {supervisorPortal && account ? (
             // Only the circle avatar and the name: tap either to open the full-page profile & accounts view.
             <Link
@@ -824,6 +847,7 @@ export function AdminDashboardClient({
               </div>
             </div>
           )}
+          </div>
           <form action={adminSignOutAction}>
             <Button type="submit" variant="outline" size="sm">
               <LogOut className="h-3.5 w-3.5" />
