@@ -17,6 +17,8 @@ import {
   getProjectBuiltUpAreaLabel,
   getProjectLocationLabel,
 } from '@/lib/project/formatFloorSummary';
+import { getProjectWorkRequirementBlocks, isFloorFixtureRequirementLabel } from '@/lib/project/workRequirements';
+import { formatNumericProjectId } from '@/lib/project/numericId';
 import { FloorScopeBadges } from '@/components/project/FloorScopeBadges';
 import { CheckLocationLink } from '@/components/project/ProjectLocationWithMapsLink';
 import { earthworkCardLocation } from '@/lib/validation/earthworkLocation';
@@ -39,6 +41,32 @@ export interface OwnerLiveProjectCardProps {
   initialFirms?: Record<string, PublicFirmProfile>;
   userId: string;
   priority?: boolean;
+}
+
+function truncate(text: string, max: number): string {
+  const clean = text.replace(/\s+/g, ' ').trim();
+  return clean.length > max ? `${clean.slice(0, max - 1).trimEnd()}…` : clean;
+}
+
+/**
+ * Short scope-of-work summary from what the owner submitted: the first few work requirement
+ * fields, falling back to the free-text description.
+ */
+function buildJobSummary(project: Project): string | null {
+  const blocks = (getProjectWorkRequirementBlocks(project)?.blocks ?? [])
+    .filter((block) => block.value?.trim() && !isFloorFixtureRequirementLabel(block.label))
+    .slice(0, 3)
+    .map((block) => `${block.label.replace(/:$/, '')}: ${truncate(block.value, 50)}`);
+  if (blocks.length > 0) return blocks.join(' · ');
+  const description = project.description?.trim();
+  return description ? truncate(description, 160) : null;
+}
+
+/** Public Project ID tag, e.g. #PRJ-K7M2Q9P1 (falls back to the short internal ID). */
+function projectIdTag(project: Project): string {
+  const publicId = formatNumericProjectId(project.numeric_id);
+  const id = publicId !== '—' ? publicId : project.id.slice(0, 8).toUpperCase();
+  return `#PRJ-${id}`;
 }
 
 function OwnerLiveProjectCardBody({
@@ -65,13 +93,10 @@ function OwnerLiveProjectCardBody({
     `${bidCount} bid${bidCount !== 1 ? 's' : ''}`,
   ].filter(Boolean) as string[];
 
-  const statusLabel = canSelect
-    ? isFirm
-      ? 'Select Firm'
-      : 'Select Builder'
-    : phase === 'live'
-      ? 'Live Bidding'
-      : null;
+  // The redundant "Live Bidding" sub-badge is gone; only the selection-phase badge remains.
+  const statusLabel = canSelect ? (isFirm ? 'Select Firm' : 'Select Builder') : null;
+  const jobSummary = buildJobSummary(project);
+  const idTag = projectIdTag(project);
 
   return (
     <article
@@ -94,7 +119,21 @@ function OwnerLiveProjectCardBody({
               <span className="text-sm font-medium text-slate-600 dark:text-slate-400">{serviceBadge}</span>
             ) : null}
           </div>
-          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{project.title}</p>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{project.title}</p>
+            <span
+              className="rounded-md border border-slate-200 bg-slate-50 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+              title="Unique Project ID"
+            >
+              Project ID: {idTag}
+            </span>
+          </div>
+          {jobSummary ? (
+            <p className="mt-1 line-clamp-2 text-xs text-slate-600 dark:text-slate-400">
+              <span className="font-semibold text-slate-700 dark:text-slate-300">Scope: </span>
+              {jobSummary}
+            </p>
+          ) : null}
           <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-600 dark:text-slate-400">
             {metaParts.map((part, index) => (
               <span key={`${part}-${index}`} className="inline-flex items-center gap-2">
@@ -176,8 +215,7 @@ function OwnerLiveProjectCardBody({
       {phase === 'live' && (
         <p className="text-xs text-slate-600 dark:text-slate-400">
           <span className="mr-2 inline-block h-2 w-2 rounded-full bg-emerald-600 align-middle animate-pulse dark:bg-emerald-400" />
-          Live auction in progress. {isFirm ? 'Firm' : 'Builder'} names and profile photos are visible on the
-          leaderboard; contact details stay private. Rankings update in real-time.
+          Live auction in progress.
         </p>
       )}
 
