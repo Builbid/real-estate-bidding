@@ -74,7 +74,7 @@ export function getDashboardPath(role: string | null | undefined): string {
     case 'construction_firm':
       return '/dashboard/firm';
     case 'admin':
-      return '/dashboard/admin';
+      return '/admin/dashboard';
     case 'service_provider':
       return '/dashboard/provider';
     case 'field_supervisor':

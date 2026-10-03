@@ -3,6 +3,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { getDashboardPath, parseRole } from '@/lib/auth/roles'
+import { portalForRole, type Portal } from '@/lib/auth/portal'
+import { assertEmailFreeForRole } from '@/lib/auth/emailRoleGuard'
+import { setActivePortalCookie, signInCustomerIsolated } from '@/lib/auth/serverSession'
 import { validateGstNumber } from '@/lib/validation/gst'
 import { stripMobileDigits, validateMobile } from '@/lib/validation/mobile'
 import {
@@ -36,30 +39,17 @@ export async function signInAction(
     return { error: 'Email and password are required.' }
   }
 
-  const supabase = await createClient()
-
-  const { data, error: authError } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  })
-
-  if (authError) {
-    return { error: authError.message }
+  // Session is stored only in the account's own portal namespace; staff are refused here.
+  const result = await signInCustomerIsolated(email, password)
+  if (result.error !== null) {
+    return { error: result.error }
   }
 
   if (nextPath && nextPath.startsWith('/')) {
     redirect(nextPath)
   }
 
-  // Database role is authoritative; JWT metadata can be stale.
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', data.user.id)
-    .maybeSingle()
-
-  const metaRole = data.user.user_metadata?.role as string | undefined
-  redirect(getDashboardPath(profile?.role ?? metaRole))
+  redirect(result.redirectPath)
 }
 
 // ─── Sign Up ────────────────────────────────────────────────────────────────
@@ -154,14 +144,22 @@ export async function signUpAction(
           ? tradeRaw
           : null
 
-  const supabase = await createClient()
+  // One email = one role: Home Owner, Mistri/Worker and Supervisor/Admin each need their own email.
+  const signupPortal: Portal = portalForRole(role) ?? 'owner'
+  const emailConflict = await assertEmailFreeForRole(email, signupPortal)
+  if (emailConflict) {
+    return { error: emailConflict, success: false }
+  }
+
+  // The whole signup flow lives in this account type's own cookie namespace.
+  const supabase = await createClient(signupPortal)
 
   const origin = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://builbid.in'
   const { data, error: signUpError } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      emailRedirectTo: `${origin}/auth/callback`,
+      emailRedirectTo: `${origin}/auth/callback?portal=${signupPortal}`,
       data: { full_name: fullName, role, service_type: serviceType },
     },
   })
@@ -206,6 +204,7 @@ export async function signUpAction(
   const redirectPath = getDashboardPath(role as UserRole)
 
   if (!signInError) {
+    await setActivePortalCookie(signupPortal)
     return { error: null, success: true, role, redirectPath, autoSignedIn: true }
   }
 
@@ -214,6 +213,7 @@ export async function signUpAction(
 
 // ─── Sign Out ───────────────────────────────────────────────────────────────
 export async function signOutAction(): Promise<void> {
+  // Signs out only the portal this request belongs to; other portals stay signed in.
   const supabase = await createClient()
   await supabase.auth.signOut({ scope: 'local' })
   redirect('/login')

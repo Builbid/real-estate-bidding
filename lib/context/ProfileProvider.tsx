@@ -71,7 +71,6 @@ export function ProfileProvider({
 }) {
   const [profile, setProfile] = useState<Profile | null>(initialProfile ?? null);
   const [loading, setLoading] = useState(!initialProfile);
-  const supabaseRef = useRef(createClient());
   const inFlightRef = useRef<Promise<void> | null>(null);
   const profileRef = useRef<Profile | null>(profile);
 
@@ -87,7 +86,8 @@ export function ProfileProvider({
     }
 
     const run = (async () => {
-      const supabase = supabaseRef.current;
+      // Resolved lazily (client-only) so it uses the portal this page belongs to.
+      const supabase = createClient();
       // Prefer session cookie read — avoids an extra /auth/v1/user round-trip on every refresh.
       const {
         data: { session },
@@ -180,7 +180,7 @@ export function ProfileProvider({
   }, []);
 
   useEffect(() => {
-    const supabase = supabaseRef.current;
+    const supabase = createClient();
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {

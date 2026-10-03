@@ -19,14 +19,13 @@ export const TESTING_FIELD_SUPERVISOR_ROLE = 'field_supervisor';
 export const SUPERVISOR_PAYOUT_BPS = 200;
 
 const SUPERVISOR_PROFILE_ROLES = new Set(['field_supervisor', 'supervisor']);
-const SUPERVISOR_STAFF_POSITIONS = new Set(['field_supervisor', 'admin_staff', 'supervisor']);
-
 export function isActiveTestingSupervisor(profile: {
   role?: string | null;
   is_verified?: boolean | null;
   staff_position?: string | null;
 } | null | undefined): boolean {
   if (!profile?.is_verified) return false;
-  if (profile.role && SUPERVISOR_PROFILE_ROLES.has(profile.role)) return true;
-  return !!profile.staff_position && SUPERVISOR_STAFF_POSITIONS.has(profile.staff_position);
+  // The profile ROLE alone decides. A staff_position on an owner / worker account
+  // must never open the supervisor portal (strict role separation).
+  return !!profile.role && SUPERVISOR_PROFILE_ROLES.has(profile.role);
 }

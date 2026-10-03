@@ -1,58 +1,57 @@
 'use client';
 
-import { createClient } from '@/lib/supabase/client';
-import {
-  getDashboardPath,
-  needsServiceProviderLookup,
-  roleFromUserMetadata,
-} from '@/lib/auth/roles';
+import { createClient as createIsolatedClient } from '@supabase/supabase-js';
+import { createClient, setActivePortalHint } from '@/lib/supabase/client';
+import { getDashboardPath } from '@/lib/auth/roles';
+import { portalForRole } from '@/lib/auth/portal';
+import { resolveAccountRole, STAFF_USE_PORTAL_MESSAGE } from '@/lib/auth/resolveAccountRole';
 
+/**
+ * Customer sign-in (Home Owner / Mistri-Worker).
+ *
+ * The password is verified with a throw-away, non-persisting client first, so a
+ * wrong-role login (e.g. a supervisor email on /login) never writes or replaces
+ * any browser session. Only after the role is known is the session stored — in
+ * that role's own cookie namespace, leaving every other portal untouched.
+ */
 export async function clientSignIn(
   email: string,
   password: string,
 ): Promise<{ error: string | null; redirectPath: string }> {
-  const supabase = createClient();
+  const probe = createIsolatedClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } },
+  );
 
-  const { data, error } = await supabase.auth.signInWithPassword({
+  const { data, error } = await probe.auth.signInWithPassword({
     email: email.trim(),
     password,
   });
 
-  if (error) {
-    return { error: error.message, redirectPath: '/dashboard' };
+  if (error || !data.session || !data.user) {
+    return { error: error?.message ?? 'Sign in failed.', redirectPath: '/dashboard' };
   }
 
-  // Database role is authoritative; JWT metadata can be stale.
-  const { data: dbProfile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', data.user.id)
-    .maybeSingle();
+  const role = await resolveAccountRole(probe, data.user);
+  const portal = portalForRole(role);
 
-  if (dbProfile?.role) {
-    return { error: null, redirectPath: getDashboardPath(dbProfile.role) };
+  if (portal === 'admin') {
+    return { error: STAFF_USE_PORTAL_MESSAGE, redirectPath: '/admin/login' };
   }
 
-  const meta = (data.user.user_metadata ?? {}) as Record<string, unknown>;
-  const metaRole = roleFromUserMetadata(meta);
-
-  if (metaRole && !needsServiceProviderLookup(metaRole)) {
-    return { error: null, redirectPath: getDashboardPath(metaRole) };
+  // Unknown role (no profile yet): default the namespace to 'owner' but never guess a dashboard.
+  const targetPortal = portal ?? 'owner';
+  const supabase = createClient(targetPortal);
+  const { error: sessionError } = await supabase.auth.setSession({
+    access_token: data.session.access_token,
+    refresh_token: data.session.refresh_token,
+  });
+  if (sessionError) {
+    return { error: sessionError.message, redirectPath: '/dashboard' };
   }
 
-  const { data: provider } = await supabase
-    .from('service_providers')
-    .select('id')
-    .eq('id', data.user.id)
-    .maybeSingle();
+  setActivePortalHint(targetPortal);
 
-  if (provider) {
-    return { error: null, redirectPath: getDashboardPath('service_provider') };
-  }
-
-  if (metaRole) {
-    return { error: null, redirectPath: getDashboardPath(metaRole) };
-  }
-
-  return { error: null, redirectPath: getDashboardPath(null) };
+  return { error: null, redirectPath: getDashboardPath(role) };
 }

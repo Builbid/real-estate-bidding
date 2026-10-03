@@ -7,6 +7,7 @@ import { getMailTransporter } from '@/lib/email/sendNotification';
 import { isOfficialAdminEmail, TESTING_FIELD_SUPERVISOR_ROLE } from '@/lib/admin/constants';
 import { validateAadhaarNumber, normalizeAadhaarNumber } from '@/lib/validation/aadhaar';
 import { stripMobileDigits } from '@/lib/validation/mobile';
+import { findExistingAccountByEmail, separateEmailMessage } from '@/lib/auth/emailRoleGuard';
 
 const STAFF_POSITIONS = new Set(['field_supervisor', 'admin_staff']);
 const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
@@ -229,11 +230,31 @@ async function sendSignupOtpEmail(email: string, otpCode: string): Promise<{ ok:
   }
 }
 
+/**
+ * One email = one role. A supervisor must register with an email that is not already a
+ * Home Owner or Mistri / Worker account. (Re-submitting for an existing supervisor
+ * account is still allowed so an interrupted signup can be completed.)
+ */
+async function supervisorEmailConflict(email: string): Promise<string | null> {
+  try {
+    const existing = await findExistingAccountByEmail(email);
+    if (existing && existing.portal !== 'admin') {
+      return separateEmailMessage(existing.portal, 'admin');
+    }
+  } catch (err) {
+    console.error('[supervisor-signup] email role check skipped:', err);
+  }
+  return null;
+}
+
 export async function sendSupervisorSignupOtpAction(
   input: SupervisorSignupDraft,
 ): Promise<{ ok?: true; error?: string; testingOtp?: string; otpProof?: string }> {
   const draft = validateDraft(input);
   if ('error' in draft) return { error: draft.error };
+
+  const conflict = await supervisorEmailConflict(draft.email);
+  if (conflict) return { error: conflict };
 
   try {
     const admin = createAdminClient();
@@ -444,6 +465,9 @@ export async function completeSupervisorSignupAction(
   if (confirmPassword !== draft.password) {
     return { error: 'Password and confirm password must match.' };
   }
+
+  const emailConflict = await supervisorEmailConflict(draft.email);
+  if (emailConflict) return { error: emailConflict };
 
   const token = String(formData.get('otp') ?? '').replace(/\s/g, '');
   const otpProof = String(formData.get('otpProof') ?? '');

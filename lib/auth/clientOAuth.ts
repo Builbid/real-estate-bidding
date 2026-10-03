@@ -1,6 +1,6 @@
 'use client';
 
-import { createClient } from '@/lib/supabase/client';
+import { createClient, resolveBrowserPortal } from '@/lib/supabase/client';
 import { getSiteOrigin } from '@/lib/auth/getSiteOrigin';
 
 interface GoogleSignInOptions {
@@ -11,10 +11,15 @@ interface GoogleSignInOptions {
 export async function signInWithGoogle(
   options: GoogleSignInOptions = {},
 ): Promise<{ error: string | null }> {
-  const supabase = createClient();
+  // Customer OAuth only: the PKCE verifier is stored in this (non-admin) namespace and
+  // the callback re-files the session under the account's real portal.
+  const resolved = resolveBrowserPortal();
+  const portal = resolved === 'admin' ? 'owner' : resolved;
+  const supabase = createClient(portal);
   const origin = getSiteOrigin();
 
   const params = new URLSearchParams();
+  params.set('portal', portal);
   if (options.nextPath?.startsWith('/')) {
     params.set('next', options.nextPath);
   }

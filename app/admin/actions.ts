@@ -5,10 +5,14 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { requireOfficialAdmin } from '@/lib/admin/auth';
 
+/**
+ * Sign out of the Supervisor / Admin portal ONLY. Uses the admin cookie namespace and
+ * local scope, so any Home Owner or Mistri session stays signed in.
+ */
 export async function adminSignOutAction() {
-  const supabase = await createClient();
-  await supabase.auth.signOut();
-  redirect('/');
+  const supabase = await createClient('admin');
+  await supabase.auth.signOut({ scope: 'local' });
+  redirect('/admin/login');
 }
 
 export async function adminToggleWorkerVerificationAction(workerId: string, nextVerified: boolean) {

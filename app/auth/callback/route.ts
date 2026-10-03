@@ -5,6 +5,14 @@ import { cookies } from 'next/headers';
 import { NextResponse, type NextRequest } from 'next/server';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { getDashboardPath } from '@/lib/auth/roles';
+import {
+  ACTIVE_PORTAL_COOKIE,
+  isPublicPortal,
+  portalCookieOptions,
+  portalForRole,
+  type Portal,
+} from '@/lib/auth/portal';
+import { resolveAccountRole } from '@/lib/auth/resolveAccountRole';
 
 function safeNextPath(next: string | null): string {
   if (next?.startsWith('/')) return next;
@@ -79,22 +87,30 @@ export async function GET(request: NextRequest) {
 
   const cookieStore = await cookies();
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            cookieStore.set(name, value, options),
-          );
+  // The PKCE verifier lives in the namespace the sign-in started in.
+  const startParam = searchParams.get('portal');
+  const startPortal: Portal = isPublicPortal(startParam) ? startParam : 'owner';
+
+  const clientFor = (portal: Portal) =>
+    createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookieOptions: portalCookieOptions(portal),
+        cookies: {
+          getAll() {
+            return cookieStore.getAll();
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options),
+            );
+          },
         },
       },
-    },
-  );
+    );
+
+  let supabase = clientFor(startPortal);
 
   const { error } = await supabase.auth.exchangeCodeForSession(code);
 
@@ -106,6 +122,34 @@ export async function GET(request: NextRequest) {
 
   if (user) {
     await applyOAuthRoleHint(supabase, user.id, roleHint);
+
+    // Strict separation: file the session under the account's OWN portal.
+    const role = await resolveAccountRole(supabase, user);
+    const accountPortal = portalForRole(role);
+
+    if (accountPortal === 'admin') {
+      // Staff must use the Supervisor Portal; never leave a customer session behind.
+      await supabase.auth.signOut({ scope: 'local' });
+      return NextResponse.redirect(`${origin}/login?error=use_supervisor_portal`);
+    }
+
+    const finalPortal: 'owner' | 'worker' = accountPortal ?? startPortal;
+    if (finalPortal !== startPortal) {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        await supabase.auth.signOut({ scope: 'local' });
+        supabase = clientFor(finalPortal);
+        await supabase.auth.setSession({
+          access_token: session.access_token,
+          refresh_token: session.refresh_token,
+        });
+      }
+    }
+    cookieStore.set(ACTIVE_PORTAL_COOKIE, finalPortal, {
+      path: '/',
+      maxAge: 60 * 60 * 24 * 365,
+      sameSite: 'lax',
+    });
 
     const fullName =
       (user.user_metadata?.full_name as string | undefined) ??

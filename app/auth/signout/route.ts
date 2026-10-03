@@ -2,9 +2,15 @@ export const dynamic = 'force-dynamic';
 
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse, type NextRequest } from 'next/server';
+import { isPortal, type Portal } from '@/lib/auth/portal';
 
-async function signOutWithTimeout(): Promise<void> {
-  const supabase = await createClient();
+function portalFromRequest(value: string | null): Portal | undefined {
+  return isPortal(value) ? value : undefined;
+}
+
+async function signOutWithTimeout(portal?: Portal): Promise<void> {
+  // scope: 'local' + an explicit portal => only that portal's session is cleared.
+  const supabase = await createClient(portal);
   await Promise.race([
     supabase.auth.signOut({ scope: 'local' }),
     new Promise<never>((_, reject) => {
@@ -29,7 +35,7 @@ export async function GET(request: NextRequest) {
   const redirectUrl = safeRedirectUrl(request, request.nextUrl.searchParams.get('next'));
 
   try {
-    await signOutWithTimeout();
+    await signOutWithTimeout(portalFromRequest(request.nextUrl.searchParams.get('portal')));
   } catch (err) {
     console.error('[auth/signout] GET signOut failed:', err);
   }
@@ -37,9 +43,9 @@ export async function GET(request: NextRequest) {
   return NextResponse.redirect(redirectUrl);
 }
 
-export async function POST() {
+export async function POST(request: NextRequest) {
   try {
-    await signOutWithTimeout();
+    await signOutWithTimeout(portalFromRequest(request.nextUrl.searchParams.get('portal')));
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error('[auth/signout] POST signOut failed:', err);

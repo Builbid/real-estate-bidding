@@ -4,6 +4,8 @@ import { createHash, randomInt } from 'crypto';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { portalForRole } from '@/lib/auth/portal';
+import { separateEmailMessage } from '@/lib/auth/emailRoleGuard';
 import { getMailTransporter } from '@/lib/email/sendNotification';
 import {
   ADMIN_UNAUTHORIZED_MESSAGE,
@@ -230,7 +232,8 @@ export async function verifyOfficialAdminOtpAction(tokenRaw: string): Promise<{
       return { error: linkError?.message ?? 'Could not create admin session.' };
     }
 
-    const supabase = await createClient();
+    // Official admin session lives only in the admin cookie namespace.
+    const supabase = await createClient('admin');
     const { error: sessionError } = await supabase.auth.verifyOtp({
       type: 'magiclink',
       token_hash: hashed,
@@ -283,27 +286,39 @@ export async function submitSupervisorPortalLoginAction(
     return { error: 'Enter your password.' };
   }
 
-  const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({
+  // Verify with a throw-away, non-persisting client so a wrong-role login (e.g. an Owner
+  // email) can never write, replace, or later sign out any browser session.
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !anonKey) {
+    return { error: 'Sign-in is not configured.' };
+  }
+  const probe = createSupabaseClient(url, anonKey, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+  });
+
+  const { data: signedIn, error } = await probe.auth.signInWithPassword({
     email: trimmed,
     password,
   });
-  if (error) {
+  if (error || !signedIn.session || !signedIn.user) {
     return { error: 'Incorrect email or password.' };
   }
+  const user = signedIn.user;
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user?.id) {
-    return { error: 'Incorrect email or password.' };
-  }
-
-  const { data: profile } = await supabase
+  const { data: profile } = await probe
     .from('profiles')
     .select('role, is_verified, staff_position')
     .eq('id', user.id)
     .maybeSingle();
+
+  // One email = one role: an Owner / Mistri account can never be used as a supervisor.
+  const existingPortal = portalForRole(profile?.role as string | undefined);
+  if (existingPortal && existingPortal !== 'admin') {
+    return {
+      error: separateEmailMessage(existingPortal, 'admin'),
+    };
+  }
 
   let supervisorLinked = isActiveTestingSupervisor(profile);
   if (!supervisorLinked) {
@@ -335,8 +350,17 @@ export async function submitSupervisorPortalLoginAction(
   }
 
   if (!supervisorLinked) {
-    await supabase.auth.signOut();
     return { error: 'This account does not have an active supervisor profile.' };
+  }
+
+  // Only now is a session stored — in the Supervisor namespace, nowhere else.
+  const supabase = await createClient('admin');
+  const { error: sessionError } = await supabase.auth.setSession({
+    access_token: signedIn.session.access_token,
+    refresh_token: signedIn.session.refresh_token,
+  });
+  if (sessionError) {
+    return { error: 'Could not start your supervisor session. Please try again.' };
   }
 
   return { ok: true };
