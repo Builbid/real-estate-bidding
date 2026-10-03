@@ -13,6 +13,7 @@ import {
   type Portal,
 } from '@/lib/auth/portal';
 import { resolveAccountRole } from '@/lib/auth/resolveAccountRole';
+import { isOfficialAdminEmail } from '@/lib/admin/constants';
 
 function safeNextPath(next: string | null): string {
   if (next?.startsWith('/')) return next;
@@ -87,9 +88,17 @@ export async function GET(request: NextRequest) {
 
   const cookieStore = await cookies();
 
+  // Supervisor password reset: the only flow allowed to land a session in the admin namespace here.
+  const isAdminReset =
+    searchParams.get('portal') === 'admin' && next.startsWith('/admin/reset-password');
+
   // The PKCE verifier lives in the namespace the sign-in started in.
   const startParam = searchParams.get('portal');
-  const startPortal: Portal = isPublicPortal(startParam) ? startParam : 'owner';
+  const startPortal: Portal = isAdminReset
+    ? 'admin'
+    : isPublicPortal(startParam)
+      ? startParam
+      : 'owner';
 
   const clientFor = (portal: Portal) =>
     createServerClient(
@@ -120,6 +129,17 @@ export async function GET(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser();
 
+  if (isAdminReset) {
+    // Only genuine supervisor accounts may hold a recovery session in the admin namespace;
+    // the official admin (email-OTP protected) and customers are turned away.
+    const role = user ? await resolveAccountRole(supabase, user) : null;
+    if (!user || isOfficialAdminEmail(user.email) || portalForRole(role) !== 'admin') {
+      await supabase.auth.signOut({ scope: 'local' });
+      return NextResponse.redirect(`${origin}/admin/login?error=reset_invalid`);
+    }
+    return NextResponse.redirect(`${origin}${next}`);
+  }
+
   if (user) {
     await applyOAuthRoleHint(supabase, user.id, roleHint);
 
@@ -133,7 +153,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(`${origin}/login?error=use_supervisor_portal`);
     }
 
-    const finalPortal: 'owner' | 'worker' = accountPortal ?? startPortal;
+    const finalPortal: 'owner' | 'worker' =
+      accountPortal ?? (isPublicPortal(startPortal) ? startPortal : 'owner');
     if (finalPortal !== startPortal) {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {

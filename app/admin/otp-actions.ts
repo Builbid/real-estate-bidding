@@ -5,7 +5,8 @@ import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { portalForRole } from '@/lib/auth/portal';
-import { separateEmailMessage } from '@/lib/auth/emailRoleGuard';
+import { findExistingAccountByEmail, separateEmailMessage } from '@/lib/auth/emailRoleGuard';
+import { headers } from 'next/headers';
 import { getMailTransporter } from '@/lib/email/sendNotification';
 import {
   ADMIN_UNAUTHORIZED_MESSAGE,
@@ -361,6 +362,55 @@ export async function submitSupervisorPortalLoginAction(
   });
   if (sessionError) {
     return { error: 'Could not start your supervisor session. Please try again.' };
+  }
+
+  return { ok: true };
+}
+
+/**
+ * Send a Supabase password-reset email to a SUPERVISOR account.
+ *
+ * - The link returns to /auth/callback?portal=admin and lands on /admin/reset-password,
+ *   keeping the recovery session in the Supervisor cookie namespace only.
+ * - The official admin email is excluded: its login is protected by an email OTP and a
+ *   recovery session would bypass that second step.
+ * - The response never reveals whether the email has an account.
+ */
+export async function requestSupervisorPasswordResetAction(
+  rawEmail: string,
+): Promise<{ ok?: true; error?: string }> {
+  const email = rawEmail.trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return { error: 'Enter a valid email address.' };
+  }
+  if (isOfficialAdminEmail(email)) {
+    return {
+      error:
+        'The official admin password cannot be reset by email. Contact the BuilBid platform owner.',
+    };
+  }
+
+  // Only send for supervisor accounts; Owner / Mistri emails use the regular /forgot-password.
+  try {
+    const existing = await findExistingAccountByEmail(email);
+    if (!existing || existing.portal !== 'admin') {
+      return { ok: true };
+    }
+  } catch (err) {
+    console.error('[admin reset] account lookup skipped:', err);
+  }
+
+  const headerStore = await headers();
+  const origin =
+    headerStore.get('origin') ?? process.env.NEXT_PUBLIC_SITE_URL ?? 'https://builbid.in';
+
+  const supabase = await createClient('admin');
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${origin}/auth/callback?portal=admin&next=${encodeURIComponent('/admin/reset-password')}`,
+  });
+  if (error) {
+    console.error('[admin reset] resetPasswordForEmail failed:', error.message);
+    return { error: 'Could not send the reset email right now. Please try again shortly.' };
   }
 
   return { ok: true };

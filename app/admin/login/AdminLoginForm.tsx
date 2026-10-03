@@ -3,7 +3,7 @@
 import { useState, type FormEvent, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { AlertCircle, ArrowRight, KeyRound, Lock, Mail } from 'lucide-react';
+import { AlertCircle, ArrowRight, Eye, EyeOff, KeyRound, Lock, Mail } from 'lucide-react';
 import {
   submitOfficialAdminPasswordAction,
   submitSupervisorPortalLoginAction,
@@ -29,15 +29,18 @@ function FieldIcon({ children }: { children: ReactNode }) {
 
 export function AdminLoginForm({
   registrationNotice = null,
+  initialError = null,
 }: {
   registrationNotice?: string | null;
+  initialError?: string | null;
 }) {
   const router = useRouter();
   const [step, setStep] = useState<Step>('password');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [otp, setOtp] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(initialError);
   const [pending, setPending] = useState(false);
   const [info, setInfo] = useState<string | null>(null);
 
@@ -160,16 +163,35 @@ export function AdminLoginForm({
               </FieldIcon>
               <Input
                 id="admin-password"
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 autoComplete="current-password"
                 placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="pl-10"
+                className="pl-10 pr-10"
                 compact
                 required
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword((visible) => !visible)}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                aria-pressed={showPassword}
+                className="absolute right-0 top-0 z-10 flex h-11 w-10 items-center justify-center text-slate-400 transition-colors hover:text-slate-700 focus-visible:text-slate-700 focus-visible:outline-none dark:hover:text-slate-200 dark:focus-visible:text-slate-200"
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4" aria-hidden />
+                ) : (
+                  <Eye className="h-4 w-4" aria-hidden />
+                )}
+              </button>
             </div>
+            <Link
+              href={email.trim() ? `/admin/forgot-password?email=${encodeURIComponent(email.trim())}` : '/admin/forgot-password'}
+              className="self-end text-xs font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+            >
+              Forgot Password?
+            </Link>
           </div>
           <Button type="submit" className="mt-2 w-full" disabled={pending}>
             {pending ? 'Checking password…' : 'Submit Password'}

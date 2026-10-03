@@ -128,7 +128,8 @@ export async function proxy(request: NextRequest) {
 
   // ── Supervisor / Admin portal ────────────────────────────────────────────
   if (pathPortal === 'admin') {
-    if (pathname === '/admin/signup') return response
+    // Public staff pages: registration and requesting a password-reset email.
+    if (pathname === '/admin/signup' || pathname === '/admin/forgot-password') return response
 
     const isLogin = pathname === '/admin/login'
     let allowed = false
