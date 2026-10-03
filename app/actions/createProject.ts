@@ -1,5 +1,6 @@
 'use server'
 
+import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import type { BuildingType, ConstructionTypesMap } from '@/lib/buildingConfig'
 import { deriveLegacyProjectFields, ASSAM_BUILDING_TYPE, RCC_BUILDING_TYPES } from '@/lib/buildingConfig'
@@ -124,19 +125,15 @@ export async function createProjectAction(
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   if (!user || authError) return { error: 'Not authenticated' }
 
+  // Database role is authoritative; JWT metadata can be stale and is only a fallback.
   const metaRole = roleFromUserMetadata(user.user_metadata as Record<string, unknown>)
-  if (metaRole && !canPostProjects(metaRole)) {
+  const { data: posterProfile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .maybeSingle()
+  if (!canPostProjects(posterProfile?.role ?? metaRole)) {
     return { error: CONTRACTOR_CANNOT_POST_PROJECT_MESSAGE }
-  }
-  if (!metaRole) {
-    const { data: posterProfile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .maybeSingle()
-    if (!canPostProjects(posterProfile?.role)) {
-      return { error: CONTRACTOR_CANNOT_POST_PROJECT_MESSAGE }
-    }
   }
 
   const pincodeRaw = input.pincode?.trim() ?? ''
@@ -430,6 +427,9 @@ export async function createProjectAction(
   if (error || !project) return { error: error?.message ?? 'Failed to create project.' }
 
   revalidateHomePublic()
+  // Drop stale cached owner screens so the redirect after upload renders fresh data.
+  revalidatePath('/dashboard/owner')
+  revalidatePath(`/dashboard/owner/project/${project.id}`)
 
   try {
     await sendNewProjectAnnouncementEmails({

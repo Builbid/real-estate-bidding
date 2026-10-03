@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { getPostSubmitPath } from '@/lib/dashboard/paths';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, ArrowLeft, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -268,7 +269,9 @@ export function DrawingDesignProjectWizard() {
       revealInvalid();
       return;
     }
-    router.push('/dashboard/owner');
+    // Go straight to the new project's overview (or home) — never the generic dashboard.
+    router.replace(getPostSubmitPath(result.projectId));
+    router.refresh();
   }
 
   const districtSelection = parseAssamDistrictSelection(form.location);

@@ -13,3 +13,11 @@ export function isNewProjectHref(href: string, origin?: string): boolean {
     return false;
   }
 }
+
+/** Where an owner lands right after submitting a project: its overview page, or home as a fallback. */
+export function getPostSubmitPath(projectId?: string | null): string {
+  return projectId ? `/dashboard/owner/project/${projectId}` : '/';
+}
+
+/** Delay before the success screen auto-redirects (ms). */
+export const POST_SUBMIT_REDIRECT_MS = 2500;

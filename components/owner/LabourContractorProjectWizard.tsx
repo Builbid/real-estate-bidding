@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { getPostSubmitPath, POST_SUBMIT_REDIRECT_MS } from '@/lib/dashboard/paths';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, ArrowLeft, Check, CheckCircle2, AlertCircle, Lock } from 'lucide-react';
 import { useProfile } from '@/lib/hooks/useProfile';
@@ -678,6 +679,17 @@ export function LabourContractorProjectWizard() {
   const [step2FieldErrors, setStep2FieldErrors] = useState<Record<string, string>>({});
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [submittedTitle, setSubmittedTitle] = useState('');
+  const [submittedProjectId, setSubmittedProjectId] = useState<string | null>(null);
+
+  // After a successful upload, automatically move on to the project overview (or home).
+  useEffect(() => {
+    if (step !== 4) return;
+    const timer = window.setTimeout(() => {
+      router.replace(getPostSubmitPath(submittedProjectId));
+      router.refresh();
+    }, POST_SUBMIT_REDIRECT_MS);
+    return () => window.clearTimeout(timer);
+  }, [step, submittedProjectId, router]);
   const houseTypeScrollYRef = useRef<number | null>(null);
 
   useLayoutEffect(() => {
@@ -1274,6 +1286,7 @@ export function LabourContractorProjectWizard() {
     }
 
     setSubmittedTitle(autoTitle);
+    setSubmittedProjectId(result.projectId ?? null);
     setStep(4);
     setLoading(false);
   }
@@ -2098,8 +2111,8 @@ export function LabourContractorProjectWizard() {
                 >
                   Post Another
                 </Button>
-                <Button className="flex-1" onClick={() => router.push('/dashboard/owner')}>
-                  View Dashboard <ArrowRight className="w-4 h-4" />
+                <Button className="flex-1" onClick={() => router.replace(getPostSubmitPath(submittedProjectId))}>
+                  View Project <ArrowRight className="w-4 h-4" />
                 </Button>
               </div>
             </div>

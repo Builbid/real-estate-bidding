@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 import { getAuthUser } from '@/lib/supabase/getUser';
 import { processAuctionTransitions } from '@/app/actions/auction';
 import { redirect } from 'next/navigation';
+import { getDashboardPath } from '@/lib/auth/roles';
 import Link from 'next/link';
 import { Plus, Building } from 'lucide-react';
 import { OwnerLiveProjectCard } from './OwnerLiveProjectCard';
@@ -78,26 +79,46 @@ async function enrichLiveProject(
 }
 
 async function getData() {
-  await processAuctionTransitions();
-
+  // getAuthUser() redirects to /login when there is no session.
   const { supabase, userId, role, email, fullName } = await getAuthUser();
 
-  const { data: dbProfile } = await supabase.from('profiles').select('*').eq('id', userId).single();
+  // Housekeeping must never blank the dashboard if it fails.
+  try {
+    await processAuctionTransitions();
+  } catch (err) {
+    console.error('[owner dashboard] processAuctionTransitions failed (non-fatal):', err);
+  }
+
+  const { data: dbProfile } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', userId)
+    .maybeSingle();
   const profile = dbProfile ?? {
     id: userId, email, full_name: fullName, role,
     mobile: null, physical_address: null, pincode: null,
     created_at: '', updated_at: '',
   };
-  if (profile.role !== 'owner') redirect('/dashboard');
+  // Send other roles to their own dashboard (never back to a route that bounces here).
+  if (profile.role !== 'owner') redirect(getDashboardPath(profile.role));
 
-  await supabase.rpc('expire_active_projects');
+  try {
+    await supabase.rpc('expire_active_projects');
+  } catch (err) {
+    console.error('[owner dashboard] expire_active_projects failed (non-fatal):', err);
+  }
 
-  const { data: projects } = await supabase
+  const { data: projects, error: projectsError } = await supabase
     .from('projects')
     .select('*, bids(count)')
     .eq('owner_id', userId)
     .neq('status', 'cancelled')
     .order('created_at', { ascending: false });
+
+  if (projectsError) {
+    // Surface a real error (handled by error.tsx) instead of rendering an empty screen.
+    throw new Error(`Could not load your projects: ${projectsError.message}`);
+  }
 
   const allProjects = (projects ?? []).filter(
     (p) => p.status !== 'cancelled',

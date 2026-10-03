@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { getPostSubmitPath, POST_SUBMIT_REDIRECT_MS } from '@/lib/dashboard/paths';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, ArrowLeft, CheckCircle2, AlertCircle, Info } from 'lucide-react';
 import { useProfile } from '@/lib/hooks/useProfile';
@@ -102,6 +103,16 @@ export function ConstructionFirmProjectWizard() {
   }>({});
   const [biddingEndsAt, setBiddingEndsAt] = useState<string | null>(null);
   const [projectId, setProjectId] = useState<string | null>(null);
+
+  // After a successful upload, automatically move on to the project overview (or home).
+  useEffect(() => {
+    if (step !== 4) return;
+    const timer = window.setTimeout(() => {
+      router.replace(getPostSubmitPath(projectId));
+      router.refresh();
+    }, POST_SUBMIT_REDIRECT_MS);
+    return () => window.clearTimeout(timer);
+  }, [step, projectId, router]);
 
   function update<K extends keyof FirmFormState>(key: K, value: FirmFormState[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -553,7 +564,7 @@ export function ConstructionFirmProjectWizard() {
               )}
               <Button
                 className={cn('w-full', FORM_CONTINUE_BTN)}
-                onClick={() => router.push(projectId ? `/dashboard/owner/project/${projectId}` : '/dashboard/owner')}
+                onClick={() => router.replace(getPostSubmitPath(projectId))}
               >
                 View My Project <ArrowRight className="w-4 h-4" />
               </Button>
