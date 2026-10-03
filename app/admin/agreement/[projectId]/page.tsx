@@ -7,6 +7,7 @@ import { loadAgreementDraft } from '@/lib/admin/agreementDraft';
 import { buildThumbRuleGuide } from '@/lib/admin/agreementPackage';
 import { soilLabel } from '@/lib/admin/siteVisit';
 import { projectTerritoryError } from '@/lib/admin/territory';
+import { PROTOTYPE_AUTO_AGREEMENT } from '@/lib/admin/prototype';
 import { AgreementWorkspace, type AgreementWorkspaceProps } from './AgreementWorkspace';
 
 export const dynamic = 'force-dynamic';
@@ -57,7 +58,7 @@ export default async function AdminAgreementPage({
   }
 
   // Supervisors must complete the Site Visit Checklist before the agreement exists.
-  if (!draft.visit && !isOfficialAdminEmail(session.email)) {
+  if (!draft.visit && !isOfficialAdminEmail(session.email) && !PROTOTYPE_AUTO_AGREEMENT) {
     redirect('/admin/dashboard?tab=projects');
   }
 
@@ -94,7 +95,8 @@ export default async function AdminAgreementPage({
           ...(visit.siteNotes ? [{ label: 'Field notes', value: visit.siteNotes }] : []),
         ]
       : [],
-    valuesLocked: Boolean(visit) && !isOfficialAdminEmail(session.email),
+    valuesLocked:
+      (Boolean(visit) || PROTOTYPE_AUTO_AGREEMENT) && !isOfficialAdminEmail(session.email),
     defaults: draft.defaults,
     contract: contract
       ? {

@@ -6,7 +6,11 @@ import {
   loadSupervisorAccount,
   type AdminTab,
 } from '@/lib/admin/data';
-import { BYPASS_PINCODE_RESTRICTION, loadSupervisorTerritory } from '@/lib/admin/territory';
+import {
+  BYPASS_PINCODE_RESTRICTION,
+  loadSupervisorTerritory,
+  worksInTerritory,
+} from '@/lib/admin/territory';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { AdminDashboardClient } from './AdminDashboardClient';
 
@@ -35,7 +39,9 @@ export default async function AdminDashboardPage({
     ? await loadSupervisorAccount(
         session.userId,
         session.email,
-        data.completedWorks,
+        // Visibility is open for testing, but the supervisor's own commission estimate still
+        // only counts completed works inside their assigned pin codes.
+        worksInTerritory(data.completedWorks, assignedPincodes ?? []),
         assignedPincodes?.length ?? 0,
       )
     : null;

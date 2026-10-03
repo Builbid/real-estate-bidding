@@ -63,8 +63,8 @@ import {
 } from '@/lib/utils';
 import { CreateContractAgreementModal } from '@/components/admin/CreateContractAgreementModal';
 import { SiteVisitChecklistModal } from '@/components/admin/SiteVisitChecklistModal';
-import { SupervisorProfileModal } from '@/components/admin/SupervisorProfileModal';
-import { goToAgreementAction } from '@/app/admin/site-visit-actions';
+import { acceptProjectAction, goToAgreementAction } from '@/app/admin/site-visit-actions';
+import { PROTOTYPE_AUTO_AGREEMENT } from '@/lib/admin/prototype';
 import {
   settleSupervisorMonthAction,
   updateSupervisorPincodesAction,
@@ -463,7 +463,7 @@ function WorkflowActions({
         <ClipboardCheck className="h-3 w-3" />
         {workflow.siteVisitDone ? 'Edit Site Checklist' : 'Site Visit Checklist'}
       </button>
-      {workflow.siteVisitDone ? (
+      {workflow.siteVisitDone || PROTOTYPE_AUTO_AGREEMENT ? (
         <button
           type="button"
           disabled={busy}
@@ -532,7 +532,6 @@ export function AdminDashboardClient({
     clientName: string;
   } | null>(null);
   const router = useRouter();
-  const [profileOpen, setProfileOpen] = useState(false);
   const [checklistProject, setChecklistProject] = useState<{
     id: string;
     publicId: string;
@@ -715,6 +714,7 @@ export function AdminDashboardClient({
   function runAction(
     action: () => Promise<{ error?: string; ok?: boolean } | void>,
     successMessage = 'Updated successfully.',
+    onSuccess?: () => void,
   ) {
     startTransition(async () => {
       const result = await action();
@@ -722,7 +722,30 @@ export function AdminDashboardClient({
         toast.error(result.error);
       } else {
         toast.success(successMessage);
+        onSuccess?.();
       }
+    });
+  }
+
+  /** Closing a project converts it into an awarded agreement: jump straight to that tab. */
+  function closeAuction(projectId: string) {
+    runAction(
+      () => adminCloseAuctionAction(projectId),
+      PROTOTYPE_AUTO_AGREEMENT ? 'Auction closed. Converted to an awarded agreement.' : 'Auction closed.',
+      PROTOTYPE_AUTO_AGREEMENT ? () => switchTab('agreements') : undefined,
+    );
+  }
+
+  /** "Receive / Accept Project": awards the lowest bidder if needed, then opens the agreement letter. */
+  function acceptProject(projectId: string) {
+    startTransition(async () => {
+      const result = await acceptProjectAction(projectId);
+      if (result.error || !result.href) {
+        toast.error(result.error ?? 'Could not accept the project.');
+        return;
+      }
+      toast.success('Project accepted. Opening the agreement letter.');
+      router.push(result.href);
     });
   }
 
@@ -787,11 +810,10 @@ export function AdminDashboardClient({
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900 sm:px-6">
           {supervisorPortal && account ? (
-            // Only the circle avatar and the name: tap either to open the full profile modal.
-            <button
-              type="button"
-              onClick={() => setProfileOpen(true)}
-              aria-label="Open supervisor profile and accounts details"
+            // Only the circle avatar and the name: tap either to open the full-page profile & accounts view.
+            <Link
+              href="/admin/dashboard/accounts"
+              aria-label="Open supervisor profile and accounts"
               className="group flex min-w-0 items-center gap-3 rounded-full py-1 pr-4 text-left transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 dark:hover:bg-slate-800"
             >
               <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-800 ring-2 ring-white transition group-hover:ring-emerald-200 dark:bg-emerald-950 dark:text-emerald-200 dark:ring-slate-900">
@@ -800,7 +822,7 @@ export function AdminDashboardClient({
               <span className="min-w-0 truncate text-base font-semibold text-slate-900 dark:text-white">
                 {account.name}
               </span>
-            </button>
+            </Link>
           ) : (
             <div className="flex min-w-0 items-center gap-3">
               <Shield className="h-5 w-5 text-emerald-600" />
@@ -1108,12 +1130,7 @@ export function AdminDashboardClient({
                                 type="button"
                                 disabled={pending}
                                 title="Close auction"
-                                onClick={() =>
-                                  runAction(
-                                    () => adminCloseAuctionAction(p.id),
-                                    'Auction closed.',
-                                  )
-                                }
+                                onClick={() => closeAuction(p.id)}
                                 className="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium text-slate-600 transition hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50"
                               >
                                 <Lock className="h-3 w-3" />
@@ -1165,6 +1182,21 @@ export function AdminDashboardClient({
                                     PDF
                                   </a>
                                 </>
+                              ) : PROTOTYPE_AUTO_AGREEMENT &&
+                                supervisorPortal &&
+                                p.bidCount > 0 &&
+                                p.status !== 'cancelled' &&
+                                (p.status !== 'active_24h' ||
+                                  new Date(p.biddingEndsAt).getTime() <= Date.now()) ? (
+                                <button
+                                  type="button"
+                                  disabled={pending}
+                                  onClick={() => switchTab('agreements')}
+                                  className="inline-flex items-center gap-1 rounded-md border border-emerald-300 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-800 transition hover:bg-emerald-100"
+                                >
+                                  <FileText className="h-3 w-3" />
+                                  View in Agreements
+                                </button>
                               ) : null}
                             </div>
                           </td>
@@ -1450,7 +1482,9 @@ export function AdminDashboardClient({
                           colSpan={6}
                           className="px-4 py-10 text-center text-sm text-slate-500"
                         >
-                          No awarded agreements yet.
+                          {PROTOTYPE_AUTO_AGREEMENT
+                            ? 'No awarded agreements yet. Close a project that has bids and it appears here automatically.'
+                            : 'No awarded agreements yet.'}
                         </td>
                       </tr>
                     ) : (
@@ -1463,6 +1497,9 @@ export function AdminDashboardClient({
                             <p className="mt-0.5 text-xs text-slate-400">
                               {a.district} · ID: {displayProjectId(a.publicId, a.projectId)}
                             </p>
+                            <span className="mt-1 inline-flex items-center rounded-md border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[11px] font-semibold text-indigo-700">
+                              {a.provisional ? 'Awarded · lowest bidder (auto)' : 'Awarded'}
+                            </span>
                           </td>
                           <td className={cn(TD, 'text-sm text-slate-700')}>
                             {a.clientName}
@@ -1485,7 +1522,36 @@ export function AdminDashboardClient({
                           </td>
                           <td className={TD}>
                             <div className="flex flex-wrap items-center gap-1">
-                              {supervisorPortal ? (
+                              {supervisorPortal && PROTOTYPE_AUTO_AGREEMENT && !a.workflow.approved ? (
+                                <>
+                                  <button
+                                    type="button"
+                                    disabled={pending}
+                                    onClick={() => acceptProject(a.projectId)}
+                                    className="inline-flex items-center gap-1.5 rounded-md bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-md ring-2 ring-emerald-200 transition hover:bg-emerald-700 disabled:opacity-60 dark:ring-emerald-900"
+                                  >
+                                    <BadgeCheck className="h-3.5 w-3.5" />
+                                    Receive / Accept Project
+                                  </button>
+                                  {!a.provisional ? (
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        openChecklist({
+                                          id: a.projectId,
+                                          publicId: a.publicId,
+                                          title: a.projectTitle,
+                                          clientName: a.clientName,
+                                        })
+                                      }
+                                      className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 shadow-xs transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200"
+                                    >
+                                      <ClipboardCheck className="h-3 w-3" />
+                                      {a.workflow.siteVisitDone ? 'Edit Site Checklist' : 'Site Visit Checklist'}
+                                    </button>
+                                  ) : null}
+                                </>
+                              ) : supervisorPortal ? (
                                 <WorkflowActions
                                   projectId={a.projectId}
                                   workflow={a.workflow}
@@ -1549,9 +1615,6 @@ export function AdminDashboardClient({
           ) : null}
         </main>
       </div>
-      {profileOpen && account ? (
-        <SupervisorProfileModal open onOpenChange={setProfileOpen} account={account} />
-      ) : null}
       {checklistProject ? (
         <SiteVisitChecklistModal
           key={checklistProject.id}

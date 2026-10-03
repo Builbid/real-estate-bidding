@@ -31,6 +31,14 @@ export function inTerritory(
   return key.length === 6 && territory.includes(key);
 }
 
+/** Keeps only the rows whose pin code is inside the supervisor's assigned territory. */
+export function worksInTerritory<T extends { pincode: string | null }>(
+  rows: readonly T[],
+  territory: readonly string[],
+): T[] {
+  return rows.filter((row) => inTerritory(row.pincode, territory));
+}
+
 /** Pin codes assigned to a supervisor. Empty when none are assigned (or the column is not migrated). */
 export async function loadSupervisorTerritory(
   admin: SupabaseClient,

@@ -108,6 +108,9 @@ export function AgreementWorkspace(props: AgreementWorkspaceProps) {
   const [totalCost, setTotalCost] = useState(
     defaults.totalCost != null ? String(defaults.totalCost) : '',
   );
+  // Without a saved site checklist (prototype testing) the plinth area is typed here.
+  const plinthFromChecklist = defaults.plinthAreaSqft != null;
+  const [plinthArea, setPlinthArea] = useState('');
   const [clientAadhaar, setClientAadhaar] = useState('');
   const [contractorAadhaar, setContractorAadhaar] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -130,7 +133,7 @@ export function AgreementWorkspace(props: AgreementWorkspaceProps) {
         id: project.id,
         project_id: project.id,
         numeric_id: project.publicId || undefined,
-        plinthArea: String(defaults.plinthAreaSqft ?? ''),
+        plinthArea: plinthFromChecklist ? String(defaults.plinthAreaSqft) : plinthArea,
         startDate,
         completionDate,
         totalCost,
@@ -225,7 +228,7 @@ export function AgreementWorkspace(props: AgreementWorkspaceProps) {
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <h2 className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white">
             <FileText className="h-4 w-4 text-emerald-600" />
-            Agreement Contract (auto-populated)
+            Awarded Agreement Letter (auto-populated)
           </h2>
           <a
             href={`${docsBase}&kind=agreement`}
@@ -352,12 +355,23 @@ export function AgreementWorkspace(props: AgreementWorkspaceProps) {
                   />
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <Input
-                    label="Plinth Area (from site checklist)"
-                    accentLabel={false}
-                    value={defaults.plinthAreaSqft != null ? `${defaults.plinthAreaSqft} sq. ft.` : ''}
-                    readOnly
-                  />
+                  {plinthFromChecklist ? (
+                    <Input
+                      label="Plinth Area (from site checklist)"
+                      accentLabel={false}
+                      value={`${defaults.plinthAreaSqft} sq. ft.`}
+                      readOnly
+                    />
+                  ) : (
+                    <Input
+                      label="Approximate Plinth Area (sq. ft.)"
+                      accentLabel={false}
+                      inputMode="decimal"
+                      placeholder="e.g. 1200"
+                      value={plinthArea}
+                      onChange={(e) => setPlinthArea(e.target.value)}
+                    />
+                  )}
                   <Input
                     label="Total Agreed Project Cost (â‚¹)"
                     accentLabel={false}

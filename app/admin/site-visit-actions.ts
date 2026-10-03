@@ -15,6 +15,7 @@ import {
 } from '@/lib/admin/siteVisitStore';
 import { finalizeApprovedAgreement } from '@/lib/admin/agreementPackage';
 import { projectTerritoryError } from '@/lib/admin/territory';
+import { PROTOTYPE_AUTO_AGREEMENT } from '@/lib/admin/prototype';
 import { findProjectByAnyId } from '@/lib/contract/resolveProjectId';
 import type { DigitalContractRecord } from '@/lib/contract/renderDigitalContract';
 
@@ -122,7 +123,11 @@ export async function goToAgreementAction(
   const { admin, project } = resolved;
 
   const visit = await loadSiteVisit(admin, project.id);
-  if (!visit) return { error: 'Save the Site Visit Checklist before opening the agreement.' };
+  if (!visit) {
+    // Prototype testing: the agreement opens without a saved checklist.
+    if (PROTOTYPE_AUTO_AGREEMENT) return { ok: true, href: `/admin/agreement/${project.id}` };
+    return { error: 'Save the Site Visit Checklist before opening the agreement.' };
+  }
 
   const now = new Date().toISOString();
   const { error } = await admin
@@ -131,6 +136,54 @@ export async function goToAgreementAction(
     .eq('project_id', project.id);
   if (error && !isMissingWorkflowTable(error)) return { error: error.message };
 
+  return { ok: true, href: `/admin/agreement/${project.id}` };
+}
+
+/**
+ * Prototype "Receive / Accept Project": turns a closed project in the Agreements tab into an
+ * awarded agreement. If no bidder has been formally awarded yet, the lowest active bid becomes
+ * the awardee (no manual company-side step), then the agreement letter is opened.
+ */
+export async function acceptProjectAction(
+  projectRef: string,
+): Promise<{ error?: string; ok?: boolean; href?: string }> {
+  const session = await requireOfficialAdmin();
+  const admin = createAdminClient();
+  const { data: project } = await findProjectByAnyId<{
+    id: string;
+    status: string;
+    selected_builder_id: string | null;
+  }>(admin, projectRef, 'id, status, selected_builder_id');
+  if (!project) return { error: 'Project not found.' };
+  const territoryError = await projectTerritoryError(admin, session, project.id);
+  if (territoryError) return { error: territoryError };
+
+  if (!project.selected_builder_id) {
+    if (!PROTOTYPE_AUTO_AGREEMENT) {
+      return { error: 'A Mistri / contractor must be finalized before the project can be accepted.' };
+    }
+    if (project.status === 'cancelled') return { error: 'This project was cancelled.' };
+
+    const { data: bid } = await admin
+      .from('bids')
+      .select('builder_id')
+      .eq('project_id', project.id)
+      .eq('is_withdrawn', false)
+      .order('total_sum_metric', { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (!bid?.builder_id) return { error: 'This project has no active bids to award.' };
+
+    // Guarded so a concurrent owner award is never overwritten.
+    const { error } = await admin
+      .from('projects')
+      .update({ selected_builder_id: bid.builder_id, updated_at: new Date().toISOString() })
+      .eq('id', project.id)
+      .is('selected_builder_id', null);
+    if (error) return { error: error.message };
+  }
+
+  revalidatePath('/admin/dashboard');
   return { ok: true, href: `/admin/agreement/${project.id}` };
 }
 

@@ -7,6 +7,7 @@ import {
   pendingBalanceFor,
 } from '@/lib/admin/settlement';
 import { normalizePincodes } from '@/lib/admin/territory';
+import { PROTOTYPE_AUTO_AGREEMENT } from '@/lib/admin/prototype';
 import { formatBuilbidPublicId } from '@/lib/contract/mistriAgreement';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
@@ -26,6 +27,8 @@ export interface CompletedWorkRow {
   publicId: string;
   projectName: string;
   location: string;
+  /** Project pin code; used to scope the supervisor's own commission estimate. */
+  pincode: string | null;
   clientName: string;
   finalBudget: number | null;
   supervisorPayout: number;
@@ -126,6 +129,12 @@ export interface AdminAgreementRow {
   executionDate: string;
   district: string;
   workflow: ProjectWorkflowState;
+  /**
+   * Prototype auto-conversion: the project was closed but no bidder has been formally awarded
+   * yet. The lowest bidder is shown as the provisional awardee until the supervisor taps
+   * "Receive / Accept Project".
+   */
+  provisional: boolean;
 }
 
 function tradeLabel(role: string, serviceType: ServiceType | null | undefined): string {
@@ -364,17 +373,36 @@ export async function loadAdminDashboardData(
       createdAt: p.created_at,
     }));
 
+  // Prototype auto-conversion: a closed project (or one whose bidding window ended) that has
+  // bids but no formal award yet becomes an agreement, with the lowest bidder as awardee.
+  const nowMs = Date.now();
+  const lowestBidByProject = new Map<string, { builder_id: string; total_sum_metric: number }>();
+  for (const bid of bids) {
+    const current = lowestBidByProject.get(bid.project_id);
+    if (!current || Number(bid.total_sum_metric) < Number(current.total_sum_metric)) {
+      lowestBidByProject.set(bid.project_id, bid);
+    }
+  }
+  const isClosedForAutoAgreement = (p: (typeof projects)[number]) =>
+    p.status !== 'cancelled' &&
+    (p.status !== 'active_24h' || new Date(p.bidding_ends_at).getTime() <= nowMs);
+
   const agreements: AdminAgreementRow[] = projects
-    .filter((p) => !!p.selected_builder_id)
+    .filter(
+      (p) =>
+        !!p.selected_builder_id ||
+        (PROTOTYPE_AUTO_AGREEMENT &&
+          isClosedForAutoAgreement(p) &&
+          lowestBidByProject.has(p.id)),
+    )
     .map((p) => {
       const owner = profileById.get(p.owner_id);
-      const mistri = p.selected_builder_id
-        ? profileById.get(p.selected_builder_id)
-        : undefined;
-      const win = bids.find(
-        (b) => b.project_id === p.id && b.builder_id === p.selected_builder_id,
-      );
+      const provisional = !p.selected_builder_id;
+      const awardeeId = p.selected_builder_id ?? lowestBidByProject.get(p.id)?.builder_id ?? null;
+      const mistri = awardeeId ? profileById.get(awardeeId) : undefined;
+      const win = bids.find((b) => b.project_id === p.id && b.builder_id === awardeeId);
       return {
+        provisional,
         projectId: p.id,
         publicId: (p.numeric_id ?? '').trim().toUpperCase(),
         projectTitle: p.title,
@@ -414,6 +442,7 @@ export async function loadAdminDashboardData(
         publicId: row?.publicId ?? (p.numeric_id ?? '').trim().toUpperCase(),
         projectName: p.title,
         location: [p.district, p.state].filter(Boolean).join(', ') || '—',
+        pincode: p.pincode,
         clientName: row?.clientName ?? '—',
         finalBudget,
         supervisorPayout: estimateSupervisorPayout(finalBudget),
