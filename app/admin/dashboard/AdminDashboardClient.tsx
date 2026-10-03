@@ -1,9 +1,12 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useMemo, useState, useTransition } from 'react';
 import { toast, Toaster } from 'sonner';
 import {
+  ArrowRight,
+  BadgeCheck,
   Building2,
   Clock,
   Download,
@@ -38,6 +41,7 @@ import type {
   AdminTab,
   AdminWorkerRow,
   CompletedWorkRow,
+  ProjectWorkflowState,
   SupervisorAccount,
 } from '@/lib/admin/data';
 import {
@@ -57,6 +61,8 @@ import {
   STATUS_CONFIG,
 } from '@/lib/utils';
 import { CreateContractAgreementModal } from '@/components/admin/CreateContractAgreementModal';
+import { SiteVisitChecklistModal } from '@/components/admin/SiteVisitChecklistModal';
+import { goToAgreementAction } from '@/app/admin/site-visit-actions';
 
 const TH =
   'px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500';
@@ -331,6 +337,121 @@ function ColumnFilterInput({
   );
 }
 
+/**
+ * Supervisor Profile Card: identity plus the Accounts summary (received / pending / cycle)
+ * embedded in one card on the left side of the dashboard.
+ */
+function SupervisorProfileCard({ account }: { account: SupervisorAccount }) {
+  return (
+    <section
+      aria-label="Supervisor profile and accounts"
+      className="rounded-xl border border-slate-200 bg-slate-50/60 p-3 dark:border-slate-700 dark:bg-slate-800/40"
+    >
+      <div className="flex items-center gap-3">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
+          <UserRound className="h-5 w-5" aria-hidden />
+        </span>
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-slate-900 dark:text-white" title={account.email}>
+            {account.email}
+          </p>
+          <p className="truncate text-xs text-slate-500">{account.phone}</p>
+          <p className="truncate text-xs font-medium text-slate-700 dark:text-slate-300">
+            Supervisor Admin ID {account.supervisorId}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-3 border-t border-slate-200 pt-3 dark:border-slate-700">
+        <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+          Accounts
+        </p>
+        <dl className="space-y-2">
+          <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-900">
+            <dt className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+              Total Amount Received
+            </dt>
+            <dd className="mt-0.5 text-sm font-semibold text-slate-900 dark:text-white">
+              {formatMoney(account.totalReceived)}
+            </dd>
+          </div>
+          <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-900">
+            <dt className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+              Unpaid / Pending Balance
+            </dt>
+            <dd className="mt-0.5 text-sm font-semibold text-slate-900 dark:text-white">
+              {formatMoney(account.pendingBalance)}
+            </dd>
+            <p className="mt-0.5 text-[10px] text-slate-400">
+              {account.commissionRate} commission · {account.approvedAgreements} approved
+              {account.approvedAgreements === 1 ? ' agreement' : ' agreements'}
+            </p>
+          </div>
+          <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-900">
+            <dt className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+              <Wallet className="h-3 w-3" aria-hidden />
+              Payment Cycle
+            </dt>
+            <dd className="mt-0.5 text-xs font-semibold text-slate-900 dark:text-white">
+              {account.nextPaymentCycle}
+            </dd>
+          </div>
+        </dl>
+      </div>
+    </section>
+  );
+}
+
+/** Supervisor row actions: Site Visit Checklist -> Go to Agreement -> (approved) View Agreement. */
+function WorkflowActions({
+  projectId,
+  workflow,
+  busy,
+  onOpenChecklist,
+  onGoToAgreement,
+}: {
+  projectId: string;
+  workflow: ProjectWorkflowState;
+  busy: boolean;
+  onOpenChecklist: () => void;
+  onGoToAgreement: () => void;
+}) {
+  if (workflow.approved) {
+    return (
+      <Link
+        href={`/admin/agreement/${projectId}`}
+        className="inline-flex items-center gap-1 rounded-md border border-emerald-300 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-800 transition hover:bg-emerald-100"
+      >
+        <BadgeCheck className="h-3 w-3" />
+        Approved · View Agreement
+      </Link>
+    );
+  }
+  return (
+    <>
+      <button
+        type="button"
+        onClick={onOpenChecklist}
+        className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 shadow-xs transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200"
+      >
+        <ClipboardCheck className="h-3 w-3" />
+        {workflow.siteVisitDone ? 'Edit Site Checklist' : 'Site Visit Checklist'}
+      </button>
+      {workflow.siteVisitDone ? (
+        <button
+          type="button"
+          disabled={busy}
+          onClick={onGoToAgreement}
+          className="inline-flex items-center gap-1.5 rounded-md bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-md ring-2 ring-emerald-200 transition hover:bg-emerald-700 disabled:opacity-60 dark:ring-emerald-900"
+        >
+          <ArrowRight className="h-3.5 w-3.5" />
+          Go to Agreement
+        </button>
+      ) : null}
+    </>
+  );
+}
+
 const TABS: { id: AdminTab; label: string; icon: typeof LayoutDashboard }[] = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard },
   { id: 'projects', label: 'Projects', icon: Building2 },
@@ -381,6 +502,38 @@ export function AdminDashboardClient({
     title: string;
     clientName: string;
   } | null>(null);
+  const router = useRouter();
+  const [checklistProject, setChecklistProject] = useState<{
+    id: string;
+    publicId: string;
+    title: string;
+    clientName: string;
+  } | null>(null);
+
+  function openChecklist(row: {
+    id: string;
+    publicId?: string | null;
+    title?: string | null;
+    clientName?: string | null;
+  }) {
+    setChecklistProject({
+      id: row.id,
+      publicId: row.publicId ?? '',
+      title: row.title ?? '',
+      clientName: row.clientName ?? '',
+    });
+  }
+
+  function goToAgreement(projectId: string) {
+    startTransition(async () => {
+      const result = await goToAgreementAction(projectId);
+      if (result.error || !result.href) {
+        toast.error(result.error ?? 'Could not open the agreement.');
+        return;
+      }
+      router.push(result.href);
+    });
+  }
 
   function openContractModal(row: {
     id?: string | null;
@@ -556,6 +709,11 @@ export function AdminDashboardClient({
             {supervisorPortal ? 'Supervisor Portal' : 'Admin Portal'}
           </p>
         </div>
+        {account ? (
+          <div className="border-b border-slate-200 p-3 dark:border-slate-800">
+            <SupervisorProfileCard account={account} />
+          </div>
+        ) : null}
         <nav className="flex flex-1 flex-col gap-1 p-3">
           {visibleTabs.map(({ id, label, icon: Icon }) => {
             const count =
@@ -597,53 +755,16 @@ export function AdminDashboardClient({
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900 sm:px-6">
-          {account ? (
-            <div className="flex min-w-0 flex-1 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              <div className="flex min-w-0 items-center gap-3">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
-                  <UserRound className="h-5 w-5" aria-hidden />
-                </span>
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">
-                    {account.email}
-                  </p>
-                  <p className="truncate text-xs text-slate-500">{account.phone}</p>
-                  <p className="truncate text-xs font-medium text-slate-700 dark:text-slate-300">
-                    Supervisor Admin ID {account.supervisorId}
-                  </p>
-                </div>
-              </div>
-              <div className="w-full lg:max-w-xl">
-                <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-                  Accounts
+          {supervisorPortal ? (
+            <div className="flex min-w-0 items-center gap-3">
+              <Shield className="h-5 w-5 text-emerald-600" />
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">
+                  Supervisor Portal
                 </p>
-                <div className="grid gap-2 sm:grid-cols-3">
-                <div className="rounded-lg border border-slate-200 px-3 py-2 dark:border-slate-700">
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-                    Total Amount Received
-                  </p>
-                  <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-white">
-                    {formatMoney(account.totalReceived)}
-                  </p>
-                </div>
-                <div className="rounded-lg border border-slate-200 px-3 py-2 dark:border-slate-700">
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-                    Unpaid / Pending Balance
-                  </p>
-                  <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-white">
-                    {formatMoney(account.pendingBalance)}
-                  </p>
-                </div>
-                <div className="rounded-lg border border-slate-200 px-3 py-2 dark:border-slate-700">
-                  <p className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-                    <Wallet className="h-3 w-3" aria-hidden />
-                    Next Payment Cycle
-                  </p>
-                  <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-white">
-                    {account.nextPaymentCycle}
-                  </p>
-                </div>
-                </div>
+                <Badge variant="emerald" className="mt-0.5 text-[10px]">
+                  Field supervisor session
+                </Badge>
               </div>
             </div>
           ) : (
@@ -686,6 +807,11 @@ export function AdminDashboardClient({
         </div>
 
         <main className="flex-1 space-y-5 p-4 sm:p-6">
+          {account ? (
+            <div className="lg:hidden">
+              <SupervisorProfileCard account={account} />
+            </div>
+          ) : null}
           {tab !== 'overview' ? (
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="relative w-full max-w-md">
@@ -889,6 +1015,17 @@ export function AdminDashboardClient({
                               status={p.status}
                               biddingEndsAt={p.biddingEndsAt}
                             />
+                            {p.workflow.approved ? (
+                              <span className="mt-1 inline-flex items-center gap-1 rounded-md border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-800">
+                                <BadgeCheck className="h-3 w-3" />
+                                Approved / Active
+                              </span>
+                            ) : p.workflow.agreementState === 'pending_esign' ||
+                              p.workflow.agreementState === 'partially_signed' ? (
+                              <span className="mt-1 inline-flex items-center rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
+                                Awaiting eSign
+                              </span>
+                            ) : null}
                           </td>
                           <td className={cn(TD, 'whitespace-nowrap')}>
                             <p className="text-sm font-medium text-slate-800 dark:text-slate-100">
@@ -932,15 +1069,25 @@ export function AdminDashboardClient({
                               </button>
                               {p.selectedBuilderId ? (
                                 <>
-                                  <button
-                                    type="button"
-                                    title="Create Contract Agreement"
-                                    onClick={() => openContractModal(p)}
-                                    className="inline-flex items-center gap-1 rounded-md bg-emerald-700 px-2.5 py-1 text-xs font-medium text-white shadow-xs transition hover:bg-emerald-800"
-                                  >
-                                    <FileSignature className="h-3 w-3" />
-                                    Create Contract Agreement
-                                  </button>
+                                  {supervisorPortal ? (
+                                    <WorkflowActions
+                                      projectId={p.id}
+                                      workflow={p.workflow}
+                                      busy={pending}
+                                      onOpenChecklist={() => openChecklist(p)}
+                                      onGoToAgreement={() => goToAgreement(p.id)}
+                                    />
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      title="Create Contract Agreement"
+                                      onClick={() => openContractModal(p)}
+                                      className="inline-flex items-center gap-1 rounded-md bg-emerald-700 px-2.5 py-1 text-xs font-medium text-white shadow-xs transition hover:bg-emerald-800"
+                                    >
+                                      <FileSignature className="h-3 w-3" />
+                                      Create Contract Agreement
+                                    </button>
+                                  )}
                                   <a
                                     href={`/api/agreements/pdf?projectId=${encodeURIComponent(p.publicId || p.id)}`}
                                     target="_blank"
@@ -1222,30 +1369,52 @@ export function AdminDashboardClient({
                             <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                               {a.rateSummary}
                             </p>
+                            {a.workflow.approved ? (
+                              <p className="mt-0.5 text-[11px] font-bold text-emerald-700">
+                                Approved / Active
+                              </p>
+                            ) : null}
                           </td>
                           <td className={cn(TD, 'text-xs text-slate-500')}>
                             {formatDate(a.executionDate)}
                           </td>
                           <td className={TD}>
                             <div className="flex flex-wrap items-center gap-1">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const project = projects.find((p) => p.id === a.projectId);
-                                  openContractModal(
-                                    project ?? {
+                              {supervisorPortal ? (
+                                <WorkflowActions
+                                  projectId={a.projectId}
+                                  workflow={a.workflow}
+                                  busy={pending}
+                                  onOpenChecklist={() =>
+                                    openChecklist({
                                       id: a.projectId,
                                       publicId: a.publicId,
                                       title: a.projectTitle,
                                       clientName: a.clientName,
-                                    },
-                                  );
-                                }}
-                                className="inline-flex items-center gap-1 rounded-md bg-emerald-700 px-2.5 py-1 text-xs font-medium text-white shadow-xs transition hover:bg-emerald-800"
-                              >
-                                <FileSignature className="h-3 w-3" />
-                                Create Contract Agreement
-                              </button>
+                                    })
+                                  }
+                                  onGoToAgreement={() => goToAgreement(a.projectId)}
+                                />
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const project = projects.find((p) => p.id === a.projectId);
+                                    openContractModal(
+                                      project ?? {
+                                        id: a.projectId,
+                                        publicId: a.publicId,
+                                        title: a.projectTitle,
+                                        clientName: a.clientName,
+                                      },
+                                    );
+                                  }}
+                                  className="inline-flex items-center gap-1 rounded-md bg-emerald-700 px-2.5 py-1 text-xs font-medium text-white shadow-xs transition hover:bg-emerald-800"
+                                >
+                                  <FileSignature className="h-3 w-3" />
+                                  Create Contract Agreement
+                                </button>
+                              )}
                               <a
                                 href={`/api/agreements/pdf?projectId=${encodeURIComponent(a.publicId || a.projectId)}`}
                                 target="_blank"
@@ -1275,6 +1444,20 @@ export function AdminDashboardClient({
           ) : null}
         </main>
       </div>
+      {checklistProject ? (
+        <SiteVisitChecklistModal
+          key={checklistProject.id}
+          open
+          onOpenChange={(open) => {
+            if (!open) setChecklistProject(null);
+          }}
+          projectId={checklistProject.id}
+          publicId={checklistProject.publicId}
+          projectTitle={checklistProject.title}
+          clientName={checklistProject.clientName}
+          onSaved={() => router.refresh()}
+        />
+      ) : null}
       <CreateContractAgreementModal
         key={contractProject?.id ?? 'closed'}
         open={Boolean(contractProject)}

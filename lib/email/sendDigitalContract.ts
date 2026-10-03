@@ -1,4 +1,4 @@
-import { getMailTransporter } from '@/lib/email/sendNotification';
+﻿import { getMailTransporter } from '@/lib/email/sendNotification';
 import { getOfficialAgreementRecipients } from '@/lib/email/sendMistriAgreement';
 import {
   BUILBID_CORPORATE_AGREEMENT_EMAIL,
@@ -18,7 +18,7 @@ function summaryTable(summary: Record<string, string>): string {
     .map(
       ([label, value]) => `<tr>
       <td style="padding:8px 12px;color:#94a3b8;font-size:13px;width:190px;vertical-align:top">${escapeHtml(label)}</td>
-      <td style="padding:8px 12px;color:#f1f5f9;font-size:13px;font-weight:600">${escapeHtml(value || '—')}</td>
+      <td style="padding:8px 12px;color:#f1f5f9;font-size:13px;font-weight:600">${escapeHtml(value || 'â€”')}</td>
     </tr>`,
     )
     .join('');
@@ -102,7 +102,7 @@ export async function sendDigitalContractDraftEmails(input: {
     await transporter.sendMail({
       from,
       to: opts.to,
-      subject: `Action required: Review & eSign BuilBid Contract — ${input.summary.Project ?? 'Project'}`,
+      subject: `Action required: Review & eSign BuilBid Contract â€” ${input.summary.Project ?? 'Project'}`,
       text: [
         `Dear ${opts.name},`,
         `You are signing as ${roleLabel}.`,
@@ -132,49 +132,89 @@ export async function sendDigitalContractDraftEmails(input: {
   });
 }
 
+/**
+ * Final dispatch after both parties completed Aadhaar OTP eSign.
+ * Each party (Home Owner and Mistri / Worker) gets their own email with the signed
+ * agreement PDF (and the Mistri Thumb Rule sheet when available). BuilBid keeps a copy.
+ * Throws if the Home Owner or Mistri copy could not be sent.
+ */
 export async function sendSignedDigitalContractPdf(input: {
   clientEmail: string;
   contractorEmail: string;
+  clientName?: string;
+  contractorName?: string;
   summary: Record<string, string>;
   pdfBytes: Uint8Array;
   filename: string;
+  thumbRule?: { bytes: Uint8Array; filename: string } | null;
 }): Promise<void> {
   const { transporter, from } = getMailTransporter();
-  const recipients = new Set<string>([
-    input.clientEmail.toLowerCase(),
-    input.contractorEmail.toLowerCase(),
-    BUILBID_CORPORATE_AGREEMENT_EMAIL.toLowerCase(),
-    ...getOfficialAgreementRecipients(),
-  ]);
 
-  const html = wrap(`
-    <p style="color:#e2e8f0;font-size:14px;line-height:1.6">
-      Both parties have completed Aadhaar eSign. The final BuilBid Contract Agreement PDF is attached.
-    </p>
-    <div style="background:#1e293b;border:1px solid #334155;border-radius:12px;overflow:hidden;margin:20px 0">
-      <div style="background:#0f766e;padding:10px 16px">
-        <span style="color:#fff;font-size:13px;font-weight:700;letter-spacing:.05em;text-transform:uppercase">Signed agreement</span>
+  const attachments = [
+    {
+      filename: `SIGNED-${input.filename}`,
+      content: Buffer.from(input.pdfBytes),
+      contentType: 'application/pdf',
+    },
+    ...(input.thumbRule
+      ? [
+          {
+            filename: input.thumbRule.filename,
+            content: Buffer.from(input.thumbRule.bytes),
+            contentType: 'application/pdf',
+          },
+        ]
+      : []),
+  ];
+
+  const text = [
+    'Both parties have completed Aadhaar OTP eSign. The agreement is now Approved / Active.',
+    ...Object.entries(input.summary).map(([k, v]) => `${k}: ${v}`),
+    input.thumbRule
+      ? 'Attached: signed agreement PDF and the Mistri Thumb Rule instruction sheet.'
+      : 'Attached: signed agreement PDF.',
+  ].join('\n');
+
+  function bodyFor(name: string | undefined): string {
+    return wrap(`
+      <p style="color:#e2e8f0;font-size:14px;line-height:1.6">
+        ${name ? `Dear ${escapeHtml(name)},<br/>` : ''}
+        Both parties have completed Aadhaar OTP eSign and the agreement is now
+        <strong style="color:#5eead4">Approved / Active</strong>. Your signed copy is attached${
+          input.thumbRule ? ', along with the Mistri Thumb Rule instruction sheet for the site' : ''
+        }.
+      </p>
+      <div style="background:#1e293b;border:1px solid #334155;border-radius:12px;overflow:hidden;margin:20px 0">
+        <div style="background:#0f766e;padding:10px 16px">
+          <span style="color:#fff;font-size:13px;font-weight:700;letter-spacing:.05em;text-transform:uppercase">Signed agreement</span>
+        </div>
+        <table style="width:100%;border-collapse:collapse">${summaryTable(input.summary)}</table>
       </div>
-      <table style="width:100%;border-collapse:collapse">${summaryTable(input.summary)}</table>
-    </div>
-    <p style="color:#5eead4;font-size:13px">Status: Digitally Signed via Aadhaar eSign</p>
-  `);
+      <p style="color:#5eead4;font-size:13px">Status: Digitally Signed via Aadhaar OTP eSign</p>
+    `);
+  }
 
-  await transporter.sendMail({
-    from,
-    to: [...recipients],
-    subject: `Final Signed Agreement — ${input.summary.Project ?? 'BuilBid Contract'}`,
-    text: [
-      'Both parties have completed Aadhaar eSign. The final PDF is attached.',
-      ...Object.entries(input.summary).map(([k, v]) => `${k}: ${v}`),
-    ].join('\n'),
-    html,
-    attachments: [
-      {
-        filename: `SIGNED-${input.filename}`,
-        content: Buffer.from(input.pdfBytes),
-        contentType: 'application/pdf',
-      },
-    ],
-  });
+  const subject = `Final Signed Agreement — ${input.summary.Project ?? 'BuilBid Contract'}`;
+  const sentTo = new Set<string>();
+
+  async function sendOne(to: string, name?: string) {
+    const key = to.trim().toLowerCase();
+    if (!key || sentTo.has(key)) return;
+    sentTo.add(key);
+    await transporter.sendMail({ from, to, subject, text, html: bodyFor(name), attachments });
+  }
+
+  // Required recipients: failure here must surface so the project is NOT marked approved.
+  await sendOne(input.clientEmail, input.clientName);
+  await sendOne(input.contractorEmail, input.contractorName);
+
+  // BuilBid records copy (best effort).
+  for (const copy of [BUILBID_CORPORATE_AGREEMENT_EMAIL, ...getOfficialAgreementRecipients()]) {
+    try {
+      await sendOne(copy);
+    } catch (err) {
+      console.error('[sendSignedDigitalContractPdf] BuilBid copy failed:', err);
+    }
+  }
 }
+

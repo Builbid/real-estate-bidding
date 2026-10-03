@@ -3,6 +3,8 @@
 import { revalidatePath } from 'next/cache';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireOfficialAdmin } from '@/lib/admin/auth';
+import { isOfficialAdminEmail } from '@/lib/admin/constants';
+import { loadAgreementDraft } from '@/lib/admin/agreementDraft';
 import { isValidAadhaarNumber, aadhaarLast4, digitsOnlyAadhaar } from '@/lib/contract/aadhaar';
 import {
   DIGITAL_CONTRACT_OTP_TTL_MS,
@@ -76,9 +78,30 @@ export async function sendContractAgreementForSignatureAction(
     };
   }
 
-  const plinthArea = parsePositiveNumber(input.plinthArea, 'Approximate Plinth Area');
+  const supervisorSession = !isOfficialAdminEmail(session.email);
+
+  // Supervisors must have completed the Site Visit Checklist; the measured plinth area wins.
+  // The agreed cost also comes from the accepted bid, because the supervisor's 0.2% commission
+  // is calculated from it and must not be editable by the supervisor.
+  let plinthInput = input.plinthArea;
+  let costInput = input.totalCost;
+  if (supervisorSession) {
+    const lookup = createAdminClient();
+    const draft = await loadAgreementDraft(lookup, requestedId);
+    if ('error' in draft) return { error: draft.error };
+    if (!draft.visit) {
+      return { error: 'Complete and save the Site Visit Checklist before sending the agreement.' };
+    }
+    if (draft.defaults.totalCost == null) {
+      return { error: 'The accepted bid amount is missing for this project.' };
+    }
+    plinthInput = String(draft.visit.plinthAreaSqft);
+    costInput = String(draft.defaults.totalCost);
+  }
+
+  const plinthArea = parsePositiveNumber(plinthInput, 'Approximate Plinth Area');
   if (typeof plinthArea !== 'number') return plinthArea;
-  const totalCost = parsePositiveNumber(input.totalCost, 'Total Agreed Project Cost');
+  const totalCost = parsePositiveNumber(costInput, 'Total Agreed Project Cost');
   if (typeof totalCost !== 'number') return totalCost;
   const startDate = asIsoDate(input.startDate, 'Start Date');
   if (typeof startDate !== 'string') return startDate;
@@ -149,7 +172,19 @@ export async function sendContractAgreementForSignatureAction(
     totalAgreedCost: totalCost,
   };
 
+  // An approved agreement is final; re-sending would reset signatures and double-credit logic.
+  const existing = await admin
+    .from('project_digital_contracts')
+    .select('approved_at')
+    .eq('project_id', projectId)
+    .maybeSingle();
+  const approvalColumnsReady = !existing.error;
+  if (existing.data?.approved_at) {
+    return { error: 'This agreement is already signed and approved. It cannot be re-sent.' };
+  }
+
   const row = {
+    ...(approvalColumnsReady ? { approved_at: null, dispatched_at: null } : {}),
     project_id: projectId,
     plinth_area_sqft: plinthArea,
     start_date: startDate,
@@ -214,6 +249,7 @@ export async function sendContractAgreementForSignatureAction(
   }
 
   revalidatePath('/admin/dashboard');
+  revalidatePath(`/admin/agreement/${projectId}`);
   return {
     ok: true,
     message: `Draft agreement and Aadhaar eSign OTPs sent to ${clientEmail} and ${contractorEmail}.`,

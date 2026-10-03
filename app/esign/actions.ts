@@ -1,17 +1,16 @@
 'use server';
 
 import { createAdminClient } from '@/lib/supabase/admin';
+import { revalidatePath } from 'next/cache';
 import {
-  generateDigitalContractPdf,
   hashValue,
   isMissingDigitalContractTable,
   makeSignatureRef,
-  overlayFromRecord,
   safeEqualHash,
   type DigitalContractParty,
   type DigitalContractRecord,
 } from '@/lib/contract/renderDigitalContract';
-import { sendSignedDigitalContractPdf } from '@/lib/email/sendDigitalContract';
+import { finalizeApprovedAgreement } from '@/lib/admin/agreementPackage';
 import { maskAadhaarLast4 } from '@/lib/contract/aadhaar';
 
 export interface EsignSessionView {
@@ -172,28 +171,21 @@ export async function verifyDigitalContractOtpAction(
 
   if (bothSigned) {
     const signed = updated as DigitalContractRecord;
-    try {
-      const overlay = overlayFromRecord(signed, 'signed');
-      const generated = await generateDigitalContractPdf(signed.project_id, overlay);
-      await sendSignedDigitalContractPdf({
-        clientEmail: signed.client_email,
-        contractorEmail: signed.contractor_email,
-        summary: generated.summary,
-        pdfBytes: generated.bytes,
-        filename: generated.filename,
-      });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Signed PDF email failed.';
+    const result = await finalizeApprovedAgreement(signed);
+    revalidatePath('/admin/dashboard');
+    revalidatePath(`/admin/agreement/${signed.project_id}`);
+    if (!result.approved) {
       return {
         ok: true,
         bothSigned: true,
-        message: `Signed successfully, but final PDF email failed: ${message}`,
+        message: `Signed successfully, but final approval is pending: ${result.warning ?? 'dispatch failed'}. The supervisor can retry the final dispatch from the agreement page.`,
       };
     }
     return {
       ok: true,
       bothSigned: true,
-      message: 'Aadhaar eSign complete. The final signed PDF has been emailed to both parties and BuilBid.',
+      message:
+        'Aadhaar eSign complete. The agreement is Approved / Active and the signed PDFs have been emailed to the Home Owner and the Mistri.',
     };
   }
 

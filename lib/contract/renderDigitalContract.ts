@@ -2,6 +2,7 @@ import { createHash, createHmac, randomBytes, randomInt, timingSafeEqual } from 
 import { jsPDF } from 'jspdf';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { findProjectByAnyId } from '@/lib/contract/resolveProjectId';
+import { loadSiteVisit, siteVisitSummary } from '@/lib/admin/siteVisitStore';
 import { isoToIndianDate } from '@/lib/projectStartTime';
 import { formatInrAmount, officialAgreementFileName } from '@/lib/contract/agreementPdf';
 import {
@@ -86,6 +87,9 @@ export interface DigitalContractRecord {
   contractor_signature_ref: string | null;
   status: 'pending_esign' | 'partially_signed' | 'signed';
   signed_at: string | null;
+  created_by?: string | null;
+  approved_at?: string | null;
+  dispatched_at?: string | null;
 }
 
 function secretPepper(): string {
@@ -313,6 +317,8 @@ export async function generateDigitalContractPdf(
     'Target Completion Date': overlay.completionDateLabel || '—',
     'Total Agreed Project Cost': overlay.totalAgreedCostLabel || '—',
   };
+  // Supervisor's on-site measurements (when a Site Visit Checklist was saved).
+  Object.assign(summary, siteVisitSummary(await loadSiteVisit(admin, canonicalId)));
 
   if (isPlumberService(project.service_type)) {
     const payload = buildPlumberAgreementPayload({

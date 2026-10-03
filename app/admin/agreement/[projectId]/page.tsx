@@ -1,0 +1,103 @@
+﻿import Link from 'next/link';
+import { redirect } from 'next/navigation';
+import { requireOfficialAdmin } from '@/lib/admin/auth';
+import { isOfficialAdminEmail } from '@/lib/admin/constants';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { loadAgreementDraft } from '@/lib/admin/agreementDraft';
+import { buildThumbRuleGuide } from '@/lib/admin/agreementPackage';
+import { soilLabel } from '@/lib/admin/siteVisit';
+import { AgreementWorkspace, type AgreementWorkspaceProps } from './AgreementWorkspace';
+
+export const dynamic = 'force-dynamic';
+
+export default async function AdminAgreementPage({
+  params,
+}: {
+  params: Promise<{ projectId: string }>;
+}) {
+  const session = await requireOfficialAdmin();
+  const { projectId } = await params;
+
+  const admin = createAdminClient();
+  const draft = await loadAgreementDraft(admin, decodeURIComponent(projectId));
+
+  if ('error' in draft) {
+    return (
+      <main className="mx-auto max-w-xl p-8">
+        <p className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+          {draft.error}
+        </p>
+        <Link
+          href="/admin/dashboard?tab=projects"
+          className="mt-4 inline-block text-sm font-semibold text-emerald-700"
+        >
+          â† Back to dashboard
+        </Link>
+      </main>
+    );
+  }
+
+  // Supervisors must complete the Site Visit Checklist before the agreement exists.
+  if (!draft.visit && !isOfficialAdminEmail(session.email)) {
+    redirect('/admin/dashboard?tab=projects');
+  }
+
+  const guide = draft.project.isMistriCivil
+    ? await buildThumbRuleGuide(admin, draft.project.id, draft.visit)
+    : null;
+
+  const contract = draft.contract;
+  const visit = draft.visit;
+
+  const props: AgreementWorkspaceProps = {
+    project: draft.project,
+    client: draft.client,
+    contractor: draft.contractor,
+    siteRows: visit
+      ? [
+          { label: 'Site visit date', value: visit.visitDate.split('-').reverse().join('/') },
+          { label: 'Plot (L Ã— W)', value: `${visit.plotLengthFt} ft Ã— ${visit.plotWidthFt} ft` },
+          { label: 'Measured plinth area', value: `${visit.plinthAreaSqft.toLocaleString('en-IN')} sq. ft.` },
+          { label: 'Floors', value: String(visit.floors) },
+          { label: 'Soil condition', value: soilLabel(visit.soilType) },
+          { label: 'Access road width', value: `${visit.roadWidthFt} ft` },
+          {
+            label: 'Facilities',
+            value:
+              [
+                visit.waterAvailable ? 'Water' : null,
+                visit.electricityAvailable ? 'Electricity' : null,
+                visit.storageAvailable ? 'Material storage' : null,
+              ]
+                .filter(Boolean)
+                .join(', ') || 'None recorded',
+          },
+          ...(visit.siteNotes ? [{ label: 'Field notes', value: visit.siteNotes }] : []),
+        ]
+      : [],
+    valuesLocked: Boolean(visit) && !isOfficialAdminEmail(session.email),
+    defaults: draft.defaults,
+    contract: contract
+      ? {
+          status: contract.status,
+          clientSigned: Boolean(contract.client_verified_at),
+          contractorSigned: Boolean(contract.contractor_verified_at),
+          approved: Boolean(contract.approved_at),
+          approvedAt: contract.approved_at ?? null,
+          otpExpiresAt: contract.otp_expires_at,
+        }
+      : null,
+    commission: draft.commission,
+    thumbRule: guide
+      ? {
+          snapshotRows: guide.snapshotRows,
+          scheduleRows: guide.scheduleRows,
+          stageRows: guide.stageRows,
+          redFlagRows: guide.redFlagRows,
+          disclaimer: guide.disclaimer,
+        }
+      : null,
+  };
+
+  return <AgreementWorkspace {...props} />;
+}

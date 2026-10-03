@@ -1,4 +1,4 @@
-import { SUPERVISOR_PAYOUT_BPS } from '@/lib/admin/constants';
+import { calculateSupervisorCommission, SUPERVISOR_PAYOUT_LABEL } from '@/lib/admin/constants';
 import { formatBuilbidPublicId } from '@/lib/contract/mistriAgreement';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
@@ -26,9 +26,24 @@ export interface SupervisorAccount {
   email: string;
   phone: string;
   supervisorId: string;
+  /** Commission already paid out to the supervisor. */
   totalReceived: number;
+  /** Credited but unpaid commission (plus 0.2% estimate on completed works not yet credited). */
   pendingBalance: number;
   nextPaymentCycle: string;
+  /** e.g. "0.2%" */
+  commissionRate: string;
+  /** Number of agreements this supervisor got approved (commission credited). */
+  approvedAgreements: number;
+}
+
+export type AgreementState = 'none' | 'pending_esign' | 'partially_signed' | 'signed';
+
+export interface ProjectWorkflowState {
+  siteVisitDone: boolean;
+  agreementState: AgreementState;
+  /** Both parties signed via Aadhaar OTP and the PDFs were dispatched. */
+  approved: boolean;
 }
 
 export interface AdminKpis {
@@ -59,6 +74,7 @@ export interface AdminProjectRow {
   selectedBuilderId: string | null;
   serviceType: string | null;
   createdAt: string;
+  workflow: ProjectWorkflowState;
 }
 
 export interface AdminWorkerRow {
@@ -94,6 +110,7 @@ export interface AdminAgreementRow {
   rateSummary: string;
   executionDate: string;
   district: string;
+  workflow: ProjectWorkflowState;
 }
 
 function tradeLabel(role: string, serviceType: ServiceType | null | undefined): string {
@@ -109,8 +126,53 @@ function tradeLabel(role: string, serviceType: ServiceType | null | undefined): 
 }
 
 export function estimateSupervisorPayout(finalBudget: number | null): number {
-  if (finalBudget == null || finalBudget <= 0) return 0;
-  return Math.round((finalBudget * SUPERVISOR_PAYOUT_BPS) / 10_000);
+  return calculateSupervisorCommission(finalBudget);
+}
+
+const NO_WORKFLOW: ProjectWorkflowState = {
+  siteVisitDone: false,
+  agreementState: 'none',
+  approved: false,
+};
+
+/**
+ * Site-visit / agreement / approval state per project. Tolerant of an un-migrated
+ * database (returns an empty map) so the dashboard keeps working.
+ */
+async function loadWorkflowStates(): Promise<Map<string, ProjectWorkflowState>> {
+  const map = new Map<string, ProjectWorkflowState>();
+  try {
+    const admin = createAdminClient();
+    const [visits, contractsWithApproval] = await Promise.all([
+      admin.from('project_site_visits').select('project_id').limit(5000),
+      admin
+        .from('project_digital_contracts')
+        .select('project_id, status, approved_at')
+        .limit(5000),
+    ]);
+    // Before migration 058 the approved_at column does not exist: fall back to status only.
+    const contracts = contractsWithApproval.error
+      ? await admin.from('project_digital_contracts').select('project_id, status').limit(5000)
+      : contractsWithApproval;
+    for (const row of (visits.data ?? []) as Array<{ project_id: string }>) {
+      map.set(row.project_id, { ...NO_WORKFLOW, siteVisitDone: true });
+    }
+    for (const row of (contracts.data ?? []) as Array<{
+      project_id: string;
+      status: AgreementState;
+      approved_at?: string | null;
+    }>) {
+      const prev = map.get(row.project_id) ?? NO_WORKFLOW;
+      map.set(row.project_id, {
+        ...prev,
+        agreementState: row.status,
+        approved: Boolean(row.approved_at),
+      });
+    }
+  } catch {
+    // Service role key missing or tables not migrated yet.
+  }
+  return map;
 }
 
 export function formatSupervisorAdminId(userId: string): string {
@@ -156,6 +218,8 @@ export async function loadAdminDashboardData(): Promise<{
       .eq('is_withdrawn', false)
       .limit(5000),
   ]);
+
+  const workflowByProject = await loadWorkflowStates();
 
   const projects = (projectsRaw ?? []) as Array<{
     id: string;
@@ -222,6 +286,7 @@ export async function loadAdminDashboardData(): Promise<{
       selectedBuilderId: p.selected_builder_id,
       serviceType: p.service_type,
       createdAt: p.created_at,
+      workflow: workflowByProject.get(p.id) ?? NO_WORKFLOW,
     };
   });
 
@@ -291,6 +356,7 @@ export async function loadAdminDashboardData(): Promise<{
             : '—',
         executionDate: p.updated_at || p.created_at,
         district: p.district,
+        workflow: workflowByProject.get(p.id) ?? NO_WORKFLOW,
       };
     });
 
@@ -368,14 +434,46 @@ export async function loadSupervisorAccount(
     supervisorPhone = null;
   }
 
-  const pendingBalance = completedWorks.reduce((sum, row) => sum + row.supervisorPayout, 0);
+  // 0.2% commissions credited when an agreement is approved (migration 058).
+  let paid = 0;
+  let credited = 0;
+  let approvedAgreements = 0;
+  const commissionedProjects = new Set<string>();
+  try {
+    const admin = createAdminClient();
+    const { data: rows } = await admin
+      .from('supervisor_commissions')
+      .select('project_id, supervisor_id, amount, status')
+      .limit(5000);
+    for (const row of (rows ?? []) as Array<{
+      project_id: string;
+      supervisor_id: string;
+      amount: number | string;
+      status: string;
+    }>) {
+      commissionedProjects.add(row.project_id);
+      if (row.supervisor_id !== userId) continue;
+      approvedAgreements += 1;
+      if (row.status === 'paid') paid += Number(row.amount) || 0;
+      else credited += Number(row.amount) || 0;
+    }
+  } catch {
+    // Table not migrated yet: fall back to the completed-works estimate only.
+  }
+
+  // Completed works that have no credited commission yet still accrue the 0.2% estimate.
+  const estimated = completedWorks
+    .filter((row) => !commissionedProjects.has(row.projectId))
+    .reduce((sum, row) => sum + row.supervisorPayout, 0);
 
   return {
     email: supervisorEmail || profile?.email || fallbackEmail,
     phone: supervisorPhone || profile?.mobile?.trim() || '—',
     supervisorId: formatSupervisorAdminId(userId),
-    totalReceived: 0,
-    pendingBalance,
+    totalReceived: paid,
+    pendingBalance: credited + estimated,
     nextPaymentCycle: nextSupervisorSettlementLabel(),
+    commissionRate: SUPERVISOR_PAYOUT_LABEL,
+    approvedAgreements,
   };
 }

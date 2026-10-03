@@ -12,6 +12,28 @@ export interface OfficialAdminSession {
 }
 
 /**
+ * Non-redirecting variant for route handlers: returns the staff session
+ * (official admin or active supervisor) or null.
+ */
+export async function getStaffSession(): Promise<OfficialAdminSession | null> {
+  const supabase = await createClient('admin');
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user?.id || !user.email) return null;
+  if (isOfficialAdminEmail(user.email)) {
+    return { userId: user.id, email: BUILBID_OFFICIAL_ADMIN_EMAIL };
+  }
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role, is_verified, staff_position')
+    .eq('id', user.id)
+    .maybeSingle();
+  if (!isActiveTestingSupervisor(profile)) return null;
+  return { userId: user.id, email: user.email };
+}
+
+/**
  * Require an authenticated session for the official BuilBid admin email.
  * Redirects to /admin/login when unauthorized.
  */

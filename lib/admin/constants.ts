@@ -15,8 +15,18 @@ export const ADMIN_UNAUTHORIZED_MESSAGE =
  */
 export const TESTING_FIELD_SUPERVISOR_ROLE = 'field_supervisor';
 
-/** Accrued supervisor earning until a payout ledger exists (200 bps = 2% of final budget). */
-export const SUPERVISOR_PAYOUT_BPS = 200;
+/** Supervisor commission: 20 basis points = 0.2% of the project's total budget value. */
+export const SUPERVISOR_PAYOUT_BPS = 20;
+
+/** Human readable commission rate, e.g. "0.2%". */
+export const SUPERVISOR_PAYOUT_LABEL = `${(SUPERVISOR_PAYOUT_BPS / 100).toString()}%`;
+
+/** 0.2% supervisor commission on a project value, rounded to whole rupees. */
+export function calculateSupervisorCommission(projectValue: number | null | undefined): number {
+  const value = Number(projectValue);
+  if (!Number.isFinite(value) || value <= 0) return 0;
+  return Math.round((value * SUPERVISOR_PAYOUT_BPS) / 10_000);
+}
 
 const SUPERVISOR_PROFILE_ROLES = new Set(['field_supervisor', 'supervisor']);
 export function isActiveTestingSupervisor(profile: {
