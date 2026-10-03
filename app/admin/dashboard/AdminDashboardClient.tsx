@@ -1035,11 +1035,9 @@ export function AdminDashboardClient({
                           colSpan={8}
                           className="px-4 py-10 text-center text-sm text-slate-500"
                         >
-                          {supervisorPortal && account && account.territoryCount === 0
-                            ? 'No pin codes are assigned to you yet. Contact BuilBid admin to receive projects in your territory.'
-                            : supervisorPortal && projects.length === 0
-                              ? 'No projects in your assigned pin code territory yet.'
-                              : 'No projects match your filters.'}
+                          {projects.length === 0
+                            ? 'No projects have been uploaded yet.'
+                            : 'No projects match your filters.'}
                         </td>
                       </tr>
                     ) : (

@@ -12,6 +12,13 @@ export function normalizePincodes(raw: string | string[] | null | undefined): st
   return [...out];
 }
 
+/**
+ * TEMPORARY (prototype testing): when true, supervisors are NOT restricted to their assigned
+ * pin codes. They see every project / bid / agreement and can act on any project.
+ * Set to false to restore territory enforcement. Settlement commission logic is unaffected.
+ */
+export const BYPASS_PINCODE_RESTRICTION = true;
+
 export function pincodeKey(pincode: string | null | undefined): string {
   return String(pincode ?? '').replace(/\D/g, '').slice(0, 6);
 }
@@ -47,6 +54,7 @@ export async function projectTerritoryError(
   session: { userId: string; email: string },
   projectId: string,
 ): Promise<string | null> {
+  if (BYPASS_PINCODE_RESTRICTION) return null;
   if (isOfficialAdminEmail(session.email)) return null;
   const [territory, { data: project }] = await Promise.all([
     loadSupervisorTerritory(admin, session.userId),

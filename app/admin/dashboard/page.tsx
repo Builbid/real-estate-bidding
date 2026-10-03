@@ -6,7 +6,7 @@ import {
   loadSupervisorAccount,
   type AdminTab,
 } from '@/lib/admin/data';
-import { loadSupervisorTerritory } from '@/lib/admin/territory';
+import { BYPASS_PINCODE_RESTRICTION, loadSupervisorTerritory } from '@/lib/admin/territory';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { AdminDashboardClient } from './AdminDashboardClient';
 
@@ -23,10 +23,12 @@ export default async function AdminDashboardPage({
   const session = await requireOfficialAdmin();
   const supervisorPortal = !isOfficialAdminEmail(session.email);
 
-  // Supervisors only ever see projects inside their assigned pin code territory.
-  const territory = supervisorPortal
+  // Normally supervisors only see projects inside their assigned pin code territory.
+  // TEMPORARY: BYPASS_PINCODE_RESTRICTION lifts the filter so every project is visible.
+  const assignedPincodes = supervisorPortal
     ? await loadSupervisorTerritory(createAdminClient(), session.userId)
     : null;
+  const territory = BYPASS_PINCODE_RESTRICTION ? null : assignedPincodes;
 
   const data = await loadAdminDashboardData({ territory });
   const account = supervisorPortal
@@ -34,7 +36,7 @@ export default async function AdminDashboardPage({
         session.userId,
         session.email,
         data.completedWorks,
-        territory?.length ?? 0,
+        assignedPincodes?.length ?? 0,
       )
     : null;
   const supervisors = supervisorPortal ? [] : await loadAdminSupervisors();
