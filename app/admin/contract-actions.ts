@@ -5,6 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { requireOfficialAdmin } from '@/lib/admin/auth';
 import { isOfficialAdminEmail } from '@/lib/admin/constants';
 import { loadAgreementDraft } from '@/lib/admin/agreementDraft';
+import { projectTerritoryError } from '@/lib/admin/territory';
 import { isValidAadhaarNumber, aadhaarLast4, digitsOnlyAadhaar } from '@/lib/contract/aadhaar';
 import {
   DIGITAL_CONTRACT_OTP_TTL_MS,
@@ -89,6 +90,8 @@ export async function sendContractAgreementForSignatureAction(
     const lookup = createAdminClient();
     const draft = await loadAgreementDraft(lookup, requestedId);
     if ('error' in draft) return { error: draft.error };
+    const territoryError = await projectTerritoryError(lookup, session, draft.project.id);
+    if (territoryError) return { error: territoryError };
     if (!draft.visit) {
       return { error: 'Complete and save the Site Visit Checklist before sending the agreement.' };
     }

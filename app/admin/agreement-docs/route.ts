@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getStaffSession } from '@/lib/admin/auth';
 import { isOfficialAdminEmail } from '@/lib/admin/constants';
+import { projectTerritoryError } from '@/lib/admin/territory';
 import { loadAgreementDraft } from '@/lib/admin/agreementDraft';
 import { buildThumbRulePdf } from '@/lib/admin/agreementPackage';
 import {
@@ -34,6 +35,10 @@ export async function GET(request: Request) {
   const draft = await loadAgreementDraft(admin, projectRef);
   if ('error' in draft) {
     return NextResponse.json({ error: draft.error }, { status: 404 });
+  }
+  const territoryError = await projectTerritoryError(admin, session, draft.project.id);
+  if (territoryError) {
+    return NextResponse.json({ error: territoryError }, { status: 403 });
   }
   if (!draft.visit && !isOfficialAdminEmail(session.email)) {
     // Supervisors work from the checklist; without it there is nothing to populate.

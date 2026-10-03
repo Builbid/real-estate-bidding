@@ -14,6 +14,7 @@ import {
   SITE_VISIT_TABLE_MISSING_MESSAGE,
 } from '@/lib/admin/siteVisitStore';
 import { finalizeApprovedAgreement } from '@/lib/admin/agreementPackage';
+import { projectTerritoryError } from '@/lib/admin/territory';
 import { findProjectByAnyId } from '@/lib/contract/resolveProjectId';
 import type { DigitalContractRecord } from '@/lib/contract/renderDigitalContract';
 
@@ -21,13 +22,15 @@ function todayIst(): string {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
 }
 
-async function resolveAssignedProject(projectRef: string) {
+async function resolveAssignedProject(projectRef: string, session: { userId: string; email: string }) {
   const admin = createAdminClient();
   const { data: project } = await findProjectByAnyId<{
     id: string;
     selected_builder_id: string | null;
   }>(admin, projectRef, 'id, selected_builder_id');
   if (!project) return { error: 'Project not found.' as const };
+  const territoryError = await projectTerritoryError(admin, session, project.id);
+  if (territoryError) return { error: territoryError as string };
   if (!project.selected_builder_id) {
     return {
       error: 'A site visit can be recorded only after a Mistri / contractor is finalized for this project.' as const,
@@ -51,8 +54,8 @@ async function isAlreadyApproved(
 export async function loadSiteVisitAction(
   projectRef: string,
 ): Promise<{ visit: SiteVisitRecord | null }> {
-  await requireOfficialAdmin();
-  const resolved = await resolveAssignedProject(projectRef);
+  const session = await requireOfficialAdmin();
+  const resolved = await resolveAssignedProject(projectRef, session);
   if ('error' in resolved) return { visit: null };
   return { visit: await loadSiteVisit(resolved.admin, resolved.project.id) };
 }
@@ -66,7 +69,7 @@ export async function saveSiteVisitChecklistAction(
   const parsed = parseSiteVisitInput(input, todayIst());
   if ('error' in parsed) return { error: parsed.error };
 
-  const resolved = await resolveAssignedProject(projectRef);
+  const resolved = await resolveAssignedProject(projectRef, session);
   if ('error' in resolved) return { error: resolved.error };
   const { admin, project } = resolved;
 
@@ -113,8 +116,8 @@ export async function saveSiteVisitChecklistAction(
 export async function goToAgreementAction(
   projectRef: string,
 ): Promise<{ error?: string; ok?: boolean; href?: string }> {
-  await requireOfficialAdmin();
-  const resolved = await resolveAssignedProject(projectRef);
+  const session = await requireOfficialAdmin();
+  const resolved = await resolveAssignedProject(projectRef, session);
   if ('error' in resolved) return { error: resolved.error };
   const { admin, project } = resolved;
 
@@ -135,8 +138,8 @@ export async function goToAgreementAction(
 export async function retryApprovalDispatchAction(
   projectRef: string,
 ): Promise<{ error?: string; ok?: boolean; message?: string }> {
-  await requireOfficialAdmin();
-  const resolved = await resolveAssignedProject(projectRef);
+  const session = await requireOfficialAdmin();
+  const resolved = await resolveAssignedProject(projectRef, session);
   if ('error' in resolved) return { error: resolved.error };
   const { admin, project } = resolved;
 

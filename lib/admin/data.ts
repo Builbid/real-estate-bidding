@@ -1,4 +1,12 @@
 import { calculateSupervisorCommission, SUPERVISOR_PAYOUT_LABEL } from '@/lib/admin/constants';
+import {
+  currentMonthStartInstant,
+  currentMonthStartIst,
+  loadCompletedValues,
+  monthLabel,
+  pendingBalanceFor,
+} from '@/lib/admin/settlement';
+import { normalizePincodes } from '@/lib/admin/territory';
 import { formatBuilbidPublicId } from '@/lib/contract/mistriAgreement';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
@@ -10,7 +18,8 @@ export type AdminTab =
   | 'workers'
   | 'clients'
   | 'agreements'
-  | 'completed';
+  | 'completed'
+  | 'supervisors';
 
 export interface CompletedWorkRow {
   projectId: string;
@@ -22,19 +31,25 @@ export interface CompletedWorkRow {
   supervisorPayout: number;
 }
 
+/**
+ * Only non-sensitive summary data. Phone, Supervisor ID and Aadhaar are fetched on demand
+ * when the profile modal opens, so they are never part of the page payload.
+ */
 export interface SupervisorAccount {
-  email: string;
-  phone: string;
-  supervisorId: string;
-  /** Commission already paid out to the supervisor. */
+  name: string;
+  /** Commission paid out to the supervisor in the current month. */
   totalReceived: number;
-  /** Credited but unpaid commission (plus 0.2% estimate on completed works not yet credited). */
+  /** e.g. "October 2026" */
+  monthLabel: string;
+  /** Credited but unpaid commission (plus 0.2% estimate on completed works not yet credited). Resets to 0 on monthly settlement. */
   pendingBalance: number;
   nextPaymentCycle: string;
   /** e.g. "0.2%" */
   commissionRate: string;
   /** Number of agreements this supervisor got approved (commission credited). */
   approvedAgreements: number;
+  /** How many pin codes are assigned to this supervisor. */
+  territoryCount: number;
 }
 
 export type AgreementState = 'none' | 'pending_esign' | 'partially_signed' | 'signed';
@@ -181,7 +196,15 @@ export function formatSupervisorAdminId(userId: string): string {
   return formatBuilbidPublicId(userId).replace(/^BB-/, 'SUP-');
 }
 
-export async function loadAdminDashboardData(): Promise<{
+export async function loadAdminDashboardData(
+  options: {
+    /**
+     * Supervisor territory. When set, ONLY projects whose pincode is in this list are loaded
+     * (an empty list therefore loads nothing). Leave undefined for the official admin.
+     */
+    territory?: string[] | null;
+  } = {},
+): Promise<{
   kpis: AdminKpis;
   projects: AdminProjectRow[];
   workers: AdminWorkerRow[];
@@ -190,20 +213,24 @@ export async function loadAdminDashboardData(): Promise<{
   completedWorks: CompletedWorkRow[];
 }> {
   const supabase = await createClient();
+  const territory = options.territory ?? null;
+
+  const projectsBase = supabase
+    .from('projects')
+    .select(
+      'id, numeric_id, title, district, state, pincode, status, bidding_ends_at, selection_ends_at, owner_id, selected_builder_id, service_type, budget_range_min, budget_range_max, created_at, updated_at',
+    );
+  const projectsScoped = territory
+    ? projectsBase.in('pincode', territory.length > 0 ? territory : ['000000'])
+    : projectsBase;
 
   const [
     { data: projectsRaw },
     { data: profilesRaw },
-    { count: totalBids },
-    { data: bidsRaw },
+    { count: totalBidsAll },
+    { data: bidsRawAll },
   ] = await Promise.all([
-    supabase
-      .from('projects')
-      .select(
-        'id, numeric_id, title, district, state, status, bidding_ends_at, selection_ends_at, owner_id, selected_builder_id, service_type, budget_range_min, budget_range_max, created_at, updated_at',
-      )
-      .order('created_at', { ascending: false })
-      .limit(400),
+    projectsScoped.order('created_at', { ascending: false }).limit(400),
     supabase
       .from('profiles')
       .select(
@@ -227,6 +254,7 @@ export async function loadAdminDashboardData(): Promise<{
     title: string;
     district: string;
     state: string;
+    pincode: string | null;
     status: ProjectStatus;
     bidding_ends_at: string;
     selection_ends_at: string | null;
@@ -244,12 +272,14 @@ export async function loadAdminDashboardData(): Promise<{
   >;
 
   const profileById = new Map(profiles.map((p) => [p.id, p]));
-  const bids = (bidsRaw ?? []) as Array<{
+  const projectIds = new Set(projects.map((p) => p.id));
+  const bids = ((bidsRawAll ?? []) as Array<{
     project_id: string;
     builder_id: string;
     total_sum_metric: number;
     is_withdrawn: boolean;
-  }>;
+  }>).filter((b) => !territory || projectIds.has(b.project_id));
+  const totalBids = territory ? bids.length : totalBidsAll;
 
   const bidsByProject = new Map<string, number[]>();
   for (const bid of bids) {
@@ -393,49 +423,118 @@ export async function loadAdminDashboardData(): Promise<{
   return { kpis, projects: projectRows, workers, clients, agreements, completedWorks };
 }
 
-/** Next 10-day supervisor settlement date, counted from 1 Jan 2026. */
+export interface AdminSupervisorRow {
+  userId: string;
+  name: string;
+  email: string;
+  phone: string;
+  pincodes: string[];
+  pendingBalance: number;
+  paidThisMonth: number;
+}
+
+/** Official-admin view: every supervisor with territory and settlement state. */
+export async function loadAdminSupervisors(): Promise<AdminSupervisorRow[]> {
+  try {
+    const admin = createAdminClient();
+    const withTerritory = await admin
+      .from('supervisors')
+      .select('user_id, supervisor_name, email, phone, assigned_pincodes')
+      .order('created_at', { ascending: false })
+      .limit(500);
+    const base = withTerritory.error
+      ? await admin
+          .from('supervisors')
+          .select('user_id, supervisor_name, email, phone')
+          .order('created_at', { ascending: false })
+          .limit(500)
+      : withTerritory;
+    const supervisors = (base.data ?? []) as Array<{
+      user_id: string;
+      supervisor_name: string;
+      email: string;
+      phone: string;
+      assigned_pincodes?: string[] | null;
+    }>;
+    if (supervisors.length === 0) return [];
+
+    const completed = await loadCompletedValues(admin);
+    const monthStart = currentMonthStartInstant();
+    const { data: paidRows } = await admin
+      .from('supervisor_commissions')
+      .select('supervisor_id, amount, paid_at')
+      .eq('status', 'paid')
+      .gte('paid_at', monthStart)
+      .limit(5000);
+    const paidBySupervisor = new Map<string, number>();
+    for (const row of (paidRows ?? []) as Array<{ supervisor_id: string; amount: number | string }>) {
+      paidBySupervisor.set(
+        row.supervisor_id,
+        (paidBySupervisor.get(row.supervisor_id) ?? 0) + (Number(row.amount) || 0),
+      );
+    }
+
+    return await Promise.all(
+      supervisors.map(async (s) => {
+        const pincodes = normalizePincodes(s.assigned_pincodes ?? []);
+        return {
+          userId: s.user_id,
+          name: s.supervisor_name,
+          email: s.email,
+          phone: s.phone,
+          pincodes,
+          pendingBalance: await pendingBalanceFor(admin, s.user_id, pincodes, completed),
+          paidThisMonth: paidBySupervisor.get(s.user_id) ?? 0,
+        };
+      }),
+    );
+  } catch {
+    return [];
+  }
+}
+
+/** Supervisors are settled once a month, on the 1st of the following month. */
 export function nextSupervisorSettlementLabel(now = new Date()): string {
-  const cycleMs = 10 * 86_400_000;
-  const anchor = Date.UTC(2026, 0, 1);
-  const steps = Math.floor((now.getTime() - anchor) / cycleMs) + 1;
-  const next = new Date(anchor + steps * cycleMs);
+  const [year, month] = currentMonthStartIst(now).split('-').map(Number);
+  const next = new Date(Date.UTC(year, month, 1));
   const formatted = next.toLocaleDateString('en-IN', {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
+    timeZone: 'UTC',
   });
-  return `Weekly / 10-day settlement · ${formatted}`;
+  return `Monthly settlement · ${formatted}`;
 }
 
 export async function loadSupervisorAccount(
   userId: string,
   fallbackEmail: string,
   completedWorks: CompletedWorkRow[],
+  territoryCount: number,
 ): Promise<SupervisorAccount> {
   const supabase = await createClient();
   const { data: profile } = await supabase
     .from('profiles')
-    .select('email, mobile')
+    .select('full_name')
     .eq('id', userId)
     .maybeSingle();
 
-  let supervisorPhone: string | null = null;
-  let supervisorEmail: string | null = null;
+  let supervisorName: string | null = null;
   try {
     const admin = createAdminClient();
     const { data: supervisor } = await admin
       .from('supervisors')
-      .select('email, phone')
+      .select('supervisor_name')
       .eq('user_id', userId)
       .maybeSingle();
-    supervisorPhone = supervisor?.phone?.trim() || null;
-    supervisorEmail = supervisor?.email?.trim() || null;
+    supervisorName = supervisor?.supervisor_name?.trim() || null;
   } catch {
-    supervisorPhone = null;
+    supervisorName = null;
   }
 
-  // 0.2% commissions credited when an agreement is approved (migration 058).
-  let paid = 0;
+  // Commissions (migrations 058/059): credited = pending, paid = settled in a monthly payment.
+  const monthStart = currentMonthStartInstant();
+  let receivedThisMonth = 0;
   let credited = 0;
   let approvedAgreements = 0;
   const commissionedProjects = new Set<string>();
@@ -443,37 +542,42 @@ export async function loadSupervisorAccount(
     const admin = createAdminClient();
     const { data: rows } = await admin
       .from('supervisor_commissions')
-      .select('project_id, supervisor_id, amount, status')
+      .select('project_id, supervisor_id, amount, status, paid_at')
       .limit(5000);
     for (const row of (rows ?? []) as Array<{
       project_id: string;
       supervisor_id: string;
       amount: number | string;
       status: string;
+      paid_at?: string | null;
     }>) {
       commissionedProjects.add(row.project_id);
       if (row.supervisor_id !== userId) continue;
       approvedAgreements += 1;
-      if (row.status === 'paid') paid += Number(row.amount) || 0;
-      else credited += Number(row.amount) || 0;
+      if (row.status === 'paid') {
+        if (row.paid_at && row.paid_at >= monthStart) receivedThisMonth += Number(row.amount) || 0;
+      } else {
+        credited += Number(row.amount) || 0;
+      }
     }
   } catch {
-    // Table not migrated yet: fall back to the completed-works estimate only.
+    // Tables not migrated yet: fall back to the completed-works estimate only.
   }
 
-  // Completed works that have no credited commission yet still accrue the 0.2% estimate.
+  // In-territory completed works not yet credited still accrue the 0.2% estimate.
   const estimated = completedWorks
     .filter((row) => !commissionedProjects.has(row.projectId))
     .reduce((sum, row) => sum + row.supervisorPayout, 0);
 
   return {
-    email: supervisorEmail || profile?.email || fallbackEmail,
-    phone: supervisorPhone || profile?.mobile?.trim() || '—',
-    supervisorId: formatSupervisorAdminId(userId),
-    totalReceived: paid,
+    name: supervisorName || profile?.full_name?.trim() || fallbackEmail.split('@')[0] || 'Supervisor',
+    totalReceived: receivedThisMonth,
+    monthLabel: monthLabel(currentMonthStartIst()),
     pendingBalance: credited + estimated,
     nextPaymentCycle: nextSupervisorSettlementLabel(),
     commissionRate: SUPERVISOR_PAYOUT_LABEL,
     approvedAgreements,
+    territoryCount,
   };
 }
+

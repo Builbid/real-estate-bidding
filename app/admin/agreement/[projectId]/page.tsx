@@ -6,6 +6,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { loadAgreementDraft } from '@/lib/admin/agreementDraft';
 import { buildThumbRuleGuide } from '@/lib/admin/agreementPackage';
 import { soilLabel } from '@/lib/admin/siteVisit';
+import { projectTerritoryError } from '@/lib/admin/territory';
 import { AgreementWorkspace, type AgreementWorkspaceProps } from './AgreementWorkspace';
 
 export const dynamic = 'force-dynamic';
@@ -32,6 +33,24 @@ export default async function AdminAgreementPage({
           className="mt-4 inline-block text-sm font-semibold text-emerald-700"
         >
           â† Back to dashboard
+        </Link>
+      </main>
+    );
+  }
+
+  // Supervisors can only open agreements for projects inside their pin code territory.
+  const territoryError = await projectTerritoryError(admin, session, draft.project.id);
+  if (territoryError) {
+    return (
+      <main className="mx-auto max-w-xl p-8">
+        <p className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+          {territoryError}
+        </p>
+        <Link
+          href="/admin/dashboard?tab=projects"
+          className="mt-4 inline-block text-sm font-semibold text-emerald-700"
+        >
+          ← Back to dashboard
         </Link>
       </main>
     );

@@ -38,6 +38,7 @@ import type {
   AdminClientRow,
   AdminKpis,
   AdminProjectRow,
+  AdminSupervisorRow,
   AdminTab,
   AdminWorkerRow,
   CompletedWorkRow,
@@ -62,7 +63,12 @@ import {
 } from '@/lib/utils';
 import { CreateContractAgreementModal } from '@/components/admin/CreateContractAgreementModal';
 import { SiteVisitChecklistModal } from '@/components/admin/SiteVisitChecklistModal';
+import { SupervisorProfileModal } from '@/components/admin/SupervisorProfileModal';
 import { goToAgreementAction } from '@/app/admin/site-visit-actions';
+import {
+  settleSupervisorMonthAction,
+  updateSupervisorPincodesAction,
+} from '@/app/admin/supervisor-actions';
 
 const TH =
   'px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500';
@@ -337,68 +343,88 @@ function ColumnFilterInput({
   );
 }
 
-/**
- * Supervisor Profile Card: identity plus the Accounts summary (received / pending / cycle)
- * embedded in one card on the left side of the dashboard.
- */
-function SupervisorProfileCard({ account }: { account: SupervisorAccount }) {
-  return (
-    <section
-      aria-label="Supervisor profile and accounts"
-      className="rounded-xl border border-slate-200 bg-slate-50/60 p-3 dark:border-slate-700 dark:bg-slate-800/40"
-    >
-      <div className="flex items-center gap-3">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
-          <UserRound className="h-5 w-5" aria-hidden />
-        </span>
-        <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-slate-900 dark:text-white" title={account.email}>
-            {account.email}
-          </p>
-          <p className="truncate text-xs text-slate-500">{account.phone}</p>
-          <p className="truncate text-xs font-medium text-slate-700 dark:text-slate-300">
-            Supervisor Admin ID {account.supervisorId}
-          </p>
-        </div>
-      </div>
+/** Official admin: assign each supervisor's pin code territory and run the monthly settlement. */
+function SupervisorRowAdmin({ row }: { row: AdminSupervisorRow }) {
+  const router = useRouter();
+  const [pins, setPins] = useState(row.pincodes.join(', '));
+  const [busy, startBusy] = useTransition();
 
-      <div className="mt-3 border-t border-slate-200 pt-3 dark:border-slate-700">
-        <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-          Accounts
+  function savePins() {
+    startBusy(async () => {
+      const result = await updateSupervisorPincodesAction(row.userId, pins);
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+      setPins((result.pincodes ?? []).join(', '));
+      toast.success('Territory updated.');
+      router.refresh();
+    });
+  }
+
+  function settle() {
+    if (
+      !window.confirm(
+        `Mark ${formatMoney(row.pendingBalance)} as paid to ${row.name} for this month? Their pending balance will reset to ₹0 and a payment slip will be issued.`,
+      )
+    ) {
+      return;
+    }
+    startBusy(async () => {
+      const result = await settleSupervisorMonthAction(row.userId);
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success(result.message ?? 'Settled.');
+      router.refresh();
+    });
+  }
+
+  return (
+    <tr className={ROW_HOVER}>
+      <td className={TD}>
+        <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{row.name}</p>
+        <p className="text-xs text-slate-400">
+          {row.email} · {row.phone}
         </p>
-        <dl className="space-y-2">
-          <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-900">
-            <dt className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-              Total Amount Received
-            </dt>
-            <dd className="mt-0.5 text-sm font-semibold text-slate-900 dark:text-white">
-              {formatMoney(account.totalReceived)}
-            </dd>
-          </div>
-          <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-900">
-            <dt className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-              Unpaid / Pending Balance
-            </dt>
-            <dd className="mt-0.5 text-sm font-semibold text-slate-900 dark:text-white">
-              {formatMoney(account.pendingBalance)}
-            </dd>
-            <p className="mt-0.5 text-[10px] text-slate-400">
-              {account.commissionRate} commission · {account.approvedAgreements} approved
-              {account.approvedAgreements === 1 ? ' agreement' : ' agreements'}
-            </p>
-          </div>
-          <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-900">
-            <dt className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-              <Wallet className="h-3 w-3" aria-hidden />
-              Payment Cycle
-            </dt>
-            <dd className="mt-0.5 text-xs font-semibold text-slate-900 dark:text-white">
-              {account.nextPaymentCycle}
-            </dd>
-          </div>
-        </dl>
-      </div>
-    </section>
+      </td>
+      <td className={cn(TD, 'min-w-[16rem]')}>
+        <div className="flex items-center gap-1.5">
+          <input
+            aria-label={`Pin codes for ${row.name}`}
+            value={pins}
+            onChange={(e) => setPins(e.target.value)}
+            placeholder="e.g. 781001, 781005"
+            className="h-8 w-full rounded-md border border-slate-200 bg-white px-2 font-mono text-xs shadow-sm outline-none focus:border-emerald-300 focus:ring-2 focus:ring-emerald-100 dark:border-slate-700 dark:bg-slate-900"
+          />
+          <button
+            type="button"
+            disabled={busy}
+            onClick={savePins}
+            className="rounded-md bg-slate-900 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-slate-800 disabled:opacity-50"
+          >
+            Save
+          </button>
+        </div>
+        {row.pincodes.length === 0 ? (
+          <p className="mt-1 text-[11px] text-amber-700">No territory: sees no projects.</p>
+        ) : null}
+      </td>
+      <td className={cn(TD, 'text-sm font-semibold')}>{formatMoney(row.paidThisMonth)}</td>
+      <td className={cn(TD, 'text-sm font-semibold')}>{formatMoney(row.pendingBalance)}</td>
+      <td className={TD}>
+        <button
+          type="button"
+          disabled={busy || row.pendingBalance <= 0}
+          onClick={settle}
+          className="inline-flex items-center gap-1 rounded-md bg-emerald-700 px-2.5 py-1 text-xs font-medium text-white hover:bg-emerald-800 disabled:opacity-40"
+        >
+          <Wallet className="h-3 w-3" />
+          Settle month
+        </button>
+      </td>
+    </tr>
   );
 }
 
@@ -459,6 +485,7 @@ const TABS: { id: AdminTab; label: string; icon: typeof LayoutDashboard }[] = [
   { id: 'clients', label: 'Clients', icon: Users },
   { id: 'agreements', label: 'Agreements', icon: FileText },
   { id: 'completed', label: 'Completed Works', icon: ClipboardCheck },
+  { id: 'supervisors', label: 'Supervisors', icon: UserRound },
 ];
 
 const SUPERVISOR_TAB_IDS = new Set<AdminTab>([
@@ -478,6 +505,7 @@ export function AdminDashboardClient({
   clients,
   agreements,
   completedWorks,
+  supervisors = [],
   initialTab = 'overview',
 }: {
   email: string;
@@ -489,6 +517,7 @@ export function AdminDashboardClient({
   clients: AdminClientRow[];
   agreements: AdminAgreementRow[];
   completedWorks: CompletedWorkRow[];
+  supervisors?: AdminSupervisorRow[];
   initialTab?: AdminTab;
 }) {
   const [tab, setTab] = useState<AdminTab>(initialTab);
@@ -503,6 +532,7 @@ export function AdminDashboardClient({
     clientName: string;
   } | null>(null);
   const router = useRouter();
+  const [profileOpen, setProfileOpen] = useState(false);
   const [checklistProject, setChecklistProject] = useState<{
     id: string;
     publicId: string;
@@ -700,20 +730,19 @@ export function AdminDashboardClient({
     <div className="flex min-h-screen">
       <Toaster position="top-right" richColors closeButton />
 
-      <aside className="hidden w-60 shrink-0 border-r border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 lg:flex lg:flex-col">
+      {/* Official admin keeps the side navigation; supervisors get a top navigation bar below the header. */}
+      <aside
+        className={cn(
+          'hidden w-60 shrink-0 border-r border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900',
+          !supervisorPortal && 'lg:flex lg:flex-col',
+        )}
+      >
         <div className="border-b border-slate-200 px-4 py-5 dark:border-slate-800">
           <p className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
-            {supervisorPortal ? 'BuilBid Supervisor' : 'BuilBid Official'}
+            BuilBid Official
           </p>
-          <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-white">
-            {supervisorPortal ? 'Supervisor Portal' : 'Admin Portal'}
-          </p>
+          <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-white">Admin Portal</p>
         </div>
-        {account ? (
-          <div className="border-b border-slate-200 p-3 dark:border-slate-800">
-            <SupervisorProfileCard account={account} />
-          </div>
-        ) : null}
         <nav className="flex flex-1 flex-col gap-1 p-3">
           {visibleTabs.map(({ id, label, icon: Icon }) => {
             const count =
@@ -727,7 +756,9 @@ export function AdminDashboardClient({
                       ? agreements.length
                       : id === 'completed'
                         ? completedWorks.length
-                        : null;
+                        : id === 'supervisors'
+                          ? supervisors.length
+                          : null;
             return (
               <button
                 key={id}
@@ -754,19 +785,22 @@ export function AdminDashboardClient({
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900 sm:px-6">
-          {supervisorPortal ? (
-            <div className="flex min-w-0 items-center gap-3">
-              <Shield className="h-5 w-5 text-emerald-600" />
-              <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">
-                  Supervisor Portal
-                </p>
-                <Badge variant="emerald" className="mt-0.5 text-[10px]">
-                  Field supervisor session
-                </Badge>
-              </div>
-            </div>
+        <header className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900 sm:px-6">
+          {supervisorPortal && account ? (
+            // Only the circle avatar and the name: tap either to open the full profile modal.
+            <button
+              type="button"
+              onClick={() => setProfileOpen(true)}
+              aria-label="Open supervisor profile and accounts details"
+              className="group flex min-w-0 items-center gap-3 rounded-full py-1 pr-4 text-left transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 dark:hover:bg-slate-800"
+            >
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-800 ring-2 ring-white transition group-hover:ring-emerald-200 dark:bg-emerald-950 dark:text-emerald-200 dark:ring-slate-900">
+                <UserRound className="h-5 w-5" aria-hidden />
+              </span>
+              <span className="min-w-0 truncate text-base font-semibold text-slate-900 dark:text-white">
+                {account.name}
+              </span>
+            </button>
           ) : (
             <div className="flex min-w-0 items-center gap-3">
               <Shield className="h-5 w-5 text-emerald-600" />
@@ -788,30 +822,61 @@ export function AdminDashboardClient({
           </form>
         </header>
 
-        <div className="flex gap-1 overflow-x-auto border-b border-slate-200 bg-white px-3 py-2 dark:border-slate-800 dark:bg-slate-900 lg:hidden">
-          {visibleTabs.map(({ id, label }) => (
+        {account ? (
+          <section
+            aria-label="Accounts summary"
+            className="grid gap-3 border-b border-slate-200 bg-slate-50/70 px-4 py-3 dark:border-slate-800 dark:bg-slate-900/60 sm:grid-cols-2 sm:px-6"
+          >
+            <div className="rounded-lg border border-slate-200 bg-white px-4 py-2.5 dark:border-slate-700 dark:bg-slate-900">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                Total Amount Received · {account.monthLabel}
+              </p>
+              <p className="mt-0.5 text-lg font-bold text-slate-900 dark:text-white">
+                {formatMoney(account.totalReceived)}
+              </p>
+            </div>
+            <div className="rounded-lg border border-slate-200 bg-white px-4 py-2.5 dark:border-slate-700 dark:bg-slate-900">
+              <p className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                <Wallet className="h-3 w-3" aria-hidden />
+                Unpaid / Pending Balance
+              </p>
+              <p className="mt-0.5 text-lg font-bold text-slate-900 dark:text-white">
+                {formatMoney(account.pendingBalance)}
+              </p>
+              <p className="text-[10px] text-slate-400">
+                {account.commissionRate} commission · {account.nextPaymentCycle}
+              </p>
+            </div>
+          </section>
+        ) : null}
+
+        {/* Navigation: directly below the header and accounts summary. */}
+        <nav
+          aria-label="Sections"
+          className={cn(
+            'flex gap-1 overflow-x-auto border-b border-slate-200 bg-white px-3 py-2 dark:border-slate-800 dark:bg-slate-900',
+            !supervisorPortal && 'lg:hidden',
+          )}
+        >
+          {visibleTabs.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               type="button"
               onClick={() => switchTab(id)}
               className={cn(
-                'whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-semibold',
+                'inline-flex items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-semibold',
                 tab === id
                   ? 'bg-emerald-600 text-white'
                   : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
               )}
             >
+              {supervisorPortal ? <Icon className="h-3.5 w-3.5" aria-hidden /> : null}
               {label}
             </button>
           ))}
-        </div>
+        </nav>
 
         <main className="flex-1 space-y-5 p-4 sm:p-6">
-          {account ? (
-            <div className="lg:hidden">
-              <SupervisorProfileCard account={account} />
-            </div>
-          ) : null}
           {tab !== 'overview' ? (
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="relative w-full max-w-md">
@@ -970,7 +1035,11 @@ export function AdminDashboardClient({
                           colSpan={8}
                           className="px-4 py-10 text-center text-sm text-slate-500"
                         >
-                          No projects match your filters.
+                          {supervisorPortal && account && account.territoryCount === 0
+                            ? 'No pin codes are assigned to you yet. Contact BuilBid admin to receive projects in your territory.'
+                            : supervisorPortal && projects.length === 0
+                              ? 'No projects in your assigned pin code territory yet.'
+                              : 'No projects match your filters.'}
                         </td>
                       </tr>
                     ) : (
@@ -1324,6 +1393,44 @@ export function AdminDashboardClient({
             </div>
           ) : null}
 
+          {tab === 'supervisors' && !supervisorPortal ? (
+            <div className={TABLE_SHELL}>
+              <div className="border-b border-slate-200 px-4 py-3 dark:border-slate-800">
+                <h2 className="text-sm font-semibold text-slate-900 dark:text-white">
+                  Supervisors, territory &amp; monthly settlement
+                </h2>
+                <p className="mt-0.5 text-xs text-slate-500">
+                  A supervisor only sees projects whose pin code is in their list. &quot;Settle
+                  month&quot; pays the full pending 0.2% commission and resets it to ₹0.
+                </p>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-left text-sm">
+                  <thead className="border-b border-slate-200 bg-slate-50/75 dark:border-slate-800 dark:bg-slate-950/80">
+                    <tr>
+                      <th className={TH}>Supervisor</th>
+                      <th className={TH}>Assigned pin codes</th>
+                      <th className={TH}>Paid this month</th>
+                      <th className={TH}>Pending balance</th>
+                      <th className={TH}>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {supervisors.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="px-4 py-10 text-center text-sm text-slate-500">
+                          No supervisors registered yet.
+                        </td>
+                      </tr>
+                    ) : (
+                      supervisors.map((s) => <SupervisorRowAdmin key={s.userId} row={s} />)
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : null}
+
           {tab === 'agreements' ? (
             <div className={TABLE_SHELL}>
               <div className="overflow-x-auto">
@@ -1444,6 +1551,9 @@ export function AdminDashboardClient({
           ) : null}
         </main>
       </div>
+      {profileOpen && account ? (
+        <SupervisorProfileModal open onOpenChange={setProfileOpen} account={account} />
+      ) : null}
       {checklistProject ? (
         <SiteVisitChecklistModal
           key={checklistProject.id}
