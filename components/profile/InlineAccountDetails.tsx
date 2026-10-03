@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { BadgeCheck, Mail, MapPin, Pencil, Phone, ShieldCheck } from 'lucide-react';
+import { ChevronRight, Folder, Mail, MapPin, Pencil, Phone, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { updateAccountFieldAction } from '@/app/actions/profile';
@@ -22,11 +23,9 @@ function formatLocation(profile: Profile): string {
 
 export function InlineAccountDetails({
   profile,
-  roleLabel,
   gstNumber,
 }: {
   profile: Profile;
-  roleLabel: string;
   gstNumber?: string | null;
 }) {
   const router = useRouter();
@@ -117,7 +116,7 @@ export function InlineAccountDetails({
   }
 
   return (
-    <div className="space-y-3">
+    <div className="w-full min-w-0 divide-y divide-border rounded-xl border border-border bg-card px-4">
       <EditableDetailRow
         icon={Mail}
         label="Email"
@@ -172,7 +171,7 @@ export function InlineAccountDetails({
         onCancel={cancelEdit}
         onSave={() => void saveField('location')}
       >
-        <div className="grid gap-2 sm:grid-cols-[1fr_7.5rem]">
+        <div className="grid grid-cols-[minmax(0,1fr)_7.5rem] gap-2">
           <Input
             type="text"
             autoComplete="street-address"
@@ -193,8 +192,32 @@ export function InlineAccountDetails({
         </div>
       </EditableDetailRow>
 
-      <ReadOnlyDetailRow icon={BadgeCheck} label="Account Type" value={roleLabel} />
+      <DocumentsFolderRow />
       {gstNumber ? <ReadOnlyDetailRow icon={ShieldCheck} label="GST Number" value={gstNumber} /> : null}
+    </div>
+  );
+}
+
+/** Folder-style entry that opens the user's uploaded document details. */
+function DocumentsFolderRow() {
+  return (
+    <div className="py-3">
+      <Link
+        href="/dashboard/profile/documents"
+        className="group flex w-full items-center gap-3 rounded-lg border border-border bg-muted/40 px-3 py-2.5 text-left transition hover:border-brand/40 hover:bg-brand/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+      >
+        <Folder className="h-5 w-5 flex-shrink-0 text-brand" aria-hidden />
+        <span className="min-w-0 flex-1">
+          <span className="block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Documents
+          </span>
+          <span className="mt-0.5 block text-sm text-foreground">View uploaded documents</span>
+        </span>
+        <ChevronRight
+          className="h-4 w-4 flex-shrink-0 text-muted-foreground transition group-hover:translate-x-0.5"
+          aria-hidden
+        />
+      </Link>
     </div>
   );
 }

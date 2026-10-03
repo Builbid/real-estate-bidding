@@ -5,8 +5,6 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowLeft,
-  ChevronRight,
-  Folder,
   LogOut,
   ShieldCheck,
   CalendarDays,
@@ -50,7 +48,9 @@ export function ProfilePageView({ profile, metrics }: ProfilePageViewProps) {
   const displayName = isFirm ? (profile.company_name ?? profile.full_name) : profile.full_name;
 
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-10">
+    // Single fluid column: width is capped relative to the text size (rem), and nothing here
+    // switches layout at a breakpoint, so browser zoom scales the page without re-arranging it.
+    <div className="mx-auto w-full min-w-0 max-w-3xl space-y-8">
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="sm" asChild className="gap-1.5 -ml-2">
           <Link href="/">
@@ -62,8 +62,8 @@ export function ProfilePageView({ profile, metrics }: ProfilePageViewProps) {
 
       {/* Header */}
       <section>
-        <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+          <div className="flex min-w-0 flex-1 basis-60 items-center gap-3">
             {isFirm ? (
               <FirmLogo
                 companyName={displayName}
@@ -92,7 +92,7 @@ export function ProfilePageView({ profile, metrics }: ProfilePageViewProps) {
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-2 sm:flex-col sm:items-stretch">
+          <div className="flex shrink-0 items-center gap-2">
             {isFirm && (
               <Button variant="outline" size="sm" asChild className="gap-1.5">
                 <Link href="/dashboard/firm/settings">
@@ -114,27 +114,10 @@ export function ProfilePageView({ profile, metrics }: ProfilePageViewProps) {
         </div>
       </section>
 
-      <div className="grid gap-10 lg:grid-cols-2">
-        <section>
-          <h2 className="mb-4 text-base font-semibold text-foreground">Account Details</h2>
-          <InlineAccountDetails
-            profile={profile}
-            roleLabel={roleLabel}
-            gstNumber={isFirm ? profile.gst_number : null}
-          />
-        </section>
-
-        <div className="space-y-8">
-          <Link
-            href="/dashboard/profile/documents"
-            className="inline-flex items-center gap-2 text-base font-semibold text-foreground hover:text-brand"
-          >
-            <Folder className="h-5 w-5 shrink-0 text-muted-foreground" />
-            Documents
-            <ChevronRight className="h-4 w-4 text-muted-foreground" />
-          </Link>
-        </div>
-      </div>
+      <section className="min-w-0">
+        <h2 className="mb-4 text-base font-semibold text-foreground">Account Details</h2>
+        <InlineAccountDetails profile={profile} gstNumber={isFirm ? profile.gst_number : null} />
+      </section>
 
       <SignOutConfirmDialog
         open={signOutOpen}
