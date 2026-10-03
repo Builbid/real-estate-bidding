@@ -11,7 +11,7 @@ import {
 } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { Profile } from '@/lib/types';
-import { normalizeRole } from '@/lib/auth/roles';
+import { normalizeRole, resolveStoredRole } from '@/lib/auth/roles';
 
 interface ProfileContextValue {
   profile: Profile | null;
@@ -31,6 +31,7 @@ function buildFallbackProfile(user: {
   created_at?: string;
 }): Profile {
   const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
+  // Only used when no profile row has ever been loaded; never overrides a known role.
   const role = normalizeRole(meta.role as string | undefined);
   return {
     id: user.id,
@@ -47,6 +48,20 @@ function buildFallbackProfile(user: {
   };
 }
 
+/** Stable content signature used to decide whether a fetched profile actually changed. */
+function profileSignature(p: Profile): string {
+  const sorted = Object.fromEntries(
+    Object.entries(p).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)),
+  );
+  return JSON.stringify(sorted);
+}
+
+function sameProfile(a: Profile | null, b: Profile | null): boolean {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  return profileSignature(a) === profileSignature(b);
+}
+
 export function ProfileProvider({
   initialProfile,
   children,
@@ -58,6 +73,11 @@ export function ProfileProvider({
   const [loading, setLoading] = useState(!initialProfile);
   const supabaseRef = useRef(createClient());
   const inFlightRef = useRef<Promise<void> | null>(null);
+  const profileRef = useRef<Profile | null>(profile);
+
+  useEffect(() => {
+    profileRef.current = profile;
+  }, [profile]);
 
   const refreshProfile = useCallback(async () => {
     // Coalesce concurrent refresh calls (Strict Mode / auth events).
@@ -80,22 +100,27 @@ export function ProfileProvider({
       }
 
       const user = session.user;
-      const { data: row } = await supabase
+      const { data: row, error: rowError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
         .maybeSingle();
 
       if (row) {
-        setProfile({
+        const next: Profile = {
           ...(row as Profile),
-          role: normalizeRole((row as Profile).role),
-        });
+          role: resolveStoredRole((row as Profile).role),
+        };
+        // Keep the same object when nothing changed so consumers don't re-render (flicker).
+        setProfile((prev) => (sameProfile(prev, next) ? prev : next));
         setLoading(false);
         return;
       }
 
-      setProfile(buildFallbackProfile(user));
+      // A failed / empty fetch must never replace a known profile (and its role)
+      // with a metadata-derived guess.
+      if (rowError) console.warn('[ProfileProvider] profile fetch failed:', rowError.message);
+      setProfile((prev) => (prev && prev.id === user.id ? prev : buildFallbackProfile(user)));
       setLoading(false);
     })();
 
@@ -112,7 +137,10 @@ export function ProfileProvider({
   }, []);
 
   const patchProfile = useCallback((patch: Partial<Profile>) => {
-    setProfile((prev) => (prev ? { ...prev, ...patch } : prev));
+    // `role` is assigned server-side only; profile edits can never change it.
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { role: _lockedRole, ...safePatch } = patch;
+    setProfile((prev) => (prev ? { ...prev, ...safePatch } : prev));
   }, []);
 
   const clearProfile = useCallback(() => {
@@ -121,13 +149,26 @@ export function ProfileProvider({
   }, []);
 
   // Load once on mount — do NOT refetch on every route change (was causing duplicate user/profiles calls).
-  useEffect(() => {
+  // `initialProfile` is a new object on every server render, so depend on its
+  // content signature (not identity) to avoid re-running this effect in a loop.
+  const initialSignature = initialProfile ? profileSignature(initialProfile) : null;
+  const [syncedSignature, setSyncedSignature] = useState(initialSignature);
+
+  // Adopt fresh server data (e.g. after router.refresh()) only when its content changed.
+  // Done during render (derived-state pattern) instead of in an effect to avoid cascading renders.
+  if (initialSignature !== syncedSignature) {
+    setSyncedSignature(initialSignature);
     if (initialProfile) {
+      setProfile((prev) => (sameProfile(prev, initialProfile) ? prev : initialProfile));
       setLoading(false);
-      return;
     }
-    void refreshProfile();
-  }, [initialProfile, refreshProfile]);
+  }
+
+  const hasInitialProfile = Boolean(initialProfile);
+
+  useEffect(() => {
+    if (!hasInitialProfile) void refreshProfile();
+  }, [hasInitialProfile, refreshProfile]);
 
   useEffect(() => {
     function onAppSignOut() {
@@ -142,11 +183,14 @@ export function ProfileProvider({
     const supabase = supabaseRef.current;
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_OUT') {
         setProfile(null);
         setLoading(false);
       } else if (event === 'SIGNED_IN') {
+        // Supabase re-emits SIGNED_IN on tab refocus; skip when the profile is
+        // already loaded for this session (refetching caused visible flicker).
+        if (session?.user?.id && profileRef.current?.id === session.user.id) return;
         void refreshProfile();
       }
       // Ignore TOKEN_REFRESHED / INITIAL_SESSION to avoid redundant profile fetches.

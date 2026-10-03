@@ -1,9 +1,15 @@
 import type { UserRole } from '@/lib/types';
 
-/** Map legacy JWT / metadata role strings to current DB roles. */
-export function normalizeRole(role: string | null | undefined): UserRole {
-  switch (role) {
+/**
+ * Strictly map a stored / legacy role string to a current DB role.
+ * Returns null for unknown values — it NEVER guesses a role. Use this wherever
+ * a role could be persisted or used for authorization.
+ */
+export function parseRole(role: string | null | undefined): UserRole | null {
+  switch (typeof role === 'string' ? role.trim().toLowerCase() : role) {
     case 'owner':
+    case 'home_owner':
+    case 'homeowner':
       return 'owner';
     case 'admin':
       return 'admin';
@@ -14,9 +20,28 @@ export function normalizeRole(role: string | null | undefined): UserRole {
       return 'construction_firm';
     case 'service_provider':
       return 'service_provider';
+    case 'field_supervisor':
+      return 'field_supervisor';
     default:
-      return 'labour_contractor';
+      return null;
   }
+}
+
+/**
+ * Role to keep on a profile loaded from the database: the stored value is
+ * authoritative and is never rewritten. Only alias spellings are canonicalised;
+ * an unrecognised value is passed through untouched rather than coerced.
+ */
+export function resolveStoredRole(role: string | null | undefined): UserRole {
+  return parseRole(role) ?? (role as UserRole);
+}
+
+/**
+ * Display / routing normalisation. Unknown values fall back to the least
+ * privileged account type ('owner'), never to a worker (Mistri) role.
+ */
+export function normalizeRole(role: string | null | undefined): UserRole {
+  return parseRole(role) ?? 'owner';
 }
 
 /** Role from the JWT only — no database lookup. */
@@ -28,7 +53,7 @@ export function roleFromUserMetadata(
   const flag = meta.hire_service_provider;
   if (flag === true || flag === 'true') return 'service_provider';
   if (typeof meta.role === 'string' && meta.role.trim()) {
-    return normalizeRole(meta.role);
+    return parseRole(meta.role);
   }
   return null;
 }
@@ -40,7 +65,7 @@ export function needsServiceProviderLookup(role: UserRole | null): boolean {
 
 /** Dashboard URL — labour contractors keep /dashboard/builder route. */
 export function getDashboardPath(role: string | null | undefined): string {
-  const normalized = normalizeRole(role);
+  const normalized = parseRole(role);
   switch (normalized) {
     case 'owner':
       return '/dashboard/owner';
@@ -52,13 +77,16 @@ export function getDashboardPath(role: string | null | undefined): string {
       return '/dashboard/admin';
     case 'service_provider':
       return '/dashboard/provider';
+    case 'field_supervisor':
+      return '/admin/dashboard';
     default:
-      return '/dashboard/builder';
+      // Unknown / missing role: never guess a worker dashboard.
+      return '/dashboard/profile';
   }
 }
 
 export function isBidderRole(role: string | null | undefined): boolean {
-  const normalized = normalizeRole(role);
+  const normalized = parseRole(role);
   return (
     normalized === 'labour_contractor' ||
     normalized === 'construction_firm' ||
@@ -78,7 +106,7 @@ export function isContractorWorkerRole(role: string | null | undefined): boolean
 /** Owners (and admins) may post projects. */
 export function canPostProjects(role: string | null | undefined): boolean {
   if (role == null || String(role).trim() === '') return false;
-  const normalized = normalizeRole(role);
+  const normalized = parseRole(role);
   return normalized === 'owner' || normalized === 'admin';
 }
 

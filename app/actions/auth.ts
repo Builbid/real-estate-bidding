@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { getDashboardPath, normalizeRole } from '@/lib/auth/roles'
+import { getDashboardPath, parseRole } from '@/lib/auth/roles'
 import { validateGstNumber } from '@/lib/validation/gst'
 import { stripMobileDigits, validateMobile } from '@/lib/validation/mobile'
 import {
@@ -51,18 +51,15 @@ export async function signInAction(
     redirect(nextPath)
   }
 
-  const metaRole = data.user.user_metadata?.role as string | undefined;
-  if (metaRole) {
-    redirect(getDashboardPath(metaRole));
-  }
-
+  // Database role is authoritative; JWT metadata can be stale.
   const { data: profile } = await supabase
     .from('profiles')
     .select('role')
     .eq('id', data.user.id)
-    .single()
+    .maybeSingle()
 
-  redirect(getDashboardPath(profile?.role))
+  const metaRole = data.user.user_metadata?.role as string | undefined
+  redirect(getDashboardPath(profile?.role ?? metaRole))
 }
 
 // ─── Sign Up ────────────────────────────────────────────────────────────────
@@ -73,7 +70,7 @@ export async function signUpAction(
   const fullName = (formData.get('full_name') as string | null)?.trim() ?? ''
   const email    = (formData.get('email')     as string | null)?.trim() ?? ''
   const password = (formData.get('password')  as string | null)         ?? ''
-  const roleRaw  = (formData.get('role')      as string | null)         ?? 'labour_contractor'
+  const roleRaw  = (formData.get('role')      as string | null)?.trim() ?? ''
   const mobile   = stripMobileDigits((formData.get('mobile') as string | null) ?? '')
   const address  = (formData.get('physical_address') as string | null)?.trim() ?? ''
   const pincode  = (formData.get('pincode')   as string | null)?.trim() ?? ''
@@ -83,15 +80,19 @@ export async function signUpAction(
   const tradeRaw    = (formData.get('trade') as string | null)?.trim() ?? ''
   const classPackages = parseConstructionPackagesFromForm(formData)
 
-  const role: SignUpRole =
-    roleRaw === 'owner' ||
-    roleRaw === 'construction_firm' ||
-    roleRaw === 'labour_contractor' ||
-    roleRaw === 'service_provider'
-      ? roleRaw
-      : roleRaw === 'builder'
-        ? 'labour_contractor'
-        : 'labour_contractor'
+  // Never default a signup to the worker role: a missing/unknown role is rejected.
+  const parsedRole = parseRole(roleRaw)
+  const role: SignUpRole | null =
+    parsedRole === 'owner' ||
+    parsedRole === 'construction_firm' ||
+    parsedRole === 'labour_contractor' ||
+    parsedRole === 'service_provider'
+      ? parsedRole
+      : null
+
+  if (!role) {
+    return { error: 'Please choose an account type to continue.', success: false }
+  }
 
   if (!fullName || !email || !password) {
     return { error: 'Please fill in all required fields.', success: false }

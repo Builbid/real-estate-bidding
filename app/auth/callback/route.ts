@@ -11,6 +11,8 @@ function safeNextPath(next: string | null): string {
   return '/dashboard';
 }
 
+const NEW_ACCOUNT_WINDOW_MS = 5 * 60 * 1000;
+
 async function applyOAuthRoleHint(
   supabase: SupabaseClient,
   userId: string,
@@ -21,6 +23,18 @@ async function applyOAuthRoleHint(
   let role = roleHint;
   if (role === 'bidder') role = 'labour_contractor';
   if (!['owner', 'labour_contractor', 'construction_firm'].includes(role)) return;
+
+  // Role lock: a hint may only seed a brand-new account. Returning users who
+  // sign in through a differently-hinted login page (e.g. an owner using the
+  // contractor login with Google) must keep their stored role.
+  const { data: existing } = await supabase
+    .from('profiles')
+    .select('created_at')
+    .eq('id', userId)
+    .maybeSingle();
+  const createdAt = existing?.created_at ? new Date(existing.created_at).getTime() : NaN;
+  const isNewAccount = Number.isFinite(createdAt) && Date.now() - createdAt < NEW_ACCOUNT_WINDOW_MS;
+  if (!isNewAccount) return;
 
   const serviceType = role === 'owner' ? null : role;
 
@@ -37,17 +51,17 @@ async function resolveRedirectPath(
 ): Promise<string> {
   if (next !== '/dashboard') return next;
 
-  const { data: { user } } = await supabase.auth.getUser();
-  const metaRole = user?.user_metadata?.role as string | undefined;
-  if (metaRole) return getDashboardPath(metaRole);
-
+  // Database role first — JWT metadata can be stale.
   const { data: profile } = await supabase
     .from('profiles')
     .select('role')
     .eq('id', userId)
-    .single();
+    .maybeSingle();
+  if (profile?.role) return getDashboardPath(profile.role);
 
-  return getDashboardPath(profile?.role);
+  const { data: { user } } = await supabase.auth.getUser();
+  const metaRole = user?.user_metadata?.role as string | undefined;
+  return getDashboardPath(metaRole);
 }
 
 /**

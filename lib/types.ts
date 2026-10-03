@@ -8,7 +8,7 @@ import type { MistriDetails } from './mistriDetails';
 import type { PainterDetails } from './painterDetails';
 import type { TradeDetails } from './tradeWorkDetails';
 
-export type UserRole = 'owner' | 'labour_contractor' | 'construction_firm' | 'admin' | 'service_provider';
+export type UserRole = 'owner' | 'labour_contractor' | 'construction_firm' | 'admin' | 'service_provider' | 'field_supervisor';
 /** A trade bidder registers under the shared 'service_provider' role for one of these trades. */
 export type TradeServiceType =
   | 'painter'

@@ -1,4 +1,4 @@
-import { normalizeRole } from '@/lib/auth/roles';
+import { parseRole } from '@/lib/auth/roles';
 import { getProviderSpecialtyLabel, isProviderSpecialtyType } from '@/lib/trades';
 
 type RoleMessageKey =
@@ -6,7 +6,8 @@ type RoleMessageKey =
   | 'roles.labour_contractor'
   | 'roles.construction_firm'
   | 'roles.admin'
-  | 'roles.service_provider';
+  | 'roles.service_provider'
+  | 'roles.field_supervisor';
 
 /** Badge text under the user name (specialty name for service providers). */
 export function getProfileRoleLabel(
@@ -15,7 +16,9 @@ export function getProfileRoleLabel(
 ): string {
   const custom = profile.role_display?.trim();
   if (custom) return custom;
-  const normalized = normalizeRole(profile.role);
+  const normalized = parseRole(profile.role);
+  // Unknown stored value: show it as-is rather than mislabel the account.
+  if (!normalized) return profile.role;
   if (normalized === 'service_provider' && isProviderSpecialtyType(profile.service_type)) {
     return getProviderSpecialtyLabel(profile.service_type);
   }

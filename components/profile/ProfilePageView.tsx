@@ -17,7 +17,6 @@ import { Button } from '@/components/ui/button';
 import { FirmLogo } from '@/components/firm/FirmLogo';
 import { SignOutConfirmDialog } from '@/components/shared/SignOutConfirmDialog';
 import { useTranslation } from '@/lib/context/LanguageProvider';
-import { normalizeRole } from '@/lib/auth/roles';
 import { getProfileRoleLabel } from '@/lib/auth/profileRoleLabel';
 import { clientSignOut } from '@/lib/auth/clientSignOut';
 import { useDashboardProfile } from '@/lib/context/ProfileProvider';
@@ -46,8 +45,7 @@ export function ProfilePageView({ profile, metrics }: ProfilePageViewProps) {
   const { clearProfile } = useDashboardProfile();
   const [signOutOpen, setSignOutOpen] = useState(false);
 
-  const normalizedRole = normalizeRole(profile.role);
-  const isFirm = normalizedRole === 'construction_firm';
+  const isFirm = profile.role === 'construction_firm';
   const roleLabel = getProfileRoleLabel(profile, t);
   const displayName = isFirm ? (profile.company_name ?? profile.full_name) : profile.full_name;
 
@@ -95,7 +93,7 @@ export function ProfilePageView({ profile, metrics }: ProfilePageViewProps) {
           </div>
 
           <div className="flex flex-wrap gap-2 sm:flex-col sm:items-stretch">
-            {normalizedRole === 'construction_firm' && (
+            {isFirm && (
               <Button variant="outline" size="sm" asChild className="gap-1.5">
                 <Link href="/dashboard/firm/settings">
                   <Settings className="h-4 w-4" />

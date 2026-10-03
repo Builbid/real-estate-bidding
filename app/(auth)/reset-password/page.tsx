@@ -60,13 +60,14 @@ function ResetPasswordForm() {
     const metaRole = user?.user_metadata?.role as string | undefined;
     let redirectPath = getDashboardPath(metaRole);
 
-    if (user && !metaRole) {
+    if (user) {
+      // Database role is authoritative; JWT metadata can be stale.
       const { data: profile } = await supabase
         .from('profiles')
         .select('role')
         .eq('id', user.id)
-        .single();
-      redirectPath = getDashboardPath(profile?.role);
+        .maybeSingle();
+      if (profile?.role) redirectPath = getDashboardPath(profile.role);
     }
 
     setTimeout(() => {

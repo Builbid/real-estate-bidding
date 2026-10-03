@@ -4,6 +4,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { UserRole } from '@/lib/types'
 import {
   needsServiceProviderLookup,
+  parseRole,
   roleFromUserMetadata,
 } from '@/lib/auth/roles'
 
@@ -12,6 +13,15 @@ async function resolveUserRole(
   userId: string,
   meta: Record<string, unknown>,
 ): Promise<UserRole> {
+  // The database role is the source of truth; JWT metadata can be stale.
+  const { data: row } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', userId)
+    .maybeSingle()
+  const fromDb = parseRole((row as { role?: string } | null)?.role)
+  if (fromDb) return fromDb
+
   const fromMeta = roleFromUserMetadata(meta)
   if (fromMeta && !needsServiceProviderLookup(fromMeta)) {
     return fromMeta
@@ -23,7 +33,8 @@ async function resolveUserRole(
     .eq('id', userId)
     .maybeSingle()
   if (sp) return 'service_provider'
-  return fromMeta ?? 'labour_contractor'
+  // Never invent a worker role when nothing authoritative is available.
+  return fromMeta ?? 'owner'
 }
 
 export interface ResolvedUser {

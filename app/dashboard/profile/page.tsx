@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { getAuthUser } from '@/lib/supabase/getUser';
 import { ProfilePageView, type ProfileActivityMetrics } from '@/components/profile/ProfilePageView';
-import { normalizeRole } from '@/lib/auth/roles';
+import { resolveStoredRole } from '@/lib/auth/roles';
 import type { Profile, UserRole } from '@/lib/types';
 import { EMPTY_RATING_STATS, type BuilderRatingStats } from '@/lib/builderRatings';
 
@@ -80,13 +80,15 @@ export default async function DashboardProfilePage() {
 
   const { data: dbProfile } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
 
+  // The stored database role is authoritative and is read-only here: it is never
+  // recomputed, defaulted, or written back from this page.
   const profile: Profile = dbProfile
-    ? { ...(dbProfile as Profile), role: normalizeRole((dbProfile as Profile).role) }
+    ? { ...(dbProfile as Profile), role: resolveStoredRole((dbProfile as Profile).role) }
     : {
         id: userId,
         email,
         full_name: fullName || 'User',
-        role: normalizeRole(role),
+        role,
         mobile: null,
         physical_address: null,
         pincode: null,
@@ -96,8 +98,7 @@ export default async function DashboardProfilePage() {
         updated_at: new Date().toISOString(),
       };
 
-  const normalizedRole = normalizeRole(profile.role);
-  const metrics = await getProfileMetrics(supabase, userId, normalizedRole);
+  const metrics = await getProfileMetrics(supabase, userId, profile.role);
 
   metrics.memberSince = new Date(profile.created_at).toLocaleDateString('en-IN', {
     year: 'numeric',

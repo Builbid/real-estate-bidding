@@ -12,16 +12,16 @@ export default async function DashboardRedirect() {
   const user = session?.user;
   if (!user?.id) redirect('/login');
 
-  const metaRole = roleFromUserMetadata(user.user_metadata as Record<string, unknown>);
-  if (metaRole) {
-    redirect(getDashboardPath(metaRole));
-  }
-
+  // Database role is authoritative; JWT metadata can be stale.
   const { data: profile } = await supabase
     .from('profiles')
     .select('role')
     .eq('id', user.id)
     .maybeSingle();
+  if (profile?.role) {
+    redirect(getDashboardPath(profile.role));
+  }
 
-  redirect(getDashboardPath(profile?.role));
+  const metaRole = roleFromUserMetadata(user.user_metadata as Record<string, unknown>);
+  redirect(getDashboardPath(metaRole));
 }

@@ -5,7 +5,7 @@ import { TopBar } from './TopBar';
 import { ProfileProvider } from '@/lib/context/ProfileProvider';
 import { DashboardFrame } from '@/components/dashboard/DashboardFrame';
 import type { Profile, UserRole } from '@/lib/types';
-import { normalizeRole } from '@/lib/auth/roles';
+import { normalizeRole, resolveStoredRole } from '@/lib/auth/roles';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -22,7 +22,7 @@ async function getUser() {
     .eq('id', userId)
     .maybeSingle();
 
-  if (profile) return { ...(profile as Profile), role: normalizeRole((profile as Profile).role) };
+  if (profile) return { ...(profile as Profile), role: resolveStoredRole((profile as Profile).role) };
 
   return {
     id: userId, email, full_name: fullName || 'User', role,
@@ -39,6 +39,7 @@ const ROLE_CONFIG: Record<UserRole, { color: 'amber' | 'teal' | 'indigo' | 'viol
   construction_firm:  { color: 'violet' },
   admin:              { color: 'indigo' },
   service_provider:   { color: 'emerald' },
+  field_supervisor:   { color: 'indigo' },
 };
 
 const ROLE_AVATAR: Record<UserRole, string> = {
@@ -47,6 +48,7 @@ const ROLE_AVATAR: Record<UserRole, string> = {
   construction_firm:  'from-violet-400 to-indigo-600',
   admin:              'from-violet-400 to-indigo-600',
   service_provider:   'from-emerald-400 to-teal-500',
+  field_supervisor:   'from-violet-400 to-indigo-600',
 };
 
 export default async function DashboardLayout({ children }: DashboardLayoutProps) {

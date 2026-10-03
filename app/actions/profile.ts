@@ -7,6 +7,9 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { stripMobileDigits, validateMobile } from '@/lib/validation/mobile';
 import { formatPincodeInput, validatePincode } from '@/lib/validation/pincode';
 
+/** Only these profile columns may be changed through account-edit actions. */
+const EDITABLE_ACCOUNT_COLUMNS = new Set(['email', 'mobile', 'physical_address', 'pincode']);
+
 const ALLOWED_TYPES = new Set(['image/jpeg', 'image/jpg', 'image/png', 'image/webp']);
 
 const EXT_BY_MIME: Record<string, string> = {
@@ -215,9 +218,15 @@ export async function updateAccountFieldAction(
     return { error: 'Unknown account field.' };
   }
 
+  // Role lock: profile edits may only touch whitelisted contact fields. The
+  // assigned role (and any other column) can never be written from here.
+  const safePatch = Object.fromEntries(
+    Object.entries(patch).filter(([key]) => EDITABLE_ACCOUNT_COLUMNS.has(key)),
+  );
+
   const { error: updateError } = await supabase
     .from('profiles')
-    .update(patch)
+    .update(safePatch)
     .eq('id', user.id);
 
   if (updateError) {

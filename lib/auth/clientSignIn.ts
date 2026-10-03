@@ -22,6 +22,17 @@ export async function clientSignIn(
     return { error: error.message, redirectPath: '/dashboard' };
   }
 
+  // Database role is authoritative; JWT metadata can be stale.
+  const { data: dbProfile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', data.user.id)
+    .maybeSingle();
+
+  if (dbProfile?.role) {
+    return { error: null, redirectPath: getDashboardPath(dbProfile.role) };
+  }
+
   const meta = (data.user.user_metadata ?? {}) as Record<string, unknown>;
   const metaRole = roleFromUserMetadata(meta);
 
@@ -43,11 +54,5 @@ export async function clientSignIn(
     return { error: null, redirectPath: getDashboardPath(metaRole) };
   }
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', data.user.id)
-    .maybeSingle();
-
-  return { error: null, redirectPath: getDashboardPath(profile?.role) };
+  return { error: null, redirectPath: getDashboardPath(null) };
 }
