@@ -112,6 +112,12 @@ import {
 import { ADDITIONAL_REQUIREMENTS_PLACEHOLDER, ProjectStartDatePicker, WIZARD_SECTION_LABEL, WizardAccentLabels, withSectionColon } from '@/components/owner/wizard/StartTimeAndNotes';
 import { ReviewSummaryList, WizardStepper } from '@/components/owner/wizard/ReviewSummary';
 import { StepGuidanceNotes } from '@/components/owner/wizard/StepGuidanceNotes';
+import { FloorCopyFromSelect } from '@/components/owner/wizard/FloorCopyFromSelect';
+import {
+  FLOOR_COPY_MANUAL_VALUE,
+  resolveFloorCopySource,
+  type FloorCopyOption,
+} from '@/lib/floorCopy';
 import { FieldError, messageMatches, useScrollToFirstInvalid } from '@/components/owner/wizard/fieldValidation';
 import { cn } from '@/lib/utils';
 import { createProjectAction } from '@/app/actions/createProject';
@@ -537,6 +543,8 @@ interface FormState {
   customFloorSelected: boolean;
   customFloors: number[];
   floorWorkById: Record<string, FloorWorkForm>;
+  /** "Copy requirements from" choice per floor: absent = not chosen, '' = manual. */
+  floorCopySources: Record<string, string>;
   approximateArea: string;
   /** Whole-number floor count for foundation provision (Ground Floor major only). */
   futureFloorCustom: string;
@@ -557,6 +565,7 @@ const EMPTY_FORM: FormState = {
   customFloorSelected: false,
   customFloors: [],
   floorWorkById: {},
+  floorCopySources: {},
   approximateArea: '',
   futureFloorCustom: '',
   contractType: null,
@@ -638,12 +647,12 @@ function rccScopeFloorsFromForm(form: FormState): Array<{
   });
 }
 
-function pruneFloorWorkById(
-  floorWorkById: Record<string, FloorWorkForm>,
+function pruneFloorWorkById<T = FloorWorkForm>(
+  floorWorkById: Record<string, T>,
   entries: Array<{ floorId: MistriFloorId; customFloorNumber: number | null }>,
-): Record<string, FloorWorkForm> {
+): Record<string, T> {
   const keep = new Set(entries.map((e) => floorWorkKey(e.floorId, e.customFloorNumber)));
-  const next: Record<string, FloorWorkForm> = {};
+  const next: Record<string, T> = {};
   for (const [key, value] of Object.entries(floorWorkById)) {
     if (keep.has(key)) next[key] = value;
   }
@@ -818,6 +827,7 @@ export function LabourContractorProjectWizard() {
           floorWorkById: {
             [ASSAM_BUILDING_TYPE]: { ...ASSAM_FULL_FINISHED_WORK },
           },
+          floorCopySources: {},
           futureFloorCustom: '',
           contractType: 'labor_only',
           boundaryWall: { ...EMPTY_BOUNDARY_WALL },
@@ -831,6 +841,7 @@ export function LabourContractorProjectWizard() {
           customFloorSelected: false,
           customFloors: [],
           floorWorkById: {},
+          floorCopySources: {},
           futureFloorCustom: '',
           contractType: 'labor_only',
           projectStartTimeType: null,
@@ -845,6 +856,7 @@ export function LabourContractorProjectWizard() {
         customFloorSelected: false,
         customFloors: [],
         floorWorkById: {},
+        floorCopySources: {},
         futureFloorCustom: '',
         contractType: null,
         boundaryWall: { ...EMPTY_BOUNDARY_WALL },
@@ -890,6 +902,7 @@ export function LabourContractorProjectWizard() {
       return {
         ...draft,
         floorWorkById,
+        floorCopySources: pruneFloorWorkById(f.floorCopySources, entries),
         ...(droppedGround ? { futureFloorCustom: '' } : {}),
       };
     });
@@ -909,9 +922,11 @@ export function LabourContractorProjectWizard() {
         customFloorSelected: selected,
         customFloors: floors,
       };
+      const entries = selectedFloorEntries(draft);
       return {
         ...draft,
-        floorWorkById: pruneFloorWorkById(f.floorWorkById, selectedFloorEntries(draft)),
+        floorWorkById: pruneFloorWorkById(f.floorWorkById, entries),
+        floorCopySources: pruneFloorWorkById(f.floorCopySources, entries),
       };
     });
     setStep1Errors((errors) => {
@@ -936,6 +951,53 @@ export function LabourContractorProjectWizard() {
           ...f.floorWorkById,
           [key]: { ...current, ...patch },
         },
+      };
+    });
+    setStep2Error(null);
+  }
+
+  /**
+   * "Copy requirements from: [Floor]" — copies every requirement of an earlier floor
+   * onto this one (work scope, materials, areas). Choosing Deselect / Clear / Manual
+   * resets the floor. All fields stay editable afterwards.
+   */
+  function copyFloorWorkFrom(
+    floorId: MistriFloorId,
+    customFloorNumber: number | null,
+    sourceKey: string,
+  ) {
+    const targetKey = floorWorkKey(floorId, customFloorNumber);
+    setForm((f) => {
+      const source =
+        sourceKey === FLOOR_COPY_MANUAL_VALUE
+          ? EMPTY_FLOOR_WORK
+          : (f.floorWorkById[sourceKey] ?? EMPTY_FLOOR_WORK);
+      const nextById: Record<string, FloorWorkForm> = {
+        ...f.floorWorkById,
+        [targetKey]: { ...source, workTypes: [...source.workTypes] },
+      };
+      // Keep the lower-structure lock rules intact (same as toggleRccScope).
+      const nextScopeFloors = rccScopeFloorsFromForm({ ...f, floorWorkById: nextById });
+      for (const entry of selectedFloorEntries(f)) {
+        if (isAssamMistriFloor(entry.floorId)) continue;
+        if (
+          !isFinishingScopeBlockedByLowerStructure(
+            entry.floorId,
+            nextScopeFloors,
+            entry.customFloorNumber,
+          )
+        ) {
+          continue;
+        }
+        const entryKey = floorWorkKey(entry.floorId, entry.customFloorNumber);
+        nextById[entryKey] = withoutFinishingScopes(
+          nextById[entryKey] ?? EMPTY_FLOOR_WORK,
+        );
+      }
+      return {
+        ...f,
+        floorWorkById: nextById,
+        floorCopySources: { ...f.floorCopySources, [targetKey]: sourceKey },
       };
     });
     setStep2Error(null);
@@ -1607,8 +1669,15 @@ export function LabourContractorProjectWizard() {
               ) : (
                 <>
               <div className="space-y-6">
-              {assembledFloorWork.map((fw) => {
+              {assembledFloorWork.map((fw, floorIndex) => {
                 const key = floorWorkKey(fw.floorId, fw.customFloorNumber);
+                const copyOptions: FloorCopyOption[] = assembledFloorWork
+                  .slice(0, floorIndex)
+                  .filter((prev) => !isAssamMistriFloor(prev.floorId))
+                  .map((prev) => ({
+                    value: floorWorkKey(prev.floorId, prev.customFloorNumber),
+                    label: formatMistriFloorWorkLabel(prev),
+                  }));
                 const entry = form.floorWorkById[key] ?? EMPTY_FLOOR_WORK;
                 const isAssam = isAssamMistriFloor(fw.floorId);
                 const selectedScopes = rccScopesFromWorkTypes(
@@ -1629,9 +1698,20 @@ export function LabourContractorProjectWizard() {
                     data-field-invalid={step2Error?.includes(title) ? 'true' : undefined}
                   >
                     <div className="space-y-1.5">
-                      <p className={FORM_BADGE}>
-                        {isAssam ? 'Main House' : title}
-                      </p>
+                      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+                        <p className={FORM_BADGE}>
+                          {isAssam ? 'Main House' : title}
+                        </p>
+                        {!isAssam && (
+                          <FloorCopyFromSelect
+                            options={copyOptions}
+                            value={resolveFloorCopySource(form.floorCopySources[key], copyOptions)}
+                            onChange={(source) =>
+                              copyFloorWorkFrom(fw.floorId, fw.customFloorNumber ?? null, source)
+                            }
+                          />
+                        )}
+                      </div>
                       <p className={HELPER_TEXT}>
                         {isAssam
                           ? 'Full finishing upto Plastering and Roof work is included. Select roof truss, roofing sheet, flooring, and foundation depth.'
