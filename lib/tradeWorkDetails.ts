@@ -666,21 +666,21 @@ export const PLUMBING_FIXTURE_FIELDS: {
 }[] = [
   { key: 'basin', label: 'No. of Basin', shortLabel: 'Basin', subOption: 'wash_basin', points: 1 },
   { key: 'taps', label: 'No. of Taps', shortLabel: 'Taps', subOption: 'taps_accessories', points: 1 },
-  { key: 'shower', label: 'No. of Shower', shortLabel: 'Shower', subOption: 'overhead_shower', points: 2 },
-  { key: 'geyser', label: 'No. of Geyser', shortLabel: 'Geyser', subOption: 'geyser', points: 2 },
+  { key: 'shower', label: 'No. of Shower', shortLabel: 'Shower', subOption: 'overhead_shower', points: 1 },
+  { key: 'geyser', label: 'No. of Geyser', shortLabel: 'Geyser', subOption: 'geyser', points: 1 },
   {
     key: 'commode',
     label: 'No. of Western Commode (Includes waste pipeline connection)',
     shortLabel: 'Western Commode',
     subOption: 'western_commode',
-    points: 2,
+    points: 1,
   },
   {
     key: 'indian_pan',
     label: 'No. of Indian Toilet Pan (Includes waste pipeline connection)',
     shortLabel: 'Indian Toilet Pan',
     subOption: 'indian_toilet_pan',
-    points: 2,
+    points: 1,
   },
   {
     key: 'floor_drain',
@@ -689,13 +689,13 @@ export const PLUMBING_FIXTURE_FIELDS: {
     subOption: 'floor_drain_jali',
     points: 1,
   },
-  { key: 'water_tank', label: 'No. of Water Tank', shortLabel: 'Water Tank', subOption: 'water_tank_unit', points: 2 },
+  { key: 'water_tank', label: 'No. of Water Tank', shortLabel: 'Water Tank', subOption: 'water_tank_unit', points: 1 },
   {
     key: 'motor',
     label: 'No. of Motor / Submersible Connection',
     shortLabel: 'Motor / Submersible',
     subOption: 'motor_submersible',
-    points: 2,
+    points: 1,
   },
   {
     key: 'washing_machine',
@@ -1628,14 +1628,12 @@ export function plumbingFloorPoints(item: PlumbingFixtureCounts): number {
   return PLUMBING_FIXTURE_FIELDS.reduce((sum, field) => sum + item[field.key] * field.points, 0);
 }
 
+/** Actual fixture counts only (no point multipliers), e.g. "Basin 2 · Shower 2 · Geyser 1". */
 export function formatPlumbingFloorPointBreakdown(item: PlumbingFixtureCounts): string {
   const parts = PLUMBING_FIXTURE_FIELDS.flatMap((field) =>
-    item[field.key] > 0
-      ? [`${field.shortLabel} ${item[field.key]}×${field.points}`]
-      : [],
+    item[field.key] > 0 ? [`${field.shortLabel} ${item[field.key]}`] : [],
   );
-  const points = plumbingFloorPoints(item);
-  return parts.length > 0 ? `${points} pts · ${parts.join(' · ')}` : '0 pts';
+  return parts.join(' · ');
 }
 
 export function fixtureCountsToSubOptions(

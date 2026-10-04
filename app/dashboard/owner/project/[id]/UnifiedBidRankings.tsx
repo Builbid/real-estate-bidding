@@ -173,7 +173,8 @@ export function UnifiedBidRankings({
   const painterBidFloors = bidRankContext.painterFloors ?? [];
   const isPainterFloorBid = painterBidFloors.length > 0;
   const isPainter = project.service_type === 'painter';
-  const isTotalEstimatedCostMetric = isMistriCivilBid || isPointRateBid || isPainter;
+  const isFixtureRateBid = Boolean(scopeBid?.fixtureRateBid && isPlumbingBid);
+  const isTotalEstimatedCostMetric = isMistriCivilBid || isPointRateBid || isFixtureRateBid || isPainter;
   const plumbingOptions = isPlumbingBid ? readProjectPlumbingBidOptions(project) : [];
   const electricianOptions = isElectricianBid ? readProjectElectricianBidOptions(project) : [];
   const interiorOptions = isInteriorBid ? readProjectInteriorBidOptions(project) : [];
@@ -287,7 +288,7 @@ export function UnifiedBidRankings({
                 }`}>
                   {project.service_type === 'plumber' && !isPlumbingBid ? 'Rs. ' : '₹'}
                   {formatBidMetric(
-                    isTradeUnitRateBid && !isPointRateBid && bid.rates?.weighted_index
+                    isTradeUnitRateBid && !isPointRateBid && !isFixtureRateBid && bid.rates?.weighted_index
                       ? bid.rates.weighted_index
                       : getBidRankMetric(bid, bidRankContext),
                   )}

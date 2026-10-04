@@ -9,6 +9,7 @@ import type { ServiceType } from '@/lib/types';
 import { normalizeServiceType } from '@/lib/validation/bidRates';
 import { readProjectInteriorBidOptions } from '@/lib/interiorBid';
 import {
+  isPlumbingFixtureRateOption,
   isPlumbingPointRateProject,
   readPlumbingPointRateFloors,
   readProjectPlumbingBidOptions,
@@ -34,6 +35,8 @@ export interface ScopeRateBidItems {
   unitRateBid?: boolean;
   /** Plumber/electrician fixture-point bids: per-floor rate per point, ranked by estimated fixture total. */
   pointRateBid?: boolean;
+  /** Plumber: independent per-fixture rates ranked by Σ (quantity × rate). Implies unitRateBid. */
+  fixtureRateBid?: boolean;
 }
 
 const LEGACY_CARPENTER_SCOPE_ORDER: CarpenterScopeType[] = [
@@ -97,6 +100,21 @@ export function resolveScopeRateBidItems(
   }
 
   if (service === 'plumber' || tradeDetails?.service === 'plumber') {
+    // Independent per-fixture rates: Total Bid = Σ (qty × rate).
+    const fixtureOptions = readProjectPlumbingBidOptions(project);
+    if (fixtureOptions.length > 0 && fixtureOptions.every(isPlumbingFixtureRateOption)) {
+      return {
+        labels: fixtureOptions.map((option) => option.label),
+        count: fixtureOptions.length,
+        kind: 'plumbing',
+        flexibleRates: false,
+        unitSuffix: '/unit',
+        rateUnits: fixtureOptions.map((option) => option.unitSuffix),
+        optionIds: fixtureOptions.map((option) => option.id),
+        unitRateBid: true,
+        fixtureRateBid: true,
+      };
+    }
     if (isPlumbingPointRateProject(readNestedProjectDetail(project, 'trade_details'))) {
       const floors = readPlumbingPointRateFloors(project);
       if (floors.length > 0) {

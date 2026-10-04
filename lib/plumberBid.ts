@@ -27,6 +27,8 @@ import {
   type DrainageInstallMethod,
   type PipingPackageKind,
   type PlumberDetails,
+  PLUMBING_FLOOR_FIXTURE_FIELDS,
+  type PlumbingFixtureKind,
   type PlumbingFloorFixtureCounts,
   type PlumbingSubOptionId,
   type PlumbingTargetFloor,
@@ -68,6 +70,9 @@ export interface PlumbingBidOption {
   note?: string;
   isPiping?: boolean;
   unitType?: 'per_sqft' | 'per_unit';
+  /** Per-fixture bidding: number of fixtures the owner listed (rate × quantity = line total). */
+  quantity?: number;
+  fixtureKind?: PlumbingFixtureKind;
 }
 
 export interface PlumbingWeightageContext {
@@ -160,6 +165,9 @@ export function plumbingPackageGroupsForOptions(options: PlumbingBidOption[]): A
   label: string;
   options: PlumbingBidOption[];
 }> {
+  if (options.length > 0 && options.every(isPlumbingFixtureRateOption)) {
+    return [{ id: 'fixtures', label: PLUMBING_FIXTURE_RATE_SECTION_TITLE, options }];
+  }
   const byId = new Map(options.map((option) => [option.id, option]));
   const grouped = PLUMBING_SCOPE_PACKAGES.flatMap((pkg) => {
     const groupOptions = pkg.options.flatMap((item) => {
@@ -179,7 +187,96 @@ export function countPlumbingBidOptions(input: PlumbingBidOptionInput): number {
   return buildPlumbingBidOptions(input).length;
 }
 
+/** Section header for the per-fixture rate inputs. */
+export const PLUMBING_FIXTURE_RATE_SECTION_TITLE = 'Fixture-wise Piping & Fitting Rates (₹ per fixture)';
+
+/** Every fixture rate must cover the complete job. */
+export const PLUMBING_FIXTURE_RATE_INCLUSION_NOTE =
+  'Each rate must include complete work: Concealed / Non-concealed piping + plaster cutting + final chinaware / CP fitting.';
+
+const PLUMBING_FIXTURE_RATE_META: Partial<
+  Record<PlumbingFixtureKind, { title: string; explanation: string }>
+> = {
+  basin: {
+    title: 'Basin Piping & Fitting Rate',
+    explanation: 'Basin (Includes water supply & waste piping + final basin & CP fitting)',
+  },
+  taps: {
+    title: 'Taps Piping & Fitting Rate',
+    explanation: 'Taps (Includes water line piping + final CP tap fitting)',
+  },
+  shower: {
+    title: 'Shower Piping & Fitting Rate',
+    explanation: 'Shower (Includes water line piping + final shower fitting)',
+  },
+  geyser: {
+    title: 'Geyser Piping & Fitting Rate',
+    explanation: 'Geyser (Includes Hot & Cold Inlet/Outlet piping + final fitting)',
+  },
+  commode: {
+    title: 'Western Commode Piping & Fitting Rate',
+    explanation:
+      'Western Commode (Includes water & waste pipeline connection + final chinaware fitting)',
+  },
+  indian_pan: {
+    title: 'Indian Toilet Pan Piping & Fitting Rate',
+    explanation: 'Indian Toilet Pan (Includes waste pipeline connection + final pan fitting)',
+  },
+  washing_machine: {
+    title: 'Washing Machine Point Rate',
+    explanation: 'Washing Machine Point (Includes inlet/outlet piping + final tap & valve fitting)',
+  },
+};
+
+export const PLUMBING_FIXTURE_RATE_ID_PREFIX = 'fixture:';
+
+export function isPlumbingFixtureRateOption(option: Pick<PlumbingBidOption, 'id'>): boolean {
+  return option.id.startsWith(PLUMBING_FIXTURE_RATE_ID_PREFIX);
+}
+
+/**
+ * Independent per-fixture bid options. Quantity is the actual fixture count summed
+ * across the owner's selected floors — no point multipliers.
+ */
+export function buildPlumbingFixtureRateOptions(
+  floors: PlumbingFloorFixtureCounts[] | null | undefined,
+): PlumbingBidOption[] {
+  if (!floors?.length) return [];
+  return PLUMBING_FLOOR_FIXTURE_FIELDS.flatMap((field) => {
+    const meta = PLUMBING_FIXTURE_RATE_META[field.key];
+    if (!meta) return [];
+    const quantity = floors.reduce((sum, floor) => sum + (floor[field.key] ?? 0), 0);
+    if (quantity <= 0) return [];
+    return [{
+      id: `${PLUMBING_FIXTURE_RATE_ID_PREFIX}${field.key}`,
+      shortLabel: meta.title,
+      label: meta.title,
+      unit: 'per_unit' as const,
+      unitSuffix: '/unit',
+      weight: 1,
+      note: `${meta.explanation} × ${quantity}`,
+      unitType: 'per_unit' as const,
+      quantity,
+      fixtureKind: field.key,
+    }];
+  });
+}
+
+/** Total Bid = Σ (quantity × rate) over every independent fixture. */
+export function computePlumbingFixtureBidTotal(
+  unitRates: Record<string, number>,
+  options: Array<Pick<PlumbingBidOption, 'id' | 'quantity'>>,
+): number {
+  return options.reduce(
+    (sum, option) => sum + (option.quantity ?? 0) * (unitRates[option.id] ?? 0),
+    0,
+  );
+}
+
 export function buildPlumbingBidOptions(input: PlumbingBidOptionInput): PlumbingBidOption[] {
+  const fixtureOptions = buildPlumbingFixtureRateOptions(input.floorFixtureCounts);
+  if (fixtureOptions.length > 0) return fixtureOptions;
+
   const selectedSubOptions = input.selectedSubOptions ?? [];
   if (selectedSubOptions.length > 0) {
     return buildPlumbingUnitRateOptions(
@@ -440,6 +537,8 @@ export function buildPlumbingUnitRatePayload(
   unit_rates: Record<string, number>;
   weighted_index: number;
   bid_unit: 'per_point';
+  total_bid_amount?: number;
+  total_estimated_cost?: number;
 } {
   const cleaned: Record<string, number> = {};
   for (const option of options) {
@@ -447,11 +546,18 @@ export function buildPlumbingUnitRatePayload(
     if (value != null && value > 0) cleaned[option.id] = value;
   }
   const weightedIndex = computePlumbingWeightedIndex(cleaned, options, context);
+  // Per-fixture bids rank on Σ (qty × rate); other unit-rate bids keep the weighted index.
+  const fixtureTotal = options.some(isPlumbingFixtureRateOption)
+    ? computePlumbingFixtureBidTotal(cleaned, options)
+    : 0;
   return {
     ground_rate: rankingRateFromWeightedScore(weightedIndex),
     unit_rates: cleaned,
     weighted_index: weightedIndex,
     bid_unit: 'per_point',
+    ...(fixtureTotal > 0
+      ? { total_bid_amount: fixtureTotal, total_estimated_cost: fixtureTotal }
+      : {}),
   };
 }
 

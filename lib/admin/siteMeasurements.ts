@@ -13,6 +13,7 @@ import {
   resolveMistriCivilFloors,
 } from '@/lib/bid/mistriCivilCost';
 import {
+  isPlumbingFixtureRateOption,
   isPlumbingPointRateProject,
   parsePlumbingRunningFootRate,
   parsePlumbingUnitRates,
@@ -187,6 +188,23 @@ function civilLines(project: ProjectLike, rates: Partial<BidRates>): Measurement
 
 function plumbingLines(project: ProjectLike, rates: Partial<BidRates>): MeasurementLine[] {
   const unitRates = parsePlumbingUnitRates(rates.unit_rates);
+  const fixtureOptions = readProjectPlumbingBidOptions(project);
+  if (fixtureOptions.length > 0 && fixtureOptions.every(isPlumbingFixtureRateOption)) {
+    return fixtureOptions.flatMap((option) => {
+      const rate = unitRates[option.id] ?? 0;
+      if (!(rate > 0)) return [];
+      return [
+        {
+          id: `opt:${option.id}`,
+          group: 'Fixture piping & fitting',
+          label: option.shortLabel,
+          unit: 'nos',
+          rate,
+          ownerQuantity: option.quantity ?? null,
+        },
+      ];
+    });
+  }
   if (isPlumbingPointRateProject(readNestedProjectDetail(project, 'trade_details'))) {
     const lines: MeasurementLine[] = readPlumbingPointRateFloors(project).flatMap((floor) => {
       const rate = unitRates[plumbingPointRateKey(floor.floor)] ?? 0;

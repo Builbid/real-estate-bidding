@@ -95,6 +95,9 @@ import {
 import {
   PLUMBING_LABOUR_ONLY_DISCLAIMER,
   PLUMBING_TAPE_MEASURE_DISCLAIMER,
+  PLUMBING_FIXTURE_RATE_INCLUSION_NOTE,
+  PLUMBING_FIXTURE_RATE_SECTION_TITLE,
+  computePlumbingFixtureBidTotal,
   computePlumbingPointBidTotal,
   computePlumbingWeightedIndex,
   getPlumbingPointRateDisplayEntries,
@@ -183,6 +186,8 @@ type BidWorkItemView =
       placeholder: string;
       kind: 'unit';
       optionId: string;
+      /** Per-fixture bids: fixture count (line total = quantity × rate). */
+      quantity?: number;
       floorKey?: undefined;
     }
   | {
@@ -316,6 +321,10 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
   const pointRateFloors = isPlumbingPointRateBid ? plumbingPointFloors : electricianPointFloors;
   const isInteriorBid = scopeBid?.kind === 'interior';
   const isTradeUnitRateBid = Boolean(scopeBid?.unitRateBid);
+  /** Plumber per-fixture bid: independent rates, Total Bid = Σ (qty × rate). */
+  const isFixtureRateBid = Boolean(scopeBid?.fixtureRateBid && isPlumbingBid);
+  /** Weighted-index ranked unit-rate bids (everything except point / per-fixture total bids). */
+  const isWeightedIndexBid = isTradeUnitRateBid && !isPointRateBid && !isFixtureRateBid;
   const plumbingBidOptions = isPlumbingBid ? readProjectPlumbingBidOptions(project) : [];
   const electricianBidOptions = isElectricianBid ? readProjectElectricianBidOptions(project) : [];
   const interiorBidOptions = isInteriorBid ? readProjectInteriorBidOptions(project) : [];
@@ -360,9 +369,12 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
       category: group.label,
       description: option.note,
       unitSuffix: option.unitSuffix,
-      placeholder: formatBidRatePlaceholder(option.unitSuffix),
+      placeholder: isFixtureRateBid
+        ? `Enter ${option.shortLabel.toLowerCase()} (₹ per fixture)`
+        : formatBidRatePlaceholder(option.unitSuffix),
       kind: 'unit' as const,
       optionId: option.id,
+      quantity: isFixtureRateBid && 'quantity' in option ? option.quantity : undefined,
     })),
   );
 
@@ -604,6 +616,9 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
   const electricianPointTotal = isElectricianPointRateBid
     ? computeElectricianPointBidTotal(electricianPointRateMap, electricianPointFloors)
     : 0;
+  const fixtureBidTotal = isFixtureRateBid
+    ? computePlumbingFixtureBidTotal(unitRateValues, plumbingBidOptions)
+    : 0;
   const liveCivilRates = isMistriCivilBid
     ? mistriCivilFloors.map((_, index) => Number(civilRateInputs[index] ?? '') || 0)
     : [];
@@ -633,15 +648,17 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
     ? (liveCivilPayload?.total_project_cost ?? liveCivilPayload?.total_civil_cost ?? 0)
     : isPointRateBid
     ? (isPlumbingPointRateBid ? plumbingPointTotal : electricianPointTotal)
+    : isFixtureRateBid
+    ? fixtureBidTotal
     : isTradeUnitRateBid
     ? tradeWeightedIndex
     : isPainter
     ? livePainterTotal
     : computeAverageMetric(rates, floorCount);
   const isTotalEstimatedCostMetric =
-    isMistriCivilBid || isPointRateBid || isPainter;
+    isMistriCivilBid || isPointRateBid || isFixtureRateBid || isPainter;
   const displayBidAverage = (bid: { total_sum_metric: number; rates?: BidRates | null }) => {
-    if (isTradeUnitRateBid && !isPointRateBid) {
+    if (isWeightedIndexBid) {
       const stored = bid.rates?.weighted_index;
       if (stored != null && stored > 0) return formatBidMetric(stored);
       const count = Math.max(tradeBidOptions.length, 1);
@@ -1207,7 +1224,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                               ? 'Trip Rate Metric'
                               : isPlumberFlat
                                 ? 'Your Rate'
-                                : isTradeUnitRateBid && !isPointRateBid
+                                : isWeightedIndexBid
                                   ? 'Weighted Index'
                                 : isTotalEstimatedCostMetric
                                   ? 'Total Estimated Project Cost (₹)'
@@ -1227,7 +1244,11 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                       </div>
                       {isTotalEstimatedCostMetric && (
                         <p className="text-xs text-muted-foreground text-right">
-                          {isPointRateBid ? 'Fixture points × rate' : 'Floor area × rate'}
+                          {isFixtureRateBid
+                        ? 'Σ (Qty × Rate)'
+                        : isPointRateBid
+                          ? 'Fixture points × rate'
+                          : 'Floor area × rate'}
                           <br />
                           lowest quote #1
                         </p>
@@ -1257,13 +1278,13 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                       )}
                       {isPlumbingBid && (
                         <p className="text-xs text-muted-foreground text-right">
-                          {isPlumbingPointRateBid
+                          {isPlumbingPointRateBid || isFixtureRateBid
                             ? 'estimated total'
                             : isTradeUnitRateBid
                               ? 'baseline score'
                               : 'overall avg'}
                           <br />
-                          {isPlumbingPointRateBid ? 'lowest total wins' : 'lowest avg wins'}
+                          {isPlumbingPointRateBid || isFixtureRateBid ? 'lowest total wins' : 'lowest avg wins'}
                         </p>
                       )}
                       {isElectricianPointRateBid && (
@@ -1336,6 +1357,19 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                     <Info className="w-3.5 h-3.5 text-amber-400 flex-shrink-0 mt-0.5" />
                     <p className="text-xs text-amber-200/90 leading-relaxed">
                       {PLUMBING_TAPE_MEASURE_DISCLAIMER}
+                    </p>
+                  </div>
+                )}
+                {isFixtureRateBid && (
+                  <div className="rounded-lg border border-emerald-500/25 bg-emerald-500/5 p-2.5">
+                    <p className="text-xs font-semibold text-foreground">
+                      {PLUMBING_FIXTURE_RATE_SECTION_TITLE}
+                    </p>
+                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                      {PLUMBING_FIXTURE_RATE_INCLUSION_NOTE}
+                    </p>
+                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                      Total Bid = Σ (Quantity × Rate) of every fixture below.
                     </p>
                   </div>
                 )}
@@ -1433,6 +1467,16 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                             error={visibleError}
                             required={!isUnitItem}
                           />
+                          )}
+                          {item.kind === 'unit' && item.quantity != null && item.quantity > 0 && (
+                            <p className={cn(
+                              'text-xs font-medium',
+                              numericValue != null && numericValue > 0 ? estimateClass : 'text-muted-foreground',
+                            )}>
+                              {numericValue != null && numericValue > 0
+                                ? `${item.quantity} × ₹${numericValue.toLocaleString('en-IN')} = ₹${(item.quantity * numericValue).toLocaleString('en-IN')}`
+                                : `Quantity: ${item.quantity}`}
+                            </p>
                           )}
                           {isCivilItem && item.costKind === 'civil' && numericValue != null && numericValue > 0 && item.slabAreaSqft > 0 && (
                             <p className={cn('text-xs font-medium', estimateClass)}>
@@ -1584,7 +1628,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                           ? 'Trip Rate Metric'
                           : isPlumberFlat
                             ? 'Your Rate'
-                            : isTradeUnitRateBid && !isPointRateBid
+                            : isWeightedIndexBid
                               ? 'Weighted Index'
                             : isTotalEstimatedCostMetric
                             ? 'Total Estimated Project Cost (₹)'
@@ -1607,7 +1651,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                   {isPlumberFlat && (
                     <p className="text-xs text-muted-foreground text-right">lump sum</p>
                   )}
-                  {isPlumbingBid && !isPointRateBid && (
+                  {isPlumbingBid && !isPointRateBid && !isFixtureRateBid && (
                     <p className="text-xs text-muted-foreground text-right">
                       {isTradeUnitRateBid
                         ? 'Weighted index'
@@ -1618,7 +1662,11 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                   )}
                   {isTotalEstimatedCostMetric && (
                     <p className="text-xs text-muted-foreground text-right">
-                      {isPointRateBid ? 'Fixture points × rate' : 'Floor area × rate'}
+                      {isFixtureRateBid
+                        ? 'Σ (Qty × Rate)'
+                        : isPointRateBid
+                          ? 'Fixture points × rate'
+                          : 'Floor area × rate'}
                       <br />
                       lowest quote #1
                     </p>
