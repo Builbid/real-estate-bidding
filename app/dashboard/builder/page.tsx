@@ -9,6 +9,7 @@ import { canWorkerBidOnProject } from '@/lib/bid/workerBidEligibility';
 import { isWorkerAccountRole } from '@/lib/auth/roles';
 import { isFirmProject } from '@/lib/project/display';
 import { AuctionRow } from './AuctionRow';
+import { SharedAgreementsPanel } from '@/components/dashboard/SharedAgreementsPanel';
 import { PortfolioManager } from './PortfolioManager';
 import { CompletedProjectsPreview } from '@/components/dashboard/CompletedProjectsPreview';
 import { DashboardStatTiles } from '@/components/dashboard/DashboardStatTiles';
@@ -97,6 +98,8 @@ export default async function BuilderDashboard() {
           { label: 'Total Participated', value: myBids.length },
         ]}
       />
+
+      <SharedAgreementsPanel perspective="worker" />
 
       <div>
         <div className="flex items-center gap-2 mb-4">

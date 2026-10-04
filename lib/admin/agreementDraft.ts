@@ -14,6 +14,8 @@ export interface AgreementDraft {
     state: string;
     serviceType: string | null;
     isMistriCivil: boolean;
+    ownerId: string;
+    builderId: string;
   };
   client: { name: string; email: string };
   contractor: { name: string; email: string };
@@ -23,6 +25,10 @@ export interface AgreementDraft {
   defaults: {
     plinthAreaSqft: number | null;
     totalCost: number | null;
+    /** Accepted (winning) bid amount, shown for comparison with the measured total. */
+    bidTotal: number | null;
+    /** Supervisor's measured Total Accurate Cost (null until a checklist with measurements is saved). */
+    measuredTotal: number | null;
     startDate: string;
     completionDate: string;
   };
@@ -89,10 +95,15 @@ export async function loadAgreementDraft(
 
   const contract = (contractRes.data as DigitalContractRecord | null) ?? null;
   const bidTotal = bid?.total_sum_metric != null ? Number(bid.total_sum_metric) : null;
+  // Precedence: signed/sent contract -> supervisor's measured Total Accurate Cost -> accepted bid.
+  const measuredTotal =
+    visit?.totalAccurateCost != null && visit.totalAccurateCost > 0 ? visit.totalAccurateCost : null;
   const totalCost =
     contract != null
       ? Number(contract.total_agreed_cost)
-      : bidTotal ?? (project.budget_range_max != null ? Number(project.budget_range_max) : null);
+      : measuredTotal ??
+        bidTotal ??
+        (project.budget_range_max != null ? Number(project.budget_range_max) : null);
 
   const today = todayIstIso();
   const startDate = contract ? String(contract.start_date).slice(0, 10) : addDaysIso(today, 7);
@@ -107,6 +118,8 @@ export async function loadAgreementDraft(
       state: project.state,
       serviceType: project.service_type,
       isMistriCivil: isMistriCivilService(project.service_type),
+      ownerId: project.owner_id,
+      builderId: project.selected_builder_id,
     },
     client: { name: owner?.full_name?.trim() || 'Homeowner', email: owner?.email?.trim() || '' },
     contractor: {
@@ -124,8 +137,10 @@ export async function loadAgreementDraft(
       : null,
     defaults: {
       plinthAreaSqft:
-        visit?.plinthAreaSqft ??
+        (visit && visit.plinthAreaSqft > 0 ? visit.plinthAreaSqft : null) ??
         (contract?.plinth_area_sqft != null ? Number(contract.plinth_area_sqft) : null),
+      bidTotal,
+      measuredTotal,
       totalCost: totalCost != null && Number.isFinite(totalCost) ? totalCost : null,
       startDate,
       completionDate,

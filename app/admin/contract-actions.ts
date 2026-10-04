@@ -100,7 +100,9 @@ export async function sendContractAgreementForSignatureAction(
       return { error: 'The accepted bid amount is missing for this project.' };
     }
     // Prototype testing: without a checklist the plinth area typed on the agreement page is used.
-    if (draft.visit) plinthInput = String(draft.visit.plinthAreaSqft);
+    if (draft.visit && draft.visit.plinthAreaSqft > 0) plinthInput = String(draft.visit.plinthAreaSqft);
+    // Derived server-side: the supervisor's measured "Total Accurate Cost" (measured quantity x
+    // agreed rates) when a checklist is saved, otherwise the accepted bid amount.
     costInput = String(draft.defaults.totalCost);
   }
 

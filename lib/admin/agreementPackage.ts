@@ -55,8 +55,10 @@ export async function loadThumbRuleInput(
     track_type: (project.track_type ?? 'RCC') as TrackType,
     total_floors: visit?.floors ?? project.total_floors,
     plot_area_sqft:
-      visit != null ? Math.round(visit.plotLengthFt * visit.plotWidthFt) : project.plot_area_sqft,
-    floor_area_sqft: visit?.plinthAreaSqft ?? project.floor_area_sqft,
+      visit != null && visit.plotLengthFt > 0 && visit.plotWidthFt > 0
+        ? Math.round(visit.plotLengthFt * visit.plotWidthFt)
+        : project.plot_area_sqft,
+    floor_area_sqft: visit && visit.plinthAreaSqft > 0 ? visit.plinthAreaSqft : project.floor_area_sqft,
     mistri_details: project.mistri_details,
   };
 }

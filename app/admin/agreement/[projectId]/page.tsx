@@ -6,6 +6,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { loadAgreementDraft } from '@/lib/admin/agreementDraft';
 import { buildThumbRuleGuide } from '@/lib/admin/agreementPackage';
 import { soilLabel } from '@/lib/admin/siteVisit';
+import { tradeLabelFor } from '@/lib/admin/siteMeasurements';
 import { projectTerritoryError } from '@/lib/admin/territory';
 import { PROTOTYPE_AUTO_AGREEMENT } from '@/lib/admin/prototype';
 import { AgreementWorkspace, type AgreementWorkspaceProps } from './AgreementWorkspace';
@@ -69,6 +70,14 @@ export default async function AdminAgreementPage({
   const contract = draft.contract;
   const visit = draft.visit;
 
+  // When the supervisor last shared this agreement with the Home Owner and the Mistri / Worker.
+  const { data: sharedRow } = await admin
+    .from('shared_agreements')
+    .select('shared_at')
+    .eq('project_id', draft.project.id)
+    .maybeSingle();
+  const sharedAt = (sharedRow?.shared_at as string | undefined) ?? null;
+
   const props: AgreementWorkspaceProps = {
     project: draft.project,
     client: draft.client,
@@ -76,11 +85,15 @@ export default async function AdminAgreementPage({
     siteRows: visit
       ? [
           { label: 'Site visit date', value: visit.visitDate.split('-').reverse().join('/') },
-          { label: 'Plot (L Ã— W)', value: `${visit.plotLengthFt} ft Ã— ${visit.plotWidthFt} ft` },
-          { label: 'Measured plinth area', value: `${visit.plinthAreaSqft.toLocaleString('en-IN')} sq. ft.` },
+          ...(visit.plotLengthFt > 0 && visit.plotWidthFt > 0
+            ? [{ label: 'Plot (L x W)', value: ` ft x ${visit.plotWidthFt} ft` }]
+            : []),
+          ...(visit.plinthAreaSqft > 0
+            ? [{ label: 'Measured plinth area', value: `${visit.plinthAreaSqft.toLocaleString('en-IN')} sq. ft.` }]
+            : []),
           { label: 'Floors', value: String(visit.floors) },
           { label: 'Soil condition', value: soilLabel(visit.soilType) },
-          { label: 'Access road width', value: `${visit.roadWidthFt} ft` },
+          ...(visit.roadWidthFt > 0 ? [{ label: 'Access road width', value: `${visit.roadWidthFt} ft` }] : []),
           {
             label: 'Facilities',
             value:
@@ -98,6 +111,9 @@ export default async function AdminAgreementPage({
     valuesLocked:
       (Boolean(visit) || PROTOTYPE_AUTO_AGREEMENT) && !isOfficialAdminEmail(session.email),
     defaults: draft.defaults,
+    tradeLabel: tradeLabelFor(draft.project.serviceType),
+    lineItems: visit?.lineItems ?? [],
+    sharedAt,
     contract: contract
       ? {
           status: contract.status,

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Bell, CheckCircle2, Trophy, X } from 'lucide-react'
+import { Bell, CheckCircle2, FileText, Trophy, X } from 'lucide-react'
 import { useNotifications, notificationText } from '@/lib/hooks/useNotifications'
 import { cn } from '@/lib/utils'
 
@@ -18,6 +18,7 @@ function timeAgo(iso: string) {
 const TYPE_ICON: Record<string, React.ReactNode> = {
   builder_selected:  <CheckCircle2 className="w-4 h-4 text-emerald-400" />,
   you_were_selected: <Trophy       className="w-4 h-4 text-amber-400"   />,
+  agreement_shared:  <FileText     className="w-4 h-4 text-sky-400"     />,
 }
 
 export function NotificationBell() {

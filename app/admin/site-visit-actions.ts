@@ -13,6 +13,12 @@ import {
   loadSiteVisit,
   SITE_VISIT_TABLE_MISSING_MESSAGE,
 } from '@/lib/admin/siteVisitStore';
+import {
+  buildMeasurementTemplate,
+  computeMeasuredCost,
+  type MeasurementTemplate,
+} from '@/lib/admin/siteMeasurements';
+import type { BidRates } from '@/lib/types';
 import { finalizeApprovedAgreement } from '@/lib/admin/agreementPackage';
 import { projectTerritoryError } from '@/lib/admin/territory';
 import { PROTOTYPE_AUTO_AGREEMENT } from '@/lib/admin/prototype';
@@ -96,27 +102,84 @@ async function isAlreadyApproved(
   return Boolean(data?.approved_at);
 }
 
-export async function loadSiteVisitAction(
-  projectRef: string,
-): Promise<{ visit: SiteVisitRecord | null }> {
+/**
+ * Builds the trade-specific measurement template (owner-submitted specs copied verbatim +
+ * the measurable lines priced at the winning bid's rates) for a project.
+ */
+async function loadMeasurementTemplate(
+  admin: ReturnType<typeof createAdminClient>,
+  projectId: string,
+  builderId: string | null,
+): Promise<{ template: MeasurementTemplate; defaultFloors: number }> {
+  const { data: project } = await admin.from('projects').select('*').eq('id', projectId).maybeSingle();
+  let rates: BidRates | null = null;
+  if (builderId) {
+    const { data: bid } = await admin
+      .from('bids')
+      .select('rates')
+      .eq('project_id', projectId)
+      .eq('builder_id', builderId)
+      .eq('is_withdrawn', false)
+      .limit(1)
+      .maybeSingle();
+    rates = (bid?.rates as BidRates | null | undefined) ?? null;
+  }
+  const floors = Number(project?.total_floors);
+  return {
+    template: buildMeasurementTemplate(project ?? {}, rates),
+    defaultFloors: Number.isFinite(floors) && floors >= 1 ? Math.min(20, Math.trunc(floors)) : 1,
+  };
+}
+
+export async function loadSiteVisitAction(projectRef: string): Promise<{
+  visit: SiteVisitRecord | null;
+  template: MeasurementTemplate | null;
+  defaultFloors: number;
+}> {
   const session = await requireOfficialAdmin();
   const resolved = await resolveAssignedProject(projectRef, session);
-  if ('error' in resolved) return { visit: null };
-  return { visit: await loadSiteVisit(resolved.admin, resolved.project.id) };
+  if ('error' in resolved) return { visit: null, template: null, defaultFloors: 1 };
+  const [visit, context] = await Promise.all([
+    loadSiteVisit(resolved.admin, resolved.project.id),
+    loadMeasurementTemplate(resolved.admin, resolved.project.id, resolved.project.selected_builder_id),
+  ]);
+  return { visit, template: context.template, defaultFloors: context.defaultFloors };
 }
 
 export async function saveSiteVisitChecklistAction(
   projectRef: string,
   input: SiteVisitInput,
-): Promise<{ error?: string; ok?: boolean; plinthAreaSqft?: number }> {
+): Promise<{
+  error?: string;
+  ok?: boolean;
+  plinthAreaSqft?: number;
+  totalAccurateCost?: number | null;
+}> {
   const session = await requireOfficialAdmin();
-
-  const parsed = parseSiteVisitInput(input, todayIst());
-  if ('error' in parsed) return { error: parsed.error };
 
   const resolved = await resolveAssignedProject(projectRef, session);
   if ('error' in resolved) return { error: resolved.error };
   const { admin, project } = resolved;
+
+  // The measurement lines (and their agreed rates) always come from the server, never the client.
+  const { template } = await loadMeasurementTemplate(admin, project.id, project.selected_builder_id);
+
+  const parsed = parseSiteVisitInput(input, todayIst(), { requirePlot: template.needsPlotDimensions });
+  if ('error' in parsed) return { error: parsed.error };
+
+  const measurements: Record<string, string> = {};
+  for (const line of template.lines) measurements[line.id] = String(input.measurements?.[line.id] ?? '').trim();
+  const cost = computeMeasuredCost(template.lines, measurements);
+  if (cost.missing.length > 0) {
+    const first = cost.missing[0];
+    return {
+      error: `Enter the measured quantity for "${first.label}" (${first.group}). Use 0 if it is not part of the work.`,
+    };
+  }
+  const totalAccurateCost = template.lines.length > 0 ? cost.total : null;
+  if (totalAccurateCost != null && totalAccurateCost <= 0) {
+    return { error: 'Enter at least one measured quantity greater than 0 to compute the total cost.' };
+  }
 
   if (await isAlreadyApproved(admin, project.id)) {
     return { error: 'This agreement is already approved. The site checklist is locked.' };
@@ -129,9 +192,9 @@ export async function saveSiteVisitChecklistAction(
       project_id: project.id,
       supervisor_id: session.userId,
       visit_date: v.visitDate,
-      plot_length_ft: v.plotLengthFt,
-      plot_width_ft: v.plotWidthFt,
-      plinth_area_sqft: v.plinthAreaSqft,
+      plot_length_ft: v.plotLengthFt > 0 ? v.plotLengthFt : null,
+      plot_width_ft: v.plotWidthFt > 0 ? v.plotWidthFt : null,
+      plinth_area_sqft: v.plinthAreaSqft > 0 ? v.plinthAreaSqft : null,
       floors: v.floors,
       soil_type: v.soilType,
       road_width_ft: v.roadWidthFt,
@@ -139,6 +202,10 @@ export async function saveSiteVisitChecklistAction(
       electricity_available: v.electricityAvailable,
       storage_available: v.storageAvailable,
       site_notes: v.siteNotes || null,
+      trade_key: template.tradeKey,
+      measurements,
+      line_items: cost.items,
+      total_accurate_cost: totalAccurateCost,
       updated_at: now,
     },
     { onConflict: 'project_id' },
@@ -150,7 +217,8 @@ export async function saveSiteVisitChecklistAction(
   }
 
   revalidatePath('/admin/dashboard');
-  return { ok: true, plinthAreaSqft: v.plinthAreaSqft };
+  revalidatePath(`/admin/agreement/${project.id}`);
+  return { ok: true, plinthAreaSqft: v.plinthAreaSqft, totalAccurateCost };
 }
 
 /**

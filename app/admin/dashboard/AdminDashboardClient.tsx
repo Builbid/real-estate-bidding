@@ -5,8 +5,9 @@ import { useRouter } from 'next/navigation';
 import { useMemo, useState, useTransition } from 'react';
 import { toast, Toaster } from 'sonner';
 import { BuilBidLogo } from '@/components/shared/BuilBidLogo';
+import { ThemeToggle } from '@/components/shared/ThemeToggle';
+import { NotificationBell } from '@/components/shared/NotificationBell';
 import {
-  ArrowLeft,
   ArrowRight,
   BadgeCheck,
   Building2,
@@ -809,25 +810,16 @@ export function AdminDashboardClient({
               <BuilBidLogo size="md" compact className="sm:hidden" />
               <BuilBidLogo size="md" className="hidden sm:inline-flex" />
             </Link>
-            <Link
-              href="/"
-              className="group inline-flex shrink-0 items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-xs transition hover:-translate-x-0.5 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-emerald-700 dark:hover:bg-emerald-950/50 dark:hover:text-emerald-200"
-            >
-              <ArrowLeft
-                className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5"
-                aria-hidden
-              />
-              Back to Home
-            </Link>
             <span className="hidden h-8 w-px bg-slate-200 dark:bg-slate-700 md:block" aria-hidden />
           {supervisorPortal && account ? (
             // Only the circle avatar and the name: tap either to open the full-page profile & accounts view.
             <Link
               href="/admin/dashboard/accounts"
               aria-label="Open supervisor profile and accounts"
-              className="group flex min-w-0 items-center gap-3 rounded-full py-1 pr-4 text-left transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 dark:hover:bg-slate-800"
+              title="Open profile & accounts"
+              className="group flex min-w-0 items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/80 py-1.5 pl-1.5 pr-4 text-left shadow-xs transition hover:border-emerald-300 hover:bg-emerald-50/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 dark:border-slate-700 dark:bg-slate-800/60 dark:hover:border-emerald-700 dark:hover:bg-emerald-950/40"
             >
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-800 ring-2 ring-white transition group-hover:ring-emerald-200 dark:bg-emerald-950 dark:text-emerald-200 dark:ring-slate-900">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-800 ring-2 ring-white transition group-hover:ring-emerald-200 dark:bg-emerald-950 dark:text-emerald-200 dark:ring-slate-800">
                 <UserRound className="h-5 w-5" aria-hidden />
               </span>
               <span className="min-w-0 truncate text-base font-semibold text-slate-900 dark:text-white">
@@ -848,12 +840,16 @@ export function AdminDashboardClient({
             </div>
           )}
           </div>
-          <form action={adminSignOutAction}>
-            <Button type="submit" variant="outline" size="sm">
-              <LogOut className="h-3.5 w-3.5" />
-              Sign out
-            </Button>
-          </form>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <NotificationBell />
+            <form action={adminSignOutAction}>
+              <Button type="submit" variant="outline" size="sm">
+                <LogOut className="h-3.5 w-3.5" />
+                Sign out
+              </Button>
+            </form>
+          </div>
         </header>
 
         {/* Navigation: directly below the header. Financials live on the full-page Accounts view. */}

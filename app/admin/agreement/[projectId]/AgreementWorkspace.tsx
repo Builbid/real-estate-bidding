@@ -14,6 +14,7 @@ import {
   Loader2,
   RefreshCcw,
   Send,
+  Share2,
   ShieldCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -21,6 +22,8 @@ import { Input } from '@/components/ui/input';
 import { IndianContractDateField } from '@/components/admin/IndianContractDateField';
 import { sendContractAgreementForSignatureAction } from '@/app/admin/contract-actions';
 import { retryApprovalDispatchAction } from '@/app/admin/site-visit-actions';
+import { shareAgreementCopyAction } from '@/app/admin/agreement-share-actions';
+import { groupMeasurementLines, type MeasuredLineItem } from '@/lib/admin/siteMeasurements';
 import { formatAadhaarInput } from '@/lib/contract/aadhaar';
 import { cn } from '@/lib/utils';
 
@@ -43,9 +46,16 @@ export interface AgreementWorkspaceProps {
   defaults: {
     plinthAreaSqft: number | null;
     totalCost: number | null;
+    bidTotal: number | null;
+    measuredTotal: number | null;
     startDate: string;
     completionDate: string;
   };
+  tradeLabel: string;
+  /** Itemised measured quantity x agreed rate lines derived from the Site Visit Checklist. */
+  lineItems: MeasuredLineItem[];
+  /** ISO timestamp of the last "Share Agreement Copy" (null when never shared). */
+  sharedAt: string | null;
   contract: {
     status: 'pending_esign' | 'partially_signed' | 'signed';
     clientSigned: boolean;
@@ -68,8 +78,8 @@ const CARD =
   'rounded-xl border border-slate-200/80 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900';
 
 function inr(value: number | null | undefined): string {
-  if (value == null) return 'â€”';
-  return `â‚¹${value.toLocaleString('en-IN')}`;
+  if (value == null) return '—';
+  return `₹${value.toLocaleString('en-IN')}`;
 }
 
 function RowList({ rows }: { rows: Row[] }) {
@@ -116,6 +126,8 @@ export function AgreementWorkspace(props: AgreementWorkspaceProps) {
   const [message, setMessage] = useState<string | null>(null);
   const [sending, startSending] = useTransition();
   const [retrying, startRetrying] = useTransition();
+  const [sharing, startSharing] = useTransition();
+  const [sharedAt, setSharedAt] = useState<string | null>(props.sharedAt);
 
   const approved = Boolean(contract?.approved);
   const signedAwaitingApproval = contract?.status === 'signed' && !approved;
@@ -144,6 +156,21 @@ export function AgreementWorkspace(props: AgreementWorkspaceProps) {
       setMessage(result.message ?? 'Agreement sent for Aadhaar OTP eSign.');
       setClientAadhaar('');
       setContractorAadhaar('');
+      router.refresh();
+    });
+  }
+
+  function shareCopy() {
+    setError(null);
+    setMessage(null);
+    startSharing(async () => {
+      const result = await shareAgreementCopyAction(project.id, { startDate, completionDate });
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+      setSharedAt(result.sharedAt ?? new Date().toISOString());
+      setMessage(result.message ?? 'Agreement copy shared with the Home Owner and the Mistri / Worker.');
       router.refresh();
     });
   }
@@ -239,6 +266,94 @@ export function AgreementWorkspace(props: AgreementWorkspaceProps) {
             { label: 'Agreed project cost', value: inr(defaults.totalCost) },
           ]}
         />
+      </section>
+
+      {props.lineItems.length > 0 ? (
+        <section className={CARD}>
+          <h2 className="mb-1 flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white">
+            <FileText className="h-4 w-4 text-emerald-600" />
+            Agreed rates &amp; measured quantities ({props.tradeLabel})
+          </h2>
+          <p className="mb-3 text-xs text-slate-500">
+            Derived from the supervisor&apos;s site-visit measurements at the accepted bid rates.
+          </p>
+          <div className="space-y-3">
+            {groupMeasurementLines(props.lineItems).map((group) => (
+              <div
+                key={group.group}
+                className="rounded-lg border border-slate-200/80 bg-slate-50/60 p-3 dark:border-slate-700/70 dark:bg-slate-800/40"
+              >
+                <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-600 dark:text-slate-300">
+                  {group.group}
+                </p>
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[420px] text-left text-sm">
+                    <thead className="text-[11px] uppercase tracking-wide text-slate-500">
+                      <tr>
+                        <th className="py-1 pr-2 font-semibold">Item</th>
+                        <th className="py-1 pr-2 text-right font-semibold">Measured</th>
+                        <th className="py-1 pr-2 text-right font-semibold">Rate</th>
+                        <th className="py-1 text-right font-semibold">Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200/70 dark:divide-slate-700/60">
+                      {group.lines.map((item) => (
+                        <tr key={item.id}>
+                          <td className="py-1.5 pr-2 text-slate-800 dark:text-slate-100">{item.label}</td>
+                          <td className="py-1.5 pr-2 text-right tabular-nums">
+                            {item.quantity.toLocaleString('en-IN')} {item.unit}
+                          </td>
+                          <td className="py-1.5 pr-2 text-right tabular-nums">
+                            {inr(item.rate)}
+                            {item.rateMultiplier ? ` × ${item.rateMultiplier}` : ''}
+                          </td>
+                          <td className="py-1.5 text-right font-semibold tabular-nums">{inr(item.amount)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 dark:border-emerald-900 dark:bg-emerald-950/40">
+            <span className="text-sm font-bold text-emerald-900 dark:text-emerald-100">
+              Total Accurate Cost
+            </span>
+            <span className="text-lg font-extrabold tabular-nums text-emerald-800 dark:text-emerald-200">
+              {inr(defaults.totalCost)}
+            </span>
+          </div>
+          {defaults.bidTotal != null && defaults.measuredTotal != null ? (
+            <p className="mt-2 text-xs text-slate-500">
+              Original accepted bid: {inr(defaults.bidTotal)} · Measured difference:{' '}
+              {defaults.measuredTotal - defaults.bidTotal >= 0 ? '+' : '−'}
+              {inr(Math.abs(defaults.measuredTotal - defaults.bidTotal))}
+            </p>
+          ) : null}
+        </section>
+      ) : null}
+
+      <section className={cn(CARD, 'border-emerald-200/80 dark:border-emerald-900/60')}>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h2 className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white">
+              <Share2 className="h-4 w-4 text-emerald-600" />
+              Share with both accounts
+            </h2>
+            <p className="mt-1 text-xs text-slate-500">
+              One touch: the confirmed agreement appears in {client.name}&apos;s (Home Owner) account and{' '}
+              {contractor.name}&apos;s (Mistri / Worker) account, and both are notified.
+              {sharedAt
+                ? ` Last shared ${new Date(sharedAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}.`
+                : ''}
+            </p>
+          </div>
+          <Button type="button" onClick={shareCopy} disabled={sharing}>
+            {sharing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Share2 className="h-4 w-4" />}
+            {sharedAt ? 'Re-share Agreement Copy' : 'Share Agreement Copy'}
+          </Button>
+        </div>
       </section>
 
       <section className={CARD}>
