@@ -188,8 +188,6 @@ export default async function FirmDashboardPage() {
 
       <CompletedProjectsPreview
         projects={completed.projects}
-        totalCount={completed.totalCount}
-        viewAllHref="/dashboard/worker/projects/completed"
         viewHrefFor={(project) => `/project/${project.id}`}
       />
 

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Clock, ArrowRight, CalendarDays } from 'lucide-react';
+import { ArrowRight, CalendarDays } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CountdownTicker } from '@/components/shared/CountdownTicker';
 import { useCountdown } from '@/lib/hooks/useCountdown';
@@ -100,14 +100,12 @@ export function FirmAuctionRow({ project, myBid }: FirmAuctionRowProps) {
 
         {/* Countdown — mobile only, shown inline under project meta */}
         <div className="flex sm:hidden items-center gap-2 mt-2">
-          <Clock className="w-3.5 h-3.5 text-muted-foreground" />
           <CountdownTicker targetDateISO={project.bidding_ends_at} compact />
         </div>
       </div>
 
       {/* Countdown — desktop only */}
       <div className="hidden sm:flex items-center gap-2">
-        <Clock className="w-3.5 h-3.5 text-muted-foreground" />
         <CountdownTicker targetDateISO={project.bidding_ends_at} compact />
       </div>
 

@@ -245,10 +245,7 @@ export default async function OwnerDashboard() {
       )}
 
       <CompletedProjectsPreview
-        variant="folder"
         projects={completed}
-        totalCount={completed.length}
-        viewAllHref="/dashboard/owner/projects/completed"
         viewHrefFor={(project) => `/dashboard/owner/project/${project.id}`}
         showDelete
       />

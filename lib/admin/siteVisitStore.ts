@@ -3,7 +3,7 @@ import type { SiteVisitRecord, SoilType } from '@/lib/admin/siteVisit';
 import type { MeasuredLineItem, MeasurementTradeKey } from '@/lib/admin/siteMeasurements';
 
 export const SITE_VISIT_TABLE_MISSING_MESSAGE =
-  'Database tables missing. Run supabase/migrations/058_supervisor_site_visits_commission.sql and 061_site_visit_trade_measurements_and_shared_agreements.sql in the Supabase SQL Editor, then retry.';
+  'Database tables missing. Run supabase/migrations/061_site_visit_trade_measurements_and_shared_agreements.sql (self-contained, includes the 058 tables) in the Supabase SQL Editor, then retry.';
 
 export function isMissingWorkflowTable(
   error: { message?: string; code?: string } | null | undefined,
