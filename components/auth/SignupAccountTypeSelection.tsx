@@ -7,15 +7,15 @@ const ACCOUNT_TYPE_OPTIONS = [
   {
     id: 'client',
     href: '/signup/client',
-    title: 'Homeowner',
+    title: 'Owner Account',
     subtitle: 'Post projects and receive competitive construction bids',
     accent: 'teal' as const,
   },
   {
-    id: 'service_provider',
-    href: '/signup/provider',
-    title: 'Service Provider',
-    subtitle: 'Offer Mistri work, turnkey construction, or local trade services',
+    id: 'worker',
+    href: '/register?role=labour_contractor',
+    title: 'Worker Account',
+    subtitle: 'One account to view and bid on every category — Civil/Mistri, plumbing, painting, electrical & more',
     accent: 'emerald' as const,
   },
 ] as const;

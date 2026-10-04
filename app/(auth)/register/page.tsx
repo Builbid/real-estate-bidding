@@ -10,14 +10,8 @@ import {
 import { BuilBidLogo } from '@/components/shared/BuilBidLogo';
 import { HistoryBackButton } from '@/components/shared/HistoryBackButton';
 import { signUpAction } from '@/app/actions/auth';
-import {
-  TRADE_SERVICE_OPTIONS,
-  isRetiredTradeService,
-  isProviderSpecialtyType,
-  getProviderSpecialtyLabel,
-} from '@/lib/trades';
+import { isProviderSpecialtyType, isRetiredTradeService } from '@/lib/trades';
 import { isConstructionFirmEnabled } from '@/lib/features';
-import type { ProviderSpecialtyType } from '@/lib/types';
 import { uploadFirmLogo } from '@/lib/firm/uploadFirmLogo';
 import { LogoUpload } from '@/components/firm/LogoUpload';
 import { FirmConstructionClassPackagesForm } from '@/components/firm/FirmConstructionClassPackagesForm';
@@ -42,15 +36,18 @@ import {
 
 type Step = 1 | 2 | 3 | 4;
 
-/** UI-level role — specialties map to role=service_provider on submit. */
-type UiRole = 'owner' | 'labour_contractor' | 'construction_firm' | ProviderSpecialtyType;
+/**
+ * UI-level role. Unified account model: users choose only an Owner Account or a
+ * Worker Account (stored as `labour_contractor`) that can bid on every category.
+ */
+type UiRole = 'owner' | 'labour_contractor' | 'construction_firm';
 type RegisterRole = UiRole | null;
 
 const ROLE_CARDS = [
   {
     role: 'owner' as const,
     emoji: '🏠',
-    title: 'Client',
+    title: 'Owner Account',
     subtitle: 'I want to build a house or construction project',
     bullets: [
       'Post your project for free',
@@ -63,14 +60,14 @@ const ROLE_CARDS = [
   {
     role: 'labour_contractor' as const,
     emoji: '👷',
-    title: 'Mistri Worker',
-    subtitle: 'I provide Mistri work and skilled site teams',
+    title: 'Worker Account',
+    subtitle: 'I do skilled work — Mistri, plumbing, painting, electrical & more',
     bullets: [
-      'Browse live Mistri auctions',
-      'Bid your best ₹/sqft rate',
-      'Win construction contracts',
+      'Browse live auctions in every category',
+      'Bid your best rate with one account',
+      'Win projects — no separate trade accounts needed',
     ],
-    noteBadge: 'Client supplies material',
+    noteBadge: 'All trades, one account',
     accent: 'emerald',
   },
   {
@@ -86,48 +83,22 @@ const ROLE_CARDS = [
     noteBadge: 'You supply material + firm',
     accent: 'violet',
   },
-  {
-    role: 'drawing_design' as const,
-    emoji: '✏️',
-    title: 'Drawing and Design',
-    subtitle: 'I prepare house plans & technical drawings',
-    bullets: [
-      'Browse live drawing & design auctions',
-      'Bid your best rate for selected drawings',
-      'Win design work — contact stays private until then',
-    ],
-    noteBadge: 'Design professional',
-    accent: 'sky',
-  },
-  ...TRADE_SERVICE_OPTIONS.map((trade) => ({
-    role: trade.value as UiRole,
-    emoji: trade.emoji,
-    title: trade.label,
-    subtitle: trade.description,
-    bullets: [
-      `Browse live ${trade.label.toLowerCase()} auctions`,
-      'Bid your best ₹/sqft rate',
-      'Win the project — contact stays private until then',
-    ],
-    noteBadge: 'Trade professional',
-    accent: 'emerald',
-  })),
 ];
 
-type RoleParam = 'owner' | 'bidder' | 'labour_contractor' | 'construction_firm' | ProviderSpecialtyType | null;
+type RoleParam = 'owner' | 'bidder' | 'labour_contractor' | 'construction_firm' | null;
 
 function parseRoleParam(value: string | null): RoleParam {
   if (
     value === 'owner' ||
     value === 'bidder' ||
     value === 'labour_contractor' ||
-    (value === 'construction_firm' && isConstructionFirmEnabled()) ||
-    isProviderSpecialtyType(value)
+    (value === 'construction_firm' && isConstructionFirmEnabled())
   ) {
     return value;
   }
-  // Firm signup deep-link while service is hidden → primary provider option
-  if (value === 'construction_firm') return 'labour_contractor';
+  // Legacy trade deep-links (e.g. ?role=painter) and hidden firm signup both land on the
+  // unified Worker Account.
+  if (value === 'construction_firm' || isProviderSpecialtyType(value)) return 'labour_contractor';
   return null;
 }
 
@@ -135,8 +106,7 @@ function isDirectRegisterRole(param: RoleParam): param is UiRole {
   return (
     param === 'owner' ||
     param === 'labour_contractor' ||
-    (param === 'construction_firm' && isConstructionFirmEnabled()) ||
-    isProviderSpecialtyType(param)
+    (param === 'construction_firm' && isConstructionFirmEnabled())
   );
 }
 
@@ -228,10 +198,8 @@ function RegisterPageContent() {
     setPending(true);
     setError(null);
 
-    const isSpecialty = isProviderSpecialtyType(role);
-
     const formData = new FormData();
-    formData.set('role', isSpecialty ? 'service_provider' : role);
+    formData.set('role', role);
     formData.set('full_name', fullName);
     formData.set('email', email);
     formData.set('password', password);
@@ -244,10 +212,6 @@ function RegisterPageContent() {
       formData.set('years_in_business', yearsInBusiness);
       formData.set('construction_packages_json', JSON.stringify(classPackages));
     }
-    if (isSpecialty) {
-      formData.set('trade', role);
-    }
-
     const result = await signUpAction({ error: null, success: false }, formData);
 
     if (result.error) {
@@ -326,14 +290,12 @@ function RegisterPageContent() {
 
   const roleLabel =
     role === 'owner'
-      ? 'Client'
+      ? 'Owner Account'
       : role === 'labour_contractor'
-        ? 'Mistri Worker'
+        ? 'Worker Account'
         : role === 'construction_firm'
           ? 'Construction Firm'
-          : isProviderSpecialtyType(role)
-            ? getProviderSpecialtyLabel(role)
-            : '';
+          : '';
 
   const visibleCards = useMemo(() => {
     const firmOpen = isConstructionFirmEnabled();
@@ -349,7 +311,6 @@ function RegisterPageContent() {
         ? ROLE_CARDS.filter((c) => c.role === 'construction_firm')
         : withoutFirm(ROLE_CARDS.filter((c) => c.role !== 'owner'));
     }
-    if (isProviderSpecialtyType(roleParam)) return withoutFirm(ROLE_CARDS.filter((c) => c.role === roleParam));
     if (roleParam === 'bidder') return withoutFirm(ROLE_CARDS.filter((c) => c.role !== 'owner'));
     return withoutFirm(ROLE_CARDS);
   }, [roleParam]);
@@ -366,13 +327,11 @@ function RegisterPageContent() {
 
   const pageSubtitle =
     roleParam === 'owner'
-      ? 'Create your client account to post your construction project'
+      ? 'Create your owner account to post your construction project'
       : roleParam === 'labour_contractor'
-        ? 'Create your mistri worker account to browse and bid on projects'
+        ? 'Create your worker account to browse and bid on projects in every category'
         : roleParam === 'construction_firm'
           ? 'Create your construction firm account to bid on turnkey projects'
-      : isProviderSpecialtyType(roleParam)
-        ? `Create your ${getProviderSpecialtyLabel(roleParam)} account to bid on ${getProviderSpecialtyLabel(roleParam).toLowerCase()} projects`
       : roleParam === 'bidder'
         ? 'Create your account to start bidding on construction projects'
         : 'Join BuilBid — the professional construction bidding platform';
@@ -380,8 +339,7 @@ function RegisterPageContent() {
   const loginHref =
     roleParam === 'labour_contractor' ||
     roleParam === 'construction_firm' ||
-    roleParam === 'bidder' ||
-    isProviderSpecialtyType(roleParam)
+    roleParam === 'bidder'
       ? '/login?role=bidder'
       : roleParam
         ? `/login?role=${roleParam}`

@@ -82,7 +82,8 @@ async function getViewer(project: Project): Promise<Viewer> {
       userId: user.id,
       role,
       serviceType: 'labour_contractor',
-      canBid: projectService === 'labour_contractor',
+      // Unified Worker Account: bid on every category except turnkey firm projects.
+      canBid: projectService !== 'construction_firm',
     };
   }
 
@@ -102,7 +103,7 @@ async function getViewer(project: Project): Promise<Viewer> {
       userId: user.id,
       role,
       serviceType,
-      canBid: !!serviceType && serviceType === projectService,
+      canBid: projectService !== 'construction_firm',
     };
   }
 

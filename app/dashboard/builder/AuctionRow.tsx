@@ -6,7 +6,7 @@ import { Clock, ArrowRight, CalendarDays } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CountdownTicker } from '@/components/shared/CountdownTicker';
 import { useCountdown } from '@/lib/hooks/useCountdown';
-import { TRACK_LABELS, formatProjectPostedAt } from '@/lib/utils';
+import { TRACK_LABELS, cn, formatProjectPostedAt } from '@/lib/utils';
 import { isTradeServiceType } from '@/lib/trades';
 import {
   getProjectConfigOrDrawingMeta,
@@ -96,7 +96,13 @@ export function AuctionRow({
   return (
     <div
       onClick={() => router.push(destinationHref)}
-      className="flex cursor-pointer items-center gap-4 py-4 transition-opacity hover:opacity-80"
+      className={cn(
+        // Card container: soft, theme-aware border so each job reads as its own item
+        // without harsh contrast in either light or dark mode.
+        'flex cursor-pointer items-center gap-4 rounded-lg border p-4 shadow-sm transition-colors',
+        'border-border/70 bg-card/60 dark:border-white/10 dark:bg-white/[0.03]',
+        'hover:border-emerald-600/30 hover:bg-card dark:hover:border-emerald-400/25 dark:hover:bg-white/[0.05]',
+      )}
     >
       {/* Project info */}
       <div className="flex-1 min-w-0">

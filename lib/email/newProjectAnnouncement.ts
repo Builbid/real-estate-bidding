@@ -32,11 +32,11 @@ async function fetchBidderRecipients(serviceType: ServiceType): Promise<BidderRe
 
   let query = admin.from('profiles').select('email, full_name');
 
-  if (isTradeServiceType(serviceType) || isDrawingDesignServiceType(serviceType)) {
-    query = query.eq('role', 'service_provider').eq('service_type', serviceType);
+  if (serviceType === 'construction_firm') {
+    query = query.eq('role', 'construction_firm');
   } else {
-    const role = serviceType === 'construction_firm' ? 'construction_firm' : 'labour_contractor';
-    query = query.eq('role', role);
+    // Unified Worker Account: every Worker can bid on every non-firm category.
+    query = query.in('role', ['labour_contractor', 'service_provider']);
   }
 
   const { data, error } = await query;

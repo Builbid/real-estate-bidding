@@ -6,6 +6,8 @@ import { Building } from 'lucide-react';
 import { STATUS_CONFIG } from '@/lib/utils';
 import { formatBidUnitSuffix } from '@/lib/bid/earthworkBid';
 import { canWorkerBidOnProject } from '@/lib/bid/workerBidEligibility';
+import { isWorkerAccountRole } from '@/lib/auth/roles';
+import { isFirmProject } from '@/lib/project/display';
 import { AuctionRow } from './AuctionRow';
 import { PortfolioManager } from './PortfolioManager';
 import { CompletedProjectsPreview } from '@/components/dashboard/CompletedProjectsPreview';
@@ -19,7 +21,7 @@ async function getData() {
   // Use DB profile when available; fall back to JWT metadata if RLS is broken
   const { data: dbProfile } = await supabase.from('profiles').select('*').eq('id', userId).single();
   const profile = dbProfile ?? { id: userId, email, full_name: fullName, role, mobile: null, physical_address: null, pincode: null, created_at: '', updated_at: '' };
-  if (profile.role !== 'labour_contractor') redirect('/dashboard');
+  if (!isWorkerAccountRole(profile.role)) redirect('/dashboard');
 
   // Transition any expired active projects to frozen_24h
   await supabase.rpc('expire_active_projects');
@@ -74,7 +76,8 @@ async function getData() {
 export default async function BuilderDashboard() {
   const { profile, projects, myBids, bidProjectsMap, userId, completed } = await getData();
 
-  const activeProjects = projects.filter((p) => p.status === 'active_24h');
+  // Unified Worker Account: every non-firm category is open to every Worker.
+  const activeProjects = projects.filter((p) => p.status === 'active_24h' && !isFirmProject(p));
   const myBidMap       = new Map(myBids.map((b) => [b.project_id, b]));
   const bidsPlaced     = myBids.filter((b) => !b.is_withdrawn);
   const wins           = completed.totalCount;
@@ -103,13 +106,13 @@ export default async function BuilderDashboard() {
         </div>
 
         {activeProjects.length > 0 ? (
-          <div>
+          <div className="space-y-3">
             {activeProjects.map((project) => (
               <AuctionRow
                 key={project.id}
                 project={project}
                 myBid={myBidMap.get(project.id)}
-                canBid={canWorkerBidOnProject(profile.role, 'labour_contractor', project)}
+                canBid={canWorkerBidOnProject(profile.role, null, project)}
               />
             ))}
           </div>

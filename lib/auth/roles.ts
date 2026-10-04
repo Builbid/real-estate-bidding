@@ -70,19 +70,28 @@ export function getDashboardPath(role: string | null | undefined): string {
     case 'owner':
       return '/dashboard/owner';
     case 'labour_contractor':
+    case 'service_provider':
+      // Unified Worker Account: one dashboard for every trade.
       return '/dashboard/builder';
     case 'construction_firm':
       return '/dashboard/firm';
     case 'admin':
       return '/admin/dashboard';
-    case 'service_provider':
-      return '/dashboard/provider';
     case 'field_supervisor':
       return '/admin/dashboard';
     default:
       // Unknown / missing role: never guess a worker dashboard.
       return '/dashboard/profile';
   }
+}
+
+/**
+ * Unified Worker Account: a registered Worker (stored as `labour_contractor`, or the
+ * legacy trade-specific `service_provider`) may view and bid on every project category.
+ */
+export function isWorkerAccountRole(role: string | null | undefined): boolean {
+  const normalized = parseRole(role);
+  return normalized === 'labour_contractor' || normalized === 'service_provider';
 }
 
 export function isBidderRole(role: string | null | undefined): boolean {

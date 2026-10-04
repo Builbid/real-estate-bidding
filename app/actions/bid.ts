@@ -7,6 +7,7 @@ import {
   parseVehicleCapacity,
   resolveEarthworkBidMode,
 } from '@/lib/bid/earthworkBid';
+import { isWorkerAccountRole } from '@/lib/auth/roles';
 import { resolveScopeRateBidItems } from '@/lib/bid/scopeRateBid';
 import { resolveProjectBidFloors } from '@/lib/bid/floorRateDisplay';
 import {
@@ -205,22 +206,13 @@ export async function submitBidAction(
     .eq('id', user.id)
     .single();
 
-  const isLabourContractor = profile?.role === 'labour_contractor';
-  const isTradeBidder = profile?.role === 'service_provider';
-
-  if (!isLabourContractor && !isTradeBidder) {
+  // Unified Worker Account: any Worker may bid on any project category. Only the
+  // separate turnkey Construction Firm line is excluded.
+  if (!isWorkerAccountRole(profile?.role)) {
     return { error: 'You are not authorized to bid on this project type.', success: false };
   }
 
   if (project.service_type === 'construction_firm') {
-    return { error: 'You are not authorized to bid on this project type.', success: false };
-  }
-
-  if (isTradeBidder && profile?.service_type !== project.service_type) {
-    return { error: 'This project is not for your registered trade.', success: false };
-  }
-
-  if (isLabourContractor && project.service_type !== 'labour_contractor') {
     return { error: 'You are not authorized to bid on this project type.', success: false };
   }
 
@@ -233,7 +225,7 @@ export async function submitBidAction(
     track_type: project.track_type,
     building_types: project.building_types,
     total_floors: project.total_floors,
-  }, profile?.service_type);
+  }, project.service_type);
 
   const isMistriCivilBid = isMistriCivilCostProject(project);
   const mistriCivilFloors = isMistriCivilBid ? resolveMistriCivilFloors(project) : [];
@@ -273,7 +265,7 @@ export async function submitBidAction(
 
   const rateRules = isMistriCivilBid || scopeBid?.flexibleRates
     ? { requireMultipleOfFive: false }
-    : getBidRateRules(project.service_type, profile?.service_type);
+    : getBidRateRules(project.service_type);
 
   const validation = isMistriCivilBid
     ? validateMistriCivilBid(

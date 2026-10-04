@@ -1,5 +1,6 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import { Lock, Users, CalendarDays } from 'lucide-react';
 import { AuctionCountdown } from './AuctionCountdown';
 import { DeleteProjectButton } from './DeleteProjectButton';
@@ -16,6 +17,7 @@ import {
   getProjectBuildingTypeLabel,
   getProjectBuiltUpAreaLabel,
   getProjectLocationLabel,
+  isFloorScopeRequirementLabel,
 } from '@/lib/project/formatFloorSummary';
 import { getProjectWorkRequirementBlocks, isFloorFixtureRequirementLabel } from '@/lib/project/workRequirements';
 import { formatNumericProjectId } from '@/lib/project/numericId';
@@ -48,18 +50,48 @@ function truncate(text: string, max: number): string {
   return clean.length > max ? `${clean.slice(0, max - 1).trimEnd()}…` : clean;
 }
 
+const TAG_BOX_CLASS =
+  'inline-flex max-w-full items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300';
+
+type ScopeTag = { label: string; value: string };
+
 /**
- * Short scope-of-work summary from what the owner submitted: the first few work requirement
- * fields, falling back to the free-text description.
+ * Scope-of-work details as structured label/value tags from what the owner submitted.
+ * Per-floor scope rows are skipped when floor badges are shown, and the plinth / built-up
+ * area is surfaced separately so it never appears twice.
  */
-function buildJobSummary(project: Project): string | null {
-  const blocks = (getProjectWorkRequirementBlocks(project)?.blocks ?? [])
-    .filter((block) => block.value?.trim() && !isFloorFixtureRequirementLabel(block.label))
-    .slice(0, 3)
-    .map((block) => `${block.label.replace(/:$/, '')}: ${truncate(block.value, 50)}`);
-  if (blocks.length > 0) return blocks.join(' · ');
-  const description = project.description?.trim();
-  return description ? truncate(description, 160) : null;
+function buildScopeTags(project: Project, hasFloorBadges: boolean, hasAreaTag: boolean): ScopeTag[] {
+  return (getProjectWorkRequirementBlocks(project)?.blocks ?? [])
+    .filter((block) => {
+      if (!block.value?.trim()) return false;
+      if (block.label === 'Calculated Total Floor Area') return false;
+      if (isFloorFixtureRequirementLabel(block.label)) return false;
+      if (hasFloorBadges && isFloorScopeRequirementLabel(block.label)) return false;
+      if (hasAreaTag && /plinth|built.?up|floor area|approximate area/i.test(block.label)) return false;
+      return true;
+    })
+    .slice(0, 4)
+    .map((block) => ({
+      label: block.label.replace(/:$/, ''),
+      value: truncate(block.value, 48),
+    }));
+}
+
+function ScopeTagBox({ label, value }: ScopeTag) {
+  return (
+    <span className={TAG_BOX_CLASS} title={`${label}: ${value}`}>
+      <span className="shrink-0 text-slate-500 dark:text-slate-400">{label}:</span>
+      <span className="truncate font-semibold text-slate-800 dark:text-slate-100">{value}</span>
+    </span>
+  );
+}
+
+function ScopeSectionLabel({ children }: { children: ReactNode }) {
+  return (
+    <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+      {children}
+    </p>
+  );
 }
 
 /** Public Project ID tag, e.g. #PRJ-K7M2Q9P1 (falls back to the short internal ID). */
@@ -86,16 +118,18 @@ function OwnerLiveProjectCardBody({
   const builtUpLabel = getProjectBuiltUpAreaLabel(project);
   const floorScopes = formatFloorSummary(project);
 
+  // Plinth / built-up area is shown as a scope tag below, not in this meta line.
   const metaParts = [
     locationLabel || null,
     buildingTypeLabel,
-    builtUpLabel,
     `${bidCount} bid${bidCount !== 1 ? 's' : ''}`,
   ].filter(Boolean) as string[];
 
   // The redundant "Live Bidding" sub-badge is gone; only the selection-phase badge remains.
   const statusLabel = canSelect ? (isFirm ? 'Select Firm' : 'Select Builder') : null;
-  const jobSummary = buildJobSummary(project);
+  const scopeTags = buildScopeTags(project, floorScopes.length > 0, Boolean(builtUpLabel));
+  const fallbackDescription = project.description?.trim();
+  const hasScopeDetails = scopeTags.length > 0 || Boolean(builtUpLabel) || floorScopes.length > 0;
   const idTag = projectIdTag(project);
 
   return (
@@ -128,12 +162,6 @@ function OwnerLiveProjectCardBody({
               Project ID: {idTag}
             </span>
           </div>
-          {jobSummary ? (
-            <p className="mt-1 line-clamp-2 text-xs text-slate-600 dark:text-slate-400">
-              <span className="font-semibold text-slate-700 dark:text-slate-300">Scope: </span>
-              {jobSummary}
-            </p>
-          ) : null}
           <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-600 dark:text-slate-400">
             {metaParts.map((part, index) => (
               <span key={`${part}-${index}`} className="inline-flex items-center gap-2">
@@ -169,12 +197,35 @@ function OwnerLiveProjectCardBody({
               </span>
             ) : null}
           </div>
-          {floorScopes.length > 0 ? (
-            <FloorScopeBadges
-              items={floorScopes}
-              className="mt-2.5 text-slate-600 dark:text-slate-400"
-              variant="plain"
-            />
+          {hasScopeDetails ? (
+            <div className="mt-3 space-y-2.5">
+              {scopeTags.length > 0 || builtUpLabel ? (
+                <div>
+                  <ScopeSectionLabel>Scope of Work</ScopeSectionLabel>
+                  <div className="flex flex-wrap gap-1.5">
+                    {builtUpLabel ? (
+                      <ScopeTagBox label="Approx. Plinth Area" value={builtUpLabel} />
+                    ) : null}
+                    {scopeTags.map((tag) => (
+                      <ScopeTagBox key={`${tag.label}:${tag.value}`} {...tag} />
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+              {floorScopes.length > 0 ? (
+                <div>
+                  <ScopeSectionLabel>Floor Casting</ScopeSectionLabel>
+                  <FloorScopeBadges items={floorScopes} />
+                </div>
+              ) : null}
+            </div>
+          ) : fallbackDescription ? (
+            <div className="mt-3">
+              <ScopeSectionLabel>Scope of Work</ScopeSectionLabel>
+              <p className="line-clamp-2 text-xs text-slate-600 dark:text-slate-400">
+                {truncate(fallbackDescription, 160)}
+              </p>
+            </div>
           ) : null}
         </div>
 

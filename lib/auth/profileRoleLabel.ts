@@ -1,6 +1,4 @@
 import { parseRole } from '@/lib/auth/roles';
-import { getProviderSpecialtyLabel, isProviderSpecialtyType } from '@/lib/trades';
-
 type RoleMessageKey =
   | 'roles.owner'
   | 'roles.labour_contractor'
@@ -19,8 +17,5 @@ export function getProfileRoleLabel(
   const normalized = parseRole(profile.role);
   // Unknown stored value: show it as-is rather than mislabel the account.
   if (!normalized) return profile.role;
-  if (normalized === 'service_provider' && isProviderSpecialtyType(profile.service_type)) {
-    return getProviderSpecialtyLabel(profile.service_type);
-  }
   return t(`roles.${normalized}` as RoleMessageKey);
 }

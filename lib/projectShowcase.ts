@@ -38,7 +38,7 @@ export function getShowcaseCardAction(
     const normalized = normalizeRole(role);
     if (normalized === 'labour_contractor' || normalized === 'service_provider') {
       return {
-        href: normalized === 'service_provider' ? '/dashboard/provider' : '/dashboard/builder',
+        href: '/dashboard/builder',
         action: 'bidNow',
       };
     }

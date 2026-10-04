@@ -13,7 +13,6 @@ import {
   validateConstructionPackages,
 } from '@/lib/firm/constructionClass'
 import { isConstructionFirmEnabled } from '@/lib/features'
-import { isLegacyCarpenterService, isLegacyInteriorWorkService, isProviderSpecialtyType } from '@/lib/trades'
 import type { UserRole } from '@/lib/types'
 
 export type SignUpRole = 'owner' | 'labour_contractor' | 'construction_firm' | 'service_provider'
@@ -67,18 +66,19 @@ export async function signUpAction(
   const companyName = (formData.get('company_name') as string | null)?.trim() ?? ''
   const gstNumber   = (formData.get('gst_number') as string | null)?.trim().toUpperCase() ?? ''
   const yearsRaw    = (formData.get('years_in_business') as string | null)?.trim() ?? ''
-  const tradeRaw    = (formData.get('trade') as string | null)?.trim() ?? ''
   const classPackages = parseConstructionPackagesFromForm(formData)
 
   // Never default a signup to the worker role: a missing/unknown role is rejected.
+  // Unified account model: only an Owner Account or a Worker Account (stored as
+  // `labour_contractor`) can be created. Legacy trade-specific `service_provider`
+  // signups are folded into the Worker Account, which can bid on every category.
   const parsedRole = parseRole(roleRaw)
   const role: SignUpRole | null =
-    parsedRole === 'owner' ||
-    parsedRole === 'construction_firm' ||
-    parsedRole === 'labour_contractor' ||
-    parsedRole === 'service_provider'
+    parsedRole === 'owner' || parsedRole === 'construction_firm'
       ? parsedRole
-      : null
+      : parsedRole === 'labour_contractor' || parsedRole === 'service_provider'
+        ? 'labour_contractor'
+        : null
 
   if (!role) {
     return { error: 'Please choose an account type to continue.', success: false }
@@ -117,15 +117,6 @@ export async function signUpAction(
     }
   }
 
-  if (
-    role === 'service_provider' &&
-    (isLegacyCarpenterService(tradeRaw) ||
-      isLegacyInteriorWorkService(tradeRaw) ||
-      !isProviderSpecialtyType(tradeRaw))
-  ) {
-    return { error: 'Please select which service you provide.', success: false }
-  }
-
   let yearsInBusiness: number | null = null
   if (role === 'construction_firm' && yearsRaw) {
     const parsed = parseInt(yearsRaw, 10)
@@ -140,9 +131,7 @@ export async function signUpAction(
       ? 'construction_firm'
       : role === 'labour_contractor'
         ? 'labour_contractor'
-        : role === 'service_provider'
-          ? tradeRaw
-          : null
+        : null
 
   // One email = one role: Home Owner, Mistri/Worker and Supervisor/Admin each need their own email.
   const signupPortal: Portal = portalForRole(role) ?? 'owner'

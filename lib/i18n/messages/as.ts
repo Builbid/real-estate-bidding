@@ -22,10 +22,10 @@ export const as: Messages = {
   },
   roles: {
     owner: 'Owner',
-    labour_contractor: 'Mistri Worker',
+    labour_contractor: 'Worker',
     construction_firm: 'Construction Firm',
     admin: 'Admin',
-    service_provider: 'Service Provider',
+    service_provider: 'Worker',
     field_supervisor: 'Field Supervisor',
   },
   status: {
