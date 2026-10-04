@@ -14,9 +14,15 @@ export function isNewProjectHref(href: string, origin?: string): boolean {
   }
 }
 
-/** Where an owner lands right after submitting a project: its overview page, or home as a fallback. */
-export function getPostSubmitPath(projectId?: string | null): string {
-  return projectId ? `/dashboard/owner/project/${projectId}` : '/';
+/** Owner Dashboard — the new project appears there under "Live bidding" with full controls. */
+export const OWNER_DASHBOARD_PATH = '/dashboard/owner';
+
+/**
+ * Where an owner lands right after submitting a project: always the Owner Dashboard
+ * (never the standalone project detail view). The argument is kept for call-site compatibility.
+ */
+export function getPostSubmitPath(_projectId?: string | null): string {
+  return OWNER_DASHBOARD_PATH;
 }
 
 /** Delay before the success screen auto-redirects (ms). */

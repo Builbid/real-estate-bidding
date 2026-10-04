@@ -18,6 +18,7 @@ import {
   getProjectBuiltUpAreaLabel,
   getProjectLocationLabel,
   isFloorScopeRequirementLabel,
+  isCivilFloorCastingService,
 } from '@/lib/project/formatFloorSummary';
 import { getProjectWorkRequirementBlocks, isFloorFixtureRequirementLabel } from '@/lib/project/workRequirements';
 import { formatNumericProjectId } from '@/lib/project/numericId';
@@ -214,7 +215,11 @@ function OwnerLiveProjectCardBody({
               ) : null}
               {floorScopes.length > 0 ? (
                 <div>
-                  <ScopeSectionLabel>Floor Casting</ScopeSectionLabel>
+                  <ScopeSectionLabel>
+                    {isCivilFloorCastingService(project.service_type ?? 'labour_contractor')
+                      ? 'Floor Casting'
+                      : 'Drawing Scope'}
+                  </ScopeSectionLabel>
                   <FloorScopeBadges items={floorScopes} />
                 </div>
               ) : null}

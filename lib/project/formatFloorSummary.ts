@@ -265,14 +265,19 @@ export function formatFloorSummary(project: FloorSummaryProject): FloorSummaryIt
     }
   }
 
+  // Floor casting / construction scope only exists for Civil / Masonry / Full Construction.
+  // Trades (Painter, Electrician, Plumber, Tiles, Carpenter, …) never get floor-casting rows.
+  if (!isCivilFloorCastingService(serviceType)) return [];
+
   const fromBuilding = fromBuildingConstructionTypes(project);
   if (fromBuilding.length > 0) return fromBuilding;
 
-  if (serviceType === 'labour_contractor' || serviceType === 'construction_firm') {
-    return fromLegacyMatrix(project);
-  }
+  return fromLegacyMatrix(project);
+}
 
-  return [];
+/** True for Civil / Masonry (Mistri) and Full Construction (firm) projects — the only ones with floor casting. */
+export function isCivilFloorCastingService(serviceType: ServiceType | null | undefined): boolean {
+  return serviceType === 'labour_contractor' || serviceType === 'construction_firm';
 }
 
 /** Single-line join for places that still need a string (no · run-on preferred — use badges). */

@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { NavLink } from '@/components/shared/NavLink';
 import { NAV_ICON_BUTTON } from '@/lib/navStyles';
 import { cn } from '@/lib/utils';
-import { TRACK_LABELS } from '@/lib/utils';
+import { TRACK_LABELS, getProjectPhase, isInteractiveProjectPhase } from '@/lib/utils';
 import { ConstructionMatrixSummary } from '@/components/construction/ConstructionMatrixSummary';
 import { OwnerProjectPhaseProvider } from '@/lib/context/OwnerProjectPhaseContext';
 import { OwnerProjectPhaseBadge, OwnerProjectPhaseBody } from './OwnerProjectPhaseSection';
@@ -119,6 +119,14 @@ async function getData(id: string) {
 export default async function OwnerProjectPage({ params }: PageProps) {
   const { id } = await params;
   const { project, bids, builders, firms, userId, ownerName } = await getData(id);
+
+  // Projects still in live bidding / awaiting selection are managed from the Owner Dashboard
+  // ("Live bidding" / "Needs your decision"). This page remains only for awarded projects
+  // (agreements) and completed ones.
+  if (!project.selected_builder_id && isInteractiveProjectPhase(getProjectPhase(project))) {
+    redirect('/dashboard/owner');
+  }
+
   const isFirm = isFirmProject(project);
   const isMistri = isMistriCivilService(project.service_type);
   const isPlumber = isPlumberService(project.service_type);
