@@ -131,19 +131,51 @@ async function loadMeasurementTemplate(
   };
 }
 
+export interface ChecklistProjectSummary {
+  id: string;
+  publicId: string;
+  title: string;
+  clientName: string;
+  district: string;
+}
+
 export async function loadSiteVisitAction(projectRef: string): Promise<{
   visit: SiteVisitRecord | null;
   template: MeasurementTemplate | null;
   defaultFloors: number;
+  error?: string;
+  project: ChecklistProjectSummary | null;
 }> {
   const session = await requireOfficialAdmin();
   const resolved = await resolveAssignedProject(projectRef, session);
-  if ('error' in resolved) return { visit: null, template: null, defaultFloors: 1 };
-  const [visit, context] = await Promise.all([
+  if ('error' in resolved) {
+    return { visit: null, template: null, defaultFloors: 1, error: resolved.error, project: null };
+  }
+  const [visit, context, display] = await Promise.all([
     loadSiteVisit(resolved.admin, resolved.project.id),
     loadMeasurementTemplate(resolved.admin, resolved.project.id, resolved.project.selected_builder_id),
+    resolved.admin
+      .from('projects')
+      .select('id, title, numeric_id, district, owner_id')
+      .eq('id', resolved.project.id)
+      .maybeSingle(),
   ]);
-  return { visit, template: context.template, defaultFloors: context.defaultFloors };
+  const ownerId = (display.data?.owner_id as string | undefined) ?? '';
+  const { data: owner } = ownerId
+    ? await resolved.admin.from('profiles').select('full_name').eq('id', ownerId).maybeSingle()
+    : { data: null };
+  return {
+    visit,
+    template: context.template,
+    defaultFloors: context.defaultFloors,
+    project: {
+      id: resolved.project.id,
+      publicId: String(display.data?.numeric_id ?? '').trim().toUpperCase(),
+      title: String(display.data?.title ?? 'Project'),
+      clientName: owner?.full_name?.trim() || 'Homeowner',
+      district: String(display.data?.district ?? ''),
+    },
+  };
 }
 
 export async function saveSiteVisitChecklistAction(
@@ -198,9 +230,9 @@ export async function saveSiteVisitChecklistAction(
       floors: v.floors,
       soil_type: v.soilType,
       road_width_ft: v.roadWidthFt,
-      water_available: v.waterAvailable,
-      electricity_available: v.electricityAvailable,
-      storage_available: v.storageAvailable,
+      water_available: false,
+      electricity_available: false,
+      storage_available: false,
       site_notes: v.siteNotes || null,
       trade_key: template.tradeKey,
       measurements,
@@ -217,6 +249,7 @@ export async function saveSiteVisitChecklistAction(
   }
 
   revalidatePath('/admin/dashboard');
+  revalidatePath(`/admin/dashboard/checklist/${project.id}`);
   revalidatePath(`/admin/agreement/${project.id}`);
   return { ok: true, plinthAreaSqft: v.plinthAreaSqft, totalAccurateCost };
 }

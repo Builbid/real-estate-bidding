@@ -81,25 +81,12 @@ export default async function AdminAgreementPage({
       ? [
           { label: 'Site visit date', value: visit.visitDate.split('-').reverse().join('/') },
           ...(visit.plotLengthFt > 0 && visit.plotWidthFt > 0
-            ? [{ label: 'Plot (L x W)', value: ` ft x ${visit.plotWidthFt} ft` }]
+            ? [{ label: 'Plot (L x W)', value: `${visit.plotLengthFt} ft x ${visit.plotWidthFt} ft` }]
             : []),
           ...(visit.plinthAreaSqft > 0
             ? [{ label: 'Measured plinth area', value: `${visit.plinthAreaSqft.toLocaleString('en-IN')} sq. ft.` }]
             : []),
-          { label: 'Floors', value: String(visit.floors) },
           { label: 'Soil condition', value: soilLabel(visit.soilType) },
-          ...(visit.roadWidthFt > 0 ? [{ label: 'Access road width', value: `${visit.roadWidthFt} ft` }] : []),
-          {
-            label: 'Facilities',
-            value:
-              [
-                visit.waterAvailable ? 'Water' : null,
-                visit.electricityAvailable ? 'Electricity' : null,
-                visit.storageAvailable ? 'Material storage' : null,
-              ]
-                .filter(Boolean)
-                .join(', ') || 'None recorded',
-          },
           ...(visit.siteNotes ? [{ label: 'Field notes', value: visit.siteNotes }] : []),
         ]
       : [],

@@ -19,6 +19,8 @@ import {
   parsePlumbingRunningFootRate,
   parsePlumbingUnitRates,
   plumbingFixtureBidContextFromProject,
+  plumbingFloorHeightSteps,
+  plumbingFloorRateMultiplier,
   plumbingPointRateKey,
   readPlumbingPointRateFloors,
   readProjectPlumbingBidOptions,
@@ -30,6 +32,10 @@ import {
   readElectricianPointRateFloors,
   readProjectElectricianBidOptions,
 } from '@/lib/electricianBid';
+import {
+  ELECTRICIAN_FIXTURE_FIELDS,
+  parseTradeDetails,
+} from '@/lib/tradeWorkDetails';
 import { parseInteriorUnitRates, readProjectInteriorBidOptions } from '@/lib/interiorBid';
 import {
   parsePainterDetails,
@@ -49,9 +55,11 @@ export interface MeasurementLine {
   group: string;
   label: string;
   unit: string;
-  /** Agreed rate (₹ per unit) taken from the winning bid. */
+  /** Agreed rate (₹ per unit) taken from the winning bid. Read-only on the checklist. */
   rate: number;
-  /** Extra rate multiplier (2 when wall plastering on both sides is in scope). */
+  /** Storeys above ground for the +5% floor allowance. Ground is 0. */
+  floorSteps?: number;
+  /** Extra rate multiplier (floor allowance, or 2 when wall plastering on both sides is in scope). */
   rateMultiplier?: number;
   /** Quantity the Owner declared on the project form (null when not a measured quantity). */
   ownerQuantity: number | null;
@@ -202,6 +210,7 @@ function plumbingLines(project: ProjectLike, rates: Partial<BidRates>): Measurem
       label: line.label,
       unit: 'nos',
       rate: line.rate,
+      floorSteps: line.floorSteps,
       ...(line.rateMultiplier ? { rateMultiplier: line.rateMultiplier } : {}),
       ownerQuantity: line.ownerQuantity,
     }));
@@ -237,22 +246,68 @@ function plumbingLines(project: ProjectLike, rates: Partial<BidRates>): Measurem
   return optionLines(readProjectPlumbingBidOptions(project), unitRates, rates, 'Plumbing work items');
 }
 
+function electricianFixtureLabel(label: string): string {
+  return label.replace(/^No\. of /, '').replace(/\s*\([^)]*\)\s*$/, '');
+}
+
 function electricianLines(project: ProjectLike, rates: Partial<BidRates>): MeasurementLine[] {
   const unitRates = parseElectricianUnitRates(rates.unit_rates);
-  if (isElectricianPointRateProject(readNestedProjectDetail(project, 'trade_details'))) {
-    return readElectricianPointRateFloors(project).flatMap((floor) => {
-      const rate = unitRates[electricianPointRateKey(floor.floor)] ?? 0;
-      if (!(rate > 0)) return [];
-      return [
-        {
-          id: `point:${floor.floor}`,
+  const rawDetails = readNestedProjectDetail(project, 'trade_details');
+  const details = parseTradeDetails(rawDetails);
+  if (details?.service === 'electrician' && isElectricianPointRateProject(rawDetails)) {
+    const floors = readElectricianPointRateFloors(project);
+    const fixtureFields = ELECTRICIAN_FIXTURE_FIELDS.filter((field) =>
+      floors.some((floor) => (floor.counts[field.key] ?? 0) > 0),
+    );
+    const ground =
+      floors.find(
+        (floor) => plumbingFloorHeightSteps(floor.floor, details.customTargetFloors) === 0,
+      ) ?? floors[0];
+    const lockedPointRate = ground ? (unitRates[electricianPointRateKey(ground.floor)] ?? 0) : 0;
+    if (floors.length > 0 && fixtureFields.length > 0 && lockedPointRate > 0) {
+      return floors.flatMap((floor) => {
+        const steps = plumbingFloorHeightSteps(floor.floor, details.customTargetFloors);
+        const multiplier = plumbingFloorRateMultiplier(steps);
+        return fixtureFields.map((field) => ({
+          id: `efix:${field.key}:${floor.floor}`,
           group: floor.label,
-          label: `Electrical points${floor.breakdown ? ` (${floor.breakdown})` : ''}`,
-          unit: 'points',
-          rate,
-          ownerQuantity: floor.points > 0 ? floor.points : null,
-        },
-      ];
+          label: electricianFixtureLabel(field.label),
+          unit: 'nos',
+          rate: lockedPointRate * field.points,
+          floorSteps: steps,
+          ...(multiplier !== 1 ? { rateMultiplier: multiplier } : {}),
+          ownerQuantity: floor.counts[field.key] ?? 0,
+        }));
+      });
+    }
+    return floors.flatMap((floor) => {
+      const rate = unitRates[electricianPointRateKey(floor.floor)] ?? 0;
+      if (!(rate > 0) || fixtureFields.length === 0) {
+        if (!(rate > 0)) return [];
+        return [
+          {
+            id: `point:${floor.floor}`,
+            group: floor.label,
+            label: `Electrical points${floor.breakdown ? ` (${floor.breakdown})` : ''}`,
+            unit: 'points',
+            rate,
+            ownerQuantity: floor.points > 0 ? floor.points : null,
+          },
+        ];
+      }
+      return fixtureFields.flatMap((field) => {
+        if (!(floor.counts[field.key] > 0)) return [];
+        return [
+          {
+            id: `efix:${field.key}:${floor.floor}`,
+            group: floor.label,
+            label: electricianFixtureLabel(field.label),
+            unit: 'nos',
+            rate: rate * field.points,
+            ownerQuantity: floor.counts[field.key],
+          },
+        ];
+      });
     });
   }
   return optionLines(

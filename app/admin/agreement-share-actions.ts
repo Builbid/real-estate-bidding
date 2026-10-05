@@ -67,16 +67,10 @@ export async function shareAgreementCopyAction(
     startDate,
     completionDate,
     plinthAreaSqft: draft.defaults.plinthAreaSqft,
-    floors: visit?.floors ?? null,
+    floors: null,
     soilLabel: visit ? soilLabel(visit.soilType) : null,
     siteVisitDate: visit?.visitDate ?? null,
-    facilities: visit
-      ? [
-          visit.waterAvailable ? 'Water available' : null,
-          visit.electricityAvailable ? 'Electricity available' : null,
-          visit.storageAvailable ? 'Material storage space' : null,
-        ].filter((x): x is string => Boolean(x))
-      : [],
+    facilities: [],
     lineItems: visit?.lineItems ?? [],
     totalCost: draft.defaults.totalCost,
     signatureStatus,

@@ -65,7 +65,6 @@ import {
   STATUS_CONFIG,
 } from '@/lib/utils';
 import { CreateContractAgreementModal } from '@/components/admin/CreateContractAgreementModal';
-import { SiteVisitChecklistModal } from '@/components/admin/SiteVisitChecklistModal';
 import { goToAgreementAction } from '@/app/admin/site-visit-actions';
 import { PROTOTYPE_AUTO_AGREEMENT } from '@/lib/admin/prototype';
 import {
@@ -436,13 +435,11 @@ function WorkflowActions({
   projectId,
   workflow,
   busy,
-  onOpenChecklist,
   onGoToAgreement,
 }: {
   projectId: string;
   workflow: ProjectWorkflowState;
   busy: boolean;
-  onOpenChecklist: () => void;
   onGoToAgreement: () => void;
 }) {
   if (workflow.approved) {
@@ -458,14 +455,13 @@ function WorkflowActions({
   }
   return (
     <>
-      <button
-        type="button"
-        onClick={onOpenChecklist}
+      <Link
+        href={`/admin/dashboard/checklist/${projectId}`}
         className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 shadow-xs transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200"
       >
         <ClipboardCheck className="h-3 w-3" />
         {workflow.siteVisitDone ? 'Edit Site Checklist' : 'Site Visit Checklist'}
-      </button>
+      </Link>
       {workflow.siteVisitDone || PROTOTYPE_AUTO_AGREEMENT ? (
         <button
           type="button"
@@ -535,26 +531,6 @@ export function AdminDashboardClient({
     clientName: string;
   } | null>(null);
   const router = useRouter();
-  const [checklistProject, setChecklistProject] = useState<{
-    id: string;
-    publicId: string;
-    title: string;
-    clientName: string;
-  } | null>(null);
-
-  function openChecklist(row: {
-    id: string;
-    publicId?: string | null;
-    title?: string | null;
-    clientName?: string | null;
-  }) {
-    setChecklistProject({
-      id: row.id,
-      publicId: row.publicId ?? '',
-      title: row.title ?? '',
-      clientName: row.clientName ?? '',
-    });
-  }
 
   function goToAgreement(projectId: string) {
     startTransition(async () => {
@@ -1138,7 +1114,6 @@ export function AdminDashboardClient({
                                       projectId={p.id}
                                       workflow={p.workflow}
                                       busy={pending}
-                                      onOpenChecklist={() => openChecklist(p)}
                                       onGoToAgreement={() => goToAgreement(p.id)}
                                     />
                                   ) : (
@@ -1489,23 +1464,15 @@ export function AdminDashboardClient({
                             <div className="flex flex-wrap items-center gap-1">
                               {supervisorPortal ? (
                                 // Supervisor agreement cards: exactly two actions. The checklist
-                                // modal leads on to the agreement / Aadhaar eSign once saved.
+                                // page leads on to the agreement / Aadhaar eSign once saved.
                                 <>
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      openChecklist({
-                                        id: a.projectId,
-                                        publicId: a.publicId,
-                                        title: a.projectTitle,
-                                        clientName: a.clientName,
-                                      })
-                                    }
+                                  <Link
+                                    href={`/admin/dashboard/checklist/${a.projectId}`}
                                     className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 shadow-xs transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200"
                                   >
                                     <ClipboardCheck className="h-3 w-3" />
                                     Site Visit Checklist
-                                  </button>
+                                  </Link>
                                   <Link
                                     href={`/project/${a.projectId}`}
                                     target="_blank"
@@ -1568,20 +1535,6 @@ export function AdminDashboardClient({
           ) : null}
         </main>
       </div>
-      {checklistProject ? (
-        <SiteVisitChecklistModal
-          key={checklistProject.id}
-          open
-          onOpenChange={(open) => {
-            if (!open) setChecklistProject(null);
-          }}
-          projectId={checklistProject.id}
-          publicId={checklistProject.publicId}
-          projectTitle={checklistProject.title}
-          clientName={checklistProject.clientName}
-          onSaved={() => router.refresh()}
-        />
-      ) : null}
       <CreateContractAgreementModal
         key={contractProject?.id ?? 'closed'}
         open={Boolean(contractProject)}

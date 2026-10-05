@@ -156,7 +156,7 @@ export function parseSiteVisitInput(
     }
   }
 
-  const floors = Math.trunc(num(input.floors));
+  const floors = isBlank(input.floors) ? 1 : Math.trunc(num(input.floors));
   if (!Number.isFinite(floors) || floors < 1 || floors > 20) {
     return { error: 'Enter the number of floors (1 to 20).' };
   }
@@ -165,7 +165,7 @@ export function parseSiteVisitInput(
     return { error: 'Select the soil condition observed at the site.' };
   }
 
-  const roadWidthFt = isBlank(input.roadWidthFt) && !requirePlot ? 0 : num(input.roadWidthFt);
+  const roadWidthFt = isBlank(input.roadWidthFt) ? 0 : num(input.roadWidthFt);
   if (!Number.isFinite(roadWidthFt) || roadWidthFt < 0 || roadWidthFt > 500) {
     return { error: 'Enter the access road width in feet (0 if none).' };
   }

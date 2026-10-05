@@ -409,6 +409,8 @@ export interface PlumbingFixtureMeasurementLine {
   group: string;
   label: string;
   rate: number;
+  /** Storeys above ground. Ground is 0 (100%), 1st is 1 (+5%), 2nd is 2 (+10%). */
+  floorSteps: number;
   rateMultiplier?: number;
   ownerQuantity: number;
 }
@@ -434,9 +436,10 @@ export function buildPlumbingFixtureMeasurementLines(
       if (!(ownerQuantity > 0)) return [];
       return [{
         id: `opt:${option.id}`,
-        group: 'Fixture piping & fitting',
+        group: 'Ground Floor',
         label: option.shortLabel,
         rate,
+        floorSteps: 0,
         ownerQuantity,
       }];
     });
@@ -454,12 +457,13 @@ export function buildPlumbingFixtureMeasurementLines(
       if (!option.fixtureKind) return [];
       const ownerQuantity = floor[option.fixtureKind] ?? 0;
       const rate = unitRates[option.id] ?? 0;
-      if (!(ownerQuantity > 0) || !(rate > 0)) return [];
+      if (!(rate > 0)) return [];
       return [{
         id: `opt:${option.id}:${floor.floor}`,
         group,
         label: option.shortLabel,
         rate,
+        floorSteps: steps,
         ...(multiplier !== 1 ? { rateMultiplier: multiplier } : {}),
         ownerQuantity,
       }];
