@@ -78,6 +78,7 @@ export default async function AdminAgreementPage({
     client: draft.client,
     contractor: draft.contractor,
     checklistRows: checklistAgreementRows(visit),
+    fittingLabel: draft.fittingLabel,
     valuesLocked:
       (Boolean(visit) || PROTOTYPE_AUTO_AGREEMENT) && !isOfficialAdminEmail(session.email),
     defaults: draft.defaults,

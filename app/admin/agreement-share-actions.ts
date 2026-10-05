@@ -13,6 +13,7 @@ import { parseIndianDateToIso } from '@/lib/projectStartTime';
 import { generateProjectDocumentPdfBytes } from '@/lib/documents/pdf';
 import { publishAgreementPackage } from '@/lib/documents/publishAgreementPackage';
 import { generateQualityControlPdfBytes } from '@/lib/contract/qualityControlPdf';
+import { graceDaysForService, graceExtensionLabel } from '@/lib/contract/agreementTerms';
 import { generateDigitalContractPdf, overlayFromRecord } from '@/lib/contract/renderDigitalContract';
 
 function toIsoDate(raw: string | undefined): string | null {
@@ -106,7 +107,7 @@ export async function shareAgreementCopyAction(
           { label: 'Party B — Mistri / Worker', value: draft.contractor.name },
           { label: 'Agreed start date', value: dmy(startDate) },
           { label: 'Target completion date', value: dmy(completionDate) },
-          { label: 'Grace extension', value: '10 calendar days, penalty free' },
+          { label: 'Grace extension', value: graceExtensionLabel(graceDaysForService(draft.project.serviceType, draft.project.isMistriCivil)) },
           {
             label: 'Agreed project cost',
             value:
@@ -215,6 +216,6 @@ export async function shareAgreementCopyAction(
   return {
     ok: true,
     sharedAt: now,
-    message: `Agreement and quality-control PDFs are in the document section for ${draft.client.name} and ${draft.contractor.name}.`,
+    message: `The Digital Construction Agreement and the quality-control form were delivered to both accounts (${draft.client.name} and ${draft.contractor.name}).`,
   };
 }

@@ -377,7 +377,6 @@ export function generateMistriAgreementPdfBytes(
       { label: 'PARTY B — Head Mason', value: nonEmpty(filled.mistri.companyName || filled.mistri.name) },
       { label: 'Phone / WhatsApp', value: nonEmpty(filled.mistri.mobile) },
       { label: 'builbid ID', value: formatBuilbidPublicId(filled.mistri.platformId) },
-      { label: 'Govt ID / GST / Reg No', value: nonEmpty(filled.mistri.gstNumber) },
     ],
     y,
     margin,
@@ -417,7 +416,7 @@ export function generateMistriAgreementPdfBytes(
   );
   y = drawParagraph(
     doc,
-    'Mandatory BuilBid Payment Gateway: All funds must flow exclusively through BuilBid (Homeowner -> BuilBid Milestone Escrow -> Mistri). Direct cash payments to the Mistri are strictly prohibited and nullify all platform guarantees.',
+    'Mandatory BuilBid Payment Gateway: All funds must flow exclusively through BuilBid (Homeowner -> BuilBid Payment Gateway -> Mistri). Direct cash payments to the Mistri are strictly prohibited and nullify all platform guarantees.',
     y,
     margin,
     { bold: true, fill: [254, 226, 226], bordered: true },
@@ -440,7 +439,7 @@ export function generateMistriAgreementPdfBytes(
     [
       { label: 'Agreed start date', value: filledAgreementText(filled.agreedStartDate, AGREEMENT_MANUAL_DATE_BLANK) },
       { label: 'Agreed completion date', value: filledAgreementText(filled.agreedCompletionDate, AGREEMENT_MANUAL_DATE_BLANK) },
-      { label: 'Grace extension allowed', value: '10 Calendar Days (Penalty Free)' },
+      { label: 'Grace extension allowed', value: '7 Calendar Days (Penalty Free)' },
     ],
     y,
     margin,
@@ -459,7 +458,7 @@ export function generateMistriAgreementPdfBytes(
   );
   y = drawParagraph(
     doc,
-    'Mistri Delay Penalty (5%): If the project extends beyond the 10-day grace period due to unexcused Mistri delay or absenteeism, a 5% penalty is deducted from the Mistri payout through BuilBid.',
+    'If the work runs past the grace period, a 5% penalty per week or milestone is applied through the BuilBid Payment Gateway.',
     y,
     margin,
     { bold: true, fill: [254, 226, 226], bordered: true },

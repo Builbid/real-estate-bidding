@@ -4,6 +4,7 @@ import type { SiteVisitRecord } from '@/lib/admin/siteVisit';
 import { findProjectByAnyId } from '@/lib/contract/resolveProjectId';
 import type { DigitalContractRecord } from '@/lib/contract/renderDigitalContract';
 import { formatBuilbidPublicId } from '@/lib/contract/agreementPdf';
+import { agreementFittingLabel } from '@/lib/admin/fittingLabel';
 import { isMistriCivilService } from '@/lib/contract/mistriAgreement';
 
 export interface AgreementDraft {
@@ -29,6 +30,8 @@ export interface AgreementDraft {
   };
   visit: SiteVisitRecord | null;
   contract: DigitalContractRecord | null;
+  /** Concealed Fitting or Non-Concealed Fitting for electrical and plumbing projects. */
+  fittingLabel: string | null;
   commission: { amount: number; status: string; creditedAt: string } | null;
   defaults: {
     plinthAreaSqft: number | null;
@@ -62,10 +65,11 @@ export async function loadAgreementDraft(
     selected_builder_id: string | null;
     service_type: string | null;
     budget_range_max: number | null;
+    trade_details: unknown;
   }>(
     admin,
     projectRef,
-    'id, numeric_id, title, district, state, pincode, owner_id, selected_builder_id, service_type, budget_range_max',
+    'id, numeric_id, title, district, state, pincode, owner_id, selected_builder_id, service_type, budget_range_max, trade_details',
   );
   if (!project) return { error: 'Project not found.' };
   if (!project.selected_builder_id) {
@@ -143,6 +147,7 @@ export async function loadAgreementDraft(
     },
     visit,
     contract,
+    fittingLabel: agreementFittingLabel(project.service_type, project.trade_details),
     commission: commissionRes.data
       ? {
           amount: Number(commissionRes.data.amount),

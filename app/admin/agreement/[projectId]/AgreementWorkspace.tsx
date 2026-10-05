@@ -14,13 +14,6 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { AgreementTemplate } from '@/components/admin/AgreementTemplate';
 import { QualityControlForm } from '@/components/admin/QualityControlForm';
@@ -45,6 +38,7 @@ export interface AgreementWorkspaceProps {
   client: { name: string; email: string; mobile: string; address: string };
   contractor: { name: string; email: string; mobile: string; gstNumber: string; platformId: string };
   checklistRows: Row[];
+  fittingLabel: string | null;
   valuesLocked: boolean;
   defaults: {
     plinthAreaSqft: number | null;
@@ -71,7 +65,7 @@ export interface AgreementWorkspaceProps {
 }
 
 const CARD =
-  'rounded-xl border border-slate-200/80 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900';
+  'rounded-xl border border-slate-700 bg-slate-900 p-5 text-slate-100 shadow-sm';
 
 function inr(value: number | null | undefined): string {
   if (value == null) return '—';
@@ -83,7 +77,7 @@ function Step({ done, active, label }: { done: boolean; active?: boolean; label:
     <li
       className={cn(
         'flex items-center gap-2 text-sm font-medium',
-        done ? 'text-emerald-700 dark:text-emerald-400' : active ? 'text-slate-900 dark:text-white' : 'text-slate-400',
+        done ? 'text-emerald-300' : active ? 'text-white' : 'text-slate-500',
       )}
     >
       {done ? <CheckCircle2 className="h-4 w-4" /> : <Circle className="h-4 w-4" />}
@@ -93,13 +87,12 @@ function Step({ done, active, label }: { done: boolean; active?: boolean; label:
 }
 
 export function AgreementWorkspace(props: AgreementWorkspaceProps) {
-  const { project, client, contractor, contract, commission, defaults, checklistRows, lineItems } = props;
+  const { project, client, contractor, contract, commission, defaults, checklistRows, lineItems, fittingLabel } = props;
   const router = useRouter();
   const [startDate] = useState(defaults.startDate);
   const [completionDate] = useState(defaults.completionDate);
   const [partyA, setPartyA] = useState(client.email);
   const [partyB, setPartyB] = useState(contractor.email);
-  const [shareOpen, setShareOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [retrying, startRetrying] = useTransition();
@@ -107,8 +100,6 @@ export function AgreementWorkspace(props: AgreementWorkspaceProps) {
   const [sharedAt, setSharedAt] = useState<string | null>(props.sharedAt);
 
   const approved = Boolean(contract?.approved);
-  const signedAwaitingApproval = contract?.status === 'signed' && !approved;
-  const sent = Boolean(contract);
 
   function shareCopy() {
     setError(null);
@@ -125,8 +116,7 @@ export function AgreementWorkspace(props: AgreementWorkspaceProps) {
         return;
       }
       setSharedAt(result.sharedAt ?? new Date().toISOString());
-      setShareOpen(false);
-      setMessage(result.message ?? 'Agreement and quality-control PDFs shared to both accounts.');
+      setMessage(result.message ?? 'Agreement and quality-control PDFs are in both accounts.');
       router.refresh();
     });
   }
@@ -146,17 +136,18 @@ export function AgreementWorkspace(props: AgreementWorkspaceProps) {
   }
 
   return (
+    <div className="dark min-h-screen bg-slate-950 text-slate-100">
     <main className="mx-auto w-full max-w-5xl space-y-5 p-4 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Link
           href="/admin/dashboard?tab=agreements"
-          className="inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-700 hover:text-emerald-800"
+          className="inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-300 hover:text-emerald-200"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to dashboard
         </Link>
         {approved ? (
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-700 bg-emerald-950 px-3 py-1 text-xs font-bold text-emerald-200">
             <BadgeCheck className="h-4 w-4" />
             Approved / Active
           </span>
@@ -164,36 +155,25 @@ export function AgreementWorkspace(props: AgreementWorkspaceProps) {
       </div>
 
       <header>
-        <h1 className="text-xl font-bold text-slate-900 dark:text-white">Digital Agreement</h1>
-        <p className="mt-1 text-sm text-slate-500">
+        <h1 className="text-xl font-bold text-white">Digital Agreement</h1>
+        <p className="mt-1 text-sm text-slate-400">
           {project.title}
           {project.publicId ? ` · Project ID ${project.publicId}` : ''} · {project.district}, {project.state}
         </p>
       </header>
 
       <section className={CARD}>
-        <ol className="grid gap-2 sm:grid-cols-4">
+        <ol className="grid gap-2 sm:grid-cols-2">
           <Step done label="1. Site visit checklist" />
           <Step done label="2. Two-party agreement generated" />
-          <Step
-            done={contract?.status === 'signed'}
-            active={sent}
-            label={`3. Aadhaar OTP eSign${
-              contract && contract.status !== 'signed'
-                ? ` (${[contract.clientSigned, contract.contractorSigned].filter(Boolean).length}/2)`
-                : ''
-            }`}
-          />
-          <Step done={approved} label="4. Approved / Active" />
         </ol>
       </section>
 
       {approved ? (
-        <section className="rounded-xl border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-100">
+        <section className="rounded-xl border border-emerald-800 bg-emerald-950 p-5 text-sm text-emerald-100">
           <p className="flex items-center gap-2 font-semibold">
             <ShieldCheck className="h-4 w-4" />
-            Both parties signed by Aadhaar OTP eSign. The signed two-party agreement was emailed to{' '}
-            {client.name} (Home Owner) and {contractor.name} (Worker).
+            Approved / Active. Both parties are verified.
           </p>
           {commission ? (
             <p className="mt-2">
@@ -210,6 +190,7 @@ export function AgreementWorkspace(props: AgreementWorkspaceProps) {
         contractor={contractor}
         checklistRows={checklistRows}
         lineItems={lineItems}
+        fittingLabel={fittingLabel}
         startDate={startDate}
         completionDate={completionDate}
         totalCost={defaults.totalCost}
@@ -221,27 +202,45 @@ export function AgreementWorkspace(props: AgreementWorkspaceProps) {
 
       <QualityControlForm serviceType={project.serviceType} projectTitle={project.title} />
 
-      <section className={cn(CARD, 'border-emerald-200/80 dark:border-emerald-900/60')}>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="min-w-0">
-            <h2 className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white">
-              <Share2 className="h-4 w-4 text-emerald-600" />
-              Share Agreement & QC Documents
-            </h2>
-            <p className="mt-1 text-xs text-slate-500">
-              Sends the agreement PDF and the quality-control form into the document section of both accounts.
-              {sharedAt
-                ? ` Last shared ${new Date(sharedAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}.`
-                : ''}
-            </p>
-          </div>
-          <Button type="button" onClick={() => setShareOpen(true)}>
-            <Share2 className="h-4 w-4" />
-            Share Agreement & QC Documents
-          </Button>
+      <section className={CARD}>
+        <h2 className="flex items-center gap-2 text-sm font-bold text-white">
+          <Share2 className="h-4 w-4 text-emerald-400" />
+          Send / Share Agreement
+        </h2>
+        <p className="mt-1 text-xs text-slate-400">
+          Sends the Digital Construction Agreement PDF and the project quality-control form into the document
+          section of both accounts.
+          {sharedAt
+            ? ` Last shared ${new Date(sharedAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}.`
+            : ''}
+        </p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <Input
+            label="Party A (Homeowner account ID / email)"
+            accentLabel={false}
+            value={partyA}
+            onChange={(e) => setPartyA(e.target.value)}
+            autoComplete="off"
+          />
+          <Input
+            label="Party B (Mistri / Worker account ID / email)"
+            accentLabel={false}
+            value={partyB}
+            onChange={(e) => setPartyB(e.target.value)}
+            autoComplete="off"
+          />
         </div>
-        {signedAwaitingApproval ? (
-          <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+        <Button
+          type="button"
+          className="mt-3"
+          onClick={shareCopy}
+          disabled={sharing || !partyA.trim() || !partyB.trim()}
+        >
+          {sharing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Share2 className="h-4 w-4" />}
+          {sharing ? 'Sending…' : 'Send / Share'}
+        </Button>
+        {contract?.status === 'signed' && !approved ? (
+          <div className="mt-4 rounded-lg border border-amber-700 bg-amber-950 p-4 text-sm text-amber-100">
             <p className="font-semibold">Both parties have signed, but final approval is pending.</p>
             <Button type="button" className="mt-3" onClick={retry} disabled={retrying}>
               {retrying ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
@@ -249,41 +248,14 @@ export function AgreementWorkspace(props: AgreementWorkspaceProps) {
             </Button>
           </div>
         ) : null}
-        {error ? <p className="mt-3 text-xs text-red-600 dark:text-red-400">{error}</p> : null}
-        {message ? <p className="mt-3 text-xs text-emerald-700 dark:text-emerald-400">{message}</p> : null}
+        {error ? <p className="mt-3 text-xs text-red-300">{error}</p> : null}
+        {message ? (
+          <p className="mt-3 rounded-lg border border-emerald-700 bg-emerald-950 px-3 py-2 text-sm font-semibold text-emerald-200">
+            {message}
+          </p>
+        ) : null}
       </section>
-
-      <Dialog open={shareOpen} onOpenChange={setShareOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Share Agreement & QC Documents</DialogTitle>
-            <DialogDescription>
-              Enter each party&apos;s account email or ID. Both receive the signed agreement PDF and the
-              project quality-control form in their document section.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3">
-            <Input
-              label="Party A account email or ID (Homeowner)"
-              accentLabel={false}
-              value={partyA}
-              onChange={(e) => setPartyA(e.target.value)}
-              autoComplete="off"
-            />
-            <Input
-              label="Party B account email or ID (Mistri / Worker)"
-              accentLabel={false}
-              value={partyB}
-              onChange={(e) => setPartyB(e.target.value)}
-              autoComplete="off"
-            />
-            <Button type="button" className="w-full" onClick={shareCopy} disabled={sharing || !partyA.trim() || !partyB.trim()}>
-              {sharing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Share2 className="h-4 w-4" />}
-              {sharing ? 'Sharing…' : 'Share to both accounts'}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </main>
+    </div>
   );
 }

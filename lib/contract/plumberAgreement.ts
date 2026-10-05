@@ -345,7 +345,6 @@ export function generatePlumberAgreementPdfBytes(
       { label: 'PARTY B — Plumber', value: nonEmpty(filled.plumber.companyName || filled.plumber.name) },
       { label: 'Phone / WhatsApp', value: nonEmpty(filled.plumber.mobile) },
       { label: 'builbid ID', value: formatBuilbidPublicId(filled.plumber.platformId) },
-      { label: 'Govt ID / GST / Reg No', value: nonEmpty(filled.plumber.gstNumber) },
     ],
     y,
     margin,
@@ -376,7 +375,7 @@ export function generatePlumberAgreementPdfBytes(
   );
   y = drawParagraph(
     doc,
-    'Mandatory BuilBid Payment Gateway: All funds must flow exclusively through BuilBid (Homeowner -> BuilBid Milestone Escrow -> Plumber). Direct cash payments to the Plumber are strictly prohibited and nullify all platform guarantees.',
+    'Mandatory BuilBid Payment Gateway: All funds must flow exclusively through BuilBid (Homeowner -> BuilBid Payment Gateway -> Plumber). Direct cash payments to the Plumber are strictly prohibited and nullify all platform guarantees.',
     y,
     margin,
     { bold: true, fill: [254, 226, 226], bordered: true },
@@ -410,7 +409,7 @@ export function generatePlumberAgreementPdfBytes(
     [
       { label: 'Agreed start date', value: filledAgreementText(filled.agreedStartDate, AGREEMENT_MANUAL_DATE_BLANK) },
       { label: 'Agreed completion date', value: filledAgreementText(filled.agreedCompletionDate, AGREEMENT_MANUAL_DATE_BLANK) },
-      { label: 'Grace extension allowed', value: '10 Calendar Days (Penalty Free)' },
+      { label: 'Grace extension allowed', value: '5 Calendar Days (Penalty Free)' },
     ],
     y,
     margin,
@@ -429,7 +428,7 @@ export function generatePlumberAgreementPdfBytes(
   );
   y = drawParagraph(
     doc,
-    'Plumber Delay Penalty (5%): If the project extends beyond the 10-day grace period due to unexcused Plumber delay or absenteeism, a 5% penalty is deducted from the Plumber payout through BuilBid.',
+    'If the work runs past the grace period, a 5% penalty per week or milestone is applied through the BuilBid Payment Gateway.',
     y,
     margin,
     { bold: true, fill: [254, 226, 226], bordered: true },

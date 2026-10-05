@@ -90,8 +90,8 @@ export function checklistAgreementRows(
   }
   if (visit.plinthAreaSqft > 0) {
     rows.push({
-      label: 'Measured plinth area',
-      value: `${visit.plinthAreaSqft.toLocaleString('en-IN')} sq. ft.`,
+      label: 'Total Plinth Area (Sq. Ft.)',
+      value: visit.plinthAreaSqft.toLocaleString('en-IN'),
     });
   }
   if (visit.floors > 1) {
@@ -103,11 +103,6 @@ export function checklistAgreementRows(
   if (visit.roadWidthFt > 0) {
     rows.push({ label: 'Approach road width', value: `${visit.roadWidthFt} ft` });
   }
-  rows.push(
-    { label: 'Water on site', value: visit.waterAvailable ? 'Available' : 'Not available' },
-    { label: 'Electricity on site', value: visit.electricityAvailable ? 'Available' : 'Not available' },
-    { label: 'Material storage', value: visit.storageAvailable ? 'Available' : 'Not available' },
-  );
   const notes = visit.siteNotes?.trim();
   if (notes) rows.push({ label: 'Field notes', value: notes });
   return rows;

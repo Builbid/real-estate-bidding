@@ -5,6 +5,7 @@ import { findProjectByAnyId } from '@/lib/contract/resolveProjectId';
 import { checklistAgreementRows, type SiteVisitRecord } from '@/lib/admin/siteVisit';
 import { loadSiteVisit, siteVisitSummary } from '@/lib/admin/siteVisitStore';
 import { isoToIndianDate } from '@/lib/projectStartTime';
+import { graceDaysForService, graceExtensionLabel } from '@/lib/contract/agreementTerms';
 import { formatInrAmount, officialAgreementFileName } from '@/lib/contract/agreementPdf';
 import {
   PAGE_MARGIN_MM,
@@ -513,7 +514,7 @@ function generateGenericDigitalContractPdf(input: {
   );
   y = drawParagraph(
     doc,
-    'Mandatory BuilBid Payment Gateway: All funds must flow exclusively through BuilBid (Homeowner -> BuilBid Milestone Escrow -> Contractor). Direct cash payments to the Contractor are strictly prohibited and nullify all platform guarantees.',
+    'Mandatory BuilBid Payment Gateway: All funds must flow exclusively through BuilBid (Homeowner -> BuilBid Payment Gateway -> Contractor). Direct cash payments to the Contractor are strictly prohibited and nullify all platform guarantees.',
     y,
     margin,
     { bold: true, fill: [254, 226, 226], bordered: true },
@@ -536,14 +537,14 @@ function generateGenericDigitalContractPdf(input: {
     [
       { label: 'Agreed start date', value: payload.agreedStartDate },
       { label: 'Agreed completion date', value: payload.agreedCompletionDate },
-      { label: 'Grace extension allowed', value: '10 Calendar Days (Penalty Free)' },
+      { label: 'Grace extension allowed', value: graceExtensionLabel(graceDaysForService(input.serviceType)) },
     ],
     y,
     margin,
   );
   y = drawParagraph(
     doc,
-    'Contractor Delay Penalty (5%): If the project extends beyond the 10-day grace period due to unexcused Contractor delay or absenteeism, a 5% penalty is deducted from the Contractor payout through BuilBid.',
+    'If the work runs past the grace period, a 5% penalty per week or milestone is applied through the BuilBid Payment Gateway.',
     y,
     margin,
     { bold: true, fill: [254, 226, 226], bordered: true },
