@@ -3,11 +3,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  ArrowLeft, TrendingDown, Info, CheckCircle2, AlertCircle,
+  TrendingDown, Info, CheckCircle2, AlertCircle,
   RefreshCw, Building, Layers, Clock
 } from 'lucide-react';
-import { NavLink } from '@/components/shared/NavLink';
-import { NAV_ICON_BUTTON } from '@/lib/navStyles';
 import { useRealtimeBids } from '@/lib/hooks/useRealtimeBids';
 import { useCountdown } from '@/lib/hooks/useCountdown';
 import { CountdownTicker } from '@/components/shared/CountdownTicker';
@@ -21,7 +19,6 @@ import {
   averageFromSumMetric,
   formatBidMetric,
   formatRelativeTime,
-  TRACK_LABELS,
   cn,
 } from '@/lib/utils';
 import {
@@ -69,7 +66,6 @@ import {
 } from '@/lib/bid/painterBid';
 import { getBidRankMetric } from '@/lib/bid/estimatedCost';
 import {
-  ELECTRICIAN_LABOUR_ONLY_DISCLAIMER,
   computeElectricianPointBidTotal,
   computeElectricianWeightedIndex,
   electricianPackageGroupsForOptions,
@@ -84,7 +80,6 @@ import {
   readProjectElectricianBidOptions,
 } from '@/lib/electricianBid';
 import {
-  INTERIOR_DESIGNER_LABOUR_ONLY_DISCLAIMER,
   computeInteriorWeightedIndex,
   getInteriorUnitRateDisplayEntries,
   interiorPackageGroupsForOptions,
@@ -93,7 +88,6 @@ import {
   readProjectInteriorBidOptions,
 } from '@/lib/interiorBid';
 import {
-  PLUMBING_LABOUR_ONLY_DISCLAIMER,
   PLUMBING_TAPE_MEASURE_DISCLAIMER,
   PLUMBING_FIXTURE_RATE_INCLUSION_NOTE,
   PLUMBING_FIXTURE_RATE_SECTION_TITLE,
@@ -140,7 +134,6 @@ import { createClient } from '@/lib/supabase/client';
 import { isTradeServiceType } from '@/lib/trades';
 import { isDrawingDesignServiceType } from '@/lib/drawingDesign';
 import {
-  getProjectConfigOrDrawingMeta,
   getProjectServiceBadgeLabel,
 } from '@/lib/project/display';
 import {
@@ -232,17 +225,12 @@ function formatSpecLines(blocks: WorkRequirementBlock[]): string | undefined {
   return lines.length > 0 ? lines.join('\n') : undefined;
 }
 
-const LABOUR_NOTICE_CLASSES =
-  'rounded-xl border border-amber-300 bg-amber-100 px-3.5 py-3 dark:border-amber-700 dark:bg-amber-900/40';
-const LABOUR_NOTICE_TEXT_CLASSES = 'text-sm font-medium leading-relaxed text-amber-900 dark:text-amber-200';
-const LABOUR_NOTICE_ICON_CLASSES = 'mt-0.5 h-4 w-4 flex-shrink-0 text-amber-700 dark:text-amber-200';
-
 interface BuilderInfo {
   full_name: string;
   avatar_url?: string | null;
 }
 
-export function BiddingConsole({ project, existingBid, builderId, builderName, builderAvatarUrl, bidderServiceType, backHref = '/dashboard/builder' }: Props) {
+export function BiddingConsole({ project, existingBid, builderId, builderName, builderAvatarUrl, bidderServiceType }: Props) {
   const bidRankContext = useMemo(() => {
     const floors = readPainterBidFloors(project);
     const details = parsePainterDetails(readNestedProjectDetail(project, 'painter_details'));
@@ -265,7 +253,6 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
   const isPainterFloorBid = painterBidFloors.length > 0;
   const isSingleRateBid = (isTrade || isDrawing) && !isPainterFloorBid;
   const serviceBadge = getProjectServiceBadgeLabel(project);
-  const configMeta = getProjectConfigOrDrawingMeta(project);
   const workRequirements = getProjectWorkRequirementBlocks(project);
   const requirementBlocks = workRequirements?.blocks ?? [];
   const {
@@ -371,8 +358,8 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
     group.options.map((option) => ({
       key: option.id,
       title: option.shortLabel,
-      category: group.label,
-      description: option.note,
+      category: isFixtureRateBid ? undefined : group.label,
+      description: isFixtureRateBid ? undefined : option.note,
       unitSuffix: option.unitSuffix,
       placeholder: isFixtureRateBid
         ? `Enter ${option.shortLabel.toLowerCase()} (₹ per fixture)`
@@ -1072,51 +1059,20 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
   }
 
   return (
-    <div className="w-full space-y-4">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <NavLink
-          href={backHref}
-          prefetch
-          className={cn(NAV_ICON_BUTTON, 'p-1 text-muted-foreground hover:text-foreground')}
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </NavLink>
-        <div className="flex-1">
-          <div className="flex flex-wrap items-center gap-2 mb-1">
-            {biddingClosed ? (
-              <Badge>Bidding Closed</Badge>
-            ) : (
-              <Badge variant="emerald">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                Live Auction
-              </Badge>
-            )}
-            <Badge>{serviceBadge}</Badge>
-            {isTrade && !isDrawing && (
-              <Badge>{TRACK_LABELS[project.track_type]}</Badge>
-            )}
-          </div>
-          <h1 className="text-lg font-bold text-foreground leading-snug">{project.title}</h1>
-          <p className="text-xs text-muted-foreground">
-            {project.district}
-            {configMeta ? ` · ${configMeta}` : ''}
-          </p>
+    <div className="mx-auto w-full max-w-[800px] space-y-4 px-4">
+      <div>
+        <div className="mb-1">
+          {biddingClosed ? (
+            <Badge>Bidding Closed</Badge>
+          ) : (
+            <Badge variant="emerald">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              Live Auction
+            </Badge>
+          )}
         </div>
+        <h1 className="text-lg font-bold text-foreground leading-snug">{project.title}</h1>
       </div>
-
-      {(isPlumbingBid || isElectricianBid || isInteriorBid) && (isTradeUnitRateBid || isPointRateBid) && (
-        <div className={cn('flex items-start gap-2', LABOUR_NOTICE_CLASSES)}>
-          <Info className={LABOUR_NOTICE_ICON_CLASSES} />
-          <p className={LABOUR_NOTICE_TEXT_CLASSES}>
-            {isInteriorBid
-              ? INTERIOR_DESIGNER_LABOUR_ONLY_DISCLAIMER
-              : isElectricianBid
-                ? ELECTRICIAN_LABOUR_ONLY_DISCLAIMER
-                : PLUMBING_LABOUR_ONLY_DISCLAIMER}
-          </p>
-        </div>
-      )}
 
       {summaryBannerBlocks.length > 0 && (
         <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.04] px-4 py-3">
@@ -1195,7 +1151,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start w-full">
         {/* Left: Update Your Bid */}
         <div className="min-w-0 lg:self-stretch">
-          <Card className="h-full">
+          <Card className="h-full border-0 bg-transparent shadow-none dark:bg-transparent dark:shadow-none dark:ring-0">
             <CardHeader className="p-4 pb-2">
               <CardTitle className="text-base flex items-center gap-2">
                 <Layers className="w-4 h-4 text-muted-foreground" />
@@ -1433,6 +1389,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                           category={item.category}
                           badge={item.kind === 'civil' ? (item.scopeBadge ?? undefined) : undefined}
                           description={item.description}
+                          plain={isFixtureRateBid && item.kind === 'unit'}
                           toneIndex={toneIndex}
                           isAssam={isAssamFloor}
                         >
@@ -1815,7 +1772,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
 
         {/* Right: Live Leaderboard */}
         <div className="min-w-0 lg:self-stretch">
-          <Card className="h-full min-h-full flex flex-col">
+          <Card className="flex h-full min-h-full flex-col border-0 bg-transparent shadow-none dark:bg-transparent dark:shadow-none dark:ring-0">
             <CardHeader className="p-4 pb-2">
               <CardTitle className="flex items-center justify-between text-base">
                 <div className="flex items-center gap-2">

@@ -376,7 +376,7 @@ export function describePlumbingFixtureLineCost(
   const floors = (context?.floors ?? []).filter((floor) => (floor[fixtureKind] ?? 0) > 0);
   const quantity = floors.reduce((sum, floor) => sum + (floor[fixtureKind] ?? 0), 0);
   if (quantity <= 0) return { quantity: 0, amount: 0, summary: '' };
-  if (!(rate > 0)) return { quantity, amount: 0, summary: `Quantity: ${quantity}` };
+  if (!(rate > 0)) return { quantity, amount: 0, summary: `Total quantity: ${quantity}` };
 
   const slices = floors.map((floor) => {
     const floorQuantity = floor[fixtureKind] ?? 0;
@@ -393,14 +393,14 @@ export function describePlumbingFixtureLineCost(
     return {
       quantity,
       amount,
-      summary: `${quantity} × ₹${rate.toLocaleString('en-IN')} = ₹${amount.toLocaleString('en-IN')}`,
+      summary: `Total quantity: ${quantity} × ₹${rate.toLocaleString('en-IN')} = ₹${amount.toLocaleString('en-IN')}`,
     };
   }
   const parts = slices.map((slice) => `${slice.label}: ₹${slice.amount.toLocaleString('en-IN')}`);
   return {
     quantity,
     amount,
-    summary: `${parts.join(' · ')} · line total ₹${amount.toLocaleString('en-IN')}`,
+    summary: `Total quantity: ${quantity} · ${parts.join(' · ')} · line total ₹${amount.toLocaleString('en-IN')}`,
   };
 }
 

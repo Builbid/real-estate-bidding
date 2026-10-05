@@ -97,6 +97,7 @@ export function BidWorkItemCard({
   description,
   toneIndex,
   isAssam,
+  plain,
   children,
 }: {
   title: string;
@@ -106,15 +107,21 @@ export function BidWorkItemCard({
   /** Distinct color per floor (0 = Ground, 1 = 1st, …). */
   toneIndex?: number | null;
   isAssam?: boolean;
+  /** Flat field with no white panel, used for fixture rate inputs. */
+  plain?: boolean;
   children: ReactNode;
 }) {
-  const tone = getBidFloorCardTone({ index: toneIndex, isAssam });
+  const tone = plain ? null : getBidFloorCardTone({ index: toneIndex, isAssam });
 
   return (
     <div
       className={cn(
-        'relative overflow-hidden rounded-xl border-2 px-3.5 py-3 space-y-3',
-        tone ? tone.card : 'border-border/80 bg-muted/15',
+        'relative overflow-hidden rounded-xl px-3.5 py-3 space-y-3',
+        plain
+          ? 'border border-border/60 bg-transparent shadow-none'
+          : tone
+            ? cn('border-2', tone.card)
+            : 'border-2 border-border/80 bg-transparent',
       )}
     >
       {tone ? (
