@@ -3,6 +3,7 @@ import { loadSiteVisit } from '@/lib/admin/siteVisitStore';
 import type { SiteVisitRecord } from '@/lib/admin/siteVisit';
 import { findProjectByAnyId } from '@/lib/contract/resolveProjectId';
 import type { DigitalContractRecord } from '@/lib/contract/renderDigitalContract';
+import { formatBuilbidPublicId } from '@/lib/contract/agreementPdf';
 import { isMistriCivilService } from '@/lib/contract/mistriAgreement';
 
 export interface AgreementDraft {
@@ -16,9 +17,16 @@ export interface AgreementDraft {
     isMistriCivil: boolean;
     ownerId: string;
     builderId: string;
+    pincode: string;
   };
-  client: { name: string; email: string };
-  contractor: { name: string; email: string };
+  client: { name: string; email: string; mobile: string; address: string };
+  contractor: {
+    name: string;
+    email: string;
+    mobile: string;
+    gstNumber: string;
+    platformId: string;
+  };
   visit: SiteVisitRecord | null;
   contract: DigitalContractRecord | null;
   commission: { amount: number; status: string; creditedAt: string } | null;
@@ -49,6 +57,7 @@ export async function loadAgreementDraft(
     title: string;
     district: string;
     state: string;
+    pincode: string | null;
     owner_id: string;
     selected_builder_id: string | null;
     service_type: string | null;
@@ -56,7 +65,7 @@ export async function loadAgreementDraft(
   }>(
     admin,
     projectRef,
-    'id, numeric_id, title, district, state, owner_id, selected_builder_id, service_type, budget_range_max',
+    'id, numeric_id, title, district, state, pincode, owner_id, selected_builder_id, service_type, budget_range_max',
   );
   if (!project) return { error: 'Project not found.' };
   if (!project.selected_builder_id) {
@@ -65,10 +74,10 @@ export async function loadAgreementDraft(
 
   const [{ data: owner }, { data: builder }, { data: bid }, visit, contractRes, commissionRes] =
     await Promise.all([
-      admin.from('profiles').select('full_name, email').eq('id', project.owner_id).maybeSingle(),
+      admin.from('profiles').select('full_name, email, mobile, physical_address').eq('id', project.owner_id).maybeSingle(),
       admin
         .from('profiles')
-        .select('full_name, email, company_name')
+        .select('full_name, email, mobile, company_name, gst_number')
         .eq('id', project.selected_builder_id)
         .maybeSingle(),
       admin
@@ -113,15 +122,24 @@ export async function loadAgreementDraft(
       title: project.title,
       district: project.district,
       state: project.state,
+      pincode: (project.pincode ?? '').trim(),
       serviceType: project.service_type,
       isMistriCivil: isMistriCivilService(project.service_type),
       ownerId: project.owner_id,
       builderId: project.selected_builder_id,
     },
-    client: { name: owner?.full_name?.trim() || 'Homeowner', email: owner?.email?.trim() || '' },
+    client: {
+      name: owner?.full_name?.trim() || 'Homeowner',
+      email: owner?.email?.trim() || '',
+      mobile: owner?.mobile?.trim() || '',
+      address: owner?.physical_address?.trim() || '',
+    },
     contractor: {
       name: builder?.company_name?.trim() || builder?.full_name?.trim() || 'Contractor',
       email: builder?.email?.trim() || '',
+      mobile: builder?.mobile?.trim() || '',
+      gstNumber: builder?.gst_number?.trim() || '',
+      platformId: formatBuilbidPublicId(project.selected_builder_id),
     },
     visit,
     contract,

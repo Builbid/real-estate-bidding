@@ -4,7 +4,7 @@ import { requireOfficialAdmin } from '@/lib/admin/auth';
 import { isOfficialAdminEmail } from '@/lib/admin/constants';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { loadAgreementDraft } from '@/lib/admin/agreementDraft';
-import { soilLabel } from '@/lib/admin/siteVisit';
+import { checklistAgreementRows } from '@/lib/admin/siteVisit';
 import { tradeLabelFor } from '@/lib/admin/siteMeasurements';
 import { projectTerritoryError } from '@/lib/admin/territory';
 import { PROTOTYPE_AUTO_AGREEMENT } from '@/lib/admin/prototype';
@@ -77,25 +77,7 @@ export default async function AdminAgreementPage({
     project: draft.project,
     client: draft.client,
     contractor: draft.contractor,
-    siteRows: visit
-      ? [
-          { label: 'Site visit date', value: visit.visitDate.split('-').reverse().join('/') },
-          ...(visit.plotLengthFt > 0 && visit.plotWidthFt > 0
-            ? [{ label: 'Plot (L x W)', value: `${visit.plotLengthFt} ft x ${visit.plotWidthFt} ft` }]
-            : []),
-          ...(visit.plinthAreaSqft > 0
-            ? [{ label: 'Measured plinth area', value: `${visit.plinthAreaSqft.toLocaleString('en-IN')} sq. ft.` }]
-            : []),
-          { label: 'Soil condition', value: soilLabel(visit.soilType) },
-          ...(visit.agreedStartDate
-            ? [{ label: 'Agreed start date', value: visit.agreedStartDate.split('-').reverse().join('/') }]
-            : []),
-          ...(visit.targetCompletionDate
-            ? [{ label: 'Target completion date', value: visit.targetCompletionDate.split('-').reverse().join('/') }]
-            : []),
-          ...(visit.siteNotes ? [{ label: 'Field notes', value: visit.siteNotes }] : []),
-        ]
-      : [],
+    checklistRows: checklistAgreementRows(visit),
     valuesLocked:
       (Boolean(visit) || PROTOTYPE_AUTO_AGREEMENT) && !isOfficialAdminEmail(session.email),
     defaults: draft.defaults,

@@ -38,6 +38,15 @@ export interface AgreementRow {
   value: string;
 }
 
+/** One measured checklist line printed in section 3 of the official agreement. */
+export interface MeasuredScheduleLine {
+  group: string;
+  item: string;
+  measured: string;
+  rate: string;
+  amount: string;
+}
+
 /**
  * Short public BuilBid ID for agreements (e.g. BB-FBC030A1).
  * Deterministic from the profile UUID — not a separate DB column.
@@ -353,4 +362,103 @@ export function drawBlankColumnTable(
   }
 
   return y + 3.5;
+}
+
+/** Site-visit facts that validate section 2. No-op when the checklist has not been saved. */
+export function appendChecklistRecord(
+  doc: jsPDF,
+  y: number,
+  margin: number,
+  rows: AgreementRow[] | null | undefined,
+): number {
+  if (!rows?.length) return y;
+  y = drawParagraph(
+    doc,
+    'Site visit checklist: these measurements and site conditions were recorded with the homeowner and the worker. They form part of this agreement.',
+    y,
+    margin,
+  );
+  return drawRows(doc, rows, y, margin);
+}
+
+/** Measured quantity schedule that fixes section 3. No-op when the checklist has no lines. */
+export function appendMeasuredSchedule(
+  doc: jsPDF,
+  startY: number,
+  margin: number,
+  lines: MeasuredScheduleLine[] | null | undefined,
+): number {
+  if (!lines?.length) return startY;
+  let y = drawParagraph(
+    doc,
+    'Measured quantities from the site visit checklist, priced at the accepted bid rates. This schedule fixes the agreed project cost.',
+    startY,
+    margin,
+  );
+  const pageW = doc.internal.pageSize.getWidth();
+  const usable = pageW - margin * 2;
+  const cols = [0.46, 0.16, 0.2, 0.18].map((weight) => usable * weight);
+  const headers = ['Item', 'Measured', 'Rate', 'Amount'];
+  const headerH = 7;
+
+  const drawHeader = (atY: number) => {
+    doc.setFillColor(15, 118, 110);
+    doc.rect(margin, atY, usable, headerH, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7);
+    doc.setTextColor(255);
+    let x = margin;
+    headers.forEach((header, i) => {
+      doc.text(header, x + 1.5, atY + 4.6);
+      x += cols[i] ?? 0;
+    });
+    doc.setTextColor(20);
+    return atY + headerH;
+  };
+
+  y = ensurePage(doc, y, headerH + 10, margin);
+  y = drawHeader(y);
+  let lastGroup = '';
+
+  for (const line of lines) {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    const itemLines = doc.splitTextToSize(pdfSafeText(line.item), (cols[0] ?? 40) - 3) as string[];
+    const rowH = Math.max(7, itemLines.length * 3.4 + 2.4);
+    const groupH = line.group !== lastGroup ? 6 : 0;
+    if (y + groupH + rowH > doc.internal.pageSize.getHeight() - margin) {
+      doc.addPage();
+      y = drawHeader(margin);
+      lastGroup = '';
+    }
+    if (line.group !== lastGroup) {
+      lastGroup = line.group;
+      doc.setFillColor(241, 245, 249);
+      doc.setDrawColor(...BORDER_RGB);
+      doc.setLineWidth(0.3);
+      doc.rect(margin, y, usable, 6, 'FD');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7);
+      doc.setTextColor(30);
+      doc.text(pdfSafeText(line.group).toUpperCase(), margin + 1.5, y + 4.1);
+      y += 6;
+    }
+    doc.setDrawColor(...BORDER_RGB);
+    doc.setLineWidth(0.3);
+    doc.rect(margin, y, usable, rowH);
+    let x = margin;
+    const cells = [itemLines, [pdfSafeText(line.measured)], [pdfSafeText(line.rate)], [pdfSafeText(line.amount)]];
+    cells.forEach((cellLines, i) => {
+      const w = cols[i] ?? 0;
+      if (i > 0) doc.line(x, y, x, y + rowH);
+      doc.setFont('helvetica', i === 0 ? 'normal' : 'normal');
+      doc.setFontSize(7);
+      doc.setTextColor(20);
+      doc.text(cellLines, x + 1.5, y + 4.4);
+      x += w;
+    });
+    y += rowH;
+  }
+
+  return y + 3;
 }

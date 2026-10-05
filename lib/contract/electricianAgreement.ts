@@ -3,6 +3,8 @@ import type { BidRates, ServiceType } from '@/lib/types';
 import {
   AGREEMENT_MANUAL_DATE_BLANK,
   PAGE_MARGIN_MM,
+  appendChecklistRecord,
+  appendMeasuredSchedule,
   cleanAgreementText,
   drawOfficialHeader,
   drawParagraph,
@@ -295,6 +297,7 @@ export function generateElectricianAgreementPdfBytes(
     margin,
   );
   y = drawRows(doc, filled.scopeRows, y, margin);
+  y = appendChecklistRecord(doc, y, margin, overlay?.checklistRows);
 
   y = drawSectionTitle(doc, '3. Fixed Rates & Payment Terms', y, margin);
   y = drawParagraph(
@@ -311,6 +314,7 @@ export function generateElectricianAgreementPdfBytes(
     { bold: true, fill: [254, 226, 226], bordered: true },
   );
   y = drawRows(doc, filled.bidRows.length > 0 ? filled.bidRows : [{ label: 'Awarded electrical work', value: 'As posted and accepted on BuilBid' }], y, margin);
+  y = appendMeasuredSchedule(doc, y, margin, overlay?.measuredSchedule);
   y = drawRows(
     doc,
     [

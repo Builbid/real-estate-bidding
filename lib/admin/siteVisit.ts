@@ -74,6 +74,45 @@ export function soilLabel(value: string | null | undefined): string {
   return SOIL_TYPES.find((s) => s.value === value)?.label ?? LEGACY_SOIL_LABELS[value] ?? value;
 }
 
+/** Checklist facts that belong on the face of the agreement. Dates stay in the timeline section. */
+export function checklistAgreementRows(
+  visit: SiteVisitRecord | null,
+): Array<{ label: string; value: string }> {
+  if (!visit) return [];
+  const rows: Array<{ label: string; value: string }> = [
+    { label: 'Site visit date', value: visit.visitDate.split('-').reverse().join('/') },
+  ];
+  if (visit.plotLengthFt > 0 && visit.plotWidthFt > 0) {
+    rows.push({
+      label: 'Plot (length x width)',
+      value: `${visit.plotLengthFt} ft x ${visit.plotWidthFt} ft`,
+    });
+  }
+  if (visit.plinthAreaSqft > 0) {
+    rows.push({
+      label: 'Measured plinth area',
+      value: `${visit.plinthAreaSqft.toLocaleString('en-IN')} sq. ft.`,
+    });
+  }
+  if (visit.floors > 1) {
+    rows.push({ label: 'Floors on site', value: String(visit.floors) });
+  }
+  if (visit.soilType) {
+    rows.push({ label: 'Soil condition', value: soilLabel(visit.soilType) });
+  }
+  if (visit.roadWidthFt > 0) {
+    rows.push({ label: 'Approach road width', value: `${visit.roadWidthFt} ft` });
+  }
+  rows.push(
+    { label: 'Water on site', value: visit.waterAvailable ? 'Available' : 'Not available' },
+    { label: 'Electricity on site', value: visit.electricityAvailable ? 'Available' : 'Not available' },
+    { label: 'Material storage', value: visit.storageAvailable ? 'Available' : 'Not available' },
+  );
+  const notes = visit.siteNotes?.trim();
+  if (notes) rows.push({ label: 'Field notes', value: notes });
+  return rows;
+}
+
 const SOIL_ALIASES: Record<string, SoilType> = {
   hard: 'hard_rocky',
   hard_rock: 'hard_rocky',

@@ -3,6 +3,8 @@ import type { BidRates, ServiceType } from '@/lib/types';
 import {
   AGREEMENT_MANUAL_DATE_BLANK,
   PAGE_MARGIN_MM,
+  appendChecklistRecord,
+  appendMeasuredSchedule,
   cleanAgreementText,
   drawOfficialHeader,
   drawParagraph,
@@ -363,6 +365,7 @@ export function generatePlumberAgreementPdfBytes(
     margin,
   );
   y = drawRows(doc, filled.scopeRows, y, margin);
+  y = appendChecklistRecord(doc, y, margin, overlay?.checklistRows);
 
   y = drawSectionTitle(doc, '3. Fixed Rates & Payment Terms', y, margin);
   y = drawParagraph(
@@ -380,6 +383,7 @@ export function generatePlumberAgreementPdfBytes(
   );
   y = drawParagraph(doc, FLOOR_RATE_ALLOWANCE_NOTE, y, margin);
   y = drawRows(doc, filled.bidRows, y, margin);
+  y = appendMeasuredSchedule(doc, y, margin, overlay?.measuredSchedule);
   y = drawRows(
     doc,
     [

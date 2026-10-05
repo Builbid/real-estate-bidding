@@ -6,6 +6,8 @@ import {
   drawSectionTitle,
   ensurePage,
   pdfSafeText,
+  type AgreementRow,
+  type MeasuredScheduleLine,
 } from '@/lib/contract/agreementPdf';
 
 export type DigitalContractWatermark = 'DRAFT FOR ESIGN REVIEW' | 'AADHAAR ESIGN COMPLETE';
@@ -25,6 +27,10 @@ export interface DigitalContractOverlay {
   completionDateLabel?: string | null;
   watermark?: DigitalContractWatermark | null;
   esignStamps?: AadhaarEsignStamp[] | null;
+  /** Site-visit facts written into section 2 of the official agreement. */
+  checklistRows?: AgreementRow[] | null;
+  /** Measured quantity x agreed rate lines written into section 3. */
+  measuredSchedule?: MeasuredScheduleLine[] | null;
 }
 
 export function applyOverlayDates<T extends { agreedStartDate: string; agreedCompletionDate: string }>(

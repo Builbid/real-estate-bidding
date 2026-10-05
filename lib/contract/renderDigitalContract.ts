@@ -2,11 +2,14 @@ import { createHash, createHmac, randomBytes, randomInt, timingSafeEqual } from 
 import { jsPDF } from 'jspdf';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { findProjectByAnyId } from '@/lib/contract/resolveProjectId';
+import { checklistAgreementRows, type SiteVisitRecord } from '@/lib/admin/siteVisit';
 import { loadSiteVisit, siteVisitSummary } from '@/lib/admin/siteVisitStore';
 import { isoToIndianDate } from '@/lib/projectStartTime';
 import { formatInrAmount, officialAgreementFileName } from '@/lib/contract/agreementPdf';
 import {
   PAGE_MARGIN_MM,
+  appendChecklistRecord,
+  appendMeasuredSchedule,
   drawOfficialHeader,
   drawParagraph,
   drawRows,
@@ -17,6 +20,7 @@ import {
   numericProjectId,
   pdfSafeText,
   type AgreementParty,
+  type MeasuredScheduleLine,
 } from '@/lib/contract/agreementPdf';
 import {
   applyOverlayDates,
@@ -303,6 +307,7 @@ export async function generateDigitalContractPdf(
     : null;
 
   const filename = officialAgreementFileName(project.id, project.numeric_id);
+  const visit = await loadSiteVisit(admin, canonicalId);
   const summary: Record<string, string> = {
     'Project': project.title,
     'Project ID': numericProjectId(project.numeric_id) || project.id.slice(0, 8),
@@ -314,8 +319,12 @@ export async function generateDigitalContractPdf(
     'Target Completion Date': overlay.completionDateLabel || '—',
     'Total Agreed Project Cost': overlay.totalAgreedCostLabel || '—',
   };
-  // Supervisor's on-site measurements (when a Site Visit Checklist was saved).
-  Object.assign(summary, siteVisitSummary(await loadSiteVisit(admin, canonicalId)));
+  Object.assign(summary, siteVisitSummary(visit));
+  overlay = {
+    ...overlay,
+    checklistRows: checklistAgreementRows(visit),
+    measuredSchedule: measuredScheduleFromVisit(visit),
+  };
 
   if (isPlumberService(project.service_type)) {
     const payload = buildPlumberAgreementPayload({
@@ -486,6 +495,7 @@ function generateGenericDigitalContractPdf(input: {
     y,
     margin,
   );
+  y = appendChecklistRecord(doc, y, margin, input.overlay.checklistRows);
   if (input.overlay.plinthAreaLabel) {
     y = drawRows(
       doc,
@@ -519,6 +529,7 @@ function generateGenericDigitalContractPdf(input: {
     y,
     margin,
   );
+  y = appendMeasuredSchedule(doc, y, margin, input.overlay.measuredSchedule);
   y = drawSectionTitle(doc, '4. Timelines, Delays & Penalty Terms', y, margin);
   y = drawRows(
     doc,
@@ -573,4 +584,15 @@ export function isMissingDigitalContractTable(error: { message?: string; code?: 
     message.includes('project_digital_contracts') ||
     message.includes('does not exist')
   );
+}
+
+function measuredScheduleFromVisit(visit: SiteVisitRecord | null): MeasuredScheduleLine[] {
+  if (!visit?.lineItems.length) return [];
+  return visit.lineItems.map((item) => ({
+    group: item.group,
+    item: item.label,
+    measured: `${item.quantity.toLocaleString('en-IN')} ${item.unit}`,
+    rate: `${formatInrAmount(item.rate)}${item.rateMultiplier ? ` x ${item.rateMultiplier}` : ''}`,
+    amount: formatInrAmount(item.amount),
+  }));
 }
