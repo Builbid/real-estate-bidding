@@ -17,6 +17,7 @@ import {
 import {
   EMPTY_SITE_VISIT_INPUT,
   SOIL_TYPES,
+  canonicalSoilType,
   siteVisitToInput,
   type SiteVisitInput,
 } from '@/lib/admin/siteVisit';
@@ -82,7 +83,7 @@ function readDraft(projectId: string): ChecklistDraft | null {
 }
 
 function knownSoil(value: string): string {
-  return SOIL_TYPES.some((soil) => soil.value === value) ? value : '';
+  return canonicalSoilType(value);
 }
 
 function inr(value: number): string {
@@ -97,10 +98,11 @@ function lineFloorSteps(line: MeasurementLine): number {
   return 0;
 }
 
-function allowanceCaption(steps: number): string {
-  if (steps <= 0) return 'Σ measured quantity × locked unit rate';
-  const factor = (1 + steps * 0.05).toFixed(2);
-  return `Σ measured quantity × locked unit rate × ${factor} (+${steps * 5}%)`;
+function rateCaption(line: MeasurementLine): string {
+  const steps = lineFloorSteps(line);
+  const amount = `${inr(effectiveUnitRate(line))} / ${line.unit}`;
+  if (steps <= 0) return `Base rate ${amount}`;
+  return `+${steps * 5}% Surcharge = ${amount}`;
 }
 
 function measuredAmount(line: MeasurementLine, raw: string): number {
@@ -191,7 +193,7 @@ export function SiteVisitChecklistPage({ projectId }: { projectId: string }) {
             electricityAvailable: false,
             storageAvailable: false,
             soilType: knownSoil(input.soilType),
-            measurements: { ...input.measurements },
+            measurements: {},
           });
           setPlinthTouched(input.plinthAreaSqft.trim() !== '');
         } else {
@@ -204,7 +206,7 @@ export function SiteVisitChecklistPage({ projectId }: { projectId: string }) {
             plotLengthFt: draft?.plotLengthFt ?? '',
             plotWidthFt: draft?.plotWidthFt ?? '',
             plinthAreaSqft: draft?.plinthAreaSqft ?? '',
-            measurements: { ...(draft?.measurements ?? {}) },
+            measurements: {},
           });
           setPlinthTouched((draft?.plinthAreaSqft ?? '').trim() !== '');
         }
@@ -264,19 +266,17 @@ export function SiteVisitChecklistPage({ projectId }: { projectId: string }) {
   const lines = useMemo(() => template?.lines ?? [], [template]);
   const cost = useMemo(() => computeMeasuredCost(lines, form.measurements), [lines, form.measurements]);
   const groups = useMemo(() => groupMeasurementLines(lines), [lines]);
-  const hasFloorAllowance = lines.some((line) => lineFloorSteps(line) > 0);
   const needsPlot = template?.needsPlotDimensions ?? false;
 
   const floorSubtotals = useMemo(
     () =>
-      groups.map((group) => {
-        const steps = group.lines.reduce((max, line) => Math.max(max, lineFloorSteps(line)), 0);
-        const subtotal = group.lines.reduce(
+      groups.map((group) => ({
+        group: group.group,
+        subtotal: group.lines.reduce(
           (sum, line) => sum + measuredAmount(line, form.measurements[line.id] ?? ''),
           0,
-        );
-        return { group: group.group, steps, subtotal };
-      }),
+        ),
+      })),
     [groups, form.measurements],
   );
 
@@ -445,23 +445,13 @@ export function SiteVisitChecklistPage({ projectId }: { projectId: string }) {
 
             {groups.length > 0 ? (
               <>
-                {hasFloorAllowance ? (
-                  <p className="text-xs leading-relaxed text-slate-500">
-                    Locked rates come from the accepted bid and cannot be edited. Ground floor uses
-                    those rates as entered. Each floor above ground adds 5% per storey to that
-                    floor&apos;s measured quantities (1st floor × 1.05, 2nd floor × 1.10, and so on).
-                  </p>
-                ) : (
-                  <p className="text-xs leading-relaxed text-slate-500">
-                    Locked rates come from the accepted bid and cannot be edited. Enter the quantity
-                    measured on site for each item.
-                  </p>
-                )}
+                <p className="text-xs leading-relaxed text-slate-500">
+                  Rates are locked from the accepted bid. Enter the quantity measured on site for each item.
+                </p>
                 {groups.map((group) => {
-                  const steps = group.lines.reduce((max, line) => Math.max(max, lineFloorSteps(line)), 0);
                   const subtotal = floorSubtotals.find((row) => row.group === group.group)?.subtotal ?? 0;
                   return (
-                    <SectionCard key={group.group} title={group.group} hint={allowanceCaption(steps)}>
+                    <SectionCard key={group.group} title={group.group}>
                       <div className="space-y-2.5">
                         {group.lines.map((line) => {
                           const raw = form.measurements[line.id] ?? '';
@@ -475,17 +465,9 @@ export function SiteVisitChecklistPage({ projectId }: { projectId: string }) {
                                 <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                                   {line.label}
                                 </p>
-                                <p className="mt-1 text-[11px] font-medium uppercase tracking-wide text-slate-500">
-                                  Locked unit rate
+                                <p className="mt-1 text-sm font-semibold tabular-nums text-slate-800 dark:text-slate-100">
+                                  {rateCaption(line)}
                                 </p>
-                                <p className="text-sm font-semibold tabular-nums text-slate-800 dark:text-slate-100">
-                                  {inr(effectiveUnitRate(line))} / {line.unit}
-                                </p>
-                                {steps > 0 ? (
-                                  <p className="text-[11px] font-medium text-emerald-700 dark:text-emerald-300">
-                                    +{steps * 5}% floor allowance
-                                  </p>
-                                ) : null}
                               </div>
                               <div className="flex items-center gap-1.5">
                                 <input
@@ -525,7 +507,6 @@ export function SiteVisitChecklistPage({ projectId }: { projectId: string }) {
                       <div key={row.group} className="flex items-center justify-between gap-3 text-sm">
                         <span className="text-slate-600 dark:text-slate-300">
                           {row.group} subtotal
-                          {row.steps > 0 ? ` (+${row.steps * 5}%)` : ''}
                         </span>
                         <span className="font-semibold tabular-nums">{inr(row.subtotal)}</span>
                       </div>

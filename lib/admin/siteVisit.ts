@@ -2,19 +2,24 @@
 import type { MeasuredLineItem, MeasurementTradeKey } from '@/lib/admin/siteMeasurements';
 
 export const SOIL_TYPES = [
-  { value: 'hard_rock', label: 'Hard Rock / Rocky Terrain' },
-  { value: 'soft_rock', label: 'Soft Rock / Weathered Rock' },
-  { value: 'cohesive_clay', label: 'Cohesive Clayey Soil' },
-  { value: 'sandy_gravel', label: 'Sandy / Gravelly Soil' },
-  { value: 'black_cotton', label: 'Black Cotton Soil' },
-  { value: 'filled_unconsolidated', label: 'Filled-up / Unconsolidated Soil' },
+  { value: 'normal_earth', label: 'Normal Earth / Soil' },
+  { value: 'hard_rocky', label: 'Hard / Rocky Ground' },
+  { value: 'soft_muddy', label: 'Soft / Muddy Soil' },
+  { value: 'sandy', label: 'Sandy Ground' },
+  { value: 'filled_loose', label: 'Filled-up Earth / Loose Soil' },
 ] as const;
 
 const LEGACY_SOIL_LABELS: Record<string, string> = {
-  hard: 'Hard Rock / Rocky Terrain',
-  medium: 'Sandy / Gravelly Soil',
-  soft: 'Cohesive Clayey Soil',
-  filled: 'Filled-up / Unconsolidated Soil',
+  hard: 'Hard / Rocky Ground',
+  hard_rock: 'Hard / Rocky Ground',
+  soft_rock: 'Hard / Rocky Ground',
+  medium: 'Sandy Ground',
+  sandy_gravel: 'Sandy Ground',
+  soft: 'Soft / Muddy Soil',
+  cohesive_clay: 'Soft / Muddy Soil',
+  black_cotton: 'Soft / Muddy Soil',
+  filled: 'Filled-up Earth / Loose Soil',
+  filled_unconsolidated: 'Filled-up Earth / Loose Soil',
 };
 
 export type SoilType = (typeof SOIL_TYPES)[number]['value'];
@@ -61,6 +66,26 @@ export interface SiteVisitRecord {
 export function soilLabel(value: string | null | undefined): string {
   if (!value) return '—';
   return SOIL_TYPES.find((s) => s.value === value)?.label ?? LEGACY_SOIL_LABELS[value] ?? value;
+}
+
+const SOIL_ALIASES: Record<string, SoilType> = {
+  hard: 'hard_rocky',
+  hard_rock: 'hard_rocky',
+  soft_rock: 'hard_rocky',
+  medium: 'sandy',
+  sandy_gravel: 'sandy',
+  soft: 'soft_muddy',
+  cohesive_clay: 'soft_muddy',
+  black_cotton: 'soft_muddy',
+  filled: 'filled_loose',
+  filled_unconsolidated: 'filled_loose',
+};
+
+/** Maps older stored soil values onto the current dropdown. */
+export function canonicalSoilType(value: string | null | undefined): string {
+  if (!value) return '';
+  if (SOIL_TYPES.some((soil) => soil.value === value)) return value;
+  return SOIL_ALIASES[value] ?? '';
 }
 
 export const EMPTY_SITE_VISIT_INPUT: SiteVisitInput = {

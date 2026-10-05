@@ -436,7 +436,7 @@ export function buildPlumbingFixtureMeasurementLines(
       if (!(ownerQuantity > 0)) return [];
       return [{
         id: `opt:${option.id}`,
-        group: 'Ground Floor',
+        group: plumbingFloorLabel('ground', context?.customTargetFloors, context?.houseStructure),
         label: option.shortLabel,
         rate,
         floorSteps: 0,
