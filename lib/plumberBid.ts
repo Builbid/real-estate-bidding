@@ -2,6 +2,7 @@ import {
   computeBaselineWeightedScore,
   rankingRateFromWeightedScore,
 } from '@/lib/bidding-calculator';
+import { MIN_CUSTOM_RCC_FLOOR, normalizeCustomFloors } from '@/lib/customFloors';
 import { getBidRateFieldError } from '@/lib/validation/bidRates';
 import { readNestedProjectDetail } from '@/lib/project/storedDetails';
 import {
@@ -28,8 +29,10 @@ import {
   type PipingPackageKind,
   type PlumberDetails,
   PLUMBING_FLOOR_FIXTURE_FIELDS,
+  PLUMBING_FIXTURE_KIND_KEYS,
   type PlumbingFixtureKind,
   type PlumbingFloorFixtureCounts,
+  type PlumbingHouseStructure,
   type PlumbingSubOptionId,
   type PlumbingTargetFloor,
   type WaterInstallMethod,
@@ -262,15 +265,206 @@ export function buildPlumbingFixtureRateOptions(
   });
 }
 
-/** Total Bid = Σ (quantity × rate) over every independent fixture. */
+/** +5% of the Ground Floor base rate for each storey above ground. */
+export const PLUMBING_UPPER_FLOOR_ALLOWANCE = 0.05;
+
+export const PLUMBING_FLOOR_HEIGHT_ALLOWANCE_NOTE =
+  'Note: Rates entered above apply to Ground Floor as Base Rate. An automatic +5% labor allowance per upper floor (1st Floor: +5%, 2nd Floor: +10%, etc.) is automatically added to the Total Estimated Project Cost.';
+
+const PLUMBING_FLOOR_HEIGHT_STEPS: Record<Exclude<PlumbingTargetFloor, 'custom'>, number> = {
+  ground: 0,
+  first: 1,
+  second: 2,
+  third: 3,
+  fourth: 4,
+};
+
+export interface PlumbingFixtureBidContext {
+  floors?: PlumbingFloorFixtureCounts[] | null;
+  customTargetFloors?: number[] | string | null;
+  houseStructure?: PlumbingHouseStructure | null;
+}
+
+/** Floors above ground. Ground Floor is 0 so its multiplier stays 100%. */
+export function plumbingFloorHeightSteps(
+  floor: PlumbingTargetFloor,
+  customTargetFloors?: number[] | string | null,
+): number {
+  if (floor !== 'custom') return PLUMBING_FLOOR_HEIGHT_STEPS[floor];
+  const listed = normalizeCustomFloors(customTargetFloors);
+  if (listed.length === 0) return MIN_CUSTOM_RCC_FLOOR;
+  // Custom floors share one quantity group. Price that group at its highest floor.
+  return Math.max(...listed);
+}
+
+/** Ground = 1, 1st = 1.05, 2nd = 1.10, 3rd = 1.15, and so on. */
+export function plumbingFloorRateMultiplier(stepsAboveGround: number): number {
+  const steps = Number.isFinite(stepsAboveGround) ? Math.max(0, Math.trunc(stepsAboveGround)) : 0;
+  return 1 + PLUMBING_UPPER_FLOOR_ALLOWANCE * steps;
+}
+
+export function plumbingFixtureKindFromRateId(id: string): PlumbingFixtureKind | null {
+  if (!id.startsWith(PLUMBING_FIXTURE_RATE_ID_PREFIX)) return null;
+  const kind = id.slice(PLUMBING_FIXTURE_RATE_ID_PREFIX.length);
+  return PLUMBING_FIXTURE_KIND_KEYS.includes(kind as PlumbingFixtureKind)
+    ? (kind as PlumbingFixtureKind)
+    : null;
+}
+
+export function plumbingFixtureBidContextFromProject(project: {
+  trade_details?: unknown;
+  sub_configuration?: unknown;
+}): PlumbingFixtureBidContext {
+  const details = parseTradeDetails(readNestedProjectDetail(project, 'trade_details'));
+  if (!details || details.service !== 'plumber') return {};
+  return {
+    floors: details.floorFixtureCounts ?? [],
+    customTargetFloors: details.customTargetFloors ?? null,
+    houseStructure: details.houseStructure ?? null,
+  };
+}
+
+function roundRupee(amount: number): number {
+  return Math.round(amount);
+}
+
+function fixtureRateForKind(
+  unitRates: Record<string, number>,
+  kind: PlumbingFixtureKind,
+): number {
+  return unitRates[`${PLUMBING_FIXTURE_RATE_ID_PREFIX}${kind}`] ?? 0;
+}
+
+/**
+ * Total Estimated Project Cost = Σ (floor quantity × Ground Floor base rate × floor multiplier).
+ * Falls back to Σ (quantity × rate) when the project has no per-floor fixture counts.
+ */
 export function computePlumbingFixtureBidTotal(
   unitRates: Record<string, number>,
-  options: Array<Pick<PlumbingBidOption, 'id' | 'quantity'>>,
+  options: Array<Pick<PlumbingBidOption, 'id' | 'quantity' | 'fixtureKind'>>,
+  context?: PlumbingFixtureBidContext | null,
 ): number {
-  return options.reduce(
-    (sum, option) => sum + (option.quantity ?? 0) * (unitRates[option.id] ?? 0),
-    0,
-  );
+  const floors = context?.floors ?? [];
+  if (floors.length > 0 && options.some((option) => isPlumbingFixtureRateOption(option))) {
+    return floors.reduce((sum, floor) => {
+      const multiplier = plumbingFloorRateMultiplier(
+        plumbingFloorHeightSteps(floor.floor, context?.customTargetFloors),
+      );
+      return PLUMBING_FLOOR_FIXTURE_FIELDS.reduce((floorSum, field) => {
+        const quantity = floor[field.key] ?? 0;
+        const rate = fixtureRateForKind(unitRates, field.key);
+        if (quantity <= 0 || rate <= 0) return floorSum;
+        return floorSum + roundRupee(quantity * rate * multiplier);
+      }, sum);
+    }, 0);
+  }
+
+  return options.reduce((sum, option) => {
+    const quantity = option.quantity ?? 0;
+    const rate = unitRates[option.id] ?? 0;
+    if (quantity <= 0 || rate <= 0) return sum;
+    return sum + roundRupee(quantity * rate);
+  }, 0);
+}
+
+/** One fixture's floor-adjusted line, for the bidding form preview. */
+export function describePlumbingFixtureLineCost(
+  fixtureKind: PlumbingFixtureKind,
+  rate: number,
+  context?: PlumbingFixtureBidContext | null,
+): { quantity: number; amount: number; summary: string } {
+  const floors = (context?.floors ?? []).filter((floor) => (floor[fixtureKind] ?? 0) > 0);
+  const quantity = floors.reduce((sum, floor) => sum + (floor[fixtureKind] ?? 0), 0);
+  if (quantity <= 0) return { quantity: 0, amount: 0, summary: '' };
+  if (!(rate > 0)) return { quantity, amount: 0, summary: `Quantity: ${quantity}` };
+
+  const slices = floors.map((floor) => {
+    const floorQuantity = floor[fixtureKind] ?? 0;
+    const steps = plumbingFloorHeightSteps(floor.floor, context?.customTargetFloors);
+    const multiplier = plumbingFloorRateMultiplier(steps);
+    return {
+      steps,
+      amount: roundRupee(floorQuantity * rate * multiplier),
+      label: plumbingFloorLabel(floor.floor, context?.customTargetFloors, context?.houseStructure),
+    };
+  });
+  const amount = slices.reduce((sum, slice) => sum + slice.amount, 0);
+  if (slices.every((slice) => slice.steps === 0)) {
+    return {
+      quantity,
+      amount,
+      summary: `${quantity} × ₹${rate.toLocaleString('en-IN')} = ₹${amount.toLocaleString('en-IN')}`,
+    };
+  }
+  const parts = slices.map((slice) => `${slice.label}: ₹${slice.amount.toLocaleString('en-IN')}`);
+  return {
+    quantity,
+    amount,
+    summary: `${parts.join(' · ')} · line total ₹${amount.toLocaleString('en-IN')}`,
+  };
+}
+
+export interface PlumbingFixtureMeasurementLine {
+  id: string;
+  group: string;
+  label: string;
+  rate: number;
+  rateMultiplier?: number;
+  ownerQuantity: number;
+}
+
+/** Per-floor measurement lines so site totals use the same floor-height multipliers as the bid. */
+export function buildPlumbingFixtureMeasurementLines(
+  unitRates: Record<string, number>,
+  options: PlumbingBidOption[],
+  context?: PlumbingFixtureBidContext | null,
+): PlumbingFixtureMeasurementLine[] {
+  const priced = options.filter((option) => (unitRates[option.id] ?? 0) > 0);
+  const floors = context?.floors ?? [];
+  const splitByFloor =
+    floors.length > 1 ||
+    floors.some(
+      (floor) => plumbingFloorHeightSteps(floor.floor, context?.customTargetFloors) > 0,
+    );
+
+  if (!splitByFloor) {
+    return priced.flatMap((option) => {
+      const rate = unitRates[option.id] ?? 0;
+      const ownerQuantity = option.quantity ?? 0;
+      if (!(ownerQuantity > 0)) return [];
+      return [{
+        id: `opt:${option.id}`,
+        group: 'Fixture piping & fitting',
+        label: option.shortLabel,
+        rate,
+        ownerQuantity,
+      }];
+    });
+  }
+
+  return floors.flatMap((floor) => {
+    const steps = plumbingFloorHeightSteps(floor.floor, context?.customTargetFloors);
+    const multiplier = plumbingFloorRateMultiplier(steps);
+    const group = plumbingFloorLabel(
+      floor.floor,
+      context?.customTargetFloors,
+      context?.houseStructure,
+    );
+    return priced.flatMap((option) => {
+      if (!option.fixtureKind) return [];
+      const ownerQuantity = floor[option.fixtureKind] ?? 0;
+      const rate = unitRates[option.id] ?? 0;
+      if (!(ownerQuantity > 0) || !(rate > 0)) return [];
+      return [{
+        id: `opt:${option.id}:${floor.floor}`,
+        group,
+        label: option.shortLabel,
+        rate,
+        ...(multiplier !== 1 ? { rateMultiplier: multiplier } : {}),
+        ownerQuantity,
+      }];
+    });
+  });
 }
 
 export function buildPlumbingBidOptions(input: PlumbingBidOptionInput): PlumbingBidOption[] {
@@ -532,6 +726,7 @@ export function buildPlumbingUnitRatePayload(
   unitRates: Record<string, number>,
   options: PlumbingBidOption[],
   context?: PlumbingWeightageContext,
+  fixtureContext?: PlumbingFixtureBidContext | null,
 ): {
   ground_rate: number;
   unit_rates: Record<string, number>;
@@ -548,7 +743,7 @@ export function buildPlumbingUnitRatePayload(
   const weightedIndex = computePlumbingWeightedIndex(cleaned, options, context);
   // Per-fixture bids rank on Σ (qty × rate); other unit-rate bids keep the weighted index.
   const fixtureTotal = options.some(isPlumbingFixtureRateOption)
-    ? computePlumbingFixtureBidTotal(cleaned, options)
+    ? computePlumbingFixtureBidTotal(cleaned, options, fixtureContext)
     : 0;
   return {
     ground_rate: rankingRateFromWeightedScore(weightedIndex),

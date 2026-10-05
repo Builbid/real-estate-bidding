@@ -97,14 +97,18 @@ import {
   PLUMBING_TAPE_MEASURE_DISCLAIMER,
   PLUMBING_FIXTURE_RATE_INCLUSION_NOTE,
   PLUMBING_FIXTURE_RATE_SECTION_TITLE,
+  PLUMBING_FLOOR_HEIGHT_ALLOWANCE_NOTE,
   computePlumbingFixtureBidTotal,
   computePlumbingPointBidTotal,
+  describePlumbingFixtureLineCost,
   computePlumbingWeightedIndex,
   getPlumbingPointRateDisplayEntries,
   getPlumbingUnitRateDisplayEntries,
   parsePlumbingPointRateInputs,
   parsePlumbingRunningFootRate,
   parsePlumbingUnitRates,
+  plumbingFixtureBidContextFromProject,
+  plumbingFixtureKindFromRateId,
   plumbingPackageGroupsForOptions,
   plumbingPointRateKey,
   plumbingPointRatesToFloorKeys,
@@ -321,11 +325,14 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
   const pointRateFloors = isPlumbingPointRateBid ? plumbingPointFloors : electricianPointFloors;
   const isInteriorBid = scopeBid?.kind === 'interior';
   const isTradeUnitRateBid = Boolean(scopeBid?.unitRateBid);
-  /** Plumber per-fixture bid: independent rates, Total Bid = Σ (qty × rate). */
+  /** Plumber per-fixture bid: ground-floor base rates, with +5% per floor above ground. */
   const isFixtureRateBid = Boolean(scopeBid?.fixtureRateBid && isPlumbingBid);
   /** Weighted-index ranked unit-rate bids (everything except point / per-fixture total bids). */
   const isWeightedIndexBid = isTradeUnitRateBid && !isPointRateBid && !isFixtureRateBid;
   const plumbingBidOptions = isPlumbingBid ? readProjectPlumbingBidOptions(project) : [];
+  const plumbingFixtureContext = isFixtureRateBid
+    ? plumbingFixtureBidContextFromProject(project)
+    : null;
   const electricianBidOptions = isElectricianBid ? readProjectElectricianBidOptions(project) : [];
   const interiorBidOptions = isInteriorBid ? readProjectInteriorBidOptions(project) : [];
   const tradeBidOptions = isInteriorBid
@@ -617,7 +624,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
     ? computeElectricianPointBidTotal(electricianPointRateMap, electricianPointFloors)
     : 0;
   const fixtureBidTotal = isFixtureRateBid
-    ? computePlumbingFixtureBidTotal(unitRateValues, plumbingBidOptions)
+    ? computePlumbingFixtureBidTotal(unitRateValues, plumbingBidOptions, plumbingFixtureContext)
     : 0;
   const liveCivilRates = isMistriCivilBid
     ? mistriCivilFloors.map((_, index) => Number(civilRateInputs[index] ?? '') || 0)
@@ -1245,7 +1252,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                       {isTotalEstimatedCostMetric && (
                         <p className="text-xs text-muted-foreground text-right">
                           {isFixtureRateBid
-                        ? 'Σ (Qty × Rate)'
+                        ? 'Base + 5% / upper floor'
                         : isPointRateBid
                           ? 'Fixture points × rate'
                           : 'Floor area × rate'}
@@ -1365,11 +1372,14 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                     <p className="text-xs font-semibold text-foreground">
                       {PLUMBING_FIXTURE_RATE_SECTION_TITLE}
                     </p>
+                    <p className="mt-1 text-xs font-medium text-foreground">
+                      Ground Floor Base Rate
+                    </p>
                     <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
                       {PLUMBING_FIXTURE_RATE_INCLUSION_NOTE}
                     </p>
                     <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                      Total Bid = Σ (Quantity × Rate) of every fixture below.
+                      Enter one base rate per fixture. Upper floors are calculated automatically.
                     </p>
                   </div>
                 )}
@@ -1404,6 +1414,16 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                       isAssam: isAssamFloor,
                     });
                     const estimateClass = floorTone?.estimate ?? 'text-emerald-700 dark:text-emerald-300';
+                    const fixtureKind = item.kind === 'unit'
+                      ? plumbingFixtureKindFromRateId(item.optionId)
+                      : null;
+                    const fixtureLine = fixtureKind
+                      ? describePlumbingFixtureLineCost(
+                          fixtureKind,
+                          numericValue ?? 0,
+                          plumbingFixtureContext,
+                        )
+                      : null;
 
                     return (
                       <motion.div
@@ -1468,7 +1488,15 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                             required={!isUnitItem}
                           />
                           )}
-                          {item.kind === 'unit' && item.quantity != null && item.quantity > 0 && (
+                          {item.kind === 'unit' && fixtureLine && fixtureLine.summary && (
+                            <p className={cn(
+                              'text-xs font-medium',
+                              numericValue != null && numericValue > 0 ? estimateClass : 'text-muted-foreground',
+                            )}>
+                              {fixtureLine.summary}
+                            </p>
+                          )}
+                          {item.kind === 'unit' && !fixtureLine && item.quantity != null && item.quantity > 0 && (
                             <p className={cn(
                               'text-xs font-medium',
                               numericValue != null && numericValue > 0 ? estimateClass : 'text-muted-foreground',
@@ -1562,6 +1590,15 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                     );
                   })}
                 </AnimatePresence>
+
+                {isFixtureRateBid && (
+                  <div className="flex items-start gap-2.5 rounded-xl border border-amber-400 bg-amber-50 px-3.5 py-3 dark:border-amber-600 dark:bg-amber-950/40">
+                    <Info className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-700 dark:text-amber-300" />
+                    <p className="text-sm font-semibold leading-relaxed text-amber-950 dark:text-amber-100">
+                      {PLUMBING_FLOOR_HEIGHT_ALLOWANCE_NOTE}
+                    </p>
+                  </div>
+                )}
 
                 {isPlumbingPointRateBid && (
                   <BidWorkItemCard
@@ -1663,7 +1700,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                   {isTotalEstimatedCostMetric && (
                     <p className="text-xs text-muted-foreground text-right">
                       {isFixtureRateBid
-                        ? 'Σ (Qty × Rate)'
+                        ? 'Base + 5% / upper floor'
                         : isPointRateBid
                           ? 'Fixture points × rate'
                           : 'Floor area × rate'}

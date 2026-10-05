@@ -45,6 +45,7 @@ import {
 import {
   buildPlumbingPointRatePayload,
   buildPlumbingUnitRatePayload,
+  plumbingFixtureBidContextFromProject,
   isPlumbingPointRateProject,
   parsePlumbingUnitRates,
   plumbingPointRateKey,
@@ -136,6 +137,7 @@ function buildProjectUnitRatePayload(
     unitRates,
     options as PlumbingBidOption[],
     plumbingWeightageContextFromProject(project),
+    plumbingFixtureBidContextFromProject(project),
   );
 }
 

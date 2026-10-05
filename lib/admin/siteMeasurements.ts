@@ -13,10 +13,12 @@ import {
   resolveMistriCivilFloors,
 } from '@/lib/bid/mistriCivilCost';
 import {
+  buildPlumbingFixtureMeasurementLines,
   isPlumbingFixtureRateOption,
   isPlumbingPointRateProject,
   parsePlumbingRunningFootRate,
   parsePlumbingUnitRates,
+  plumbingFixtureBidContextFromProject,
   plumbingPointRateKey,
   readPlumbingPointRateFloors,
   readProjectPlumbingBidOptions,
@@ -190,20 +192,19 @@ function plumbingLines(project: ProjectLike, rates: Partial<BidRates>): Measurem
   const unitRates = parsePlumbingUnitRates(rates.unit_rates);
   const fixtureOptions = readProjectPlumbingBidOptions(project);
   if (fixtureOptions.length > 0 && fixtureOptions.every(isPlumbingFixtureRateOption)) {
-    return fixtureOptions.flatMap((option) => {
-      const rate = unitRates[option.id] ?? 0;
-      if (!(rate > 0)) return [];
-      return [
-        {
-          id: `opt:${option.id}`,
-          group: 'Fixture piping & fitting',
-          label: option.shortLabel,
-          unit: 'nos',
-          rate,
-          ownerQuantity: option.quantity ?? null,
-        },
-      ];
-    });
+    return buildPlumbingFixtureMeasurementLines(
+      unitRates,
+      fixtureOptions,
+      plumbingFixtureBidContextFromProject(project),
+    ).map((line) => ({
+      id: line.id,
+      group: line.group,
+      label: line.label,
+      unit: 'nos',
+      rate: line.rate,
+      ...(line.rateMultiplier ? { rateMultiplier: line.rateMultiplier } : {}),
+      ownerQuantity: line.ownerQuantity,
+    }));
   }
   if (isPlumbingPointRateProject(readNestedProjectDetail(project, 'trade_details'))) {
     const lines: MeasurementLine[] = readPlumbingPointRateFloors(project).flatMap((floor) => {

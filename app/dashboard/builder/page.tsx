@@ -32,7 +32,7 @@ async function getData() {
     .from('projects')
     .select('*')
     .eq('status', 'active_24h')
-    .order('bidding_ends_at', { ascending: true });
+    .order('created_at', { ascending: false });
 
   // Get builder's own bids
   const { data: myBids } = await supabase

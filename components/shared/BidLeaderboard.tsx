@@ -268,7 +268,7 @@ export function BidLeaderboard({
       {isTradeUnitRateBid && (
         <p className="px-2 pb-1 text-[11px] font-medium text-muted-foreground">
           {isFixtureRateBid
-            ? 'Ranked by lowest Total Bid = Σ (fixture quantity × rate).'
+            ? 'Ranked by lowest Total Estimated Project Cost (Ground Floor base rates, plus 5% per floor above ground).'
             : 'Ranked by lowest Weighted Index (equal-weight average of unit rates).'}
         </p>
       )}
