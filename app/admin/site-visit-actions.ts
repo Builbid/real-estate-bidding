@@ -202,16 +202,7 @@ export async function saveSiteVisitChecklistAction(
   const measurements: Record<string, string> = {};
   for (const line of template.lines) measurements[line.id] = String(input.measurements?.[line.id] ?? '').trim();
   const cost = computeMeasuredCost(template.lines, measurements);
-  if (cost.missing.length > 0) {
-    const first = cost.missing[0];
-    return {
-      error: `Enter the measured quantity for "${first.label}" (${first.group}). Use 0 if it is not part of the work.`,
-    };
-  }
   const totalAccurateCost = template.lines.length > 0 ? cost.total : null;
-  if (totalAccurateCost != null && totalAccurateCost <= 0) {
-    return { error: 'Enter at least one measured quantity greater than 0 to compute the total cost.' };
-  }
 
   if (await isAlreadyApproved(admin, project.id)) {
     return { error: 'This agreement is already approved. The site checklist is locked.' };

@@ -483,20 +483,14 @@ function parseQuantity(raw: string | undefined): number | null {
   return Number.isFinite(n) && n >= 0 ? n : null;
 }
 
-/** Itemised measured lines + the "Total Accurate Cost" from the supervisor's entries. */
+/** Itemised measured lines + the "Total Accurate Cost" from the supervisor's entries. A blank quantity counts as 0. */
 export function computeMeasuredCost(
   lines: MeasurementLine[],
   measurements: Record<string, string>,
 ): { items: MeasuredLineItem[]; total: number; missing: MeasurementLine[] } {
-  const items: MeasuredLineItem[] = [];
-  const missing: MeasurementLine[] = [];
-  for (const line of lines) {
-    const quantity = parseQuantity(measurements[line.id]);
-    if (quantity == null) {
-      missing.push(line);
-      continue;
-    }
-    items.push({
+  const items: MeasuredLineItem[] = lines.map((line) => {
+    const quantity = parseQuantity(measurements[line.id]) ?? 0;
+    return {
       id: line.id,
       group: line.group,
       label: line.label,
@@ -505,9 +499,9 @@ export function computeMeasuredCost(
       ...(line.rateMultiplier ? { rateMultiplier: line.rateMultiplier } : {}),
       quantity,
       amount: lineAmount(line, quantity),
-    });
-  }
-  return { items, total: items.reduce((sum, item) => sum + item.amount, 0), missing };
+    };
+  });
+  return { items, total: items.reduce((sum, item) => sum + item.amount, 0), missing: [] };
 }
 
 /** Cost implied by the Owner's own declared quantities (null when a line has no declared quantity). */

@@ -86,6 +86,36 @@ function knownSoil(value: string): string {
   return canonicalSoilType(value);
 }
 
+function specValue(template: MeasurementTemplate | null, labels: string[]): string {
+  const specs = template?.ownerSpecs ?? [];
+  for (const label of labels) {
+    const match = specs.find((spec) => spec.label.toLowerCase() === label.toLowerCase());
+    const value = match?.value.trim();
+    if (value) return value;
+  }
+  return '';
+}
+
+function displayFitting(raw: string): string {
+  if (!raw) return '—';
+  if (/open surface/i.test(raw)) return 'Non-Concealed Fitting';
+  return raw;
+}
+
+function displayFloors(raw: string): string {
+  if (!raw) return '—';
+  return raw.replace(/\bRCC\s+/g, '');
+}
+
+function displayLocation(template: MeasurementTemplate | null, district: string): string {
+  const parts = [
+    specValue(template, ['Project Address']),
+    specValue(template, ['Village / Town Name']),
+    district.trim(),
+  ].filter(Boolean);
+  return parts.join(', ') || '—';
+}
+
 function inr(value: number): string {
   return `₹${value.toLocaleString('en-IN')}`;
 }
@@ -182,34 +212,27 @@ export function SiteVisitChecklistPage({ projectId }: { projectId: string }) {
         }
         const draft = readDraft(projectId);
         const today = todayIstIso();
-        if (visit && !draft) {
-          const input = siteVisitToInput(visit);
-          setForm({
-            ...input,
-            visitDate: today,
-            floors: String(visit.floors > 0 ? visit.floors : defaultFloors),
-            roadWidthFt: '',
-            waterAvailable: false,
-            electricityAvailable: false,
-            storageAvailable: false,
-            soilType: knownSoil(input.soilType),
-            measurements: {},
-          });
-          setPlinthTouched(input.plinthAreaSqft.trim() !== '');
-        } else {
-          setForm({
-            ...EMPTY_SITE_VISIT_INPUT,
-            visitDate: today,
-            floors: String(visit && visit.floors > 0 ? visit.floors : defaultFloors),
-            soilType: knownSoil(draft?.soilType ?? ''),
-            siteNotes: draft?.siteNotes ?? '',
-            plotLengthFt: draft?.plotLengthFt ?? '',
-            plotWidthFt: draft?.plotWidthFt ?? '',
-            plinthAreaSqft: draft?.plinthAreaSqft ?? '',
-            measurements: {},
-          });
-          setPlinthTouched((draft?.plinthAreaSqft ?? '').trim() !== '');
-        }
+        const saved = visit ? siteVisitToInput(visit) : null;
+        setForm({
+          ...EMPTY_SITE_VISIT_INPUT,
+          ...(saved ?? {}),
+          visitDate: today,
+          floors: String(visit && visit.floors > 0 ? visit.floors : defaultFloors),
+          roadWidthFt: '',
+          waterAvailable: false,
+          electricityAvailable: false,
+          storageAvailable: false,
+          soilType: knownSoil(draft?.soilType || saved?.soilType || ''),
+          siteNotes: draft?.siteNotes ?? saved?.siteNotes ?? '',
+          plotLengthFt: draft?.plotLengthFt ?? saved?.plotLengthFt ?? '',
+          plotWidthFt: draft?.plotWidthFt ?? saved?.plotWidthFt ?? '',
+          plinthAreaSqft: draft?.plinthAreaSqft ?? saved?.plinthAreaSqft ?? '',
+          measurements: {
+            ...(saved?.measurements ?? {}),
+            ...(draft?.measurements ?? {}),
+          },
+        });
+        setPlinthTouched((draft?.plinthAreaSqft ?? saved?.plinthAreaSqft ?? '').trim() !== '');
         readyRef.current = true;
       })
       .finally(() => {
@@ -220,11 +243,32 @@ export function SiteVisitChecklistPage({ projectId }: { projectId: string }) {
     };
   }, [projectId]);
 
+  const persistToServer = useCallback((source: SiteVisitInput) => {
+    if (!readyRef.current || !knownSoil(source.soilType)) return;
+    void saveSiteVisitChecklistAction(projectId, {
+      ...source,
+      visitDate: todayIstIso(),
+      soilType: knownSoil(source.soilType),
+      waterAvailable: false,
+      electricityAvailable: false,
+      storageAvailable: false,
+    });
+  }, [projectId]);
+
   useEffect(() => {
-    const flush = () => writeDraft(formRef.current);
+    if (loading || !readyRef.current) return;
+    const timer = window.setTimeout(() => persistToServer(formRef.current), 500);
+    return () => window.clearTimeout(timer);
+  }, [form, loading, persistToServer]);
+
+  useEffect(() => {
+    const flush = () => {
+      writeDraft(formRef.current);
+      persistToServer(formRef.current);
+    };
     window.addEventListener('pagehide', flush);
     return () => window.removeEventListener('pagehide', flush);
-  }, [writeDraft]);
+  }, [writeDraft, persistToServer]);
 
   function patch(next: Partial<SiteVisitInput>) {
     setSavedNotice(false);
@@ -257,6 +301,7 @@ export function SiteVisitChecklistPage({ projectId }: { projectId: string }) {
     return {
       ...formRef.current,
       visitDate: todayIstIso(),
+      soilType: knownSoil(formRef.current.soilType),
       waterAvailable: false,
       electricityAvailable: false,
       storageAvailable: false,
@@ -298,18 +343,14 @@ export function SiteVisitChecklistPage({ projectId }: { projectId: string }) {
   function goToAgreement() {
     setError(null);
     startOpening(async () => {
-      const saved = await saveSiteVisitChecklistAction(projectId, payload());
-      if (saved.error) {
-        setError(saved.error);
-        return;
-      }
       writeDraft(formRef.current);
+      await saveSiteVisitChecklistAction(projectId, payload());
       const result = await goToAgreementAction(projectId);
-      if (result.error || !result.href) {
-        setError(result.error ?? 'Could not open the agreement.');
+      if (result.href) {
+        router.push(result.href);
         return;
       }
-      router.push(result.href);
+      setError(result.error ?? 'Could not open the agreement.');
     });
   }
 
@@ -323,6 +364,10 @@ export function SiteVisitChecklistPage({ projectId }: { projectId: string }) {
           </Link>
           <Link
             href="/admin/dashboard?tab=agreements"
+            onClick={() => {
+              writeDraft(formRef.current);
+              persistToServer(formRef.current);
+            }}
             className="text-sm font-medium text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
           >
             Dashboard
@@ -348,11 +393,38 @@ export function SiteVisitChecklistPage({ projectId }: { projectId: string }) {
             {[
               project?.publicId ? `Project ID: ${project.publicId}` : null,
               project?.clientName ? `Client: ${project.clientName}` : null,
-              project?.district || null,
             ]
               .filter(Boolean)
-              .join(' · ') || 'Measured quantities and the locked bid rates'}
+              .join(' · ')}
           </p>
+          {template && (template.tradeKey === 'plumber' || template.tradeKey === 'electrician') ? (
+            <dl className="mt-3 grid gap-3 sm:grid-cols-3">
+              <div>
+                <dt className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                  Fitting Type
+                </dt>
+                <dd className="mt-0.5 text-sm font-semibold text-slate-900 dark:text-slate-100">
+                  {displayFitting(specValue(template, ['Fitting Type', 'Wiring Type']))}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                  Target Work Floors
+                </dt>
+                <dd className="mt-0.5 text-sm font-semibold text-slate-900 dark:text-slate-100">
+                  {displayFloors(specValue(template, ['Target Work Floor', 'Target Work Floors']))}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                  Location / Site Area
+                </dt>
+                <dd className="mt-0.5 text-sm font-semibold text-slate-900 dark:text-slate-100">
+                  {displayLocation(template, project?.district ?? '')}
+                </dd>
+              </div>
+            </dl>
+          ) : null}
         </section>
 
         {loading ? (
@@ -518,9 +590,7 @@ export function SiteVisitChecklistPage({ projectId }: { projectId: string }) {
                         Grand Total Accurate Cost
                       </p>
                       <p className="text-[11px] text-emerald-800/80 dark:text-emerald-200/70">
-                        {cost.missing.length > 0
-                          ? `${cost.missing.length} line(s) still to measure`
-                          : 'Updates as measured quantities change'}
+                        Empty quantities count as zero
                       </p>
                     </div>
                     <p className="text-2xl font-extrabold tabular-nums text-emerald-800 dark:text-emerald-200">
