@@ -2,11 +2,20 @@
 import type { MeasuredLineItem, MeasurementTradeKey } from '@/lib/admin/siteMeasurements';
 
 export const SOIL_TYPES = [
-  { value: 'hard', label: 'Hard / rocky' },
-  { value: 'medium', label: 'Medium (normal alluvial)' },
-  { value: 'soft', label: 'Soft / clayey' },
-  { value: 'filled', label: 'Filled / made-up ground' },
+  { value: 'hard_rock', label: 'Hard Rock / Rocky Terrain' },
+  { value: 'soft_rock', label: 'Soft Rock / Weathered Rock' },
+  { value: 'cohesive_clay', label: 'Cohesive Clayey Soil' },
+  { value: 'sandy_gravel', label: 'Sandy / Gravelly Soil' },
+  { value: 'black_cotton', label: 'Black Cotton Soil' },
+  { value: 'filled_unconsolidated', label: 'Filled-up / Unconsolidated Soil' },
 ] as const;
+
+const LEGACY_SOIL_LABELS: Record<string, string> = {
+  hard: 'Hard Rock / Rocky Terrain',
+  medium: 'Sandy / Gravelly Soil',
+  soft: 'Cohesive Clayey Soil',
+  filled: 'Filled-up / Unconsolidated Soil',
+};
 
 export type SoilType = (typeof SOIL_TYPES)[number]['value'];
 
@@ -50,7 +59,8 @@ export interface SiteVisitRecord {
 }
 
 export function soilLabel(value: string | null | undefined): string {
-  return SOIL_TYPES.find((s) => s.value === value)?.label ?? '—';
+  if (!value) return '—';
+  return SOIL_TYPES.find((s) => s.value === value)?.label ?? LEGACY_SOIL_LABELS[value] ?? value;
 }
 
 export const EMPTY_SITE_VISIT_INPUT: SiteVisitInput = {

@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { SiteVisitRecord, SoilType } from '@/lib/admin/siteVisit';
+import { soilLabel, type SiteVisitRecord, type SoilType } from '@/lib/admin/siteVisit';
 import type { MeasuredLineItem, MeasurementTradeKey } from '@/lib/admin/siteMeasurements';
 
 export const SITE_VISIT_TABLE_MISSING_MESSAGE =
@@ -122,12 +122,6 @@ function inrText(value: number): string {
 /** Short rows describing the supervisor's measurements, for agreement summaries / emails. */
 export function siteVisitSummary(visit: SiteVisitRecord | null): Record<string, string> {
   if (!visit) return {};
-  const soil: Record<string, string> = {
-    hard: 'Hard / rocky',
-    medium: 'Medium',
-    soft: 'Soft / clayey',
-    filled: 'Filled ground',
-  };
   const rows: Record<string, string> = {
     'Site Visit (Supervisor)': visit.visitDate.split('-').reverse().join('/'),
   };
@@ -137,7 +131,7 @@ export function siteVisitSummary(visit: SiteVisitRecord | null): Record<string, 
   if (visit.plinthAreaSqft > 0) {
     rows['Measured Plinth Area'] = `${visit.plinthAreaSqft.toLocaleString('en-IN')} sq. ft.`;
   }
-  rows['Soil Condition'] = soil[visit.soilType] ?? visit.soilType;
+  rows['Soil Condition'] = soilLabel(visit.soilType);
   for (const item of visit.lineItems) {
     rows[`${item.group} — ${item.label}`] =
       `${item.quantity.toLocaleString('en-IN')} ${item.unit} × ${inrText(item.rate)}${

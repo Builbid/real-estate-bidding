@@ -465,9 +465,16 @@ export function buildMeasurementTemplate(
   };
 }
 
+/** Locked bid rate after the floor surcharge. Ground stays at the accepted rate; 1st floor is +5%, 2nd is +10%. */
+export function effectiveUnitRate(line: Pick<MeasurementLine, 'rate' | 'rateMultiplier'>): number {
+  if (!(line.rate > 0)) return 0;
+  const multiplier = line.rateMultiplier && line.rateMultiplier > 0 ? line.rateMultiplier : 1;
+  return Math.round(line.rate * multiplier);
+}
+
 export function lineAmount(line: Pick<MeasurementLine, 'rate' | 'rateMultiplier'>, quantity: number): number {
   if (!(quantity > 0) || !(line.rate > 0)) return 0;
-  return Math.round(quantity * line.rate * (line.rateMultiplier && line.rateMultiplier > 0 ? line.rateMultiplier : 1));
+  return Math.round(quantity * effectiveUnitRate(line));
 }
 
 function parseQuantity(raw: string | undefined): number | null {

@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useMemo, useState, useTransition, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, ClipboardCheck, Loader2 } from 'lucide-react';
+import { ArrowRight, ClipboardCheck, Loader2, Save } from 'lucide-react';
+import { toast, Toaster } from 'sonner';
 import { BuilBidLogo } from '@/components/shared/BuilBidLogo';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -21,6 +22,7 @@ import {
 } from '@/lib/admin/siteVisit';
 import {
   computeMeasuredCost,
+  effectiveUnitRate,
   groupMeasurementLines,
   lineAmount,
   type MeasurementLine,
@@ -33,11 +35,54 @@ const SELECT_CLASS =
 const QTY_INPUT_CLASS =
   'h-9 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-right text-sm tabular-nums text-slate-900 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-600 dark:bg-slate-900/70 dark:text-slate-100';
 
-function todayLocalIso(): string {
-  const d = new Date();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${d.getFullYear()}-${month}-${day}`;
+function todayIstIso(): string {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+}
+
+function formatDmY(iso: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (!match) return iso;
+  return `${match[3]}/${match[2]}/${match[1]}`;
+}
+
+const DRAFT_PREFIX = 'builbid-site-checklist:';
+
+interface ChecklistDraft {
+  soilType: string;
+  measurements: Record<string, string>;
+  siteNotes: string;
+  plotLengthFt: string;
+  plotWidthFt: string;
+  plinthAreaSqft: string;
+}
+
+function draftKey(projectId: string): string {
+  return `${DRAFT_PREFIX}${projectId}`;
+}
+
+function readDraft(projectId: string): ChecklistDraft | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.localStorage.getItem(draftKey(projectId));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<ChecklistDraft>;
+    if (!parsed || typeof parsed !== 'object') return null;
+    return {
+      soilType: typeof parsed.soilType === 'string' ? parsed.soilType : '',
+      measurements:
+        parsed.measurements && typeof parsed.measurements === 'object' ? parsed.measurements : {},
+      siteNotes: typeof parsed.siteNotes === 'string' ? parsed.siteNotes : '',
+      plotLengthFt: typeof parsed.plotLengthFt === 'string' ? parsed.plotLengthFt : '',
+      plotWidthFt: typeof parsed.plotWidthFt === 'string' ? parsed.plotWidthFt : '',
+      plinthAreaSqft: typeof parsed.plinthAreaSqft === 'string' ? parsed.plinthAreaSqft : '',
+    };
+  } catch {
+    return null;
+  }
+}
+
+function knownSoil(value: string): string {
+  return SOIL_TYPES.some((soil) => soil.value === value) ? value : '';
 }
 
 function inr(value: number): string {
@@ -90,7 +135,7 @@ export function SiteVisitChecklistPage({ projectId }: { projectId: string }) {
   const router = useRouter();
   const [form, setForm] = useState<SiteVisitInput>(() => ({
     ...EMPTY_SITE_VISIT_INPUT,
-    visitDate: todayLocalIso(),
+    visitDate: todayIstIso(),
   }));
   const [template, setTemplate] = useState<MeasurementTemplate | null>(null);
   const [project, setProject] = useState<ChecklistProjectSummary | null>(null);
@@ -98,7 +143,29 @@ export function SiteVisitChecklistPage({ projectId }: { projectId: string }) {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [navigating, startNavigating] = useTransition();
+  const [savedNotice, setSavedNotice] = useState(false);
+  const [saving, startSaving] = useTransition();
+  const [opening, startOpening] = useTransition();
+  const readyRef = useRef(false);
+  const formRef = useRef(form);
+  formRef.current = form;
+
+  const writeDraft = useCallback((next: SiteVisitInput) => {
+    if (!readyRef.current) return;
+    try {
+      const draft: ChecklistDraft = {
+        soilType: next.soilType,
+        measurements: next.measurements,
+        siteNotes: next.siteNotes,
+        plotLengthFt: next.plotLengthFt,
+        plotWidthFt: next.plotWidthFt,
+        plinthAreaSqft: next.plinthAreaSqft,
+      };
+      window.localStorage.setItem(draftKey(projectId), JSON.stringify(draft));
+    } catch {
+      // Private browsing can block storage; the explicit save still persists to the server.
+    }
+  }, [projectId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -111,40 +178,37 @@ export function SiteVisitChecklistPage({ projectId }: { projectId: string }) {
           setLoadError(actionError);
           return;
         }
-        const lines = loaded?.lines ?? [];
-        if (visit) {
+        const draft = readDraft(projectId);
+        const today = todayIstIso();
+        if (visit && !draft) {
           const input = siteVisitToInput(visit);
-          const measurements = { ...input.measurements };
-          for (const line of lines) {
-            if ((measurements[line.id] == null || measurements[line.id] === '') && line.ownerQuantity != null) {
-              measurements[line.id] = String(line.ownerQuantity);
-            }
-          }
           setForm({
             ...input,
+            visitDate: today,
             floors: String(visit.floors > 0 ? visit.floors : defaultFloors),
             roadWidthFt: '',
             waterAvailable: false,
             electricityAvailable: false,
             storageAvailable: false,
-            measurements,
+            soilType: knownSoil(input.soilType),
+            measurements: { ...input.measurements },
           });
-          setPlinthTouched(true);
+          setPlinthTouched(input.plinthAreaSqft.trim() !== '');
         } else {
-          const measurements: Record<string, string> = {};
-          for (const line of lines) {
-            if (line.ownerQuantity != null) measurements[line.id] = String(line.ownerQuantity);
-          }
-          setForm((prev) => ({
-            ...prev,
-            floors: String(defaultFloors),
-            roadWidthFt: '',
-            waterAvailable: false,
-            electricityAvailable: false,
-            storageAvailable: false,
-            measurements,
-          }));
+          setForm({
+            ...EMPTY_SITE_VISIT_INPUT,
+            visitDate: today,
+            floors: String(visit && visit.floors > 0 ? visit.floors : defaultFloors),
+            soilType: knownSoil(draft?.soilType ?? ''),
+            siteNotes: draft?.siteNotes ?? '',
+            plotLengthFt: draft?.plotLengthFt ?? '',
+            plotWidthFt: draft?.plotWidthFt ?? '',
+            plinthAreaSqft: draft?.plinthAreaSqft ?? '',
+            measurements: { ...(draft?.measurements ?? {}) },
+          });
+          setPlinthTouched((draft?.plinthAreaSqft ?? '').trim() !== '');
         }
+        readyRef.current = true;
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -154,20 +218,47 @@ export function SiteVisitChecklistPage({ projectId }: { projectId: string }) {
     };
   }, [projectId]);
 
+  useEffect(() => {
+    const flush = () => writeDraft(formRef.current);
+    window.addEventListener('pagehide', flush);
+    return () => window.removeEventListener('pagehide', flush);
+  }, [writeDraft]);
+
   function patch(next: Partial<SiteVisitInput>) {
+    setSavedNotice(false);
     setForm((prev) => {
-      const merged = { ...prev, ...next };
+      const merged = { ...prev, ...next, visitDate: todayIstIso() };
       if (!plinthTouched && ('plotLengthFt' in next || 'plotWidthFt' in next)) {
         const length = Number(merged.plotLengthFt);
         const width = Number(merged.plotWidthFt);
         merged.plinthAreaSqft = length > 0 && width > 0 ? String(Math.round(length * width)) : '';
       }
+      writeDraft(merged);
       return merged;
     });
   }
 
   function setMeasurement(id: string, value: string) {
-    setForm((prev) => ({ ...prev, measurements: { ...prev.measurements, [id]: value } }));
+    setSavedNotice(false);
+    setForm((prev) => {
+      const merged = {
+        ...prev,
+        visitDate: todayIstIso(),
+        measurements: { ...prev.measurements, [id]: value },
+      };
+      writeDraft(merged);
+      return merged;
+    });
+  }
+
+  function payload(): SiteVisitInput {
+    return {
+      ...formRef.current,
+      visitDate: todayIstIso(),
+      waterAvailable: false,
+      electricityAvailable: false,
+      storageAvailable: false,
+    };
   }
 
   const lines = useMemo(() => template?.lines ?? [], [template]);
@@ -189,19 +280,30 @@ export function SiteVisitChecklistPage({ projectId }: { projectId: string }) {
     [groups, form.measurements],
   );
 
-  function saveAndOpenAgreement() {
+  function saveChecklist() {
     setError(null);
-    startNavigating(async () => {
-      const saved = await saveSiteVisitChecklistAction(projectId, {
-        ...form,
-        waterAvailable: false,
-        electricityAvailable: false,
-        storageAvailable: false,
-      });
+    setSavedNotice(false);
+    startSaving(async () => {
+      const saved = await saveSiteVisitChecklistAction(projectId, payload());
       if (saved.error) {
         setError(saved.error);
         return;
       }
+      writeDraft(formRef.current);
+      setSavedNotice(true);
+      toast.success('Checklist saved.');
+    });
+  }
+
+  function goToAgreement() {
+    setError(null);
+    startOpening(async () => {
+      const saved = await saveSiteVisitChecklistAction(projectId, payload());
+      if (saved.error) {
+        setError(saved.error);
+        return;
+      }
+      writeDraft(formRef.current);
       const result = await goToAgreementAction(projectId);
       if (result.error || !result.href) {
         setError(result.error ?? 'Could not open the agreement.');
@@ -213,8 +315,9 @@ export function SiteVisitChecklistPage({ projectId }: { projectId: string }) {
 
   return (
     <div className="min-h-screen">
+      <Toaster position="top-right" richColors closeButton />
       <header className="border-b border-slate-200 bg-white/80 px-4 py-3 dark:border-slate-800 dark:bg-slate-900/80">
-        <div className="mx-auto flex w-full max-w-4xl items-center justify-between gap-3">
+        <div className="mx-auto flex w-full max-w-[800px] items-center justify-between gap-3">
           <Link href="/" aria-label="BuilBid home" className="rounded-lg p-1 transition hover:opacity-80">
             <BuilBidLogo size="sm" />
           </Link>
@@ -227,7 +330,7 @@ export function SiteVisitChecklistPage({ projectId }: { projectId: string }) {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-4xl space-y-4 px-4 py-6">
+      <main className="mx-auto w-full max-w-[800px] space-y-4 px-4 py-6">
         <section className="rounded-2xl border border-slate-200/80 px-5 py-4 dark:border-slate-700/70">
           <div className="flex flex-wrap items-center gap-2">
             <ClipboardCheck className="h-4 w-4 text-emerald-600" />
@@ -265,14 +368,18 @@ export function SiteVisitChecklistPage({ projectId }: { projectId: string }) {
           <div className="space-y-4">
             <SectionCard title="Visit details">
               <div className="grid gap-3 sm:grid-cols-2">
-                <Input
-                  label="Site Visit Date"
-                  accentLabel={false}
-                  type="date"
-                  max={todayLocalIso()}
-                  value={form.visitDate}
-                  onChange={(e) => patch({ visitDate: e.target.value })}
-                />
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-slate-800 dark:text-zinc-100">
+                    Site Visit Date
+                  </label>
+                  <input
+                    readOnly
+                    aria-readonly="true"
+                    aria-label="Site Visit Date"
+                    value={formatDmY(form.visitDate || todayIstIso())}
+                    className={`${SELECT_CLASS} cursor-default bg-slate-50 dark:bg-slate-900/40`}
+                  />
+                </div>
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-semibold uppercase tracking-wider text-slate-800 dark:text-zinc-100">
                     Soil Condition Observed
@@ -372,8 +479,13 @@ export function SiteVisitChecklistPage({ projectId }: { projectId: string }) {
                                   Locked unit rate
                                 </p>
                                 <p className="text-sm font-semibold tabular-nums text-slate-800 dark:text-slate-100">
-                                  {inr(line.rate)} / {line.unit}
+                                  {inr(effectiveUnitRate(line))} / {line.unit}
                                 </p>
+                                {steps > 0 ? (
+                                  <p className="text-[11px] font-medium text-emerald-700 dark:text-emerald-300">
+                                    +{steps * 5}% floor allowance
+                                  </p>
+                                ) : null}
                               </div>
                               <div className="flex items-center gap-1.5">
                                 <input
@@ -383,7 +495,6 @@ export function SiteVisitChecklistPage({ projectId }: { projectId: string }) {
                                   inputMode="decimal"
                                   aria-label={`${line.label} measured quantity (${line.unit})`}
                                   className={QTY_INPUT_CLASS}
-                                  placeholder="0"
                                   value={raw}
                                   onChange={(e) => setMeasurement(line.id, e.target.value)}
                                 />
@@ -458,16 +569,33 @@ export function SiteVisitChecklistPage({ projectId }: { projectId: string }) {
             </SectionCard>
 
             {error ? <p className="text-xs text-red-600 dark:text-red-400">{error}</p> : null}
+            {savedNotice ? (
+              <p className="text-xs font-medium text-emerald-700 dark:text-emerald-400">
+                Checklist saved.
+              </p>
+            ) : null}
 
-            <Button
-              type="button"
-              className="w-full bg-emerald-600 font-bold text-white hover:bg-emerald-700"
-              onClick={saveAndOpenAgreement}
-              disabled={navigating}
-            >
-              {navigating ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
-              {navigating ? 'Saving…' : 'Save checklist & open agreement'}
-            </Button>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Button
+                type="button"
+                variant="outline"
+                className="sm:flex-1"
+                onClick={saveChecklist}
+                disabled={saving || opening}
+              >
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                {saving ? 'Saving…' : 'Save Checklist'}
+              </Button>
+              <Button
+                type="button"
+                className="bg-emerald-600 font-bold text-white hover:bg-emerald-700 sm:flex-1"
+                onClick={goToAgreement}
+                disabled={saving || opening}
+              >
+                {opening ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
+                {opening ? 'Opening…' : 'Go to Agreement'}
+              </Button>
+            </div>
           </div>
         )}
       </main>
