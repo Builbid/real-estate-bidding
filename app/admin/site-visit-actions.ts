@@ -222,9 +222,8 @@ export async function saveSiteVisitChecklistAction(
 }
 
 /**
- * "Go to Agreement": confirms the checklist exists, then stamps that the agreement draft and
- * Mistri Thumb Rule sheet were generated from it. The agreement page auto-populates from the
- * project, winning bid and checklist.
+ * "Go to Agreement": confirms the checklist exists, then opens the two-party digital agreement.
+ * The agreement page auto-populates from the project, winning bid and checklist.
  */
 export async function goToAgreementAction(
   projectRef: string,
@@ -244,7 +243,7 @@ export async function goToAgreementAction(
   const now = new Date().toISOString();
   const { error } = await admin
     .from('project_site_visits')
-    .update({ agreement_started_at: now, thumb_rule_generated_at: now, updated_at: now })
+    .update({ agreement_started_at: now, updated_at: now })
     .eq('project_id', project.id);
   if (error && !isMissingWorkflowTable(error)) return { error: error.message };
 

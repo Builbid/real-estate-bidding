@@ -30,8 +30,8 @@ import {
   PAGE_MARGIN_MM,
   cleanAgreementText,
   drawOfficialHeader,
-  drawFillInPrompt,
   drawParagraph,
+  filledAgreementText,
   drawRows,
   drawSectionTitle,
   ensurePage,
@@ -47,7 +47,6 @@ import {
 import {
   applyOverlayDates,
   drawExecutionSection,
-  drawFilledOrPrompt,
   stampAgreementOverlay,
   type DigitalContractOverlay,
 } from '@/lib/contract/digitalContractOverlay';
@@ -389,13 +388,14 @@ export function generateMistriAgreementPdfBytes(
     y,
     margin,
   );
-  y = drawFilledOrPrompt(
+  y = drawRows(
     doc,
+    [{
+      label: 'Approximate Plinth Area (Sq. Ft.)',
+      value: filledAgreementText(overlay?.plinthAreaLabel, 'As measured on the site visit'),
+    }],
     y,
     margin,
-    'Approximate Plinth Area (Sq. Ft.)',
-    overlay?.plinthAreaLabel,
-    (nextY) => drawFillInPrompt(doc, 'Plinth Area', 'sqft', nextY, margin),
   );
   y = drawParagraph(
     doc,
@@ -419,22 +419,23 @@ export function generateMistriAgreementPdfBytes(
     margin,
     { bold: true, fill: [254, 226, 226], bordered: true },
   );
-  y = drawRows(doc, filled.bidRows, y, margin);
-  y = drawFilledOrPrompt(
+  y = drawRows(doc, filled.bidRows.length > 0 ? filled.bidRows : [{ label: 'Awarded civil work', value: 'As posted and accepted on BuilBid' }], y, margin);
+  y = drawRows(
     doc,
+    [{
+      label: 'Total Agreed Project Cost',
+      value: filledAgreementText(overlay?.totalAgreedCostLabel, filled.acceptedRateLabel),
+    }],
     y,
     margin,
-    'Total Agreed Project Cost',
-    overlay?.totalAgreedCostLabel,
-    (nextY) => nextY,
   );
 
   y = drawSectionTitle(doc, '4. Timelines, Delays & Penalty Terms', y, margin);
   y = drawRows(
     doc,
     [
-      { label: 'Agreed start date', value: filled.agreedStartDate || AGREEMENT_MANUAL_DATE_BLANK },
-      { label: 'Agreed completion date', value: filled.agreedCompletionDate || AGREEMENT_MANUAL_DATE_BLANK },
+      { label: 'Agreed start date', value: filledAgreementText(filled.agreedStartDate, AGREEMENT_MANUAL_DATE_BLANK) },
+      { label: 'Agreed completion date', value: filledAgreementText(filled.agreedCompletionDate, AGREEMENT_MANUAL_DATE_BLANK) },
       { label: 'Grace extension allowed', value: '10 Calendar Days (Penalty Free)' },
     ],
     y,
@@ -460,18 +461,7 @@ export function generateMistriAgreementPdfBytes(
     { bold: true, fill: [254, 226, 226], bordered: true },
   );
 
-  y = drawExecutionSection(
-    doc,
-    y,
-    margin,
-    overlay,
-    'This agreement is signed on-site by the Homeowner and Head Mason in the presence of the BuilBid Field Coordinator.',
-    [
-      ['PARTY A: HOMEOWNER', 'Signature / Thumb'],
-      ['PARTY B: HEAD MASON', 'Signature / Thumb'],
-      ['WITNESS / BUILBID', 'Coordinator Signature'],
-    ],
-  );
+  y = drawExecutionSection(doc, y, margin, overlay);
 
   y = ensurePage(doc, y, 10, margin);
   doc.setFont('helvetica', 'normal');

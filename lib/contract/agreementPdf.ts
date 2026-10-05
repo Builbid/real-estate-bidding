@@ -7,7 +7,15 @@ export const BUILBID_CORP_GMAIL = 'builbidcorp@gmail.com';
 export const BUILBID_OFFICIAL_AGREEMENT_EMAILS = [BUILBID_CORP_GMAIL] as const;
 
 /** Blank line on the printed agreement so dates can be filled in by hand on site. */
-export const AGREEMENT_MANUAL_DATE_BLANK = '________________________';
+/** Used only when a generated letter has no chosen date yet. Never an empty cell. */
+export const AGREEMENT_MANUAL_DATE_BLANK = 'As recorded for Aadhaar OTP eSign';
+
+/** Replaces underscores, dashes, and empty cells with a concrete agreement value. */
+export function filledAgreementText(value: string | null | undefined, fallback: string): string {
+  const text = (value ?? '').replace(/[—–]/g, '-').trim();
+  if (!text || text === '-' || /^[_\s./-]+$/.test(text)) return fallback;
+  return text;
+}
 
 /** Table / box border — slate-200. */
 export const BORDER_RGB: [number, number, number] = [226, 232, 240];
@@ -197,9 +205,8 @@ export function drawSignatureBlock(
   startY: number,
   margin: number,
   labels: [string, string][] = [
-    ['PARTY A: HOMEOWNER', 'Signature / Thumb'],
-    ['PARTY B: HEAD MASON', 'Signature / Thumb'],
-    ['WITNESS / BUILBID', 'Coordinator Signature'],
+    ['PARTY A: HOMEOWNER', 'Aadhaar OTP eSign'],
+    ['PARTY B: WORKER', 'Aadhaar OTP eSign'],
   ],
 ): number {
   const pageW = doc.internal.pageSize.getWidth();

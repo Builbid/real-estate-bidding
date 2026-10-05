@@ -4,7 +4,6 @@ import {
   drawParagraph,
   drawRows,
   drawSectionTitle,
-  drawSignatureBlock,
   ensurePage,
   pdfSafeText,
 } from '@/lib/contract/agreementPdf';
@@ -102,28 +101,45 @@ export function drawAadhaarEsignBlocks(
   return y + boxH + 4;
 }
 
+const PENDING_ESIGN_STAMPS: AadhaarEsignStamp[] = [
+  {
+    partyTitle: 'PARTY A: HOMEOWNER',
+    signerName: 'Homeowner',
+    aadhaarLast4: 'Pending',
+    signedAtLabel: 'Pending Aadhaar OTP',
+    signatureRef: 'AWAITING ESIGN',
+  },
+  {
+    partyTitle: 'PARTY B: WORKER',
+    signerName: 'Worker / Mistri',
+    aadhaarLast4: 'Pending',
+    signedAtLabel: 'Pending Aadhaar OTP',
+    signatureRef: 'AWAITING ESIGN',
+  },
+];
+
 export function drawExecutionSection(
   doc: jsPDF,
   y: number,
   margin: number,
   overlay: DigitalContractOverlay | null | undefined,
-  onSiteCopy: string,
-  handwrittenLabels: [string, string][],
 ): number {
-  if (overlay?.esignStamps && overlay.esignStamps.length > 0) {
-    y = drawSectionTitle(doc, '5. Dual Aadhaar eSign Authorization', y, margin);
-    y = drawParagraph(
-      doc,
-      'This agreement is Digitally Signed via Aadhaar eSign after email OTP verification by both the Homeowner and the Contractor. BuilBid is witness to the digital execution.',
-      y,
-      margin,
-    );
-    return drawAadhaarEsignBlocks(doc, y, margin, overlay.esignStamps);
-  }
-
-  y = drawSectionTitle(doc, '5. Execution & Physical Authorization', y, margin);
-  y = drawParagraph(doc, onSiteCopy, y, margin);
-  return drawSignatureBlock(doc, y, margin, handwrittenLabels);
+  const stamps = (overlay?.esignStamps ?? []).filter(
+    (stamp) => !/witness|builbid/i.test(stamp.partyTitle),
+  );
+  y = drawSectionTitle(doc, '5. Aadhaar OTP eSign', y, margin);
+  y = drawParagraph(
+    doc,
+    'This is a direct two-party digital agreement between Party A (Homeowner) and Party B (Worker / Mistri). It is Approved / Active only after both parties complete Aadhaar OTP eSign. There is no physical signature and no third-party witness.',
+    y,
+    margin,
+  );
+  return drawAadhaarEsignBlocks(
+    doc,
+    y,
+    margin,
+    stamps.length > 0 ? stamps : PENDING_ESIGN_STAMPS,
+  );
 }
 
 export function stampAgreementOverlay(doc: jsPDF, overlay?: DigitalContractOverlay | null): void {

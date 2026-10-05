@@ -155,8 +155,6 @@ import {
   formatMistriContractTypeLabel,
   parseMistriDetails,
 } from '@/lib/mistriDetails';
-import { isMistriCivilService } from '@/lib/contract/mistriAgreement';
-import { MistriThumbRulesCard } from '@/components/contract/MistriThumbRulesCard';
 import type { Project, Bid, BidFloorRateKey, BidRates } from '@/lib/types';
 
 function resolveProjectContractTypeLabel(project: Project): string {
@@ -1106,8 +1104,6 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
           </p>
         </div>
       </div>
-
-      {isMistriCivilService(project.service_type) && <MistriThumbRulesCard projectId={project.id} />}
 
       {(isPlumbingBid || isElectricianBid || isInteriorBid) && (isTradeUnitRateBid || isPointRateBid) && (
         <div className={cn('flex items-start gap-2', LABOUR_NOTICE_CLASSES)}>

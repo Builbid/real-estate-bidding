@@ -4,7 +4,6 @@ import { requireOfficialAdmin } from '@/lib/admin/auth';
 import { isOfficialAdminEmail } from '@/lib/admin/constants';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { loadAgreementDraft } from '@/lib/admin/agreementDraft';
-import { buildThumbRuleGuide } from '@/lib/admin/agreementPackage';
 import { soilLabel } from '@/lib/admin/siteVisit';
 import { tradeLabelFor } from '@/lib/admin/siteMeasurements';
 import { projectTerritoryError } from '@/lib/admin/territory';
@@ -62,10 +61,6 @@ export default async function AdminAgreementPage({
   if (!draft.visit && !isOfficialAdminEmail(session.email) && !PROTOTYPE_AUTO_AGREEMENT) {
     redirect('/admin/dashboard?tab=projects');
   }
-
-  const guide = draft.project.isMistriCivil
-    ? await buildThumbRuleGuide(admin, draft.project.id, draft.visit)
-    : null;
 
   const contract = draft.contract;
   const visit = draft.visit;
@@ -125,15 +120,6 @@ export default async function AdminAgreementPage({
         }
       : null,
     commission: draft.commission,
-    thumbRule: guide
-      ? {
-          snapshotRows: guide.snapshotRows,
-          scheduleRows: guide.scheduleRows,
-          stageRows: guide.stageRows,
-          redFlagRows: guide.redFlagRows,
-          disclaimer: guide.disclaimer,
-        }
-      : null,
   };
 
   return <AgreementWorkspace {...props} />;

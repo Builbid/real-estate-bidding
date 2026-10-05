@@ -5,85 +5,12 @@ import {
   isOfficialAdminEmail,
   SUPERVISOR_PAYOUT_BPS,
 } from '@/lib/admin/constants';
-import { loadSiteVisit } from '@/lib/admin/siteVisitStore';
-import type { SiteVisitRecord } from '@/lib/admin/siteVisit';
 import {
   generateDigitalContractPdf,
   overlayFromRecord,
   type DigitalContractRecord,
 } from '@/lib/contract/renderDigitalContract';
-import { isMistriCivilService } from '@/lib/contract/mistriAgreement';
-import {
-  generateMistriThumbRulesPdfBytes,
-  mistriThumbRulesFileName,
-} from '@/lib/contract/mistriThumbRulesPdf';
 import { sendSignedDigitalContractPdf } from '@/lib/email/sendDigitalContract';
-import {
-  buildMistriThumbRulesGuide,
-  type MistriThumbRulesGuide,
-  type MistriThumbRulesProjectInput,
-} from '@/lib/thumb-rules/mistriThumbRules';
-import type { TrackType } from '@/lib/types';
-
-/**
- * Builds the Mistri Thumb Rule input for a project, using the supervisor's measured
- * values (plinth area / floors) from the Site Visit Checklist when available.
- * Returns null when the project is not Mistri / civil work.
- */
-export async function loadThumbRuleInput(
-  admin: SupabaseClient,
-  projectId: string,
-  visit?: SiteVisitRecord | null,
-): Promise<MistriThumbRulesProjectInput | null> {
-  const { data: project } = await admin
-    .from('projects')
-    .select(
-      'id, title, district, state, pincode, track_type, total_floors, plot_area_sqft, floor_area_sqft, mistri_details, service_type, numeric_id',
-    )
-    .eq('id', projectId)
-    .maybeSingle();
-
-  if (!project || !isMistriCivilService(project.service_type)) return null;
-
-  return {
-    id: project.id,
-    numeric_id: project.numeric_id,
-    title: project.title,
-    district: project.district,
-    state: project.state,
-    pincode: project.pincode,
-    track_type: (project.track_type ?? 'RCC') as TrackType,
-    total_floors: visit?.floors ?? project.total_floors,
-    plot_area_sqft:
-      visit != null && visit.plotLengthFt > 0 && visit.plotWidthFt > 0
-        ? Math.round(visit.plotLengthFt * visit.plotWidthFt)
-        : project.plot_area_sqft,
-    floor_area_sqft: visit && visit.plinthAreaSqft > 0 ? visit.plinthAreaSqft : project.floor_area_sqft,
-    mistri_details: project.mistri_details,
-  };
-}
-
-export async function buildThumbRuleGuide(
-  admin: SupabaseClient,
-  projectId: string,
-  visit?: SiteVisitRecord | null,
-): Promise<MistriThumbRulesGuide | null> {
-  const input = await loadThumbRuleInput(admin, projectId, visit);
-  return input ? buildMistriThumbRulesGuide(input) : null;
-}
-
-export async function buildThumbRulePdf(
-  admin: SupabaseClient,
-  projectId: string,
-  visit?: SiteVisitRecord | null,
-): Promise<{ bytes: Uint8Array; filename: string } | null> {
-  const input = await loadThumbRuleInput(admin, projectId, visit);
-  if (!input) return null;
-  return {
-    bytes: generateMistriThumbRulesPdfBytes(input),
-    filename: mistriThumbRulesFileName(input.id, input.numeric_id),
-  };
-}
 
 export interface FinalizeResult {
   approved: boolean;
@@ -148,7 +75,7 @@ async function creditSupervisorCommission(
 
 /**
  * Runs when both parties have signed:
- *  1. emails the final signed PDFs (agreement + Mistri Thumb Rule) to the Home Owner and Mistri,
+ *  1. emails the signed two-party agreement PDF to the Home Owner and the Worker,
  *  2. marks the project Approved / Active,
  *  3. credits the supervisor's 0.2% commission.
  * Idempotent: a repeat call never emails twice nor credits twice.
@@ -173,14 +100,6 @@ export async function finalizeApprovedAgreement(
       };
     }
 
-    let thumbRule: { bytes: Uint8Array; filename: string } | null = null;
-    try {
-      const visit = await loadSiteVisit(admin, contract.project_id);
-      thumbRule = await buildThumbRulePdf(admin, contract.project_id, visit);
-    } catch (err) {
-      console.error('[finalizeApprovedAgreement] Thumb rule PDF failed:', err);
-    }
-
     try {
       await sendSignedDigitalContractPdf({
         clientEmail: contract.client_email,
@@ -190,7 +109,6 @@ export async function finalizeApprovedAgreement(
         summary: pdf.summary,
         pdfBytes: pdf.bytes,
         filename: pdf.filename,
-        thumbRule,
       });
     } catch (err) {
       return {

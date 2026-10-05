@@ -10,7 +10,6 @@ import {
   Circle,
   FileSignature,
   FileText,
-  HardHat,
   Loader2,
   RefreshCcw,
   Send,
@@ -65,13 +64,6 @@ export interface AgreementWorkspaceProps {
     otpExpiresAt: string;
   } | null;
   commission: { amount: number; status: string; creditedAt: string } | null;
-  thumbRule: {
-    snapshotRows: Row[];
-    scheduleRows: Row[];
-    stageRows: Row[];
-    redFlagRows: Row[];
-    disclaimer: string;
-  } | null;
 }
 
 const CARD =
@@ -110,7 +102,7 @@ function Step({ done, active, label }: { done: boolean; active?: boolean; label:
 }
 
 export function AgreementWorkspace(props: AgreementWorkspaceProps) {
-  const { project, client, contractor, siteRows, contract, commission, thumbRule, defaults } = props;
+  const { project, client, contractor, siteRows, contract, commission, defaults } = props;
   const router = useRouter();
   const [startDate, setStartDate] = useState(defaults.startDate);
   const [completionDate, setCompletionDate] = useState(defaults.completionDate);
@@ -208,7 +200,7 @@ export function AgreementWorkspace(props: AgreementWorkspaceProps) {
       </div>
 
       <header>
-        <h1 className="text-xl font-bold text-slate-900 dark:text-white">Agreement &amp; Thumb Rule</h1>
+        <h1 className="text-xl font-bold text-slate-900 dark:text-white">Digital Agreement</h1>
         <p className="mt-1 text-sm text-slate-500">
           {project.title}
           {project.publicId ? ` Â· Project ID ${project.publicId}` : ''} Â· {project.district}, {project.state}
@@ -218,7 +210,7 @@ export function AgreementWorkspace(props: AgreementWorkspaceProps) {
       <section className={CARD}>
         <ol className="grid gap-2 sm:grid-cols-4">
           <Step done label="1. Site visit checklist" />
-          <Step done label="2. Agreement &amp; thumb rule generated" />
+          <Step done label="2. Two-party agreement generated" />
           <Step
             done={contract?.status === 'signed'}
             active={sent}
@@ -236,8 +228,8 @@ export function AgreementWorkspace(props: AgreementWorkspaceProps) {
         <section className="rounded-xl border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-100">
           <p className="flex items-center gap-2 font-semibold">
             <ShieldCheck className="h-4 w-4" />
-            Both parties signed. The signed agreement and Mistri Thumb Rule sheet were emailed to{' '}
-            {client.name} (Home Owner) and {contractor.name} (Mistri).
+            Both parties signed by Aadhaar OTP eSign. The signed two-party agreement was emailed to{' '}
+            {client.name} (Home Owner) and {contractor.name} (Worker).
           </p>
           {commission ? (
             <p className="mt-2">
@@ -357,41 +349,6 @@ export function AgreementWorkspace(props: AgreementWorkspaceProps) {
       </section>
 
       <section className={CARD}>
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <h2 className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white">
-            <HardHat className="h-4 w-4 text-amber-600" />
-            Mistri Thumb Rule instruction sheet
-          </h2>
-        </div>
-        {thumbRule ? (
-          <div className="space-y-4">
-            <div>
-              <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Site snapshot</p>
-              <RowList rows={thumbRule.snapshotRows} />
-            </div>
-            <div>
-              <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Standard thumb rules</p>
-              <RowList rows={thumbRule.scheduleRows} />
-            </div>
-            <div>
-              <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Work sequence</p>
-              <RowList rows={thumbRule.stageRows} />
-            </div>
-            <div>
-              <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Red flags</p>
-              <RowList rows={thumbRule.redFlagRows} />
-            </div>
-            <p className="text-xs text-slate-500">{thumbRule.disclaimer}</p>
-          </div>
-        ) : (
-          <p className="text-sm text-slate-500">
-            Thumb rule sheets are generated for Mistri / civil construction projects only. This
-            project&apos;s trade does not use one.
-          </p>
-        )}
-      </section>
-
-      <section className={CARD}>
         <h2 className="mb-1 flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white">
           <FileSignature className="h-4 w-4 text-emerald-600" />
           Aadhaar OTP eSign &amp; approval
@@ -498,7 +455,18 @@ export function AgreementWorkspace(props: AgreementWorkspaceProps) {
                     onChange={(e) => setContractorAadhaar(formatAadhaarInput(e.target.value))}
                   />
                 </div>
-                <Button type="button" className="w-full sm:w-auto" onClick={send} disabled={sending}>
+                <Button
+                  type="button"
+                  className="w-full sm:w-auto"
+                  onClick={send}
+                  disabled={
+                    sending ||
+                    !startDate ||
+                    !completionDate ||
+                    clientAadhaar.replace(/\D/g, '').length !== 12 ||
+                    contractorAadhaar.replace(/\D/g, '').length !== 12
+                  }
+                >
                   {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                   {sending ? 'Sendingâ€¦' : sent ? 'Re-send Agreement & OTPs' : 'Send Agreement for Aadhaar OTP eSign'}
                 </Button>

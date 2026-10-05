@@ -4,7 +4,6 @@ import { getStaffSession } from '@/lib/admin/auth';
 import { isOfficialAdminEmail } from '@/lib/admin/constants';
 import { projectTerritoryError } from '@/lib/admin/territory';
 import { loadAgreementDraft } from '@/lib/admin/agreementDraft';
-import { buildThumbRulePdf } from '@/lib/admin/agreementPackage';
 import {
   generateDigitalContractPdf,
   overlayFromFields,
@@ -15,8 +14,7 @@ export const dynamic = 'force-dynamic';
 
 /**
  * Staff-only document preview for the Agreement workspace.
- *   ?projectId=<uuid|public id>&kind=agreement  -> auto-populated draft agreement PDF
- *   ?projectId=<uuid|public id>&kind=thumb      -> Mistri Thumb Rule instruction sheet PDF
+ *   ?projectId=<uuid|public id>  -> auto-populated draft agreement PDF
  */
 export async function GET(request: Request) {
   const session = await getStaffSession();
@@ -26,7 +24,6 @@ export async function GET(request: Request) {
 
   const params = new URL(request.url).searchParams;
   const projectRef = params.get('projectId')?.trim() ?? '';
-  const kind = params.get('kind') === 'thumb' ? 'thumb' : 'agreement';
   if (!projectRef) {
     return NextResponse.json({ error: 'projectId is required.' }, { status: 400 });
   }
@@ -49,23 +46,6 @@ export async function GET(request: Request) {
   }
 
   try {
-    if (kind === 'thumb') {
-      const pdf = await buildThumbRulePdf(admin, draft.project.id, draft.visit);
-      if (!pdf) {
-        return NextResponse.json(
-          { error: 'Thumb rules are available for Mistri / civil work projects only.' },
-          { status: 400 },
-        );
-      }
-      return new NextResponse(Buffer.from(pdf.bytes), {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/pdf',
-          'Content-Disposition': `inline; filename="${pdf.filename}"`,
-        },
-      });
-    }
-
     const { plinthAreaSqft, totalCost, startDate, completionDate } = draft.defaults;
     const overlay = overlayFromFields({
       plinthAreaSqft: plinthAreaSqft ?? 0,

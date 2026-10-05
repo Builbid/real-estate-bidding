@@ -5,12 +5,11 @@ import {
   PAGE_MARGIN_MM,
   cleanAgreementText,
   drawOfficialHeader,
-  drawBlankColumnTable,
-  drawFillInPrompt,
   drawParagraph,
   drawRows,
   drawSectionTitle,
   ensurePage,
+  filledAgreementText,
   formatBuilbidPublicId,
   formatInrAmount,
   nonEmpty,
@@ -24,7 +23,6 @@ import {
 import {
   applyOverlayDates,
   drawExecutionSection,
-  drawFilledOrPrompt,
   stampAgreementOverlay,
   type DigitalContractOverlay,
 } from '@/lib/contract/digitalContractOverlay';
@@ -32,14 +30,24 @@ import { readNestedProjectDetail } from '@/lib/project/storedDetails';
 import {
   getTradeWorkRequirementBlocks,
   parseTradeDetails,
+  plumbingFloorLabel,
 } from '@/lib/tradeWorkDetails';
 import {
+  computePlumbingFixtureBidTotal,
   getPlumbingPointRateDisplayEntries,
   getPlumbingUnitRateDisplayEntries,
+  isPlumbingFixtureRateOption,
   parsePlumbingRunningFootRate,
+  parsePlumbingUnitRates,
+  plumbingFixtureBidContextFromProject,
+  plumbingFloorHeightSteps,
+  plumbingFloorRateMultiplier,
   readPlumbingPointRateFloors,
   readProjectPlumbingBidOptions,
 } from '@/lib/plumberBid';
+
+const FLOOR_RATE_ALLOWANCE_NOTE =
+  'Floor-wise rates use the Ground Floor figure as the base rate. 1st Floor is base plus 5%, 2nd Floor is base plus 10%, 3rd Floor is base plus 15%, and each further floor adds another 5%.';
 
 export type PlumberAgreementParty = AgreementParty;
 export type PlumberAgreementRow = AgreementRow;
@@ -154,6 +162,47 @@ function buildPlumberBidRows(
   }
 
   const options = readProjectPlumbingBidOptions(project);
+  if (options.length > 0 && options.every(isPlumbingFixtureRateOption)) {
+    const context = plumbingFixtureBidContextFromProject(project);
+    const unitRates = parsePlumbingUnitRates(rates?.unit_rates);
+    const floors = context.floors ?? [];
+    const floorRows: PlumberAgreementRow[] = [];
+    for (const floor of floors) {
+      const steps = plumbingFloorHeightSteps(floor.floor, context.customTargetFloors);
+      const multiplier = plumbingFloorRateMultiplier(steps);
+      const floorLabel = plumbingFloorLabel(
+        floor.floor,
+        context.customTargetFloors,
+        context.houseStructure,
+      );
+      const allowance = steps <= 0 ? 'Base Rate (100%)' : `Base Rate + ${steps * 5}%`;
+      for (const option of options) {
+        if (!option.fixtureKind) continue;
+        const quantity = floor[option.fixtureKind] ?? 0;
+        const baseRate = unitRates[option.id] ?? 0;
+        if (quantity <= 0 || baseRate <= 0) continue;
+        const floorRate = Math.round(baseRate * multiplier);
+        const amount = Math.round(quantity * baseRate * multiplier);
+        floorRows.push({
+          label: `${floorLabel} - ${option.shortLabel}`,
+          value: cleanAgreementText(
+            `Qty ${quantity} x ${formatInrAmount(floorRate)} (${allowance}) = ${formatInrAmount(amount)}`,
+          ),
+        });
+      }
+    }
+    if (floorRows.length > 0) {
+      const total = computePlumbingFixtureBidTotal(unitRates, options, context);
+      if (total > 0) {
+        floorRows.push({
+          label: 'Total Estimated Project Cost',
+          value: cleanAgreementText(formatInrAmount(total)),
+        });
+      }
+      return floorRows;
+    }
+  }
+
   if (options.length > 0) {
     const unitEntries = getPlumbingUnitRateDisplayEntries(rates, options);
     if (unitEntries.length > 0) {
@@ -193,7 +242,12 @@ function buildPlumberBidRows(
     ];
   }
 
-  return [];
+  return [
+    {
+      label: 'Awarded plumber work',
+      value: 'As posted and accepted on BuilBid',
+    },
+  ];
 }
 
 export function buildPlumberAgreementPayload(input: {
@@ -324,52 +378,34 @@ export function generatePlumberAgreementPdfBytes(
     margin,
     { bold: true, fill: [254, 226, 226], bordered: true },
   );
+  y = drawParagraph(doc, FLOOR_RATE_ALLOWANCE_NOTE, y, margin);
   y = drawRows(doc, filled.bidRows, y, margin);
-  y = drawFilledOrPrompt(
-    doc,
-    y,
-    margin,
-    'Approximate Plinth Area (Sq. Ft.)',
-    overlay?.plinthAreaLabel,
-    (nextY) => nextY,
-  );
-  y = drawParagraph(
-    doc,
-    'Site measurement sheet: Fill the table below on site. Leave unused rows blank.',
-    y,
-    margin,
-  );
-  y = drawBlankColumnTable(
+  y = drawRows(
     doc,
     [
-      'Sl no.',
-      'Items',
-      'Quantity',
-      'No. of points',
-      'Rate per point (Rs.)',
-      'Cost (in Rs.)',
-      'Remarks',
+      {
+        label: 'Approximate Plinth Area (Sq. Ft.)',
+        value: filledAgreementText(overlay?.plinthAreaLabel, 'As measured on the site visit'),
+      },
+      {
+        label: 'Total Agreed Project Cost',
+        value: filledAgreementText(
+          overlay?.totalAgreedCostLabel,
+          filled.bidRows.find((row) => row.label === 'Total Estimated Project Cost')?.value
+            || filled.acceptedRateLabel,
+        ),
+      },
     ],
-    10,
     y,
     margin,
-    [0.7, 2.2, 1.1, 1.2, 1.5, 1.3, 1.2],
-  );
-  y = drawFilledOrPrompt(
-    doc,
-    y,
-    margin,
-    'Total Agreed Project Cost',
-    overlay?.totalAgreedCostLabel,
-    (nextY) => drawFillInPrompt(doc, 'Total cost', '', nextY, margin),
   );
 
   y = drawSectionTitle(doc, '4. Timelines, Delays & Penalty Terms', y, margin);
   y = drawRows(
     doc,
     [
-      { label: 'Agreed start date', value: filled.agreedStartDate || AGREEMENT_MANUAL_DATE_BLANK },
-      { label: 'Agreed completion date', value: filled.agreedCompletionDate || AGREEMENT_MANUAL_DATE_BLANK },
+      { label: 'Agreed start date', value: filledAgreementText(filled.agreedStartDate, AGREEMENT_MANUAL_DATE_BLANK) },
+      { label: 'Agreed completion date', value: filledAgreementText(filled.agreedCompletionDate, AGREEMENT_MANUAL_DATE_BLANK) },
       { label: 'Grace extension allowed', value: '10 Calendar Days (Penalty Free)' },
     ],
     y,
@@ -395,18 +431,7 @@ export function generatePlumberAgreementPdfBytes(
     { bold: true, fill: [254, 226, 226], bordered: true },
   );
 
-  y = drawExecutionSection(
-    doc,
-    y,
-    margin,
-    overlay,
-    'This agreement is signed on-site by the Homeowner and Plumber in the presence of the BuilBid Field Coordinator.',
-    [
-      ['PARTY A: HOMEOWNER', 'Signature / Thumb'],
-      ['PARTY B: PLUMBER', 'Signature / Thumb'],
-      ['WITNESS / BUILBID', 'Coordinator Signature'],
-    ],
-  );
+  y = drawExecutionSection(doc, y, margin, overlay);
 
   y = ensurePage(doc, y, 10, margin);
   doc.setFont('helvetica', 'normal');

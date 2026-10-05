@@ -135,7 +135,7 @@ export async function sendDigitalContractDraftEmails(input: {
 /**
  * Final dispatch after both parties completed Aadhaar OTP eSign.
  * Each party (Home Owner and Mistri / Worker) gets their own email with the signed
- * agreement PDF (and the Mistri Thumb Rule sheet when available). BuilBid keeps a copy.
+ * agreement PDF. BuilBid keeps a copy.
  * Throws if the Home Owner or Mistri copy could not be sent.
  */
 export async function sendSignedDigitalContractPdf(input: {
@@ -146,7 +146,6 @@ export async function sendSignedDigitalContractPdf(input: {
   summary: Record<string, string>;
   pdfBytes: Uint8Array;
   filename: string;
-  thumbRule?: { bytes: Uint8Array; filename: string } | null;
 }): Promise<void> {
   const { transporter, from } = getMailTransporter();
 
@@ -156,23 +155,12 @@ export async function sendSignedDigitalContractPdf(input: {
       content: Buffer.from(input.pdfBytes),
       contentType: 'application/pdf',
     },
-    ...(input.thumbRule
-      ? [
-          {
-            filename: input.thumbRule.filename,
-            content: Buffer.from(input.thumbRule.bytes),
-            contentType: 'application/pdf',
-          },
-        ]
-      : []),
   ];
 
   const text = [
     'Both parties have completed Aadhaar OTP eSign. The agreement is now Approved / Active.',
     ...Object.entries(input.summary).map(([k, v]) => `${k}: ${v}`),
-    input.thumbRule
-      ? 'Attached: signed agreement PDF and the Mistri Thumb Rule instruction sheet.'
-      : 'Attached: signed agreement PDF.',
+    'Attached: signed agreement PDF.',
   ].join('\n');
 
   function bodyFor(name: string | undefined): string {
@@ -180,9 +168,7 @@ export async function sendSignedDigitalContractPdf(input: {
       <p style="color:#e2e8f0;font-size:14px;line-height:1.6">
         ${name ? `Dear ${escapeHtml(name)},<br/>` : ''}
         Both parties have completed Aadhaar OTP eSign and the agreement is now
-        <strong style="color:#5eead4">Approved / Active</strong>. Your signed copy is attached${
-          input.thumbRule ? ', along with the Mistri Thumb Rule instruction sheet for the site' : ''
-        }.
+        <strong style="color:#5eead4">Approved / Active</strong>. Your signed copy is attached.
       </p>
       <div style="background:#1e293b;border:1px solid #334155;border-radius:12px;overflow:hidden;margin:20px 0">
         <div style="background:#0f766e;padding:10px 16px">

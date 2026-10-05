@@ -182,7 +182,18 @@ export function CreateContractAgreementModal({
           {error ? <p className="text-xs text-red-600 dark:text-red-400">{error}</p> : null}
           {message ? <p className="text-xs text-emerald-600 dark:text-emerald-400">{message}</p> : null}
 
-          <Button type="button" className="w-full" onClick={submit} disabled={pending}>
+          <Button
+            type="button"
+            className="w-full"
+            onClick={submit}
+            disabled={
+              pending ||
+              !startDate ||
+              !completionDate ||
+              clientAadhaar.replace(/\D/g, '').length !== 12 ||
+              contractorAadhaar.replace(/\D/g, '').length !== 12
+            }
+          >
             {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSignature className="h-4 w-4" />}
             {pending ? 'Sending…' : 'Send Contract Agreement for Signature'}
           </Button>

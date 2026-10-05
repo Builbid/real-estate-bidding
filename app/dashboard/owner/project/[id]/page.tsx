@@ -20,8 +20,6 @@ import { isPlumberService, buildPlumberAgreementPayload } from '@/lib/contract/p
 import { isElectricianService, buildElectricianAgreementPayload } from '@/lib/contract/electricianAgreement';
 import { isPainterService, buildPainterAgreementPayload } from '@/lib/contract/painterAgreement';
 import { AgreementForm } from '@/components/contract/AgreementForm';
-import { MistriThumbRulesCard } from '@/components/contract/MistriThumbRulesCard';
-
 interface BuilderInfo {
   id: string;
   full_name: string;
@@ -231,8 +229,6 @@ export default async function OwnerProjectPage({ params }: PageProps) {
           selectedBuilder={selectedBuilder}
           selectedFirm={selectedFirm}
         />
-
-        {isMistri && <MistriThumbRulesCard projectId={project.id} />}
 
         {mistriAgreement && (
           <AgreementForm

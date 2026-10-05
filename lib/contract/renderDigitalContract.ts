@@ -187,14 +187,11 @@ export function overlayFromRecord(
         signatureRef: record.contractor_signature_ref || 'ESIGN-CONTRACTOR',
       }
     : pendingStamp('PARTY B: CONTRACTOR', record.contractor_name, record.contractor_aadhaar_last4);
-  const witness: AadhaarEsignStamp = {
-    partyTitle: 'WITNESS / BUILBID',
-    signerName: 'BuilBid Platform',
-    aadhaarLast4: 'BBID',
-    signedAtLabel: mode === 'signed' ? istStamp(record.signed_at) : 'After dual eSign',
-    signatureRef: mode === 'signed' ? makeSignatureRef(`${record.id}|witness`) : 'PENDING',
-  };
-  return overlayFromFields(fields, [clientStamp, contractorStamp, witness], mode === 'signed' ? 'AADHAAR ESIGN COMPLETE' : 'DRAFT FOR ESIGN REVIEW');
+  return overlayFromFields(
+    fields,
+    [clientStamp, contractorStamp],
+    mode === 'signed' ? 'AADHAAR ESIGN COMPLETE' : 'DRAFT FOR ESIGN REVIEW',
+  );
 }
 
 function partyFromProfile(
@@ -416,7 +413,7 @@ export async function generateDigitalContractPdf(
     numericProjectId: numericProjectId(project.numeric_id),
     projectTitle: project.title,
     serviceType: String(project.service_type ?? 'awarded work'),
-    siteAddress: [project.district, project.state, project.pincode].filter(Boolean).join(', ') || '—',
+    siteAddress: [project.district, project.state, project.pincode].filter(Boolean).join(', ') || 'Site address as posted on BuilBid',
     owner,
     contractor,
     description: project.description,
@@ -445,8 +442,8 @@ function generateGenericDigitalContractPdf(input: {
 }): Uint8Array {
   const payload = applyOverlayDates(
     {
-      agreedStartDate: input.overlay.startDateLabel || '—',
-      agreedCompletionDate: input.overlay.completionDateLabel || '—',
+      agreedStartDate: input.overlay.startDateLabel || 'As recorded for Aadhaar OTP eSign',
+      agreedCompletionDate: input.overlay.completionDateLabel || 'As recorded for Aadhaar OTP eSign',
     },
     input.overlay,
   );
@@ -540,18 +537,7 @@ function generateGenericDigitalContractPdf(input: {
     margin,
     { bold: true, fill: [254, 226, 226], bordered: true },
   );
-  y = drawExecutionSection(
-    doc,
-    y,
-    margin,
-    input.overlay,
-    'This agreement is signed on-site by the Homeowner and Contractor in the presence of the BuilBid Field Coordinator.',
-    [
-      ['PARTY A: HOMEOWNER', 'Signature / Thumb'],
-      ['PARTY B: CONTRACTOR', 'Signature / Thumb'],
-      ['WITNESS / BUILBID', 'Coordinator Signature'],
-    ],
-  );
+  y = drawExecutionSection(doc, y, margin, input.overlay);
   y = ensurePage(doc, y, 10, margin);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7);
