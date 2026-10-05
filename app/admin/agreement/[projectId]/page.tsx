@@ -33,7 +33,7 @@ export default async function AdminAgreementPage({
           href="/admin/dashboard?tab=projects"
           className="mt-4 inline-block text-sm font-semibold text-emerald-700"
         >
-          â† Back to dashboard
+          ← Back to dashboard
         </Link>
       </main>
     );
@@ -87,6 +87,12 @@ export default async function AdminAgreementPage({
             ? [{ label: 'Measured plinth area', value: `${visit.plinthAreaSqft.toLocaleString('en-IN')} sq. ft.` }]
             : []),
           { label: 'Soil condition', value: soilLabel(visit.soilType) },
+          ...(visit.agreedStartDate
+            ? [{ label: 'Agreed start date', value: visit.agreedStartDate.split('-').reverse().join('/') }]
+            : []),
+          ...(visit.targetCompletionDate
+            ? [{ label: 'Target completion date', value: visit.targetCompletionDate.split('-').reverse().join('/') }]
+            : []),
           ...(visit.siteNotes ? [{ label: 'Field notes', value: visit.siteNotes }] : []),
         ]
       : [],

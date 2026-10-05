@@ -10,6 +10,10 @@ import { isMissingWorkflowTable, SITE_VISIT_TABLE_MISSING_MESSAGE } from '@/lib/
 import type { SharedAgreementSnapshot } from '@/lib/admin/sharedAgreement';
 import { projectTerritoryError } from '@/lib/admin/territory';
 import { parseIndianDateToIso } from '@/lib/projectStartTime';
+import { generateProjectDocumentPdfBytes } from '@/lib/documents/pdf';
+import { publishAgreementPackage } from '@/lib/documents/publishAgreementPackage';
+import { generateQualityControlPdfBytes } from '@/lib/contract/qualityControlPdf';
+import { generateDigitalContractPdf, overlayFromRecord } from '@/lib/contract/renderDigitalContract';
 
 function toIsoDate(raw: string | undefined): string | null {
   const trimmed = (raw ?? '').trim();
@@ -23,9 +27,32 @@ function toIsoDate(raw: string | undefined): string | null {
  * total cost, dates) and reflects it in BOTH the Home Owner's and the Mistri / Worker's account,
  * notifying each of them.
  */
+function dmy(iso: string): string {
+  const [year, month, day] = iso.slice(0, 10).split('-');
+  return year && month && day ? `${day}/${month}/${year}` : iso;
+}
+
+async function partyMatchesAccount(
+  admin: ReturnType<typeof createAdminClient>,
+  raw: string,
+  expectedUserId: string,
+  label: string,
+): Promise<{ error?: string }> {
+  const entered = raw.trim().toLowerCase();
+  if (!entered) return { error: `Enter ${label}'s account email or ID.` };
+  const { data } = await admin.from('profiles').select('id, email').eq('id', expectedUserId).maybeSingle();
+  if (!data) return { error: `${label}'s account was not found on this project.` };
+  const email = String(data.email ?? '').trim().toLowerCase();
+  const id = String(data.id).toLowerCase();
+  if (entered === id || (email && entered === email)) return {};
+  return {
+    error: `${label} must be this project's account${email ? ` (${data.email})` : ''}.`,
+  };
+}
+
 export async function shareAgreementCopyAction(
   projectRef: string,
-  input: { startDate?: string; completionDate?: string },
+  input: { startDate?: string; completionDate?: string; partyA?: string; partyB?: string },
 ): Promise<{ error?: string; ok?: boolean; message?: string; sharedAt?: string }> {
   const session = await requireOfficialAdmin();
   const admin = createAdminClient();
@@ -51,6 +78,67 @@ export async function shareAgreementCopyAction(
   if (draft.contract?.approved_at == null && draft.defaults.totalCost == null) {
     return { error: 'The agreement total cost is missing.' };
   }
+
+  const partyA = (input.partyA ?? draft.client.email).trim();
+  const partyB = (input.partyB ?? draft.contractor.email).trim();
+  const ownerMatch = await partyMatchesAccount(admin, partyA, draft.project.ownerId, 'Party A');
+  if (ownerMatch.error) return { error: ownerMatch.error };
+  const workerMatch = await partyMatchesAccount(admin, partyB, draft.project.builderId, 'Party B');
+  if (workerMatch.error) return { error: workerMatch.error };
+
+  let agreementBytes: Uint8Array;
+  try {
+    if (draft.contract) {
+      const generated = await generateDigitalContractPdf(
+        draft.project.id,
+        overlayFromRecord(draft.contract, draft.contract.approved_at ? 'signed' : 'draft'),
+      );
+      agreementBytes = generated.bytes;
+    } else {
+      agreementBytes = generateProjectDocumentPdfBytes({
+        title: 'Digital Agreement',
+        subtitle: 'Section 4 — Timelines, Delays & Penalty Terms',
+        numericProjectId: draft.project.publicId || draft.project.id,
+        projectName: draft.project.title,
+        notice: 'Aadhaar OTP eSign is completed on the agreement page. This copy is shared to both accounts.',
+        rows: [
+          { label: 'Party A — Homeowner', value: draft.client.name },
+          { label: 'Party B — Mistri / Worker', value: draft.contractor.name },
+          { label: 'Agreed start date', value: dmy(startDate) },
+          { label: 'Target completion date', value: dmy(completionDate) },
+          { label: 'Grace extension', value: '10 calendar days, penalty free' },
+          {
+            label: 'Agreed project cost',
+            value:
+              draft.defaults.totalCost != null
+                ? `Rs. ${draft.defaults.totalCost.toLocaleString('en-IN')}`
+                : '—',
+          },
+        ],
+      });
+    }
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Could not build the agreement PDF.' };
+  }
+
+  const qualityControlBytes = generateQualityControlPdfBytes({
+    serviceType: draft.project.serviceType,
+    projectName: draft.project.title,
+    numericProjectId: draft.project.publicId,
+    ownerName: draft.client.name,
+    workerName: draft.contractor.name,
+  });
+  const published = await publishAgreementPackage({
+    admin,
+    projectId: draft.project.id,
+    numericId: draft.project.publicId,
+    projectName: draft.project.title,
+    ownerId: draft.project.ownerId,
+    workerId: draft.project.builderId,
+    agreementBytes,
+    qualityControlBytes,
+  });
+  if (published.error) return { error: published.error };
 
   const visit = draft.visit;
   const signatureStatus: SharedAgreementSnapshot['signatureStatus'] = contract
@@ -122,10 +210,11 @@ export async function shareAgreementCopyAction(
 
   revalidatePath('/dashboard/owner');
   revalidatePath('/dashboard/builder');
+  revalidatePath('/dashboard/profile/documents');
   revalidatePath(`/admin/agreement/${draft.project.id}`);
   return {
     ok: true,
     sharedAt: now,
-    message: `Agreement copy shared with ${draft.client.name} (Home Owner) and ${draft.contractor.name} (Mistri / Worker).`,
+    message: `Agreement and quality-control PDFs are in the document section for ${draft.client.name} and ${draft.contractor.name}.`,
   };
 }

@@ -36,6 +36,10 @@ export interface SiteVisitInput {
   electricityAvailable: boolean;
   storageAvailable: boolean;
   siteNotes: string;
+  /** YYYY-MM-DD. Agreed with the homeowner and mistri on site. */
+  agreedStartDate: string;
+  /** YYYY-MM-DD. */
+  targetCompletionDate: string;
   /** Supervisor-measured quantity per trade measurement line (line id -> quantity). */
   measurements: Record<string, string>;
 }
@@ -60,6 +64,8 @@ export interface SiteVisitRecord {
   lineItems: MeasuredLineItem[];
   /** "Total Accurate Cost" computed from the measured quantities (null for legacy checklists). */
   totalAccurateCost: number | null;
+  agreedStartDate: string;
+  targetCompletionDate: string;
   updatedAt: string;
 }
 
@@ -100,6 +106,8 @@ export const EMPTY_SITE_VISIT_INPUT: SiteVisitInput = {
   electricityAvailable: false,
   storageAvailable: false,
   siteNotes: '',
+  agreedStartDate: '',
+  targetCompletionDate: '',
   measurements: {},
 };
 
@@ -120,6 +128,8 @@ export function siteVisitToInput(record: SiteVisitRecord): SiteVisitInput {
     electricityAvailable: record.electricityAvailable,
     storageAvailable: record.storageAvailable,
     siteNotes: record.siteNotes,
+    agreedStartDate: record.agreedStartDate,
+    targetCompletionDate: record.targetCompletionDate,
     measurements: { ...record.measurements },
   };
 }
@@ -144,6 +154,8 @@ export interface ParsedSiteVisit {
   electricityAvailable: boolean;
   storageAvailable: boolean;
   siteNotes: string;
+  agreedStartDate: string | null;
+  targetCompletionDate: string | null;
 }
 
 /**
@@ -207,6 +219,14 @@ export function parseSiteVisitInput(
 
   const siteNotes = input.siteNotes.trim().slice(0, 1000);
 
+  const agreedStartDate = optionalIsoDate(input.agreedStartDate, 'Agreed start date');
+  if (typeof agreedStartDate !== 'string' && agreedStartDate !== null) return agreedStartDate;
+  const targetCompletionDate = optionalIsoDate(input.targetCompletionDate, 'Target completion date');
+  if (typeof targetCompletionDate !== 'string' && targetCompletionDate !== null) return targetCompletionDate;
+  if (agreedStartDate && targetCompletionDate && targetCompletionDate < agreedStartDate) {
+    return { error: 'Target completion date must be on or after the agreed start date.' };
+  }
+
   return {
     value: {
       visitDate: input.visitDate,
@@ -220,6 +240,17 @@ export function parseSiteVisitInput(
       electricityAvailable: input.electricityAvailable,
       storageAvailable: input.storageAvailable,
       siteNotes,
+      agreedStartDate,
+      targetCompletionDate,
     },
   };
+}
+
+function optionalIsoDate(raw: string | undefined, label: string): string | null | { error: string } {
+  const trimmed = String(raw ?? '').trim();
+  if (!trimmed) return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return { error: `${label} must be a valid date (DD/MM/YYYY).` };
+  }
+  return trimmed;
 }

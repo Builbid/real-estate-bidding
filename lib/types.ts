@@ -177,7 +177,7 @@ export interface SubConfiguration {
   customFloors?: number[];
 }
 
-export type ProjectDocumentType = 'agreement' | 'estimate' | 'ai_design';
+export type ProjectDocumentType = 'agreement' | 'estimate' | 'ai_design' | 'quality_control';
 
 export interface ProjectDocument {
   id: string;

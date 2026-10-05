@@ -34,12 +34,6 @@ export interface AgreementDraft {
   };
 }
 
-function addDaysIso(base: string, days: number): string {
-  const d = new Date(`${base}T00:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
-}
-
 export function todayIstIso(): string {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
 }
@@ -105,9 +99,12 @@ export async function loadAgreementDraft(
         bidTotal ??
         (project.budget_range_max != null ? Number(project.budget_range_max) : null);
 
-  const today = todayIstIso();
-  const startDate = contract ? String(contract.start_date).slice(0, 10) : addDaysIso(today, 7);
-  const completionDate = contract ? String(contract.completion_date).slice(0, 10) : '';
+  const startDate = contract
+    ? String(contract.start_date).slice(0, 10)
+    : visit?.agreedStartDate || '';
+  const completionDate = contract
+    ? String(contract.completion_date).slice(0, 10)
+    : visit?.targetCompletionDate || '';
 
   return {
     project: {

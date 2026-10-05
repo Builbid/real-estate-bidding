@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { Plus, Building } from 'lucide-react';
 import { OwnerLiveProjectCard } from './OwnerLiveProjectCard';
 import { SharedAgreementsPanel } from '@/components/dashboard/SharedAgreementsPanel';
+import { AccountDocumentsPanel } from '@/components/dashboard/AccountDocumentsPanel';
 import { CompletedProjectsPreview } from '@/components/dashboard/CompletedProjectsPreview';
 import { DashboardWorkSection } from '@/components/dashboard/DashboardWorkSection';
 import { Button } from '@/components/ui/button';
@@ -175,6 +176,7 @@ export default async function OwnerDashboard() {
       </div>
 
       <SharedAgreementsPanel perspective="owner" />
+      <AccountDocumentsPanel />
 
       {selectionRequired.length > 0 && (
         <DashboardWorkSection

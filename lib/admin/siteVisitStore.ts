@@ -41,6 +41,8 @@ type SiteVisitRow = {
   measurements?: Record<string, unknown> | null;
   line_items?: unknown;
   total_accurate_cost?: number | string | null;
+  agreed_start_date?: string | null;
+  target_completion_date?: string | null;
   updated_at: string;
 };
 
@@ -97,6 +99,10 @@ export function siteVisitFromRow(row: SiteVisitRow): SiteVisitRecord {
     measurements: readMeasurements(row.measurements),
     lineItems: readLineItems(row.line_items),
     totalAccurateCost: total != null && Number.isFinite(total) ? total : null,
+    agreedStartDate: row.agreed_start_date ? String(row.agreed_start_date).slice(0, 10) : '',
+    targetCompletionDate: row.target_completion_date
+      ? String(row.target_completion_date).slice(0, 10)
+      : '',
     updatedAt: row.updated_at,
   };
 }
@@ -132,6 +138,12 @@ export function siteVisitSummary(visit: SiteVisitRecord | null): Record<string, 
     rows['Measured Plinth Area'] = `${visit.plinthAreaSqft.toLocaleString('en-IN')} sq. ft.`;
   }
   rows['Soil Condition'] = soilLabel(visit.soilType);
+  if (visit.agreedStartDate) {
+    rows['Agreed Start Date'] = visit.agreedStartDate.split('-').reverse().join('/');
+  }
+  if (visit.targetCompletionDate) {
+    rows['Target Completion Date'] = visit.targetCompletionDate.split('-').reverse().join('/');
+  }
   for (const item of visit.lineItems) {
     rows[`${item.group} — ${item.label}`] =
       `${item.quantity.toLocaleString('en-IN')} ${item.unit} × ${inrText(item.rate)}${

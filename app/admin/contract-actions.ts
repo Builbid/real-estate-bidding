@@ -8,6 +8,7 @@ import { loadAgreementDraft } from '@/lib/admin/agreementDraft';
 import { projectTerritoryError } from '@/lib/admin/territory';
 import { PROTOTYPE_AUTO_AGREEMENT } from '@/lib/admin/prototype';
 import { isValidAadhaarNumber, aadhaarLast4, digitsOnlyAadhaar } from '@/lib/contract/aadhaar';
+import { finalizeApprovedAgreement } from '@/lib/admin/agreementPackage';
 import {
   DIGITAL_CONTRACT_OTP_TTL_MS,
   generateDigitalContractPdf,
@@ -15,9 +16,13 @@ import {
   generateOtpCode,
   hashValue,
   isMissingDigitalContractTable,
+  makeSignatureRef,
   overlayFromFields,
   esignUrl,
+  safeEqualHash,
   type DigitalContractFields,
+  type DigitalContractParty,
+  type DigitalContractRecord,
 } from '@/lib/contract/renderDigitalContract';
 import { sendDigitalContractDraftEmails } from '@/lib/email/sendDigitalContract';
 import { parseIndianDateToIso } from '@/lib/projectStartTime';
@@ -260,5 +265,94 @@ export async function sendContractAgreementForSignatureAction(
   return {
     ok: true,
     message: `Draft agreement and Aadhaar eSign OTPs sent to ${clientEmail} and ${contractorEmail}.`,
+  };
+}
+
+/** Verifies one party's emailed Aadhaar OTP from the agreement page. Both verifications approve the contract. */
+export async function verifyEmbeddedAgreementOtpAction(
+  projectRef: string,
+  party: DigitalContractParty,
+  otp: string,
+): Promise<{ error?: string; ok?: boolean; bothSigned?: boolean; message?: string }> {
+  const session = await requireOfficialAdmin();
+  const code = otp.replace(/\D/g, '').slice(0, 6);
+  if (!/^\d{6}$/.test(code)) return { error: 'Enter the 6-digit OTP from the registered email.' };
+
+  const admin = createAdminClient();
+  const draft = await loadAgreementDraft(admin, projectRef);
+  if ('error' in draft) return { error: draft.error };
+  const territoryError = await projectTerritoryError(admin, session, draft.project.id);
+  if (territoryError && !isOfficialAdminEmail(session.email)) return { error: territoryError };
+
+  const { data, error } = await admin
+    .from('project_digital_contracts')
+    .select('*')
+    .eq('project_id', draft.project.id)
+    .maybeSingle();
+  if (error) {
+    if (isMissingDigitalContractTable(error)) return { error: 'Digital contract storage is not available yet.' };
+    return { error: error.message };
+  }
+  if (!data) return { error: 'Send the Aadhaar OTPs before verifying.' };
+
+  const record = data as DigitalContractRecord;
+  if (record.approved_at) {
+    return { ok: true, bothSigned: true, message: 'This agreement is already Approved / Active.' };
+  }
+
+  const storedHash = party === 'client' ? record.client_otp_hash : record.contractor_otp_hash;
+  const already = party === 'client' ? Boolean(record.client_verified_at) : Boolean(record.contractor_verified_at);
+  if (already) {
+    return { ok: true, bothSigned: record.status === 'signed', message: 'This party has already verified their OTP.' };
+  }
+  if (new Date(record.otp_expires_at).getTime() < Date.now()) {
+    return { error: 'This OTP has expired. Send the Aadhaar OTPs again.' };
+  }
+  if (!safeEqualHash(storedHash, hashValue(code))) {
+    return { error: 'Incorrect OTP. Use the code sent to that party\'s registered email.' };
+  }
+
+  const nowIso = new Date().toISOString();
+  const signatureRef = makeSignatureRef(`${record.id}|${party}|${nowIso}`);
+  const patch =
+    party === 'client'
+      ? { client_verified_at: nowIso, client_signature_ref: signatureRef }
+      : { contractor_verified_at: nowIso, contractor_signature_ref: signatureRef };
+  const clientDone = party === 'client' ? true : Boolean(record.client_verified_at);
+  const contractorDone = party === 'contractor' ? true : Boolean(record.contractor_verified_at);
+  const bothSigned = clientDone && contractorDone;
+
+  const { data: updated, error: updateError } = await admin
+    .from('project_digital_contracts')
+    .update({
+      ...patch,
+      status: bothSigned ? 'signed' : 'partially_signed',
+      signed_at: bothSigned ? nowIso : null,
+      updated_at: nowIso,
+    })
+    .eq('id', record.id)
+    .select('*')
+    .maybeSingle();
+  if (updateError || !updated) return { error: updateError?.message || 'Could not save this eSign.' };
+
+  revalidatePath('/admin/dashboard');
+  revalidatePath(`/admin/agreement/${draft.project.id}`);
+
+  if (!bothSigned) {
+    return { ok: true, bothSigned: false, message: 'OTP verified. Waiting for the other party.' };
+  }
+
+  const result = await finalizeApprovedAgreement(updated as DigitalContractRecord);
+  if (!result.approved) {
+    return {
+      ok: true,
+      bothSigned: true,
+      message: `Both OTPs are verified, but final approval is pending: ${result.warning ?? 'dispatch failed'}.`,
+    };
+  }
+  return {
+    ok: true,
+    bothSigned: true,
+    message: 'Both Aadhaar OTPs are verified. The agreement is Approved / Active.',
   };
 }

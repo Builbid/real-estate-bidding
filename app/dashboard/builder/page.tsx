@@ -10,6 +10,7 @@ import { isWorkerAccountRole } from '@/lib/auth/roles';
 import { isFirmProject } from '@/lib/project/display';
 import { AuctionRow } from './AuctionRow';
 import { SharedAgreementsPanel } from '@/components/dashboard/SharedAgreementsPanel';
+import { AccountDocumentsPanel } from '@/components/dashboard/AccountDocumentsPanel';
 import { PortfolioManager } from './PortfolioManager';
 import { CompletedProjectsPreview } from '@/components/dashboard/CompletedProjectsPreview';
 import { DashboardStatTiles } from '@/components/dashboard/DashboardStatTiles';
@@ -100,6 +101,7 @@ export default async function BuilderDashboard() {
       />
 
       <SharedAgreementsPanel perspective="worker" />
+      <AccountDocumentsPanel />
 
       <div>
         <div className="flex items-center gap-2 mb-4">

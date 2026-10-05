@@ -8,22 +8,26 @@ import {
   BadgeCheck,
   CheckCircle2,
   Circle,
-  FileSignature,
   FileText,
   Loader2,
   RefreshCcw,
-  Send,
   Share2,
   ShieldCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { IndianContractDateField } from '@/components/admin/IndianContractDateField';
-import { sendContractAgreementForSignatureAction } from '@/app/admin/contract-actions';
+import { AgreementTemplate } from '@/components/admin/AgreementTemplate';
+import { QualityControlForm } from '@/components/admin/QualityControlForm';
 import { retryApprovalDispatchAction } from '@/app/admin/site-visit-actions';
 import { shareAgreementCopyAction } from '@/app/admin/agreement-share-actions';
 import { groupMeasurementLines, type MeasuredLineItem } from '@/lib/admin/siteMeasurements';
-import { formatAadhaarInput } from '@/lib/contract/aadhaar';
 import { cn } from '@/lib/utils';
 
 type Row = { label: string; value: string };
@@ -74,19 +78,6 @@ function inr(value: number | null | undefined): string {
   return `₹${value.toLocaleString('en-IN')}`;
 }
 
-function RowList({ rows }: { rows: Row[] }) {
-  return (
-    <dl className="divide-y divide-slate-100 text-sm dark:divide-slate-800">
-      {rows.map((row) => (
-        <div key={row.label} className="grid gap-1 py-2 sm:grid-cols-[200px_1fr]">
-          <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">{row.label}</dt>
-          <dd className="font-medium text-slate-900 dark:text-slate-100">{row.value || 'â€”'}</dd>
-        </div>
-      ))}
-    </dl>
-  );
-}
-
 function Step({ done, active, label }: { done: boolean; active?: boolean; label: string }) {
   return (
     <li
@@ -104,19 +95,13 @@ function Step({ done, active, label }: { done: boolean; active?: boolean; label:
 export function AgreementWorkspace(props: AgreementWorkspaceProps) {
   const { project, client, contractor, siteRows, contract, commission, defaults } = props;
   const router = useRouter();
-  const [startDate, setStartDate] = useState(defaults.startDate);
-  const [completionDate, setCompletionDate] = useState(defaults.completionDate);
-  const [totalCost, setTotalCost] = useState(
-    defaults.totalCost != null ? String(defaults.totalCost) : '',
-  );
-  // Without a saved site checklist (prototype testing) the plinth area is typed here.
-  const plinthFromChecklist = defaults.plinthAreaSqft != null;
-  const [plinthArea, setPlinthArea] = useState('');
-  const [clientAadhaar, setClientAadhaar] = useState('');
-  const [contractorAadhaar, setContractorAadhaar] = useState('');
+  const [startDate] = useState(defaults.startDate);
+  const [completionDate] = useState(defaults.completionDate);
+  const [partyA, setPartyA] = useState(client.email);
+  const [partyB, setPartyB] = useState(contractor.email);
+  const [shareOpen, setShareOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const [sending, startSending] = useTransition();
   const [retrying, startRetrying] = useTransition();
   const [sharing, startSharing] = useTransition();
   const [sharedAt, setSharedAt] = useState<string | null>(props.sharedAt);
@@ -125,44 +110,23 @@ export function AgreementWorkspace(props: AgreementWorkspaceProps) {
   const signedAwaitingApproval = contract?.status === 'signed' && !approved;
   const sent = Boolean(contract);
 
-  function send() {
+  function shareCopy() {
     setError(null);
     setMessage(null);
-    startSending(async () => {
-      const result = await sendContractAgreementForSignatureAction({
-        projectId: project.id,
-        id: project.id,
-        project_id: project.id,
-        numeric_id: project.publicId || undefined,
-        plinthArea: plinthFromChecklist ? String(defaults.plinthAreaSqft) : plinthArea,
+    startSharing(async () => {
+      const result = await shareAgreementCopyAction(project.id, {
         startDate,
         completionDate,
-        totalCost,
-        clientAadhaar,
-        contractorAadhaar,
+        partyA,
+        partyB,
       });
       if (result.error) {
         setError(result.error);
         return;
       }
-      setMessage(result.message ?? 'Agreement sent for Aadhaar OTP eSign.');
-      setClientAadhaar('');
-      setContractorAadhaar('');
-      router.refresh();
-    });
-  }
-
-  function shareCopy() {
-    setError(null);
-    setMessage(null);
-    startSharing(async () => {
-      const result = await shareAgreementCopyAction(project.id, { startDate, completionDate });
-      if (result.error) {
-        setError(result.error);
-        return;
-      }
       setSharedAt(result.sharedAt ?? new Date().toISOString());
-      setMessage(result.message ?? 'Agreement copy shared with the Home Owner and the Mistri / Worker.');
+      setShareOpen(false);
+      setMessage(result.message ?? 'Agreement and quality-control PDFs shared to both accounts.');
       router.refresh();
     });
   }
@@ -203,7 +167,7 @@ export function AgreementWorkspace(props: AgreementWorkspaceProps) {
         <h1 className="text-xl font-bold text-slate-900 dark:text-white">Digital Agreement</h1>
         <p className="mt-1 text-sm text-slate-500">
           {project.title}
-          {project.publicId ? ` Â· Project ID ${project.publicId}` : ''} Â· {project.district}, {project.state}
+          {project.publicId ? ` · Project ID ${project.publicId}` : ''} · {project.district}, {project.state}
         </p>
       </header>
 
@@ -240,25 +204,17 @@ export function AgreementWorkspace(props: AgreementWorkspaceProps) {
         </section>
       ) : null}
 
-      <section className={CARD}>
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <h2 className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white">
-            <FileText className="h-4 w-4 text-emerald-600" />
-            Awarded Agreement Letter (auto-populated)
-          </h2>
-        </div>
-        <RowList
-          rows={[
-            { label: 'Project', value: project.title },
-            { label: 'Project ID', value: project.publicId || project.id.slice(0, 8).toUpperCase() },
-            { label: 'Site', value: `${project.district}, ${project.state}` },
-            { label: 'Party A â€” Home Owner', value: `${client.name}${client.email ? ` (${client.email})` : ''}` },
-            { label: 'Party B â€” Mistri / Contractor', value: `${contractor.name}${contractor.email ? ` (${contractor.email})` : ''}` },
-            ...siteRows,
-            { label: 'Agreed project cost', value: inr(defaults.totalCost) },
-          ]}
-        />
-      </section>
+      <AgreementTemplate
+        project={project}
+        client={client}
+        contractor={contractor}
+        siteRows={siteRows}
+        startDate={startDate}
+        completionDate={completionDate}
+        totalCost={defaults.totalCost}
+        plinthAreaSqft={defaults.plinthAreaSqft}
+        contract={contract}
+      />
 
       {props.lineItems.length > 0 ? (
         <section className={CARD}>
@@ -326,182 +282,71 @@ export function AgreementWorkspace(props: AgreementWorkspaceProps) {
         </section>
       ) : null}
 
+      <QualityControlForm serviceType={project.serviceType} projectTitle={project.title} />
+
       <section className={cn(CARD, 'border-emerald-200/80 dark:border-emerald-900/60')}>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">
             <h2 className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white">
               <Share2 className="h-4 w-4 text-emerald-600" />
-              Share with both accounts
+              Share Agreement & QC Documents
             </h2>
             <p className="mt-1 text-xs text-slate-500">
-              One touch: the confirmed agreement appears in {client.name}&apos;s (Home Owner) account and{' '}
-              {contractor.name}&apos;s (Mistri / Worker) account, and both are notified.
+              Sends the agreement PDF and the quality-control form into the document section of both accounts.
               {sharedAt
                 ? ` Last shared ${new Date(sharedAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}.`
                 : ''}
             </p>
           </div>
-          <Button type="button" onClick={shareCopy} disabled={sharing}>
-            {sharing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Share2 className="h-4 w-4" />}
-            {sharedAt ? 'Re-share Agreement Copy' : 'Share Agreement Copy'}
+          <Button type="button" onClick={() => setShareOpen(true)}>
+            <Share2 className="h-4 w-4" />
+            Share Agreement & QC Documents
           </Button>
         </div>
-      </section>
-
-      <section className={CARD}>
-        <h2 className="mb-1 flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-white">
-          <FileSignature className="h-4 w-4 text-emerald-600" />
-          Aadhaar OTP eSign &amp; approval
-        </h2>
-        <p className="mb-4 text-xs text-slate-500">
-          Both the Home Owner and the Mistri receive the draft PDF and a one-time Aadhaar eSign OTP at
-          their registered email. When both have signed, the final signed PDFs are emailed to both
-          automatically and the project becomes Approved / Active.
-        </p>
-
-        {sent ? (
-          <div className="mb-4 grid gap-2 sm:grid-cols-2">
-            {[
-              { name: client.name, role: 'Home Owner', signed: contract?.clientSigned },
-              { name: contractor.name, role: 'Mistri / Worker', signed: contract?.contractorSigned },
-            ].map((party) => (
-              <div
-                key={party.role}
-                className={cn(
-                  'flex items-center justify-between rounded-lg border px-3 py-2 text-sm',
-                  party.signed
-                    ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-                    : 'border-amber-200 bg-amber-50 text-amber-800',
-                )}
-              >
-                <span>
-                  <span className="block text-[10px] font-semibold uppercase tracking-wide opacity-70">
-                    {party.role}
-                  </span>
-                  {party.name}
-                </span>
-                <span className="text-xs font-bold">{party.signed ? 'Signed' : 'Awaiting OTP'}</span>
-              </div>
-            ))}
+        {signedAwaitingApproval ? (
+          <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            <p className="font-semibold">Both parties have signed, but final approval is pending.</p>
+            <Button type="button" className="mt-3" onClick={retry} disabled={retrying}>
+              {retrying ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
+              Retry final dispatch and approval
+            </Button>
           </div>
         ) : null}
-
-        {!approved ? (
-          <div className="space-y-4">
-            {!signedAwaitingApproval ? (
-              <>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <IndianContractDateField
-                    label="â€¢ Start Date (DD/MM/YYYY):"
-                    value={startDate}
-                    onChange={setStartDate}
-                  />
-                  <IndianContractDateField
-                    label="â€¢ Target Completion Date (DD/MM/YYYY):"
-                    value={completionDate}
-                    onChange={setCompletionDate}
-                    minIso={startDate || undefined}
-                  />
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {plinthFromChecklist ? (
-                    <Input
-                      label="Plinth Area (from site checklist)"
-                      accentLabel={false}
-                      value={`${defaults.plinthAreaSqft} sq. ft.`}
-                      readOnly
-                    />
-                  ) : (
-                    <Input
-                      label="Approximate Plinth Area (sq. ft.)"
-                      accentLabel={false}
-                      inputMode="decimal"
-                      placeholder="e.g. 1200"
-                      value={plinthArea}
-                      onChange={(e) => setPlinthArea(e.target.value)}
-                    />
-                  )}
-                  <Input
-                    label="Total Agreed Project Cost (â‚¹)"
-                    accentLabel={false}
-                    type="text"
-                    inputMode="decimal"
-                    prefix="â‚¹"
-                    value={totalCost}
-                    onChange={(e) => setTotalCost(e.target.value)}
-                    readOnly={props.valuesLocked}
-                    title={
-                      props.valuesLocked
-                        ? 'Taken from the accepted bid so the agreed cost cannot be altered.'
-                        : undefined
-                    }
-                  />
-                  <Input
-                    label="Home Owner Aadhaar Number"
-                    accentLabel={false}
-                    inputMode="numeric"
-                    autoComplete="off"
-                    placeholder="XXXX XXXX XXXX"
-                    value={clientAadhaar}
-                    onChange={(e) => setClientAadhaar(formatAadhaarInput(e.target.value))}
-                  />
-                  <Input
-                    label="Mistri / Worker Aadhaar Number"
-                    accentLabel={false}
-                    inputMode="numeric"
-                    autoComplete="off"
-                    placeholder="XXXX XXXX XXXX"
-                    value={contractorAadhaar}
-                    onChange={(e) => setContractorAadhaar(formatAadhaarInput(e.target.value))}
-                  />
-                </div>
-                <Button
-                  type="button"
-                  className="w-full sm:w-auto"
-                  onClick={send}
-                  disabled={
-                    sending ||
-                    !startDate ||
-                    !completionDate ||
-                    clientAadhaar.replace(/\D/g, '').length !== 12 ||
-                    contractorAadhaar.replace(/\D/g, '').length !== 12
-                  }
-                >
-                  {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                  {sending ? 'Sendingâ€¦' : sent ? 'Re-send Agreement & OTPs' : 'Send Agreement for Aadhaar OTP eSign'}
-                </Button>
-              </>
-            ) : (
-              <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-                <p className="font-semibold">Both parties have signed, but final approval is pending.</p>
-                <p className="mt-1 text-xs">
-                  The signed PDFs have not been delivered yet (for example an email provider error).
-                  Retry to send them to the Home Owner and the Mistri, mark the project Approved /
-                  Active and credit your 0.2% commission.
-                </p>
-                <Button type="button" className="mt-3" onClick={retry} disabled={retrying}>
-                  {retrying ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
-                  Retry final dispatch &amp; approval
-                </Button>
-              </div>
-            )}
-
-            {sent && !signedAwaitingApproval ? (
-              <button
-                type="button"
-                onClick={() => router.refresh()}
-                className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 hover:text-emerald-800"
-              >
-                <RefreshCcw className="h-3 w-3" />
-                Refresh signing status
-              </button>
-            ) : null}
-          </div>
-        ) : null}
-
         {error ? <p className="mt-3 text-xs text-red-600 dark:text-red-400">{error}</p> : null}
         {message ? <p className="mt-3 text-xs text-emerald-700 dark:text-emerald-400">{message}</p> : null}
       </section>
+
+      <Dialog open={shareOpen} onOpenChange={setShareOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Share Agreement & QC Documents</DialogTitle>
+            <DialogDescription>
+              Enter each party&apos;s account email or ID. Both receive the signed agreement PDF and the
+              project quality-control form in their document section.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Input
+              label="Party A account email or ID (Homeowner)"
+              accentLabel={false}
+              value={partyA}
+              onChange={(e) => setPartyA(e.target.value)}
+              autoComplete="off"
+            />
+            <Input
+              label="Party B account email or ID (Mistri / Worker)"
+              accentLabel={false}
+              value={partyB}
+              onChange={(e) => setPartyB(e.target.value)}
+              autoComplete="off"
+            />
+            <Button type="button" className="w-full" onClick={shareCopy} disabled={sharing || !partyA.trim() || !partyB.trim()}>
+              {sharing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Share2 className="h-4 w-4" />}
+              {sharing ? 'Sharing…' : 'Share to both accounts'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }

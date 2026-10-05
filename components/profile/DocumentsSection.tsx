@@ -43,7 +43,7 @@ export function DocumentsSection({ documents }: DocumentsSectionProps) {
         Documents
       </h2>
       <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
-        Agreement copies, cost estimates, and AI design files share one numeric Project ID and stay backed up on the BuilBid server. Remove hides a file from your view only.
+        Agreement copies, quality-control forms, cost estimates, and AI design files share one Project ID and stay backed up on the BuilBid server. Remove hides a file from your view only.
       </p>
 
       <div className="space-y-4">

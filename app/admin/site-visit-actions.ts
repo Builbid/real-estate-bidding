@@ -225,6 +225,8 @@ export async function saveSiteVisitChecklistAction(
       electricity_available: false,
       storage_available: false,
       site_notes: v.siteNotes || null,
+      agreed_start_date: v.agreedStartDate,
+      target_completion_date: v.targetCompletionDate,
       trade_key: template.tradeKey,
       measurements,
       line_items: cost.items,

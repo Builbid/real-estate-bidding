@@ -8,6 +8,7 @@ import { toast, Toaster } from 'sonner';
 import { BuilBidLogo } from '@/components/shared/BuilBidLogo';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { IndianContractDateField } from '@/components/admin/IndianContractDateField';
 import {
   goToAgreementAction,
   loadSiteVisitAction,
@@ -55,6 +56,8 @@ interface ChecklistDraft {
   plotLengthFt: string;
   plotWidthFt: string;
   plinthAreaSqft: string;
+  agreedStartDate: string;
+  targetCompletionDate: string;
 }
 
 function draftKey(projectId: string): string {
@@ -76,6 +79,8 @@ function readDraft(projectId: string): ChecklistDraft | null {
       plotLengthFt: typeof parsed.plotLengthFt === 'string' ? parsed.plotLengthFt : '',
       plotWidthFt: typeof parsed.plotWidthFt === 'string' ? parsed.plotWidthFt : '',
       plinthAreaSqft: typeof parsed.plinthAreaSqft === 'string' ? parsed.plinthAreaSqft : '',
+      agreedStartDate: typeof parsed.agreedStartDate === 'string' ? parsed.agreedStartDate : '',
+      targetCompletionDate: typeof parsed.targetCompletionDate === 'string' ? parsed.targetCompletionDate : '',
     };
   } catch {
     return null;
@@ -192,6 +197,8 @@ export function SiteVisitChecklistPage({ projectId }: { projectId: string }) {
         plotLengthFt: next.plotLengthFt,
         plotWidthFt: next.plotWidthFt,
         plinthAreaSqft: next.plinthAreaSqft,
+        agreedStartDate: next.agreedStartDate,
+        targetCompletionDate: next.targetCompletionDate,
       };
       window.localStorage.setItem(draftKey(projectId), JSON.stringify(draft));
     } catch {
@@ -227,6 +234,8 @@ export function SiteVisitChecklistPage({ projectId }: { projectId: string }) {
           plotLengthFt: draft?.plotLengthFt ?? saved?.plotLengthFt ?? '',
           plotWidthFt: draft?.plotWidthFt ?? saved?.plotWidthFt ?? '',
           plinthAreaSqft: draft?.plinthAreaSqft ?? saved?.plinthAreaSqft ?? '',
+          agreedStartDate: draft?.agreedStartDate || saved?.agreedStartDate || '',
+          targetCompletionDate: draft?.targetCompletionDate || saved?.targetCompletionDate || '',
           measurements: {
             ...(saved?.measurements ?? {}),
             ...(draft?.measurements ?? {}),
@@ -328,6 +337,14 @@ export function SiteVisitChecklistPage({ projectId }: { projectId: string }) {
   function saveChecklist() {
     setError(null);
     setSavedNotice(false);
+    if (!form.agreedStartDate || !form.targetCompletionDate) {
+      setError('Enter the agreed start date and the target completion date agreed with the homeowner and the mistri.');
+      return;
+    }
+    if (form.targetCompletionDate < form.agreedStartDate) {
+      setError('Target completion date must be on or after the agreed start date.');
+      return;
+    }
     startSaving(async () => {
       const saved = await saveSiteVisitChecklistAction(projectId, payload());
       if (saved.error) {
@@ -469,6 +486,25 @@ export function SiteVisitChecklistPage({ projectId }: { projectId: string }) {
                     ))}
                   </select>
                 </div>
+              </div>
+            </SectionCard>
+
+            <SectionCard
+              title="Agreed timelines"
+              hint="Confirm these dates with the homeowner and the mistri. They fill Section 4 of the agreement."
+            >
+              <div className="grid gap-3 sm:grid-cols-2">
+                <IndianContractDateField
+                  label="Agreed Start Date"
+                  value={form.agreedStartDate}
+                  onChange={(value) => patch({ agreedStartDate: value })}
+                />
+                <IndianContractDateField
+                  label="Target Completion Date"
+                  value={form.targetCompletionDate}
+                  onChange={(value) => patch({ targetCompletionDate: value })}
+                  minIso={form.agreedStartDate || undefined}
+                />
               </div>
             </SectionCard>
 
