@@ -593,7 +593,9 @@ function measuredScheduleFromVisit(visit: SiteVisitRecord | null): MeasuredSched
     group: item.group,
     item: item.label,
     measured: `${item.quantity.toLocaleString('en-IN')} ${item.unit}`,
-    rate: `${formatInrAmount(item.rate)}${item.rateMultiplier ? ` x ${item.rateMultiplier}` : ''}`,
+    rate: formatInrAmount(
+      Math.round(item.rate * (item.rateMultiplier && item.rateMultiplier > 0 ? item.rateMultiplier : 1)),
+    ),
     amount: formatInrAmount(item.amount),
   }));
 }

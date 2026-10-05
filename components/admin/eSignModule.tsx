@@ -94,7 +94,7 @@ export function ESignModule({
 
   if (approved) {
     return (
-      <p className="inline-flex items-center gap-1.5 border border-emerald-700 bg-emerald-950 px-3 py-2 text-sm font-semibold text-emerald-200">
+      <p className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-800/60 bg-emerald-950/50 px-3 py-2 text-sm font-semibold text-emerald-200">
         <BadgeCheck className="h-4 w-4" />
         Approved / Active. Both Aadhaar OTPs are verified.
       </p>
@@ -108,11 +108,11 @@ export function ESignModule({
           const aadhaarReady = row.aadhaar.replace(/\D/g, '').length === 12;
           const otpReady = row.otp.length === 6;
           return (
-            <div key={row.party} className="border border-slate-600 bg-slate-900 p-3">
+            <div key={row.party} className="rounded-lg border border-slate-700/50 bg-slate-900/70 p-3">
               <p className="text-[11px] font-bold uppercase tracking-wide text-teal-300">{row.title}</p>
               <p className="mt-0.5 text-sm font-bold text-slate-100">{row.name}</p>
               {row.signed ? (
-                <p className="mt-3 border border-emerald-600 px-2 py-2 text-center text-[11px] font-bold uppercase tracking-wide text-emerald-300">
+                <p className="mt-3 rounded-md border border-emerald-800/60 px-2 py-2 text-center text-[11px] font-bold uppercase tracking-wide text-emerald-300">
                   Verified
                 </p>
               ) : (
@@ -127,7 +127,7 @@ export function ESignModule({
                       placeholder="1234 5678 9012"
                       value={row.aadhaar}
                       onChange={(e) => row.setAadhaar(formatAadhaarInput(e.target.value))}
-                      className="mt-1 h-9 w-full border border-slate-600 bg-slate-950 px-2 font-mono text-sm tracking-wide text-slate-100 outline-none focus:border-teal-400"
+                      className="mt-1 h-9 w-full rounded-md border border-slate-700/50 bg-slate-950 px-2 font-mono text-sm tracking-wide text-slate-100 outline-none focus:border-teal-700"
                     />
                   </label>
                   <div className="grid grid-cols-[1fr_auto] items-end gap-2">
@@ -139,14 +139,14 @@ export function ESignModule({
                         placeholder="123456"
                         value={row.otp}
                         onChange={(e) => row.setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                        className="mt-1 h-9 w-full border border-slate-600 bg-slate-950 px-2 font-mono text-sm text-slate-100 outline-none focus:border-teal-400"
+                        className="mt-1 h-9 w-full rounded-md border border-slate-700/50 bg-slate-950 px-2 font-mono text-sm text-slate-100 outline-none focus:border-teal-700"
                       />
                     </label>
                     <button
                       type="button"
                       disabled={verifying !== null || !aadhaarReady || !otpReady}
                       onClick={() => verify(row.party)}
-                      className="h-9 bg-teal-700 px-3 text-[11px] font-bold uppercase tracking-wide text-white disabled:opacity-40"
+                      className="h-9 rounded-md bg-teal-800 px-3 text-[11px] font-bold uppercase tracking-wide text-white disabled:opacity-40"
                     >
                       {verifying === row.party ? <Loader2 className="mx-auto h-4 w-4 animate-spin" /> : 'Verify OTP'}
                     </button>

@@ -32,10 +32,11 @@ export interface AgreementWorkspaceProps {
     district: string;
     state: string;
     pincode: string;
+    siteAddress: string;
     serviceType: string | null;
     isMistriCivil: boolean;
   };
-  client: { name: string; email: string; mobile: string; address: string };
+  client: { name: string; email: string; mobile: string; address: string; accountId: string };
   contractor: { name: string; email: string; mobile: string; gstNumber: string; platformId: string };
   checklistRows: Row[];
   fittingLabel: string | null;
@@ -65,7 +66,7 @@ export interface AgreementWorkspaceProps {
 }
 
 const CARD =
-  'rounded-xl border border-slate-700 bg-slate-900 p-5 text-slate-100 shadow-sm';
+  'rounded-xl border border-slate-700/50 bg-slate-900/80 p-5 text-slate-100';
 
 function inr(value: number | null | undefined): string {
   if (value == null) return '—';
@@ -91,8 +92,8 @@ export function AgreementWorkspace(props: AgreementWorkspaceProps) {
   const router = useRouter();
   const [startDate] = useState(defaults.startDate);
   const [completionDate] = useState(defaults.completionDate);
-  const [partyA, setPartyA] = useState(client.email);
-  const [partyB, setPartyB] = useState(contractor.email);
+  const [partyA, setPartyA] = useState(client.accountId);
+  const [partyB, setPartyB] = useState(contractor.platformId);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [retrying, startRetrying] = useTransition();
@@ -116,7 +117,7 @@ export function AgreementWorkspace(props: AgreementWorkspaceProps) {
         return;
       }
       setSharedAt(result.sharedAt ?? new Date().toISOString());
-      setMessage(result.message ?? 'Agreement and quality-control PDFs are in both accounts.');
+      setMessage(result.message ?? 'Documents successfully sent to both account document sections!');
       router.refresh();
     });
   }
@@ -147,7 +148,7 @@ export function AgreementWorkspace(props: AgreementWorkspaceProps) {
           Back to dashboard
         </Link>
         {approved ? (
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-700 bg-emerald-950 px-3 py-1 text-xs font-bold text-emerald-200">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-800/50 bg-emerald-950/40 px-3 py-1 text-xs font-bold text-emerald-200">
             <BadgeCheck className="h-4 w-4" />
             Approved / Active
           </span>
@@ -170,7 +171,7 @@ export function AgreementWorkspace(props: AgreementWorkspaceProps) {
       </section>
 
       {approved ? (
-        <section className="rounded-xl border border-emerald-800 bg-emerald-950 p-5 text-sm text-emerald-100">
+        <section className="rounded-xl border border-emerald-800/50 bg-emerald-950/40 p-5 text-sm text-emerald-100">
           <p className="flex items-center gap-2 font-semibold">
             <ShieldCheck className="h-4 w-4" />
             Approved / Active. Both parties are verified.
@@ -200,7 +201,9 @@ export function AgreementWorkspace(props: AgreementWorkspaceProps) {
         contract={contract}
       />
 
-      <QualityControlForm serviceType={project.serviceType} projectTitle={project.title} />
+      {project.isMistriCivil ? (
+        <QualityControlForm serviceType={project.serviceType} projectTitle={project.title} />
+      ) : null}
 
       <section className={CARD}>
         <h2 className="flex items-center gap-2 text-sm font-bold text-white">
@@ -216,18 +219,20 @@ export function AgreementWorkspace(props: AgreementWorkspaceProps) {
         </p>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <Input
-            label="Party A (Homeowner account ID / email)"
+            label="Party A (Homeowner account ID)"
             accentLabel={false}
             value={partyA}
             onChange={(e) => setPartyA(e.target.value)}
             autoComplete="off"
+            className="rounded-lg border-slate-700/50 bg-slate-950"
           />
           <Input
-            label="Party B (Mistri / Worker account ID / email)"
+            label="Party B (Mistri / Worker account ID)"
             accentLabel={false}
             value={partyB}
             onChange={(e) => setPartyB(e.target.value)}
             autoComplete="off"
+            className="rounded-lg border-slate-700/50 bg-slate-950"
           />
         </div>
         <Button
@@ -240,7 +245,7 @@ export function AgreementWorkspace(props: AgreementWorkspaceProps) {
           {sharing ? 'Sending…' : 'Send / Share'}
         </Button>
         {contract?.status === 'signed' && !approved ? (
-          <div className="mt-4 rounded-lg border border-amber-700 bg-amber-950 p-4 text-sm text-amber-100">
+          <div className="mt-4 rounded-lg border border-amber-900/50 bg-amber-950/40 p-4 text-sm text-amber-100">
             <p className="font-semibold">Both parties have signed, but final approval is pending.</p>
             <Button type="button" className="mt-3" onClick={retry} disabled={retrying}>
               {retrying ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
@@ -250,7 +255,7 @@ export function AgreementWorkspace(props: AgreementWorkspaceProps) {
         ) : null}
         {error ? <p className="mt-3 text-xs text-red-300">{error}</p> : null}
         {message ? (
-          <p className="mt-3 rounded-lg border border-emerald-700 bg-emerald-950 px-3 py-2 text-sm font-semibold text-emerald-200">
+          <p className="mt-3 rounded-lg border border-emerald-800/50 bg-emerald-950/40 px-3 py-2 text-sm font-semibold text-emerald-200">
             {message}
           </p>
         ) : null}

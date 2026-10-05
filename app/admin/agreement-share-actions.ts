@@ -15,6 +15,7 @@ import { publishAgreementPackage } from '@/lib/documents/publishAgreementPackage
 import { generateQualityControlPdfBytes } from '@/lib/contract/qualityControlPdf';
 import { graceDaysForService, graceExtensionLabel } from '@/lib/contract/agreementTerms';
 import { generateDigitalContractPdf, overlayFromRecord } from '@/lib/contract/renderDigitalContract';
+import { formatBuilbidPublicId } from '@/lib/contract/agreementPdf';
 
 function toIsoDate(raw: string | undefined): string | null {
   const trimmed = (raw ?? '').trim();
@@ -40,14 +41,17 @@ async function partyMatchesAccount(
   label: string,
 ): Promise<{ error?: string }> {
   const entered = raw.trim().toLowerCase();
-  if (!entered) return { error: `Enter ${label}'s account email or ID.` };
+  if (!entered) return { error: `Enter ${label}'s account ID.` };
   const { data } = await admin.from('profiles').select('id, email').eq('id', expectedUserId).maybeSingle();
   if (!data) return { error: `${label}'s account was not found on this project.` };
   const email = String(data.email ?? '').trim().toLowerCase();
   const id = String(data.id).toLowerCase();
-  if (entered === id || (email && entered === email)) return {};
+  const publicId = formatBuilbidPublicId(data.id).toLowerCase();
+  if (entered === id || entered === publicId || entered === publicId.replace(/^bb-/, '') || (email && entered === email)) {
+    return {};
+  }
   return {
-    error: `${label} must be this project's account${email ? ` (${data.email})` : ''}.`,
+    error: `${label} must be this project's account ID (${formatBuilbidPublicId(data.id)}).`,
   };
 }
 
@@ -137,7 +141,7 @@ export async function shareAgreementCopyAction(
     ownerId: draft.project.ownerId,
     workerId: draft.project.builderId,
     agreementBytes,
-    qualityControlBytes,
+    qualityControlBytes: draft.project.isMistriCivil ? qualityControlBytes : null,
   });
   if (published.error) return { error: published.error };
 
@@ -216,6 +220,6 @@ export async function shareAgreementCopyAction(
   return {
     ok: true,
     sharedAt: now,
-    message: `The Digital Construction Agreement and the quality-control form were delivered to both accounts (${draft.client.name} and ${draft.contractor.name}).`,
+    message: 'Documents successfully sent to both account document sections!',
   };
 }

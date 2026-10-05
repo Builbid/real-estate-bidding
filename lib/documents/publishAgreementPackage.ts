@@ -23,6 +23,8 @@ async function storePdf(options: {
     ? documentStoragePath(publicId, options.type, 'pdf')
     : `${options.projectId}/${options.type}.pdf`;
 
+  let storedPath: string | null = storagePath;
+  let fileUrl: string | null = null;
   const { error: uploadError } = await options.admin.storage
     .from(PROJECT_DOCUMENTS_BUCKET)
     .upload(storagePath, options.bytes, {
@@ -30,7 +32,14 @@ async function storePdf(options: {
       contentType: 'application/pdf',
       cacheControl: '3600',
     });
-  if (uploadError) return { error: uploadError.message || 'Could not store the PDF.' };
+  if (uploadError) {
+    if (!/bucket not found/i.test(uploadError.message ?? '')) {
+      return { error: uploadError.message || 'Could not store the PDF.' };
+    }
+    // The storage bucket is not provisioned. Keep the PDF on the document row itself.
+    storedPath = null;
+    fileUrl = `data:application/pdf;base64,${Buffer.from(options.bytes).toString('base64')}`;
+  }
 
   const now = new Date().toISOString();
   const { error } = await options.admin.from('project_documents').upsert(
@@ -40,7 +49,8 @@ async function storePdf(options: {
       project_name: options.projectName,
       document_type: options.type,
       file_name: fileName,
-      storage_path: storagePath,
+      storage_path: storedPath,
+      file_url: fileUrl,
       mime_type: 'application/pdf',
       owner_id: options.ownerId,
       worker_id: options.workerId,
@@ -72,9 +82,11 @@ export async function publishAgreementPackage(options: {
   ownerId: string;
   workerId: string;
   agreementBytes: Uint8Array;
-  qualityControlBytes: Uint8Array;
+  /** Stored only for civil / mistri work. Other trades still generate the PDF before this call. */
+  qualityControlBytes: Uint8Array | null;
 }): Promise<{ error?: string }> {
   const agreement = await storePdf({ ...options, type: 'agreement', bytes: options.agreementBytes });
   if (agreement.error) return agreement;
+  if (!options.qualityControlBytes) return {};
   return storePdf({ ...options, type: 'quality_control', bytes: options.qualityControlBytes });
 }

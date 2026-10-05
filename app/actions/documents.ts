@@ -22,7 +22,7 @@ export async function listMyProjectDocumentsAction(): Promise<{
   const { data, error } = await supabase
     .from('project_documents')
     .select(
-      'id, project_id, numeric_project_id, project_name, document_type, file_name, storage_path, file_url, mime_type, owner_id, worker_id, owner_deleted, worker_deleted, created_at, updated_at',
+      'id, project_id, numeric_project_id, project_name, document_type, file_name, storage_path, mime_type, owner_id, worker_id, owner_deleted, worker_deleted, created_at, updated_at',
     )
     .order('created_at', { ascending: false });
 
@@ -60,7 +60,7 @@ export async function hideProjectDocumentAction(
 export async function getProjectDocumentDownloadUrl(
   documentId: string,
   disposition: 'inline' | 'attachment' = 'attachment',
-): Promise<{ url: string | null; fileName?: string; error: string | null }> {
+): Promise<{ url: string | null; inlineBase64?: string | null; fileName?: string; error: string | null }> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -77,8 +77,17 @@ export async function getProjectDocumentDownloadUrl(
     return { url: null, error: 'Document not found.' };
   }
 
-  if (doc.file_url && !doc.storage_path) {
-    return { url: doc.file_url as string, fileName: doc.file_name, error: null };
+  const fileUrl = typeof doc.file_url === 'string' ? doc.file_url : '';
+  if (fileUrl.startsWith('data:application/pdf;base64,')) {
+    return {
+      url: null,
+      inlineBase64: fileUrl.slice('data:application/pdf;base64,'.length),
+      fileName: doc.file_name as string,
+      error: null,
+    };
+  }
+  if (fileUrl && !doc.storage_path) {
+    return { url: fileUrl, fileName: doc.file_name as string, error: null };
   }
 
   if (!doc.storage_path) {

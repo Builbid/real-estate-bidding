@@ -4,6 +4,14 @@ import {
   parseTradeDetails,
 } from '@/lib/tradeWorkDetails';
 
+/** Locality written on the project, kept separate from district and pincode. */
+export function agreementSiteAddress(tradeDetails: unknown): string {
+  const details = parseTradeDetails(tradeDetails);
+  const address = details?.projectAddress?.trim() || '';
+  if (address) return address;
+  return details?.villageTownName?.trim() || '';
+}
+
 /** Electrical and plumbing agreements show one fitting line taken from the project specification. */
 export function agreementFittingLabel(
   serviceType: string | null | undefined,

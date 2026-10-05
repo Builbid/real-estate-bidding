@@ -23,7 +23,7 @@ export function graceExtensionLabel(days: number): string {
 }
 
 export const PAYMENT_GATEWAY_CLAUSE =
-  'Mandatory BuilBid Payment Gateway: all funds flow through BuilBid (Homeowner → BuilBid Payment Gateway → Worker). Direct cash payments to the worker are prohibited and void platform guarantees.';
+  'All payments go through the BuilBid Payment System (BuilBid Payment Gateway). Direct cash payments to the worker are prohibited and void platform guarantees.';
 
 export const DELAY_PENALTY_CLAUSE =
   'If the work runs past the grace period, a 5% penalty per week or milestone is applied through the BuilBid Payment Gateway, as specified in these terms.';

@@ -1,7 +1,7 @@
 'use client';
 
 import { ESignModule } from '@/components/admin/eSignModule';
-import { groupMeasurementLines, type MeasuredLineItem } from '@/lib/admin/siteMeasurements';
+import { effectiveUnitRate, groupMeasurementLines, type MeasuredLineItem } from '@/lib/admin/siteMeasurements';
 import {
   DELAY_PENALTY_CLAUSE,
   PAYMENT_GATEWAY_CLAUSE,
@@ -12,7 +12,7 @@ import {
 function floorSubtotalLabel(group: string, lines: MeasuredLineItem[]): string {
   const multiplier = Math.max(...lines.map((line) => (line.rateMultiplier && line.rateMultiplier > 0 ? line.rateMultiplier : 1)));
   const percent = Math.round((multiplier - 1) * 100);
-  return percent > 0 ? `${group} Subtotal (+${percent}% rate)` : `${group} Subtotal`;
+  return percent > 0 ? `${group} Subtotal (+${percent}% Floor Surcharge applied)` : `${group} Subtotal`;
 }
 
 type DocCopy = {
@@ -192,8 +192,8 @@ function Clause({ children, alert }: { children: string; alert?: boolean }) {
     <p
       className={
         alert
-          ? 'border border-red-900 bg-red-950/60 px-3 py-2 text-[12.5px] font-semibold leading-relaxed text-red-100'
-          : 'border border-slate-700 px-3 py-2 text-[12.5px] leading-relaxed text-slate-200'
+          ? 'rounded-lg border border-red-900/40 bg-red-950/40 px-3 py-2 text-[12.5px] font-semibold leading-relaxed text-red-100'
+          : 'rounded-lg border border-slate-700/50 px-3 py-2 text-[12.5px] leading-relaxed text-slate-200'
       }
     >
       {children}
@@ -204,13 +204,13 @@ function Clause({ children, alert }: { children: string; alert?: boolean }) {
 function FactTable({ rows }: { rows: Array<{ label: string; value: string }> }) {
   if (rows.length === 0) return null;
   return (
-    <dl className="border border-slate-700">
+    <dl className="overflow-hidden rounded-lg border border-slate-700/50">
       {rows.map((row) => (
         <div
           key={row.label}
-          className="grid grid-cols-1 border-b border-slate-700 last:border-b-0 sm:grid-cols-[230px_1fr]"
+          className="grid grid-cols-1 border-b border-slate-700/50 last:border-b-0 sm:grid-cols-[230px_1fr]"
         >
-          <dt className="bg-slate-900 px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-slate-400 sm:border-r sm:border-slate-700">
+          <dt className="bg-slate-900/80 px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-slate-400 sm:border-r sm:border-slate-700/50">
             {row.label}
           </dt>
           <dd className="bg-slate-950 px-3 py-2 text-sm font-medium text-slate-100">{row.value}</dd>
@@ -242,10 +242,11 @@ export function AgreementTemplate({
     district: string;
     state: string;
     pincode: string;
+    siteAddress: string;
     serviceType: string | null;
     isMistriCivil: boolean;
   };
-  client: { name: string; email: string; mobile: string; address: string };
+  client: { name: string; email: string; mobile: string; address: string; accountId: string };
   contractor: { name: string; email: string; mobile: string; gstNumber: string; platformId: string };
   checklistRows: Array<{ label: string; value: string }>;
   lineItems: MeasuredLineItem[];
@@ -265,8 +266,6 @@ export function AgreementTemplate({
 }) {
   const doc = tradeCopy(project.serviceType, project.isMistriCivil);
   const datesReady = Boolean(startDate && completionDate);
-  const siteAddress =
-    client.address || [project.district, project.state, project.pincode].filter(Boolean).join(', ');
   const districtPincode = [project.district, project.pincode].filter(Boolean).join(' / ') || '—';
   const groups = groupMeasurementLines(lineItems);
   const grandTotal = lineItems.reduce((sum, item) => sum + item.amount, 0);
@@ -287,7 +286,7 @@ export function AgreementTemplate({
   }
 
   return (
-    <article className="mx-auto max-w-[210mm] border border-slate-700 bg-slate-950 text-slate-100 shadow-[0_18px_50px_rgba(0,0,0,0.35)]">
+    <article className="mx-auto max-w-[210mm] overflow-hidden rounded-xl border border-slate-700/50 bg-slate-950 text-slate-100">
       <header className="bg-slate-900 px-5 py-5 text-white sm:px-7">
         <h2 className="text-base font-bold uppercase leading-snug tracking-wide sm:text-lg">
           BUILBID DIGITAL CONSTRUCTION AGREEMENT
@@ -306,8 +305,8 @@ export function AgreementTemplate({
               { label: 'Project ID', value: shown(project.publicId) },
               { label: 'Party A — Homeowner', value: client.name },
               { label: 'Phone / WhatsApp', value: shown(client.mobile) },
-              { label: 'Registered email', value: shown(client.email) },
-              { label: 'Site address', value: shown(siteAddress) },
+              { label: 'Homeowner ID', value: shown(client.accountId) },
+              { label: 'Site address', value: shown(project.siteAddress) },
               { label: 'District / Pincode', value: districtPincode },
             ]}
           />
@@ -315,8 +314,7 @@ export function AgreementTemplate({
             rows={[
               { label: `Party B — ${doc.partyB}`, value: contractor.name },
               { label: 'Phone / WhatsApp', value: shown(contractor.mobile) },
-              { label: 'Registered email', value: shown(contractor.email) },
-              { label: 'BuilBid ID', value: shown(contractor.platformId) },
+              { label: 'Worker ID', value: shown(contractor.platformId) },
             ]}
           />
         </section>
@@ -329,7 +327,7 @@ export function AgreementTemplate({
           {specRows.length > 0 ? (
             <FactTable rows={specRows} />
           ) : (
-            <p className="border border-amber-700 bg-amber-950 px-3 py-2 text-xs font-medium text-amber-200">
+            <p className="rounded-lg border border-amber-900/50 bg-amber-950/40 px-3 py-2 text-xs font-medium text-amber-200">
               Save the site visit checklist first. Its measurements and notes are written into this agreement.
             </p>
           )}
@@ -346,7 +344,7 @@ export function AgreementTemplate({
           {groups.length > 0 ? (
             <div className="space-y-2">
               {groups.map((group) => (
-                <div key={group.group} className="border border-slate-700">
+                <div key={group.group} className="overflow-hidden rounded-lg border border-slate-700/50">
                   <p className="bg-slate-900 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide text-slate-300">
                     {group.group}
                   </p>
@@ -368,8 +366,7 @@ export function AgreementTemplate({
                               {item.quantity.toLocaleString('en-IN')} {item.unit}
                             </td>
                             <td className="px-3 py-1.5 text-right tabular-nums text-slate-200">
-                              {inr(item.rate)}
-                              {item.rateMultiplier ? ` × ${item.rateMultiplier}` : ''}
+                              {inr(effectiveUnitRate(item))}
                             </td>
                             <td className="px-3 py-1.5 text-right font-semibold tabular-nums text-slate-50">
                               {inr(item.amount)}
@@ -431,7 +428,7 @@ export function AgreementTemplate({
           <Clause>{doc.materialDelay}</Clause>
           <Clause alert>{DELAY_PENALTY_CLAUSE}</Clause>
           {!datesReady ? (
-            <p className="border border-amber-700 bg-amber-950 px-3 py-2 text-xs font-medium text-amber-200">
+            <p className="rounded-lg border border-amber-900/50 bg-amber-950/40 px-3 py-2 text-xs font-medium text-amber-200">
               Enter the agreed start date and target completion date on the site visit checklist. They fill this
               section automatically.
             </p>

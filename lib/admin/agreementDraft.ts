@@ -4,7 +4,7 @@ import type { SiteVisitRecord } from '@/lib/admin/siteVisit';
 import { findProjectByAnyId } from '@/lib/contract/resolveProjectId';
 import type { DigitalContractRecord } from '@/lib/contract/renderDigitalContract';
 import { formatBuilbidPublicId } from '@/lib/contract/agreementPdf';
-import { agreementFittingLabel } from '@/lib/admin/fittingLabel';
+import { agreementFittingLabel, agreementSiteAddress } from '@/lib/admin/fittingLabel';
 import { isMistriCivilService } from '@/lib/contract/mistriAgreement';
 
 export interface AgreementDraft {
@@ -19,8 +19,9 @@ export interface AgreementDraft {
     ownerId: string;
     builderId: string;
     pincode: string;
+    siteAddress: string;
   };
-  client: { name: string; email: string; mobile: string; address: string };
+  client: { name: string; email: string; mobile: string; address: string; accountId: string };
   contractor: {
     name: string;
     email: string;
@@ -112,6 +113,13 @@ export async function loadAgreementDraft(
         bidTotal ??
         (project.budget_range_max != null ? Number(project.budget_range_max) : null);
 
+  const specAddress = agreementSiteAddress(project.trade_details);
+  const ownerAddress = owner?.physical_address?.trim() || '';
+  const districtName = project.district?.trim() || '';
+  const siteAddress =
+    specAddress ||
+    (ownerAddress && ownerAddress.toLowerCase() !== districtName.toLowerCase() ? ownerAddress : '');
+
   const startDate = contract
     ? String(contract.start_date).slice(0, 10)
     : visit?.agreedStartDate || '';
@@ -127,6 +135,7 @@ export async function loadAgreementDraft(
       district: project.district,
       state: project.state,
       pincode: (project.pincode ?? '').trim(),
+      siteAddress,
       serviceType: project.service_type,
       isMistriCivil: isMistriCivilService(project.service_type),
       ownerId: project.owner_id,
@@ -136,7 +145,8 @@ export async function loadAgreementDraft(
       name: owner?.full_name?.trim() || 'Homeowner',
       email: owner?.email?.trim() || '',
       mobile: owner?.mobile?.trim() || '',
-      address: owner?.physical_address?.trim() || '',
+      address: ownerAddress,
+      accountId: formatBuilbidPublicId(project.owner_id),
     },
     contractor: {
       name: builder?.company_name?.trim() || builder?.full_name?.trim() || 'Contractor',
