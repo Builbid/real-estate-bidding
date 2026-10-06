@@ -137,7 +137,9 @@ export function siteVisitSummary(visit: SiteVisitRecord | null): Record<string, 
   if (visit.plinthAreaSqft > 0) {
     rows['Measured Plinth Area'] = `${visit.plinthAreaSqft.toLocaleString('en-IN')} sq. ft.`;
   }
-  rows['Soil Condition'] = soilLabel(visit.soilType);
+  if (!visit.tradeKey || visit.tradeKey === 'civil') {
+    rows['Soil Condition'] = soilLabel(visit.soilType);
+  }
   if (visit.agreedStartDate) {
     rows['Agreed Start Date'] = visit.agreedStartDate.split('-').reverse().join('/');
   }

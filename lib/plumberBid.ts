@@ -433,7 +433,6 @@ export function buildPlumbingFixtureMeasurementLines(
     return priced.flatMap((option) => {
       const rate = unitRates[option.id] ?? 0;
       const ownerQuantity = option.quantity ?? 0;
-      if (!(ownerQuantity > 0)) return [];
       return [{
         id: `opt:${option.id}`,
         group: plumbingFloorLabel('ground', context?.customTargetFloors, context?.houseStructure),

@@ -295,19 +295,14 @@ function electricianLines(project: ProjectLike, rates: Partial<BidRates>): Measu
           },
         ];
       }
-      return fixtureFields.flatMap((field) => {
-        if (!(floor.counts[field.key] > 0)) return [];
-        return [
-          {
-            id: `efix:${field.key}:${floor.floor}`,
-            group: floor.label,
-            label: electricianFixtureLabel(field.label),
-            unit: 'nos',
-            rate: rate * field.points,
-            ownerQuantity: floor.counts[field.key],
-          },
-        ];
-      });
+      return fixtureFields.map((field) => ({
+        id: `efix:${field.key}:${floor.floor}`,
+        group: floor.label,
+        label: electricianFixtureLabel(field.label),
+        unit: 'nos',
+        rate: rate * field.points,
+        ownerQuantity: floor.counts[field.key] ?? 0,
+      }));
     });
   }
   return optionLines(

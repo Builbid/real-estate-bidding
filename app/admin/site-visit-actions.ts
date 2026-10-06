@@ -196,7 +196,11 @@ export async function saveSiteVisitChecklistAction(
   // The measurement lines (and their agreed rates) always come from the server, never the client.
   const { template } = await loadMeasurementTemplate(admin, project.id, project.selected_builder_id);
 
-  const parsed = parseSiteVisitInput(input, todayIst(), { requirePlot: template.needsPlotDimensions });
+  const civilWork = template.tradeKey === 'civil';
+  const parsed = parseSiteVisitInput(input, todayIst(), {
+    requirePlot: template.needsPlotDimensions,
+    requireSoil: civilWork,
+  });
   if ('error' in parsed) return { error: parsed.error };
 
   const measurements: Record<string, string> = {};

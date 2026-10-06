@@ -3,12 +3,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, ClipboardCheck, Loader2, Save } from 'lucide-react';
+import { ArrowRight, Calendar, ClipboardCheck, Loader2, Save } from 'lucide-react';
 import { toast, Toaster } from 'sonner';
 import { BuilBidLogo } from '@/components/shared/BuilBidLogo';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { IndianContractDateField } from '@/components/admin/IndianContractDateField';
+import { formatIndianDateInput, isoToIndianDate, parseIndianDateToIso } from '@/lib/projectStartTime';
 import {
   goToAgreementAction,
   loadSiteVisitAction,
@@ -30,9 +30,6 @@ import {
   type MeasurementLine,
   type MeasurementTemplate,
 } from '@/lib/admin/siteMeasurements';
-
-const SELECT_CLASS =
-  'flex h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-100';
 
 const QTY_INPUT_CLASS =
   'h-9 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-right text-sm tabular-nums text-slate-900 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-600 dark:bg-slate-900/70 dark:text-slate-100';
@@ -146,6 +143,89 @@ function measuredAmount(line: MeasurementLine, raw: string): number {
   return Number.isFinite(qty) ? lineAmount(line, qty) : 0;
 }
 
+function CompactChecklistDateField({
+  label,
+  value,
+  onChange,
+  minIso,
+}: {
+  label: string;
+  value: string;
+  onChange: (iso: string) => void;
+  minIso?: string;
+}) {
+  const [text, setText] = useState(() => isoToIndianDate(value));
+  const [fieldError, setFieldError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setText(isoToIndianDate(value));
+  }, [value]);
+
+  function commitText(raw: string) {
+    const formatted = formatIndianDateInput(raw, text);
+    setText(formatted);
+    if (!formatted) {
+      setFieldError(null);
+      onChange('');
+      return;
+    }
+    if (formatted.length < 10) {
+      setFieldError(null);
+      return;
+    }
+    const iso = parseIndianDateToIso(formatted);
+    if (!iso) {
+      setFieldError('Enter a real date as DD/MM/YYYY.');
+      return;
+    }
+    if (minIso && iso < minIso) {
+      setFieldError('This date cannot be earlier than the start date.');
+    } else {
+      setFieldError(null);
+    }
+    onChange(iso);
+  }
+
+  return (
+    <div className="flex min-w-0 flex-col gap-1.5">
+      <label className="text-xs font-semibold uppercase tracking-wider text-slate-800 dark:text-zinc-100">
+        {label}
+      </label>
+      <div className="relative">
+        <input
+          type="text"
+          inputMode="numeric"
+          autoComplete="off"
+          placeholder="DD/MM/YYYY"
+          aria-label={label}
+          value={text}
+          onChange={(event) => commitText(event.target.value)}
+          className="h-9 w-full rounded-lg border border-slate-300 bg-white pl-3 pr-10 text-sm text-slate-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
+        />
+        <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-300">
+          <Calendar className="h-4 w-4" aria-hidden />
+        </span>
+        <input
+          type="date"
+          aria-label={`${label} calendar`}
+          value={/^\d{4}-\d{2}-\d{2}$/.test(value) ? value : ''}
+          min={minIso || undefined}
+          onChange={(event) => {
+            const iso = event.target.value;
+            setText(isoToIndianDate(iso));
+            setFieldError(
+              minIso && iso && iso < minIso ? 'This date cannot be earlier than the start date.' : null,
+            );
+            onChange(iso);
+          }}
+          className="absolute right-1 top-1/2 h-7 w-8 -translate-y-1/2 cursor-pointer opacity-0"
+        />
+      </div>
+      {fieldError ? <p className="text-xs text-red-600 dark:text-red-400">{fieldError}</p> : null}
+    </div>
+  );
+}
+
 function SectionCard({
   title,
   hint,
@@ -185,7 +265,9 @@ export function SiteVisitChecklistPage({ projectId }: { projectId: string }) {
   const [opening, startOpening] = useTransition();
   const readyRef = useRef(false);
   const formRef = useRef(form);
+  const templateRef = useRef(template);
   formRef.current = form;
+  templateRef.current = template;
 
   const writeDraft = useCallback((next: SiteVisitInput) => {
     if (!readyRef.current) return;
@@ -253,11 +335,13 @@ export function SiteVisitChecklistPage({ projectId }: { projectId: string }) {
   }, [projectId]);
 
   const persistToServer = useCallback((source: SiteVisitInput) => {
-    if (!readyRef.current || !knownSoil(source.soilType)) return;
+    if (!readyRef.current) return;
+    const civil = templateRef.current?.tradeKey === 'civil';
+    if (civil && !knownSoil(source.soilType)) return;
     void saveSiteVisitChecklistAction(projectId, {
       ...source,
       visitDate: todayIstIso(),
-      soilType: knownSoil(source.soilType),
+      soilType: civil ? knownSoil(source.soilType) : '',
       waterAvailable: false,
       electricityAvailable: false,
       storageAvailable: false,
@@ -307,16 +391,18 @@ export function SiteVisitChecklistPage({ projectId }: { projectId: string }) {
   }
 
   function payload(): SiteVisitInput {
+    const civil = templateRef.current?.tradeKey === 'civil';
     return {
       ...formRef.current,
       visitDate: todayIstIso(),
-      soilType: knownSoil(formRef.current.soilType),
+      soilType: civil ? knownSoil(formRef.current.soilType) : '',
       waterAvailable: false,
       electricityAvailable: false,
       storageAvailable: false,
     };
   }
 
+  const isCivil = template?.tradeKey === 'civil';
   const lines = useMemo(() => template?.lines ?? [], [template]);
   const cost = useMemo(() => computeMeasuredCost(lines, form.measurements), [lines, form.measurements]);
   const groups = useMemo(() => groupMeasurementLines(lines), [lines]);
@@ -456,7 +542,7 @@ export function SiteVisitChecklistPage({ projectId }: { projectId: string }) {
         ) : (
           <div className="space-y-4">
             <SectionCard title="Visit details">
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className={isCivil ? 'grid gap-3 sm:grid-cols-2' : 'grid gap-3'}>
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-semibold uppercase tracking-wider text-slate-800 dark:text-zinc-100">
                     Site Visit Date
@@ -466,40 +552,42 @@ export function SiteVisitChecklistPage({ projectId }: { projectId: string }) {
                     aria-readonly="true"
                     aria-label="Site Visit Date"
                     value={formatDmY(form.visitDate || todayIstIso())}
-                    className={`${SELECT_CLASS} cursor-default bg-slate-50 dark:bg-slate-900/40`}
+                    className="h-9 w-full rounded-lg border border-slate-300 bg-slate-50 px-3 text-sm text-slate-900 shadow-sm dark:border-slate-600 dark:bg-slate-900/40 dark:text-slate-100"
                   />
                 </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-slate-800 dark:text-zinc-100">
-                    Soil Condition Observed
-                  </label>
-                  <select
-                    className={SELECT_CLASS}
-                    value={form.soilType}
-                    onChange={(e) => patch({ soilType: e.target.value })}
-                  >
-                    <option value="">Select soil condition…</option>
-                    {SOIL_TYPES.map((soil) => (
-                      <option key={soil.value} value={soil.value}>
-                        {soil.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                {isCivil ? (
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold uppercase tracking-wider text-slate-800 dark:text-zinc-100">
+                      Soil Condition Observed
+                    </label>
+                    <select
+                      className="h-9 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
+                      value={form.soilType}
+                      onChange={(e) => patch({ soilType: e.target.value })}
+                    >
+                      <option value="">Select soil condition…</option>
+                      {SOIL_TYPES.map((soil) => (
+                        <option key={soil.value} value={soil.value}>
+                          {soil.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ) : null}
               </div>
             </SectionCard>
 
             <SectionCard
               title="Agreed timelines"
-              hint="Confirm these dates with the homeowner and the mistri. They fill Section 4 of the agreement."
+              hint="Type DD/MM/YYYY or open the calendar. These dates fill Section 4 of the agreement."
             >
               <div className="grid gap-3 sm:grid-cols-2">
-                <IndianContractDateField
+                <CompactChecklistDateField
                   label="Agreed Start Date"
                   value={form.agreedStartDate}
                   onChange={(value) => patch({ agreedStartDate: value })}
                 />
-                <IndianContractDateField
+                <CompactChecklistDateField
                   label="Target Completion Date"
                   value={form.targetCompletionDate}
                   onChange={(value) => patch({ targetCompletionDate: value })}
@@ -554,12 +642,21 @@ export function SiteVisitChecklistPage({ projectId }: { projectId: string }) {
             {groups.length > 0 ? (
               <>
                 <p className="text-xs leading-relaxed text-slate-500">
-                  Rates are locked from the accepted bid. Enter the quantity measured on site for each item.
+                  Items and base rates come from the accepted bid and stay locked. Enter only the quantity measured on site. Blank quantities count as zero. Upper floors add +5% on the 1st floor and +10% on the 2nd.
                 </p>
                 {groups.map((group) => {
                   const subtotal = floorSubtotals.find((row) => row.group === group.group)?.subtotal ?? 0;
+                  const surchargeSteps = Math.max(0, ...group.lines.map(lineFloorSteps));
                   return (
-                    <SectionCard key={group.group} title={group.group}>
+                    <SectionCard
+                      key={group.group}
+                      title={group.group}
+                      hint={
+                        surchargeSteps > 0
+                          ? `+${surchargeSteps * 5}% floor surcharge is applied to the locked base rate`
+                          : undefined
+                      }
+                    >
                       <div className="space-y-2.5">
                         {group.lines.map((line) => {
                           const raw = form.measurements[line.id] ?? '';
@@ -567,30 +664,46 @@ export function SiteVisitChecklistPage({ projectId }: { projectId: string }) {
                           return (
                             <div
                               key={line.id}
-                              className="grid items-center gap-3 rounded-lg border border-slate-200/70 px-3 py-2.5 dark:border-slate-700/60 sm:grid-cols-[1fr_150px_120px]"
+                              className="grid items-end gap-3 rounded-lg border border-slate-200/70 px-3 py-2.5 dark:border-slate-700/60 sm:grid-cols-[minmax(0,1.3fr)_10.5rem_8.5rem_6.5rem]"
                             >
                               <div className="min-w-0">
                                 <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
                                   {line.label}
                                 </p>
-                                <p className="mt-1 text-sm font-semibold tabular-nums text-slate-800 dark:text-slate-100">
+                                <p className="mt-1 text-xs font-medium text-slate-600 dark:text-slate-300">
                                   {rateCaption(line)}
                                 </p>
                               </div>
-                              <div className="flex items-center gap-1.5">
+                              <label className="block min-w-0">
+                                <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                                  Base rate
+                                </span>
+                                <input
+                                  readOnly
+                                  tabIndex={-1}
+                                  aria-readonly="true"
+                                  aria-label={`${line.label} locked base rate`}
+                                  value={`${inr(line.rate)} / ${line.unit}`}
+                                  className="h-9 w-full cursor-not-allowed rounded-lg border border-slate-200 bg-slate-100 px-2 text-sm font-semibold tabular-nums text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                                />
+                              </label>
+                              <label className="block min-w-0">
+                                <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                                  Measured qty
+                                </span>
                                 <input
                                   type="number"
                                   min={0}
                                   step="any"
                                   inputMode="decimal"
+                                  placeholder="0"
                                   aria-label={`${line.label} measured quantity (${line.unit})`}
                                   className={QTY_INPUT_CLASS}
                                   value={raw}
                                   onChange={(e) => setMeasurement(line.id, e.target.value)}
                                 />
-                                <span className="w-10 shrink-0 text-[11px] text-slate-500">{line.unit}</span>
-                              </div>
-                              <p className="text-right text-sm font-semibold tabular-nums text-slate-900 dark:text-slate-100">
+                              </label>
+                              <p className="pb-2 text-right text-sm font-semibold tabular-nums text-slate-900 dark:text-slate-100">
                                 {inr(amount)}
                               </p>
                             </div>

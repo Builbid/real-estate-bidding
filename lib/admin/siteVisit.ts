@@ -97,7 +97,7 @@ export function checklistAgreementRows(
   if (visit.floors > 1) {
     rows.push({ label: 'Floors on site', value: String(visit.floors) });
   }
-  if (visit.soilType) {
+  if (visit.soilType && (!visit.tradeKey || visit.tradeKey === 'civil')) {
     rows.push({ label: 'Soil condition', value: soilLabel(visit.soilType) });
   }
   if (visit.roadWidthFt > 0) {
@@ -194,15 +194,16 @@ export interface ParsedSiteVisit {
 
 /**
  * Validates real field measurements. Returns an error string or the parsed values.
- * `requirePlot` is true for Civil / Mistri work (plot + plinth dimensions); other trades
- * measure their itemised quantities instead and the plot fields are optional.
+ * `requirePlot` and `requireSoil` are true for Civil / Mistri work. Electrical, plumbing,
+ * and painting checklists omit plot dimensions and the soil dropdown.
  */
 export function parseSiteVisitInput(
   input: SiteVisitInput,
   today: string,
-  options: { requirePlot?: boolean } = {},
+  options: { requirePlot?: boolean; requireSoil?: boolean } = {},
 ): { error: string } | { value: ParsedSiteVisit } {
   const requirePlot = options.requirePlot ?? true;
+  const requireSoil = options.requireSoil ?? true;
 
   if (!/^\d{4}-\d{2}-\d{2}$/.test(input.visitDate)) {
     return { error: 'Choose the date of the site visit.' };
@@ -242,9 +243,11 @@ export function parseSiteVisitInput(
     return { error: 'Enter the number of floors (1 to 20).' };
   }
 
-  if (!SOIL_TYPES.some((s) => s.value === input.soilType)) {
+  const soilIsKnown = SOIL_TYPES.some((s) => s.value === input.soilType);
+  if (requireSoil && !soilIsKnown) {
     return { error: 'Select the soil condition observed at the site.' };
   }
+  const soilType = (soilIsKnown ? input.soilType : 'normal_earth') as SoilType;
 
   const roadWidthFt = isBlank(input.roadWidthFt) ? 0 : num(input.roadWidthFt);
   if (!Number.isFinite(roadWidthFt) || roadWidthFt < 0 || roadWidthFt > 500) {
@@ -268,7 +271,7 @@ export function parseSiteVisitInput(
       plotWidthFt,
       plinthAreaSqft,
       floors,
-      soilType: input.soilType as SoilType,
+      soilType,
       roadWidthFt,
       waterAvailable: input.waterAvailable,
       electricityAvailable: input.electricityAvailable,
