@@ -71,24 +71,6 @@ function formatMoney(value: number | null): string {
   return `₹${value.toLocaleString('en-IN')}`;
 }
 
-function formatRate(
-  value: number | null,
-  serviceType: string | null,
-): string {
-  if (value == null) return '—';
-  const money = formatMoney(value);
-  const unitTypes = new Set([
-    'labour_contractor',
-    'construction_firm',
-    'painter',
-    'carpenter',
-  ]);
-  if (serviceType && unitTypes.has(serviceType)) {
-    return `${money} / sq. ft.`;
-  }
-  return money;
-}
-
 function formatDate(value: string): string {
   try {
     return new Date(value).toLocaleString('en-IN', {
@@ -128,7 +110,7 @@ function TradeBadge({ serviceType }: { serviceType: string | null }) {
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11px] font-semibold',
+        'inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border px-2 py-0.5 text-[11px] font-semibold',
         tradeToneClass(trade.tone),
       )}
     >
@@ -154,15 +136,17 @@ function ProjectStatusCell({
 
   if (isLive) {
     return (
-      <div className="space-y-1">
-        <span className="inline-flex items-center gap-1.5 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
+      <div className="inline-flex items-center gap-2 whitespace-nowrap">
+        <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
           <span className="relative flex h-1.5 w-1.5">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
             <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
           </span>
           Live Bidding
         </span>
-        <p className="text-xs font-medium text-slate-500">⏱ {remaining}</p>
+        <span className="whitespace-nowrap text-xs font-medium text-slate-500">
+          ⏱ {remaining}
+        </span>
       </div>
     );
   }
@@ -199,31 +183,22 @@ function ProjectStatusCell({
   );
 }
 
+function bidCountLabel(count: number): string {
+  if (count === 0) return '0 bids';
+  if (count === 1) return '1 bid placed';
+  return `${count} bids placed`;
+}
+
 function BidMetricsCell({ project }: { project: AdminProjectRow }) {
-  if (project.bidCount === 0) {
-    return <span className="text-sm text-slate-400">0 bids</span>;
-  }
-
-  const primary =
-    project.winningBid != null ? project.winningBid : project.lowestBid;
-  const primaryLabel =
-    project.winningBid != null ? 'Winning rate' : 'Lowest rate';
-
   return (
-    <div className="min-w-[140px] space-y-0.5">
-      <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-        {formatRate(primary, project.serviceType)}
-      </p>
-      <p className="text-[11px] text-slate-400">{primaryLabel}</p>
-      {project.bidCount === 1 ? (
-        <p className="text-xs text-slate-500">1 bid placed</p>
-      ) : (
-        <p className="text-xs text-slate-500">
-          Range: {formatMoney(project.lowestBid)} –{' '}
-          {formatMoney(project.highestBid)}
-        </p>
+    <span
+      className={cn(
+        'whitespace-nowrap text-sm',
+        project.bidCount === 0 ? 'text-slate-400' : 'text-slate-700 dark:text-slate-200',
       )}
-    </div>
+    >
+      {bidCountLabel(project.bidCount)}
+    </span>
   );
 }
 
@@ -763,7 +738,7 @@ export function AdminDashboardClient({
                               ID: {displayProjectId(p.publicId, p.id)}
                             </p>
                           </td>
-                          <td className={TD}>
+                          <td className={cn(TD, 'whitespace-nowrap')}>
                             <TradeBadge serviceType={p.serviceType} />
                           </td>
                           <td className={TD}>
@@ -786,21 +761,23 @@ export function AdminDashboardClient({
                             <BidMetricsCell project={p} />
                           </td>
                           <td className={TD}>
-                            <ProjectStatusCell
-                              status={p.status}
-                              biddingEndsAt={p.biddingEndsAt}
-                            />
-                            {p.workflow.approved ? (
-                              <span className="mt-1 inline-flex items-center gap-1 rounded-md border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-800">
-                                <BadgeCheck className="h-3 w-3" />
-                                Approved / Active
-                              </span>
-                            ) : p.workflow.agreementState === 'pending_esign' ||
-                              p.workflow.agreementState === 'partially_signed' ? (
-                              <span className="mt-1 inline-flex items-center rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
-                                Awaiting eSign
-                              </span>
-                            ) : null}
+                            <div className="flex flex-col items-start gap-1">
+                              <ProjectStatusCell
+                                status={p.status}
+                                biddingEndsAt={p.biddingEndsAt}
+                              />
+                              {p.workflow.approved ? (
+                                <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-md border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-800">
+                                  <BadgeCheck className="h-3 w-3" />
+                                  Approved / Active
+                                </span>
+                              ) : p.workflow.agreementState === 'pending_esign' ||
+                                p.workflow.agreementState === 'partially_signed' ? (
+                                <span className="inline-flex items-center whitespace-nowrap rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
+                                  Awaiting eSign
+                                </span>
+                              ) : null}
+                            </div>
                           </td>
                           <td className={cn(TD, 'whitespace-nowrap')}>
                             <p className="text-sm font-medium text-slate-800 dark:text-slate-100">
