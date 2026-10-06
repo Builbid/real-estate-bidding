@@ -7,7 +7,7 @@ import { triggerProjectTransition } from '@/app/actions/auction';
 import { getProjectPhase, type ProjectPhase } from '@/lib/utils';
 import type { Project, ProjectStatus } from '@/lib/types';
 
-const SELECTION_WINDOW_MS = 5 * 60 * 1000;
+const SELECTION_WINDOW_MS = 3 * 60 * 1000;
 
 function deriveOwnerPhase(project: Project, biddingHasEnded: boolean): ProjectPhase {
   if (project.status === 'completed' || project.status === 'cancelled') return 'done';

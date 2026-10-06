@@ -124,7 +124,7 @@ import { createProjectAction } from '@/app/actions/createProject';
 
 type Step = 1 | 2 | 3 | 4;
 
-const BIDDING_MINUTES = 7;
+const BIDDING_MINUTES = 3;
 
 const SECTION_LABEL = WIZARD_SECTION_LABEL;
 const HELPER_TEXT =
@@ -1155,7 +1155,7 @@ export function LabourContractorProjectWizard() {
     if (pincodeError) {
       errors.pincode = pincodeError;
     }
-    if (form.bidding_minutes !== '7' && form.bidding_minutes !== '1440') {
+    if (form.bidding_minutes !== '3' && form.bidding_minutes !== '1440') {
       errors.bidding = 'Select a bidding duration.';
     }
 
@@ -1524,13 +1524,13 @@ export function LabourContractorProjectWizard() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="7">7 Minutes (Quick)</SelectItem>
+                    <SelectItem value="3">3 Minutes (Quick)</SelectItem>
                     <SelectItem value="1440">24 Hours (Standard)</SelectItem>
                   </SelectContent>
                 </Select>
                 <FieldError message={step1ValidationAttempted ? step1Errors.bidding : undefined} />
                 <p className="text-[11px] font-medium text-blue-600">
-                  After bidding closes you have 5 minutes to select a mistri worker.
+                  After bidding closes you have 3 minutes to select a mistri worker.
                 </p>
               </div>
 
@@ -2139,11 +2139,11 @@ export function LabourContractorProjectWizard() {
                   {
                     label: 'Bidding Window',
                     value:
-                      form.bidding_minutes === '7'
-                        ? '7 minutes from launch'
+                      form.bidding_minutes === '3'
+                        ? '3 minutes from launch'
                         : '24 hours from launch',
                   },
-                  { label: 'Selection Window', value: '5 minutes after bids close' },
+                  { label: 'Selection Window', value: '3 minutes after bids close' },
                 ]}
               />
 

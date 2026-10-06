@@ -50,7 +50,7 @@ async function getData(id: string) {
       .from('projects')
       .update({
         status: 'frozen_24h',
-        selection_ends_at: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+        selection_ends_at: new Date(Date.now() + 3 * 60 * 1000).toISOString(),
       })
       .eq('id', id)
       .eq('status', 'active_24h');

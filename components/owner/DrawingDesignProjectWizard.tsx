@@ -49,7 +49,7 @@ import { createProjectAction } from '@/app/actions/createProject';
 
 type Step = 1 | 2 | 3;
 
-const BIDDING_MINUTES = 7;
+const BIDDING_MINUTES = 3;
 const PROGRESS_LABELS = ['Project Info', 'Work Requirements', 'Review & Launch'] as const;
 
 interface FormState {
@@ -165,7 +165,7 @@ export function DrawingDesignProjectWizard() {
     }
     const pincodeError = validatePincode(form.pincode, { required: true, assamOnly: true });
     if (pincodeError) errors.pincode = pincodeError;
-    if (form.bidding_minutes !== '7' && form.bidding_minutes !== '1440') {
+    if (form.bidding_minutes !== '3' && form.bidding_minutes !== '1440') {
       errors.bidding = 'Select a bidding duration.';
     }
     if (!form.houseStructure) {
@@ -426,11 +426,14 @@ export function DrawingDesignProjectWizard() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="7">7 Minutes (Quick)</SelectItem>
+                    <SelectItem value="3">3 Minutes (Quick)</SelectItem>
                     <SelectItem value="1440">24 Hours (Standard)</SelectItem>
                   </SelectContent>
                 </Select>
                 <FieldError message={step1ValidationAttempted ? step1Errors.bidding : undefined} />
+                <p className="text-[11px] font-medium text-brand">
+                  After bidding closes you have 3 minutes to select a designer.
+                </p>
               </div>
 
               <StepGuidanceNotes />
@@ -568,10 +571,11 @@ export function DrawingDesignProjectWizard() {
                   {
                     label: 'Bidding window',
                     value:
-                      form.bidding_minutes === '7'
-                        ? '7 minutes from launch'
+                      form.bidding_minutes === '3'
+                        ? '3 minutes from launch'
                         : '24 hours from launch',
                   },
+                  { label: 'Selection Window', value: '3 minutes after bids close' },
                 ]}
               />
 
