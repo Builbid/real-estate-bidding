@@ -7,7 +7,7 @@ import {
   pendingBalanceFor,
 } from '@/lib/admin/settlement';
 import { normalizePincodes } from '@/lib/admin/territory';
-import { PROTOTYPE_AUTO_AGREEMENT, PROTOTYPE_RESET_AT } from '@/lib/admin/prototype';
+import { PROTOTYPE_RESET_AT } from '@/lib/admin/prototype';
 import { formatBuilbidPublicId } from '@/lib/contract/mistriAgreement';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
@@ -384,8 +384,8 @@ export async function loadAdminDashboardData(
       createdAt: p.created_at,
     }));
 
-  // Prototype auto-conversion: a closed project (or one whose bidding window ended) that has
-  // bids but no formal award yet becomes an agreement, with the lowest bidder as awardee.
+  // When live bidding ends, the project leaves Projects and becomes an agreement.
+  // The lowest bidder fills the Mistri column until a formal award is stored.
   const lowestBidByProject = new Map<string, { builder_id: string; total_sum_metric: number }>();
   for (const bid of bids) {
     const current = lowestBidByProject.get(bid.project_id);
@@ -393,30 +393,24 @@ export async function loadAdminDashboardData(
       lowestBidByProject.set(bid.project_id, bid);
     }
   }
-  const isClosedForAutoAgreement = (p: (typeof projects)[number]) =>
-    p.status !== 'cancelled' &&
-    (p.status !== 'active_24h' || new Date(p.bidding_ends_at).getTime() <= nowMs);
+  const biddingHasEnded = (p: (typeof projects)[number]) =>
+    p.status === 'cancelled' ||
+    p.status !== 'active_24h' ||
+    new Date(p.bidding_ends_at).getTime() <= nowMs;
+  const isApprovedActive = (projectId: string) =>
+    Boolean(workflowByProject.get(projectId)?.approved);
 
   const supervisorView = options.supervisorView ?? false;
   const resetMs = Date.parse(PROTOTYPE_RESET_AT);
 
-  // Supervisor prototype view: an agreement exists only once a project's live bidding time
-  // has ended (naturally or via Close) AND a bidder placed a bid. Auctions that ended before
-  // the reset are legacy history and are never listed, so the tab starts at zero.
-  const qualifiesForSupervisorAgreement = (p: (typeof projects)[number]) =>
-    isClosedForAutoAgreement(p) &&
-    new Date(p.bidding_ends_at).getTime() >= resetMs &&
-    lowestBidByProject.has(p.id);
-
+  // Agreements: bidding has ended, and both parties have not yet finished Aadhaar eSign.
+  // Supervisor view still hides auctions that ended before the prototype reset.
   const agreements: AdminAgreementRow[] = projects
-    .filter((p) =>
-      supervisorView
-        ? qualifiesForSupervisorAgreement(p)
-        : !!p.selected_builder_id ||
-          (PROTOTYPE_AUTO_AGREEMENT &&
-            isClosedForAutoAgreement(p) &&
-            lowestBidByProject.has(p.id)),
-    )
+    .filter((p) => {
+      if (p.status === 'cancelled' || isApprovedActive(p.id) || !biddingHasEnded(p)) return false;
+      if (supervisorView && new Date(p.bidding_ends_at).getTime() < resetMs) return false;
+      return true;
+    })
     .map((p) => {
       const owner = profileById.get(p.owner_id);
       const provisional = !p.selected_builder_id;
@@ -442,12 +436,13 @@ export async function loadAdminDashboardData(
 
   const pendingApprovals = workers.filter((w) => !w.isVerified).length;
 
-  // Supervisor view: Projects lists only auctions that are live right now (no legacy records).
-  const visibleProjectRows = supervisorView
-    ? projectRows.filter(
-        (p) => p.status === 'active_24h' && new Date(p.biddingEndsAt).getTime() > nowMs,
-      )
-    : projectRows;
+  // Projects lists a row only while Live Bidding is still running.
+  const visibleProjectRows = projectRows.filter(
+    (p) =>
+      !isApprovedActive(p.id) &&
+      p.status === 'active_24h' &&
+      new Date(p.biddingEndsAt).getTime() > nowMs,
+  );
 
   const kpis: AdminKpis = {
     liveAuctions: projects.filter((p) => p.status === 'active_24h').length,
@@ -458,17 +453,16 @@ export async function loadAdminDashboardData(
     totalBids: totalBids ?? 0,
   };
 
-  // Supervisor view: a work is "completed" only after its agreement went through the full
-  // Aadhaar e-sign approval after the reset. Legacy completed records are never listed.
+  // Approved / Active (both parties finished Aadhaar eSign) leaves Agreements
+  // and is listed under Completed Works. Supervisor view still hides approvals
+  // recorded before the prototype reset.
   const completedWorks: CompletedWorkRow[] = projects
-    .filter((p) =>
-      supervisorView
-        ? p.status !== 'cancelled' &&
-          (workflowByProject.get(p.id)?.approvedAt
-            ? Date.parse(workflowByProject.get(p.id)!.approvedAt!) >= resetMs
-            : false)
-        : p.status === 'completed',
-    )
+    .filter((p) => {
+      if (p.status === 'cancelled' || !isApprovedActive(p.id)) return false;
+      if (!supervisorView) return true;
+      const approvedAt = workflowByProject.get(p.id)?.approvedAt;
+      return approvedAt ? Date.parse(approvedAt) >= resetMs : false;
+    })
     .map((p) => {
       const row = projectRows.find((item) => item.id === p.id);
       const finalBudget =

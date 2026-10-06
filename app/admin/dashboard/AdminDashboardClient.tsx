@@ -8,7 +8,6 @@ import { BuilBidLogo } from '@/components/shared/BuilBidLogo';
 import { ThemeToggle } from '@/components/shared/ThemeToggle';
 import { NotificationBell } from '@/components/shared/NotificationBell';
 import {
-  ArrowRight,
   BadgeCheck,
   Building2,
   Clock,
@@ -16,23 +15,18 @@ import {
   FileText,
   HardHat,
   LayoutDashboard,
-  Lock,
   LogOut,
   MapPin,
   Search,
   Shield,
   Users,
   Gavel,
-  ExternalLink,
-  TimerReset,
   FileSignature,
   UserRound,
   ClipboardCheck,
   Wallet,
 } from 'lucide-react';
 import {
-  adminCloseAuctionAction,
-  adminExtendAuctionAction,
   adminSignOutAction,
   adminToggleWorkerVerificationAction,
 } from '@/app/admin/actions';
@@ -45,16 +39,9 @@ import type {
   AdminTab,
   AdminWorkerRow,
   CompletedWorkRow,
-  ProjectWorkflowState,
   SupervisorAccount,
 } from '@/lib/admin/data';
-import {
-  ADMIN_STATUS_FILTERS,
-  ADMIN_TRADE_FILTERS,
-  matchesAdminStatusFilter,
-  resolveAdminTradeBadge,
-  tradeToneClass,
-} from '@/lib/admin/tradeBadges';
+import { resolveAdminTradeBadge, tradeToneClass } from '@/lib/admin/tradeBadges';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -65,8 +52,6 @@ import {
   STATUS_CONFIG,
 } from '@/lib/utils';
 import { CreateContractAgreementModal } from '@/components/admin/CreateContractAgreementModal';
-import { goToAgreementAction } from '@/app/admin/site-visit-actions';
-import { PROTOTYPE_AUTO_AGREEMENT } from '@/lib/admin/prototype';
 import {
   settleSupervisorMonthAction,
   updateSupervisorPincodesAction,
@@ -79,61 +64,6 @@ const TABLE_SHELL =
   'overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900';
 const ROW_HOVER =
   'border-b border-slate-100 transition duration-150 last:border-0 hover:bg-slate-50/60 dark:border-slate-800 dark:hover:bg-slate-800/40';
-const COL_FILTER_INPUT =
-  'mt-1.5 h-7 w-full min-w-[7.5rem] rounded-md border border-slate-200 bg-white px-2 text-[11px] font-medium text-slate-700 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-emerald-300 focus:ring-2 focus:ring-emerald-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200';
-
-const UPLOADED_DATE_FILTERS = [
-  { value: 'all', label: 'All dates' },
-  { value: 'today', label: 'Today' },
-  { value: '7d', label: 'Last 7 days' },
-  { value: '30d', label: 'Last 30 days' },
-  { value: 'older', label: 'Older than 30d' },
-] as const;
-
-const BIDS_FILTERS = [
-  { value: 'all', label: 'All bids' },
-  { value: 'with', label: 'Has bids' },
-  { value: 'none', label: 'No bids' },
-  { value: 'awarded', label: 'Awarded / PDF' },
-] as const;
-
-type ProjectColumnFilters = {
-  project: string;
-  trade: string;
-  location: string;
-  client: string;
-  bids: string;
-  status: string;
-  uploaded: string;
-};
-
-const EMPTY_PROJECT_FILTERS: ProjectColumnFilters = {
-  project: '',
-  trade: 'all',
-  location: '',
-  client: '',
-  bids: 'all',
-  status: 'all',
-  uploaded: 'all',
-};
-
-function matchesUploadedFilter(createdAt: string, filter: string): boolean {
-  if (filter === 'all') return true;
-  const ts = new Date(createdAt).getTime();
-  if (!Number.isFinite(ts)) return false;
-  const ageMs = Date.now() - ts;
-  const day = 86_400_000;
-  if (filter === 'today') {
-    const start = new Date();
-    start.setHours(0, 0, 0, 0);
-    return ts >= start.getTime();
-  }
-  if (filter === '7d') return ageMs <= 7 * day;
-  if (filter === '30d') return ageMs <= 30 * day;
-  if (filter === 'older') return ageMs > 30 * day;
-  return true;
-}
-
 function formatMoney(value: number | null): string {
   if (value == null) return '—';
   return `₹${value.toLocaleString('en-IN')}`;
@@ -295,56 +225,6 @@ function BidMetricsCell({ project }: { project: AdminProjectRow }) {
   );
 }
 
-function ColumnFilterSelect({
-  value,
-  onChange,
-  options,
-  'aria-label': ariaLabel,
-}: {
-  value: string;
-  onChange: (value: string) => void;
-  options: readonly { value: string; label: string }[];
-  'aria-label': string;
-}) {
-  return (
-    <select
-      aria-label={ariaLabel}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className={COL_FILTER_INPUT}
-    >
-      {options.map((opt) => (
-        <option key={opt.value} value={opt.value}>
-          {opt.label}
-        </option>
-      ))}
-    </select>
-  );
-}
-
-function ColumnFilterInput({
-  value,
-  onChange,
-  placeholder,
-  'aria-label': ariaLabel,
-}: {
-  value: string;
-  onChange: (value: string) => void;
-  placeholder: string;
-  'aria-label': string;
-}) {
-  return (
-    <input
-      type="search"
-      aria-label={ariaLabel}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      className={COL_FILTER_INPUT}
-    />
-  );
-}
-
 /** Official admin: assign each supervisor's pin code territory and run the monthly settlement. */
 function SupervisorRowAdmin({ row }: { row: AdminSupervisorRow }) {
   const router = useRouter();
@@ -430,53 +310,6 @@ function SupervisorRowAdmin({ row }: { row: AdminSupervisorRow }) {
   );
 }
 
-/** Supervisor row actions: Site Visit Checklist -> Go to Agreement -> (approved) View Agreement. */
-function WorkflowActions({
-  projectId,
-  workflow,
-  busy,
-  onGoToAgreement,
-}: {
-  projectId: string;
-  workflow: ProjectWorkflowState;
-  busy: boolean;
-  onGoToAgreement: () => void;
-}) {
-  if (workflow.approved) {
-    return (
-      <Link
-        href={`/admin/agreement/${projectId}`}
-        className="inline-flex items-center gap-1 rounded-md border border-emerald-300 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-800 transition hover:bg-emerald-100"
-      >
-        <BadgeCheck className="h-3 w-3" />
-        Approved · View Agreement
-      </Link>
-    );
-  }
-  return (
-    <>
-      <Link
-        href={`/admin/dashboard/checklist/${projectId}`}
-        className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 shadow-xs transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200"
-      >
-        <ClipboardCheck className="h-3 w-3" />
-        {workflow.siteVisitDone ? 'Edit Site Checklist' : 'Site Visit Checklist'}
-      </Link>
-      {workflow.siteVisitDone || PROTOTYPE_AUTO_AGREEMENT ? (
-        <button
-          type="button"
-          disabled={busy}
-          onClick={onGoToAgreement}
-          className="inline-flex items-center gap-1.5 rounded-md bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-md ring-2 ring-emerald-200 transition hover:bg-emerald-700 disabled:opacity-60 dark:ring-emerald-900"
-        >
-          <ArrowRight className="h-3.5 w-3.5" />
-          Go to Agreement
-        </button>
-      ) : null}
-    </>
-  );
-}
-
 const TABS: { id: AdminTab; label: string; icon: typeof LayoutDashboard }[] = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard },
   { id: 'projects', label: 'Projects', icon: Building2 },
@@ -521,8 +354,6 @@ export function AdminDashboardClient({
 }) {
   const [tab, setTab] = useState<AdminTab>(initialTab);
   const [query, setQuery] = useState('');
-  const [projectFilters, setProjectFilters] =
-    useState<ProjectColumnFilters>(EMPTY_PROJECT_FILTERS);
   const [pending, startTransition] = useTransition();
   const [contractProject, setContractProject] = useState<{
     id: string;
@@ -530,18 +361,6 @@ export function AdminDashboardClient({
     title: string;
     clientName: string;
   } | null>(null);
-  const router = useRouter();
-
-  function goToAgreement(projectId: string) {
-    startTransition(async () => {
-      const result = await goToAgreementAction(projectId);
-      if (result.error || !result.href) {
-        toast.error(result.error ?? 'Could not open the agreement.');
-        return;
-      }
-      router.push(result.href);
-    });
-  }
 
   function openContractModal(row: {
     id?: string | null;
@@ -569,53 +388,11 @@ export function AdminDashboardClient({
     });
   }
 
-  const projectFiltersActive = useMemo(
-    () =>
-      projectFilters.project.trim() !== '' ||
-      projectFilters.location.trim() !== '' ||
-      projectFilters.client.trim() !== '' ||
-      projectFilters.trade !== 'all' ||
-      projectFilters.bids !== 'all' ||
-      projectFilters.status !== 'all' ||
-      projectFilters.uploaded !== 'all',
-    [projectFilters],
-  );
-
   const filteredProjects = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const projectQ = projectFilters.project.trim().toLowerCase();
-    const locationQ = projectFilters.location.trim().toLowerCase();
-    const clientQ = projectFilters.client.trim().toLowerCase();
-
+    if (!q) return projects;
     return projects.filter((p) => {
       const trade = resolveAdminTradeBadge(p.serviceType);
-
-      if (projectFilters.trade !== 'all' && trade.key !== projectFilters.trade) {
-        return false;
-      }
-      if (!matchesAdminStatusFilter(p.status, projectFilters.status)) {
-        return false;
-      }
-      if (!matchesUploadedFilter(p.createdAt, projectFilters.uploaded)) {
-        return false;
-      }
-      if (projectFilters.bids === 'with' && p.bidCount === 0) return false;
-      if (projectFilters.bids === 'none' && p.bidCount > 0) return false;
-      if (projectFilters.bids === 'awarded' && !p.selectedBuilderId) return false;
-
-      if (projectQ) {
-        const hay = `${p.title} ${p.id} ${p.publicId} ${displayProjectId(p.publicId, p.id)}`.toLowerCase();
-        if (!hay.includes(projectQ)) return false;
-      }
-      if (locationQ) {
-        const hay = `${p.district} ${p.state}`.toLowerCase();
-        if (!hay.includes(locationQ)) return false;
-      }
-      if (clientQ && !p.clientName.toLowerCase().includes(clientQ)) {
-        return false;
-      }
-
-      if (!q) return true;
       return (
         p.title.toLowerCase().includes(q) ||
         p.district.toLowerCase().includes(q) ||
@@ -626,14 +403,7 @@ export function AdminDashboardClient({
         (p.publicId && p.publicId.toLowerCase().includes(q))
       );
     });
-  }, [projects, query, projectFilters]);
-
-  function patchProjectFilter<K extends keyof ProjectColumnFilters>(
-    key: K,
-    value: ProjectColumnFilters[K],
-  ) {
-    setProjectFilters((prev) => ({ ...prev, [key]: value }));
-  }
+  }, [projects, query]);
 
   const filteredWorkers = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -671,7 +441,7 @@ export function AdminDashboardClient({
 
   const visibleTabs = supervisorPortal
     ? TABS.filter((item) => SUPERVISOR_TAB_IDS.has(item.id))
-    : TABS.filter((item) => item.id !== 'completed');
+    : TABS;
 
   const filteredCompleted = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -687,7 +457,6 @@ export function AdminDashboardClient({
   function switchTab(next: AdminTab) {
     setTab(next);
     setQuery('');
-    setProjectFilters(EMPTY_PROJECT_FILTERS);
   }
 
   function runAction(
@@ -705,16 +474,6 @@ export function AdminDashboardClient({
       }
     });
   }
-
-  /** Closing a project converts it into an awarded agreement: jump straight to that tab. */
-  function closeAuction(projectId: string) {
-    runAction(
-      () => adminCloseAuctionAction(projectId),
-      PROTOTYPE_AUTO_AGREEMENT ? 'Auction closed. Converted to an awarded agreement.' : 'Auction closed.',
-      PROTOTYPE_AUTO_AGREEMENT ? () => switchTab('agreements') : undefined,
-    );
-  }
-
 
   return (
     <div className="flex min-h-screen">
@@ -832,53 +591,53 @@ export function AdminDashboardClient({
         <nav
           aria-label="Sections"
           className={cn(
-            'flex gap-1 overflow-x-auto border-b border-slate-200 bg-white px-3 py-2 dark:border-slate-800 dark:bg-slate-900',
+            'flex items-center gap-3 border-b border-slate-200 bg-white px-3 py-2 dark:border-slate-800 dark:bg-slate-900',
             !supervisorPortal && 'lg:hidden',
           )}
         >
-          {visibleTabs.map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => switchTab(id)}
-              className={cn(
-                'inline-flex items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-semibold',
-                tab === id
-                  ? 'bg-emerald-600 text-white'
-                  : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
-              )}
-            >
-              {supervisorPortal ? <Icon className="h-3.5 w-3.5" aria-hidden /> : null}
-              {label}
-            </button>
-          ))}
+          <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto">
+            {visibleTabs.map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => switchTab(id)}
+                className={cn(
+                  'inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-md px-3 text-xs font-semibold',
+                  tab === id
+                    ? 'bg-emerald-600 text-white'
+                    : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200',
+                )}
+              >
+                {supervisorPortal ? <Icon className="h-3.5 w-3.5" aria-hidden /> : null}
+                {label}
+              </button>
+            ))}
+          </div>
+          {tab !== 'overview' ? (
+            <div className="relative w-56 shrink-0 sm:w-72">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500 dark:text-slate-300" />
+              <Input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search this table…"
+                className="h-9 border-slate-200 bg-white pl-9 text-sm text-slate-900 shadow-sm dark:border-slate-600 dark:bg-slate-950 dark:text-white"
+              />
+            </div>
+          ) : null}
         </nav>
 
         <main className="flex-1 space-y-5 p-4 sm:p-6">
-          {tab !== 'overview' ? (
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          {tab !== 'overview' && !supervisorPortal ? (
+            <div className="hidden items-center lg:flex">
               <div className="relative w-full max-w-md">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500 dark:text-slate-300" />
                 <Input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder={
-                    tab === 'projects'
-                      ? 'Quick search across projects…'
-                      : 'Search this table…'
-                  }
-                  className="h-9 border-slate-200 bg-white pl-9 shadow-sm"
+                  placeholder="Search this table…"
+                  className="h-9 border-slate-200 bg-white pl-9 text-sm text-slate-900 shadow-sm dark:border-slate-600 dark:bg-slate-950 dark:text-white"
                 />
               </div>
-              {tab === 'projects' && projectFiltersActive ? (
-                <button
-                  type="button"
-                  onClick={() => setProjectFilters(EMPTY_PROJECT_FILTERS)}
-                  className="text-xs font-semibold text-emerald-700 hover:text-emerald-800"
-                >
-                  Clear column filters
-                </button>
-              ) : null}
             </div>
           ) : null}
 
@@ -940,82 +699,25 @@ export function AdminDashboardClient({
                 <table className="min-w-full text-left text-sm">
                   <thead className="border-b border-slate-200 bg-slate-50/75 dark:border-slate-800 dark:bg-slate-950/80">
                     <tr>
-                      <th className={TH}>
-                        Project
-                        <ColumnFilterInput
-                          aria-label="Filter by project"
-                          value={projectFilters.project}
-                          onChange={(v) => patchProjectFilter('project', v)}
-                          placeholder="Title or ID…"
-                        />
-                      </th>
-                      <th className={TH}>
-                        Type of Work
-                        <ColumnFilterSelect
-                          aria-label="Filter by type of work"
-                          value={projectFilters.trade}
-                          onChange={(v) => patchProjectFilter('trade', v)}
-                          options={ADMIN_TRADE_FILTERS}
-                        />
-                      </th>
-                      <th className={TH}>
-                        Location
-                        <ColumnFilterInput
-                          aria-label="Filter by location"
-                          value={projectFilters.location}
-                          onChange={(v) => patchProjectFilter('location', v)}
-                          placeholder="District / state…"
-                        />
-                      </th>
-                      <th className={TH}>
-                        Client
-                        <ColumnFilterInput
-                          aria-label="Filter by client"
-                          value={projectFilters.client}
-                          onChange={(v) => patchProjectFilter('client', v)}
-                          placeholder="Client name…"
-                        />
-                      </th>
-                      <th className={TH}>
-                        Bids &amp; Pricing
-                        <ColumnFilterSelect
-                          aria-label="Filter by bids"
-                          value={projectFilters.bids}
-                          onChange={(v) => patchProjectFilter('bids', v)}
-                          options={BIDS_FILTERS}
-                        />
-                      </th>
-                      <th className={TH}>
-                        Status
-                        <ColumnFilterSelect
-                          aria-label="Filter by status"
-                          value={projectFilters.status}
-                          onChange={(v) => patchProjectFilter('status', v)}
-                          options={ADMIN_STATUS_FILTERS}
-                        />
-                      </th>
-                      <th className={TH}>
-                        Project Uploaded Date
-                        <ColumnFilterSelect
-                          aria-label="Filter by uploaded date"
-                          value={projectFilters.uploaded}
-                          onChange={(v) => patchProjectFilter('uploaded', v)}
-                          options={UPLOADED_DATE_FILTERS}
-                        />
-                      </th>
-                      <th className={TH}>Actions</th>
+                      <th className={TH}>Project</th>
+                      <th className={TH}>Type of Work</th>
+                      <th className={TH}>Location</th>
+                      <th className={TH}>Client</th>
+                      <th className={TH}>Bids &amp; Pricing</th>
+                      <th className={TH}>Status</th>
+                      <th className={TH}>Project Uploaded Date</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredProjects.length === 0 ? (
                       <tr>
                         <td
-                          colSpan={8}
+                          colSpan={7}
                           className="px-4 py-10 text-center text-sm text-slate-500"
                         >
                           {projects.length === 0
-                            ? 'No projects have been uploaded yet.'
-                            : 'No projects match your filters.'}
+                            ? 'No live bidding projects right now.'
+                            : 'No projects match your search.'}
                         </td>
                       </tr>
                     ) : (
@@ -1080,66 +782,6 @@ export function AdminDashboardClient({
                               {formatRelativeTime(p.createdAt)}
                             </p>
                           </td>
-                          <td className={TD}>
-                            <div className="flex flex-wrap items-center gap-1">
-                              <button
-                                type="button"
-                                disabled={pending}
-                                title="Close auction"
-                                onClick={() => closeAuction(p.id)}
-                                className="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium text-slate-600 transition hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50"
-                              >
-                                <Lock className="h-3 w-3" />
-                                Close
-                              </button>
-                              <button
-                                type="button"
-                                disabled={pending}
-                                title="Extend bidding by 24 hours"
-                                onClick={() =>
-                                  runAction(
-                                    () => adminExtendAuctionAction(p.id, 24),
-                                    'Bidding extended by 24h.',
-                                  )
-                                }
-                                className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 transition hover:bg-slate-100 disabled:opacity-50 dark:border-slate-700"
-                              >
-                                <TimerReset className="h-3 w-3" />
-                                +24h
-                              </button>
-                              {p.selectedBuilderId ? (
-                                <>
-                                  {supervisorPortal ? (
-                                    <WorkflowActions
-                                      projectId={p.id}
-                                      workflow={p.workflow}
-                                      busy={pending}
-                                      onGoToAgreement={() => goToAgreement(p.id)}
-                                    />
-                                  ) : (
-                                    <button
-                                      type="button"
-                                      title="Create Contract Agreement"
-                                      onClick={() => openContractModal(p)}
-                                      className="inline-flex items-center gap-1 rounded-md bg-emerald-700 px-2.5 py-1 text-xs font-medium text-white shadow-xs transition hover:bg-emerald-800"
-                                    >
-                                      <FileSignature className="h-3 w-3" />
-                                      Create Contract Agreement
-                                    </button>
-                                  )}
-                                  <a
-                                    href={`/api/agreements/pdf?projectId=${encodeURIComponent(p.publicId || p.id)}`}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="inline-flex items-center gap-1 rounded-md bg-slate-900 px-2.5 py-1 text-xs font-medium text-white shadow-xs transition hover:bg-slate-800"
-                                  >
-                                    <Download className="h-3 w-3" />
-                                    PDF
-                                  </a>
-                                </>
-                              ) : null}
-                            </div>
-                          </td>
                         </tr>
                       ))
                     )}
@@ -1149,7 +791,7 @@ export function AdminDashboardClient({
             </div>
           ) : null}
 
-          {tab === 'completed' && supervisorPortal ? (
+          {tab === 'completed' ? (
             <div className={TABLE_SHELL}>
               <div className="border-b border-slate-200 px-4 py-3 dark:border-slate-800">
                 <h2 className="text-sm font-semibold text-slate-900 dark:text-white">
@@ -1181,18 +823,18 @@ export function AdminDashboardClient({
                     ) : (
                       filteredCompleted.map((row) => (
                         <tr key={row.projectId} className={ROW_HOVER}>
-                          <td className={cn(TD, 'font-mono text-xs font-semibold text-slate-700')}>
+                          <td className={cn(TD, 'font-mono text-xs font-semibold text-slate-900 dark:text-white')}>
                             {displayProjectId(row.publicId, row.projectId)}
                           </td>
-                          <td className={cn(TD, 'font-medium text-slate-900 dark:text-slate-100')}>
+                          <td className={cn(TD, 'font-semibold text-slate-950 dark:text-white')}>
                             {row.projectName}
                           </td>
-                          <td className={cn(TD, 'text-slate-600')}>{row.location}</td>
-                          <td className={cn(TD, 'text-slate-700')}>{row.clientName}</td>
-                          <td className={cn(TD, 'font-semibold text-slate-900 dark:text-slate-100')}>
+                          <td className={cn(TD, 'font-semibold text-slate-950 dark:text-white')}>{row.location}</td>
+                          <td className={cn(TD, 'font-semibold text-slate-950 dark:text-white')}>{row.clientName}</td>
+                          <td className={cn(TD, 'font-semibold text-slate-950 dark:text-white')}>
                             {formatMoney(row.finalBudget)}
                           </td>
-                          <td className={cn(TD, 'font-semibold text-slate-900 dark:text-slate-100')}>
+                          <td className={cn(TD, 'font-semibold text-slate-950 dark:text-white')}>
                             {formatMoney(row.supervisorPayout)}
                           </td>
                         </tr>
@@ -1422,9 +1064,7 @@ export function AdminDashboardClient({
                           colSpan={6}
                           className="px-4 py-10 text-center text-sm text-slate-500"
                         >
-                          {PROTOTYPE_AUTO_AGREEMENT
-                            ? 'No awarded agreements yet. Close a project that has bids and it appears here automatically.'
-                            : 'No awarded agreements yet.'}
+                          When live bidding ends, the project appears here until both parties finish Aadhaar eSign.
                         </td>
                       </tr>
                     ) : (
@@ -1434,17 +1074,14 @@ export function AdminDashboardClient({
                             <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
                               {a.projectTitle}
                             </p>
-                            <p className="mt-0.5 text-xs text-slate-400">
+                            <p className="mt-0.5 text-xs font-semibold text-slate-800 dark:text-slate-100">
                               {a.district} · ID: {displayProjectId(a.publicId, a.projectId)}
                             </p>
-                            <span className="mt-1 inline-flex items-center rounded-md border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[11px] font-semibold text-indigo-700">
-                              {a.provisional ? 'Awarded · lowest bidder (auto)' : 'Awarded'}
-                            </span>
                           </td>
-                          <td className={cn(TD, 'text-sm text-slate-700')}>
+                          <td className={cn(TD, 'text-sm font-semibold text-slate-950 dark:text-white')}>
                             {a.clientName}
                           </td>
-                          <td className={cn(TD, 'text-sm text-slate-700')}>
+                          <td className={cn(TD, 'text-sm font-semibold text-slate-950 dark:text-white')}>
                             {a.mistriName}
                           </td>
                           <td className={TD}>
@@ -1472,14 +1109,6 @@ export function AdminDashboardClient({
                                   >
                                     <ClipboardCheck className="h-3 w-3" />
                                     Site Visit Checklist
-                                  </Link>
-                                  <Link
-                                    href={`/project/${a.projectId}`}
-                                    target="_blank"
-                                    className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 transition hover:bg-slate-100 dark:border-slate-700"
-                                  >
-                                    <ExternalLink className="h-3 w-3" />
-                                    Project Details
                                   </Link>
                                 </>
                               ) : (
@@ -1513,14 +1142,6 @@ export function AdminDashboardClient({
                                     <Download className="h-3 w-3" />
                                     PDF
                                   </a>
-                                  <Link
-                                    href={`/project/${a.projectId}`}
-                                    target="_blank"
-                                    className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 transition hover:bg-slate-100 dark:border-slate-700"
-                                  >
-                                    <ExternalLink className="h-3 w-3" />
-                                    Project
-                                  </Link>
                                 </>
                               ) : null}
                             </div>
