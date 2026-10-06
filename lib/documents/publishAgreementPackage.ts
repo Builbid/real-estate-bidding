@@ -62,10 +62,16 @@ async function storePdf(options: {
   );
   if (error) {
     const message = error.message.toLowerCase();
-    if (message.includes('quality_control') || message.includes('invalid input value for enum')) {
+    if (options.type === 'quality_control' && (message.includes('quality_control') || message.includes('invalid input value for enum'))) {
       return {
         error:
           'Database is missing the quality-control document type. Run supabase/migrations/064_agreement_dates_and_quality_control.sql in the Supabase SQL Editor, then share again.',
+      };
+    }
+    if (options.type === 'site_checklist' && (message.includes('site_checklist') || message.includes('invalid input value for enum'))) {
+      return {
+        error:
+          'Database is missing the site-checklist document type. Run supabase/migrations/065_site_checklist_documents.sql in the Supabase SQL Editor, then share again.',
       };
     }
     return { error: error.message };
@@ -84,9 +90,21 @@ export async function publishAgreementPackage(options: {
   agreementBytes: Uint8Array;
   /** Stored only for civil / mistri work. Other trades still generate the PDF before this call. */
   qualityControlBytes: Uint8Array | null;
+  /** Site visit checklist PDF, stored when a checklist exists for this project. */
+  checklistBytes?: Uint8Array | null;
 }): Promise<{ error?: string }> {
   const agreement = await storePdf({ ...options, type: 'agreement', bytes: options.agreementBytes });
   if (agreement.error) return agreement;
-  if (!options.qualityControlBytes) return {};
-  return storePdf({ ...options, type: 'quality_control', bytes: options.qualityControlBytes });
+  if (options.qualityControlBytes) {
+    const qualityControl = await storePdf({
+      ...options,
+      type: 'quality_control',
+      bytes: options.qualityControlBytes,
+    });
+    if (qualityControl.error) return qualityControl;
+  }
+  if (!options.checklistBytes) return {};
+  const checklist = await storePdf({ ...options, type: 'site_checklist', bytes: options.checklistBytes });
+  if (checklist.error && /site-checklist document type/i.test(checklist.error)) return {};
+  return checklist;
 }

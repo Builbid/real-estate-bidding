@@ -33,7 +33,15 @@ export async function listMyProjectDocumentsAction(): Promise<{
     return { documents: [], error: error.message };
   }
 
-  return { documents: (data ?? []) as ProjectDocument[], error: null };
+  const documents = ((data ?? []) as ProjectDocument[]).filter((row) => {
+    const isOwner = row.owner_id === user.id;
+    const isWorker = row.worker_id === user.id;
+    if (isOwner && !row.owner_deleted) return true;
+    if (isWorker && !row.worker_deleted) return true;
+    return false;
+  });
+
+  return { documents, error: null };
 }
 
 export async function hideProjectDocumentAction(
@@ -54,6 +62,7 @@ export async function hideProjectDocumentAction(
   }
 
   revalidatePath('/dashboard/profile');
+  revalidatePath('/dashboard/profile/documents');
   return { error: null };
 }
 

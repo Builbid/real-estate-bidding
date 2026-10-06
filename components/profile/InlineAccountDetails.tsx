@@ -4,13 +4,15 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ChevronRight, Folder, Mail, MapPin, Pencil, Phone, ShieldCheck } from 'lucide-react';
+import { formatBuilbidPublicId } from '@/lib/contract/builbidPublicId';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { updateAccountFieldAction } from '@/app/actions/profile';
 import { useDashboardProfile } from '@/lib/context/ProfileProvider';
+import { PROJECT_DOCUMENT_TYPE_LABEL } from '@/lib/documents/constants';
 import { formatMobileDisplay, stripMobileDigits } from '@/lib/validation/mobile';
 import { formatPincodeInput } from '@/lib/validation/pincode';
-import type { Profile } from '@/lib/types';
+import type { Profile, ProjectDocument, ProjectDocumentType } from '@/lib/types';
 
 type AccountDetailField = 'email' | 'mobile' | 'location';
 
@@ -116,7 +118,7 @@ export function InlineAccountDetails({
   }
 
   return (
-    <div className="w-full min-w-0 divide-y divide-border rounded-xl border border-border bg-card px-4">
+    <div className="w-full min-w-0 divide-y divide-slate-200 rounded-xl border border-slate-200 bg-white px-4 dark:divide-slate-700/80 dark:border-slate-700/80 dark:bg-slate-900">
       <EditableDetailRow
         icon={Mail}
         label="Email"
@@ -192,33 +194,81 @@ export function InlineAccountDetails({
         </div>
       </EditableDetailRow>
 
-      <DocumentsFolderRow />
       {gstNumber ? <ReadOnlyDetailRow icon={ShieldCheck} label="GST Number" value={gstNumber} /> : null}
+      <BuilbidIdRow profileId={current.id} />
     </div>
   );
 }
 
-/** Folder-style entry that opens the user's uploaded document details. */
-function DocumentsFolderRow() {
+/** Single-line, read-only account ID. No edit control. */
+function BuilbidIdRow({ profileId }: { profileId: string }) {
+  const builbidId = formatBuilbidPublicId(profileId);
   return (
     <div className="py-3">
+      <p
+        className="overflow-x-auto whitespace-nowrap text-sm font-semibold tracking-wide text-slate-900 dark:text-slate-100"
+        title={`BUILBID ID: ${builbidId}`}
+      >
+        BUILBID ID: <span className="font-mono">{builbidId}</span>
+      </p>
+    </div>
+  );
+}
+
+/** Documents card under the BuilBid ID. Lists files routed to this account. */
+export function ProfileDocumentsCard({ documents }: { documents: ProjectDocument[] }) {
+  return (
+    <section className="rounded-xl border border-slate-200 bg-white px-4 py-3 dark:border-slate-700/80 dark:bg-slate-900">
       <Link
         href="/dashboard/profile/documents"
-        className="group flex w-full items-center gap-3 rounded-lg border border-border bg-muted/40 px-3 py-2.5 text-left transition hover:border-brand/40 hover:bg-brand/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+        className="group flex w-full items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-left transition hover:border-brand/40 hover:bg-brand/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 dark:border-slate-700/80 dark:bg-slate-950/50 dark:hover:border-brand/50"
       >
         <Folder className="h-5 w-5 flex-shrink-0 text-brand" aria-hidden />
         <span className="min-w-0 flex-1">
-          <span className="block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <span className="block text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
             Documents
           </span>
-          <span className="mt-0.5 block text-sm text-foreground">View uploaded documents</span>
+          <span className="mt-0.5 block text-sm text-slate-900 dark:text-slate-100">View uploaded documents</span>
         </span>
         <ChevronRight
-          className="h-4 w-4 flex-shrink-0 text-muted-foreground transition group-hover:translate-x-0.5"
+          className="h-4 w-4 flex-shrink-0 text-slate-500 transition group-hover:translate-x-0.5 dark:text-slate-400"
           aria-hidden
         />
       </Link>
-    </div>
+
+      {documents.length === 0 ? (
+        <p className="px-1 pt-3 text-sm text-slate-600 dark:text-slate-400">
+          Signed agreements, quality-control forms, and site checklists shared to this BuilBid ID appear here.
+        </p>
+      ) : (
+        <ul className="mt-3 divide-y divide-slate-200 dark:divide-slate-700/80">
+          {documents.map((doc) => {
+            const type = doc.document_type as ProjectDocumentType;
+            return (
+              <li key={doc.id} className="flex items-center justify-between gap-3 py-2.5">
+                <div className="min-w-0">
+                  <p className="truncate whitespace-nowrap text-sm font-semibold text-slate-900 dark:text-slate-100">
+                    {doc.project_name}
+                  </p>
+                  <p className="truncate whitespace-nowrap text-xs text-slate-500 dark:text-slate-400">
+                    {PROJECT_DOCUMENT_TYPE_LABEL[type] ?? type}
+                    {doc.numeric_project_id ? ` · ${doc.numeric_project_id}` : ''}
+                  </p>
+                </div>
+                <a
+                  href={`/api/documents/file?id=${encodeURIComponent(doc.id)}&disposition=inline`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="shrink-0 whitespace-nowrap text-xs font-semibold text-brand hover:text-brand-hover"
+                >
+                  View PDF
+                </a>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
   );
 }
 

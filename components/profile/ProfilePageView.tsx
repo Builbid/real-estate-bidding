@@ -18,8 +18,8 @@ import { useTranslation } from '@/lib/context/LanguageProvider';
 import { getProfileRoleLabel } from '@/lib/auth/profileRoleLabel';
 import { clientSignOut } from '@/lib/auth/clientSignOut';
 import { useDashboardProfile } from '@/lib/context/ProfileProvider';
-import { InlineAccountDetails } from '@/components/profile/InlineAccountDetails';
-import type { Profile } from '@/lib/types';
+import { InlineAccountDetails, ProfileDocumentsCard } from '@/components/profile/InlineAccountDetails';
+import type { Profile, ProjectDocument } from '@/lib/types';
 import type { BuilderRatingStats } from '@/lib/builderRatings';
 
 export interface ProfileActivityMetrics {
@@ -35,9 +35,10 @@ export interface ProfileActivityMetrics {
 interface ProfilePageViewProps {
   profile: Profile;
   metrics: ProfileActivityMetrics;
+  documents: ProjectDocument[];
 }
 
-export function ProfilePageView({ profile, metrics }: ProfilePageViewProps) {
+export function ProfilePageView({ profile, metrics, documents }: ProfilePageViewProps) {
   const { t } = useTranslation();
   const router = useRouter();
   const { clearProfile } = useDashboardProfile();
@@ -115,9 +116,11 @@ export function ProfilePageView({ profile, metrics }: ProfilePageViewProps) {
       </section>
 
       <section className="min-w-0">
-        <h2 className="mb-4 text-base font-semibold text-foreground">Account Details</h2>
+        <h2 className="mb-4 text-base font-semibold text-slate-900 dark:text-slate-100">Account Details</h2>
         <InlineAccountDetails profile={profile} gstNumber={isFirm ? profile.gst_number : null} />
       </section>
+
+      <ProfileDocumentsCard documents={documents} />
 
       <SignOutConfirmDialog
         open={signOutOpen}

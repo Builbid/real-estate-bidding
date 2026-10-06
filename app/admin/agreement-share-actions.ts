@@ -3,9 +3,9 @@
 import { revalidatePath } from 'next/cache';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireOfficialAdmin } from '@/lib/admin/auth';
-import { loadAgreementDraft } from '@/lib/admin/agreementDraft';
+import { loadAgreementDraft, type AgreementDraft } from '@/lib/admin/agreementDraft';
 import { tradeLabelFor } from '@/lib/admin/siteMeasurements';
-import { soilLabel } from '@/lib/admin/siteVisit';
+import { checklistAgreementRows, soilLabel } from '@/lib/admin/siteVisit';
 import { isMissingWorkflowTable, SITE_VISIT_TABLE_MISSING_MESSAGE } from '@/lib/admin/siteVisitStore';
 import type { SharedAgreementSnapshot } from '@/lib/admin/sharedAgreement';
 import { projectTerritoryError } from '@/lib/admin/territory';
@@ -32,6 +32,36 @@ function toIsoDate(raw: string | undefined): string | null {
 function dmy(iso: string): string {
   const [year, month, day] = iso.slice(0, 10).split('-');
   return year && month && day ? `${day}/${month}/${year}` : iso;
+}
+
+/** Checklist PDF routed to both accounts under their BuilBid IDs. */
+function siteChecklistPdf(draft: AgreementDraft): Uint8Array | null {
+  const visit = draft.visit;
+  if (!visit) return null;
+  const rows = [
+    { label: 'Homeowner BuilBid ID', value: draft.client.accountId },
+    { label: 'Worker BuilBid ID', value: draft.contractor.platformId },
+    ...checklistAgreementRows(visit),
+    ...(Array.isArray(visit.lineItems) ? visit.lineItems : []).map((line) => ({
+      label: line.group ? `${line.group} - ${line.label}` : line.label,
+      value: `${line.quantity} ${line.unit} x Rs. ${Math.round(line.rate).toLocaleString('en-IN')} = Rs. ${Math.round(line.amount).toLocaleString('en-IN')}`,
+    })),
+  ];
+  if (visit.totalAccurateCost != null && visit.totalAccurateCost > 0) {
+    rows.push({
+      label: 'Total Accurate Cost',
+      value: `Rs. ${Math.round(visit.totalAccurateCost).toLocaleString('en-IN')}`,
+    });
+  }
+  if (rows.length <= 2) return null;
+  return generateProjectDocumentPdfBytes({
+    title: 'Site Visit Checklist',
+    subtitle: 'Measured site record shared to both BuilBid accounts',
+    numericProjectId: draft.project.publicId || draft.project.id,
+    projectName: draft.project.title,
+    notice: 'This checklist is linked to the homeowner and worker BuilBid IDs on this project.',
+    rows,
+  });
 }
 
 async function partyMatchesAccount(
@@ -142,6 +172,7 @@ export async function shareAgreementCopyAction(
     workerId: draft.project.builderId,
     agreementBytes,
     qualityControlBytes: draft.project.isMistriCivil ? qualityControlBytes : null,
+    checklistBytes: siteChecklistPdf(draft),
   });
   if (published.error) return { error: published.error };
 
@@ -215,6 +246,7 @@ export async function shareAgreementCopyAction(
 
   revalidatePath('/dashboard/owner');
   revalidatePath('/dashboard/builder');
+  revalidatePath('/dashboard/profile');
   revalidatePath('/dashboard/profile/documents');
   revalidatePath(`/admin/agreement/${draft.project.id}`);
   return {

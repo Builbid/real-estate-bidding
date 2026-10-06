@@ -42,8 +42,8 @@ export function DocumentsSection({ documents }: DocumentsSectionProps) {
         <FolderOpen className="h-4 w-4 text-muted-foreground" />
         Documents
       </h2>
-      <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
-        Agreement copies, quality-control forms, cost estimates, and AI design files share one Project ID and stay backed up on the BuilBid server. Remove hides a file from your view only.
+      <p className="mb-4 text-sm text-slate-600 dark:text-slate-400">
+        Signed agreements, quality-control forms, and site checklists linked to your BuilBid ID appear here as soon as they are shared. Remove hides a file from your view only.
       </p>
 
       <div className="space-y-4">
@@ -53,8 +53,8 @@ export function DocumentsSection({ documents }: DocumentsSectionProps) {
           <div>
             <FileText className="mb-2 h-6 w-6 text-muted-foreground" />
             <p className="text-sm font-medium text-foreground">No project documents yet</p>
-            <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-              When an agreement or estimate is finalized, the files appear here for both the homeowner and the worker.
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+              When an agreement is shared to your BuilBid ID, the signed copy, quality-control form, and site checklist appear here.
             </p>
           </div>
         ) : (
@@ -64,7 +64,7 @@ export function DocumentsSection({ documents }: DocumentsSectionProps) {
             return (
               <div
                 key={doc.id}
-                className="flex flex-col gap-3 py-2 sm:flex-row sm:items-center sm:justify-between"
+                className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2.5 dark:border-slate-700/80 dark:bg-slate-900 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
