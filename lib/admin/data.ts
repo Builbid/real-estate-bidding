@@ -1,4 +1,4 @@
-import { calculateSupervisorCommission, SUPERVISOR_PAYOUT_LABEL } from '@/lib/admin/constants';
+import { calculateSupervisorCommission, SUPERVISOR_PAYOUT_BPS, SUPERVISOR_PAYOUT_LABEL } from '@/lib/admin/constants';
 import {
   currentMonthStartInstant,
   currentMonthStartIst,
@@ -14,7 +14,6 @@ import { createClient } from '@/lib/supabase/server';
 import type { Profile, ProjectStatus, ServiceType } from '@/lib/types';
 
 export type AdminTab =
-  | 'overview'
   | 'projects'
   | 'workers'
   | 'clients'
@@ -436,6 +435,41 @@ export async function loadAdminDashboardData(
 
   const pendingApprovals = workers.filter((w) => !w.isVerified).length;
 
+  const agreedCostByProject = new Map<string, number>();
+  const commissionBpsByProject = new Map<string, number>();
+  try {
+    const admin = createAdminClient();
+    const projectIdList = projects.map((p) => p.id);
+    if (projectIdList.length > 0) {
+      const [contractRows, commissionRows] = await Promise.all([
+        admin
+          .from('project_digital_contracts')
+          .select('project_id, total_agreed_cost')
+          .in('project_id', projectIdList),
+        admin
+          .from('supervisor_commissions')
+          .select('project_id, commission_bps')
+          .in('project_id', projectIdList),
+      ]);
+      for (const row of (contractRows.data ?? []) as Array<{
+        project_id: string;
+        total_agreed_cost: number | string | null;
+      }>) {
+        const value = Number(row.total_agreed_cost);
+        if (Number.isFinite(value) && value > 0) agreedCostByProject.set(row.project_id, value);
+      }
+      for (const row of (commissionRows.data ?? []) as Array<{
+        project_id: string;
+        commission_bps: number | string | null;
+      }>) {
+        const bps = Number(row.commission_bps);
+        if (Number.isFinite(bps) && bps >= 0) commissionBpsByProject.set(row.project_id, bps);
+      }
+    }
+  } catch {
+    // Service role missing: completed works stay blank rather than showing a bid amount.
+  }
+
   // Projects lists a row only while Live Bidding is still running.
   const visibleProjectRows = projectRows.filter(
     (p) =>
@@ -465,10 +499,8 @@ export async function loadAdminDashboardData(
     })
     .map((p) => {
       const row = projectRows.find((item) => item.id === p.id);
-      const finalBudget =
-        row?.winningBid ??
-        (p.budget_range_max != null ? Number(p.budget_range_max) : null) ??
-        (p.budget_range_min != null ? Number(p.budget_range_min) : null);
+      const finalBudget = agreedCostByProject.get(p.id) ?? null;
+      const commissionBps = commissionBpsByProject.get(p.id) ?? SUPERVISOR_PAYOUT_BPS;
       return {
         projectId: p.id,
         publicId: row?.publicId ?? (p.numeric_id ?? '').trim().toUpperCase(),
@@ -477,7 +509,8 @@ export async function loadAdminDashboardData(
         pincode: p.pincode,
         clientName: row?.clientName ?? '—',
         finalBudget,
-        supervisorPayout: estimateSupervisorPayout(finalBudget),
+        supervisorPayout:
+          finalBudget == null ? 0 : Math.round((finalBudget * commissionBps) / 10_000),
       };
     });
 

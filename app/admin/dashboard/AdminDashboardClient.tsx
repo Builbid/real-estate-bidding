@@ -10,17 +10,14 @@ import { NotificationBell } from '@/components/shared/NotificationBell';
 import {
   BadgeCheck,
   Building2,
-  Clock,
   Download,
   FileText,
   HardHat,
-  LayoutDashboard,
   LogOut,
   MapPin,
   Search,
   Shield,
   Users,
-  Gavel,
   FileSignature,
   Trash2,
   UserRound,
@@ -35,7 +32,6 @@ import {
 import type {
   AdminAgreementRow,
   AdminClientRow,
-  AdminKpis,
   AdminProjectRow,
   AdminSupervisorRow,
   AdminTab,
@@ -184,9 +180,8 @@ function ProjectStatusCell({
 }
 
 function bidCountLabel(count: number): string {
-  if (count === 0) return '0 bids';
-  if (count === 1) return '1 bid placed';
-  return `${count} bids placed`;
+  if (count === 1) return '1 bid';
+  return `${count} bids`;
 }
 
 function BidMetricsCell({ project }: { project: AdminProjectRow }) {
@@ -287,8 +282,7 @@ function SupervisorRowAdmin({ row }: { row: AdminSupervisorRow }) {
   );
 }
 
-const TABS: { id: AdminTab; label: string; icon: typeof LayoutDashboard }[] = [
-  { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+const TABS: { id: AdminTab; label: string; icon: typeof Building2 }[] = [
   { id: 'projects', label: 'Projects', icon: Building2 },
   { id: 'workers', label: 'Mistris / Workers', icon: HardHat },
   { id: 'clients', label: 'Clients', icon: Users },
@@ -297,30 +291,23 @@ const TABS: { id: AdminTab; label: string; icon: typeof LayoutDashboard }[] = [
   { id: 'supervisors', label: 'Supervisors', icon: UserRound },
 ];
 
-const SUPERVISOR_TAB_IDS = new Set<AdminTab>([
-  'overview',
-  'projects',
-  'agreements',
-  'completed',
-]);
+const SUPERVISOR_TAB_IDS = new Set<AdminTab>(['projects', 'agreements', 'completed']);
 
 export function AdminDashboardClient({
   email,
   supervisorPortal = false,
   account = null,
-  kpis,
   projects,
   workers,
   clients,
   agreements,
   completedWorks,
   supervisors = [],
-  initialTab = 'overview',
+  initialTab = 'projects',
 }: {
   email: string;
   supervisorPortal?: boolean;
   account?: SupervisorAccount | null;
-  kpis: AdminKpis;
   projects: AdminProjectRow[];
   workers: AdminWorkerRow[];
   clients: AdminClientRow[];
@@ -616,84 +603,32 @@ export function AdminDashboardClient({
               </button>
             ))}
           </div>
-          {tab !== 'overview' ? (
-            <div className="relative w-56 shrink-0 sm:w-72">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500 dark:text-slate-300" />
-              <Input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search this table…"
-                className="h-9 border-slate-200 bg-white pl-9 text-sm text-slate-900 shadow-sm dark:border-slate-600 dark:bg-slate-950 dark:text-white"
-              />
-            </div>
-          ) : null}
+          <div className="relative w-56 shrink-0 sm:w-72">
+            <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-slate-500 dark:text-slate-300" />
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search this table…"
+              compact
+              className="h-9 border-slate-200 bg-white pl-9 text-sm text-slate-900 shadow-none dark:border-slate-600 dark:bg-slate-950 dark:text-white"
+            />
+          </div>
         </nav>
 
         <main className="flex-1 space-y-5 p-4 sm:p-6">
-          {tab !== 'overview' && !supervisorPortal ? (
-            <div className="hidden items-center lg:flex">
+          {!supervisorPortal ? (
+            <div className="hidden lg:block">
               <div className="relative w-full max-w-md">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500 dark:text-slate-300" />
+                <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-slate-500 dark:text-slate-300" />
                 <Input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Search this table…"
-                  className="h-9 border-slate-200 bg-white pl-9 text-sm text-slate-900 shadow-sm dark:border-slate-600 dark:bg-slate-950 dark:text-white"
+                  compact
+                  className="h-9 border-slate-200 bg-white pl-9 text-sm text-slate-900 shadow-none dark:border-slate-600 dark:bg-slate-950 dark:text-white"
                 />
               </div>
             </div>
-          ) : null}
-
-          {tab === 'overview' ? (
-            <section className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
-              {(supervisorPortal
-                ? [
-                    { label: 'Live auctions', value: kpis.liveAuctions, icon: Gavel },
-                    {
-                      label: 'Projects posted',
-                      value: kpis.totalProjects,
-                      icon: Building2,
-                    },
-                    {
-                      label: 'Completed works',
-                      value: completedWorks.length,
-                      icon: ClipboardCheck,
-                    },
-                    { label: 'Bids placed', value: kpis.totalBids, icon: FileText },
-                  ]
-                : [
-                    { label: 'Live auctions', value: kpis.liveAuctions, icon: Gavel },
-                    {
-                      label: 'Projects posted',
-                      value: kpis.totalProjects,
-                      icon: Building2,
-                    },
-                    { label: 'Workers', value: kpis.totalWorkers, icon: HardHat },
-                    { label: 'Clients', value: kpis.totalClients, icon: Users },
-                    {
-                      label: 'Pending verify',
-                      value: kpis.pendingApprovals,
-                      icon: Clock,
-                    },
-                    { label: 'Bids placed', value: kpis.totalBids, icon: FileText },
-                  ]
-              ).map(({ label, value, icon: Icon }) => (
-                <div
-                  key={label}
-                  className="rounded-xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900"
-                >
-                  <div className="flex items-center gap-2 text-slate-500">
-                    <Icon className="h-4 w-4" />
-                    <p className="text-[11px] font-semibold uppercase tracking-wide">
-                      {label}
-                    </p>
-                  </div>
-                  <p className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">
-                    {value.toLocaleString('en-IN')}
-                  </p>
-                </div>
-              ))}
-            </section>
           ) : null}
 
           {tab === 'projects' ? (
@@ -706,7 +641,7 @@ export function AdminDashboardClient({
                       <th className={TH}>Type of Work</th>
                       <th className={TH}>Location</th>
                       <th className={TH}>Client</th>
-                      <th className={TH}>Bids &amp; Pricing</th>
+                      <th className={TH}>Total Bids</th>
                       <th className={TH}>Status</th>
                       <th className={TH}>Project Uploaded Date</th>
                     </tr>
@@ -840,7 +775,7 @@ export function AdminDashboardClient({
                             {formatMoney(row.finalBudget)}
                           </td>
                           <td className={cn(TD, 'font-semibold text-slate-950 dark:text-white')}>
-                            {formatMoney(row.supervisorPayout)}
+                            {row.finalBudget == null ? '—' : formatMoney(row.supervisorPayout)}
                           </td>
                         </tr>
                       ))
@@ -1057,7 +992,6 @@ export function AdminDashboardClient({
                       <th className={TH}>Project</th>
                       <th className={TH}>Client</th>
                       <th className={TH}>Mistri</th>
-                      <th className={TH}>Rate</th>
                       <th className={TH}>Execution</th>
                       <th className={TH}>Actions</th>
                     </tr>
@@ -1066,7 +1000,7 @@ export function AdminDashboardClient({
                     {filteredAgreements.length === 0 ? (
                       <tr>
                         <td
-                          colSpan={6}
+                          colSpan={5}
                           className="px-4 py-10 text-center text-sm text-slate-500"
                         >
                           When live bidding ends, the project appears here until both parties finish Aadhaar eSign.
@@ -1088,16 +1022,6 @@ export function AdminDashboardClient({
                           </td>
                           <td className={cn(TD, 'text-sm font-semibold text-slate-950 dark:text-white')}>
                             {a.mistriName}
-                          </td>
-                          <td className={TD}>
-                            <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-                              {a.rateSummary}
-                            </p>
-                            {a.workflow.approved ? (
-                              <p className="mt-0.5 text-[11px] font-bold text-emerald-700">
-                                Approved / Active
-                              </p>
-                            ) : null}
                           </td>
                           <td className={cn(TD, 'text-xs text-slate-500')}>
                             {formatDate(a.executionDate)}

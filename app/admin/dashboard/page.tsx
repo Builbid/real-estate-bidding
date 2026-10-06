@@ -16,8 +16,8 @@ import { AdminDashboardClient } from './AdminDashboardClient';
 
 export const dynamic = 'force-dynamic';
 
-const ADMIN_TABS: AdminTab[] = ['overview', 'projects', 'workers', 'clients', 'agreements', 'supervisors'];
-const SUPERVISOR_TABS: AdminTab[] = ['overview', 'projects', 'agreements', 'completed'];
+const ADMIN_TABS: AdminTab[] = ['projects', 'workers', 'clients', 'agreements', 'completed', 'supervisors'];
+const SUPERVISOR_TABS: AdminTab[] = ['projects', 'agreements', 'completed'];
 
 export default async function AdminDashboardPage({
   searchParams,
@@ -48,14 +48,13 @@ export default async function AdminDashboardPage({
   const supervisors = supervisorPortal ? [] : await loadAdminSupervisors();
   const params = await searchParams;
   const allowed = supervisorPortal ? SUPERVISOR_TABS : ADMIN_TABS;
-  const tab = allowed.includes(params.tab as AdminTab) ? (params.tab as AdminTab) : 'overview';
+  const tab = allowed.includes(params.tab as AdminTab) ? (params.tab as AdminTab) : 'projects';
 
   return (
     <AdminDashboardClient
       email={session.email}
       supervisorPortal={supervisorPortal}
       account={account}
-      kpis={data.kpis}
       projects={data.projects}
       workers={supervisorPortal ? [] : data.workers}
       clients={supervisorPortal ? [] : data.clients}
