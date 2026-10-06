@@ -65,6 +65,19 @@ export async function listMyProjectDocumentsAction(): Promise<{
   }
 
   const documents = collected.filter((row) => visibleToUser(row, user.id));
+  const projectIds = [...new Set(documents.map((row) => row.project_id).filter(Boolean))];
+  if (projectIds.length > 0) {
+    const { data: projects } = await supabase
+      .from('projects')
+      .select('id, service_type')
+      .in('id', projectIds);
+    const serviceById = new Map(
+      (projects ?? []).map((row) => [row.id as string, (row.service_type as string | null) ?? null]),
+    );
+    for (const row of documents) {
+      row.service_type = serviceById.get(row.project_id) ?? null;
+    }
+  }
   return { documents, error: null };
 }
 

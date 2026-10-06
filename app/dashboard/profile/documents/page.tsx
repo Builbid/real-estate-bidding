@@ -5,13 +5,13 @@ import { ArrowLeft } from 'lucide-react';
 import { getAuthUser } from '@/lib/supabase/getUser';
 import { listMyProjectDocumentsAction } from '@/app/actions/documents';
 import { DocumentsSection } from '@/components/profile/DocumentsSection';
-import { isProfileRoutedDocument } from '@/lib/documents/constants';
+import { isProfileHubDocument } from '@/lib/documents/constants';
 import { Button } from '@/components/ui/button';
 
 export default async function ProfileDocumentsPage() {
   await getAuthUser();
   const { documents: allDocuments } = await listMyProjectDocumentsAction();
-  const documents = allDocuments.filter((doc) => isProfileRoutedDocument(doc.document_type));
+  const documents = allDocuments.filter((doc) => isProfileHubDocument(doc.document_type));
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-6 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700/80 dark:bg-slate-900 sm:p-6">

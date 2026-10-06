@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic';
 import { getAuthUser } from '@/lib/supabase/getUser';
 import { listMyProjectDocumentsAction } from '@/app/actions/documents';
 import { ProfilePageView, type ProfileActivityMetrics } from '@/components/profile/ProfilePageView';
-import { isProfileRoutedDocument } from '@/lib/documents/constants';
+import { isProfileHubDocument } from '@/lib/documents/constants';
 import { resolveStoredRole } from '@/lib/auth/roles';
 import type { Profile, UserRole } from '@/lib/types';
 import { EMPTY_RATING_STATS, type BuilderRatingStats } from '@/lib/builderRatings';
@@ -108,7 +108,7 @@ export default async function DashboardProfilePage() {
   });
 
   const { documents } = await listMyProjectDocumentsAction();
-  const linkedDocuments = documents.filter((doc) => isProfileRoutedDocument(doc.document_type));
+  const linkedDocuments = documents.filter((doc) => isProfileHubDocument(doc.document_type));
 
   return (
     <ProfilePageView

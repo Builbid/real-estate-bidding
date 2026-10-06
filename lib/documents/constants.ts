@@ -19,6 +19,23 @@ export function isProfileRoutedDocument(type: string): type is ProfileRoutedDocu
   return (PROFILE_ROUTED_DOCUMENT_TYPES as readonly string[]).includes(type);
 }
 
+/** Payment invoices, platform receipts, and transaction records on a profile. */
+export const INVOICE_DOCUMENT_TYPES = [
+  'invoice',
+  'payment_invoice',
+  'receipt',
+  'billing_receipt',
+  'transaction',
+] as const;
+
+export function isInvoiceDocument(type: string): boolean {
+  return (INVOICE_DOCUMENT_TYPES as readonly string[]).includes(type);
+}
+
+export function isProfileHubDocument(type: string): boolean {
+  return isProfileRoutedDocument(type) || isInvoiceDocument(type);
+}
+
 export const PROJECT_DOCUMENT_TYPE_LABEL: Record<ProjectDocumentType, string> = {
   agreement: 'Agreement',
   estimate: 'Estimate',

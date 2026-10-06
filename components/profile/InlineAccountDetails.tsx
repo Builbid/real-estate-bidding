@@ -1,18 +1,17 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ChevronRight, Folder, Mail, MapPin, Pencil, Phone, ShieldCheck } from 'lucide-react';
+import { ChevronDown, Folder, Mail, MapPin, Pencil, Phone, ShieldCheck } from 'lucide-react';
 import { formatBuilbidPublicId } from '@/lib/contract/builbidPublicId';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { updateAccountFieldAction } from '@/app/actions/profile';
 import { useDashboardProfile } from '@/lib/context/ProfileProvider';
-import { PROJECT_DOCUMENT_TYPE_LABEL } from '@/lib/documents/constants';
+import { DocumentsSection } from '@/components/profile/DocumentsSection';
 import { formatMobileDisplay, stripMobileDigits } from '@/lib/validation/mobile';
 import { formatPincodeInput } from '@/lib/validation/pincode';
-import type { Profile, ProjectDocument, ProjectDocumentType } from '@/lib/types';
+import type { Profile, ProjectDocument } from '@/lib/types';
 
 type AccountDetailField = 'email' | 'mobile' | 'location';
 
@@ -215,12 +214,20 @@ function BuilbidIdRow({ profileId }: { profileId: string }) {
   );
 }
 
-/** Documents card under the BuilBid ID. Lists files routed to this account. */
+/** Documents folder under the BuilBid ID. Opens the agreement and invoice hub on this page. */
 export function ProfileDocumentsCard({ documents }: { documents: ProjectDocument[] }) {
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (window.location.hash === '#documents') setOpen(true);
+  }, []);
+
   return (
-    <section className="rounded-xl border border-slate-200 bg-white px-4 py-3 dark:border-slate-700/80 dark:bg-slate-900">
-      <Link
-        href="/dashboard/profile/documents"
+    <section id="documents" className="rounded-xl border border-slate-200 bg-white px-4 py-3 dark:border-slate-700/80 dark:bg-slate-900">
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen((current) => !current)}
         className="group flex w-full items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-left transition hover:border-brand/40 hover:bg-brand/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 dark:border-slate-700/80 dark:bg-slate-950/50 dark:hover:border-brand/50"
       >
         <Folder className="h-5 w-5 flex-shrink-0 text-brand" aria-hidden />
@@ -230,44 +237,17 @@ export function ProfileDocumentsCard({ documents }: { documents: ProjectDocument
           </span>
           <span className="mt-0.5 block text-sm text-slate-900 dark:text-slate-100">View uploaded documents</span>
         </span>
-        <ChevronRight
-          className="h-4 w-4 flex-shrink-0 text-slate-500 transition group-hover:translate-x-0.5 dark:text-slate-400"
+        <ChevronDown
+          className={`h-4 w-4 flex-shrink-0 text-slate-500 transition dark:text-slate-400 ${open ? 'rotate-180' : ''}`}
           aria-hidden
         />
-      </Link>
+      </button>
 
-      {documents.length === 0 ? (
-        <p className="px-1 pt-3 text-sm text-slate-600 dark:text-slate-400">
-          Signed agreements, quality-control forms, and site checklists shared to this BuilBid ID appear here.
-        </p>
-      ) : (
-        <ul className="mt-3 divide-y divide-slate-200 dark:divide-slate-700/80">
-          {documents.map((doc) => {
-            const type = doc.document_type as ProjectDocumentType;
-            return (
-              <li key={doc.id} className="flex items-center justify-between gap-3 py-2.5">
-                <div className="min-w-0">
-                  <p className="truncate whitespace-nowrap text-sm font-semibold text-slate-900 dark:text-slate-100">
-                    {doc.project_name}
-                  </p>
-                  <p className="truncate whitespace-nowrap text-xs text-slate-500 dark:text-slate-400">
-                    {PROJECT_DOCUMENT_TYPE_LABEL[type] ?? type}
-                    {doc.numeric_project_id ? ` · ${doc.numeric_project_id}` : ''}
-                  </p>
-                </div>
-                <a
-                  href={`/api/documents/file?id=${encodeURIComponent(doc.id)}&disposition=inline`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="shrink-0 whitespace-nowrap text-xs font-semibold text-brand hover:text-brand-hover"
-                >
-                  View PDF
-                </a>
-              </li>
-            );
-          })}
-        </ul>
-      )}
+      {open ? (
+        <div className="pt-3">
+          <DocumentsSection documents={documents} showIntro={false} />
+        </div>
+      ) : null}
     </section>
   );
 }

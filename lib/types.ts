@@ -195,6 +195,8 @@ export interface ProjectDocument {
   worker_deleted: boolean;
   created_at: string;
   updated_at: string;
+  /** Present on profile listings. Not a stored document column. */
+  service_type?: string | null;
 }
 
 export interface Project {
