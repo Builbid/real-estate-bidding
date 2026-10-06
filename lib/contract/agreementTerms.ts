@@ -4,7 +4,7 @@ export function graceDaysForService(
   serviceType: string | null | undefined,
   isMistriCivil = false,
 ): number {
-  if (isMistriCivil) return 7;
+  if (isMistriCivil) return 10;
   const service = (serviceType ?? '').toLowerCase();
   if (
     !service ||
@@ -13,7 +13,7 @@ export function graceDaysForService(
     service === 'civil_construction' ||
     service === 'mistri'
   ) {
-    return 7;
+    return 10;
   }
   return 5;
 }

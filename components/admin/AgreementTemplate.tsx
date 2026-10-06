@@ -28,7 +28,6 @@ type DocCopy = {
   timeline: string;
   materialDelay: string;
   penalty: string;
-  footer: string;
 };
 
 function tradeCopy(serviceType: string | null, isMistriCivil: boolean): DocCopy {
@@ -40,7 +39,7 @@ function tradeCopy(serviceType: string | null, isMistriCivil: boolean): DocCopy 
       partyB: 'Electrician / Worker',
       workerNoun: 'Electrician',
       legal:
-        'Legal Notice: This is an official digital contract between the Homeowner and the Electrician. BuilBid is a technology marketplace, site coordinator, and payment facilitator only — not an employer, general contractor, or primary party to on-site work.',
+        'Legal Notice: This is an official digital contract between the Homeowner and the Electrician. BuilBid is a technology marketplace and service provider platform — not an employer, general contractor, or primary party to on-site work.',
       specLead:
         'Joint site review: the homeowner, the electrician, and the BuilBid field coordinator confirm the fixture counts, wiring routes, and point measurements on site before execution. The checklist record below is the agreed scope.',
       excluded:
@@ -55,8 +54,6 @@ function tradeCopy(serviceType: string | null, isMistriCivil: boolean): DocCopy 
         'The homeowner must supply electrical materials on time. Homeowner material delays extend the deadline and void the on-time completion guarantee.',
       penalty:
         'Electrician delay penalty (5%): if the work runs past the 10-day grace period because of an unexcused electrician delay or absenteeism, 5% is deducted from the electrician payout through BuilBid.',
-      footer:
-        'Official BuilBid digital agreement for awarded electrician work. Cash payments outside the BuilBid gateway void platform guarantees.',
     };
   }
   if (service === 'plumber') {
@@ -66,7 +63,7 @@ function tradeCopy(serviceType: string | null, isMistriCivil: boolean): DocCopy 
       partyB: 'Plumber / Worker',
       workerNoun: 'Plumber',
       legal:
-        'Legal Notice: This is an official digital contract between the Homeowner and the Plumber. BuilBid is a technology marketplace, site coordinator, and payment facilitator only — not an employer, general contractor, or primary party to on-site work.',
+        'Legal Notice: This is an official digital contract between the Homeowner and the Plumber. BuilBid is a technology marketplace and service provider platform — not an employer, general contractor, or primary party to on-site work.',
       specLead:
         'Joint site review: the homeowner, the plumber, and the BuilBid field coordinator confirm fixture counts and pipe runs on site before execution. The checklist record below is the agreed scope.',
       excluded:
@@ -81,8 +78,6 @@ function tradeCopy(serviceType: string | null, isMistriCivil: boolean): DocCopy 
         'The homeowner must supply plumbing materials on time. Homeowner material delays extend the deadline and void the on-time completion guarantee.',
       penalty:
         'Plumber delay penalty (5%): if the work runs past the 10-day grace period because of an unexcused plumber delay or absenteeism, 5% is deducted from the plumber payout through BuilBid.',
-      footer:
-        'Official BuilBid digital agreement for awarded plumber work. Cash payments outside the BuilBid gateway void platform guarantees.',
     };
   }
   if (service === 'painter') {
@@ -92,7 +87,7 @@ function tradeCopy(serviceType: string | null, isMistriCivil: boolean): DocCopy 
       partyB: 'Painter / Worker',
       workerNoun: 'Painter',
       legal:
-        'Legal Notice: This is an official digital contract between the Homeowner and the Painter. BuilBid is a technology marketplace, site coordinator, and payment facilitator only — not an employer, general contractor, or primary party to on-site work.',
+        'Legal Notice: This is an official digital contract between the Homeowner and the Painter. BuilBid is a technology marketplace and service provider platform — not an employer, general contractor, or primary party to on-site work.',
       specLead:
         'Joint site review: the homeowner, the painter, and the BuilBid field coordinator confirm the measured paint area on site before execution. The checklist record below is the agreed scope.',
       excluded:
@@ -107,8 +102,6 @@ function tradeCopy(serviceType: string | null, isMistriCivil: boolean): DocCopy 
         'The homeowner must supply paint and related materials on time. Homeowner material delays extend the deadline and void the on-time completion guarantee.',
       penalty:
         'Painter delay penalty (5%): if the work runs past the 10-day grace period because of an unexcused painter delay or absenteeism, 5% is deducted from the painter payout through BuilBid.',
-      footer:
-        'Official BuilBid digital agreement for awarded painter work. Cash payments outside the BuilBid gateway void platform guarantees.',
     };
   }
   if (isMistriCivil || service === 'labour_contractor' || !service) {
@@ -118,7 +111,7 @@ function tradeCopy(serviceType: string | null, isMistriCivil: boolean): DocCopy 
       partyB: 'Head Mason (Mistri)',
       workerNoun: 'Mistri',
       legal:
-        'Legal Notice: This is an official digital contract between the Homeowner and the Head Mason (Mistri). BuilBid is a technology marketplace, site coordinator, and payment facilitator only — not an employer, general contractor, or primary party to on-site work.',
+        'Legal Notice: This is an official digital contract between the Homeowner and the Head Mason (Mistri). BuilBid is a technology marketplace and service provider platform — not an employer, general contractor, or primary party to on-site work.',
       specLead:
         'Joint blueprint review: the homeowner, the mistri, and the BuilBid field coordinator review the site and finalize the plinth area and structural dimensions before execution. The checklist record below is the agreed scope.',
       excluded:
@@ -133,8 +126,6 @@ function tradeCopy(serviceType: string | null, isMistriCivil: boolean): DocCopy 
         'The homeowner must supply materials on time. Homeowner material delays extend the deadline and void the on-time completion guarantee.',
       penalty:
         'Mistri delay penalty (5%): if the project extends beyond the 10-day grace period because of an unexcused mistri delay or absenteeism, 5% is deducted from the mistri payout through BuilBid.',
-      footer:
-        'Official BuilBid digital agreement for awarded mistri / RCC civil work. Cash payments outside the BuilBid gateway void platform guarantees.',
     };
   }
   const label = service.replace(/_/g, ' ');
@@ -144,7 +135,7 @@ function tradeCopy(serviceType: string | null, isMistriCivil: boolean): DocCopy 
     partyB: 'Worker',
     workerNoun: 'Worker',
     legal:
-      'Legal Notice: This is an official digital contract between the Homeowner and the Worker. BuilBid is a technology marketplace, site coordinator, and payment facilitator only — not an employer, general contractor, or primary party to on-site work.',
+      'Legal Notice: This is an official digital contract between the Homeowner and the Worker. BuilBid is a technology marketplace and service provider platform — not an employer, general contractor, or primary party to on-site work.',
     specLead:
       'Joint site review: the homeowner, the worker, and the BuilBid field coordinator confirm the measured scope on site before execution. The checklist record below is the agreed scope.',
     excluded:
@@ -159,8 +150,6 @@ function tradeCopy(serviceType: string | null, isMistriCivil: boolean): DocCopy 
       'The homeowner must supply materials on time. Homeowner material delays extend the deadline and void the on-time completion guarantee.',
     penalty:
       'Worker delay penalty (5%): if the project extends beyond the 10-day grace period because of an unexcused worker delay or absenteeism, 5% is deducted from the worker payout through BuilBid.',
-    footer:
-      'Official BuilBid digital agreement for awarded work. Cash payments outside the BuilBid gateway void platform guarantees.',
   };
 }
 
@@ -227,8 +216,6 @@ export function AgreementTemplate({
   startDate,
   completionDate,
   totalCost,
-  bidTotal,
-  measuredTotal,
   plinthAreaSqft,
   checklistRows,
   lineItems,
@@ -398,16 +385,6 @@ export function AgreementTemplate({
                 label: 'Grand Total',
                 value: inr(lineItems.length > 0 ? grandTotal : totalCost),
               },
-              ...(bidTotal != null && measuredTotal != null
-                ? [
-                    {
-                      label: 'Original accepted bid',
-                      value: `${inr(bidTotal)} · Measured difference ${
-                        measuredTotal - bidTotal >= 0 ? '+' : '−'
-                      }${inr(Math.abs(measuredTotal - bidTotal))}`,
-                    },
-                  ]
-                : []),
             ]}
           />
         </section>
@@ -450,8 +427,6 @@ export function AgreementTemplate({
             approved={Boolean(contract?.approved)}
           />
         </section>
-
-        <p className="border-t border-slate-700 pt-3 text-[11px] leading-relaxed text-slate-400">{doc.footer}</p>
       </div>
     </article>
   );

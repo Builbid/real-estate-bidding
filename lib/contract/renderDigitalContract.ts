@@ -468,7 +468,7 @@ function generateGenericDigitalContractPdf(input: {
   );
   y = drawParagraph(
     doc,
-    'Legal Notice: This is an official digital contract between the Homeowner and the Contractor. BuilBid is a technology marketplace, site coordinator, and payment facilitator only — not an employer, general contractor, or primary party to on-site work.',
+    'Legal Notice: This is an official digital contract between the Homeowner and the Contractor. BuilBid is a technology marketplace and service provider platform — not an employer, general contractor, or primary party to on-site work.',
     y,
     margin,
     { bold: true },

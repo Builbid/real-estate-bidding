@@ -213,7 +213,7 @@ export function AgreementWorkspace(props: AgreementWorkspaceProps) {
       <section className={CARD}>
         <h2 className="flex items-center gap-2 text-sm font-bold text-white">
           <Share2 className="h-4 w-4 text-emerald-400" />
-          Send / Share Agreement
+          Share Documents
         </h2>
         <p className="mt-1 text-xs text-slate-400">
           Sends the Digital Construction Agreement PDF and the project quality-control form into the document
@@ -247,7 +247,7 @@ export function AgreementWorkspace(props: AgreementWorkspaceProps) {
           disabled={sharing || !partyA.trim() || !partyB.trim()}
         >
           {sharing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Share2 className="h-4 w-4" />}
-          {sharing ? 'Sending…' : 'Send / Share'}
+          {sharing ? 'Sending…' : 'Share Documents'}
         </Button>
         {contract?.status === 'signed' && !approved ? (
           <div className="mt-4 rounded-lg border border-amber-900/50 bg-amber-950/40 p-4 text-sm text-amber-100">

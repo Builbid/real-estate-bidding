@@ -351,7 +351,7 @@ export function generateMistriAgreementPdfBytes(
 
   y = drawParagraph(
     doc,
-    'Legal Notice: This is an official digital contract between the Homeowner and the Head Mason (Mistri). BuilBid is a technology marketplace, site coordinator, and payment facilitator only — not an employer, general contractor, or primary party to on-site work.',
+    'Legal Notice: This is an official digital contract between the Homeowner and the Head Mason (Mistri). BuilBid is a technology marketplace and service provider platform — not an employer, general contractor, or primary party to on-site work.',
     y,
     margin,
     { bold: true },
@@ -439,7 +439,7 @@ export function generateMistriAgreementPdfBytes(
     [
       { label: 'Agreed start date', value: filledAgreementText(filled.agreedStartDate, AGREEMENT_MANUAL_DATE_BLANK) },
       { label: 'Agreed completion date', value: filledAgreementText(filled.agreedCompletionDate, AGREEMENT_MANUAL_DATE_BLANK) },
-      { label: 'Grace extension allowed', value: '7 Calendar Days (Penalty Free)' },
+      { label: 'Grace extension allowed', value: '10 Calendar Days (Penalty Free)' },
     ],
     y,
     margin,
