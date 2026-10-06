@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronDown, Folder, Mail, MapPin, Pencil, Phone, ShieldCheck } from 'lucide-react';
+import { Folder, Mail, MapPin, Pencil, Phone, ShieldCheck } from 'lucide-react';
 import { formatBuilbidPublicId } from '@/lib/contract/builbidPublicId';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -223,24 +223,15 @@ export function ProfileDocumentsCard({ documents }: { documents: ProjectDocument
   }, []);
 
   return (
-    <section id="documents" className="rounded-xl border border-slate-200 bg-white px-4 py-3 dark:border-slate-700/80 dark:bg-slate-900">
+    <section id="documents">
       <button
         type="button"
         aria-expanded={open}
         onClick={() => setOpen((current) => !current)}
-        className="group flex w-full items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-left transition hover:border-brand/40 hover:bg-brand/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 dark:border-slate-700/80 dark:bg-slate-950/50 dark:hover:border-brand/50"
+        className="inline-flex items-center gap-2 text-left text-sm font-semibold uppercase tracking-wide text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 dark:text-slate-100"
       >
-        <Folder className="h-5 w-5 flex-shrink-0 text-brand" aria-hidden />
-        <span className="min-w-0 flex-1">
-          <span className="block text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-            Documents
-          </span>
-          <span className="mt-0.5 block text-sm text-slate-900 dark:text-slate-100">View uploaded documents</span>
-        </span>
-        <ChevronDown
-          className={`h-4 w-4 flex-shrink-0 text-slate-500 transition dark:text-slate-400 ${open ? 'rotate-180' : ''}`}
-          aria-hidden
-        />
+        <Folder className="h-5 w-5 shrink-0 text-brand" aria-hidden />
+        Documents
       </button>
 
       {open ? (

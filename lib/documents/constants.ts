@@ -11,7 +11,7 @@ export const PROJECT_DOCUMENT_TYPES = [
 export type ProjectDocumentType = (typeof PROJECT_DOCUMENT_TYPES)[number];
 
 /** Files routed onto a profile from the account's BuilBid ID. */
-export const PROFILE_ROUTED_DOCUMENT_TYPES = ['agreement', 'quality_control', 'site_checklist'] as const;
+export const PROFILE_ROUTED_DOCUMENT_TYPES = ['agreement', 'quality_control'] as const;
 
 export type ProfileRoutedDocumentType = (typeof PROFILE_ROUTED_DOCUMENT_TYPES)[number];
 
@@ -63,9 +63,9 @@ export function documentFileName(
   ext = 'pdf',
 ): string {
   const id = isNumericProjectId(numericId) ? numericId.trim() : 'project';
-  if (type === 'agreement') return `Agreement-Copy-${id}.${ext}`;
+  if (type === 'agreement') return `Agreement-Copy.${ext}`;
   if (type === 'estimate') return `Cost-Estimate-${id}.${ext}`;
-  if (type === 'quality_control') return `Quality-Control-${id}.${ext}`;
+  if (type === 'quality_control') return `Quality-Control.${ext}`;
   if (type === 'site_checklist') return `Site-Checklist-${id}.${ext}`;
   return `AI-Design-${id}.${ext}`;
 }
@@ -77,4 +77,12 @@ export function documentStoragePath(
 ): string {
   const id = isNumericProjectId(numericId) ? numericId.trim() : '000000';
   return `${id}/${type}.${ext}`;
+}
+
+/** Name shown and downloaded on the profile. Agreement IDs stay in the folder header only. */
+export function presentedDocumentFileName(type: string | null | undefined, storedName?: string | null): string {
+  if (type === 'agreement') return 'Agreement-Copy.pdf';
+  if (type === 'quality_control') return 'Quality-Control.pdf';
+  const stored = storedName?.trim();
+  return stored || 'document.pdf';
 }

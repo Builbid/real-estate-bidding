@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { backfillUserProjectDocuments } from '@/lib/documents/archiveProjectDocuments';
-import { PROJECT_DOCUMENTS_BUCKET } from '@/lib/documents/constants';
+import { presentedDocumentFileName, PROJECT_DOCUMENTS_BUCKET } from '@/lib/documents/constants';
 import {
   DOCUMENT_TABLES,
   isMissingDocumentTable,
@@ -115,6 +115,7 @@ export async function getProjectDocumentDownloadUrl(
 
   let doc: {
     file_name?: string;
+    document_type?: string;
     storage_path?: string | null;
     file_url?: string | null;
     owner_id?: string;
@@ -136,7 +137,7 @@ export async function getProjectDocumentDownloadUrl(
     for (const table of DOCUMENT_TABLES) {
       const { data, error } = await supabase
         .from(table)
-        .select('id, file_name, storage_path, file_url, mime_type, owner_id, worker_id')
+        .select('id, file_name, document_type, storage_path, file_url, mime_type, owner_id, worker_id')
         .eq('id', documentId)
         .maybeSingle();
       if (error && isMissingDocumentTable(error.message)) continue;
@@ -151,17 +152,18 @@ export async function getProjectDocumentDownloadUrl(
     return { url: null, error: 'Document not found.' };
   }
 
+  const fileName = presentedDocumentFileName(doc.document_type, doc.file_name);
   const fileUrl = typeof doc.file_url === 'string' ? doc.file_url : '';
   if (fileUrl.startsWith('data:application/pdf;base64,')) {
     return {
       url: null,
       inlineBase64: fileUrl.slice('data:application/pdf;base64,'.length),
-      fileName: doc.file_name as string,
+      fileName,
       error: null,
     };
   }
   if (fileUrl && !doc.storage_path) {
-    return { url: fileUrl, fileName: doc.file_name as string, error: null };
+    return { url: fileUrl, fileName, error: null };
   }
 
   if (!doc.storage_path) {
@@ -175,14 +177,14 @@ export async function getProjectDocumentDownloadUrl(
       .createSignedUrl(
         doc.storage_path as string,
         120,
-        disposition === 'attachment' ? { download: doc.file_name as string } : undefined,
+        disposition === 'attachment' ? { download: fileName } : undefined,
       );
 
     if (signedError || !signed?.signedUrl) {
       return { url: null, error: signedError?.message || 'Could not create a download link.' };
     }
 
-    return { url: signed.signedUrl, fileName: doc.file_name as string, error: null };
+    return { url: signed.signedUrl, fileName, error: null };
   } catch (err) {
     return {
       url: null,

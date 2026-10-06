@@ -5,17 +5,16 @@ import { useRouter } from 'next/navigation';
 import { ChevronDown, Download, Eye, FileText, Folder, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { hideProjectDocumentAction } from '@/app/actions/documents';
-import { INVOICE_DOCUMENT_TYPES, isInvoiceDocument } from '@/lib/documents/constants';
-import type { ProjectDocument, ProjectDocumentType } from '@/lib/types';
+import { INVOICE_DOCUMENT_TYPES, isInvoiceDocument, presentedDocumentFileName } from '@/lib/documents/constants';
+import type { ProjectDocument } from '@/lib/types';
 
 type Branch = 'agreements' | 'invoices';
 
-const AGREEMENT_FILE_ORDER = ['agreement', 'quality_control', 'site_checklist'] as const;
+const AGREEMENT_FILE_ORDER = ['agreement', 'quality_control'] as const;
 
 const AGREEMENT_FILE_LABEL: Record<(typeof AGREEMENT_FILE_ORDER)[number], string> = {
-  agreement: 'Digital Agreement PDF',
+  agreement: 'Agreement Copy',
   quality_control: 'Quality Control Form',
-  site_checklist: 'Site Checklist',
 };
 
 const INVOICE_FILE_LABEL: Record<(typeof INVOICE_DOCUMENT_TYPES)[number], string> = {
@@ -57,12 +56,14 @@ function isCivilProject(projectName: string, serviceType?: string | null): boole
 function folderTitle(doc: ProjectDocument): string {
   const name = doc.project_name?.trim() || 'Project';
   const id = doc.numeric_project_id?.trim();
-  return id ? `${name} - ${id}` : name;
+  return id ? `${name} - ID: ${id}` : name;
 }
 
 function agreementFiles(docs: ProjectDocument[], civil: boolean): ProjectDocument[] {
   const allowed = civil ? AGREEMENT_FILE_ORDER : (['agreement'] as const);
-  return allowed.flatMap((type) => docs.filter((doc) => doc.document_type === type));
+  return allowed.flatMap((type) =>
+    docs.filter((doc) => doc.document_type === type),
+  );
 }
 
 function invoiceFiles(docs: ProjectDocument[]): ProjectDocument[] {
@@ -85,6 +86,7 @@ function fileLabel(doc: ProjectDocument): string {
 function buildFolders(documents: ProjectDocument[], branch: Branch): ProjectFolder[] {
   const byProject = new Map<string, ProjectDocument[]>();
   for (const doc of documents) {
+    if (doc.document_type === 'site_checklist') continue;
     const key = doc.project_id || doc.numeric_project_id || doc.id;
     const group = byProject.get(key) ?? [];
     group.push(doc);
@@ -204,7 +206,6 @@ export function DocumentsSection({ documents, showIntro = true }: DocumentsSecti
                   <ul className="divide-y divide-slate-200 border-t border-slate-200 dark:divide-slate-700/80 dark:border-slate-700/80">
                     {folder.files.map((doc) => {
                       const busy = isPending && pendingId === doc.id;
-                      const type = doc.document_type as ProjectDocumentType;
                       return (
                         <li key={doc.id} className="flex flex-col gap-2 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between">
                           <div className="min-w-0">
@@ -213,7 +214,7 @@ export function DocumentsSection({ documents, showIntro = true }: DocumentsSecti
                               <span className="truncate">{fileLabel(doc)}</span>
                             </p>
                             <p className="mt-0.5 truncate pl-5 text-xs text-slate-500 dark:text-slate-400">
-                              {doc.file_name || type}
+                              {presentedDocumentFileName(doc.document_type, doc.file_name)}
                             </p>
                           </div>
                           <div className="flex flex-wrap gap-2 pl-5 sm:pl-0">
