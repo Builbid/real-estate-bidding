@@ -2,6 +2,7 @@ import type { NextConfig } from 'next';
 import { withSentryConfig } from '@sentry/nextjs';
 
 const nextConfig: NextConfig = {
+  serverExternalPackages: ['pg'],
   experimental: {
     serverActions: {
       // Allow server actions from both local dev and the production domain

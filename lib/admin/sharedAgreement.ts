@@ -1,4 +1,5 @@
 import type { MeasuredLineItem } from '@/lib/admin/siteMeasurements';
+import type { ProjectDocument } from '@/lib/types';
 
 /** Frozen copy of the agreement the supervisor shares with both the Home Owner and the Mistri / Worker. */
 export interface SharedAgreementSnapshot {
@@ -19,6 +20,8 @@ export interface SharedAgreementSnapshot {
   totalCost: number | null;
   signatureStatus: 'draft' | 'pending_esign' | 'partially_signed' | 'signed';
   approved: boolean;
+  /** Present only when the document tables were unavailable and the PDFs were routed here. */
+  routedDocuments?: ProjectDocument[];
 }
 
 export interface SharedAgreementRecord {

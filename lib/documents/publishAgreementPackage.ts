@@ -6,6 +6,8 @@ import {
   PROJECT_DOCUMENTS_BUCKET,
   type ProjectDocumentType,
 } from '@/lib/documents/constants';
+import { upsertPartyDocument } from '@/lib/documents/documentTables';
+import type { ProjectDocument } from '@/lib/types';
 
 async function storePdf(options: {
   admin: SupabaseClient;
@@ -16,7 +18,7 @@ async function storePdf(options: {
   workerId: string;
   type: ProjectDocumentType;
   bytes: Uint8Array;
-}): Promise<{ error?: string }> {
+}): Promise<{ error?: string; fallback?: ProjectDocument }> {
   const publicId = isNumericProjectId(options.numericId) ? options.numericId.trim() : options.projectId;
   const fileName = documentFileName(options.type, publicId, 'pdf');
   const storagePath = isNumericProjectId(publicId)
@@ -42,41 +44,35 @@ async function storePdf(options: {
   }
 
   const now = new Date().toISOString();
-  const { error } = await options.admin.from('project_documents').upsert(
-    {
-      project_id: options.projectId,
-      numeric_project_id: publicId,
-      project_name: options.projectName,
-      document_type: options.type,
-      file_name: fileName,
-      storage_path: storedPath,
-      file_url: fileUrl,
-      mime_type: 'application/pdf',
-      owner_id: options.ownerId,
-      worker_id: options.workerId,
-      owner_deleted: false,
-      worker_deleted: false,
-      updated_at: now,
-    },
-    { onConflict: 'project_id,document_type' },
-  );
-  if (error) {
-    const message = error.message.toLowerCase();
-    if (options.type === 'quality_control' && (message.includes('quality_control') || message.includes('invalid input value for enum'))) {
-      return {
-        error:
-          'Database is missing the quality-control document type. Run supabase/migrations/064_agreement_dates_and_quality_control.sql in the Supabase SQL Editor, then share again.',
-      };
-    }
-    if (options.type === 'site_checklist' && (message.includes('site_checklist') || message.includes('invalid input value for enum'))) {
-      return {
-        error:
-          'Database is missing the site-checklist document type. Run supabase/migrations/065_site_checklist_documents.sql in the Supabase SQL Editor, then share again.',
-      };
-    }
-    return { error: error.message };
+  const row = {
+    project_id: options.projectId,
+    numeric_project_id: publicId,
+    project_name: options.projectName,
+    document_type: options.type,
+    file_name: fileName,
+    storage_path: storedPath,
+    file_url: fileUrl,
+    mime_type: 'application/pdf',
+    owner_id: options.ownerId,
+    worker_id: options.workerId,
+    owner_deleted: false,
+    worker_deleted: false,
+    updated_at: now,
+  };
+  const saved = await upsertPartyDocument(options.admin, row);
+  if (saved.ok) return {};
+  if (saved.missing) {
+    return {
+      fallback: {
+        id: `routed:${options.projectId}:${options.type}`,
+        ...row,
+        storage_path: storedPath,
+        file_url: fileUrl,
+        created_at: now,
+      },
+    };
   }
-  return {};
+  return { error: saved.error };
 }
 
 /** Puts the agreement PDF and the project QC form into both parties' document sections. */
@@ -92,9 +88,11 @@ export async function publishAgreementPackage(options: {
   qualityControlBytes: Uint8Array | null;
   /** Site visit checklist PDF, stored when a checklist exists for this project. */
   checklistBytes?: Uint8Array | null;
-}): Promise<{ error?: string }> {
+}): Promise<{ error?: string; fallbackDocuments?: ProjectDocument[] }> {
+  const fallbackDocuments: ProjectDocument[] = [];
   const agreement = await storePdf({ ...options, type: 'agreement', bytes: options.agreementBytes });
   if (agreement.error) return agreement;
+  if (agreement.fallback) fallbackDocuments.push(agreement.fallback);
   if (options.qualityControlBytes) {
     const qualityControl = await storePdf({
       ...options,
@@ -102,9 +100,12 @@ export async function publishAgreementPackage(options: {
       bytes: options.qualityControlBytes,
     });
     if (qualityControl.error) return qualityControl;
+    if (qualityControl.fallback) fallbackDocuments.push(qualityControl.fallback);
   }
-  if (!options.checklistBytes) return {};
+  if (!options.checklistBytes) {
+    return fallbackDocuments.length > 0 ? { fallbackDocuments } : {};
+  }
   const checklist = await storePdf({ ...options, type: 'site_checklist', bytes: options.checklistBytes });
-  if (checklist.error && /site-checklist document type/i.test(checklist.error)) return {};
-  return checklist;
+  if (!checklist.error && checklist.fallback) fallbackDocuments.push(checklist.fallback);
+  return fallbackDocuments.length > 0 ? { fallbackDocuments } : {};
 }

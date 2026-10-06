@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
+import { toast, Toaster } from 'sonner';
 import {
   ArrowLeft,
   BadgeCheck,
@@ -116,8 +117,11 @@ export function AgreementWorkspace(props: AgreementWorkspaceProps) {
         setError(result.error);
         return;
       }
+      const success =
+        result.message ?? 'Agreement and Quality Control Form successfully sent to both accounts!';
       setSharedAt(result.sharedAt ?? new Date().toISOString());
-      setMessage(result.message ?? 'Documents successfully sent to both account document sections!');
+      setMessage(success);
+      toast.success(success);
       router.refresh();
     });
   }
@@ -138,6 +142,7 @@ export function AgreementWorkspace(props: AgreementWorkspaceProps) {
 
   return (
     <div className="dark min-h-screen bg-slate-950 text-slate-100">
+      <Toaster position="top-right" richColors closeButton />
     <main className="mx-auto w-full max-w-5xl space-y-5 p-4 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Link

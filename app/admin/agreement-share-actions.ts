@@ -16,6 +16,10 @@ import { generateQualityControlPdfBytes } from '@/lib/contract/qualityControlPdf
 import { graceDaysForService, graceExtensionLabel } from '@/lib/contract/agreementTerms';
 import { generateDigitalContractPdf, overlayFromRecord } from '@/lib/contract/renderDigitalContract';
 import { formatBuilbidPublicId } from '@/lib/contract/agreementPdf';
+import { isMissingDocumentTable } from '@/lib/documents/documentTables';
+
+const AGREEMENT_SHARE_SUCCESS =
+  'Agreement and Quality Control Form successfully sent to both accounts!';
 
 function toIsoDate(raw: string | undefined): string | null {
   const trimmed = (raw ?? '').trim();
@@ -171,7 +175,7 @@ export async function shareAgreementCopyAction(
     ownerId: draft.project.ownerId,
     workerId: draft.project.builderId,
     agreementBytes,
-    qualityControlBytes: draft.project.isMistriCivil ? qualityControlBytes : null,
+    qualityControlBytes,
     checklistBytes: siteChecklistPdf(draft),
   });
   if (published.error) return { error: published.error };
@@ -199,6 +203,9 @@ export async function shareAgreementCopyAction(
     totalCost: draft.defaults.totalCost,
     signatureStatus,
     approved: Boolean(contract?.approved_at),
+    ...(published.fallbackDocuments?.length
+      ? { routedDocuments: published.fallbackDocuments }
+      : {}),
   };
 
   const now = new Date().toISOString();
@@ -215,8 +222,13 @@ export async function shareAgreementCopyAction(
     { onConflict: 'project_id' },
   );
   if (error) {
-    if (isMissingWorkflowTable(error)) return { error: SITE_VISIT_TABLE_MISSING_MESSAGE };
-    return { error: error.message };
+    const documentsAlreadyRouted = !published.fallbackDocuments?.length;
+    if (documentsAlreadyRouted && isMissingDocumentTable(error.message)) {
+      // Agreement and QC rows are already on the document table. The share log is optional.
+    } else {
+      if (isMissingWorkflowTable(error)) return { error: SITE_VISIT_TABLE_MISSING_MESSAGE };
+      return { error: error.message };
+    }
   }
 
   // Best-effort in-app notifications for both parties (never blocks the share).
@@ -252,6 +264,6 @@ export async function shareAgreementCopyAction(
   return {
     ok: true,
     sharedAt: now,
-    message: 'Documents successfully sent to both account document sections!',
+    message: AGREEMENT_SHARE_SUCCESS,
   };
 }

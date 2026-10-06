@@ -1,25 +1,14 @@
 import Link from 'next/link';
 import { FolderOpen } from 'lucide-react';
-import { getAuthUser } from '@/lib/supabase/getUser';
+import { listMyProjectDocumentsAction } from '@/app/actions/documents';
 import { PROJECT_DOCUMENT_TYPE_LABEL, type ProjectDocumentType } from '@/lib/documents/constants';
 
 /** Agreement and quality-control files shared into this account's document section. */
 export async function AccountDocumentsPanel() {
-  const { supabase, userId } = await getAuthUser();
-  const { data, error } = await supabase
-    .from('project_documents')
-    .select('id, project_name, document_type, file_name, numeric_project_id, owner_id, worker_id, owner_deleted, worker_deleted')
-    .order('created_at', { ascending: false })
-    .limit(12);
-
-  if (error || !data || data.length === 0) return null;
-
-  const documents = data.filter((row) => {
-    if (row.document_type !== 'agreement' && row.document_type !== 'quality_control') return false;
-    if (row.owner_id === userId && row.owner_deleted) return false;
-    if (row.worker_id === userId && row.worker_deleted) return false;
-    return true;
-  });
+  const { documents: allDocuments } = await listMyProjectDocumentsAction();
+  const documents = allDocuments
+    .filter((row) => row.document_type === 'agreement' || row.document_type === 'quality_control')
+    .slice(0, 12);
   if (documents.length === 0) return null;
 
   return (
