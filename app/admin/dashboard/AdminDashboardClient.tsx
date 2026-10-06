@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useMemo, useState, useTransition } from 'react';
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { toast, Toaster } from 'sonner';
 import { BuilBidLogo } from '@/components/shared/BuilBidLogo';
 import { ThemeToggle } from '@/components/shared/ThemeToggle';
@@ -22,6 +22,7 @@ import {
   Users,
   Gavel,
   FileSignature,
+  Trash2,
   UserRound,
   ClipboardCheck,
   Wallet,
@@ -29,6 +30,7 @@ import {
 import {
   adminSignOutAction,
   adminToggleWorkerVerificationAction,
+  deleteTestAgreementProjectAction,
 } from '@/app/admin/actions';
 import type {
   AdminAgreementRow,
@@ -354,6 +356,13 @@ export function AdminDashboardClient({
 }) {
   const [tab, setTab] = useState<AdminTab>(initialTab);
   const [query, setQuery] = useState('');
+  const [agreementRows, setAgreementRows] = useState(agreements);
+  const [removingProjectId, setRemovingProjectId] = useState<string | null>(null);
+  const removedProjectIds = useRef(new Set<string>());
+
+  useEffect(() => {
+    setAgreementRows(agreements.filter((row) => !removedProjectIds.current.has(row.projectId)));
+  }, [agreements]);
   const [pending, startTransition] = useTransition();
   const [contractProject, setContractProject] = useState<{
     id: string;
@@ -430,14 +439,14 @@ export function AdminDashboardClient({
 
   const filteredAgreements = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return agreements;
-    return agreements.filter(
+    if (!q) return agreementRows;
+    return agreementRows.filter(
       (a) =>
         a.projectTitle.toLowerCase().includes(q) ||
         a.clientName.toLowerCase().includes(q) ||
         a.mistriName.toLowerCase().includes(q),
     );
-  }, [agreements, query]);
+  }, [agreementRows, query]);
 
   const visibleTabs = supervisorPortal
     ? TABS.filter((item) => SUPERVISOR_TAB_IDS.has(item.id))
@@ -453,6 +462,25 @@ export function AdminDashboardClient({
         .includes(q),
     );
   }, [completedWorks, query]);
+
+  function removeTestProject(projectId: string) {
+    if (!window.confirm('Are you sure you want to delete this test project?')) return;
+    const snapshot = agreementRows;
+    removedProjectIds.current.add(projectId);
+    setAgreementRows((rows) => rows.filter((row) => row.projectId !== projectId));
+    setRemovingProjectId(projectId);
+    startTransition(async () => {
+      const result = await deleteTestAgreementProjectAction(projectId);
+      setRemovingProjectId(null);
+      if (result.error) {
+        removedProjectIds.current.delete(projectId);
+        setAgreementRows(snapshot);
+        toast.error(result.error);
+        return;
+      }
+      toast.success('Test project deleted.');
+    });
+  }
 
   function switchTab(next: AdminTab) {
     setTab(next);
@@ -502,7 +530,7 @@ export function AdminDashboardClient({
                   : id === 'clients'
                     ? clients.length
                     : id === 'agreements'
-                      ? agreements.length
+                      ? agreementRows.length
                       : id === 'completed'
                         ? completedWorks.length
                         : id === 'supervisors'
@@ -1100,17 +1128,13 @@ export function AdminDashboardClient({
                           <td className={TD}>
                             <div className="flex flex-wrap items-center gap-1">
                               {supervisorPortal ? (
-                                // Supervisor agreement cards: exactly two actions. The checklist
-                                // page leads on to the agreement / Aadhaar eSign once saved.
-                                <>
-                                  <Link
-                                    href={`/admin/dashboard/checklist/${a.projectId}`}
-                                    className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 shadow-xs transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200"
-                                  >
-                                    <ClipboardCheck className="h-3 w-3" />
-                                    Site Visit Checklist
-                                  </Link>
-                                </>
+                                <Link
+                                  href={`/admin/dashboard/checklist/${a.projectId}`}
+                                  className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 shadow-xs transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200"
+                                >
+                                  <ClipboardCheck className="h-3 w-3" />
+                                  Site Visit Checklist
+                                </Link>
                               ) : (
                                 <button
                                   type="button"
@@ -1144,6 +1168,15 @@ export function AdminDashboardClient({
                                   </a>
                                 </>
                               ) : null}
+                              <button
+                                type="button"
+                                disabled={removingProjectId === a.projectId}
+                                onClick={() => removeTestProject(a.projectId)}
+                                className="inline-flex items-center gap-1 rounded-md border border-rose-500/30 bg-rose-500/10 px-2.5 py-1 text-xs font-medium text-rose-400 transition hover:text-rose-300 disabled:opacity-60"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                                {removingProjectId === a.projectId ? 'Removing…' : 'Remove'}
+                              </button>
                             </div>
                           </td>
                         </tr>
