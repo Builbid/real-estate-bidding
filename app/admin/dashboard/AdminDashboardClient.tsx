@@ -27,6 +27,7 @@ import {
 import {
   adminSignOutAction,
   adminToggleWorkerVerificationAction,
+  confirmAndTransferToSupervisorAction,
   deleteTestAgreementProjectAction,
 } from '@/app/admin/actions';
 import type {
@@ -49,6 +50,7 @@ import {
   formatRelativeTime,
   STATUS_CONFIG,
 } from '@/lib/utils';
+import { formatMobileDisplay } from '@/lib/validation/mobile';
 import { CreateContractAgreementModal } from '@/components/admin/CreateContractAgreementModal';
 import {
   settleSupervisorMonthAction,
@@ -282,6 +284,85 @@ function SupervisorRowAdmin({ row }: { row: AdminSupervisorRow }) {
   );
 }
 
+function PendingCallQueue({ projects }: { projects: AdminProjectRow[] }) {
+  const router = useRouter();
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [, startBusy] = useTransition();
+
+  function transfer(projectId: string) {
+    setBusyId(projectId);
+    startBusy(async () => {
+      const result = await confirmAndTransferToSupervisorAction(projectId);
+      setBusyId(null);
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success('Call confirmed. The project is now with the field supervisor.');
+      router.refresh();
+    });
+  }
+
+  return (
+    <section className={TABLE_SHELL}>
+      <div className="border-b border-slate-200 px-4 py-3 dark:border-slate-800">
+        <h2 className="text-sm font-semibold text-slate-900 dark:text-white">
+          Pending Company Call / Verification
+        </h2>
+        <p className="mt-0.5 text-xs text-slate-500">
+          Call the owner on the confirmed number. Transfer the project to the field supervisor only after the call.
+        </p>
+      </div>
+      {projects.length === 0 ? (
+        <p className="px-4 py-8 text-center text-sm text-slate-500">No projects are waiting for a company call.</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-left text-sm">
+            <thead className="border-b border-slate-200 bg-slate-50/75 dark:border-slate-800 dark:bg-slate-950/80">
+              <tr>
+                <th className={TH}>Project</th>
+                <th className={TH}>Client</th>
+                <th className={TH}>Confirmed phone</th>
+                <th className={TH}>Status</th>
+                <th className={TH}>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {projects.map((project) => (
+                <tr key={project.id} className={ROW_HOVER}>
+                  <td className={cn(TD, 'max-w-[240px]')}>
+                    <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{project.title}</p>
+                    <p className="mt-0.5 text-xs text-slate-400">ID: {displayProjectId(project.publicId, project.id)}</p>
+                  </td>
+                  <td className={cn(TD, 'text-sm text-slate-700 dark:text-slate-200')}>{project.clientName}</td>
+                  <td className={cn(TD, 'font-semibold text-slate-900 dark:text-white')}>
+                    {project.ownerCallbackPhone ? formatMobileDisplay(project.ownerCallbackPhone) : '—'}
+                  </td>
+                  <td className={TD}>
+                    <span className="inline-flex rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
+                      Pending Call Verification
+                    </span>
+                  </td>
+                  <td className={TD}>
+                    <button
+                      type="button"
+                      disabled={busyId === project.id}
+                      onClick={() => transfer(project.id)}
+                      className="inline-flex items-center rounded-md bg-slate-900 px-2.5 py-1 text-xs font-semibold text-white hover:bg-slate-800 disabled:opacity-60"
+                    >
+                      {busyId === project.id ? 'Transferring…' : 'Confirm & Transfer to Field Supervisor'}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}
+
 const TABS: { id: AdminTab; label: string; icon: typeof Building2 }[] = [
   { id: 'projects', label: 'Projects', icon: Building2 },
   { id: 'workers', label: 'Mistris / Workers', icon: HardHat },
@@ -302,6 +383,7 @@ export function AdminDashboardClient({
   clients,
   agreements,
   completedWorks,
+  pendingCallProjects = [],
   supervisors = [],
   initialTab = 'projects',
 }: {
@@ -313,6 +395,7 @@ export function AdminDashboardClient({
   clients: AdminClientRow[];
   agreements: AdminAgreementRow[];
   completedWorks: CompletedWorkRow[];
+  pendingCallProjects?: AdminProjectRow[];
   supervisors?: AdminSupervisorRow[];
   initialTab?: AdminTab;
 }) {
@@ -629,6 +712,10 @@ export function AdminDashboardClient({
                 />
               </div>
             </div>
+          ) : null}
+
+          {tab === 'projects' && !supervisorPortal ? (
+            <PendingCallQueue projects={pendingCallProjects} />
           ) : null}
 
           {tab === 'projects' ? (

@@ -16,6 +16,7 @@ import {
   getServiceCategoryOption,
   getServiceHeadingClass,
   isFirmProject,
+  bidsPlacedLabel,
 } from '@/lib/project/display';
 import {
   getProjectWorkRequirementBlocks,
@@ -100,6 +101,9 @@ export function ProjectCard({
               <Badge variant={isActive ? 'emerald' : isFrozen ? 'indigo' : 'default'} className="text-[11px]">
                 {isActive && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />}
                 {statusLabel}
+              </Badge>
+              <Badge variant="default" className="text-[10px]">
+                {bidsPlacedLabel(bidCount)}
               </Badge>
               {finishingBadge && !compact && (
                 <Badge variant="default" className="text-[10px]">{finishingBadge}</Badge>

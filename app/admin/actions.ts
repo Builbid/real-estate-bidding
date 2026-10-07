@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireOfficialAdmin } from '@/lib/admin/auth';
+import { isOfficialAdminEmail } from '@/lib/admin/constants';
 import { PROJECT_DOCUMENTS_BUCKET } from '@/lib/documents/constants';
 
 /**
@@ -113,15 +114,44 @@ export async function deleteTestAgreementProjectAction(
   const missingFn = /delete_test_project|schema cache|does not exist/i.test(rpc.error.message ?? '');
   if (!missingFn) return { error: rpc.error.message };
 
-  const { error } = await admin.from('projects').delete().eq('id', id);
-  if (error) {
-    return {
-      error:
-        /project_documents|restrict|foreign key/i.test(error.message)
-          ? 'Run supabase/migrations/066_delete_test_project.sql in the Supabase SQL Editor, then remove this project again.'
-          : error.message,
-    };
+  revalidatePath('/admin/dashboard');
+  return { ok: true };
+}
+
+/** Official admin only: after the company phone call, hand the project to the field supervisor. */
+export async function confirmAndTransferToSupervisorAction(projectId: string) {
+  const session = await requireOfficialAdmin();
+  if (!isOfficialAdminEmail(session.email)) {
+    return { error: 'Only company management can confirm the call and transfer this project.' };
   }
+
+  const admin = createAdminClient();
+  const { data: project, error: readError } = await admin
+    .from('projects')
+    .select('id, status, call_verification_status, selected_builder_id')
+    .eq('id', projectId)
+    .maybeSingle();
+  if (readError) return { error: readError.message };
+  if (!project) return { error: 'Project not found.' };
+  if (project.call_verification_status !== 'pending') {
+    return { error: 'This project is not waiting for a company call.' };
+  }
+  if (!project.selected_builder_id) {
+    return { error: 'No builder has been selected yet.' };
+  }
+
+  const now = new Date().toISOString();
+  const patch: Record<string, string> = {
+    call_verification_status: 'verified',
+    updated_at: now,
+  };
+  if (project.status === 'active_24h') {
+    patch.status = 'frozen_24h';
+    patch.bidding_ends_at = now;
+  }
+
+  const { error } = await admin.from('projects').update(patch).eq('id', projectId);
+  if (error) return { error: error.message };
 
   revalidatePath('/admin/dashboard');
   return { ok: true };

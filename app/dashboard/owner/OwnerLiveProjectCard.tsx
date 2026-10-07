@@ -271,7 +271,7 @@ function OwnerLiveProjectCardBody({
       {phase === 'live' && (
         <p className="text-xs text-slate-600 dark:text-slate-400">
           <span className="mr-2 inline-block h-2 w-2 rounded-full bg-emerald-600 align-middle animate-pulse dark:bg-emerald-400" />
-          Live auction in progress.
+          Live auction in progress. You can select a builder as soon as a bid is placed.
         </p>
       )}
 

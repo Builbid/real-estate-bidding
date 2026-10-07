@@ -381,7 +381,7 @@ export function UnifiedBidRankings({
                 )}
 
                 {/* Select builder — shown during frozen phase if no winner yet */}
-                {isFrozen && !project.selected_builder_id && bid.builder_id && (
+                {bid.builder_id && !project.selected_builder_id && project.status !== 'completed' && project.status !== 'cancelled' && (
                   <SelectBuilderButton
                     projectId={project.id}
                     builderId={bid.builder_id}

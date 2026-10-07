@@ -20,6 +20,7 @@ export async function POST(request: Request) {
     builderName?: unknown;
     packageId?: unknown;
     package_id?: unknown;
+    phone?: unknown;
   };
 
   try {
@@ -32,6 +33,7 @@ export async function POST(request: Request) {
   const builderId = asId(body.builderId ?? body.builder_id);
   const builderName = typeof body.builderName === 'string' ? body.builderName : undefined;
   const packageId = asId(body.packageId ?? body.package_id) || undefined;
+  const phone = typeof body.phone === 'string' ? body.phone : undefined;
 
   if (!projectId || !builderId) {
     return NextResponse.json(
@@ -40,7 +42,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const result = await selectBuilderAction(projectId, builderId, builderName, packageId);
+  const result = await selectBuilderAction(projectId, builderId, builderName, packageId, phone);
   if (result.error) {
     return NextResponse.json({ error: result.error, success: false }, { status: 400 });
   }

@@ -94,6 +94,8 @@ export interface AdminProjectRow {
   serviceType: string | null;
   createdAt: string;
   workflow: ProjectWorkflowState;
+  callVerificationStatus: 'pending' | 'verified' | null;
+  ownerCallbackPhone: string | null;
 }
 
 export interface AdminWorkerRow {
@@ -229,27 +231,37 @@ export async function loadAdminDashboardData(
   clients: AdminClientRow[];
   agreements: AdminAgreementRow[];
   completedWorks: CompletedWorkRow[];
+  pendingCallProjects: AdminProjectRow[];
 }> {
   const supabase = await createClient();
   const territory = options.territory ?? null;
   const nowMs = Date.now();
 
-  const projectsBase = supabase
-    .from('projects')
-    .select(
-      'id, numeric_id, title, district, state, pincode, status, bidding_ends_at, selection_ends_at, owner_id, selected_builder_id, service_type, budget_range_min, budget_range_max, created_at, updated_at',
-    );
-  const projectsScoped = territory
-    ? projectsBase.in('pincode', territory.length > 0 ? territory : ['000000'])
-    : projectsBase;
+  const baseProjectColumns =
+    'id, numeric_id, title, district, state, pincode, status, bidding_ends_at, selection_ends_at, owner_id, selected_builder_id, service_type, budget_range_min, budget_range_max, created_at, updated_at';
+  const callProjectColumns = `${baseProjectColumns}, call_verification_status, owner_callback_phone`;
+
+  async function fetchProjects(columns: string) {
+    const base = supabase.from('projects').select(columns);
+    const scoped = territory
+      ? base.in('pincode', territory.length > 0 ? territory : ['000000'])
+      : base;
+    return scoped.order('created_at', { ascending: false }).limit(400);
+  }
+
+  let projectsResult = await fetchProjects(callProjectColumns);
+  if (
+    projectsResult.error &&
+    /call_verification_status|owner_callback_phone/i.test(projectsResult.error.message)
+  ) {
+    projectsResult = await fetchProjects(baseProjectColumns);
+  }
 
   const [
-    { data: projectsRaw },
     { data: profilesRaw },
     { count: totalBidsAll },
     { data: bidsRawAll },
   ] = await Promise.all([
-    projectsScoped.order('created_at', { ascending: false }).limit(400),
     supabase
       .from('profiles')
       .select(
@@ -267,6 +279,7 @@ export async function loadAdminDashboardData(
 
   const workflowByProject = await loadWorkflowStates();
 
+  const projectsRaw = projectsResult.data;
   const projects = (projectsRaw ?? []) as Array<{
     id: string;
     numeric_id: string | null;
@@ -284,6 +297,8 @@ export async function loadAdminDashboardData(
     budget_range_max: number | null;
     created_at: string;
     updated_at: string;
+    call_verification_status?: 'pending' | 'verified' | null;
+    owner_callback_phone?: string | null;
   }>;
 
   const profiles = (profilesRaw ?? []) as Array<
@@ -336,6 +351,8 @@ export async function loadAdminDashboardData(
       serviceType: p.service_type,
       createdAt: p.created_at,
       workflow: workflowByProject.get(p.id) ?? NO_WORKFLOW,
+      callVerificationStatus: p.call_verification_status ?? null,
+      ownerCallbackPhone: p.owner_callback_phone ?? null,
     };
   });
 
@@ -399,6 +416,9 @@ export async function loadAdminDashboardData(
   const isApprovedActive = (projectId: string) =>
     Boolean(workflowByProject.get(projectId)?.approved);
 
+  const awaitingCompanyCall = (projectId: string) =>
+    projects.find((item) => item.id === projectId)?.call_verification_status === 'pending';
+
   const supervisorView = options.supervisorView ?? false;
   const resetMs = Date.parse(PROTOTYPE_RESET_AT);
 
@@ -407,6 +427,7 @@ export async function loadAdminDashboardData(
   const agreements: AdminAgreementRow[] = projects
     .filter((p) => {
       if (p.status === 'cancelled' || isApprovedActive(p.id) || !biddingHasEnded(p)) return false;
+      if (awaitingCompanyCall(p.id)) return false;
       if (supervisorView && new Date(p.bidding_ends_at).getTime() < resetMs) return false;
       return true;
     })
@@ -459,10 +480,15 @@ export async function loadAdminDashboardData(
   // Projects lists a row only while Live Bidding is still running.
   const visibleProjectRows = projectRows.filter(
     (p) =>
+      p.callVerificationStatus !== 'pending' &&
       !isApprovedActive(p.id) &&
       p.status === 'active_24h' &&
       new Date(p.biddingEndsAt).getTime() > nowMs,
   );
+
+  const pendingCallProjects = supervisorView
+    ? []
+    : projectRows.filter((p) => p.callVerificationStatus === 'pending');
 
   const kpis: AdminKpis = {
     liveAuctions: projects.filter((p) => p.status === 'active_24h').length,
@@ -479,6 +505,7 @@ export async function loadAdminDashboardData(
   const completedWorks: CompletedWorkRow[] = projects
     .filter((p) => {
       if (p.status === 'cancelled' || !isApprovedActive(p.id)) return false;
+      if (awaitingCompanyCall(p.id)) return false;
       if (!supervisorView) return true;
       const approvedAt = workflowByProject.get(p.id)?.approvedAt;
       return approvedAt ? Date.parse(approvedAt) >= resetMs : false;
@@ -498,7 +525,7 @@ export async function loadAdminDashboardData(
       };
     });
 
-  return { kpis, projects: visibleProjectRows, workers, clients, agreements, completedWorks };
+  return { kpis, projects: visibleProjectRows, workers, clients, agreements, completedWorks, pendingCallProjects };
 }
 
 export interface AdminSupervisorRow {

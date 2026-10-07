@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { UserCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { OwnerPhoneConfirmModal } from '@/components/owner/OwnerPhoneConfirmModal';
 import { PackageInfoButton } from '@/components/firm/PackageInfoButton';
 import type { PackageBidPrice } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -24,6 +25,7 @@ export function SelectFirmButton({ projectId, firmId, companyName, packageRates 
     packageRates.length === 1 ? packageRates[0].package.id : null,
   );
   const [loading, setLoading] = useState(false);
+  const [phoneOpen, setPhoneOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const label = companyName ?? 'this firm';
@@ -34,6 +36,11 @@ export function SelectFirmButton({ projectId, firmId, companyName, packageRates 
       setError('Choose a package before confirming.');
       return;
     }
+    setError(null);
+    setPhoneOpen(true);
+  }
+
+  async function confirmPhone(phone: string) {
     setLoading(true);
     setError(null);
 
@@ -46,6 +53,7 @@ export function SelectFirmButton({ projectId, firmId, companyName, packageRates 
           builderId: firmId,
           builderName: companyName,
           packageId: packageId ?? undefined,
+          phone,
         }),
       });
       const body = (await res.json().catch(() => null)) as { error?: string } | null;
@@ -57,7 +65,8 @@ export function SelectFirmButton({ projectId, firmId, companyName, packageRates 
         return;
       }
 
-      toast.success('Builder Selected Successfully');
+      toast.success('Phone confirmed. BuilBid will call you shortly.');
+      setPhoneOpen(false);
       setOpen(false);
       router.refresh();
     } catch {
@@ -146,6 +155,17 @@ export function SelectFirmButton({ projectId, firmId, companyName, packageRates 
           )}
         </Button>
       </div>
+      <OwnerPhoneConfirmModal
+        open={phoneOpen}
+        loading={loading}
+        error={error}
+        onClose={() => {
+          if (loading) return;
+          setPhoneOpen(false);
+          setError(null);
+        }}
+        onConfirm={confirmPhone}
+      />
     </div>
   );
 }

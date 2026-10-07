@@ -2,41 +2,11 @@
 
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient }      from '@/lib/supabase/server'
-import { sendSelectionNotification, sendUserNotificationEmail } from '@/lib/email/sendNotification'
-import { sendOfficialMistriAgreementEmail } from '@/lib/email/sendMistriAgreement'
-import { sendOfficialPlumberAgreementEmail } from '@/lib/email/sendPlumberAgreement'
-import { sendOfficialElectricianAgreementEmail } from '@/lib/email/sendElectricianAgreement'
-import { sendOfficialPainterAgreementEmail } from '@/lib/email/sendPainterAgreement'
-import {
-  buildMistriAgreementPayload,
-  generateMistriAgreementPdfBytes,
-  isMistriCivilService,
-  mistriAgreementFileName,
-} from '@/lib/contract/mistriAgreement'
-import {
-  buildPlumberAgreementPayload,
-  generatePlumberAgreementPdfBytes,
-  isPlumberService,
-  plumberAgreementFileName,
-} from '@/lib/contract/plumberAgreement'
-import {
-  buildElectricianAgreementPayload,
-  generateElectricianAgreementPdfBytes,
-  isElectricianService,
-  electricianAgreementFileName,
-} from '@/lib/contract/electricianAgreement'
-import {
-  buildPainterAgreementPayload,
-  generatePainterAgreementPdfBytes,
-  isPainterService,
-  painterAgreementFileName,
-} from '@/lib/contract/painterAgreement'
+import { sendSelectionNotification } from '@/lib/email/sendNotification'
 import { getConstructionLabel } from '@/lib/utils'
-import { formatPackageRateRange } from '@/lib/firm/bidDisplay'
-import type { BidRates, PackageBidPrice, SubConfiguration, TrackType } from '@/lib/types'
-import type { ConstructionTypesMap } from '@/lib/buildingConfig'
-import { archiveAwardedProjectDocuments } from '@/lib/documents/archiveProjectDocuments'
-import { missingProjectsColumn, readNestedProjectDetail } from '@/lib/project/storedDetails'
+import type { PackageBidPrice, SubConfiguration, TrackType } from '@/lib/types'
+import { missingProjectsColumn } from '@/lib/project/storedDetails'
+import { validateMobile, stripMobileDigits } from '@/lib/validation/mobile'
 import { revalidatePath } from 'next/cache'
 import { revalidateHomePublic } from '@/lib/home/revalidateHomePublic'
 
@@ -60,6 +30,7 @@ export async function selectBuilderAction(
   rawBuilderId: string,
   builderName?: string,
   packageId?: string,
+  rawPhone?: string,
 ): Promise<{ error: string | null; success?: boolean }> {
   const projectId = asId(rawProjectId)
   const builderId = asId(rawBuilderId)
@@ -75,6 +46,9 @@ export async function selectBuilderAction(
     return { error: 'Please sign in again to select a builder.' }
   }
   const userId = user.id
+  const phoneError = validateMobile(rawPhone ?? '')
+  if (phoneError) return { error: phoneError }
+  const confirmedPhone = stripMobileDigits(rawPhone ?? '')
 
   // Load by id only — never require status = open/active. Bidding-closed
   // (frozen_24h) and timer-ended active rows must still be awardable.
@@ -155,11 +129,12 @@ export async function selectBuilderAction(
     }
   }
 
-  // Award by project id + owner. Do not filter on open/active status.
+  // Record the choice for the company phone check. Do not mark the project completed
+  // and do not hand it to the field supervisor yet.
   const awardPatch: Record<string, unknown> = {
     selected_builder_id: builderId,
-    status: 'completed',
-    agreement_completed: true,
+    call_verification_status: 'pending',
+    owner_callback_phone: confirmedPhone,
   }
   if (selectedPackage) awardPatch.selected_package = selectedPackage
 
@@ -213,349 +188,74 @@ export async function selectBuilderAction(
     missingAwardColumn = updateError ? missingProjectsColumn(updateError.message) : null
   }
 
+  if (
+    updateError &&
+    /call_verification_status|owner_callback_phone/i.test(updateError.message)
+  ) {
+    return {
+      error: 'Run supabase/migrations/069_pending_call_verification.sql, then confirm the selection again.',
+    }
+  }
+
   if (updateError) return { error: updateError.message }
   if (!updated) {
     return { error: 'Could not award this project. Refresh and try again.' }
   }
 
-  // Prefer the exact chosen package price; fall back to the price range
-  // across all packages, then to the legacy single-rate bids (never the
-  // hidden ranking average).
-  const packageRange = isFirmProject ? formatPackageRateRange(bidPackages) : null
-  const legacyRateValue = winningBid?.single_rate ?? winningBid?.total_sum_metric
-  const plumberRates = winningBid?.rates as {
-    bid_unit?: string
-    ground_rate?: number
-    first_rate?: number
-    second_rate?: number
-    third_rate?: number
-  } | null
-  const plumberOptionCount = plumberRates
-    ? [plumberRates.ground_rate, plumberRates.first_rate, plumberRates.second_rate, plumberRates.third_rate]
-        .filter((value): value is number => typeof value === 'number' && value > 0).length
-    : 1
-  const plumberAvg =
-    plumberOptionCount > 1 && typeof legacyRateValue === 'number'
-      ? legacyRateValue / plumberOptionCount
-      : legacyRateValue
-  const bidAmt = isFirmProject
-    ? selectedPackage
-      ? `₹${selectedPackage.rate.toLocaleString('en-IN')}/sqft (${selectedPackage.package.name})`
-      : packageRange ?? ''
-    : legacyRateValue
-      ? existing.service_type === 'plumber'
-        ? plumberRates?.bid_unit === 'per_running_foot'
-          ? `₹${Number(plumberAvg).toLocaleString('en-IN')}/Rft avg`
-          : `Rs. ${legacyRateValue.toLocaleString('en-IN')}`
-        : existing.service_type === 'electrician'
-          ? `₹${legacyRateValue.toLocaleString('en-IN')}/point`
-          : `₹${legacyRateValue.toLocaleString('en-IN')}/sqft`
-      : ''
-
-  const { data: ownerProfile } = await supabase
-    .from('profiles')
-    .select('full_name, email, mobile, physical_address')
-    .eq('id', ownerId || userId)
-    .single()
-
-  const projectTitle = String(existing.title ?? '')
-  const projectDistrict = String(existing.district ?? '')
-  const builderLabel = builderName ?? (isFirmProject ? 'the selected firm' : 'the selected builder')
-  const ownerName    = ownerProfile?.full_name ?? 'The client'
-
-  const ownerBody = isFirmProject
-    ? `🎉 ${builderLabel} has been selected for your project! Our team will arrange a meeting to finalize the construction agreement.${bidAmt ? ` Winning bid: ${bidAmt}.` : ''}`
-    : `You selected ${builderLabel} for "${projectTitle}" in ${projectDistrict}. Construction: ${constructionLabel}${bidAmt ? ` at ${bidAmt}` : ''}. Our team will reach out shortly.`
-
-  const builderBody = isFirmProject
-    ? `🎉 You've been selected for "${projectTitle}" in ${projectDistrict}! Check your dashboard for details.${bidAmt ? ` Your bid: ${bidAmt}.` : ''}`
-    : `${ownerName} selected you for "${projectTitle}" in ${projectDistrict}. Construction: ${constructionLabel}${bidAmt ? ` at ${bidAmt}` : ''}. Expect a call soon!`
-
-  const ownerTitle = isFirmProject ? 'Construction Firm Selected' : 'Builder Selected Successfully'
-  const builderTitle = isFirmProject ? 'You Were Selected!' : 'Congratulations! You Were Selected'
-
+  const now = new Date().toISOString()
   try {
     const admin = createAdminClient()
+    await admin
+      .from('profiles')
+      .update({ mobile: confirmedPhone, updated_at: now })
+      .eq('id', ownerId || userId)
 
-    const [{ data: ownerNotif }, { data: builderNotif }] = await Promise.all([
-      admin.from('notifications').select('id').eq('user_id', ownerId || userId).eq('type', 'builder_selected').order('created_at', { ascending: false }).limit(1).maybeSingle(),
-      admin.from('notifications').select('id').eq('user_id', builderId).eq('type', 'you_were_selected').order('created_at', { ascending: false }).limit(1).maybeSingle(),
+    const [{ data: ownerProfile }, { data: builderFull }] = await Promise.all([
+      admin.from('profiles').select('full_name, email, mobile, physical_address').eq('id', ownerId || userId).maybeSingle(),
+      admin.from('profiles').select('full_name, email, mobile, physical_address, company_name').eq('id', builderId).maybeSingle(),
     ])
 
-    if (ownerNotif?.id) {
-      await admin.from('notifications').update({ body: ownerBody, title: ownerTitle }).eq('id', ownerNotif.id)
-    } else {
-      await admin.from('notifications').insert({ user_id: ownerId || userId, type: 'builder_selected', title: ownerTitle, body: ownerBody })
-    }
+    const projectTitle = String(existing.title ?? '')
+    const projectDistrict = String(existing.district ?? '')
+    const builderLabel = builderName ?? (isFirmProject ? 'the selected firm' : 'the selected builder')
+    const rateValue = selectedPackage?.rate ?? winningBid?.single_rate ?? winningBid?.total_sum_metric
+    const bidAmt = selectedPackage
+      ? `₹${selectedPackage.rate.toLocaleString('en-IN')}/sqft (${selectedPackage.package.name})`
+      : rateValue
+        ? `₹${Number(rateValue).toLocaleString('en-IN')}`
+        : 'Pending company call'
 
-    if (builderNotif?.id) {
-      await admin.from('notifications').update({ body: builderBody, title: builderTitle }).eq('id', builderNotif.id)
-    } else {
-      await admin.from('notifications').insert({ user_id: builderId, type: 'you_were_selected', title: builderTitle, body: builderBody })
-    }
-  } catch {
-    // Fallback: owner can at least update their own notification
-    const { data: ownerNotif } = await supabase
-      .from('notifications').select('id').eq('user_id', ownerId || userId).eq('type', 'builder_selected')
-      .order('created_at', { ascending: false }).limit(1).maybeSingle()
-    if (ownerNotif?.id) {
-      await supabase.from('notifications').update({ body: ownerBody }).eq('id', ownerNotif.id)
-    }
-    await supabase.from('notifications').insert({
-      user_id: builderId, type: 'you_were_selected',
-      title: builderTitle, body: builderBody,
+    await admin.from('notifications').insert({
+      user_id: ownerId || userId,
+      type: 'builder_selected',
+      title: 'Selection received',
+      body: 'Thank you. BuilBid management will call your confirmed number shortly to verify this project before a field supervisor visits.',
     })
-  }
-
-  // 4. Email to builbidcorp@gmail.com — best-effort, never blocks selection
-  try {
-    let builderFull: {
-      full_name?: string
-      email?: string
-      mobile?: string | null
-      physical_address?: string | null
-      company_name?: string | null
-      gst_number?: string | null
-      years_in_business?: number | null
-      is_verified?: boolean | null
-      role?: string
-    } | null = null
-    try {
-      const admin = createAdminClient()
-      const { data } = await admin
-        .from('profiles')
-        .select('full_name, email, mobile, physical_address, company_name, gst_number, years_in_business, is_verified, role')
-        .eq('id', builderId)
-        .single()
-      builderFull = data
-    } catch {
-      console.warn('Admin client unavailable — builder contact details may be partial in email.')
-    }
-
-    const isMistriProject = isMistriCivilService(existing.service_type as string)
-    const isPlumberProject = isPlumberService(existing.service_type as string)
-    const isElectricianProject = isElectricianService(existing.service_type as string)
-    const isPainterProject = isPainterService(existing.service_type as string)
-    let mistriAgreementPayload = null as ReturnType<typeof buildMistriAgreementPayload> | null
-    let plumberAgreementPayload = null as ReturnType<typeof buildPlumberAgreementPayload> | null
-    let electricianAgreementPayload = null as ReturnType<typeof buildElectricianAgreementPayload> | null
-    let painterAgreementPayload = null as ReturnType<typeof buildPainterAgreementPayload> | null
-    let agreementAttachment: Array<{ filename: string; content: Buffer; contentType: string }> | undefined
-    const winningBidInput = winningBid
-      ? {
-          id: winningBid.id,
-          single_rate: winningBid.single_rate,
-          total_sum_metric: winningBid.total_sum_metric,
-          rates: winningBid.rates as BidRates | null,
-        }
-      : null
-    const ownerParty = {
-      name: ownerProfile?.full_name ?? 'Client',
-      email: ownerProfile?.email,
-      mobile: ownerProfile?.mobile,
-      address: ownerProfile?.physical_address,
-    }
-    const contractorParty = {
-      name: builderFull?.full_name ?? builderLabel,
-      email: builderFull?.email,
-      mobile: builderFull?.mobile,
-      address: builderFull?.physical_address,
-      companyName: builderFull?.company_name,
-      gstNumber: builderFull?.gst_number ?? null,
-      yearsInBusiness: builderFull?.years_in_business ?? null,
-      isVerified: builderFull?.is_verified ?? null,
-      platformId: builderId,
-    }
-
-    if (isMistriProject) {
-      try {
-        mistriAgreementPayload = buildMistriAgreementPayload({
-          project: {
-            id: projectId,
-            numeric_id: typeof existing.numeric_id === 'string' ? existing.numeric_id : null,
-            title: projectTitle,
-            district: projectDistrict,
-            state: typeof existing.state === 'string' ? existing.state : null,
-            pincode: typeof existing.pincode === 'string' ? existing.pincode : null,
-            description: typeof existing.description === 'string' ? existing.description : null,
-            track_type: existing.track_type as TrackType,
-            sub_configuration: (existing.sub_configuration ?? {}) as SubConfiguration,
-            building_types: existing.building_types as string[] | null,
-            construction_types: (existing.construction_types ?? null) as ConstructionTypesMap | null,
-            total_floors: typeof existing.total_floors === 'number' ? existing.total_floors : null,
-            plot_area_sqft: typeof existing.plot_area_sqft === 'number' ? existing.plot_area_sqft : null,
-            floor_area_sqft: typeof existing.floor_area_sqft === 'number' ? existing.floor_area_sqft : null,
-            mistri_details: existing.mistri_details,
-            service_type: existing.service_type as string | null,
-          },
-          bid: winningBidInput,
-          owner: ownerParty,
-          mistri: contractorParty,
-        })
-        const pdfBytes = generateMistriAgreementPdfBytes(mistriAgreementPayload)
-        agreementAttachment = [{
-          filename: mistriAgreementFileName(projectId, mistriAgreementPayload.numericProjectId),
-          content: Buffer.from(pdfBytes),
-          contentType: 'application/pdf',
-        }]
-      } catch (pdfErr) {
-        console.error('Mistri agreement PDF generation failed (non-fatal):', pdfErr)
-      }
-    } else if (isPlumberProject) {
-      try {
-        plumberAgreementPayload = buildPlumberAgreementPayload({
-          project: {
-            id: projectId,
-            numeric_id: typeof existing.numeric_id === 'string' ? existing.numeric_id : null,
-            title: projectTitle,
-            district: projectDistrict,
-            state: typeof existing.state === 'string' ? existing.state : null,
-            pincode: typeof existing.pincode === 'string' ? existing.pincode : null,
-            description: typeof existing.description === 'string' ? existing.description : null,
-            trade_details: readNestedProjectDetail(existing, 'trade_details'),
-            sub_configuration: existing.sub_configuration,
-            service_type: existing.service_type as string | null,
-          },
-          bid: winningBidInput,
-          owner: ownerParty,
-          plumber: contractorParty,
-        })
-        const pdfBytes = generatePlumberAgreementPdfBytes(plumberAgreementPayload)
-        agreementAttachment = [{
-          filename: plumberAgreementFileName(projectId, plumberAgreementPayload.numericProjectId),
-          content: Buffer.from(pdfBytes),
-          contentType: 'application/pdf',
-        }]
-      } catch (pdfErr) {
-        console.error('Plumber agreement PDF generation failed (non-fatal):', pdfErr)
-      }
-    } else if (isElectricianProject) {
-      try {
-        electricianAgreementPayload = buildElectricianAgreementPayload({
-          project: {
-            id: projectId,
-            numeric_id: typeof existing.numeric_id === 'string' ? existing.numeric_id : null,
-            title: projectTitle,
-            district: projectDistrict,
-            state: typeof existing.state === 'string' ? existing.state : null,
-            pincode: typeof existing.pincode === 'string' ? existing.pincode : null,
-            description: typeof existing.description === 'string' ? existing.description : null,
-            trade_details: readNestedProjectDetail(existing, 'trade_details'),
-            sub_configuration: existing.sub_configuration,
-            service_type: existing.service_type as string | null,
-          },
-          bid: winningBidInput,
-          owner: ownerParty,
-          electrician: contractorParty,
-        })
-        const pdfBytes = generateElectricianAgreementPdfBytes(electricianAgreementPayload)
-        agreementAttachment = [{
-          filename: electricianAgreementFileName(projectId, electricianAgreementPayload.numericProjectId),
-          content: Buffer.from(pdfBytes),
-          contentType: 'application/pdf',
-        }]
-      } catch (pdfErr) {
-        console.error('Electrician agreement PDF generation failed (non-fatal):', pdfErr)
-      }
-    } else if (isPainterProject) {
-      try {
-        painterAgreementPayload = buildPainterAgreementPayload({
-          project: {
-            id: projectId,
-            numeric_id: typeof existing.numeric_id === 'string' ? existing.numeric_id : null,
-            title: projectTitle,
-            district: projectDistrict,
-            state: typeof existing.state === 'string' ? existing.state : null,
-            pincode: typeof existing.pincode === 'string' ? existing.pincode : null,
-            description: typeof existing.description === 'string' ? existing.description : null,
-            painter_details: readNestedProjectDetail(existing, 'painter_details'),
-            service_type: existing.service_type as string | null,
-          },
-          bid: winningBidInput,
-          owner: ownerParty,
-          painter: contractorParty,
-        })
-        const pdfBytes = generatePainterAgreementPdfBytes(painterAgreementPayload)
-        agreementAttachment = [{
-          filename: painterAgreementFileName(projectId, painterAgreementPayload.numericProjectId),
-          content: Buffer.from(pdfBytes),
-          contentType: 'application/pdf',
-        }]
-      } catch (pdfErr) {
-        console.error('Painter agreement PDF generation failed (non-fatal):', pdfErr)
-      }
-    }
 
     await sendSelectionNotification({
       projectTitle,
       projectDistrict,
       constructionType: constructionLabel,
-      bidAmountLabel:   bidAmt || 'N/A',
+      bidAmountLabel: bidAmt,
       isFirmProject,
       selectedPackage,
-      ownerName:        ownerProfile?.full_name        ?? 'N/A',
-      ownerEmail:       ownerProfile?.email            ?? 'N/A',
-      ownerMobile:      ownerProfile?.mobile           ?? null,
-      ownerAddress:     ownerProfile?.physical_address ?? null,
-      builderName:      builderFull?.company_name ?? builderFull?.full_name ?? builderLabel,
-      builderEmail:     builderFull?.email              ?? 'N/A',
-      builderMobile:    builderFull?.mobile             ?? null,
-      builderAddress:   builderFull?.physical_address   ?? null,
-    }, agreementAttachment)
-
-    await Promise.all([
-      sendUserNotificationEmail({
-        to:    ownerProfile?.email ?? '',
-        title: ownerTitle,
-        body:  ownerBody,
-        selectedPackage,
-      }),
-      sendUserNotificationEmail({
-        to:    builderFull?.email ?? '',
-        title: builderTitle,
-        body:  builderBody,
-        selectedPackage,
-      }),
-    ])
-
-    if (mistriAgreementPayload) {
-      try {
-        await sendOfficialMistriAgreementEmail(mistriAgreementPayload)
-      } catch (agreementErr) {
-        console.error('Official mistri agreement email failed (non-fatal):', agreementErr)
-      }
-    } else if (plumberAgreementPayload) {
-      try {
-        await sendOfficialPlumberAgreementEmail(plumberAgreementPayload)
-      } catch (agreementErr) {
-        console.error('Official plumber agreement email failed (non-fatal):', agreementErr)
-      }
-    } else if (electricianAgreementPayload) {
-      try {
-        await sendOfficialElectricianAgreementEmail(electricianAgreementPayload)
-      } catch (agreementErr) {
-        console.error('Official electrician agreement email failed (non-fatal):', agreementErr)
-      }
-    } else if (painterAgreementPayload) {
-      try {
-        await sendOfficialPainterAgreementEmail(painterAgreementPayload)
-      } catch (agreementErr) {
-        console.error('Official painter agreement email failed (non-fatal):', agreementErr)
-      }
-    }
+      ownerName: ownerProfile?.full_name ?? 'N/A',
+      ownerEmail: ownerProfile?.email ?? 'N/A',
+      ownerMobile: confirmedPhone,
+      ownerAddress: ownerProfile?.physical_address ?? null,
+      builderName: builderFull?.company_name ?? builderFull?.full_name ?? builderLabel,
+      builderEmail: builderFull?.email ?? 'N/A',
+      builderMobile: builderFull?.mobile ?? null,
+      builderAddress: builderFull?.physical_address ?? null,
+    })
   } catch (err) {
-    console.error('Selection email failed (non-fatal):', err)
-  }
-
-  try {
-    await archiveAwardedProjectDocuments({ projectId })
-  } catch (archiveErr) {
-    console.error('Project document archive failed (non-fatal):', archiveErr)
+    console.error('Pending-call notification failed (non-fatal):', err)
   }
 
   revalidatePath(`/dashboard/owner/project/${projectId}`)
   revalidatePath('/dashboard/owner')
   revalidatePath('/dashboard/profile')
+  revalidatePath('/admin/dashboard')
   revalidateHomePublic()
   return { error: null, success: true }
 }

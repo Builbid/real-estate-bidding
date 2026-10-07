@@ -60,6 +60,7 @@ export default async function AdminDashboardPage({
       clients={supervisorPortal ? [] : data.clients}
       agreements={data.agreements}
       completedWorks={data.completedWorks}
+      pendingCallProjects={data.pendingCallProjects}
       supervisors={supervisors}
       initialTab={tab}
     />

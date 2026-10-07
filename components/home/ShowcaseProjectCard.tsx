@@ -26,6 +26,7 @@ import {
   getServiceCategoryOption,
   isFirmProject,
   isTradeProject,
+  bidsPlacedLabel,
 } from '@/lib/project/display';
 import { DRAWING_TYPE_OPTIONS, isDrawingDesignServiceType } from '@/lib/drawingDesign';
 import { getProjectWorkRequirementBlocks, isFloorFixtureRequirementLabel } from '@/lib/project/workRequirements';
@@ -378,6 +379,9 @@ export function ShowcaseProjectCard({
                 </span>
               )}
               {biddingClosed ? t('home.showcase.selectionBadge') : t('home.showcase.liveBadge')}
+            </Badge>
+            <Badge className="border-slate-200 bg-white px-1.5 py-0 text-[10px] font-semibold text-slate-800 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100">
+              {bidsPlacedLabel(project.bid_count)}
             </Badge>
             {finishingBadge && (
               <Badge className="border-slate-200 bg-slate-50 px-1.5 py-0 text-[10px] text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">

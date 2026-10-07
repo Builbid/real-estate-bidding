@@ -147,7 +147,7 @@ export function UnifiedFirmBidRankings({
                   </Button>
                 )}
 
-                {isFrozen && !project.selected_builder_id && bid.builder_id && (
+                {bid.builder_id && !project.selected_builder_id && project.status !== 'completed' && project.status !== 'cancelled' && (
                   <SelectFirmButton
                     projectId={project.id}
                     firmId={bid.builder_id}

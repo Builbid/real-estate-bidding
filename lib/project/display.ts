@@ -27,6 +27,12 @@ export function isFirmProject(project: { service_type?: ServiceType | null }): b
   return getProjectServiceType(project) === 'construction_firm';
 }
 
+/** Public card label. Builder names stay hidden; only the count is shown. */
+export function bidsPlacedLabel(count: number): string {
+  const n = Number.isFinite(count) ? Math.max(0, Math.floor(count)) : 0;
+  return `${n} ${n === 1 ? 'Bid' : 'Bids'} Placed`;
+}
+
 export function isTradeProject(project: { service_type?: ServiceType | null }): boolean {
   return isTradeServiceType(getProjectServiceType(project));
 }
