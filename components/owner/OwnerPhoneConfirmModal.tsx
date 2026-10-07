@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { formatMobileDisplay } from '@/lib/validation/mobile';
 
 const MESSAGE =
-  'ধন্যবাদ! আপুনি সপোনৰ ঘৰ সাজিবলৈ বিল্ডাৰ বাছনি কৰিলে। আমাৰ কোম্পানীৰ মেনেজমেন্টৰ ফালৰ পৰা আপোনাৰ সৈতে অতি সোনকালে ফোনত যোগাযোগ কৰা হ’ব। অনুগ্ৰহ কৰি আপোনাৰ বৰ্তমান সক্ৰিয় ফোন নম্বৰটো নিশ্চিত কৰক।';
+  'Thank you! You have selected a builder to build your dream home. Our company management will contact you by phone very soon. Please confirm your current active phone number.';
 
 export function OwnerPhoneConfirmModal({
   open,
