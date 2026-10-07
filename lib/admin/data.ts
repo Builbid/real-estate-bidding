@@ -74,6 +74,11 @@ export interface AdminKpis {
   totalBids: number;
 }
 
+export type CallVerificationStatus = 'pending' | 'verified' | null;
+
+/** Project status plus the admin hold introduced with migration 069. */
+export type AdminProjectStatus = ProjectStatus | 'pending_call_verification';
+
 export interface AdminProjectRow {
   id: string;
   /** Public project ID stored in projects.numeric_id (4 letters + 4 digits). */
@@ -81,7 +86,7 @@ export interface AdminProjectRow {
   title: string;
   district: string;
   state: string;
-  status: ProjectStatus;
+  status: AdminProjectStatus;
   biddingEndsAt: string;
   selectionEndsAt: string | null;
   clientName: string;
@@ -94,8 +99,40 @@ export interface AdminProjectRow {
   serviceType: string | null;
   createdAt: string;
   workflow: ProjectWorkflowState;
-  callVerificationStatus: 'pending' | 'verified' | null;
+  callVerificationStatus: CallVerificationStatus;
   ownerCallbackPhone: string | null;
+}
+
+/** Row shape returned by the projects select, including migration 069 columns. */
+interface DashboardProjectRecord {
+  id: string;
+  numeric_id: string | null;
+  title: string;
+  district: string;
+  state: string;
+  pincode: string | null;
+  status: AdminProjectStatus;
+  bidding_ends_at: string;
+  selection_ends_at: string | null;
+  owner_id: string;
+  selected_builder_id: string | null;
+  service_type: string | null;
+  budget_range_min: number | null;
+  budget_range_max: number | null;
+  created_at: string;
+  updated_at: string;
+  call_verification_status?: CallVerificationStatus;
+  owner_callback_phone?: string | null;
+}
+
+type ProjectQueryResult = {
+  data: unknown[] | null;
+  error: { message: string } | null;
+};
+
+function readDashboardProjects(data: unknown): DashboardProjectRecord[] {
+  const rows = Array.isArray(data) ? data : [];
+  return rows as unknown as DashboardProjectRecord[];
 }
 
 export interface AdminWorkerRow {
@@ -241,12 +278,16 @@ export async function loadAdminDashboardData(
     'id, numeric_id, title, district, state, pincode, status, bidding_ends_at, selection_ends_at, owner_id, selected_builder_id, service_type, budget_range_min, budget_range_max, created_at, updated_at';
   const callProjectColumns = `${baseProjectColumns}, call_verification_status, owner_callback_phone`;
 
-  async function fetchProjects(columns: string) {
+  async function fetchProjects(columns: string): Promise<ProjectQueryResult> {
     const base = supabase.from('projects').select(columns);
     const scoped = territory
       ? base.in('pincode', territory.length > 0 ? territory : ['000000'])
       : base;
-    return scoped.order('created_at', { ascending: false }).limit(400);
+    const result = await scoped.order('created_at', { ascending: false }).limit(400);
+    return {
+      data: Array.isArray(result.data) ? result.data : null,
+      error: result.error,
+    };
   }
 
   let projectsResult = await fetchProjects(callProjectColumns);
@@ -280,26 +321,7 @@ export async function loadAdminDashboardData(
   const workflowByProject = await loadWorkflowStates();
 
   const projectsRaw = projectsResult.data;
-  const projects = (projectsRaw ?? []) as Array<{
-    id: string;
-    numeric_id: string | null;
-    title: string;
-    district: string;
-    state: string;
-    pincode: string | null;
-    status: ProjectStatus;
-    bidding_ends_at: string;
-    selection_ends_at: string | null;
-    owner_id: string;
-    selected_builder_id: string | null;
-    service_type: string | null;
-    budget_range_min: number | null;
-    budget_range_max: number | null;
-    created_at: string;
-    updated_at: string;
-    call_verification_status?: 'pending' | 'verified' | null;
-    owner_callback_phone?: string | null;
-  }>;
+  const projects = readDashboardProjects(projectsRaw ?? []);
 
   const profiles = (profilesRaw ?? []) as Array<
     Profile & { is_admin?: boolean; physical_address?: string | null }

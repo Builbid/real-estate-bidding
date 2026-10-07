@@ -129,7 +129,10 @@ function ProjectStatusCell({
     status === 'active_24h' && new Date(biddingEndsAt).getTime() > Date.now();
   const isCancelled = status === 'cancelled';
   const isDone = status === 'completed';
-  const label = STATUS_CONFIG[status]?.label ?? status;
+  const label =
+    status === 'pending_call_verification'
+      ? 'Pending Call Verification'
+      : STATUS_CONFIG[status].label;
   const remaining = countdownLabel(biddingEndsAt);
 
   if (isLive) {
