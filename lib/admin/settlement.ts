@@ -1,6 +1,6 @@
 import { randomBytes } from 'crypto';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { calculateSupervisorCommission, SUPERVISOR_PAYOUT_BPS } from '@/lib/admin/constants';
+import { calculateSupervisorCommission, clampSupervisorEarning, SUPERVISOR_PAYOUT_BPS } from '@/lib/admin/constants';
 import { inTerritory, loadSupervisorTerritory } from '@/lib/admin/territory';
 
 export interface PaymentSlip {
@@ -125,7 +125,7 @@ export async function loadCompletedValues(admin: SupabaseClient): Promise<Comple
   }));
 }
 
-/** Pending = credited-but-unpaid commissions + 0.2% of in-territory completed works not yet credited. */
+/** Pending = clamped earning on credited-but-unpaid commissions + the same earning on in-territory completed works not yet credited. */
 export async function pendingBalanceFor(
   admin: SupabaseClient,
   supervisorId: string,
@@ -134,19 +134,21 @@ export async function pendingBalanceFor(
 ): Promise<number> {
   const { data: commissions } = await admin
     .from('supervisor_commissions')
-    .select('project_id, supervisor_id, amount, status')
+    .select('project_id, supervisor_id, project_value, amount, status')
     .limit(5000);
   const commissioned = new Set<string>();
   let credited = 0;
   for (const row of (commissions ?? []) as Array<{
     project_id: string;
     supervisor_id: string;
+    project_value: number | string | null;
     amount: number | string;
     status: string;
   }>) {
     commissioned.add(row.project_id);
     if (row.supervisor_id === supervisorId && row.status === 'credited') {
-      credited += Number(row.amount) || 0;
+      const fromBudget = calculateSupervisorCommission(Number(row.project_value));
+      credited += fromBudget > 0 ? fromBudget : clampSupervisorEarning(Number(row.amount));
     }
   }
   const list = completed ?? (await loadCompletedValues(admin));
@@ -194,18 +196,35 @@ export async function settleSupervisorMonth(
     if (error) return { error: error.message };
   }
 
-  // 2. Everything credited and unpaid for this supervisor.
+  // 2. Everything credited and unpaid for this supervisor, priced with the ₹600–₹1,200 earning rule.
   const { data: due, error: dueError } = await admin
     .from('supervisor_commissions')
-    .select('id, amount')
+    .select('id, amount, project_value')
     .eq('supervisor_id', input.supervisorId)
     .eq('status', 'credited');
   if (dueError) return { error: dueError.message };
-  const rows = (due ?? []) as Array<{ id: string; amount: number | string }>;
-  const total = rows.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
-  if (rows.length === 0 || total <= 0) {
+  const rows = (due ?? []) as Array<{ id: string; amount: number | string; project_value: number | string | null }>;
+  const payable = rows
+    .map((row) => {
+      const fromBudget = calculateSupervisorCommission(Number(row.project_value));
+      const amount = fromBudget > 0 ? fromBudget : clampSupervisorEarning(Number(row.amount));
+      return { id: row.id, amount };
+    })
+    .filter((row) => row.amount > 0);
+  const total = payable.reduce((sum, row) => sum + row.amount, 0);
+  if (payable.length === 0 || total <= 0) {
     return { error: 'Nothing is pending for this supervisor.' };
   }
+
+  await Promise.all(
+    payable.map((row) =>
+      admin
+        .from('supervisor_commissions')
+        .update({ amount: row.amount })
+        .eq('id', row.id)
+        .eq('status', 'credited'),
+    ),
+  );
 
   // 3. Payment slip for this month.
   const periodMonth = currentMonthStartIst();
@@ -218,7 +237,7 @@ export async function settleSupervisorMonth(
       period_month: periodMonth,
       slip_number: slipNumber,
       amount: total,
-      commission_count: rows.length,
+      commission_count: payable.length,
       reference: input.reference?.trim() || null,
       paid_by: input.paidBy,
       paid_at: paidAt,
@@ -235,7 +254,7 @@ export async function settleSupervisorMonth(
     .update({ status: 'paid', paid_at: paidAt, settlement_id: (settlement as SlipRow).id })
     .in(
       'id',
-      rows.map((r) => r.id),
+      payable.map((r) => r.id),
     )
     .eq('status', 'credited');
   if (payError) {

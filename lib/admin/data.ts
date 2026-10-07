@@ -1,4 +1,4 @@
-import { calculateSupervisorCommission, SUPERVISOR_PAYOUT_BPS, SUPERVISOR_PAYOUT_LABEL } from '@/lib/admin/constants';
+import { calculateSupervisorCommission, SUPERVISOR_PAYOUT_LABEL } from '@/lib/admin/constants';
 import {
   currentMonthStartInstant,
   currentMonthStartIst,
@@ -43,7 +43,7 @@ export interface SupervisorAccount {
   totalReceived: number;
   /** e.g. "October 2026" */
   monthLabel: string;
-  /** Credited but unpaid commission (plus 0.2% estimate on completed works not yet credited). Reduced by each issued payment slip. */
+  /** Sum of clamped supervisor earnings on unpaid completed works. Reduced by each issued payment slip. */
   pendingBalance: number;
   nextPaymentCycle: string;
   /** e.g. "0.2%" */
@@ -436,34 +436,20 @@ export async function loadAdminDashboardData(
   const pendingApprovals = workers.filter((w) => !w.isVerified).length;
 
   const agreedCostByProject = new Map<string, number>();
-  const commissionBpsByProject = new Map<string, number>();
   try {
     const admin = createAdminClient();
     const projectIdList = projects.map((p) => p.id);
     if (projectIdList.length > 0) {
-      const [contractRows, commissionRows] = await Promise.all([
-        admin
-          .from('project_digital_contracts')
-          .select('project_id, total_agreed_cost')
-          .in('project_id', projectIdList),
-        admin
-          .from('supervisor_commissions')
-          .select('project_id, commission_bps')
-          .in('project_id', projectIdList),
-      ]);
-      for (const row of (contractRows.data ?? []) as Array<{
+      const { data: contractRows } = await admin
+        .from('project_digital_contracts')
+        .select('project_id, total_agreed_cost')
+        .in('project_id', projectIdList);
+      for (const row of (contractRows ?? []) as Array<{
         project_id: string;
         total_agreed_cost: number | string | null;
       }>) {
         const value = Number(row.total_agreed_cost);
         if (Number.isFinite(value) && value > 0) agreedCostByProject.set(row.project_id, value);
-      }
-      for (const row of (commissionRows.data ?? []) as Array<{
-        project_id: string;
-        commission_bps: number | string | null;
-      }>) {
-        const bps = Number(row.commission_bps);
-        if (Number.isFinite(bps) && bps >= 0) commissionBpsByProject.set(row.project_id, bps);
       }
     }
   } catch {
@@ -500,7 +486,6 @@ export async function loadAdminDashboardData(
     .map((p) => {
       const row = projectRows.find((item) => item.id === p.id);
       const finalBudget = agreedCostByProject.get(p.id) ?? null;
-      const commissionBps = commissionBpsByProject.get(p.id) ?? SUPERVISOR_PAYOUT_BPS;
       return {
         projectId: p.id,
         publicId: row?.publicId ?? (p.numeric_id ?? '').trim().toUpperCase(),
@@ -509,8 +494,7 @@ export async function loadAdminDashboardData(
         pincode: p.pincode,
         clientName: row?.clientName ?? '—',
         finalBudget,
-        supervisorPayout:
-          finalBudget == null ? 0 : Math.round((finalBudget * commissionBps) / 10_000),
+        supervisorPayout: calculateSupervisorCommission(finalBudget),
       };
     });
 
@@ -639,12 +623,11 @@ export async function loadSupervisorAccount(
     supervisorName = null;
   }
 
-  // Commissions (migrations 058/059): credited = pending, paid = settled in a monthly payment.
+  // Paid projects, and projects credited to another supervisor, are left out of this balance.
   const monthStart = currentMonthStartInstant();
   let receivedThisMonth = 0;
-  let credited = 0;
   let approvedAgreements = 0;
-  const commissionedProjects = new Set<string>();
+  const excludedFromPending = new Set<string>();
   try {
     const admin = createAdminClient();
     const { data: rows } = await admin
@@ -658,29 +641,31 @@ export async function loadSupervisorAccount(
       status: string;
       paid_at?: string | null;
     }>) {
-      commissionedProjects.add(row.project_id);
-      if (row.supervisor_id !== userId) continue;
+      if (row.supervisor_id !== userId) {
+        excludedFromPending.add(row.project_id);
+        continue;
+      }
       approvedAgreements += 1;
       if (row.status === 'paid') {
+        excludedFromPending.add(row.project_id);
         if (row.paid_at && row.paid_at >= monthStart) receivedThisMonth += Number(row.amount) || 0;
-      } else {
-        credited += Number(row.amount) || 0;
       }
     }
   } catch {
-    // Tables not migrated yet: fall back to the completed-works estimate only.
+    // Tables not migrated yet: the unpaid completed-works earnings are the whole balance.
   }
 
-  // In-territory completed works not yet credited still accrue the 0.2% estimate.
-  const estimated = completedWorks
-    .filter((row) => !commissionedProjects.has(row.projectId))
-    .reduce((sum, row) => sum + row.supervisorPayout, 0);
+  // Same clamped earning shown on each Completed Works row, for projects not yet paid.
+  const pendingBalance = completedWorks.reduce((sum, row) => {
+    if (excludedFromPending.has(row.projectId)) return sum;
+    return sum + row.supervisorPayout;
+  }, 0);
 
   return {
     name: supervisorName || profile?.full_name?.trim() || fallbackEmail.split('@')[0] || 'Supervisor',
     totalReceived: receivedThisMonth,
     monthLabel: monthLabel(currentMonthStartIst()),
-    pendingBalance: credited + estimated,
+    pendingBalance,
     nextPaymentCycle: nextSupervisorSettlementLabel(),
     commissionRate: SUPERVISOR_PAYOUT_LABEL,
     approvedAgreements,

@@ -416,7 +416,7 @@ export function SupervisorAccountsView({
             icon={Wallet}
             label="Unpaid / Pending Balance"
             value={formatMoney(pendingBalance)}
-            hint={`${account.commissionRate} commission · reduced automatically when a payment slip is issued`}
+            hint="0.2% of each completed budget (minimum ₹600, maximum ₹1,200). Reduced when a payment slip is issued."
           />
           <SummaryCard
             icon={CalendarClock}

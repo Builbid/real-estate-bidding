@@ -15,17 +15,34 @@ export const ADMIN_UNAUTHORIZED_MESSAGE =
  */
 export const TESTING_FIELD_SUPERVISOR_ROLE = 'field_supervisor';
 
-/** Supervisor commission: 20 basis points = 0.2% of the project's total budget value. */
+/** Supervisor commission: 20 basis points = 0.2% of the project's final total budget. */
 export const SUPERVISOR_PAYOUT_BPS = 20;
+
+/** Floor and cap on the 0.2% commission, in rupees. */
+export const SUPERVISOR_EARNING_MIN = 600;
+export const SUPERVISOR_EARNING_MAX = 1200;
 
 /** Human readable commission rate, e.g. "0.2%". */
 export const SUPERVISOR_PAYOUT_LABEL = `${(SUPERVISOR_PAYOUT_BPS / 100).toString()}%`;
 
-/** 0.2% supervisor commission on a project value, rounded to whole rupees. */
+/**
+ * Supervisor earning from the final total budget:
+ * 0.2% (`budget * 0.002`), then ₹600 minimum and ₹1,200 maximum.
+ * A missing or non-positive budget earns nothing.
+ */
 export function calculateSupervisorCommission(projectValue: number | null | undefined): number {
   const value = Number(projectValue);
   if (!Number.isFinite(value) || value <= 0) return 0;
-  return Math.round((value * SUPERVISOR_PAYOUT_BPS) / 10_000);
+  return clampSupervisorEarning(value * 0.002);
+}
+
+/** Apply the ₹600–₹1,200 band to a commission that is already in rupees. */
+export function clampSupervisorEarning(amount: number): number {
+  if (!Number.isFinite(amount) || amount <= 0) return 0;
+  const rounded = Math.round(amount);
+  if (rounded < SUPERVISOR_EARNING_MIN) return SUPERVISOR_EARNING_MIN;
+  if (rounded > SUPERVISOR_EARNING_MAX) return SUPERVISOR_EARNING_MAX;
+  return rounded;
 }
 
 const SUPERVISOR_PROFILE_ROLES = new Set(['field_supervisor', 'supervisor']);
