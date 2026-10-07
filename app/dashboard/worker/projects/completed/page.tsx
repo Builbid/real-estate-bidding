@@ -6,8 +6,11 @@ import { getDashboardPath, isBidderRole, normalizeRole } from '@/lib/auth/roles'
 import { CompletedProjectsHistory } from '@/components/dashboard/CompletedProjectsHistory';
 import {
   COMPLETED_HISTORY_PAGE_SIZE,
+  completedAgreementOrFilter,
+  isAgreementComplete,
   parseHistoryPage,
 } from '@/lib/dashboard/completedProjects';
+import { sortByCreatedAtDesc } from '@/lib/utils';
 import type { Project } from '@/lib/types';
 
 type ProjectWithBidCount = Project & { bids?: [{ count: number }] };
@@ -26,15 +29,28 @@ export default async function WorkerCompletedProjectsPage({
   const from = (page - 1) * COMPLETED_HISTORY_PAGE_SIZE;
   const to = from + COMPLETED_HISTORY_PAGE_SIZE - 1;
 
-  const { data, count } = await supabase
+  const signed = await supabase
     .from('projects')
     .select('*, bids(count)', { count: 'exact' })
     .eq('selected_builder_id', userId)
-    .eq('status', 'completed')
-    .order('updated_at', { ascending: false })
+    .or(completedAgreementOrFilter())
+    .order('created_at', { ascending: false })
     .range(from, to);
 
-  const projects = (data ?? []) as ProjectWithBidCount[];
+  const result = signed.error
+    ? await supabase
+        .from('projects')
+        .select('*, bids(count)', { count: 'exact' })
+        .eq('selected_builder_id', userId)
+        .eq('status', 'completed')
+        .order('created_at', { ascending: false })
+        .range(from, to)
+    : signed;
+
+  const projects = sortByCreatedAtDesc(
+    ((result.data ?? []) as ProjectWithBidCount[]).filter(isAgreementComplete),
+  );
+  const count = result.count;
   const totalCount = count ?? projects.length;
 
   return (

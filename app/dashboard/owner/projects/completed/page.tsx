@@ -5,8 +5,11 @@ import { redirect } from 'next/navigation';
 import { CompletedProjectsHistory } from '@/components/dashboard/CompletedProjectsHistory';
 import {
   COMPLETED_HISTORY_PAGE_SIZE,
+  completedAgreementOrFilter,
+  isAgreementComplete,
   parseHistoryPage,
 } from '@/lib/dashboard/completedProjects';
+import { sortByCreatedAtDesc } from '@/lib/utils';
 import type { Project } from '@/lib/types';
 
 type ProjectWithBidCount = Project & { bids?: [{ count: number }] };
@@ -31,8 +34,8 @@ export default async function OwnerCompletedProjectsPage({
     .select(columns, { count: 'exact' })
     .eq('owner_id', userId)
     .neq('status', 'cancelled')
-    .or('status.eq.completed,agreement_completed.eq.true,agreement_status.eq.approved_active')
-    .order('updated_at', { ascending: false })
+    .or(completedAgreementOrFilter())
+    .order('created_at', { ascending: false })
     .range(from, to);
 
   const result = broad.error
@@ -41,11 +44,13 @@ export default async function OwnerCompletedProjectsPage({
         .select(columns, { count: 'exact' })
         .eq('owner_id', userId)
         .eq('status', 'completed')
-        .order('updated_at', { ascending: false })
+        .order('created_at', { ascending: false })
         .range(from, to)
     : broad;
 
-  const projects = (result.data ?? []) as ProjectWithBidCount[];
+  const projects = sortByCreatedAtDesc(
+    ((result.data ?? []) as ProjectWithBidCount[]).filter(isAgreementComplete),
+  );
   const totalCount = result.count ?? projects.length;
 
   return (

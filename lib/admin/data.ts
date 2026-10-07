@@ -12,6 +12,7 @@ import { formatBuilbidPublicId } from '@/lib/contract/mistriAgreement';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import type { Profile, ProjectStatus, ServiceType } from '@/lib/types';
+import { sortByCreatedAtDesc, sortByTimestampDesc } from '@/lib/utils';
 
 export type AdminTab =
   | 'projects'
@@ -31,6 +32,8 @@ export interface CompletedWorkRow {
   clientName: string;
   finalBudget: number | null;
   supervisorPayout: number;
+  /** Project creation time. Lists render newest first. */
+  postedAt: string;
 }
 
 /**
@@ -175,6 +178,8 @@ export interface AdminAgreementRow {
    * "Receive / Accept Project".
    */
   provisional: boolean;
+  /** Project creation time. Lists render newest first. */
+  postedAt: string;
 }
 
 function tradeLabel(role: string, serviceType: ServiceType | null | undefined): string {
@@ -321,7 +326,7 @@ export async function loadAdminDashboardData(
   const workflowByProject = await loadWorkflowStates();
 
   const projectsRaw = projectsResult.data;
-  const projects = readDashboardProjects(projectsRaw ?? []);
+  const projects = sortByCreatedAtDesc(readDashboardProjects(projectsRaw ?? []));
 
   const profiles = (profilesRaw ?? []) as Array<
     Profile & { is_admin?: boolean; physical_address?: string | null }
@@ -473,6 +478,7 @@ export async function loadAdminDashboardData(
         executionDate: p.updated_at || p.created_at,
         district: p.district,
         workflow: workflowByProject.get(p.id) ?? NO_WORKFLOW,
+        postedAt: p.created_at,
       };
     });
 
@@ -500,12 +506,15 @@ export async function loadAdminDashboardData(
   }
 
   // Projects lists a row only while Live Bidding is still running.
-  const visibleProjectRows = projectRows.filter(
-    (p) =>
-      p.callVerificationStatus !== 'pending' &&
-      !isApprovedActive(p.id) &&
-      p.status === 'active_24h' &&
-      new Date(p.biddingEndsAt).getTime() > nowMs,
+  const visibleProjectRows = sortByTimestampDesc(
+    projectRows.filter(
+      (p) =>
+        p.callVerificationStatus !== 'pending' &&
+        !isApprovedActive(p.id) &&
+        p.status === 'active_24h' &&
+        new Date(p.biddingEndsAt).getTime() > nowMs,
+    ),
+    (row) => row.createdAt,
   );
 
   const pendingCallProjects = supervisorView
@@ -544,10 +553,19 @@ export async function loadAdminDashboardData(
         clientName: row?.clientName ?? '—',
         finalBudget,
         supervisorPayout: calculateSupervisorCommission(finalBudget),
+        postedAt: p.created_at,
       };
     });
 
-  return { kpis, projects: visibleProjectRows, workers, clients, agreements, completedWorks, pendingCallProjects };
+  return {
+    kpis,
+    projects: visibleProjectRows,
+    workers,
+    clients,
+    agreements: sortByTimestampDesc(agreements, (row) => row.postedAt),
+    completedWorks: sortByTimestampDesc(completedWorks, (row) => row.postedAt),
+    pendingCallProjects: sortByTimestampDesc(pendingCallProjects, (row) => row.createdAt),
+  };
 }
 
 export interface AdminSupervisorRow {

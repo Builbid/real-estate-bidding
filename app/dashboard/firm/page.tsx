@@ -12,6 +12,7 @@ import { formatPackageRateRange } from '@/lib/firm/bidDisplay';
 import { CompletedProjectsPreview } from '@/components/dashboard/CompletedProjectsPreview';
 import { DashboardStatTiles } from '@/components/dashboard/DashboardStatTiles';
 import { fetchWorkerCompletedPreview, isCancelledStatus } from '@/lib/dashboard/completedProjects';
+import { sortByCreatedAtDesc } from '@/lib/utils';
 import type { Project, Bid } from '@/lib/types';
 
 async function getData() {
@@ -99,7 +100,7 @@ async function getData() {
 
   return {
     profile,
-    projects: (projects ?? []) as Project[],
+    projects: sortByCreatedAtDesc((projects ?? []) as Project[]),
     myBids: visibleBids,
     wins: wonProjects ?? [],
     rankMap,
@@ -115,7 +116,7 @@ export default async function FirmDashboardPage() {
   const portfolio = await getFirmPortfolioAction();
   const showBanner = !profile.logo_url || portfolio.items.length === 0;
 
-  const activeProjects = projects.filter((p) => p.status === 'active_24h');
+  const activeProjects = sortByCreatedAtDesc(projects.filter((p) => p.status === 'active_24h'));
   const myBidMap = new Map(myBids.map((b) => [b.project_id, b]));
   const bidsPlaced = myBids.filter((b) => !b.is_withdrawn);
 

@@ -12,7 +12,7 @@ import { DashboardWorkSection } from '@/components/dashboard/DashboardWorkSectio
 import { Button } from '@/components/ui/button';
 import { HistoryBackButton } from '@/components/shared/HistoryBackButton';
 import { isAgreementComplete, isAwaitingAgreement } from '@/lib/dashboard/completedProjects';
-import { getProjectPhase, isInteractiveProjectPhase, type ProjectPhase } from '@/lib/utils';
+import { getProjectPhase, isInteractiveProjectPhase, sortByCreatedAtDesc, sortByTimestampDesc, type ProjectPhase } from '@/lib/utils';
 import type { Project, Bid } from '@/lib/types';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
@@ -121,13 +121,15 @@ async function getData() {
     throw new Error(`Could not load your projects: ${projectsError.message}`);
   }
 
-  const allProjects = (projects ?? []).filter(
-    (p) => p.status !== 'cancelled',
-  ) as ProjectWithBidCount[];
+  const allProjects = sortByCreatedAtDesc(
+    ((projects ?? []).filter((p) => p.status !== 'cancelled') as ProjectWithBidCount[]),
+  );
 
   const activeProjects = allProjects.filter((p) => !isAgreementComplete(p));
-  const interactiveProjects = activeProjects.filter((p) =>
-    isInteractiveProjectPhase(getProjectPhase(p))
+  // Awarded projects stay on this dashboard until a supervisor signs the agreement,
+  // even after the bidding or selection window has ended.
+  const interactiveProjects = activeProjects.filter(
+    (p) => isInteractiveProjectPhase(getProjectPhase(p)) || isAwaitingAgreement(p),
   );
 
   const liveBundles = await Promise.all(
@@ -135,9 +137,7 @@ async function getData() {
   );
 
   const byNewest = (bundles: LiveProjectBundle[]) =>
-    [...bundles].sort(
-      (a, b) => new Date(b.project.created_at).getTime() - new Date(a.project.created_at).getTime(),
-    );
+    sortByTimestampDesc(bundles, (bundle) => bundle.project.created_at);
 
   const agreementPending = byNewest(liveBundles.filter((b) => isAwaitingAgreement(b.project)));
   const openBundles = liveBundles.filter((b) => !isAwaitingAgreement(b.project));
@@ -150,11 +150,7 @@ async function getData() {
     openBundles.filter((b) => b.phase === 'live' && !b.biddingHasEnded),
   );
 
-  const completed = allProjects
-    .filter((p) => isAgreementComplete(p))
-    .sort(
-      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-    );
+  const completed = sortByCreatedAtDesc(allProjects.filter((p) => isAgreementComplete(p)));
 
   return { profile, userId, agreementPending, selectionRequired, liveAuctions, completed };
 }

@@ -144,6 +144,29 @@ export function formatRelativeTime(dateISO: string | null | undefined): string {
   return `${days}d ago`;
 }
 
+/** Milliseconds for a project timestamp. Missing or invalid values sort last. */
+export function timestampMillis(value: string | null | undefined): number {
+  if (!value) return 0;
+  const ms = Date.parse(value);
+  return Number.isFinite(ms) ? ms : 0;
+}
+
+/** Newest creation time first. Equal timestamps keep their incoming order. */
+export function sortByTimestampDesc<T>(
+  items: T[],
+  pick: (item: T) => string | null | undefined,
+): T[] {
+  return items
+    .map((item, index) => ({ item, index, ms: timestampMillis(pick(item)) }))
+    .sort((a, b) => b.ms - a.ms || a.index - b.index)
+    .map(({ item }) => item);
+}
+
+/** Newest `created_at` first. */
+export function sortByCreatedAtDesc<T extends { created_at?: string | null }>(items: T[]): T[] {
+  return sortByTimestampDesc(items, (item) => item.created_at);
+}
+
 /** Full date + time when a project was posted (Indian locale). */
 export function formatProjectPostedAt(dateISO: string | null | undefined): string | null {
   if (!dateISO) return null;

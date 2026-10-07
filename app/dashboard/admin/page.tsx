@@ -9,7 +9,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { STAT_ICON_STYLES, type StatIconColor } from '@/lib/dashboard/statIconStyles';
-import { cn } from '@/lib/utils';
+import { cn, sortByCreatedAtDesc } from '@/lib/utils';
 import { AdminServiceTables } from './AdminServiceTables';
 import type { Project, Profile } from '@/lib/types';
 
@@ -34,7 +34,7 @@ async function getData() {
 
   return {
     profile,
-    projects:    (allProjects ?? [])  as Project[],
+    projects:    sortByCreatedAtDesc((allProjects ?? []) as Project[]),
     profiles:    (allProfiles ?? [])  as Profile[],
     recentBids:  recentBids ?? [],
     totalBids:   totalBids ?? 0,

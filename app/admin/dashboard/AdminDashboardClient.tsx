@@ -30,6 +30,7 @@ import {
   confirmAndTransferToSupervisorAction,
   deleteTestAgreementProjectAction,
 } from '@/app/admin/actions';
+import { sortByTimestampDesc } from '@/lib/utils';
 import type {
   AdminAgreementRow,
   AdminClientRow,
@@ -447,19 +448,21 @@ export function AdminDashboardClient({
 
   const filteredProjects = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return projects;
-    return projects.filter((p) => {
-      const trade = resolveAdminTradeBadge(p.serviceType);
-      return (
-        p.title.toLowerCase().includes(q) ||
-        p.district.toLowerCase().includes(q) ||
-        p.state.toLowerCase().includes(q) ||
-        p.clientName.toLowerCase().includes(q) ||
-        trade.label.toLowerCase().includes(q) ||
-        p.id.toLowerCase().includes(q) ||
-        (p.publicId && p.publicId.toLowerCase().includes(q))
-      );
-    });
+    const rows = !q
+      ? projects
+      : projects.filter((p) => {
+          const trade = resolveAdminTradeBadge(p.serviceType);
+          return (
+            p.title.toLowerCase().includes(q) ||
+            p.district.toLowerCase().includes(q) ||
+            p.state.toLowerCase().includes(q) ||
+            p.clientName.toLowerCase().includes(q) ||
+            trade.label.toLowerCase().includes(q) ||
+            p.id.toLowerCase().includes(q) ||
+            (p.publicId && p.publicId.toLowerCase().includes(q))
+          );
+        });
+    return sortByTimestampDesc(rows, (row) => row.createdAt);
   }, [projects, query]);
 
   const filteredWorkers = useMemo(() => {
@@ -487,13 +490,15 @@ export function AdminDashboardClient({
 
   const filteredAgreements = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return agreementRows;
-    return agreementRows.filter(
-      (a) =>
-        a.projectTitle.toLowerCase().includes(q) ||
-        a.clientName.toLowerCase().includes(q) ||
-        a.mistriName.toLowerCase().includes(q),
-    );
+    const rows = !q
+      ? agreementRows
+      : agreementRows.filter(
+          (a) =>
+            a.projectTitle.toLowerCase().includes(q) ||
+            a.clientName.toLowerCase().includes(q) ||
+            a.mistriName.toLowerCase().includes(q),
+        );
+    return sortByTimestampDesc(rows, (row) => row.postedAt);
   }, [agreementRows, query]);
 
   const visibleTabs = supervisorPortal
@@ -502,13 +507,15 @@ export function AdminDashboardClient({
 
   const filteredCompleted = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return completedWorks;
-    return completedWorks.filter((row) =>
-      [row.publicId, row.projectName, row.location, row.clientName]
-        .join(' ')
-        .toLowerCase()
-        .includes(q),
-    );
+    const rows = !q
+      ? completedWorks
+      : completedWorks.filter((row) =>
+          [row.publicId, row.projectName, row.location, row.clientName]
+            .join(' ')
+            .toLowerCase()
+            .includes(q),
+        );
+    return sortByTimestampDesc(rows, (row) => row.postedAt);
   }, [completedWorks, query]);
 
   function removeTestProject(projectId: string) {

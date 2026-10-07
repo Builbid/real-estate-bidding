@@ -14,6 +14,7 @@ import { PortfolioManager } from './PortfolioManager';
 import { CompletedProjectsPreview } from '@/components/dashboard/CompletedProjectsPreview';
 import { DashboardStatTiles } from '@/components/dashboard/DashboardStatTiles';
 import { fetchWorkerCompletedPreview, isCancelledStatus } from '@/lib/dashboard/completedProjects';
+import { sortByCreatedAtDesc } from '@/lib/utils';
 import type { Project, Bid } from '@/lib/types';
 
 async function getData() {
@@ -66,7 +67,7 @@ async function getData() {
 
   return {
     profile,
-    projects: (projects ?? []) as Project[],
+    projects: sortByCreatedAtDesc((projects ?? []) as Project[]),
     myBids: visibleBids,
     bidProjectsMap,
     userId,
@@ -78,9 +79,9 @@ export default async function BuilderDashboard() {
   const { profile, projects, myBids, bidProjectsMap, userId, completed } = await getData();
 
   // Unified Worker Account: every non-firm category is open to every Worker.
-  const activeProjects = projects
-    .filter((p) => p.status === 'active_24h' && !isFirmProject(p))
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  const activeProjects = sortByCreatedAtDesc(
+    projects.filter((p) => p.status === 'active_24h' && !isFirmProject(p)),
+  );
   const myBidMap       = new Map(myBids.map((b) => [b.project_id, b]));
   const bidsPlaced     = myBids.filter((b) => !b.is_withdrawn);
   const wins           = completed.totalCount;

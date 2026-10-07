@@ -9,7 +9,7 @@ import { formatBuildingTypesSummary, hasNewBuildingConfig } from '@/lib/building
 import { getProjectServiceType, getServiceBadgeLabel } from '@/lib/project/display';
 import { getBidDisplayRate, formatPackageRateRange } from '@/lib/firm/bidDisplay';
 import { TRADE_SERVICE_OPTIONS } from '@/lib/trades';
-import { cn } from '@/lib/utils';
+import { cn, sortByCreatedAtDesc } from '@/lib/utils';
 import type { Project, Profile, Bid, ServiceType } from '@/lib/types';
 
 type ServiceFilter = 'all' | ServiceType;
@@ -37,8 +37,11 @@ export function AdminServiceTables({ projects, profiles, recentBids }: AdminServ
   );
 
   const filteredProjects = useMemo(() => {
-    if (projectFilter === 'all') return projects;
-    return projects.filter((p) => getProjectServiceType(p) === projectFilter);
+    const rows =
+      projectFilter === 'all'
+        ? projects
+        : projects.filter((p) => getProjectServiceType(p) === projectFilter);
+    return sortByCreatedAtDesc(rows);
   }, [projects, projectFilter]);
 
   const filteredBids = useMemo(() => {
