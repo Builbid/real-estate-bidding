@@ -43,7 +43,7 @@ export interface SupervisorAccount {
   totalReceived: number;
   /** e.g. "October 2026" */
   monthLabel: string;
-  /** Credited but unpaid commission (plus 0.2% estimate on completed works not yet credited). Resets to 0 on monthly settlement. */
+  /** Credited but unpaid commission (plus 0.2% estimate on completed works not yet credited). Reduced by each issued payment slip. */
   pendingBalance: number;
   nextPaymentCycle: string;
   /** e.g. "0.2%" */
@@ -587,17 +587,30 @@ export async function loadAdminSupervisors(): Promise<AdminSupervisorRow[]> {
   }
 }
 
-/** Supervisors are settled once a month, on the 1st of the following month. */
+/** Supervisors are settled every 10 days: the 11th, the 21st, then the 1st of the next month. */
 export function nextSupervisorSettlementLabel(now = new Date()): string {
-  const [year, month] = currentMonthStartIst(now).split('-').map(Number);
-  const next = new Date(Date.UTC(year, month, 1));
+  const ist = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+  const [year, month, day] = ist.split('-').map(Number);
+  let nextDay = 1;
+  let nextMonth = month;
+  let nextYear = year;
+  if (day < 11) nextDay = 11;
+  else if (day < 21) nextDay = 21;
+  else {
+    nextMonth = month + 1;
+    if (nextMonth > 12) {
+      nextMonth = 1;
+      nextYear += 1;
+    }
+  }
+  const next = new Date(Date.UTC(nextYear, nextMonth - 1, nextDay));
   const formatted = next.toLocaleDateString('en-IN', {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
     timeZone: 'UTC',
   });
-  return `Monthly settlement · ${formatted}`;
+  return `Settlements every 10 days · next on ${formatted}`;
 }
 
 export async function loadSupervisorAccount(
