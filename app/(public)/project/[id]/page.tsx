@@ -7,7 +7,6 @@ import {
 } from 'lucide-react';
 import { Navbar } from '@/components/shared/Navbar';
 import { CountdownTicker } from '@/components/shared/CountdownTicker';
-import { BidLeaderboard } from '@/components/shared/BidLeaderboard';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -121,19 +120,7 @@ function ActiveBidCta({
   bidder: ReturnType<typeof getServiceBidderLabels>;
   serviceLabel: string;
 }) {
-  if (viewer.kind === 'owner') {
-    return (
-      <div className="p-5 rounded-xl bg-emerald-500/5 border border-emerald-500/20 text-center">
-        <p className="text-sm font-semibold text-foreground mb-2">This is a live auction</p>
-        <p className="text-xs text-muted-foreground mb-4">
-          Open your dashboard to track bids on your projects.
-        </p>
-        <Button size="sm" asChild>
-          <Link href="/dashboard/owner">Go to Dashboard</Link>
-        </Button>
-      </div>
-    );
-  }
+  if (viewer.kind === 'owner') return null;
 
   if (viewer.kind === 'bidder' && viewer.canBid) {
     const bidHref =
@@ -225,9 +212,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
           <ArrowLeft className="w-4 h-4" /> Back to Auctions
         </Link>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main content */}
-          <div className="lg:col-span-2 space-y-5">
+        <div className="max-w-4xl space-y-5">
             <Card>
               <CardContent className="pt-6">
                 <div className="flex items-start gap-4">
@@ -241,6 +226,21 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                         {status.label}
                       </Badge>
                       <Badge>{serviceLabel}</Badge>
+                      {isActive && (
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+                          Bidding Closes In
+                          <CountdownTicker targetDateISO={project.bidding_ends_at} compact />
+                        </span>
+                      )}
+                      {isFrozen && project.selection_ends_at && (
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-indigo-500/25 bg-indigo-500/10 px-2.5 py-1 text-xs font-semibold text-indigo-700 dark:text-indigo-300">
+                          Selection Closes In
+                          <CountdownTicker targetDateISO={project.selection_ends_at} compact />
+                        </span>
+                      )}
+                      <span className="inline-flex items-center rounded-full border border-border bg-secondary/70 px-2.5 py-1 text-xs font-medium text-foreground">
+                        {bidCount} {bidder.plural} have bid on this project
+                      </span>
                     </div>
                     <h1 className="text-xl font-bold text-foreground leading-snug mb-1">
                       {getLiveAuctionDisplayTitle(project)}
@@ -362,64 +362,6 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                 serviceLabel={serviceLabel}
               />
             )}
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-5">
-            {isActive && (
-              <Card className="border-emerald-500/20">
-                <CardHeader>
-                  <CardTitle className="text-sm text-emerald-400 uppercase tracking-wider">Bidding Closes In</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CountdownTicker targetDateISO={project.bidding_ends_at} />
-                </CardContent>
-              </Card>
-            )}
-
-            {isFrozen && project.selection_ends_at && (
-              <Card className="border-indigo-500/20">
-                <CardHeader>
-                  <CardTitle className="text-sm text-indigo-400 uppercase tracking-wider">Selection Closes In</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CountdownTicker targetDateISO={project.selection_ends_at} />
-                </CardContent>
-              </Card>
-            )}
-
-            <Card>
-              <CardContent className="pt-5 pb-5">
-                <div className="text-center">
-                  <p className="text-3xl font-bold text-foreground mb-1">{bidCount}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {bidder.plural} have bid on this project
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm">Bid Leaderboard</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <BidLeaderboard
-                  projectId={project.id}
-                  projectStatus={project.status}
-                  trackType={project.track_type}
-                  subConfiguration={project.sub_configuration}
-                  serviceType={serviceType}
-                  mistriDetails={project.mistri_details}
-                  tradeDetails={project.trade_details}
-                  painterDetails={project.painter_details}
-                  buildingTypes={project.building_types}
-                  totalFloors={project.total_floors}
-                  floorAreaSqft={project.floor_area_sqft}
-                />
-              </CardContent>
-            </Card>
-          </div>
         </div>
       </main>
     </div>
