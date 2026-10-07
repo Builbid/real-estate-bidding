@@ -17,6 +17,11 @@ const TONES = {
     dot: 'bg-slate-400 dark:bg-slate-500',
     title: 'text-slate-700 dark:text-slate-200',
   },
+  agreement: {
+    shell: 'border-sky-500/25 bg-transparent',
+    dot: 'bg-sky-500',
+    title: 'text-sky-800 dark:text-sky-300',
+  },
 } as const;
 
 export function DashboardWorkSection({

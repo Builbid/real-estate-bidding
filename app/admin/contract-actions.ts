@@ -8,7 +8,7 @@ import { loadAgreementDraft } from '@/lib/admin/agreementDraft';
 import { projectTerritoryError } from '@/lib/admin/territory';
 import { PROTOTYPE_AUTO_AGREEMENT } from '@/lib/admin/prototype';
 import { isValidAadhaarNumber, aadhaarLast4, digitsOnlyAadhaar } from '@/lib/contract/aadhaar';
-import { finalizeApprovedAgreement } from '@/lib/admin/agreementPackage';
+import { finalizeApprovedAgreement, markProjectAgreementComplete } from '@/lib/admin/agreementPackage';
 import {
   DIGITAL_CONTRACT_OTP_TTL_MS,
   generateDigitalContractPdf,
@@ -525,10 +525,7 @@ export async function verifyPrototypeEsignAction(input: {
       .from('project_digital_contracts')
       .update({ approved_at: nowIso, status: 'signed', signed_at: nowIso, updated_at: nowIso })
       .eq('id', (savedResult.data as DigitalContractRecord).id);
-    await admin
-      .from('projects')
-      .update({ agreement_status: 'approved_active', updated_at: nowIso })
-      .eq('id', draft.project.id);
+    await markProjectAgreementComplete(admin, draft.project.id);
     if (forceError) return { error: forceError.message };
   }
 

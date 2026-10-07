@@ -7,11 +7,11 @@ import { getDashboardPath } from '@/lib/auth/roles';
 import Link from 'next/link';
 import { Plus, Building } from 'lucide-react';
 import { OwnerLiveProjectCard } from './OwnerLiveProjectCard';
-import { AccountDocumentsPanel } from '@/components/dashboard/AccountDocumentsPanel';
 import { CompletedProjectsPreview } from '@/components/dashboard/CompletedProjectsPreview';
 import { DashboardWorkSection } from '@/components/dashboard/DashboardWorkSection';
 import { Button } from '@/components/ui/button';
 import { HistoryBackButton } from '@/components/shared/HistoryBackButton';
+import { isAgreementComplete, isAwaitingAgreement } from '@/lib/dashboard/completedProjects';
 import { getProjectPhase, isInteractiveProjectPhase, type ProjectPhase } from '@/lib/utils';
 import type { Project, Bid } from '@/lib/types';
 import type { SupabaseClient } from '@supabase/supabase-js';
@@ -125,7 +125,8 @@ async function getData() {
     (p) => p.status !== 'cancelled',
   ) as ProjectWithBidCount[];
 
-  const interactiveProjects = allProjects.filter((p) =>
+  const activeProjects = allProjects.filter((p) => !isAgreementComplete(p));
+  const interactiveProjects = activeProjects.filter((p) =>
     isInteractiveProjectPhase(getProjectPhase(p))
   );
 
@@ -133,27 +134,32 @@ async function getData() {
     interactiveProjects.map((p) => enrichLiveProject(supabase, p))
   );
 
-  const selectionRequired = liveBundles.filter(
+  const agreementPending = liveBundles.filter((b) => isAwaitingAgreement(b.project));
+  const openBundles = liveBundles.filter((b) => !isAwaitingAgreement(b.project));
+  const selectionRequired = openBundles.filter(
     (b) => b.phase === 'select' || b.phase === 'transitioning' || b.biddingHasEnded,
   );
-  const liveAuctions = liveBundles.filter(
+  const liveAuctions = openBundles.filter(
     (b) => b.phase === 'live' && !b.biddingHasEnded,
   );
 
   const completed = allProjects
-    .filter((p) => p.status === 'completed')
+    .filter((p) => isAgreementComplete(p))
     .sort(
       (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
     );
 
-  return { profile, userId, selectionRequired, liveAuctions, completed };
+  return { profile, userId, agreementPending, selectionRequired, liveAuctions, completed };
 }
 
 export default async function OwnerDashboard() {
-  const { profile, userId, selectionRequired, liveAuctions, completed } = await getData();
+  const { profile, userId, agreementPending, selectionRequired, liveAuctions, completed } = await getData();
 
   const hasAnyProject =
-    selectionRequired.length > 0 || liveAuctions.length > 0 || completed.length > 0;
+    agreementPending.length > 0 ||
+    selectionRequired.length > 0 ||
+    liveAuctions.length > 0 ||
+    completed.length > 0;
 
   return (
     <div className="space-y-4 pb-24">
@@ -174,7 +180,26 @@ export default async function OwnerDashboard() {
         </div>
       </div>
 
-      <AccountDocumentsPanel />
+      {agreementPending.length > 0 && (
+        <DashboardWorkSection
+          tone="agreement"
+          title="Selected projects"
+          count={agreementPending.length}
+        >
+          <div className="space-y-5">
+            {agreementPending.map((bundle) => (
+              <OwnerLiveProjectCard
+                key={bundle.project.id}
+                project={bundle.project}
+                bidCount={bundle.bidCount}
+                initialBids={bundle.bids}
+                initialBuilders={bundle.builders}
+                userId={userId}
+              />
+            ))}
+          </div>
+        </DashboardWorkSection>
+      )}
 
       {selectionRequired.length > 0 && (
         <DashboardWorkSection

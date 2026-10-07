@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { revalidatePath } from 'next/cache';
 import { createAdminClient } from '@/lib/supabase/admin';
 import {
   calculateSupervisorCommission,
@@ -74,9 +75,49 @@ async function creditSupervisorCommission(
 }
 
 /**
+ * Moves a signed agreement into the owner's Completed Projects list.
+ * Retries without optional columns when an older database is missing them.
+ */
+export async function markProjectAgreementComplete(
+  admin: SupabaseClient,
+  projectId: string,
+): Promise<void> {
+  const nowIso = new Date().toISOString();
+  const attempts: Record<string, unknown>[] = [
+    {
+      status: 'completed',
+      agreement_completed: true,
+      agreement_status: 'approved_active',
+      updated_at: nowIso,
+    },
+    { status: 'completed', agreement_completed: true, updated_at: nowIso },
+    { status: 'completed', agreement_status: 'approved_active', updated_at: nowIso },
+    { status: 'completed', updated_at: nowIso },
+  ];
+
+  for (const patch of attempts) {
+    const { error } = await admin.from('projects').update(patch).eq('id', projectId);
+    if (!error) {
+      try {
+        revalidatePath('/dashboard/owner');
+        revalidatePath('/dashboard/owner/projects/completed');
+      } catch {
+        // revalidatePath is only available inside a request.
+      }
+      return;
+    }
+    const message = error.message ?? '';
+    if (!/agreement_completed|agreement_status|column/i.test(message)) {
+      console.error('[markProjectAgreementComplete]', message);
+      return;
+    }
+  }
+}
+
+/**
  * Runs when both parties have signed:
  *  1. emails the signed two-party agreement PDF to the Home Owner and the Worker,
- *  2. marks the project Approved / Active,
+ *  2. marks the project completed so it leaves the owner's active list,
  *  3. credits the supervisor's 0.2% commission.
  * Idempotent: a repeat call never emails twice nor credits twice.
  */
@@ -85,6 +126,7 @@ export async function finalizeApprovedAgreement(
 ): Promise<FinalizeResult> {
   const admin = createAdminClient();
   let contract = signed;
+  await markProjectAgreementComplete(admin, contract.project_id);
 
   if (!contract.approved_at) {
     let pdf: Awaited<ReturnType<typeof generateDigitalContractPdf>>;
@@ -139,15 +181,7 @@ export async function finalizeApprovedAgreement(
       };
     }
     if (updated) contract = updated as DigitalContractRecord;
-
-    // Project-level "Approved / Active" marker (non-blocking if the column is not migrated).
-    const { error: projectError } = await admin
-      .from('projects')
-      .update({ agreement_status: 'approved_active', updated_at: nowIso })
-      .eq('id', contract.project_id);
-    if (projectError) {
-      console.error('[finalizeApprovedAgreement] projects.agreement_status update failed:', projectError.message);
-    }
+    await markProjectAgreementComplete(admin, contract.project_id);
   }
 
   const commission = await creditSupervisorCommission(admin, contract);

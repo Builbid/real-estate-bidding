@@ -10,6 +10,32 @@ export function isCancelledStatus(status: string | null | undefined): boolean {
   return status === 'cancelled';
 }
 
+type AgreementSignals = {
+  status?: string | null;
+  selected_builder_id?: string | null;
+  agreement_completed?: boolean | null;
+  agreement_status?: string | null;
+};
+
+/** Signed or approved agreements belong in Completed Projects. */
+export function isAgreementComplete(project: AgreementSignals): boolean {
+  if (project.agreement_completed === true) return true;
+  const agreementStatus = String(project.agreement_status ?? '').trim().toLowerCase();
+  if (
+    agreementStatus === 'approved_active' ||
+    agreementStatus === 'signed' ||
+    agreementStatus === 'completed'
+  ) {
+    return true;
+  }
+  return String(project.status ?? '').trim().toLowerCase() === 'completed';
+}
+
+/** Owner has chosen a builder and the official agreement is not signed yet. */
+export function isAwaitingAgreement(project: AgreementSignals): boolean {
+  return Boolean(project.selected_builder_id) && !isAgreementComplete(project);
+}
+
 export function parseHistoryPage(raw: string | undefined): number {
   const page = Number(raw);
   if (!Number.isFinite(page) || page < 1) return 1;

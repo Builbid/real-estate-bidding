@@ -25,16 +25,28 @@ export default async function OwnerCompletedProjectsPage({
   const from = (page - 1) * COMPLETED_HISTORY_PAGE_SIZE;
   const to = from + COMPLETED_HISTORY_PAGE_SIZE - 1;
 
-  const { data, count } = await supabase
+  const columns = '*, bids(count)';
+  const broad = await supabase
     .from('projects')
-    .select('*, bids(count)', { count: 'exact' })
+    .select(columns, { count: 'exact' })
     .eq('owner_id', userId)
-    .eq('status', 'completed')
+    .neq('status', 'cancelled')
+    .or('status.eq.completed,agreement_completed.eq.true,agreement_status.eq.approved_active')
     .order('updated_at', { ascending: false })
     .range(from, to);
 
-  const projects = (data ?? []) as ProjectWithBidCount[];
-  const totalCount = count ?? projects.length;
+  const result = broad.error
+    ? await supabase
+        .from('projects')
+        .select(columns, { count: 'exact' })
+        .eq('owner_id', userId)
+        .eq('status', 'completed')
+        .order('updated_at', { ascending: false })
+        .range(from, to)
+    : broad;
+
+  const projects = (result.data ?? []) as ProjectWithBidCount[];
+  const totalCount = result.count ?? projects.length;
 
   return (
     <CompletedProjectsHistory

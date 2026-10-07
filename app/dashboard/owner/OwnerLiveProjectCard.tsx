@@ -22,6 +22,7 @@ import {
 } from '@/lib/project/formatFloorSummary';
 import { getProjectWorkRequirementBlocks, isFloorFixtureRequirementLabel } from '@/lib/project/workRequirements';
 import { formatNumericProjectId } from '@/lib/project/numericId';
+import { isAwaitingAgreement } from '@/lib/dashboard/completedProjects';
 import { FloorScopeBadges } from '@/components/project/FloorScopeBadges';
 import { CheckLocationLink } from '@/components/project/ProjectLocationWithMapsLink';
 import { earthworkCardLocation } from '@/lib/validation/earthworkLocation';
@@ -95,11 +96,12 @@ function ScopeSectionLabel({ children }: { children: ReactNode }) {
   );
 }
 
-/** Public Project ID tag, e.g. #PRJ-K7M2Q9P1 (falls back to the short internal ID). */
+/** Public Project ID, e.g. PRJ-K7M2Q9P1 (falls back to the short internal ID). */
 function projectIdTag(project: Project): string {
   const publicId = formatNumericProjectId(project.numeric_id);
   const id = publicId !== '—' ? publicId : project.id.slice(0, 8).toUpperCase();
-  return `#PRJ-${id}`;
+  const bare = id.replace(/^#+/, '');
+  return /^PRJ-/i.test(bare) ? bare.toUpperCase() : `PRJ-${bare}`;
 }
 
 function OwnerLiveProjectCardBody({
@@ -110,6 +112,7 @@ function OwnerLiveProjectCardBody({
   userId,
 }: OwnerLiveProjectCardProps) {
   const { project, phase, canSelect } = useOwnerProjectPhaseContext();
+  const awaitingAgreement = isAwaitingAgreement(project);
   const isFirm = isFirmProject(project);
   const serviceBadge = getProjectServiceBadgeLabel(project);
   const postedAt = formatProjectPostedAt(project.created_at);
@@ -143,14 +146,30 @@ function OwnerLiveProjectCardBody({
       <div
         className={cn(
           'space-y-3 border-l-[3px] pl-3 sm:pl-4',
-          canSelect ? 'border-l-amber-500' : 'border-l-emerald-500',
+          awaitingAgreement
+            ? 'border-l-sky-500'
+            : canSelect
+              ? 'border-l-amber-500'
+              : 'border-l-emerald-500',
         )}
       >
+      {awaitingAgreement ? (
+        <div className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-2.5 dark:border-sky-700/50 dark:bg-sky-950/40">
+          <p className="text-sm font-semibold text-sky-950 dark:text-sky-50">
+            Agreement Process Running
+          </p>
+          <p className="mt-1 text-xs leading-relaxed text-sky-900/80 dark:text-sky-100/75">
+            Our field supervisor will visit the site soon to sign the official agreement.
+          </p>
+        </div>
+      ) : null}
       <div className="flex flex-wrap items-start gap-3">
         <div className="flex-1 min-w-0">
           <div className="mb-1.5 flex flex-wrap items-center gap-2">
-            <Badge variant={canSelect ? 'amber' : 'emerald'}>{statusLabel ?? serviceBadge}</Badge>
-            {statusLabel ? (
+            <Badge variant={awaitingAgreement ? 'default' : canSelect ? 'amber' : 'emerald'}>
+              {awaitingAgreement ? serviceBadge : (statusLabel ?? serviceBadge)}
+            </Badge>
+            {!awaitingAgreement && statusLabel ? (
               <span className="text-sm font-medium text-slate-600 dark:text-slate-400">{serviceBadge}</span>
             ) : null}
           </div>
@@ -235,13 +254,13 @@ function OwnerLiveProjectCardBody({
         </div>
 
         <div className="flex items-center gap-3 flex-shrink-0">
-          {phase === 'live' && (
+          {phase === 'live' && !awaitingAgreement && (
             <div className="flex flex-col items-end gap-0.5">
               <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Closes in</span>
               <AuctionCountdown targetDateISO={project.bidding_ends_at} projectId={project.id} compact />
             </div>
           )}
-          {canSelect && project.selection_ends_at && (
+          {canSelect && !awaitingAgreement && project.selection_ends_at && (
             <div className="flex flex-col items-end gap-0.5">
               <span className="text-[10px] text-red-400 uppercase tracking-wider font-semibold animate-pulse">
                 Select now
@@ -253,7 +272,7 @@ function OwnerLiveProjectCardBody({
         </div>
       </div>
 
-      {canSelect && (
+      {canSelect && !awaitingAgreement && (
         <div className="flex items-start gap-3">
           <Lock className="w-4 h-4 text-indigo-400 flex-shrink-0 mt-0.5" />
           <div>
@@ -268,7 +287,7 @@ function OwnerLiveProjectCardBody({
         </div>
       )}
 
-      {phase === 'live' && (
+      {phase === 'live' && !awaitingAgreement && (
         <p className="text-xs text-slate-600 dark:text-slate-400">
           <span className="mr-2 inline-block h-2 w-2 rounded-full bg-emerald-600 align-middle animate-pulse dark:bg-emerald-400" />
           Live auction in progress. You can select a builder as soon as a bid is placed.

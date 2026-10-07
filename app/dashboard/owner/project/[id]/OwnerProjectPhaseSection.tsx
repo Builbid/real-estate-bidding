@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { AuctionCountdown } from '../../AuctionCountdown';
 import { STATUS_CONFIG } from '@/lib/utils';
+import { isAwaitingAgreement } from '@/lib/dashboard/completedProjects';
 import { useOwnerProjectPhaseContext } from '@/lib/context/OwnerProjectPhaseContext';
 
 interface BuilderInfo {
@@ -25,6 +26,15 @@ interface Props {
 
 export function OwnerProjectPhaseBadge({ isFirm }: { isFirm: boolean }) {
   const { project, phase, canSelect } = useOwnerProjectPhaseContext();
+  const awaitingAgreement = isAwaitingAgreement(project);
+
+  if (awaitingAgreement) {
+    return (
+      <Badge variant="default" className="flex-shrink-0">
+        Agreement Process Running
+      </Badge>
+    );
+  }
 
   if (phase === 'live') {
     return (
@@ -61,6 +71,7 @@ export function OwnerProjectPhaseBody({
   selectedFirm,
 }: Props) {
   const { project, phase, canSelect } = useOwnerProjectPhaseContext();
+  const awaitingAgreement = isAwaitingAgreement(project);
 
   const winner = project.selected_builder_id
     ? (selectedFirm ?? selectedBuilder)
@@ -70,9 +81,19 @@ export function OwnerProjectPhaseBody({
 
   return (
     <>
-      {(phase === 'live' || canSelect || winner) && (
+      {(phase === 'live' || canSelect || winner || awaitingAgreement) && (
         <div className="flex flex-wrap items-start gap-4">
-          {phase === 'live' && (
+          {awaitingAgreement ? (
+            <div className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-2.5 dark:border-sky-700/50 dark:bg-sky-950/40">
+              <p className="text-sm font-semibold text-sky-950 dark:text-sky-50">
+                Agreement Process Running
+              </p>
+              <p className="mt-1 text-xs leading-relaxed text-sky-900/80 dark:text-sky-100/75">
+                Our field supervisor will visit the site soon to sign the official agreement.
+              </p>
+            </div>
+          ) : null}
+          {phase === 'live' && !awaitingAgreement && (
             <Card className="border-emerald-500/20 flex-shrink-0">
               <CardHeader className="pb-1 pt-3 px-4">
                 <CardTitle className="text-[10px] text-emerald-400 uppercase tracking-wider">
@@ -99,7 +120,7 @@ export function OwnerProjectPhaseBody({
             </Card>
           )}
 
-          {winner && winnerName && (
+          {winner && winnerName && !awaitingAgreement && (
             <Card className="border-emerald-500/30">
               <CardHeader className="pb-1 pt-3 px-4">
                 <CardTitle className="text-[10px] text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
@@ -125,7 +146,7 @@ export function OwnerProjectPhaseBody({
         </div>
       )}
 
-      {canSelect && (
+      {canSelect && !awaitingAgreement && (
         <div className="p-4 rounded-xl bg-indigo-500/5 border border-indigo-500/20 flex items-start gap-3">
           <Lock className="w-4 h-4 text-indigo-400 flex-shrink-0 mt-0.5" />
           <div>
@@ -141,7 +162,7 @@ export function OwnerProjectPhaseBody({
         </div>
       )}
 
-      {phase === 'live' && (
+      {phase === 'live' && !awaitingAgreement && (
         <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/15 flex items-start gap-3">
           <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse mt-1.5 flex-shrink-0" />
           <p className="text-xs text-emerald-300">

@@ -227,6 +227,8 @@ export interface Project {
   owner_callback_phone?: string | null;
   /** True only after contractual approval / signed agreement. New posts stay false. */
   agreement_completed?: boolean | null;
+  /** Set to approved_active once the field agreement is signed and approved. */
+  agreement_status?: string | null;
   service_type?: ServiceType;
   floor_area_sqft?: number | null;
   finishing_level?: FinishingLevel | null;
