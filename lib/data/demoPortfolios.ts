@@ -57,6 +57,7 @@ function labourPortfolio(
     description: string;
     photo_urls: string[];
     sort_order: number;
+    location?: string;
   }>,
 ): BuilderPortfolioItem[] {
   const now = '2026-01-15T00:00:00.000Z';
@@ -65,6 +66,9 @@ function labourPortfolio(
     builder_id: builderId,
     title: item.title,
     description: item.description,
+    location:
+      item.location ??
+      (item.title.includes('—') ? item.title.split('—').pop()?.trim() ?? null : null),
     photo_urls: item.photo_urls,
     sort_order: item.sort_order,
     created_at: now,

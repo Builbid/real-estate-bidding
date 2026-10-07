@@ -1834,7 +1834,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                             : index === 2 ? 'bg-orange-500/10 border-orange-500/20 text-orange-400'
                             : 'bg-secondary border-border text-muted-foreground'
                           )}>
-                            {index < 3 ? ['🥇','🥈','🥉'][index] : index + 1}
+                            {index + 1}
                           </div>
 
                           <div className="flex-1 min-w-0 flex items-center gap-2.5">

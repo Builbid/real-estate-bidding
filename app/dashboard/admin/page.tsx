@@ -65,7 +65,7 @@ export default async function AdminDashboard() {
       {/* Stats grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: 'Total Projects', value: projects.length, icon: Building, color: 'emerald' as StatIconColor },
+          { label: 'Projects Uploaded', value: projects.length, icon: Building, color: 'emerald' as StatIconColor },
           { label: 'Active Auctions', value: activeProjects.length, icon: Activity, color: 'teal' as StatIconColor },
           { label: 'Registered Users', value: profiles.length, icon: Users, color: 'indigo' as StatIconColor },
           { label: 'Total Bids Cast', value: totalBids, icon: TrendingUp, color: 'amber' as StatIconColor },

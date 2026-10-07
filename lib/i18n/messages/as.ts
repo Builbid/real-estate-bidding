@@ -94,8 +94,8 @@ export const as: Messages = {
     stats: {
       activeAuctions: 'Active Auctions',
       pendingSelection: 'Selection বাকী',
-      totalProjects: 'Total Projects',
-      projectsApproved: 'Projects Approved',
+      totalProjects: 'Projects Uploaded',
+      projectsApproved: 'Projects Completed',
     },
     featuredFirms: {
       labourTitle: 'Top Mistri Workers',

@@ -8,7 +8,7 @@ import { ShowcaseProjectCard } from '@/components/home/ShowcaseProjectCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { loadActiveProjectsPage } from '@/app/actions/projects';
-import type { ShowcaseProject } from '@/lib/projectShowcase';
+import { sortShowcaseProjectsByLatest, type ShowcaseProject } from '@/lib/projectShowcase';
 import { HistoryBackButton } from '@/components/shared/HistoryBackButton';
 import { cn } from '@/lib/utils';
 import { ProjectServiceFilterPills } from '@/components/projects/ProjectServiceFilterPills';
@@ -30,7 +30,7 @@ export function AllProjectsPageContent({
   initialNextOffset,
   role,
 }: AllProjectsPageContentProps) {
-  const [projects, setProjects] = useState(initialProjects);
+  const [projects, setProjects] = useState(() => sortShowcaseProjectsByLatest(initialProjects));
   const [total, setTotal] = useState(initialTotal);
   const [hasMore, setHasMore] = useState(initialHasMore);
   const [nextOffset, setNextOffset] = useState(initialNextOffset);
@@ -49,7 +49,7 @@ export function AllProjectsPageContent({
         search: query,
       });
       if (requestId !== searchRequestId.current) return;
-      setProjects(result.projects);
+      setProjects(sortShowcaseProjectsByLatest(result.projects));
       setTotal(result.total);
       setHasMore(result.hasMore);
       setNextOffset(result.nextOffset);
@@ -80,7 +80,7 @@ export function AllProjectsPageContent({
         offset: nextOffset,
         search: activeSearch,
       });
-      setProjects((prev) => [...prev, ...result.projects]);
+      setProjects((prev) => sortShowcaseProjectsByLatest([...prev, ...result.projects]));
       setTotal(result.total);
       setHasMore(result.hasMore);
       setNextOffset(result.nextOffset);
@@ -91,9 +91,11 @@ export function AllProjectsPageContent({
 
   const filteredProjects = useMemo(
     () =>
-      projects.filter(
-        (project) =>
-          serviceFilter === 'all' || getProjectServiceType(project) === serviceFilter,
+      sortShowcaseProjectsByLatest(
+        projects.filter(
+          (project) =>
+            serviceFilter === 'all' || getProjectServiceType(project) === serviceFilter,
+        ),
       ),
     [projects, serviceFilter],
   );

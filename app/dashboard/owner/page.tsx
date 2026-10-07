@@ -134,19 +134,26 @@ async function getData() {
     interactiveProjects.map((p) => enrichLiveProject(supabase, p))
   );
 
-  const agreementPending = liveBundles.filter((b) => isAwaitingAgreement(b.project));
+  const byNewest = (bundles: LiveProjectBundle[]) =>
+    [...bundles].sort(
+      (a, b) => new Date(b.project.created_at).getTime() - new Date(a.project.created_at).getTime(),
+    );
+
+  const agreementPending = byNewest(liveBundles.filter((b) => isAwaitingAgreement(b.project)));
   const openBundles = liveBundles.filter((b) => !isAwaitingAgreement(b.project));
-  const selectionRequired = openBundles.filter(
-    (b) => b.phase === 'select' || b.phase === 'transitioning' || b.biddingHasEnded,
+  const selectionRequired = byNewest(
+    openBundles.filter(
+      (b) => b.phase === 'select' || b.phase === 'transitioning' || b.biddingHasEnded,
+    ),
   );
-  const liveAuctions = openBundles.filter(
-    (b) => b.phase === 'live' && !b.biddingHasEnded,
+  const liveAuctions = byNewest(
+    openBundles.filter((b) => b.phase === 'live' && !b.biddingHasEnded),
   );
 
   const completed = allProjects
     .filter((p) => isAgreementComplete(p))
     .sort(
-      (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
     );
 
   return { profile, userId, agreementPending, selectionRequired, liveAuctions, completed };

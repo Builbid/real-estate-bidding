@@ -1,10 +1,9 @@
 import { createClient } from '@/lib/supabase/server';
 import { DEMO_RANKED_WORKERS } from '@/lib/data/demoWorkers';
-import { computeRatingStats } from '@/lib/builderRatings';
 import {
   categoryLabel,
   resolveWorkerCategory,
-  sortWorkersByRank,
+  sortWorkersForDirectory,
   type RankedWorker,
 } from '@/lib/workers/types';
 
@@ -15,21 +14,19 @@ type PublicRow = {
   avatar_url?: string | null;
   is_verified?: boolean;
   service_type?: string | null;
+  years_in_business?: number | null;
 };
 
-function mapRowToWorker(
-  row: PublicRow,
-  rating: number,
-  reviewsCount: number,
-  serviceType?: string | null,
-): RankedWorker {
+function mapRowToWorker(row: PublicRow, serviceType?: string | null): RankedWorker {
   const category = resolveWorkerCategory(serviceType, row.role);
+  const years = row.years_in_business;
   return {
     id: row.id,
     name: row.full_name,
     location: row.is_verified ? 'Verified on BuilBid' : 'Assam',
-    rating,
-    reviewsCount,
+    rating: 0,
+    reviewsCount: 0,
+    yearsOfExperience: typeof years === 'number' && years > 0 ? Math.floor(years) : null,
     category,
     categoryLabel: categoryLabel(category),
     avatarUrl:
@@ -43,46 +40,40 @@ function mapRowToWorker(
 async function fetchLiveWorkers(): Promise<RankedWorker[]> {
   const supabase = await createClient();
 
-  const { data: profiles } = await supabase
-    .from('profiles_public')
-    .select('id, full_name, role, avatar_url, is_verified, service_type')
-    .in('role', ['labour_contractor', 'service_provider'])
-    .order('is_verified', { ascending: false })
-    .order('created_at', { ascending: false })
-    .limit(48);
+  const query = (columns: string) =>
+    supabase
+      .from('profiles_public')
+      .select(columns)
+      .in('role', ['labour_contractor', 'service_provider'])
+      .order('created_at', { ascending: false })
+      .limit(48);
 
-  if (!profiles?.length) return [];
+  let { data: profiles, error } = await query(
+    'id, full_name, role, avatar_url, is_verified, service_type, years_in_business',
+  );
 
-  const ids = profiles.map((p) => p.id);
-
-  const { data: ratingRows } = await supabase
-    .from('builder_ratings')
-    .select('builder_id, rating')
-    .in('builder_id', ids);
-
-  const ratingsByBuilder = new Map<string, { rating: number }[]>();
-  for (const row of ratingRows ?? []) {
-    const list = ratingsByBuilder.get(row.builder_id) ?? [];
-    list.push({ rating: row.rating });
-    ratingsByBuilder.set(row.builder_id, list);
+  if (error) {
+    const retry = await query('id, full_name, role, avatar_url, is_verified, service_type');
+    profiles = retry.data;
+    error = retry.error;
   }
 
-  return profiles
-    .map((row) => {
-      const stats = computeRatingStats(ratingsByBuilder.get(row.id) ?? []);
-      const rating = stats.total > 0 ? stats.average : 4.5;
-      return mapRowToWorker(row, rating, stats.total, row.service_type);
-    })
+  if (error || !profiles?.length) return [];
+
+  const rows = profiles as unknown as PublicRow[];
+
+  return rows
+    .map((row) => mapRowToWorker(row, row.service_type))
     .filter((worker) => worker.category !== 'false_ceiling_work');
 }
 
-/** Live ranked workers with demo fallback when the directory is empty. */
+/** Live workers with a demo fallback when the directory is empty. Not star-ranked. */
 export async function getRankedWorkers(): Promise<RankedWorker[]> {
   try {
     const live = await fetchLiveWorkers();
-    if (live.length > 0) return sortWorkersByRank(live);
+    if (live.length > 0) return sortWorkersForDirectory(live);
   } catch {
     // Fall through to curated demo directory.
   }
-  return sortWorkersByRank(DEMO_RANKED_WORKERS);
+  return sortWorkersForDirectory(DEMO_RANKED_WORKERS);
 }

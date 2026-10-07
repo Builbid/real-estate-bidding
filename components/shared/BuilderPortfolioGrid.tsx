@@ -1,6 +1,6 @@
 'use client';
 
-import { ImageIcon } from 'lucide-react';
+import { ImageIcon, MapPin } from 'lucide-react';
 import type { BuilderPortfolioItem } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
@@ -52,6 +52,12 @@ export function BuilderPortfolioGrid({ items, className }: BuilderPortfolioGridP
           )}
           <div className="p-3">
             <p className="text-sm font-semibold text-foreground">{item.title}</p>
+            {item.location && (
+              <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                <MapPin className="h-3 w-3 shrink-0" />
+                {item.location}
+              </p>
+            )}
             {item.description && (
               <p className="text-xs text-muted-foreground mt-1 leading-relaxed line-clamp-3">
                 {item.description}

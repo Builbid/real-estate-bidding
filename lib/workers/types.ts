@@ -17,8 +17,10 @@ export interface RankedWorker {
   id: string;
   name: string;
   location: string;
+  /** Kept for legacy rows. Not shown — workers are not ranked by stars. */
   rating: number;
   reviewsCount: number;
+  yearsOfExperience: number | null;
   category: Exclude<WorkerCategory, 'all'>;
   categoryLabel: string;
   avatarUrl: string;
@@ -60,10 +62,7 @@ export function resolveWorkerCategory(
   return 'labour_contractor';
 }
 
-/** Sort highest rating first; break ties with more reviews. */
-export function sortWorkersByRank(workers: RankedWorker[]): RankedWorker[] {
-  return [...workers].sort((a, b) => {
-    if (b.rating !== a.rating) return b.rating - a.rating;
-    return b.reviewsCount - a.reviewsCount;
-  });
+/** Directory order is alphabetical. Workers are not ranked by stars or medals. */
+export function sortWorkersForDirectory(workers: RankedWorker[]): RankedWorker[] {
+  return [...workers].sort((a, b) => a.name.localeCompare(b.name));
 }

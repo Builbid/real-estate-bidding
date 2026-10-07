@@ -1,39 +1,18 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowRight, MapPin, Star } from 'lucide-react';
+import { ArrowRight, MapPin } from 'lucide-react';
 import { FirmLogo } from '@/components/firm/FirmLogo';
-import { cn } from '@/lib/utils';
+import { formatYearsExperience } from '@/lib/workers/experience';
 import type { RankedWorker } from '@/lib/workers/types';
 
 interface WorkerCardProps {
   worker: RankedWorker;
 }
 
-function StarRating({ rating }: { rating: number }) {
-  return (
-    <div className="flex items-center gap-px" aria-hidden>
-      {Array.from({ length: 5 }, (_, i) => {
-        const starIndex = i + 1;
-        const filled = rating >= starIndex;
-        const half = !filled && rating >= starIndex - 0.5;
-        return (
-          <Star
-            key={starIndex}
-            className={cn(
-              'h-3.5 w-3.5',
-              filled && 'fill-amber-400 text-amber-400',
-              half && 'fill-amber-400/45 text-amber-400',
-              !filled && !half && 'text-muted-foreground/30',
-            )}
-          />
-        );
-      })}
-    </div>
-  );
-}
-
 export function WorkerCard({ worker }: WorkerCardProps) {
+  const experienceLabel = formatYearsExperience(worker.yearsOfExperience);
+
   return (
     <article className="surface-card group relative flex flex-col gap-3 overflow-hidden p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-amber-500/35 hover:shadow-lg hover:shadow-amber-500/[0.08]">
       <div className="absolute inset-x-0 top-0 h-0.5 rounded-t-2xl bg-gradient-to-r from-amber-400 to-orange-400 opacity-80" />
@@ -56,16 +35,11 @@ export function WorkerCard({ worker }: WorkerCardProps) {
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-        <StarRating rating={worker.rating} />
-        <span className="font-semibold tabular-nums text-foreground">
-          {worker.rating.toFixed(1)}
-        </span>
-        <span className="text-border">·</span>
-        <span>
-          {worker.reviewsCount} review{worker.reviewsCount === 1 ? '' : 's'}
-        </span>
-      </div>
+      {experienceLabel && (
+        <p className="inline-flex w-fit items-center rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+          {experienceLabel}
+        </p>
+      )}
 
       <div className="mt-auto flex min-w-0 items-center justify-between gap-2">
         <span className="truncate rounded-full border border-amber-500/25 bg-amber-500/10 px-2.5 py-1 text-xs font-medium leading-none text-amber-700 shadow-sm dark:text-amber-300">

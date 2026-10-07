@@ -79,6 +79,7 @@ export function FeaturedFirmCard({
         </div>
       </div>
 
+      {!isLabour && (
       <div className="flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
         <StarRating rating={firm.rating} />
         <span className="font-semibold tabular-nums text-foreground">
@@ -87,6 +88,7 @@ export function FeaturedFirmCard({
         <span className="text-border">·</span>
         <span className="truncate">{reviewsLabel}</span>
       </div>
+      )}
 
       <div className="flex min-w-0 items-center justify-between gap-1.5">
         <span

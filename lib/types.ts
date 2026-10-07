@@ -116,6 +116,7 @@ export interface PublicProfile {
   full_name: string;
   is_verified?: boolean;
   avatar_url?: string | null;
+  years_in_business?: number | null;
   created_at: string;
 }
 
@@ -150,6 +151,8 @@ export interface BuilderPortfolioItem {
   builder_id: string;
   title: string;
   description: string | null;
+  /** Site location for the completed-work showcase. */
+  location?: string | null;
   photo_urls: string[];
   sort_order: number;
   created_at: string;

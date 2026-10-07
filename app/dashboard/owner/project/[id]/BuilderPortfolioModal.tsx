@@ -3,18 +3,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   User, BadgeCheck, Calendar, Layers, TrendingDown,
-  Trophy, Star, Building, Loader2, MapPin, Briefcase, MessageSquare,
+  Building, Loader2, MapPin, Briefcase,
 } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { StarRating } from './StarRating';
-import { BuilderRatingBadge } from '@/components/shared/BuilderRatingBadge';
-import { BuilderRatingBreakdown, BuilderReviewsFeed } from '@/components/shared/BuilderRatingBreakdown';
 import { BuilderPortfolioGrid } from '@/components/shared/BuilderPortfolioGrid';
 import { createClient } from '@/lib/supabase/client';
-import { EMPTY_RATING_STATS, type BuilderRatingStats } from '@/lib/builderRatings';
+import { formatYearsExperience } from '@/lib/workers/experience';
 import { formatBidUnitSuffix, formatTripCapacityLabel } from '@/lib/bid/earthworkBid';
 import { resolveScopeRateBidItems } from '@/lib/bid/scopeRateBid';
 import { getBidFloorRateEntries } from '@/lib/bid/floorRateDisplay';
@@ -31,11 +28,6 @@ interface BuilderInfo {
 interface PortfolioProps {
   builder: BuilderInfo;
   bid: Bid;
-  rank: number;
-  currentProjectId: string;
-  isProjectCompleted: boolean;
-  isSelectedBuilder: boolean;
-  ownerId: string;
 }
 
 interface WonProject {
@@ -46,36 +38,23 @@ interface WonProject {
   created_at: string;
 }
 
-interface BuilderRating {
-  id: string;
-  project_id: string;
-  rating: number;
-  review: string | null;
-  created_at: string;
-}
-
 export function BuilderPortfolioModal({
-  builder, bid, rank, currentProjectId, isProjectCompleted, isSelectedBuilder, ownerId,
+  builder, bid,
 }: PortfolioProps) {
   const supabase = createClient();
   const { project } = useOwnerProjectPhaseContext();
   const scopeLabels = resolveScopeRateBidItems(project)?.labels;
   const [open, setOpen] = useState(false);
 
-  const [wonProjects, setWonProjects]       = useState<WonProject[]>([]);
+  const [wonProjects, setWonProjects] = useState<WonProject[]>([]);
   const [portfolioItems, setPortfolioItems] = useState<BuilderPortfolioItem[]>([]);
-  const [ratingStats, setRatingStats]       = useState<BuilderRatingStats>(EMPTY_RATING_STATS);
-  const [myRating, setMyRating]             = useState<BuilderRating | null>(null);
-  const [ratingInput, setRatingInput]       = useState(4);
-  const [reviewInput, setReviewInput]       = useState('');
-  const [saving, setSaving]                 = useState(false);
-  const [saveSuccess, setSaveSuccess]       = useState(false);
-  const [loadingData, setLoadingData]       = useState(false);
+  const [yearsOfExperience, setYearsOfExperience] = useState<number | null>(null);
+  const [loadingData, setLoadingData] = useState(false);
 
   const fetchPortfolio = useCallback(async () => {
     setLoadingData(true);
 
-    const [projectsRes, portfolioRes, statsRes, myRatingRes] = await Promise.all([
+    const [projectsRes, portfolioRes, profileRes] = await Promise.all([
       supabase
         .from('projects')
         .select('id, title, district, track_type, created_at')
@@ -87,68 +66,31 @@ export function BuilderPortfolioModal({
         .select('*')
         .eq('builder_id', builder.id)
         .order('sort_order', { ascending: true }),
-      supabase.rpc('get_builder_rating_stats', { p_builder_id: builder.id }),
       supabase
-        .from('builder_ratings')
-        .select('id, project_id, rating, review, created_at')
-        .eq('builder_id', builder.id)
-        .eq('project_id', currentProjectId)
+        .from('profiles_public')
+        .select('years_in_business')
+        .eq('id', builder.id)
         .maybeSingle(),
     ]);
 
     setWonProjects((projectsRes.data ?? []) as WonProject[]);
     setPortfolioItems((portfolioRes.data ?? []) as BuilderPortfolioItem[]);
-
-    if (statsRes.data && typeof statsRes.data === 'object') {
-      setRatingStats(statsRes.data as BuilderRatingStats);
-    } else {
-      setRatingStats(EMPTY_RATING_STATS);
-    }
-
-    const existing = myRatingRes.data as BuilderRating | null;
-    if (existing) {
-      setMyRating(existing);
-      setRatingInput(existing.rating);
-      setReviewInput(existing.review ?? '');
-    }
+    const years = profileRes.data?.years_in_business;
+    setYearsOfExperience(typeof years === 'number' && years > 0 ? Math.floor(years) : null);
 
     setLoadingData(false);
-  }, [builder.id, currentProjectId, supabase]);
+  }, [builder.id, supabase]);
 
   useEffect(() => {
     if (open) fetchPortfolio();
   }, [open, fetchPortfolio]);
-
-  const { average, total } = ratingStats;
-
-  async function handleSaveRating() {
-    setSaving(true);
-    const payload = {
-      project_id:  currentProjectId,
-      builder_id:  builder.id,
-      owner_id:    ownerId,
-      rating:      ratingInput,
-      review:      reviewInput.trim() || null,
-    };
-
-    const { data, error } = myRating
-      ? await supabase.from('builder_ratings').update(payload).eq('id', myRating.id).select().single()
-      : await supabase.from('builder_ratings').insert(payload).select().single();
-
-    if (!error && data) {
-      setMyRating(data as BuilderRating);
-      setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 3000);
-      fetchPortfolio();
-    }
-    setSaving(false);
-  }
 
   const rateEntries = getBidFloorRateEntries(bid.rates, scopeLabels).map(({ key, label, value }) => [key, value, label] as const);
 
   const memberSince = new Date(builder.created_at).toLocaleDateString('en-IN', {
     year: 'numeric', month: 'long',
   });
+  const experienceLabel = formatYearsExperience(yearsOfExperience);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -172,9 +114,12 @@ export function BuilderPortfolioModal({
                   <BadgeCheck className="w-4 h-4 text-emerald-400 flex-shrink-0" />
                 )}
               </DialogTitle>
-              <div className="flex items-center gap-3 mt-1.5 flex-wrap">
-                <BuilderRatingBadge average={average} total={total} size="md" showCount />
-                <span className="text-[11px] text-muted-foreground">Rank #{rank} on this project</span>
+              <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                {experienceLabel && (
+                  <span className="rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+                    {experienceLabel}
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -187,22 +132,15 @@ export function BuilderPortfolioModal({
         ) : (
           <div className="space-y-6 mt-2">
             {/* Quick stats */}
-            <div className="grid grid-cols-3 gap-2">
-              <div className="flex flex-col items-center p-3 rounded-xl bg-secondary/50 border border-border">
-                <Trophy className="w-4 h-4 text-amber-400 mb-1" />
-                <p className="text-base font-bold text-foreground">{wonProjects.length}</p>
-                <p className="text-[10px] text-muted-foreground">Projects Won</p>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="flex flex-col items-center rounded-xl border border-border bg-secondary/50 p-3">
+                <Briefcase className="mb-1 h-4 w-4 text-indigo-400" />
+                <p className="text-base font-bold text-foreground">{portfolioItems.length}</p>
+                <p className="text-[10px] text-muted-foreground">Portfolio Projects</p>
               </div>
-              <div className="flex flex-col items-center p-3 rounded-xl bg-secondary/50 border border-border">
-                <Star className="w-4 h-4 text-amber-400 mb-1 fill-amber-400" />
-                <p className="text-base font-bold text-foreground">
-                  {total > 0 ? average.toFixed(1) : '—'}
-                </p>
-                <p className="text-[10px] text-muted-foreground">Avg Rating</p>
-              </div>
-              <div className="flex flex-col items-center p-3 rounded-xl bg-secondary/50 border border-border">
-                <Calendar className="w-4 h-4 text-indigo-400 mb-1" />
-                <p className="text-[11px] font-bold text-foreground text-center leading-tight">{memberSince}</p>
+              <div className="flex flex-col items-center rounded-xl border border-border bg-secondary/50 p-3">
+                <Calendar className="mb-1 h-4 w-4 text-indigo-400" />
+                <p className="text-center text-[11px] font-bold leading-tight text-foreground">{memberSince}</p>
                 <p className="text-[10px] text-muted-foreground">Member Since</p>
               </div>
             </div>
@@ -214,39 +152,11 @@ export function BuilderPortfolioModal({
               </div>
             )}
 
-            {/* Phase B: Play Store-style ratings */}
-            <div className="rounded-xl border border-border bg-card/80 dark:bg-card/60 p-4">
-              <div className="flex items-center gap-2 mb-4">
-                <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
-                <p className="text-sm font-semibold text-foreground">
-                  Ratings &amp; Reviews
-                  {total > 0 && (
-                    <span className="text-muted-foreground font-normal ml-1.5">
-                      — {average.toFixed(1)} out of 5
-                    </span>
-                  )}
-                </p>
-              </div>
-              <BuilderRatingBreakdown stats={ratingStats} />
-            </div>
-
-            {/* Owner feedback feed */}
             <div>
-              <div className="flex items-center gap-2 mb-3">
-                <MessageSquare className="w-3.5 h-3.5 text-muted-foreground" />
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Owner Feedback
-                </p>
-              </div>
-              <BuilderReviewsFeed reviews={ratingStats.reviews} />
-            </div>
-
-            {/* Portfolio section */}
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <Briefcase className="w-3.5 h-3.5 text-indigo-400" />
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Portfolio ({portfolioItems.length})
+              <div className="mb-3 flex items-center gap-2">
+                <Briefcase className="h-3.5 w-3.5 text-indigo-400" />
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Completed Projects Portfolio ({portfolioItems.length})
                 </p>
               </div>
               <BuilderPortfolioGrid items={portfolioItems} />
@@ -282,10 +192,10 @@ export function BuilderPortfolioModal({
 
             {/* Won projects */}
             <div>
-              <div className="flex items-center gap-2 mb-2">
-                <Trophy className="w-3.5 h-3.5 text-amber-400" />
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Winning Bids ({wonProjects.length})
+              <div className="mb-2 flex items-center gap-2">
+                <Building className="h-3.5 w-3.5 text-muted-foreground" />
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Completed on BuilBid ({wonProjects.length})
                 </p>
               </div>
               {wonProjects.length === 0 ? (
@@ -302,60 +212,14 @@ export function BuilderPortfolioModal({
                           <span className="text-[10px] text-muted-foreground">{p.district}</span>
                         </div>
                       </div>
-                      <span className="text-[10px] text-amber-400 font-medium">Won</span>
+                      <span className="text-[10px] font-medium text-muted-foreground">Completed</span>
                     </div>
                   ))}
                 </div>
               )}
             </div>
 
-            {/* Rate builder — only after awarding contract on completed project */}
-            {isProjectCompleted && isSelectedBuilder && (
-              <div className="border-t border-border pt-5">
-                <div className="flex items-center gap-2 mb-3">
-                  <Star className="w-3.5 h-3.5 text-amber-400" />
-                  <p className="text-sm font-semibold text-foreground">
-                    {myRating ? 'Update Your Rating' : 'Rate This Builder'}
-                  </p>
-                </div>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <StarRating
-                      rating={ratingInput}
-                      interactive
-                      size="md"
-                      onRate={setRatingInput}
-                    />
-                    <span className="text-sm text-muted-foreground">{ratingInput}/5</span>
-                  </div>
-                  <textarea
-                    value={reviewInput}
-                    onChange={(e) => setReviewInput(e.target.value)}
-                    placeholder="Share your experience working with this builder (optional)…"
-                    rows={3}
-                    className="w-full px-3 py-2.5 rounded-lg bg-secondary/60 border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-indigo-500/50 resize-none"
-                  />
-                  <Button
-                    onClick={handleSaveRating}
-                    disabled={saving}
-                    size="sm"
-                    className="w-full"
-                  >
-                    {saving ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    ) : saveSuccess ? (
-                      '✓ Saved!'
-                    ) : myRating ? (
-                      'Update Rating'
-                    ) : (
-                      'Submit Rating'
-                    )}
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            <p className="text-[11px] text-muted-foreground text-center">
+            <p className="text-center text-[11px] text-muted-foreground">
               Contact details (phone, email, address) are never shown here — shared only after contract confirmation.
             </p>
           </div>

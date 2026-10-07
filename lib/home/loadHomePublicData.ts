@@ -2,7 +2,7 @@ import { unstable_cache } from 'next/cache';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import { getFeaturedPartners } from '@/lib/featured/getFeaturedPartners';
-import { isProjectBiddingLive, type ShowcaseProject } from '@/lib/projectShowcase';
+import { isProjectBiddingLive, sortByCreatedAtDesc, type ShowcaseProject } from '@/lib/projectShowcase';
 import {
   HOME_PUBLIC_CACHE_TAG,
   PUBLIC_STATS_NEW_AFTER_ISO,
@@ -149,8 +149,10 @@ async function loadHomePublicDataWithClient(client: SupabaseClient): Promise<Hom
 
   const showcaseRows = (showcaseResult.data ?? []) as unknown as ProjectRow[];
   const frozenRows = (frozenResult.data ?? []) as unknown as ProjectRow[];
-  const mergedRows = [...showcaseRows, ...frozenRows].filter(
-    (row, index, rows) => rows.findIndex((item) => item.id === row.id) === index,
+  const mergedRows = sortByCreatedAtDesc(
+    [...showcaseRows, ...frozenRows].filter(
+      (row, index, rows) => rows.findIndex((item) => item.id === row.id) === index,
+    ),
   );
   const showcaseProjects = await attachLowestRates(client, mergedRows);
 
@@ -171,7 +173,7 @@ async function loadHomePublicDataWithClient(client: SupabaseClient): Promise<Hom
 
 const getCachedHomePublicData = unstable_cache(
   async () => loadHomePublicDataWithClient(createAdminClient()),
-  ['home-public-v8'],
+  ['home-public-v9'],
   { revalidate: HOME_DATA_REVALIDATE_SECONDS, tags: [HOME_PUBLIC_CACHE_TAG] },
 );
 

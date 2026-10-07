@@ -7,9 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useRealtimeBids } from '@/lib/hooks/useRealtimeBids';
 import { cn, formatBidMetric, formatRelativeTime } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { BuilderRatingBadge } from '@/components/shared/BuilderRatingBadge';
 import { UserAvatar } from '@/components/shared/UserAvatar';
-import { computeRatingStats } from '@/lib/builderRatings';
 import { BuilderPortfolioModal } from './BuilderPortfolioModal';
 import { SelectBuilderButton } from './SelectBuilderButton';
 import { BidFloorRatesBreakdown } from '@/components/shared/BidFloorRatesBreakdown';
@@ -47,8 +45,6 @@ interface Props {
   compactEmpty?: boolean;
 }
 
-const RANK_MEDAL = ['🥇', '🥈', '🥉'];
-
 export function UnifiedBidRankings({
   initialBids, initialBuilders, userId, compactEmpty = false,
 }: Props) {
@@ -70,7 +66,6 @@ export function UnifiedBidRankings({
   const { bids: realtimeBids, loading } = useRealtimeBids(project.id, bidRankContext);
 
   const [builders, setBuilders] = useState<Record<string, BuilderInfo>>(initialBuilders);
-  const [ratings, setRatings]   = useState<Record<string, { average: number; total: number }>>({});
 
   // Use realtime bids when available, fall back to server-fetched initial
   const bids = realtimeBids.length > 0
@@ -96,34 +91,6 @@ export function UnifiedBidRankings({
             ...Object.fromEntries((data as BuilderInfo[]).map((p) => [p.id, p])),
           }));
         }
-      });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bids]);
-
-  // Fetch average star ratings for all builders in this bid list
-  useEffect(() => {
-    const builderIds = bids.map((b) => b.builder_id).filter(Boolean) as string[];
-    if (builderIds.length === 0) return;
-
-    supabase
-      .from('builder_ratings')
-      .select('builder_id, rating')
-      .in('builder_id', builderIds)
-      .then(({ data }) => {
-        if (!data) return;
-        const acc: Record<string, { rating: number }[]> = {};
-        data.forEach((r: { builder_id: string; rating: number }) => {
-          if (!acc[r.builder_id]) acc[r.builder_id] = [];
-          acc[r.builder_id].push({ rating: r.rating });
-        });
-        setRatings(
-          Object.fromEntries(
-            Object.entries(acc).map(([id, rows]) => {
-              const stats = computeRatingStats(rows);
-              return [id, { average: stats.average, total: stats.total }];
-            })
-          )
-        );
       });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bids]);
@@ -214,9 +181,6 @@ export function UnifiedBidRankings({
       <AnimatePresence mode="popLayout">
         {bids.map((bid, index) => {
           const builder    = builders[bid.builder_id ?? ''];
-          const ratingInfo = ratings[bid.builder_id ?? ''];
-          const starAverage = ratingInfo?.average ?? 0;
-          const starTotal   = ratingInfo?.total ?? 0;
           const isSelected = project.selected_builder_id === bid.builder_id;
           const isLowest   = index === 0;
           const isMe       = bid.builder_id === userId;
@@ -233,7 +197,7 @@ export function UnifiedBidRankings({
             >
               {/* Rank */}
               <div className="flex-shrink-0 w-8 text-sm font-bold text-foreground">
-                {RANK_MEDAL[index] ?? index + 1}
+                {index + 1}
               </div>
 
               {/* Builder identity + stars */}
@@ -260,14 +224,7 @@ export function UnifiedBidRankings({
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 mt-1 flex-wrap">
-                      <BuilderRatingBadge
-                        average={starAverage}
-                        total={starTotal}
-                        size="xs"
-                        showCount={starTotal > 0}
-                      />
-                      <span className="text-muted-foreground">·</span>
+                    <div className="mt-1 flex flex-wrap items-center gap-2">
                       <span className="text-[10px] text-muted-foreground">{formatRelativeTime(bid.created_at)}</span>
                     </div>
                   </div>
@@ -372,11 +329,6 @@ export function UnifiedBidRankings({
                   <BuilderPortfolioModal
                     builder={{ ...builder, id: bid.builder_id }}
                     bid={bid}
-                    rank={index + 1}
-                    currentProjectId={project.id}
-                    isProjectCompleted={isCompleted}
-                    isSelectedBuilder={isSelected}
-                    ownerId={userId}
                   />
                 )}
 

@@ -92,8 +92,8 @@ export const en = {
     stats: {
       activeAuctions: 'Active Auctions',
       pendingSelection: 'Pending Selection',
-      totalProjects: 'Total Projects',
-      projectsApproved: 'Projects Approved',
+      totalProjects: 'Projects Uploaded',
+      projectsApproved: 'Projects Completed',
     },
     featuredFirms: {
       labourTitle: 'Top Mistri Workers',

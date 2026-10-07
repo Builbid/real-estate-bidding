@@ -148,8 +148,13 @@ export function isHomeAuctionProject(
   return isProjectBiddingLive(project) || isProjectSelectionWindow(project);
 }
 
-export function sortShowcaseProjectsByLatest(projects: ShowcaseProject[]): ShowcaseProject[] {
-  return [...projects].sort(
+/** Newest uploads first. Ties keep a stable order. */
+export function sortByCreatedAtDesc<T extends { created_at: string }>(items: T[]): T[] {
+  return [...items].sort(
     (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
   );
+}
+
+export function sortShowcaseProjectsByLatest(projects: ShowcaseProject[]): ShowcaseProject[] {
+  return sortByCreatedAtDesc(projects);
 }

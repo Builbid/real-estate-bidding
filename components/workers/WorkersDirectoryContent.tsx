@@ -13,7 +13,6 @@ import { HistoryBackButton } from '@/components/shared/HistoryBackButton';
 import { cn } from '@/lib/utils';
 import {
   WORKER_CATEGORY_FILTERS,
-  sortWorkersByRank,
   type RankedWorker,
   type WorkerCategory,
 } from '@/lib/workers/types';
@@ -26,9 +25,8 @@ export function WorkersDirectoryContent({ workers }: WorkersDirectoryContentProp
   const [category, setCategory] = useState<WorkerCategory>('all');
 
   const filtered = useMemo(() => {
-    const list =
-      category === 'all' ? workers : workers.filter((w) => w.category === category);
-    return sortWorkersByRank(list);
+    if (category === 'all') return workers;
+    return workers.filter((w) => w.category === category);
   }, [workers, category]);
 
   return (
@@ -42,12 +40,12 @@ export function WorkersDirectoryContent({ workers }: WorkersDirectoryContentProp
             <h1 className={PLATFORM_H1}>Skilled Workers</h1>
             <HardHat className="h-5 w-5 text-amber-700 dark:text-amber-300" aria-hidden />
             <span className="rounded-full border border-amber-500/25 bg-amber-500/10 px-2.5 py-0.5 text-xs font-semibold text-amber-800 dark:text-amber-300">
-              {filtered.length} ranked
+              {filtered.length} workers
             </span>
           </div>
           <p className={cn('mt-3', PLATFORM_COPY)}>
-            Browse verified skilled workers and trade professionals, ranked by rating and
-            completed reviews.
+            Browse verified skilled workers and trade professionals. Each profile shows years of
+            experience and completed project work.
           </p>
         </header>
 

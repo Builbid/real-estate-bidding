@@ -6,9 +6,7 @@ import { Trophy, TrendingDown, EyeOff, Clock } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useRealtimeBids } from '@/lib/hooks/useRealtimeBids';
 import { useProfile } from '@/lib/hooks/useProfile';
-import { BuilderRatingBadge } from '@/components/shared/BuilderRatingBadge';
 import { UserAvatar } from '@/components/shared/UserAvatar';
-import { computeRatingStats } from '@/lib/builderRatings';
 import { cn, formatRelativeTime, getFloorInputCount, formatBidMetric } from '@/lib/utils';
 import { useTranslation } from '@/lib/context/LanguageProvider';
 import { ConstructionMatrixSummary } from '@/components/construction/ConstructionMatrixSummary';
@@ -103,7 +101,6 @@ export function BidLeaderboard({
   const { bids, loading } = useRealtimeBids(projectId, bidRankContext);
   const { profile } = useProfile();
   const [builders, setBuilders] = useState<Record<string, BuilderInfo>>(initialBuilders ?? {});
-  const [ratings, setRatings] = useState<Record<string, { average: number; total: number }>>({});
   const bidder = getServiceBidderLabels(serviceType ?? 'labour_contractor');
 
   const isActive   = projectStatus === 'active_24h';
@@ -196,33 +193,6 @@ export function BidLeaderboard({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bids]);
 
-  useEffect(() => {
-    const builderIds = bids.map((b) => b.builder_id).filter(Boolean) as string[];
-    if (builderIds.length === 0) return;
-
-    supabase
-      .from('builder_ratings')
-      .select('builder_id, rating')
-      .in('builder_id', builderIds)
-      .then(({ data }) => {
-        if (!data) return;
-        const acc: Record<string, { rating: number }[]> = {};
-        data.forEach((r: { builder_id: string; rating: number }) => {
-          if (!acc[r.builder_id]) acc[r.builder_id] = [];
-          acc[r.builder_id].push({ rating: r.rating });
-        });
-        setRatings(
-          Object.fromEntries(
-            Object.entries(acc).map(([id, rows]) => {
-              const stats = computeRatingStats(rows);
-              return [id, { average: stats.average, total: stats.total }];
-            })
-          )
-        );
-      });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bids]);
-
   if (loading) {
     return (
       <div className="space-y-2">
@@ -303,7 +273,6 @@ export function BidLeaderboard({
           const isMe        = profile?.id === bid.builder_id;
           const isLowest    = index === 0;
           const builderInfo = bid.builder_id ? builders[bid.builder_id] : undefined;
-          const ratingInfo  = bid.builder_id ? ratings[bid.builder_id] : undefined;
           const displayName = isMe
             ? (profile?.full_name ?? builderInfo?.full_name ?? 'You')
             : bid.builder_id
@@ -334,7 +303,7 @@ export function BidLeaderboard({
                 'flex-shrink-0 w-7 h-7 rounded-md border text-xs font-bold flex items-center justify-center',
                 rankStyle
               )}>
-                {rank <= 3 ? ['🥇', '🥈', '🥉'][rank - 1] : rank}
+                {rank}
               </div>
 
               <UserAvatar
@@ -357,16 +326,6 @@ export function BidLeaderboard({
                         </span>
                       )}
                     </div>
-                    {ratingInfo && ratingInfo.total > 0 && (
-                      <div className="mt-0.5">
-                        <BuilderRatingBadge
-                          average={ratingInfo.average}
-                          total={ratingInfo.total}
-                          size="xs"
-                          showCount
-                        />
-                      </div>
-                    )}
                   </div>
                 ) : (
                   <p className="text-xs text-muted-foreground">{bidder.singular}</p>

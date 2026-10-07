@@ -1,6 +1,6 @@
-/** Public homepage floor for Total Projects. Historical inventory is already in this offset. */
+/** Public homepage floor for Projects Uploaded. Historical inventory is already in this offset. */
 export const BASE_TOTAL_PROJECTS = 100;
-/** Public homepage floor for Projects Approved. Always stays below Total Projects. */
+/** Public homepage floor for Projects Completed. Always stays below Projects Uploaded. */
 export const BASE_APPROVED_PROJECTS = 95;
 export const HOME_PUBLIC_CACHE_TAG = 'home-public';
 
@@ -25,7 +25,7 @@ export interface ProjectApprovalRow {
 }
 
 /**
- * A project counts toward "Projects Approved" only when a worker/mistri is
+ * A project counts toward "Projects Completed" only when a worker/mistri is
  * assigned. Creating or uploading a project does not qualify.
  */
 export function isContractuallyApprovedProject(row: ProjectApprovalRow): boolean {

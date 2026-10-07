@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import type { Project } from '@/lib/types';
-import type { ShowcaseProject } from '@/lib/projectShowcase';
+import { sortShowcaseProjectsByLatest, type ShowcaseProject } from '@/lib/projectShowcase';
 import { PROJECTS_PAGE_SIZE } from '@/lib/projects/constants';
 
 export { PROJECTS_PAGE_SIZE };
@@ -105,7 +105,7 @@ export async function fetchActiveProjectsPage(options: {
   }
 
   const rows = (data ?? []) as ProjectRow[];
-  const projects = await attachLowestRates(rows);
+  const projects = sortShowcaseProjectsByLatest(await attachLowestRates(rows));
   const total = count ?? projects.length;
   const nextOffset = offset + projects.length;
 
