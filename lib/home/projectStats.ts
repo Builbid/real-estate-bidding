@@ -1,7 +1,12 @@
 /** Public homepage floor for Projects Uploaded. Historical inventory is already in this offset. */
 export const BASE_TOTAL_PROJECTS = 100;
-/** Public homepage floor for Projects Completed. Always stays below Projects Uploaded. */
+/** Historical signed-agreement floor added to newly completed rows from the database. */
 export const BASE_APPROVED_PROJECTS = 95;
+/**
+ * Projects Completed stays about 3% under Projects Uploaded when the signed
+ * count would otherwise look much lower than the upload total.
+ */
+export const COMPLETED_UPLOAD_DEDUCTION_RATE = 0.03;
 export const HOME_PUBLIC_CACHE_TAG = 'home-public';
 
 /**
@@ -47,12 +52,23 @@ export interface PublicProjectCounts {
   approvedProjects: number;
 }
 
+/** Nearest integer about 3% below the uploaded total. Never negative. */
+export function completedCountFromUploadBaseline(totalUploaded: number): number {
+  const uploaded = Math.max(0, Math.round(Number(totalUploaded) || 0));
+  return Math.max(0, Math.round(uploaded * (1 - COMPLETED_UPLOAD_DEDUCTION_RATE)));
+}
+
 /**
  * Public counters:
  *   totalProjects    = 100 + realNewProjectsCountFromDB
- *   approvedProjects = min(95 + realApprovedProjectsCountFromDB, totalProjects - 1)
+ *   actualCompleted  = 95 + real signed/agreement rows from the database
+ *   approvedProjects = the higher of actualCompleted and ~3% below totalProjects,
+ *                      capped at totalProjects so completed never exceeds uploads.
  *
- * approvedProjects is always strictly smaller than totalProjects.
+ * The 3% figure is used when signed agreements are far below uploads, so the
+ * homepage completed count stays coordinated instead of looking drastically lower.
+ * When the signed count is closer to uploads, that actual count is shown.
+ * Both values are integers.
  */
 export function computePublicProjectCounts(
   realNewProjectsCountFromDB: number,
@@ -62,9 +78,11 @@ export function computePublicProjectCounts(
   const realApproved = Math.max(0, Math.floor(Number(realApprovedProjectsCountFromDB) || 0));
 
   const totalProjects = BASE_TOTAL_PROJECTS + realNew;
+  const actualCompleted = BASE_APPROVED_PROJECTS + realApproved;
+  const deductedFromUploads = completedCountFromUploadBaseline(totalProjects);
   const approvedProjects = Math.min(
-    BASE_APPROVED_PROJECTS + realApproved,
-    Math.max(0, totalProjects - 1),
+    totalProjects,
+    Math.max(actualCompleted, deductedFromUploads),
   );
 
   return { totalProjects, approvedProjects };

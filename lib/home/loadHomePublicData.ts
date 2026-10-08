@@ -173,7 +173,7 @@ async function loadHomePublicDataWithClient(client: SupabaseClient): Promise<Hom
 
 const getCachedHomePublicData = unstable_cache(
   async () => loadHomePublicDataWithClient(createAdminClient()),
-  ['home-public-v9'],
+  ['home-public-v10'],
   { revalidate: HOME_DATA_REVALIDATE_SECONDS, tags: [HOME_PUBLIC_CACHE_TAG] },
 );
 

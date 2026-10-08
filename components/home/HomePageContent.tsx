@@ -26,6 +26,14 @@ interface HomePageContentProps {
   featuredFirms: DemoFirm[];
 }
 
+const PLUS_SUFFIX_STAT_KEYS = new Set(['total', 'approved']);
+
+function formatHomeStat(key: string, value: number | undefined): string {
+  const count = Math.round(Number(value) || 0);
+  const formatted = count.toLocaleString();
+  return PLUS_SUFFIX_STAT_KEYS.has(key) ? `${formatted}+` : formatted;
+}
+
 export function HomePageContent({
   showcaseProjects,
   statValues,
@@ -89,7 +97,7 @@ export function HomePageContent({
                 />
                 <div className="min-w-0">
                   <p className="text-base font-bold tabular-nums text-foreground sm:text-lg leading-none">
-                    {(statValues[key] ?? 0).toLocaleString()}
+                    {formatHomeStat(key, statValues[key])}
                   </p>
                   <p className="mt-0.5 truncate text-[10px] font-medium leading-tight text-slate-700 dark:text-slate-300 sm:text-[11px]">
                     {label}
