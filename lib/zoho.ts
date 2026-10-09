@@ -13,11 +13,10 @@
 
 import { after } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { postZohoForm, zohoClientId, zohoClientSecret, zohoEnv, zohoTokenUrl } from '@/lib/zohoConfig';
+import { postZohoForm, zohoClientId, zohoClientSecret, zohoEnv, zohoHttps, zohoTokenUrl } from '@/lib/zohoConfig';
 
 let storedRefreshToken: string | null = null;
 const DEFAULT_API_DOMAIN = 'https://www.zohoapis.in';
-const REQUEST_TIMEOUT_MS = 8_000;
 const IMMEDIATE_ATTEMPTS = 3;
 const MAX_OUTBOX_ATTEMPTS = 48;
 
@@ -212,13 +211,15 @@ function leadDescription(lead: SanitizedLead): string {
 
 function buildLeadRecord(lead: SanitizedLead): Record<string, string> {
   const { firstName, lastName } = splitName(lead.fullName);
+  const projectLead = lead.event === 'project';
   const record: Record<string, string> = {
-    Last_Name: lastName,
-    Company: lead.company || 'BuilBid',
+    Last_Name: (projectLead ? lead.fullName : lastName).slice(0, 80) || 'BuilBid User',
+    Company: projectLead ? 'BuilBid Project' : lead.company || 'BuilBid',
+    Lead_Source: 'builbid.in',
     Description: leadDescription(lead),
     Country: 'India',
   };
-  if (firstName) record.First_Name = firstName;
+  if (!projectLead && firstName) record.First_Name = firstName;
   if (lead.email) record.Email = lead.email;
   if (lead.phone) {
     record.Phone = lead.phone;
@@ -239,16 +240,6 @@ function logFailure(lead: Pick<SanitizedLead, 'ref' | 'event'>, message: string)
   console.error('[zoho-crm] sync failed', { ref: lead.ref, event: lead.event, message });
 }
 
-async function readJson<T>(response: Response): Promise<T | null> {
-  const text = await response.text();
-  if (!text) return null;
-  try {
-    return JSON.parse(text) as T;
-  } catch {
-    return null;
-  }
-}
-
 async function getAccessToken(): Promise<{ accessToken: string; apiDomain: string }> {
   if (tokenCache && Date.now() < tokenCache.expiresAt) {
     return { accessToken: tokenCache.accessToken, apiDomain: tokenCache.apiDomain };
@@ -258,7 +249,9 @@ async function getAccessToken(): Promise<{ accessToken: string; apiDomain: strin
   const clientSecret = credential('ZOHO_CLIENT_SECRET');
   const refreshToken = await resolveRefreshToken();
   if (!clientId || !clientSecret || !refreshToken) {
-    throw new Error('ZOHO_REFRESH_TOKEN is not set.');
+    const responseData = { error: 'ZOHO_REFRESH_TOKEN is not set.' };
+    console.error('Zoho CRM Error:', responseData);
+    throw new Error(responseData.error);
   }
 
   const body = new URLSearchParams({
@@ -279,6 +272,8 @@ async function getAccessToken(): Promise<{ accessToken: string; apiDomain: strin
   }
   if (!payload || !payload.access_token || payload.error || response.status < 200 || response.status >= 300) {
     tokenCache = null;
+    const responseData = payload ?? { status: response.status, body: response.text };
+    console.error('Zoho CRM Error:', responseData);
     throw new Error(payload?.error || `Zoho token refresh failed (${response.status}).`);
   }
 
@@ -297,17 +292,32 @@ async function zohoFetch(
   accessToken: string,
   init?: { method?: string; body?: string },
 ): Promise<{ status: number; payload: ZohoWritePayload | null }> {
-  const response = await fetch(url, {
-    method: init?.method ?? 'GET',
-    headers: {
-      Authorization: `Zoho-oauthtoken ${accessToken}`,
-      ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
-    },
-    body: init?.body,
-    cache: 'no-store',
-    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-  });
-  const payload = await readJson<ZohoWritePayload>(response);
+  let response: { status: number; text: string };
+  try {
+    response = await zohoHttps(url, {
+      method: init?.method ?? 'GET',
+      headers: {
+        Authorization: `Zoho-oauthtoken ${accessToken}`,
+        ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
+      },
+      body: init?.body,
+    });
+  } catch (err) {
+    const responseData = err instanceof Error ? { message: err.message } : err;
+    console.error('Zoho CRM Error:', responseData);
+    throw err;
+  }
+  let payload: ZohoWritePayload | null = null;
+  if (response.text) {
+    try {
+      payload = JSON.parse(response.text) as ZohoWritePayload;
+    } catch {
+      payload = { message: response.text.slice(0, 500) };
+    }
+  }
+  if (response.status !== 204 && (response.status < 200 || response.status >= 300)) {
+    console.error('Zoho CRM Error:', payload ?? { status: response.status });
+  }
   return { status: response.status, payload };
 }
 
@@ -405,6 +415,22 @@ async function pushOnce(lead: SanitizedLead, attempt: number): Promise<PushResul
   }
 
   if (row?.code === 'DUPLICATE_DATA') {
+    console.error('Zoho CRM Error:', written.payload ?? row);
+    if (lead.event === 'project') {
+      const projectRecord = { ...record };
+      delete projectRecord.Email;
+      delete projectRecord.Phone;
+      delete projectRecord.Mobile;
+      const created = await zohoFetch(`${apiDomain}/crm/v2/Leads`, accessToken, {
+        method: 'POST',
+        body: JSON.stringify({ data: [projectRecord], trigger: ['workflow'] }),
+      });
+      const createdRow = created.payload?.data?.[0];
+      if (createdRow?.status === 'success' && createdRow.details?.id) {
+        return { ok: true, retryable: false, id: createdRow.details.id };
+      }
+      console.error('Zoho CRM Error:', created.payload ?? { status: created.status });
+    }
     const duplicateId = row.details?.duplicate_record?.id || row.details?.id;
     if (duplicateId) {
       const appended = await appendEvent(apiDomain, accessToken, duplicateId, lead);
@@ -414,6 +440,7 @@ async function pushOnce(lead: SanitizedLead, attempt: number): Promise<PushResul
   }
 
   const message = row?.message || written.payload?.message || `Zoho lead insert failed (${written.status}).`;
+  console.error('Zoho CRM Error:', written.payload ?? { status: written.status, message });
   return { ok: false, retryable: retryableStatus(written.status, row), error: message };
 }
 
@@ -425,6 +452,8 @@ async function deliverWithRetries(lead: SanitizedLead): Promise<PushResult> {
       last = await pushOnce(lead, attempt);
     } catch (err) {
       tokenCache = null;
+      const responseData = err instanceof Error ? { message: err.message } : err;
+      console.error('Zoho CRM Error:', responseData);
       const message = err instanceof Error ? err.message : 'Zoho CRM request failed.';
       last = { ok: false, retryable: true, error: message };
     }
@@ -505,15 +534,43 @@ async function markOutbox(lead: SanitizedLead, result: PushResult, attemptsBase:
   }
 }
 
-async function persistAndDeliver(lead: SanitizedLead): Promise<void> {
+async function persistAndDeliver(lead: SanitizedLead): Promise<PushResult> {
   const stored = await insertOutbox(lead);
   const result = await deliverWithRetries(lead);
   if (stored) await markOutbox(lead, result, 0);
   if (result.ok) {
     console.info('[zoho-crm] lead recorded', { ref: lead.ref, event: lead.event, id: result.id });
-    return;
+    return result;
   }
   logFailure(lead, result.error ?? 'Zoho sync failed.');
+  console.error('Zoho CRM Error:', { ref: lead.ref, event: lead.event, error: result.error ?? 'Zoho sync failed.' });
+  return result;
+}
+
+/**
+ * Create a Zoho CRM lead immediately. Project posting awaits this so the
+ * insert is not dropped when the server action returns.
+ */
+export async function createZohoLead(
+  input: ZohoLeadInput,
+): Promise<{ ok: boolean; id?: string; error?: string }> {
+  try {
+    const lead = sanitizeLead(input, crypto.randomUUID());
+    if (!lead) {
+      const responseData = {
+        error: 'Lead needs an email or phone before Zoho will accept it.',
+        event: input.event,
+      };
+      console.error('Zoho CRM Error:', responseData);
+      return { ok: false, error: responseData.error };
+    }
+    const result = await persistAndDeliver(lead);
+    return { ok: result.ok, id: result.id, error: result.error };
+  } catch (err) {
+    const responseData = err instanceof Error ? { message: err.message } : err;
+    console.error('Zoho CRM Error:', responseData);
+    return { ok: false, error: err instanceof Error ? err.message : 'Zoho CRM request failed.' };
+  }
 }
 
 function parseStoredLead(payload: unknown, ref: string): SanitizedLead | null {
@@ -550,19 +607,13 @@ function parseStoredLead(payload: unknown, ref: string): SanitizedLead | null {
  * Signup, onboarding, project posting, and the contact form stay fast even if Zoho is slow.
  */
 export function queueZohoLead(input: ZohoLeadInput): void {
-  const lead = sanitizeLead(input, crypto.randomUUID());
-  if (!lead) {
-    console.error('[zoho-crm] skipped event with no email or phone', { event: input.event });
-    return;
-  }
-
   const run = () => {
-    void persistAndDeliver(lead);
+    void createZohoLead(input);
   };
 
   try {
     after(async () => {
-      await persistAndDeliver(lead);
+      await createZohoLead(input);
     });
   } catch {
     run();
@@ -626,6 +677,8 @@ export async function retryPendingZohoLeads(limit = 15): Promise<{ attempted: nu
       result = await pushOnce(lead, Math.max(1, row.attempts));
     } catch (err) {
       tokenCache = null;
+      const responseData = err instanceof Error ? { message: err.message } : err;
+      console.error('Zoho CRM Error:', responseData);
       const message = err instanceof Error ? err.message : 'Zoho CRM request failed.';
       result = { ok: false, retryable: true, error: message };
     }
