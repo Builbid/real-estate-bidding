@@ -13,10 +13,6 @@ const DEFAULT_REDIRECT_URI = 'https://builbid.in/api/zoho/callback';
 const VERIFIED_CLIENT_ID = '1000.96NFA79HWDAM3XHIO7MUS2PG9TBSOS';
 const VERIFIED_CLIENT_SECRET = 'cdcdb2ed6afa9352f3a3a9c3e5f6b91cd7cdfab93';
 
-/** Previous client. Zoho returns invalid_client_secret when this secret is sent with the new client id. */
-const PREVIOUS_CLIENT_ID = '1000.91JM8KSK4SC0SH9C2OUFS90KVSQM8V';
-const PREVIOUS_CLIENT_SECRET = 'd112da84ccdde943a377235aafe76707b91144c30e';
-
 export const ZOHO_CRM_SCOPES = 'ZohoCRM.modules.leads.ALL,ZohoCRM.modules.notes.ALL';
 
 /** Trim whitespace, wrapping quotes, and invisible characters from an env value. */
@@ -33,16 +29,16 @@ export function zohoEnv(name: string): string {
   return value;
 }
 
+/**
+ * Always use the API Console client. A different secret stored on Vercel is
+ * what Zoho rejects with invalid_client_secret.
+ */
 export function zohoClientId(): string {
-  const value = zohoEnv('ZOHO_CLIENT_ID');
-  if (!value || value === PREVIOUS_CLIENT_ID) return VERIFIED_CLIENT_ID;
-  return value;
+  return VERIFIED_CLIENT_ID;
 }
 
 export function zohoClientSecret(): string {
-  const value = zohoEnv('ZOHO_CLIENT_SECRET');
-  if (!value || value === PREVIOUS_CLIENT_SECRET) return VERIFIED_CLIENT_SECRET;
-  return value;
+  return VERIFIED_CLIENT_SECRET;
 }
 
 export function zohoAccountsUrl(): string {
