@@ -13,6 +13,7 @@ import {
   validateConstructionPackages,
 } from '@/lib/firm/constructionClass'
 import { isConstructionFirmEnabled } from '@/lib/features'
+import { queueZohoLead } from '@/lib/zoho'
 import type { UserRole } from '@/lib/types'
 
 export type SignUpRole = 'owner' | 'labour_contractor' | 'construction_firm' | 'service_provider'
@@ -184,6 +185,18 @@ export async function signUpAction(
   if (profileError) {
     console.warn('Profile upsert warning (non-fatal):', profileError.message)
   }
+
+  queueZohoLead({
+    fullName,
+    email,
+    phone: mobile,
+    company: role === 'construction_firm' ? companyName : null,
+    role,
+    street: address,
+    zipCode: pincode,
+    event: 'registration',
+    details: role === 'construction_firm' ? `Company: ${companyName}` : null,
+  })
 
   const { error: signInError } = await supabase.auth.signInWithPassword({
     email,

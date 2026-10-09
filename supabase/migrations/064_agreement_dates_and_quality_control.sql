@@ -13,6 +13,18 @@ do $$
 begin
   if not exists (
     select 1
+    from pg_type t
+    join pg_namespace n on n.oid = t.typnamespace
+    where n.nspname = 'public' and t.typname = 'project_document_type'
+  ) then
+    create type public.project_document_type as enum (
+      'agreement',
+      'estimate',
+      'ai_design',
+      'quality_control'
+    );
+  elsif not exists (
+    select 1
     from pg_enum e
     join pg_type t on t.oid = e.enumtypid
     join pg_namespace n on n.oid = t.typnamespace

@@ -14,6 +14,7 @@ import {
 } from '@/lib/auth/portal';
 import { resolveAccountRole } from '@/lib/auth/resolveAccountRole';
 import { isOfficialAdminEmail } from '@/lib/admin/constants';
+import { queueZohoLead } from '@/lib/zoho';
 
 function safeNextPath(next: string | null): string {
   if (next?.startsWith('/')) return next;
@@ -187,6 +188,33 @@ export async function GET(request: NextRequest) {
           .update({ full_name: fullName.trim() })
           .eq('id', user.id);
       }
+    }
+
+    const createdMs = user.created_at ? Date.parse(user.created_at) : NaN;
+    const provider =
+      typeof user.app_metadata?.provider === 'string' ? user.app_metadata.provider : '';
+    if (
+      Number.isFinite(createdMs) &&
+      Date.now() - createdMs < NEW_ACCOUNT_WINDOW_MS &&
+      provider &&
+      provider !== 'email'
+    ) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name, email, mobile, role, company_name, physical_address, pincode')
+        .eq('id', user.id)
+        .maybeSingle();
+      queueZohoLead({
+        fullName: profile?.full_name || fullName || 'BuilBid User',
+        email: profile?.email || user.email || '',
+        phone: profile?.mobile,
+        company: profile?.company_name,
+        role: profile?.role,
+        street: profile?.physical_address,
+        zipCode: profile?.pincode,
+        event: 'registration',
+        details: 'Signed up with Google.',
+      });
     }
 
     const destination = await resolveRedirectPath(supabase, user.id, next);

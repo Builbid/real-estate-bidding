@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { processAuctionTransitions } from '@/app/actions/auction'
+import { retryPendingZohoLeads } from '@/lib/zoho'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,5 +12,10 @@ export async function GET(request: Request) {
   }
 
   await processAuctionTransitions()
+  try {
+    await retryPendingZohoLeads()
+  } catch (err) {
+    console.error('[zoho-crm] retry pass failed', err instanceof Error ? err.message : 'unknown')
+  }
   return NextResponse.json({ ok: true, ts: new Date().toISOString() })
 }

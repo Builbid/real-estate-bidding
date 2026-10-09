@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Clock, Mail, MapPin, MessageCircle, Phone } from 'lucide-react';
 import { PLATFORM_COPY, StaticPageShell, StaticSection } from '@/components/marketing/StaticPageShell';
+import { ContactForm } from '@/components/contact/ContactForm';
 import { BUILBID_MATERIALS_CONTACT } from '@/lib/contact/official';
 
 export const metadata: Metadata = {
@@ -30,6 +31,14 @@ export default function ContactPage() {
           </a>
           .
         </p>
+      </StaticSection>
+
+      <StaticSection title="Send a message">
+        <p className={COPY}>
+          Tell us about an account, a project, workmanship, or a payment. Include an email address
+          or a mobile number so we can reply.
+        </p>
+        <ContactForm />
       </StaticSection>
 
       <StaticSection title="Office">

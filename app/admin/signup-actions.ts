@@ -8,6 +8,7 @@ import { isOfficialAdminEmail, TESTING_FIELD_SUPERVISOR_ROLE } from '@/lib/admin
 import { validateAadhaarNumber, normalizeAadhaarNumber } from '@/lib/validation/aadhaar';
 import { stripMobileDigits } from '@/lib/validation/mobile';
 import { findExistingAccountByEmail, separateEmailMessage } from '@/lib/auth/emailRoleGuard';
+import { queueZohoLead } from '@/lib/zoho';
 
 const STAFF_POSITIONS = new Set(['field_supervisor', 'admin_staff']);
 const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
@@ -619,6 +620,18 @@ export async function completeSupervisorSignupAction(
     }
 
     await admin.from('supervisor_signup_otps').delete().eq('email', draft.email);
+
+    if (createdNew) {
+      queueZohoLead({
+        fullName: draft.fullName,
+        email: draft.email,
+        phone: draft.phone,
+        role: TESTING_FIELD_SUPERVISOR_ROLE,
+        event: 'supervisor_onboarding',
+        details: `Staff position: ${draft.role}`,
+      });
+    }
+
     return { ok: true };
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Registration failed.';

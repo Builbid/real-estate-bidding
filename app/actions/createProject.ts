@@ -43,6 +43,7 @@ import {
   type MistriDetails,
 } from '@/lib/mistriDetails'
 import { sendNewProjectAnnouncementEmails } from '@/lib/email/newProjectAnnouncement'
+import { queueZohoLead } from '@/lib/zoho'
 import { revalidateHomePublic } from '@/lib/home/revalidateHomePublic'
 import {
   embedDetailsInSubConfiguration,
@@ -445,6 +446,26 @@ export async function createProjectAction(
   } catch (emailErr) {
     console.error('New project announcement email failed (non-fatal):', emailErr)
   }
+
+  const { data: owner } = await supabase
+    .from('profiles')
+    .select('full_name, email, mobile, company_name, role, physical_address, pincode')
+    .eq('id', user.id)
+    .maybeSingle()
+
+  queueZohoLead({
+    fullName: owner?.full_name || 'BuilBid User',
+    email: owner?.email || user.email || '',
+    phone: owner?.mobile,
+    company: owner?.company_name,
+    role: owner?.role ?? 'owner',
+    street: owner?.physical_address,
+    city: project.district,
+    state: input.state,
+    zipCode: pincodeRaw || owner?.pincode,
+    event: 'project',
+    details: `Posted "${project.title}" (${serviceType}) in ${project.district}, ${input.state}. Project ${project.id}.`,
+  })
 
   return { error: null, projectId: project.id, biddingEndsAt: project.bidding_ends_at }
 }
