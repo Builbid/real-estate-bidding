@@ -46,7 +46,17 @@ export function zohoClientSecret(): string {
 }
 
 export function zohoAccountsUrl(): string {
-  return (zohoEnv('ZOHO_ACCOUNTS_URL') || DEFAULT_ACCOUNTS_URL).replace(/\/$/, '');
+  const raw = zohoEnv('ZOHO_ACCOUNTS_URL') || DEFAULT_ACCOUNTS_URL;
+  const withProtocol = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+  try {
+    const parsed = new URL(withProtocol);
+    if (!parsed.hostname.endsWith('.zoho.in') && !parsed.hostname.endsWith('.zoho.com')) {
+      return DEFAULT_ACCOUNTS_URL;
+    }
+    return `${parsed.protocol}//${parsed.hostname}`;
+  } catch {
+    return DEFAULT_ACCOUNTS_URL;
+  }
 }
 
 export function zohoRedirectUri(): string {
@@ -67,13 +77,10 @@ export function postZohoForm(
   params: URLSearchParams,
 ): Promise<{ status: number; text: string }> {
   const body = params.toString();
-  const target = new URL(url);
   return new Promise((resolve, reject) => {
     const req = https.request(
+      url,
       {
-        protocol: 'https:',
-        hostname: target.hostname,
-        path: `${target.pathname}${target.search}`,
         method: 'POST',
         family: 4,
         headers: {
