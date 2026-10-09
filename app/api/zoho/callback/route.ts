@@ -1,6 +1,6 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { zohoEnv, zohoRedirectUri, zohoTokenUrl } from '@/lib/zohoConfig';
+import { zohoClientId, zohoClientSecret, zohoRedirectUri, zohoTokenUrl } from '@/lib/zohoConfig';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,9 +36,8 @@ async function persistRefreshToken(refreshToken: string, apiDomain: string | nul
   }
 }
 
-export async function GET(request: Request) {
-  const url = new URL(request.url);
-  const oauthError = url.searchParams.get('error')?.trim() ?? '';
+export async function GET(request: NextRequest) {
+  const oauthError = request.nextUrl.searchParams.get('error')?.trim() ?? '';
   if (oauthError) {
     return NextResponse.json(
       { success: false, error: oauthError, message: 'Zoho did not grant access.' },
@@ -46,7 +45,7 @@ export async function GET(request: Request) {
     );
   }
 
-  const code = url.searchParams.get('code')?.trim() ?? '';
+  const code = request.nextUrl.searchParams.get('code')?.trim() ?? '';
   if (!code) {
     return NextResponse.json(
       {
@@ -57,8 +56,8 @@ export async function GET(request: Request) {
     );
   }
 
-  const clientId = zohoEnv('ZOHO_CLIENT_ID');
-  const clientSecret = zohoEnv('ZOHO_CLIENT_SECRET');
+  const clientId = zohoClientId();
+  const clientSecret = zohoClientSecret();
   if (!clientId || !clientSecret) {
     return NextResponse.json(
       { success: false, error: 'Zoho client credentials are not configured on the server.' },

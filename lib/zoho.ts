@@ -13,7 +13,7 @@
 
 import { after } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { zohoTokenUrl } from '@/lib/zohoConfig';
+import { zohoClientId, zohoClientSecret, zohoEnv, zohoTokenUrl } from '@/lib/zohoConfig';
 
 let storedRefreshToken: string | null = null;
 const DEFAULT_API_DOMAIN = 'https://www.zohoapis.in';
@@ -88,8 +88,9 @@ type OutboxRow = {
 let tokenCache: TokenCache | null = null;
 
 function credential(name: 'ZOHO_CLIENT_ID' | 'ZOHO_CLIENT_SECRET' | 'ZOHO_REFRESH_TOKEN'): string {
-  const value = process.env[name];
-  return typeof value === 'string' ? value.trim() : '';
+  if (name === 'ZOHO_CLIENT_ID') return zohoClientId();
+  if (name === 'ZOHO_CLIENT_SECRET') return zohoClientSecret();
+  return zohoEnv(name);
 }
 
 /** Env token wins. The callback row is used when Vercel has not been given ZOHO_REFRESH_TOKEN yet. */
