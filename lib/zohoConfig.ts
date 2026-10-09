@@ -9,9 +9,9 @@ import https from 'node:https';
 const DEFAULT_ACCOUNTS_URL = 'https://accounts.zoho.in';
 const DEFAULT_REDIRECT_URI = 'https://builbid.in/api/zoho/callback';
 
-/** Current Server-based client from the Zoho India API Console. */
-const VERIFIED_CLIENT_ID = '1000.96NFA79HWDAM3XHIO7MUS2PG9TBSOS';
-const VERIFIED_CLIENT_SECRET = 'cdcdb2ed6afa9352f3a3a9c3e5f6b91cd7cdfab93';
+/** Zoho India Self Client. Refresh tokens from this client must use this same pair. */
+const VERIFIED_CLIENT_ID = '1000.KM0IB43H95DTV75U0GY7COT29OQUKH';
+const VERIFIED_CLIENT_SECRET = '07e795f6c36079a839e17b6e2d12911d616bcf2082';
 
 export const ZOHO_CRM_SCOPES = 'ZohoCRM.modules.leads.ALL,ZohoCRM.modules.notes.ALL';
 
