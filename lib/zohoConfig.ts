@@ -41,22 +41,29 @@ export function zohoClientSecret(): string {
   return VERIFIED_CLIENT_SECRET;
 }
 
+/** Must match the redirect on the Accept screen exactly. Env values were causing invalid_code. */
 export function zohoAccountsUrl(): string {
-  const raw = zohoEnv('ZOHO_ACCOUNTS_URL') || DEFAULT_ACCOUNTS_URL;
-  const withProtocol = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
-  try {
-    const parsed = new URL(withProtocol);
-    if (!parsed.hostname.endsWith('.zoho.in') && !parsed.hostname.endsWith('.zoho.com')) {
-      return DEFAULT_ACCOUNTS_URL;
-    }
-    return `${parsed.protocol}//${parsed.hostname}`;
-  } catch {
-    return DEFAULT_ACCOUNTS_URL;
-  }
+  return DEFAULT_ACCOUNTS_URL;
 }
 
 export function zohoRedirectUri(): string {
-  return zohoEnv('ZOHO_REDIRECT_URI') || DEFAULT_REDIRECT_URI;
+  return DEFAULT_REDIRECT_URI;
+}
+
+/** Zoho puts the issuing accounts host on the callback. A code is only valid there. */
+export function zohoTokenUrlFor(accountsServer: string | null | undefined): string {
+  const raw = (accountsServer ?? '').trim();
+  try {
+    if (raw) {
+      const parsed = new URL(raw);
+      if (/^accounts\.zoho\.[a-z.]+$/.test(parsed.hostname)) {
+        return `${parsed.protocol}//${parsed.hostname}/oauth/v2/token`;
+      }
+    }
+  } catch {
+    // Fall through to the India accounts host.
+  }
+  return `${DEFAULT_ACCOUNTS_URL}/oauth/v2/token`;
 }
 
 export function zohoTokenUrl(): string {

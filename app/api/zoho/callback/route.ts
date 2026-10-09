@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { postZohoForm, zohoClientId, zohoClientSecret, zohoRedirectUri, zohoTokenUrl } from '@/lib/zohoConfig';
+import { postZohoForm, zohoClientId, zohoClientSecret, zohoRedirectUri, zohoTokenUrlFor } from '@/lib/zohoConfig';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,26 +36,17 @@ async function persistRefreshToken(refreshToken: string, apiDomain: string | nul
   }
 }
 
-export async function GET(request: NextRequest) {
-  const oauthError = request.nextUrl.searchParams.get('error')?.trim() ?? '';
-  if (oauthError) {
-    return NextResponse.json(
-      { success: false, error: oauthError, message: 'Zoho did not grant access.' },
-      { status: 400 },
-    );
-  }
+const exchanges = new Map<string, ReturnType<typeof exchangeCodeOnce>>();
 
-  const code = request.nextUrl.searchParams.get('code')?.trim() ?? '';
-  if (!code) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'Missing authorization code. Zoho did not return a code parameter.',
-      },
-      { status: 400 },
-    );
-  }
+function exchangeCode(code: string, accountsServer: string | null) {
+  const existing = exchanges.get(code);
+  if (existing) return existing;
+  const pending = exchangeCodeOnce(code, accountsServer);
+  exchanges.set(code, pending);
+  return pending;
+}
 
+async function exchangeCodeOnce(code: string, accountsServer: string | null) {
   const clientId = zohoClientId();
   const clientSecret = zohoClientSecret();
   if (!clientId || !clientSecret) {
@@ -75,7 +66,7 @@ export async function GET(request: NextRequest) {
 
   let payload: ZohoTokenPayload;
   try {
-    const response = await postZohoForm(zohoTokenUrl(), body);
+    const response = await postZohoForm(zohoTokenUrlFor(accountsServer), body);
     payload = response.text ? (JSON.parse(response.text) as ZohoTokenPayload) : {};
     if (response.status < 200 || response.status >= 300 || payload.error) {
       const zohoError = payload.error || 'Zoho token exchange failed.';
@@ -121,4 +112,65 @@ export async function GET(request: NextRequest) {
     message: 'Zoho CRM connected successfully!',
     persisted,
   });
+}
+
+/** Opening the callback must not spend the code. The page posts it once. */
+export async function GET(request: NextRequest) {
+  const oauthError = request.nextUrl.searchParams.get('error')?.trim() ?? '';
+  const code = request.nextUrl.searchParams.get('code')?.trim() ?? '';
+  const accountsServer = request.nextUrl.searchParams.get('accounts-server')?.trim() ?? '';
+  if (oauthError) {
+    return NextResponse.json(
+      { success: false, error: oauthError, message: 'Zoho did not grant access.' },
+      { status: 400 },
+    );
+  }
+  if (!code) {
+    return NextResponse.json(
+      { success: false, error: 'Missing authorization code. Zoho did not return a code parameter.' },
+      { status: 400 },
+    );
+  }
+
+  const html = `<!doctype html>
+<html><head><meta charset="utf-8"><title>Connecting Zoho</title></head>
+<body><pre id="out">Connecting Zoho CRM…</pre>
+<script>
+fetch(location.pathname, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    code: ${JSON.stringify(code)},
+    accountsServer: ${JSON.stringify(accountsServer)}
+  })
+}).then(function (response) { return response.json(); }).then(function (data) {
+  document.getElementById('out').textContent = JSON.stringify(data, null, 2);
+}).catch(function () {
+  document.getElementById('out').textContent = 'Could not finish the Zoho connection.';
+});
+</script></body></html>`;
+
+  return new NextResponse(html, {
+    status: 200,
+    headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' },
+  });
+}
+
+export async function POST(request: NextRequest) {
+  let code = '';
+  let accountsServer: string | null = null;
+  try {
+    const payload = (await request.json()) as { code?: string; accountsServer?: string };
+    code = payload.code?.trim() ?? '';
+    accountsServer = payload.accountsServer?.trim() || null;
+  } catch {
+    return NextResponse.json({ success: false, error: 'Missing authorization code.' }, { status: 400 });
+  }
+  if (!code) {
+    return NextResponse.json(
+      { success: false, error: 'Missing authorization code. Zoho did not return a code parameter.' },
+      { status: 400 },
+    );
+  }
+  return exchangeCode(code, accountsServer);
 }
