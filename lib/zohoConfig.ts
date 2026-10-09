@@ -50,24 +50,8 @@ export function zohoRedirectUri(): string {
   return DEFAULT_REDIRECT_URI;
 }
 
-/** Zoho puts the issuing accounts host on the callback. A code is only valid there. */
-export function zohoTokenUrlFor(accountsServer: string | null | undefined): string {
-  const raw = (accountsServer ?? '').trim();
-  try {
-    if (raw) {
-      const parsed = new URL(raw);
-      if (/^accounts\.zoho\.[a-z.]+$/.test(parsed.hostname)) {
-        return `${parsed.protocol}//${parsed.hostname}/oauth/v2/token`;
-      }
-    }
-  } catch {
-    // Fall through to the India accounts host.
-  }
-  return `${DEFAULT_ACCOUNTS_URL}/oauth/v2/token`;
-}
-
 export function zohoTokenUrl(): string {
-  return `${zohoAccountsUrl()}/oauth/v2/token`;
+  return 'https://accounts.zoho.in/oauth/v2/token';
 }
 
 /**
