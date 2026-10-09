@@ -4,6 +4,8 @@
  * an env var is missing or still set to the previous BuilBid client.
  */
 
+import https from 'node:https';
+
 const DEFAULT_ACCOUNTS_URL = 'https://accounts.zoho.in';
 const DEFAULT_REDIRECT_URI = 'https://builbid.in/api/zoho/callback';
 
@@ -53,6 +55,51 @@ export function zohoRedirectUri(): string {
 
 export function zohoTokenUrl(): string {
   return `${zohoAccountsUrl()}/oauth/v2/token`;
+}
+
+/**
+ * POST form fields to Zoho Accounts over IPv4.
+ * Vercel's default fetch tries IPv6 first, and accounts.zoho.in does not answer
+ * on that path, so the token exchange times out.
+ */
+export function postZohoForm(
+  url: string,
+  params: URLSearchParams,
+): Promise<{ status: number; text: string }> {
+  const body = params.toString();
+  const target = new URL(url);
+  return new Promise((resolve, reject) => {
+    const req = https.request(
+      {
+        protocol: 'https:',
+        hostname: target.hostname,
+        path: `${target.pathname}${target.search}`,
+        method: 'POST',
+        family: 4,
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Content-Length': Buffer.byteLength(body),
+          Accept: 'application/json',
+        },
+      },
+      (res) => {
+        const chunks: Buffer[] = [];
+        res.on('data', (chunk: Buffer) => chunks.push(chunk));
+        res.on('end', () => {
+          resolve({
+            status: res.statusCode ?? 0,
+            text: Buffer.concat(chunks).toString('utf8'),
+          });
+        });
+      },
+    );
+    req.setTimeout(12_000, () => {
+      req.destroy(new Error('Timed out contacting Zoho accounts.'));
+    });
+    req.on('error', reject);
+    req.write(body);
+    req.end();
+  });
 }
 
 /** Consent URL. prompt=consent makes Zoho issue a new refresh token on Accept. */

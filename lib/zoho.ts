@@ -13,7 +13,7 @@
 
 import { after } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { zohoClientId, zohoClientSecret, zohoEnv, zohoTokenUrl } from '@/lib/zohoConfig';
+import { postZohoForm, zohoClientId, zohoClientSecret, zohoEnv, zohoTokenUrl } from '@/lib/zohoConfig';
 
 let storedRefreshToken: string | null = null;
 const DEFAULT_API_DOMAIN = 'https://www.zohoapis.in';
@@ -268,15 +268,16 @@ async function getAccessToken(): Promise<{ accessToken: string; apiDomain: strin
     refresh_token: refreshToken,
   });
 
-  const response = await fetch(zohoTokenUrl(), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body,
-    cache: 'no-store',
-    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-  });
-  const payload = await readJson<ZohoTokenPayload>(response);
-  if (!response.ok || !payload?.access_token || payload.error) {
+  const response = await postZohoForm(zohoTokenUrl(), body);
+  let payload: ZohoTokenPayload | null = null;
+  if (response.text) {
+    try {
+      payload = JSON.parse(response.text) as ZohoTokenPayload;
+    } catch {
+      payload = null;
+    }
+  }
+  if (!payload || !payload.access_token || payload.error || response.status < 200 || response.status >= 300) {
     tokenCache = null;
     throw new Error(payload?.error || `Zoho token refresh failed (${response.status}).`);
   }

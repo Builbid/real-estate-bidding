@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { zohoClientId, zohoClientSecret, zohoRedirectUri, zohoTokenUrl } from '@/lib/zohoConfig';
+import { postZohoForm, zohoClientId, zohoClientSecret, zohoRedirectUri, zohoTokenUrl } from '@/lib/zohoConfig';
 
 export const dynamic = 'force-dynamic';
 
@@ -75,14 +75,9 @@ export async function GET(request: NextRequest) {
 
   let payload: ZohoTokenPayload;
   try {
-    const response = await fetch(zohoTokenUrl(), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body,
-      cache: 'no-store',
-    });
-    payload = (await response.json()) as ZohoTokenPayload;
-    if (!response.ok || payload.error) {
+    const response = await postZohoForm(zohoTokenUrl(), body);
+    payload = response.text ? (JSON.parse(response.text) as ZohoTokenPayload) : {};
+    if (response.status < 200 || response.status >= 300 || payload.error) {
       const zohoError = payload.error || 'Zoho token exchange failed.';
       const message =
         zohoError === 'invalid_code'
@@ -95,9 +90,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, error: message }, { status: 400 });
     }
   } catch (err) {
-    console.error('[zoho-oauth] token exchange request failed', err);
+    const detail = err instanceof Error ? err.message : 'Unknown network error';
+    console.error('[zoho-oauth] token exchange request failed', detail);
     return NextResponse.json(
-      { success: false, error: 'Could not reach Zoho to exchange the authorization code.' },
+      { success: false, error: `Could not reach Zoho to exchange the authorization code. ${detail}` },
       { status: 502 },
     );
   }
