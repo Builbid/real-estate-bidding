@@ -106,6 +106,35 @@ export interface CreateDrawingDesignProjectInput extends CreateProjectBase {
   drawing_details: DrawingDetails
 }
 
+/**
+ * Fill every NOT NULL projects column that has no reliable database default
+ * when the wizard omits an optional field. agreement_completed stays false
+ * until a signed agreement sets it.
+ */
+function withRequiredProjectDefaults(payload: Record<string, unknown>): Record<string, unknown> {
+  const state = typeof payload.state === 'string' ? payload.state.trim() : ''
+  const totalFloors = Number(payload.total_floors)
+  return {
+    ...payload,
+    state: state || 'Assam',
+    status: payload.status ?? 'active_24h',
+    service_type: payload.service_type ?? 'labour_contractor',
+    track_type: payload.track_type ?? 'RCC',
+    sub_configuration:
+      payload.sub_configuration && typeof payload.sub_configuration === 'object'
+        ? payload.sub_configuration
+        : {},
+    building_types: Array.isArray(payload.building_types) ? payload.building_types : [],
+    construction_types:
+      payload.construction_types && typeof payload.construction_types === 'object'
+        ? payload.construction_types
+        : {},
+    drawing_types: Array.isArray(payload.drawing_types) ? payload.drawing_types : [],
+    total_floors: Number.isFinite(totalFloors) && totalFloors >= 1 ? totalFloors : 1,
+    agreement_completed: false,
+  }
+}
+
 export type CreateProjectInput =
   | CreateLabourProjectInput
   | CreateFirmProjectInput
@@ -171,12 +200,19 @@ export async function createProjectAction(
     owner_id: user.id,
     title: input.title.trim(),
     description: input.description?.trim() || null,
-    district: input.district,
-    state: input.state,
+    district: input.district.trim(),
+    state: input.state.trim() || 'Assam',
     pincode: pincodeRaw || null,
     status: 'active_24h',
     bidding_ends_at: biddingEndsAt,
     service_type: serviceType,
+    // New posts are never contractually approved. The column is NOT NULL.
+    agreement_completed: false,
+    sub_configuration: {},
+    building_types: [],
+    construction_types: {},
+    drawing_types: [],
+    total_floors: 1,
   }
 
   if (isDrawing) {
@@ -401,7 +437,7 @@ export async function createProjectAction(
     }
   }
 
-  let payload = embedDetailsInSubConfiguration(insertPayload)
+  let payload = withRequiredProjectDefaults(embedDetailsInSubConfiguration(insertPayload))
   let { data: project, error } = await supabase
     .from('projects')
     .insert(payload)
