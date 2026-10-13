@@ -603,22 +603,22 @@ export function SiteVisitChecklistPage({ projectId }: { projectId: string }) {
               >
                 <div className="grid gap-3 sm:grid-cols-3">
                   <Input
-                    label="Plot Length (ft)"
+                    label="Plinth Length (ft)"
                     accentLabel={false}
                     type="number"
                     min={0}
                     inputMode="decimal"
-                    placeholder="e.g. 40"
+                    placeholder="PLINTH LENGTH"
                     value={form.plotLengthFt}
                     onChange={(e) => patch({ plotLengthFt: e.target.value })}
                   />
                   <Input
-                    label="Plot Width (ft)"
+                    label="Plinth Width (ft)"
                     accentLabel={false}
                     type="number"
                     min={0}
                     inputMode="decimal"
-                    placeholder="e.g. 30"
+                    placeholder="PLINTH WIDTH"
                     value={form.plotWidthFt}
                     onChange={(e) => patch({ plotWidthFt: e.target.value })}
                   />
