@@ -27,6 +27,35 @@ interface BidFloorRatesBreakdownProps {
 
 const RATE_KEY_ORDER = ['ground_rate', 'first_rate', 'second_rate', 'third_rate'] as const;
 
+/** Matches embedded unit rates such as "× ₹250" and "× ₹150 × 2". */
+const UNIT_RATE_PATTERN = /(×\s*₹[\d,]+(?:\.\d+)?(?:\s*×\s*[\d,]+)?)/;
+
+const unitRateHighlightClass =
+  'rounded border border-amber-500/40 bg-amber-500/10 font-bold tabular-nums text-amber-800 dark:text-amber-300';
+
+function isEmbeddedUnitRate(part: string): boolean {
+  return /^×\s*₹[\d,]+(?:\.\d+)?(?:\s*×\s*[\d,]+)?$/.test(part);
+}
+
+function HighlightedBreakdownLabel({ label }: { label: string }) {
+  const parts = label.split(UNIT_RATE_PATTERN);
+  if (parts.length === 1) return <>{label}</>;
+
+  return (
+    <>
+      {parts.map((part, index) =>
+        isEmbeddedUnitRate(part) ? (
+          <span key={index} className={cn('mx-0.5 inline px-1 py-px', unitRateHighlightClass)}>
+            {part}
+          </span>
+        ) : (
+          <span key={index}>{part}</span>
+        ),
+      )}
+    </>
+  );
+}
+
 export function BidFloorRatesBreakdown({
   rates,
   total,
@@ -71,14 +100,25 @@ export function BidFloorRatesBreakdown({
   return (
     <div className={cn('rounded-lg border border-border/60 bg-muted/15 px-2.5 py-2', className)}>
       <div className="space-y-1">
-        {floorEntries.map((entry) => (
+        {floorEntries.map((entry) => {
+          const showsUnitRate = entry.suffix.trim().length > 0;
+          return (
             <div key={entry.key} className="flex items-center justify-between gap-3 text-[11px]">
-              <span className="text-muted-foreground">{entry.label}</span>
-              <span className="font-semibold tabular-nums text-foreground">
-                ₹{entry.value.toLocaleString('en-IN')}{entry.suffix}
+              <span className="text-muted-foreground">
+                <HighlightedBreakdownLabel label={entry.label} />
               </span>
+              {showsUnitRate ? (
+                <span className={cn('shrink-0 px-1.5 py-0.5', unitRateHighlightClass)}>
+                  ₹{entry.value.toLocaleString('en-IN')}{entry.suffix}
+                </span>
+              ) : (
+                <span className="font-semibold tabular-nums text-foreground">
+                  ₹{entry.value.toLocaleString('en-IN')}
+                </span>
+              )}
             </div>
-        ))}
+          );
+        })}
       </div>
       {indexValue != null && (
         <div className="mt-1.5 flex items-center justify-between gap-3 border-t border-border/50 pt-1.5 text-[11px]">
