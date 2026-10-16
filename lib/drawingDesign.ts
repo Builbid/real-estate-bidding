@@ -268,22 +268,6 @@ export function plinthAreaFromFeet(lengthRaw: string, widthRaw: string): number 
   return Math.round(length * width * 100) / 100;
 }
 
-/** Numeric string stored as the calculated plinth area. Empty until both sides are valid. */
-export function plinthAreaStorageValue(lengthRaw: string, widthRaw: string): string {
-  const area = plinthAreaFromFeet(lengthRaw, widthRaw);
-  return area == null ? '' : String(area);
-}
-
-export function plinthDimensionFieldErrors(
-  lengthRaw: string,
-  widthRaw: string,
-): { length?: string; width?: string } {
-  const errors: { length?: string; width?: string } = {};
-  if (parsePositiveNumber(lengthRaw) == null) errors.length = 'Enter the length in feet.';
-  if (parsePositiveNumber(widthRaw) == null) errors.width = 'Enter the width in feet.';
-  return errors;
-}
-
 function parseDeliverables(raw: unknown): DrawingDeliverable[] {
   if (!Array.isArray(raw)) return [];
   const next: DrawingDeliverable[] = [];
@@ -494,20 +478,22 @@ export function getDrawingWorkRequirementBlocks(details: DrawingDetails): {
       value: details.houseStructure === 'assam' ? 'Assam Type' : 'RCC Structure',
     });
   }
-  blocks.push(
-    { label: 'Target Work Floor', value: details.numberOfFloors },
-    {
+  blocks.push({ label: 'Target Work Floor', value: details.numberOfFloors });
+  if (details.plinthLengthFt != null && details.plinthWidthFt != null) {
+    blocks.push({
       label: 'Approximate Plinth Area Dimensions',
-      value:
-        details.plinthLengthFt != null && details.plinthWidthFt != null
-          ? formatPlinthDimensionLabel(details.plinthLengthFt, details.plinthWidthFt)
-          : details.plotDimensions,
-    },
-  );
+      value: formatPlinthDimensionLabel(details.plinthLengthFt, details.plinthWidthFt),
+    });
+  }
   if (details.plotAreaSqft != null) {
     blocks.push({
-      label: 'Total Approximate Plinth Area',
-      value: `${details.plotAreaSqft.toLocaleString('en-IN', { maximumFractionDigits: 2 })} sqft`,
+      label: 'Approximate Plinth Area (Sq. Ft.)',
+      value: details.plotAreaSqft.toLocaleString('en-IN', { maximumFractionDigits: 2 }),
+    });
+  } else if (details.plotDimensions) {
+    blocks.push({
+      label: 'Approximate Plinth Area (Sq. Ft.)',
+      value: details.plotDimensions,
     });
   }
   blocks.push({
@@ -544,8 +530,7 @@ export function validateDrawingDetailsInput(input: {
   customFloorSelected: boolean;
   customFloors?: number[] | null;
   customFloorNumber?: string | number[] | null;
-  plinthLengthFt: string;
-  plinthWidthFt: string;
+  plinthArea: string;
   deliverables: DrawingDeliverable[];
   projectStartTimeType: ProjectStartTimeType | null;
   projectStartTimeSpecificDate: string;
@@ -592,13 +577,9 @@ export function validateDrawingDetailsInput(input: {
   if (structureOk && !floors) {
     fieldErrors.floors = 'Select at least one target work floor.';
   }
-  const lengthFt = parsePositiveNumber(input.plinthLengthFt);
-  const widthFt = parsePositiveNumber(input.plinthWidthFt);
-  if (lengthFt == null) {
-    fieldErrors.length = 'Enter the length in feet.';
-  }
-  if (widthFt == null) {
-    fieldErrors.width = 'Enter the width in feet.';
+  const areaSqft = parsePositiveNumber(input.plinthArea);
+  if (areaSqft == null) {
+    fieldErrors.area = 'Enter the approximate plinth area in sq. ft.';
   }
   const deliverables = parseDeliverables(input.deliverables);
   if (deliverables.length === 0) {
@@ -632,12 +613,12 @@ export function validateDrawingDetailsInput(input: {
       customFloors: customFloors.length ? customFloors : null,
       customFloorNumber,
       plotDimensions:
-        lengthFt != null && widthFt != null
-          ? formatPlinthDimensionLabel(lengthFt, widthFt)
+        areaSqft != null
+          ? `${areaSqft.toLocaleString('en-IN', { maximumFractionDigits: 2 })} Sq. Ft.`
           : '',
-      plinthLengthFt: lengthFt,
-      plinthWidthFt: widthFt,
-      plotAreaSqft: lengthFt != null && widthFt != null ? Math.round(lengthFt * widthFt * 100) / 100 : null,
+      plinthLengthFt: null,
+      plinthWidthFt: null,
+      plotAreaSqft: areaSqft,
       deliverables,
       projectSubmissionTimeType: isDrawingSubmissionTimeType(start.type)
         ? start.type

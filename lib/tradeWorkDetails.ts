@@ -3012,7 +3012,7 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
       }
       if (details.approxBuiltUpAreaSqft != null && details.approxBuiltUpAreaSqft > 0) {
         blocks.push({
-          label: 'Total Approximate Plinth Area',
+          label: 'Approximate Plinth Area (Sq. Ft.)',
           value: `${details.approxBuiltUpAreaSqft.toLocaleString('en-IN', { maximumFractionDigits: 2 })} Sq. Ft.`,
         });
       }
@@ -3309,7 +3309,7 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
       }
       if (details.approxBuiltUpAreaSqft != null && details.approxBuiltUpAreaSqft > 0) {
         blocks.push({
-          label: 'Total Approximate Plinth Area',
+          label: 'Approximate Plinth Area (Sq. Ft.)',
           value: `${details.approxBuiltUpAreaSqft.toLocaleString('en-IN', { maximumFractionDigits: 2 })} Sq. Ft.`,
         });
       }
@@ -3428,7 +3428,7 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
       }
       if (details.approxBuiltUpAreaSqft != null) {
         blocks.push({
-          label: 'Total Approximate Plinth Area',
+          label: 'Approximate Plinth Area (Sq. Ft.)',
           value: `${details.approxBuiltUpAreaSqft.toLocaleString('en-IN')} Sq Ft`,
         });
       }
@@ -3687,7 +3687,7 @@ export function validateTradeDetailsInput(
         : null;
     const approxBuiltUpAreaSqft = parsePositiveNumber(input.approxBuiltUpAreaSqft);
     if (approxBuiltUpAreaSqft == null) {
-      return { error: 'Enter the length and width in feet.' };
+      return { error: 'Enter the approximate plinth area in sq. ft.' };
     }
     const requestedPackages = parsePlumbingPackageKinds(input.selectedPackages);
     const floorFixtureCounts = parsePlumberFixtureInput(
@@ -3840,7 +3840,7 @@ export function validateTradeDetailsInput(
     const targetWorkFloor = targetFloors[0];
     const approxBuiltUpAreaSqft = parsePositiveNumber(input.approxBuiltUpAreaSqft);
     if (approxBuiltUpAreaSqft == null) {
-      return { error: 'Enter the length and width in feet.' };
+      return { error: 'Enter the approximate plinth area in sq. ft.' };
     }
     const floorFixtureCounts = parseElectricianFixtureInput(
       targetFloors,
@@ -3969,7 +3969,7 @@ export function validateTradeDetailsInput(
     const targetWorkFloor = targetFloors[0];
     const approxBuiltUpAreaSqft = parsePositiveNumber(input.approxBuiltUpAreaSqft);
     if (approxBuiltUpAreaSqft == null) {
-      return { error: 'Enter the length and width in feet.' };
+      return { error: 'Enter the approximate plinth area in sq. ft.' };
     }
     const requestedPackages = parseInteriorDesignerPackageKinds(input.interiorPackages);
     const selectedSubOptions = subOptionsForInteriorDesignerPackages(

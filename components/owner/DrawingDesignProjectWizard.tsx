@@ -63,8 +63,7 @@ interface FormState {
   customFloorSelected: boolean;
   customFloors: number[];
   packages: DrawingDesignPackage[];
-  plinthLengthFt: string;
-  plinthWidthFt: string;
+  plinthArea: string;
   deliverables: DrawingDeliverable[];
   projectStartTimeType: ProjectStartTimeType | null;
   projectStartTimeSpecificDate: string;
@@ -80,8 +79,7 @@ const EMPTY_FORM: FormState = {
   customFloorSelected: false,
   customFloors: [],
   packages: [],
-  plinthLengthFt: '',
-  plinthWidthFt: '',
+  plinthArea: '',
   deliverables: [],
   projectStartTimeType: null,
   projectStartTimeSpecificDate: '',
@@ -149,8 +147,7 @@ export function DrawingDesignProjectWizard() {
       buildingTypes: form.buildingTypes,
       customFloorSelected: form.customFloorSelected,
       customFloors: form.customFloors,
-      plinthLengthFt: form.plinthLengthFt,
-      plinthWidthFt: form.plinthWidthFt,
+      plinthArea: form.plinthArea,
       deliverables: form.deliverables,
       projectStartTimeType: form.projectStartTimeType,
       projectStartTimeSpecificDate: form.projectStartTimeSpecificDate,
@@ -494,21 +491,15 @@ export function DrawingDesignProjectWizard() {
               <div
                 className={cn(
                   FORM_SECTION_CARD,
-                  (step2FieldErrors.length || step2FieldErrors.width) && 'ring-1 ring-red-500',
+                  step2FieldErrors.area && 'ring-1 ring-red-500',
                 )}
-                data-field-invalid={step2FieldErrors.length || step2FieldErrors.width ? 'true' : undefined}
+                data-field-invalid={step2FieldErrors.area ? 'true' : undefined}
               >
                 <PlinthAreaFields
-                  lengthFt={form.plinthLengthFt}
-                  widthFt={form.plinthWidthFt}
-                  lengthError={step2FieldErrors.length}
-                  widthError={step2FieldErrors.width}
-                  onLengthChange={(value) => {
-                    update('plinthLengthFt', value);
-                    clearStep2();
-                  }}
-                  onWidthChange={(value) => {
-                    update('plinthWidthFt', value);
+                  value={form.plinthArea}
+                  error={step2FieldErrors.area}
+                  onChange={(value) => {
+                    update('plinthArea', value);
                     clearStep2();
                   }}
                 />

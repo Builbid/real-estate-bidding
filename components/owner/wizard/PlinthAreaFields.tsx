@@ -1,92 +1,59 @@
 'use client';
 
-import { Input } from '@/components/ui/input';
+import { FieldError } from '@/components/owner/wizard/fieldValidation';
 import {
   useWizardAccentLabel,
   WIZARD_SECTION_LABEL_BASE,
   withSectionColon,
 } from '@/components/owner/wizard/WizardSectionLabel';
-import { plinthAreaFromFeet } from '@/lib/drawingDesign';
 import { cn } from '@/lib/utils';
 
 export const PLINTH_AREA_NOTE =
   '*Note: Plinth area means total covered construction area of a single floor.';
 
-function formatTotalPlinthArea(area: number): string {
-  return `${area.toLocaleString('en-IN', { maximumFractionDigits: 2 })} Sq. Ft.`;
-}
-
 export function PlinthAreaFields({
-  lengthFt,
-  widthFt,
-  onLengthChange,
-  onWidthChange,
-  lengthError,
-  widthError,
+  value,
+  onChange,
+  error,
 }: {
-  lengthFt: string;
-  widthFt: string;
-  onLengthChange: (value: string) => void;
-  onWidthChange: (value: string) => void;
-  lengthError?: string;
-  widthError?: string;
+  value: string;
+  onChange: (value: string) => void;
+  error?: string;
 }) {
   const accent = useWizardAccentLabel();
-  const area = plinthAreaFromFeet(lengthFt, widthFt);
 
   return (
-    <div
-      className="space-y-3"
-      data-field-invalid={lengthError || widthError ? 'true' : undefined}
-    >
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <Input
-          label="Length (in Feet)"
-          type="number"
-          inputMode="decimal"
-          min={0}
-          step="any"
-          placeholder=""
-          value={lengthFt}
-          error={lengthError}
-          onChange={(event) => onLengthChange(event.target.value)}
-        />
-        <Input
-          label="Width / Breadth (in Feet)"
-          type="number"
-          inputMode="decimal"
-          min={0}
-          step="any"
-          placeholder=""
-          value={widthFt}
-          error={widthError}
-          onChange={(event) => onWidthChange(event.target.value)}
-        />
-      </div>
-
-      <div>
-        <label
-          className={cn(
-            'mb-1.5',
-            accent
-              ? WIZARD_SECTION_LABEL_BASE
-              : 'text-xs font-semibold uppercase tracking-wider text-slate-800 dark:text-zinc-100',
-          )}
-        >
-          {withSectionColon('Total Approximate Plinth Area')}
-        </label>
-        <input
-          type="text"
-          readOnly
-          tabIndex={-1}
-          aria-readonly="true"
-          value={area == null ? '' : formatTotalPlinthArea(area)}
-          className="flex h-11 w-full cursor-default rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-base text-slate-900 shadow-sm md:text-sm dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-100"
-        />
-        <p className="mt-0.5 text-left text-[11px] font-medium leading-snug text-slate-600 dark:text-slate-400">
-          {PLINTH_AREA_NOTE}
-        </p>
-      </div>
+    <div data-field-invalid={error ? 'true' : undefined}>
+      <label
+        className={cn(
+          'mb-1.5',
+          accent
+            ? WIZARD_SECTION_LABEL_BASE
+            : 'text-xs font-semibold uppercase tracking-wider text-slate-800 dark:text-zinc-100',
+        )}
+      >
+        {withSectionColon('Approximate Plinth Area (Sq. Ft.)')}
+      </label>
+      <input
+        type="text"
+        inputMode="decimal"
+        value={value}
+        aria-invalid={error ? true : undefined}
+        onChange={(event) => onChange(event.target.value)}
+        className={cn(
+          'flex h-11 w-full rounded-xl border bg-white px-3 py-2 text-base text-slate-900 shadow-sm md:text-sm',
+          'dark:bg-slate-800/80 dark:text-slate-100 dark:[color-scheme:dark]',
+          'placeholder:text-slate-500 focus:outline-none focus:ring-2',
+          'dark:placeholder:text-slate-400',
+          error
+            ? 'border-red-500 ring-1 ring-red-500 focus:border-red-500 focus:ring-red-500 dark:border-red-500 dark:ring-red-500'
+            : 'border-slate-300 focus:border-blue-500 focus:ring-blue-500/20 dark:border-slate-700 dark:focus:border-sky-400 dark:focus:ring-sky-400/20',
+        )}
+      />
+      <p className="mt-0.5 text-left text-[11px] font-medium leading-snug text-slate-600 dark:text-slate-400">
+        {PLINTH_AREA_NOTE}
+      </p>
+      {error ? <FieldError message={error} /> : null}
     </div>
   );
 }
