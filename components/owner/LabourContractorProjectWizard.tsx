@@ -33,7 +33,6 @@ import {
   MISTRI_ASSAM_FLOORING_MATERIAL_OPTIONS,
   MISTRI_ASSAM_ROOF_OPTIONS,
   MISTRI_ASSAM_ROOFING_SHEET_OPTIONS,
-  MISTRI_APPROXIMATE_AREA_LABEL,
   MISTRI_BOUNDARY_WALL_MATERIAL_OPTIONS,
   MISTRI_BOUNDARY_WALL_PLASTER_OPTIONS,
   MISTRI_BOUNDARY_WALL_TIMELINE_OPTIONS,
@@ -112,6 +111,8 @@ import {
 import { ADDITIONAL_REQUIREMENTS_PLACEHOLDER, ProjectStartDatePicker, WIZARD_SECTION_LABEL, WizardAccentLabels, withSectionColon } from '@/components/owner/wizard/StartTimeAndNotes';
 import { ReviewSummaryList, WizardStepper } from '@/components/owner/wizard/ReviewSummary';
 import { StepGuidanceNotes } from '@/components/owner/wizard/StepGuidanceNotes';
+import { PlinthAreaFields } from '@/components/owner/wizard/PlinthAreaFields';
+import { plinthAreaStorageValue, plinthDimensionFieldErrors } from '@/lib/drawingDesign';
 import { BIDDING_DURATION_HELPER, SELECTION_WINDOW_REVIEW } from '@/lib/auction/selectionWindow';
 import { FloorCopyFromSelect } from '@/components/owner/wizard/FloorCopyFromSelect';
 import {
@@ -546,6 +547,8 @@ interface FormState {
   floorWorkById: Record<string, FloorWorkForm>;
   /** "Copy requirements from" choice per floor: absent = not chosen, '' = manual. */
   floorCopySources: Record<string, string>;
+  plinthLengthFt: string;
+  plinthWidthFt: string;
   approximateArea: string;
   /** Whole-number floor count for foundation provision (Ground Floor major only). */
   futureFloorCustom: string;
@@ -567,6 +570,8 @@ const EMPTY_FORM: FormState = {
   customFloors: [],
   floorWorkById: {},
   floorCopySources: {},
+  plinthLengthFt: '',
+  plinthWidthFt: '',
   approximateArea: '',
   futureFloorCustom: '',
   contractType: null,
@@ -680,7 +685,8 @@ export function LabourContractorProjectWizard() {
   const [step1Errors, setStep1Errors] = useState<{
     location?: string;
     pincode?: string;
-    builtUpArea?: string;
+    plinthLength?: string;
+    plinthWidth?: string;
     houseType?: string;
     floors?: string;
     customFloor?: string;
@@ -1160,8 +1166,10 @@ export function LabourContractorProjectWizard() {
       errors.bidding = 'Select a bidding duration.';
     }
 
-    if (form.houseType !== 'boundary_wall' && parseApproximateAreaSqft(form.approximateArea) == null) {
-      errors.builtUpArea = 'Enter the approximate plinth area in sq. ft.';
+    if (form.houseType !== 'boundary_wall') {
+      const dimensionErrors = plinthDimensionFieldErrors(form.plinthLengthFt, form.plinthWidthFt);
+      if (dimensionErrors.length) errors.plinthLength = dimensionErrors.length;
+      if (dimensionErrors.width) errors.plinthWidth = dimensionErrors.width;
     }
 
     if (!form.houseType) {
@@ -1471,23 +1479,28 @@ export function LabourContractorProjectWizard() {
 
               <div className="min-h-[7rem] space-y-4 [overflow-anchor:none]">
                 {form.houseType !== 'boundary_wall' && (
-                  <div className="min-h-[6.75rem]">
-                    <Input
-                      label={MISTRI_APPROXIMATE_AREA_LABEL}
-                      type="text"
-                      inputMode="decimal"
-                      placeholder=""
-                      value={form.approximateArea}
-                      onChange={(e) => {
-                        update('approximateArea', e.target.value);
-                        setStep1Errors((prev) => ({ ...prev, builtUpArea: undefined }));
-                      }}
-                      error={step1ValidationAttempted ? step1Errors.builtUpArea : undefined}
-                    />
-                    <p className={FORM_NOTE}>
-                      *Note: Built-up covered area of a single floor.
-                    </p>
-                  </div>
+                  <PlinthAreaFields
+                    lengthFt={form.plinthLengthFt}
+                    widthFt={form.plinthWidthFt}
+                    lengthError={step1ValidationAttempted ? step1Errors.plinthLength : undefined}
+                    widthError={step1ValidationAttempted ? step1Errors.plinthWidth : undefined}
+                    onLengthChange={(value) => {
+                      setForm((current) => ({
+                        ...current,
+                        plinthLengthFt: value,
+                        approximateArea: plinthAreaStorageValue(value, current.plinthWidthFt),
+                      }));
+                      setStep1Errors((prev) => ({ ...prev, plinthLength: undefined, plinthWidth: undefined }));
+                    }}
+                    onWidthChange={(value) => {
+                      setForm((current) => ({
+                        ...current,
+                        plinthWidthFt: value,
+                        approximateArea: plinthAreaStorageValue(current.plinthLengthFt, value),
+                      }));
+                      setStep1Errors((prev) => ({ ...prev, plinthLength: undefined, plinthWidth: undefined }));
+                    }}
+                  />
                 )}
 
                 {form.houseType === 'rcc' && (

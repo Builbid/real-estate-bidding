@@ -268,6 +268,22 @@ export function plinthAreaFromFeet(lengthRaw: string, widthRaw: string): number 
   return Math.round(length * width * 100) / 100;
 }
 
+/** Numeric string stored as the calculated plinth area. Empty until both sides are valid. */
+export function plinthAreaStorageValue(lengthRaw: string, widthRaw: string): string {
+  const area = plinthAreaFromFeet(lengthRaw, widthRaw);
+  return area == null ? '' : String(area);
+}
+
+export function plinthDimensionFieldErrors(
+  lengthRaw: string,
+  widthRaw: string,
+): { length?: string; width?: string } {
+  const errors: { length?: string; width?: string } = {};
+  if (parsePositiveNumber(lengthRaw) == null) errors.length = 'Enter the length in feet.';
+  if (parsePositiveNumber(widthRaw) == null) errors.width = 'Enter the width in feet.';
+  return errors;
+}
+
 function parseDeliverables(raw: unknown): DrawingDeliverable[] {
   if (!Array.isArray(raw)) return [];
   const next: DrawingDeliverable[] = [];

@@ -510,7 +510,7 @@ export function getPainterWorkRequirementBlocks(details: PainterDetails): {
 
   if (details.carpetArea && details.carpetArea > 0) {
     blocks.push({
-      label: 'Approx. House / Floor Area',
+      label: 'Total Approximate Plinth Area',
       value: `${details.carpetArea.toLocaleString('en-IN')} Sq. Ft.`,
     });
     const floorCount = countPainterSelectedFloors(details.targetFloors, details.customTargetFloors);
@@ -597,7 +597,8 @@ export function validatePainterDetailsInput(input: {
   const fieldErrors: Record<string, string> = {};
   const carpetArea = parsePainterAreaInput(input.carpetArea);
   if (!carpetArea) {
-    fieldErrors.carpet = 'Enter the approx. house / floor area in sq.ft.';
+    fieldErrors.length = 'Enter the length in feet.';
+    fieldErrors.width = 'Enter the width in feet.';
   }
   const area = parsePainterAreaInput(input.projectArea);
   if (!area) {

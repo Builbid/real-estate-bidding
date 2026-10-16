@@ -21,6 +21,8 @@ import { FieldError, useScrollToFirstInvalid } from '@/components/owner/wizard/f
 import { ADDITIONAL_REQUIREMENTS_PLACEHOLDER, ProjectStartDatePicker, WIZARD_SECTION_LABEL, WizardAccentLabels, withSectionColon } from '@/components/owner/wizard/StartTimeAndNotes';
 import { ReviewSummaryList, WizardStepper } from '@/components/owner/wizard/ReviewSummary';
 import { StepGuidanceNotes } from '@/components/owner/wizard/StepGuidanceNotes';
+import { PlinthAreaFields } from '@/components/owner/wizard/PlinthAreaFields';
+import { plinthAreaStorageValue, plinthDimensionFieldErrors } from '@/lib/drawingDesign';
 import { BIDDING_DURATION_HELPER, SELECTION_WINDOW_REVIEW } from '@/lib/auction/selectionWindow';
 import { laborOnlyMaterialsNote } from '@/lib/laborMaterialsNote';
 import { generateProjectTitle } from '@/lib/generateProjectTitle';
@@ -87,6 +89,8 @@ interface FormState extends TradeWorkFormFields {
   bidding_minutes: string;
   track_type: TrackType | null;
   carpetArea: string;
+  plinthLengthFt: string;
+  plinthWidthFt: string;
   projectArea: string;
   paintingScope: PainterPaintingScope | null;
   surfaceCondition: PainterSurfaceCondition | null;
@@ -152,6 +156,8 @@ const EMPTY_FORM: FormState = {
   bidding_minutes: String(BIDDING_MINUTES),
   track_type: null,
   carpetArea: '',
+  plinthLengthFt: '',
+  plinthWidthFt: '',
   projectArea: '',
   paintingScope: null,
   surfaceCondition: null,
@@ -245,6 +251,8 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
     targetWorkFloor?: string;
     customTargetFloors?: string;
     approxBuiltUpAreaSqft?: string;
+    plinthLength?: string;
+    plinthWidth?: string;
   }>({});
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
 
@@ -339,12 +347,12 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
       );
       if (customFloorError) errors.customTargetFloors = customFloorError;
     }
-      if (trade === 'false_ceiling_work') {
-        const area = parseFloat(form.approxBuiltUpAreaSqft.replace(/,/g, '').trim());
-        if (!Number.isFinite(area) || area <= 0) {
-          errors.approxBuiltUpAreaSqft = 'Enter the approximate built-up area in Sq Ft.';
-        }
-      }
+    }
+
+    if (!isEarthwork && !isPainter) {
+      const dimensionErrors = plinthDimensionFieldErrors(form.plinthLengthFt, form.plinthWidthFt);
+      if (dimensionErrors.length) errors.plinthLength = dimensionErrors.length;
+      if (dimensionErrors.width) errors.plinthWidth = dimensionErrors.width;
     }
 
     if (Object.keys(errors).length > 0) {
@@ -470,6 +478,11 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
         carpetArea: form.carpetArea,
       });
       if ('error' in validated) Object.assign(errors, validated.fieldErrors);
+      const dimensionErrors = plinthDimensionFieldErrors(form.plinthLengthFt, form.plinthWidthFt);
+      if (dimensionErrors.length) errors.length = dimensionErrors.length;
+      else delete errors.length;
+      if (dimensionErrors.width) errors.width = dimensionErrors.width;
+      else delete errors.width;
     }
     if (isCustomTrade) {
       const validated = validatedTradeDetails();
@@ -784,21 +797,44 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                   </div>
                   )}
 
-                  {trade === 'false_ceiling_work' ? (
-                    <Input
-                      label="Approx Built-Up Area (Sq Ft)"
-                      type="number"
-                      inputMode="decimal"
-                      min={1}
-                      placeholder=""
-                      required
-                      suffix={<span className="text-xs font-medium text-muted-foreground">Sq Ft</span>}
-                      value={form.approxBuiltUpAreaSqft}
-                      onChange={(e) => update('approxBuiltUpAreaSqft', e.target.value)}
-                      error={step1ValidationAttempted ? step1Errors.approxBuiltUpAreaSqft : undefined}
-                    />
-                  ) : null}
                 </div>
+              )}
+
+              {!isEarthwork && !isPainter && (
+                <PlinthAreaFields
+                  lengthFt={form.plinthLengthFt}
+                  widthFt={form.plinthWidthFt}
+                  lengthError={step1ValidationAttempted ? step1Errors.plinthLength : undefined}
+                  widthError={step1ValidationAttempted ? step1Errors.plinthWidth : undefined}
+                  onLengthChange={(value) => {
+                    setForm((current) => ({
+                      ...current,
+                      plinthLengthFt: value,
+                      approxBuiltUpAreaSqft: plinthAreaStorageValue(value, current.plinthWidthFt),
+                    }));
+                    setStep1Errors((current) => {
+                      const next = { ...current };
+                      delete next.plinthLength;
+                      delete next.plinthWidth;
+                      delete next.approxBuiltUpAreaSqft;
+                      return next;
+                    });
+                  }}
+                  onWidthChange={(value) => {
+                    setForm((current) => ({
+                      ...current,
+                      plinthWidthFt: value,
+                      approxBuiltUpAreaSqft: plinthAreaStorageValue(current.plinthLengthFt, value),
+                    }));
+                    setStep1Errors((current) => {
+                      const next = { ...current };
+                      delete next.plinthLength;
+                      delete next.plinthWidth;
+                      delete next.approxBuiltUpAreaSqft;
+                      return next;
+                    });
+                  }}
+                />
               )}
 
               <div
@@ -992,23 +1028,28 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                   />
 
                   <div className="space-y-2">
-                    <Input
-                      label="Approx. House / Floor Area (Sq. Ft.)"
-                      type="number"
-                      inputMode="decimal"
-                      min={1}
-                      step="1"
-                      placeholder=""
-                      suffix={<span className="text-xs font-medium text-muted-foreground">Sq. Ft.</span>}
-                      value={form.carpetArea}
-                      error={painterFieldErrors.carpet}
-                      onChange={(e) => {
-                        const carpetArea = e.target.value;
+                    <PlinthAreaFields
+                      lengthFt={form.plinthLengthFt}
+                      widthFt={form.plinthWidthFt}
+                      lengthError={painterFieldErrors.length}
+                      widthError={painterFieldErrors.width}
+                      onLengthChange={(value) => {
                         setForm((current) => withPaintAreaEstimate({
                           ...current,
-                          carpetArea,
+                          plinthLengthFt: value,
+                          carpetArea: plinthAreaStorageValue(value, current.plinthWidthFt),
                         }));
-                        setStep2Error(null); setPainterFieldErrors({});
+                        setStep2Error(null);
+                        setPainterFieldErrors({});
+                      }}
+                      onWidthChange={(value) => {
+                        setForm((current) => withPaintAreaEstimate({
+                          ...current,
+                          plinthWidthFt: value,
+                          carpetArea: plinthAreaStorageValue(current.plinthLengthFt, value),
+                        }));
+                        setStep2Error(null);
+                        setPainterFieldErrors({});
                       }}
                     />
                     {painterTotalFloorSummary && (

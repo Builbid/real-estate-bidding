@@ -3010,6 +3010,12 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
           value: formatPlumbingTargetWorkFloors(workFloors, details.customTargetFloors),
         });
       }
+      if (details.approxBuiltUpAreaSqft != null && details.approxBuiltUpAreaSqft > 0) {
+        blocks.push({
+          label: 'Total Approximate Plinth Area',
+          value: `${details.approxBuiltUpAreaSqft.toLocaleString('en-IN', { maximumFractionDigits: 2 })} Sq. Ft.`,
+        });
+      }
       for (const item of floorFixtureCounts) {
         blocks.push({
           label: `${plumbingFloorLabel(item.floor, details.customTargetFloors, details.houseStructure)} Fixtures`,
@@ -3301,6 +3307,12 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
           value: formatPlumbingTargetWorkFloors(workFloors, details.customTargetFloors),
         });
       }
+      if (details.approxBuiltUpAreaSqft != null && details.approxBuiltUpAreaSqft > 0) {
+        blocks.push({
+          label: 'Total Approximate Plinth Area',
+          value: `${details.approxBuiltUpAreaSqft.toLocaleString('en-IN', { maximumFractionDigits: 2 })} Sq. Ft.`,
+        });
+      }
       for (const item of floorFixtureCounts) {
         blocks.push({
           label: `${plumbingFloorLabel(item.floor, details.customTargetFloors, details.houseStructure)} Fixtures`,
@@ -3416,7 +3428,7 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
       }
       if (details.approxBuiltUpAreaSqft != null) {
         blocks.push({
-          label: 'Approx Built-Up Area',
+          label: 'Total Approximate Plinth Area',
           value: `${details.approxBuiltUpAreaSqft.toLocaleString('en-IN')} Sq Ft`,
         });
       }
@@ -3673,6 +3685,10 @@ export function validateTradeDetailsInput(
       input.buildingStoreys && PLUMBING_BUILDING_STOREYS_SET.has(input.buildingStoreys)
         ? input.buildingStoreys
         : null;
+    const approxBuiltUpAreaSqft = parsePositiveNumber(input.approxBuiltUpAreaSqft);
+    if (approxBuiltUpAreaSqft == null) {
+      return { error: 'Enter the length and width in feet.' };
+    }
     const requestedPackages = parsePlumbingPackageKinds(input.selectedPackages);
     const floorFixtureCounts = parsePlumberFixtureInput(
       targetFloors,
@@ -3774,6 +3790,7 @@ export function validateTradeDetailsInput(
         targetWorkFloor,
         customTargetFloors,
         buildingStoreys,
+        approxBuiltUpAreaSqft,
         selectedPackages: packagesWithProjectCounts,
         selectedSubOptions,
         floorFixtureCounts,
@@ -3821,6 +3838,10 @@ export function validateTradeDetailsInput(
       return { error: CUSTOM_FLOOR_CHECKED_WITHOUT_FLOORS_MESSAGE };
     }
     const targetWorkFloor = targetFloors[0];
+    const approxBuiltUpAreaSqft = parsePositiveNumber(input.approxBuiltUpAreaSqft);
+    if (approxBuiltUpAreaSqft == null) {
+      return { error: 'Enter the length and width in feet.' };
+    }
     const floorFixtureCounts = parseElectricianFixtureInput(
       targetFloors,
       input.electricianFloorFixtureCounts,
@@ -3859,6 +3880,7 @@ export function validateTradeDetailsInput(
         targetFloors,
         targetWorkFloor,
         customTargetFloors,
+        approxBuiltUpAreaSqft,
         selectedPackages: [],
         selectedSubOptions: [],
         floorFixtureCounts,
@@ -3947,7 +3969,7 @@ export function validateTradeDetailsInput(
     const targetWorkFloor = targetFloors[0];
     const approxBuiltUpAreaSqft = parsePositiveNumber(input.approxBuiltUpAreaSqft);
     if (approxBuiltUpAreaSqft == null) {
-      return { error: 'Enter the approximate built-up area in Sq Ft.' };
+      return { error: 'Enter the length and width in feet.' };
     }
     const requestedPackages = parseInteriorDesignerPackageKinds(input.interiorPackages);
     const selectedSubOptions = subOptionsForInteriorDesignerPackages(
