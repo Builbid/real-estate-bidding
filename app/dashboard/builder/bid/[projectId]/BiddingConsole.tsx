@@ -1186,7 +1186,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                                 : isWeightedIndexBid
                                   ? 'Weighted Index'
                                 : isTotalEstimatedCostMetric
-                                  ? 'Total Estimated Project Cost (₹)'
+                                  ? 'Total Approximate Project Cost (₹)'
                                 : isScopeRateBid
                                   ? 'Your Final Rate Metric'
                                   : 'Your Final Rate Metric'}
@@ -1238,7 +1238,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                       {isPlumbingBid && (
                         <p className="text-xs text-muted-foreground text-right">
                           {isPlumbingPointRateBid || isFixtureRateBid
-                            ? 'estimated total'
+                            ? 'approximate total'
                             : isTradeUnitRateBid
                               ? 'baseline score'
                               : 'overall avg'}
@@ -1248,7 +1248,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                       )}
                       {isElectricianPointRateBid && (
                         <p className="text-xs text-muted-foreground text-right">
-                          estimated total
+                          approximate total
                           <br />
                           lowest total wins
                         </p>
@@ -1461,7 +1461,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                           )}
                           {isCivilItem && item.costKind === 'civil' && numericValue != null && numericValue > 0 && item.slabAreaSqft > 0 && (
                             <p className={cn('text-xs font-medium', estimateClass)}>
-                              Floor civil estimate: ₹{computeMistriFloorCivilCost(item.slabAreaSqft, numericValue).toLocaleString('en-IN')}
+                              Floor civil approximation: ₹{computeMistriFloorCivilCost(item.slabAreaSqft, numericValue).toLocaleString('en-IN')}
                             </p>
                           )}
                           {item.kind === 'floor' && (item.areaSqft ?? 0) > 0 && (
@@ -1476,7 +1476,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                           )}
                           {isCivilItem && item.costKind === 'wall' && numericValue != null && numericValue > 0 && item.wallAreaSqft > 0 && (
                             <p className={cn('text-xs font-medium', estimateClass)}>
-                              Floor wall estimate: ₹{computeMistriFloorWallCost(item.wallAreaSqft, numericValue, item.wallRateMultiplier).toLocaleString('en-IN')}
+                              Floor wall approximation: ₹{computeMistriFloorWallCost(item.wallAreaSqft, numericValue, item.wallRateMultiplier).toLocaleString('en-IN')}
                               {item.wallRateMultiplier === 2 ? ' (both-sides plastering)' : ''}
                             </p>
                           )}
@@ -1510,7 +1510,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                                 (parseBidRateValue(flooringRateInputs[item.floorId] ?? '') ?? 0) > 0 &&
                                 item.flooringAreaSqft > 0 && (
                                 <p className={cn('text-xs font-medium', estimateClass)}>
-                                  Floor flooring estimate: ₹{computeMistriFloorFlooringCost(
+                                  Floor flooring approximation: ₹{computeMistriFloorFlooringCost(
                                     item.flooringAreaSqft,
                                     parseBidRateValue(flooringRateInputs[item.floorId] ?? '') ?? 0,
                                   ).toLocaleString('en-IN')}
@@ -1557,7 +1557,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                   <BidWorkItemCard
                     title="Rate per Linear Running Foot"
                     category="Separate line item — not ranked"
-                    description="Optional extra rate for long connection lines. This is not added to the estimated bid total or ranking."
+                    description="Optional extra rate for long connection lines. This is not added to the approximate bid total or ranking."
                   >
                     <Input
                       type="text"
@@ -1621,7 +1621,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                             : isWeightedIndexBid
                               ? 'Weighted Index'
                             : isTotalEstimatedCostMetric
-                            ? 'Total Estimated Project Cost (₹)'
+                            ? 'Total Approximate Project Cost (₹)'
                             : isPlumbingBid
                             ? 'Overall Average Rate'
                             : 'Your Final Rate Metric'}
@@ -1868,7 +1868,7 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                                 : earthworkMode === 'trip'
                                   ? (formatTripCapacityLabel(bid.rates?.vehicleCapacityCum) ?? '/trip')
                                   : isTotalEstimatedCostMetric
-                                    ? 'estimated project cost'
+                                    ? 'approximate project cost'
                                   : isPlumbingBid
                                     ? 'overall avg'
                                   : isPlumberFlat
@@ -1924,9 +1924,9 @@ export function BiddingConsole({ project, existingBid, builderId, builderName, b
                                 }
                                 indexLabel={
                                   isTotalEstimatedCostMetric
-                                    ? 'Total Estimated Project Cost'
+                                    ? 'Total Approximate Project Cost'
                                     : isPointRateBid
-                                      ? 'Estimated Total'
+                                      ? 'Approximate Total'
                                       : 'Weighted Index'
                                 }
                                 indexValue={

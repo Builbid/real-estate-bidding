@@ -197,7 +197,7 @@ function buildPlumberBidRows(
       const total = computePlumbingFixtureBidTotal(unitRates, options, context);
       if (total > 0) {
         floorRows.push({
-          label: 'Total Estimated Project Cost',
+          label: 'Total Approximate Project Cost',
           value: cleanAgreementText(formatInrAmount(total)),
         });
       }
@@ -394,7 +394,7 @@ export function generatePlumberAgreementPdfBytes(
         label: 'Total Agreed Project Cost',
         value: filledAgreementText(
           overlay?.totalAgreedCostLabel,
-          filled.bidRows.find((row) => row.label === 'Total Estimated Project Cost')?.value
+          filled.bidRows.find((row) => row.label === 'Total Approximate Project Cost')?.value
             || filled.acceptedRateLabel,
         ),
       },

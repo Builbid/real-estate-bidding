@@ -427,7 +427,7 @@ export function ConstructionFirmProjectWizard() {
                     <PopoverTrigger asChild>
                       <button
                         type="button"
-                        aria-label="How slab area is used to estimate construction cost"
+                        aria-label="How slab area is used to calculate the approximate construction cost"
                         className="inline-flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
                       >
                         <Info className="h-3.5 w-3.5" />
@@ -460,7 +460,7 @@ export function ConstructionFirmProjectWizard() {
                   error={step2FieldErrors.floorArea}
                 />
                 <p className="text-[11px] text-muted-foreground mt-1">
-                  Firms use this area with their ₹/sqft rate to estimate total project cost.
+                  Firms use this area with their ₹/sqft rate to calculate the approximate project cost.
                 </p>
               </div>
 

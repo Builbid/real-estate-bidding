@@ -164,7 +164,7 @@ export function UnifiedBidRankings({
           <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             Bid Rankings — {bids.length} bid{bids.length !== 1 ? 's' : ''}
             {isTotalEstimatedCostMetric
-              ? ' · lowest total estimated cost first'
+              ? ' · lowest total approximate cost first'
               : isTradeUnitRateBid
                   ? ' · lowest Baseline Score first'
                   : ''}
@@ -253,7 +253,7 @@ export function UnifiedBidRankings({
                 <p className="text-[10px] text-muted-foreground">
                   {formatTripCapacityLabel(bid.rates?.vehicleCapacityCum)
                     ?? (isTotalEstimatedCostMetric
-                      ? 'estimated project cost'
+                      ? 'approximate project cost'
                       : isTradeUnitRateBid
                       ? 'weighted index'
                       : isPlumbingBid
@@ -307,7 +307,7 @@ export function UnifiedBidRankings({
                     }
                     indexLabel={
                       isTotalEstimatedCostMetric
-                        ? 'Total Estimated Project Cost'
+                        ? 'Total Approximate Project Cost'
                         : 'Weighted Index'
                     }
                     indexValue={

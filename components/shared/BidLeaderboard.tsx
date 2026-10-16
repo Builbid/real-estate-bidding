@@ -238,7 +238,7 @@ export function BidLeaderboard({
       {isTradeUnitRateBid && (
         <p className="px-2 pb-1 text-[11px] font-medium text-muted-foreground">
           {isFixtureRateBid
-            ? 'Ranked by lowest Total Estimated Project Cost (Ground Floor base rates, plus 5% per floor above ground).'
+            ? 'Ranked by lowest Total Approximate Project Cost (Ground Floor base rates, plus 5% per floor above ground).'
             : 'Ranked by lowest Weighted Index (equal-weight average of unit rates).'}
         </p>
       )}
@@ -355,7 +355,7 @@ export function BidLeaderboard({
                 </p>
                 <p className="text-[10px] text-muted-foreground">
                   {isTotalEstimatedCostMetric
-                    ? 'estimated project cost'
+                    ? 'approximate project cost'
                     : isTradeUnitRateBid
                     ? 'weighted index'
                     : isPlumbingBid
@@ -408,7 +408,7 @@ export function BidLeaderboard({
                     }
                     indexLabel={
                       isTotalEstimatedCostMetric
-                        ? 'Total Estimated Project Cost'
+                        ? 'Total Approximate Project Cost'
                         : 'Weighted Index'
                     }
                     indexValue={

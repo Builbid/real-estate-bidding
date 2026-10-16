@@ -22,7 +22,7 @@ const FLOOR_RATE_KEYS: BidFloorRateKey[] = ['ground_rate', 'first_rate', 'second
 export const TILE_FITTING_RATE_LABEL = 'Tile Fitting Rate';
 export const TILE_FITTING_RATE_UNIT = '/sqft floor area';
 export const TILE_FITTING_RATE_HINT =
-  'This flooring rate is multiplied by the client’s flooring work area and added to the total estimated project cost used for ranking.';
+  'This flooring rate is multiplied by the client’s flooring work area and added to the total approximate project cost used for ranking.';
 
 export const WALL_CONSTRUCTION_RATE_LABEL = 'Wall Construction & Plastering Rate';
 export const WALL_CONSTRUCTION_RATE_UNIT = '/sqft wall area';

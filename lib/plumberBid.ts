@@ -269,7 +269,7 @@ export function buildPlumbingFixtureRateOptions(
 export const PLUMBING_UPPER_FLOOR_ALLOWANCE = 0.05;
 
 export const PLUMBING_FLOOR_HEIGHT_ALLOWANCE_NOTE =
-  'Note: Rates entered above apply to Ground Floor as Base Rate. An automatic +5% labor allowance per upper floor (1st Floor: +5%, 2nd Floor: +10%, etc.) is automatically added to the Total Estimated Project Cost.';
+  'Note: Rates entered above apply to Ground Floor as Base Rate. An automatic +5% labor allowance per upper floor (1st Floor: +5%, 2nd Floor: +10%, etc.) is automatically added to the Total Approximate Project Cost.';
 
 const PLUMBING_FLOOR_HEIGHT_STEPS: Record<Exclude<PlumbingTargetFloor, 'custom'>, number> = {
   ground: 0,
@@ -336,7 +336,7 @@ function fixtureRateForKind(
 }
 
 /**
- * Total Estimated Project Cost = Σ (floor quantity × Ground Floor base rate × floor multiplier).
+ * Total Approximate Project Cost = Σ (floor quantity × Ground Floor base rate × floor multiplier).
  * Falls back to Σ (quantity × rate) when the project has no per-floor fixture counts.
  */
 export function computePlumbingFixtureBidTotal(

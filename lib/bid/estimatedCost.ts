@@ -16,7 +16,7 @@ function positiveAmount(value: unknown): number {
   return Number.isFinite(n) && n > 0 ? n : 0;
 }
 
-/** Stored or recomputed total estimated project cost used for ranking (lowest wins). */
+/** Stored or recomputed total approximate project cost used for ranking (lowest wins). */
 export function getBidRankMetric(
   bid: {
     total_sum_metric?: number | null;

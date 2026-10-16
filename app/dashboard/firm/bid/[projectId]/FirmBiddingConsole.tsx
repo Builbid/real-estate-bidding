@@ -385,7 +385,7 @@ export function FirmBiddingConsole({
                             />
                             {parsedRate && isValidBidRate(parsedRate) && floorAreaSqft ? (
                               <p className="text-[11px] text-muted-foreground mt-1">
-                                Estimated Total:{' '}
+                                Approximate Total:{' '}
                                 <span className="font-semibold text-emerald-400">
                                   {formatEstimatedTotalLabel(parsedRate, floorAreaSqft)}
                                 </span>
