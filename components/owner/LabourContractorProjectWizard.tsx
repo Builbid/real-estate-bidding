@@ -1618,7 +1618,7 @@ export function LabourContractorProjectWizard() {
                   />
                   {autoPlasteringAreaSqft != null && (
                     <p className="text-sm font-semibold text-slate-900 dark:text-zinc-100">
-                      Estimated Plastering Surface Area:{' '}
+                      Approximate Plastering Surface Area:{' '}
                       {autoPlasteringAreaSqft.toLocaleString('en-IN')} sq. ft.
                     </p>
                   )}

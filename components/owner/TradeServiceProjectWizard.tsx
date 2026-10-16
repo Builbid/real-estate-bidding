@@ -585,6 +585,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
             block.label !== 'Village / Town Name' &&
             !(isEarthwork && block.label === 'Project Address') &&
             block.label !== 'Estimated Depth' &&
+            block.label !== 'Approximate Depth' &&
             block.label !== 'Area / Volume' &&
             block.label !== 'Point Weights' &&
             !(
@@ -1019,7 +1020,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
 
                   <div className="space-y-1">
                     <Input
-                      label="Estimated Paint Area (Sq. Ft.)"
+                      label="Approximate Paint Area (Sq. Ft.)"
                       type="number"
                       inputMode="decimal"
                       min={1}

@@ -430,7 +430,7 @@ export async function createProjectAction(
 
       if (labour.plot_area_sqft != null && insertPayload.plot_area_sqft == null) {
         if (!Number.isFinite(labour.plot_area_sqft) || labour.plot_area_sqft <= 0) {
-          return { error: 'Plot area must be a positive number when provided.' }
+          return { error: 'Plinth area must be a positive number when provided.' }
         }
         insertPayload.plot_area_sqft = labour.plot_area_sqft
       }

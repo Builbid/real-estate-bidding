@@ -171,6 +171,7 @@ export function isWideRequirementLabel(label: string): boolean {
     label === 'Delivery Timeline' ||
     label === 'Approximate Paint Area' ||
     label === 'Estimated Paint Area' ||
+    label === 'Approximate Plastering Surface Area' ||
     label === 'Carpet / Floor Area' ||
     label === 'Approx. Carpet / Floor Area' ||
     label === 'Approx. House / Floor Area' ||
@@ -218,6 +219,9 @@ const BID_SUMMARY_LABELS = new Set([
   'Total Plot Area',
   'Plot Dimensions',
   'Approximate Plot Dimensions',
+  'Approximate Plinth Area Dimensions',
+  'Total Approximate Plinth Area',
+  'Approximate Plastering Surface Area',
   'Building Structure Type',
   'House Structure',
   'Work Start Time',

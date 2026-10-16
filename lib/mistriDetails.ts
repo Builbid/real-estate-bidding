@@ -3300,7 +3300,7 @@ export function getMistriWorkRequirementBlocks(details: MistriDetails): {
           value: optionLabel(MISTRI_BOUNDARY_WALL_PLASTER_OPTIONS, wall?.plasteringFinish),
         },
         {
-          label: 'Estimated Plastering Surface Area',
+          label: 'Approximate Plastering Surface Area',
           value: `${Number(
             wall?.plasteringAreaSqft ??
               resolveBoundaryWallPlasteringAreaSqft({

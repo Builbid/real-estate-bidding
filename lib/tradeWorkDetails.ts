@@ -3483,7 +3483,7 @@ export function getTradeWorkRequirementBlocks(details: TradeDetails): {
       });
     }
     if (details.estimatedDepthFt != null) {
-      blocks.push({ label: 'Estimated Depth', value: `${details.estimatedDepthFt} Ft.` });
+      blocks.push({ label: 'Approximate Depth', value: `${details.estimatedDepthFt} Ft.` });
     }
     if (details.approxVolume) {
       blocks.push({ label: 'Area / Volume', value: details.approxVolume });

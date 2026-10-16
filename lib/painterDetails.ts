@@ -524,7 +524,7 @@ export function getPainterWorkRequirementBlocks(details: PainterDetails): {
   }
 
   blocks.push(
-    { label: 'Estimated Paint Area', value: formatPainterProjectArea(details.projectArea) },
+    { label: 'Approximate Paint Area', value: formatPainterProjectArea(details.projectArea) },
   );
 
   if (details.paintingScope) {

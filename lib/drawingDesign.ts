@@ -118,7 +118,10 @@ export interface DrawingDetails {
   /** Legacy comma-separated display string; new posts dual-write this from `customFloors`. */
   customFloorNumber?: string | null;
   plotDimensions: string;
-  /** Legacy field — no longer collected on new submissions. */
+  /** Length and width in feet. Older posts may only have `plotDimensions`. */
+  plinthLengthFt?: number | null;
+  plinthWidthFt?: number | null;
+  /** Length × width in sqft. Older posts may omit this. */
   plotAreaSqft?: number | null;
   deliverables: DrawingDeliverable[];
   /** Legacy field — no longer collected on new submissions. */
@@ -248,6 +251,23 @@ function parsePositiveNumber(raw: unknown): number | null {
   return null;
 }
 
+function formatFeet(value: number): string {
+  const rounded = Math.round(value * 100) / 100;
+  return rounded.toLocaleString('en-IN', { maximumFractionDigits: 2 });
+}
+
+export function formatPlinthDimensionLabel(lengthFt: number, widthFt: number): string {
+  return `${formatFeet(lengthFt)} ft × ${formatFeet(widthFt)} ft`;
+}
+
+/** Length × width. Returns null until both measurements are positive numbers. */
+export function plinthAreaFromFeet(lengthRaw: string, widthRaw: string): number | null {
+  const length = parsePositiveNumber(lengthRaw);
+  const width = parsePositiveNumber(widthRaw);
+  if (length == null || width == null) return null;
+  return Math.round(length * width * 100) / 100;
+}
+
 function parseDeliverables(raw: unknown): DrawingDeliverable[] {
   if (!Array.isArray(raw)) return [];
   const next: DrawingDeliverable[] = [];
@@ -354,8 +374,18 @@ export function parseDrawingDetails(value: unknown): DrawingDetails | null {
   }
   if (packages.length === 0) return null;
   const floors = normalizeDrawingFloorLabel(v.numberOfFloors);
-  const dimensions = typeof v.plotDimensions === 'string' ? v.plotDimensions.trim() : '';
-  const area = parsePositiveNumber(v.plotAreaSqft);
+  const lengthFt = parsePositiveNumber(v.plinthLengthFt);
+  const widthFt = parsePositiveNumber(v.plinthWidthFt);
+  const dimensions =
+    lengthFt != null && widthFt != null
+      ? formatPlinthDimensionLabel(lengthFt, widthFt)
+      : typeof v.plotDimensions === 'string'
+        ? v.plotDimensions.trim()
+        : '';
+  const area =
+    lengthFt != null && widthFt != null
+      ? Math.round(lengthFt * widthFt * 100) / 100
+      : parsePositiveNumber(v.plotAreaSqft);
   const address =
     typeof v.projectAddress === 'string' && v.projectAddress.trim().length >= 4
       ? v.projectAddress.trim()
@@ -419,6 +449,8 @@ export function parseDrawingDetails(value: unknown): DrawingDetails | null {
     customFloors,
     customFloorNumber,
     plotDimensions: dimensions,
+    plinthLengthFt: lengthFt,
+    plinthWidthFt: widthFt,
     plotAreaSqft: area,
     deliverables,
     projectAddress: address,
@@ -448,12 +480,18 @@ export function getDrawingWorkRequirementBlocks(details: DrawingDetails): {
   }
   blocks.push(
     { label: 'Target Work Floor', value: details.numberOfFloors },
-    { label: 'Approximate Plot Dimensions', value: details.plotDimensions },
+    {
+      label: 'Approximate Plinth Area Dimensions',
+      value:
+        details.plinthLengthFt != null && details.plinthWidthFt != null
+          ? formatPlinthDimensionLabel(details.plinthLengthFt, details.plinthWidthFt)
+          : details.plotDimensions,
+    },
   );
   if (details.plotAreaSqft != null) {
     blocks.push({
-      label: 'Total Plot Area',
-      value: `${details.plotAreaSqft.toLocaleString('en-IN')} Sq. Ft.`,
+      label: 'Total Approximate Plinth Area',
+      value: `${details.plotAreaSqft.toLocaleString('en-IN', { maximumFractionDigits: 2 })} sqft`,
     });
   }
   blocks.push({
@@ -490,7 +528,8 @@ export function validateDrawingDetailsInput(input: {
   customFloorSelected: boolean;
   customFloors?: number[] | null;
   customFloorNumber?: string | number[] | null;
-  plotDimensions: string;
+  plinthLengthFt: string;
+  plinthWidthFt: string;
   deliverables: DrawingDeliverable[];
   projectStartTimeType: ProjectStartTimeType | null;
   projectStartTimeSpecificDate: string;
@@ -537,9 +576,13 @@ export function validateDrawingDetailsInput(input: {
   if (structureOk && !floors) {
     fieldErrors.floors = 'Select at least one target work floor.';
   }
-  const dimensions = input.plotDimensions.trim();
-  if (dimensions.length < 2) {
-    fieldErrors.plot = 'Enter the approximate plot dimensions.';
+  const lengthFt = parsePositiveNumber(input.plinthLengthFt);
+  const widthFt = parsePositiveNumber(input.plinthWidthFt);
+  if (lengthFt == null) {
+    fieldErrors.length = 'Enter the length in feet.';
+  }
+  if (widthFt == null) {
+    fieldErrors.width = 'Enter the width in feet.';
   }
   const deliverables = parseDeliverables(input.deliverables);
   if (deliverables.length === 0) {
@@ -572,7 +615,13 @@ export function validateDrawingDetailsInput(input: {
       buildingTypes,
       customFloors: customFloors.length ? customFloors : null,
       customFloorNumber,
-      plotDimensions: dimensions,
+      plotDimensions:
+        lengthFt != null && widthFt != null
+          ? formatPlinthDimensionLabel(lengthFt, widthFt)
+          : '',
+      plinthLengthFt: lengthFt,
+      plinthWidthFt: widthFt,
+      plotAreaSqft: lengthFt != null && widthFt != null ? Math.round(lengthFt * widthFt * 100) / 100 : null,
       deliverables,
       projectSubmissionTimeType: isDrawingSubmissionTimeType(start.type)
         ? start.type

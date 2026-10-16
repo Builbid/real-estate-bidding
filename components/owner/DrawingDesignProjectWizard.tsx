@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/select';
 import { OptionSelectGrid } from '@/components/owner/wizard/OptionSelectCard';
 import { StartTimeAndNotes, WIZARD_SECTION_LABEL, WizardAccentLabels, withSectionColon } from '@/components/owner/wizard/StartTimeAndNotes';
-import { FORM_CONTINUE_BTN, FORM_SECTION_CARD, FORM_SHELL_CARD } from '@/components/owner/wizard/formTheme';
+import { FORM_CONTINUE_BTN, FORM_NOTE_BOX, FORM_SECTION_CARD, FORM_SHELL_CARD } from '@/components/owner/wizard/formTheme';
 import { FieldError, useScrollToFirstInvalid } from '@/components/owner/wizard/fieldValidation';
 import { ReviewSummaryList, WizardStepper } from '@/components/owner/wizard/ReviewSummary';
 import { StepGuidanceNotes } from '@/components/owner/wizard/StepGuidanceNotes';
@@ -36,6 +36,7 @@ import {
   DRAWING_PACKAGE_OPTIONS,
   drawingTypesFromPackages,
   getDrawingWorkRequirementBlocks,
+  plinthAreaFromFeet,
   resolveDrawingBuildingTypes,
   validateDrawingDetailsInput,
   type DrawingDeliverable,
@@ -62,7 +63,8 @@ interface FormState {
   customFloorSelected: boolean;
   customFloors: number[];
   packages: DrawingDesignPackage[];
-  plotDimensions: string;
+  plinthLengthFt: string;
+  plinthWidthFt: string;
   deliverables: DrawingDeliverable[];
   projectStartTimeType: ProjectStartTimeType | null;
   projectStartTimeSpecificDate: string;
@@ -78,7 +80,8 @@ const EMPTY_FORM: FormState = {
   customFloorSelected: false,
   customFloors: [],
   packages: [],
-  plotDimensions: '',
+  plinthLengthFt: '',
+  plinthWidthFt: '',
   deliverables: [],
   projectStartTimeType: null,
   projectStartTimeSpecificDate: '',
@@ -146,7 +149,8 @@ export function DrawingDesignProjectWizard() {
       buildingTypes: form.buildingTypes,
       customFloorSelected: form.customFloorSelected,
       customFloors: form.customFloors,
-      plotDimensions: form.plotDimensions,
+      plinthLengthFt: form.plinthLengthFt,
+      plinthWidthFt: form.plinthWidthFt,
       deliverables: form.deliverables,
       projectStartTimeType: form.projectStartTimeType,
       projectStartTimeSpecificDate: form.projectStartTimeSpecificDate,
@@ -280,6 +284,7 @@ export function DrawingDesignProjectWizard() {
     serviceType: 'drawing_design',
     district: districtSelection?.district ?? form.location,
   });
+  const plinthAreaSqft = plinthAreaFromFeet(form.plinthLengthFt, form.plinthWidthFt);
   const reviewDetails = validatedDetails();
   const reviewBlocks =
     'error' in reviewDetails ? [] : getDrawingWorkRequirementBlocks(reviewDetails.details);
@@ -488,21 +493,45 @@ export function DrawingDesignProjectWizard() {
               </div>
 
               <div
-                className={cn(FORM_SECTION_CARD, step2FieldErrors.plot && 'ring-1 ring-red-500')}
-                data-field-invalid={step2FieldErrors.plot ? 'true' : undefined}
+                className={cn(
+                  FORM_SECTION_CARD,
+                  (step2FieldErrors.length || step2FieldErrors.width) && 'ring-1 ring-red-500',
+                )}
+                data-field-invalid={step2FieldErrors.length || step2FieldErrors.width ? 'true' : undefined}
               >
                 <label className={WIZARD_SECTION_LABEL}>
-                  {withSectionColon('Approximate Plot Dimensions')}
+                  {withSectionColon('Approximate Plinth Area Dimensions')}
                 </label>
-                <Input
-                  type="text"
-                  value={form.plotDimensions}
-                  error={step2FieldErrors.plot}
-                  onChange={(e) => {
-                    update('plotDimensions', e.target.value);
-                    clearStep2();
-                  }}
-                />
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <Input
+                    label="Length (in feet)"
+                    type="text"
+                    inputMode="decimal"
+                    value={form.plinthLengthFt}
+                    error={step2FieldErrors.length}
+                    onChange={(e) => {
+                      update('plinthLengthFt', e.target.value);
+                      clearStep2();
+                    }}
+                  />
+                  <Input
+                    label="Width / Breadth (in feet)"
+                    type="text"
+                    inputMode="decimal"
+                    value={form.plinthWidthFt}
+                    error={step2FieldErrors.width}
+                    onChange={(e) => {
+                      update('plinthWidthFt', e.target.value);
+                      clearStep2();
+                    }}
+                  />
+                </div>
+                <p className={cn(FORM_NOTE_BOX, 'text-sm font-semibold text-slate-800 dark:text-slate-100')}>
+                  Total Approximate Plinth Area:{' '}
+                  {plinthAreaSqft == null
+                    ? '— sqft'
+                    : `${plinthAreaSqft.toLocaleString('en-IN', { maximumFractionDigits: 2 })} sqft`}
+                </p>
               </div>
 
               <div
