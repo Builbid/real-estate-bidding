@@ -15,8 +15,10 @@ import { isConstructionFirmEnabled } from '@/lib/features';
 import { uploadFirmLogo } from '@/lib/firm/uploadFirmLogo';
 import { LogoUpload } from '@/components/firm/LogoUpload';
 import { FirmConstructionClassPackagesForm } from '@/components/firm/FirmConstructionClassPackagesForm';
+import { TermsAcceptanceField } from '@/components/auth/TermsAcceptanceField';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { termsAudienceForSignupRole } from '@/lib/legal/roleTerms';
 import { cn } from '@/lib/utils';
 import type { FirmConstructionPackage } from '@/lib/types';
 import {
@@ -136,6 +138,7 @@ function RegisterPageContent() {
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
 
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [emailConfirmPending, setEmailConfirmPending] = useState(false);
@@ -188,6 +191,11 @@ function RegisterPageContent() {
     setTouched((t) => ({ ...t, [field]: true }));
   }
 
+  function chooseRole(next: UiRole) {
+    if (next !== role) setAcceptedTerms(false);
+    setRole(next);
+  }
+
   function handleMobileChange(value: string) {
     setMobile(formatMobileDisplay(value));
   }
@@ -206,6 +214,7 @@ function RegisterPageContent() {
     formData.set('mobile', stripMobileDigits(mobile));
     formData.set('physical_address', address);
     formData.set('pincode', pincode);
+    formData.set('accepted_terms', acceptedTerms ? 'true' : 'false');
     if (role === 'construction_firm') {
       formData.set('company_name', companyName);
       formData.set('gst_number', gstNumber);
@@ -256,6 +265,10 @@ function RegisterPageContent() {
       setError(accountError);
       return;
     }
+    if (role !== 'construction_firm' && !acceptedTerms) {
+      setError('Please agree to the Terms & Conditions and Privacy Policy.');
+      return;
+    }
     setError(null);
 
     if (role === 'construction_firm') {
@@ -281,6 +294,10 @@ function RegisterPageContent() {
     const packageError = validateConstructionPackages(classPackages);
     if (packageError) {
       setError(packageError);
+      return;
+    }
+    if (!acceptedTerms) {
+      setError('Please agree to the Terms & Conditions and Privacy Policy.');
       return;
     }
     setError(null);
@@ -390,7 +407,7 @@ function RegisterPageContent() {
                     <button
                       key={card.role}
                       type="button"
-                      onClick={() => setRole(card.role)}
+                      onClick={() => chooseRole(card.role)}
                       className={cn(
                         'w-full text-left px-4 py-4 rounded-xl border-2 transition-all duration-200 transform',
                         selected && 'scale-[1.01]',
@@ -622,6 +639,14 @@ function RegisterPageContent() {
                 onChange={(e) => setPincode(e.target.value)}
               />
 
+              {role !== 'construction_firm' && (
+                <TermsAcceptanceField
+                  audience={termsAudienceForSignupRole(role)}
+                  checked={acceptedTerms}
+                  onCheckedChange={setAcceptedTerms}
+                />
+              )}
+
               <div className="flex gap-3 pt-2">
                 {roleParam === 'owner' ? (
                   <Button type="button" variant="outline" size="lg" className="flex-1" onClick={() => router.back()}>
@@ -632,7 +657,12 @@ function RegisterPageContent() {
                     <ArrowLeft className="w-4 h-4" /> Back
                   </Button>
                 )}
-                <Button type="submit" size="lg" className="flex-1" disabled={pending}>
+                <Button
+                  type="submit"
+                  size="lg"
+                  className="flex-1"
+                  disabled={pending || (role !== 'construction_firm' && !acceptedTerms)}
+                >
                   {role === 'construction_firm' ? (
                     <span className="flex items-center gap-2">Continue <ArrowRight className="w-4 h-4" /></span>
                   ) : pending ? (
@@ -672,6 +702,12 @@ function RegisterPageContent() {
                 errors={fieldErrors}
               />
 
+              <TermsAcceptanceField
+                audience="worker"
+                checked={acceptedTerms}
+                onCheckedChange={setAcceptedTerms}
+              />
+
               <div className="flex gap-3 pt-2">
                 <Button
                   type="button"
@@ -682,7 +718,7 @@ function RegisterPageContent() {
                 >
                   <ArrowLeft className="w-4 h-4" /> Back
                 </Button>
-                <Button type="submit" size="lg" className="flex-1" disabled={pending}>
+                <Button type="submit" size="lg" className="flex-1" disabled={pending || !acceptedTerms}>
                   {pending ? (
                     <span className="flex items-center gap-2">
                       <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />

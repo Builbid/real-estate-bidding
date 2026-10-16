@@ -85,6 +85,14 @@ export async function signUpAction(
     return { error: 'Please choose an account type to continue.', success: false }
   }
 
+  const acceptedTerms = (formData.get('accepted_terms') as string | null) === 'true'
+  if (!acceptedTerms) {
+    return {
+      error: 'Please agree to the Terms & Conditions and Privacy Policy.',
+      success: false,
+    }
+  }
+
   if (!fullName || !email || !password) {
     return { error: 'Please fill in all required fields.', success: false }
   }
@@ -150,7 +158,13 @@ export async function signUpAction(
     password,
     options: {
       emailRedirectTo: `${origin}/auth/callback?portal=${signupPortal}`,
-      data: { full_name: fullName, role, service_type: serviceType },
+      data: {
+        full_name: fullName,
+        role,
+        service_type: serviceType,
+        accepted_terms: true,
+        accepted_terms_audience: role === 'owner' ? 'owner' : 'worker',
+      },
     },
   })
 
