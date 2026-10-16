@@ -84,11 +84,14 @@ async function getData() {
   const { supabase, userId, role, email, fullName } = await getAuthUser();
 
   // Housekeeping must never blank the dashboard if it fails.
+  let archivedAgreementIds: string[] = [];
   try {
-    await processAuctionTransitions();
+    const transition = await processAuctionTransitions();
+    archivedAgreementIds = transition.archivedAgreementIds;
   } catch (err) {
     console.error('[owner dashboard] processAuctionTransitions failed (non-fatal):', err);
   }
+  const hiddenAgreementIds = new Set(archivedAgreementIds);
 
   const { data: dbProfile } = await supabase
     .from('profiles')
@@ -122,7 +125,9 @@ async function getData() {
   }
 
   const allProjects = sortByCreatedAtDesc(
-    ((projects ?? []).filter((p) => p.status !== 'cancelled') as ProjectWithBidCount[]),
+    ((projects ?? []).filter(
+      (p) => p.status !== 'cancelled' && !hiddenAgreementIds.has(p.id),
+    ) as ProjectWithBidCount[]),
   );
 
   const activeProjects = allProjects.filter((p) => !isAgreementComplete(p));
@@ -183,50 +188,6 @@ export default async function OwnerDashboard() {
         </div>
       </div>
 
-      {agreementPending.length > 0 && (
-        <DashboardWorkSection
-          tone="agreement"
-          title="Selected projects"
-          count={agreementPending.length}
-        >
-          <div className="space-y-5">
-            {agreementPending.map((bundle) => (
-              <OwnerLiveProjectCard
-                key={bundle.project.id}
-                project={bundle.project}
-                bidCount={bundle.bidCount}
-                initialBids={bundle.bids}
-                initialBuilders={bundle.builders}
-                userId={userId}
-              />
-            ))}
-          </div>
-        </DashboardWorkSection>
-      )}
-
-      {selectionRequired.length > 0 && (
-        <DashboardWorkSection
-          tone="select"
-          title="Needs your decision"
-          count={selectionRequired.length}
-          description="Bidding has closed. Select a worker to award the contract."
-        >
-          <div className="space-y-5">
-            {selectionRequired.map((bundle) => (
-              <OwnerLiveProjectCard
-                key={bundle.project.id}
-                project={bundle.project}
-                bidCount={bundle.bidCount}
-                initialBids={bundle.bids}
-                initialBuilders={bundle.builders}
-                userId={userId}
-                priority
-              />
-            ))}
-          </div>
-        </DashboardWorkSection>
-      )}
-
       {hasAnyProject && (
       <DashboardWorkSection
         tone="live"
@@ -253,6 +214,50 @@ export default async function OwnerDashboard() {
           </p>
         )}
       </DashboardWorkSection>
+      )}
+
+      {selectionRequired.length > 0 && (
+        <DashboardWorkSection
+          tone="select"
+          title="Needs your decision"
+          count={selectionRequired.length}
+          description="Bidding has closed. Select a worker to award the contract."
+        >
+          <div className="space-y-5">
+            {selectionRequired.map((bundle) => (
+              <OwnerLiveProjectCard
+                key={bundle.project.id}
+                project={bundle.project}
+                bidCount={bundle.bidCount}
+                initialBids={bundle.bids}
+                initialBuilders={bundle.builders}
+                userId={userId}
+                priority
+              />
+            ))}
+          </div>
+        </DashboardWorkSection>
+      )}
+
+      {agreementPending.length > 0 && (
+        <DashboardWorkSection
+          tone="agreement"
+          title="Selected projects"
+          count={agreementPending.length}
+        >
+          <div className="space-y-5">
+            {agreementPending.map((bundle) => (
+              <OwnerLiveProjectCard
+                key={bundle.project.id}
+                project={bundle.project}
+                bidCount={bundle.bidCount}
+                initialBids={bundle.bids}
+                initialBuilders={bundle.builders}
+                userId={userId}
+              />
+            ))}
+          </div>
+        </DashboardWorkSection>
       )}
 
       {!hasAnyProject && (

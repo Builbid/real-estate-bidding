@@ -224,6 +224,8 @@ export interface Project {
   bidding_ends_at: string;
   selection_ends_at?: string | null;
   selected_builder_id?: string | null;
+  /** When the owner selected a worker. Unsigned agreements expire 24 hours after this. */
+  builder_selected_at?: string | null;
   /** pending = owner chose a builder and is waiting for the company phone check. verified = transferred to the field supervisor. */
   call_verification_status?: 'pending' | 'verified' | null;
   /** Phone the owner confirmed for the company verification call. */

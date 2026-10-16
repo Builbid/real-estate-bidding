@@ -133,6 +133,7 @@ export async function selectBuilderAction(
   // and do not hand it to the field supervisor yet.
   const awardPatch: Record<string, unknown> = {
     selected_builder_id: builderId,
+    builder_selected_at: new Date().toISOString(),
     call_verification_status: 'pending',
     owner_callback_phone: confirmedPhone,
   }
@@ -172,7 +173,9 @@ export async function selectBuilderAction(
     : null
   while (
     updateError &&
-    (missingAwardColumn === 'selected_package' || missingAwardColumn === 'agreement_completed')
+    (missingAwardColumn === 'selected_package' ||
+      missingAwardColumn === 'agreement_completed' ||
+      missingAwardColumn === 'builder_selected_at')
   ) {
     delete awardPatch[missingAwardColumn]
     try {

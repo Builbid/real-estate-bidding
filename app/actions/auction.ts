@@ -2,6 +2,7 @@
 
 import { createClient }      from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { archiveUnsignedAgreements } from '@/lib/dashboard/archiveUnsignedAgreements'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 const SELECTION_WINDOW_MS = 3 * 60 * 1000   // 3 minutes in ms
@@ -21,7 +22,7 @@ async function getBestClient(): Promise<SupabaseClient> {
  * active_24h → frozen_24h  when bidding_ends_at has passed
  * frozen_24h → cancelled   when selection_ends_at has passed and no builder chosen
  */
-export async function processAuctionTransitions() {
+export async function processAuctionTransitions(): Promise<{ archivedAgreementIds: string[] }> {
   const client = await getBestClient()
   const now    = new Date().toISOString()
 
@@ -40,6 +41,20 @@ export async function processAuctionTransitions() {
     .eq('status', 'frozen_24h')
     .lt('selection_ends_at', now)
     .is('selected_builder_id', null)
+
+  let archivedAgreementIds: string[] = []
+  try {
+    archivedAgreementIds = await archiveUnsignedAgreements()
+  } catch (err) {
+    console.error('[auction] archive unsigned agreements failed:', err)
+  }
+
+  const rpc = await client.rpc('archive_stale_unsigned_agreements')
+  if (rpc.error && !/archive_stale_unsigned_agreements|does not exist|schema cache/i.test(rpc.error.message)) {
+    console.error('[auction] archive_stale_unsigned_agreements failed:', rpc.error.message)
+  }
+
+  return { archivedAgreementIds }
 }
 
 /**

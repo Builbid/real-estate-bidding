@@ -12,6 +12,8 @@ import { formatBuilbidPublicId } from '@/lib/contract/mistriAgreement';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import type { Profile, ProjectStatus, ServiceType } from '@/lib/types';
+import { archiveUnsignedAgreements } from '@/lib/dashboard/archiveUnsignedAgreements';
+import { isStaleUnsignedAgreement } from '@/lib/dashboard/unsignedAgreementExpiry';
 import { sortByCreatedAtDesc, sortByTimestampDesc } from '@/lib/utils';
 
 export type AdminTab =
@@ -124,6 +126,7 @@ interface DashboardProjectRecord {
   budget_range_max: number | null;
   created_at: string;
   updated_at: string;
+  builder_selected_at?: string | null;
   call_verification_status?: CallVerificationStatus;
   owner_callback_phone?: string | null;
 }
@@ -209,7 +212,10 @@ const NO_WORKFLOW: ProjectWorkflowState = {
  * Site-visit / agreement / approval state per project. Tolerant of an un-migrated
  * database (returns an empty map) so the dashboard keeps working.
  */
-async function loadWorkflowStates(): Promise<Map<string, ProjectWorkflowState>> {
+async function loadWorkflowStates(): Promise<{
+  map: Map<string, ProjectWorkflowState>;
+  reliable: boolean;
+}> {
   const map = new Map<string, ProjectWorkflowState>();
   try {
     const admin = createAdminClient();
@@ -220,10 +226,12 @@ async function loadWorkflowStates(): Promise<Map<string, ProjectWorkflowState>> 
         .select('project_id, status, approved_at')
         .limit(5000),
     ]);
+    if (visits.error) return { map, reliable: false };
     // Before migration 058 the approved_at column does not exist: fall back to status only.
     const contracts = contractsWithApproval.error
       ? await admin.from('project_digital_contracts').select('project_id, status').limit(5000)
       : contractsWithApproval;
+    if (contracts.error) return { map, reliable: false };
     for (const row of (visits.data ?? []) as Array<{ project_id: string }>) {
       map.set(row.project_id, { ...NO_WORKFLOW, siteVisitDone: true });
     }
@@ -240,10 +248,11 @@ async function loadWorkflowStates(): Promise<Map<string, ProjectWorkflowState>> 
         approvedAt: row.approved_at ?? null,
       });
     }
+    return { map, reliable: true };
   } catch {
     // Service role key missing or tables not migrated yet.
+    return { map, reliable: false };
   }
-  return map;
 }
 
 export function formatSupervisorAdminId(userId: string): string {
@@ -279,9 +288,16 @@ export async function loadAdminDashboardData(
   const territory = options.territory ?? null;
   const nowMs = Date.now();
 
+  try {
+    await archiveUnsignedAgreements();
+  } catch (err) {
+    console.error('[admin dashboard] archive unsigned agreements failed (non-fatal):', err);
+  }
+
   const baseProjectColumns =
     'id, numeric_id, title, district, state, pincode, status, bidding_ends_at, selection_ends_at, owner_id, selected_builder_id, service_type, budget_range_min, budget_range_max, created_at, updated_at';
   const callProjectColumns = `${baseProjectColumns}, call_verification_status, owner_callback_phone`;
+  const stampedProjectColumns = `${callProjectColumns}, builder_selected_at`;
 
   async function fetchProjects(columns: string): Promise<ProjectQueryResult> {
     const base = supabase.from('projects').select(columns);
@@ -295,7 +311,10 @@ export async function loadAdminDashboardData(
     };
   }
 
-  let projectsResult = await fetchProjects(callProjectColumns);
+  let projectsResult = await fetchProjects(stampedProjectColumns);
+  if (projectsResult.error && /builder_selected_at/i.test(projectsResult.error.message)) {
+    projectsResult = await fetchProjects(callProjectColumns);
+  }
   if (
     projectsResult.error &&
     /call_verification_status|owner_callback_phone/i.test(projectsResult.error.message)
@@ -323,7 +342,7 @@ export async function loadAdminDashboardData(
       .limit(5000),
   ]);
 
-  const workflowByProject = await loadWorkflowStates();
+  const { map: workflowByProject, reliable: workflowReliable } = await loadWorkflowStates();
 
   const projectsRaw = projectsResult.data;
   const projects = sortByCreatedAtDesc(readDashboardProjects(projectsRaw ?? []));
@@ -446,6 +465,24 @@ export async function loadAdminDashboardData(
   const awaitingCompanyCall = (projectId: string) =>
     projects.find((item) => item.id === projectId)?.call_verification_status === 'pending';
 
+  const staleUnsignedIds = new Set(
+    workflowReliable
+      ? projects
+          .filter((p) => {
+            const workflow = workflowByProject.get(p.id) ?? NO_WORKFLOW;
+            return isStaleUnsignedAgreement(
+              p,
+              {
+                checklistCompleted: workflow.siteVisitDone,
+                agreementSigned: workflow.approved || workflow.agreementState === 'signed',
+              },
+              nowMs,
+            );
+          })
+          .map((p) => p.id)
+      : [],
+  );
+
   const supervisorView = options.supervisorView ?? false;
   const resetMs = Date.parse(PROTOTYPE_RESET_AT);
 
@@ -454,6 +491,7 @@ export async function loadAdminDashboardData(
   const agreements: AdminAgreementRow[] = projects
     .filter((p) => {
       if (p.status === 'cancelled' || isApprovedActive(p.id) || !biddingHasEnded(p)) return false;
+      if (staleUnsignedIds.has(p.id)) return false;
       if (awaitingCompanyCall(p.id)) return false;
       if (supervisorView && new Date(p.bidding_ends_at).getTime() < resetMs) return false;
       return true;
@@ -511,6 +549,7 @@ export async function loadAdminDashboardData(
       (p) =>
         p.callVerificationStatus !== 'pending' &&
         !isApprovedActive(p.id) &&
+        !staleUnsignedIds.has(p.id) &&
         p.status === 'active_24h' &&
         new Date(p.biddingEndsAt).getTime() > nowMs,
     ),
@@ -519,7 +558,12 @@ export async function loadAdminDashboardData(
 
   const pendingCallProjects = supervisorView
     ? []
-    : projectRows.filter((p) => p.callVerificationStatus === 'pending');
+    : projectRows.filter(
+        (p) =>
+          p.callVerificationStatus === 'pending' &&
+          p.status !== 'cancelled' &&
+          !staleUnsignedIds.has(p.id),
+      );
 
   const kpis: AdminKpis = {
     liveAuctions: projects.filter((p) => p.status === 'active_24h').length,
