@@ -112,6 +112,7 @@ import {
 import { ADDITIONAL_REQUIREMENTS_PLACEHOLDER, ProjectStartDatePicker, WIZARD_SECTION_LABEL, WizardAccentLabels, withSectionColon } from '@/components/owner/wizard/StartTimeAndNotes';
 import { ReviewSummaryList, WizardStepper } from '@/components/owner/wizard/ReviewSummary';
 import { StepGuidanceNotes } from '@/components/owner/wizard/StepGuidanceNotes';
+import { BIDDING_DURATION_HELPER, SELECTION_WINDOW_REVIEW } from '@/lib/auction/selectionWindow';
 import { FloorCopyFromSelect } from '@/components/owner/wizard/FloorCopyFromSelect';
 import {
   FLOOR_COPY_MANUAL_VALUE,
@@ -1530,7 +1531,7 @@ export function LabourContractorProjectWizard() {
                 </Select>
                 <FieldError message={step1ValidationAttempted ? step1Errors.bidding : undefined} />
                 <p className="text-[11px] font-medium text-blue-600">
-                  After bidding closes you have 3 minutes to select a mistri worker.
+                  {BIDDING_DURATION_HELPER}
                 </p>
               </div>
 
@@ -2143,7 +2144,7 @@ export function LabourContractorProjectWizard() {
                         ? '3 minutes from launch'
                         : '24 hours from launch',
                   },
-                  { label: 'Selection Window', value: '3 minutes after bids close' },
+                  { label: 'Selection Window', value: SELECTION_WINDOW_REVIEW },
                 ]}
               />
 

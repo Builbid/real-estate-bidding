@@ -21,6 +21,7 @@ import { FieldError, useScrollToFirstInvalid } from '@/components/owner/wizard/f
 import { ADDITIONAL_REQUIREMENTS_PLACEHOLDER, ProjectStartDatePicker, WIZARD_SECTION_LABEL, WizardAccentLabels, withSectionColon } from '@/components/owner/wizard/StartTimeAndNotes';
 import { ReviewSummaryList, WizardStepper } from '@/components/owner/wizard/ReviewSummary';
 import { StepGuidanceNotes } from '@/components/owner/wizard/StepGuidanceNotes';
+import { BIDDING_DURATION_HELPER, SELECTION_WINDOW_REVIEW } from '@/lib/auction/selectionWindow';
 import { laborOnlyMaterialsNote } from '@/lib/laborMaterialsNote';
 import { generateProjectTitle } from '@/lib/generateProjectTitle';
 import { hasContactInfo } from '@/lib/validation/projectContactInfo';
@@ -817,7 +818,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                 </Select>
                 <FieldError message={step1ValidationAttempted ? step1Errors.bidding : undefined} />
                 <p className="text-[11px] font-medium text-brand">
-                  After bidding closes you have 3 minutes to select a {tradeLabel.toLowerCase()}.
+                  {BIDDING_DURATION_HELPER}
                 </p>
               </div>
 
@@ -1214,7 +1215,7 @@ export function TradeServiceProjectWizard({ trade }: TradeServiceProjectWizardPr
                         ? '3 minutes from launch'
                         : '24 hours from launch',
                   },
-                  { label: 'Selection Window', value: '3 minutes after bids close' },
+                  { label: 'Selection Window', value: SELECTION_WINDOW_REVIEW },
                 ]}
               />
 

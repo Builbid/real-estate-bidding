@@ -20,6 +20,7 @@ import { isPlumberService, buildPlumberAgreementPayload } from '@/lib/contract/p
 import { isElectricianService, buildElectricianAgreementPayload } from '@/lib/contract/electricianAgreement';
 import { isPainterService, buildPainterAgreementPayload } from '@/lib/contract/painterAgreement';
 import { AgreementForm } from '@/components/contract/AgreementForm';
+import { SELECTION_WINDOW_MS } from '@/lib/auction/selectionWindow';
 interface BuilderInfo {
   id: string;
   full_name: string;
@@ -50,7 +51,7 @@ async function getData(id: string) {
       .from('projects')
       .update({
         status: 'frozen_24h',
-        selection_ends_at: new Date(Date.now() + 3 * 60 * 1000).toISOString(),
+        selection_ends_at: new Date(Date.now() + SELECTION_WINDOW_MS).toISOString(),
       })
       .eq('id', id)
       .eq('status', 'active_24h');

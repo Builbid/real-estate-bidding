@@ -3,9 +3,8 @@
 import { createClient }      from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { archiveUnsignedAgreements } from '@/lib/dashboard/archiveUnsignedAgreements'
+import { SELECTION_WINDOW_MS } from '@/lib/auction/selectionWindow'
 import type { SupabaseClient } from '@supabase/supabase-js'
-
-const SELECTION_WINDOW_MS = 3 * 60 * 1000   // 3 minutes in ms
 
 /** Returns admin client if the service-role key is available, otherwise the
  *  regular server client (works for the logged-in user's own projects). */

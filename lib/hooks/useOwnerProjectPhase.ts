@@ -5,9 +5,8 @@ import { createClient } from '@/lib/supabase/client';
 import { useCountdown } from '@/lib/hooks/useCountdown';
 import { triggerProjectTransition } from '@/app/actions/auction';
 import { getProjectPhase, type ProjectPhase } from '@/lib/utils';
+import { SELECTION_WINDOW_MS } from '@/lib/auction/selectionWindow';
 import type { Project, ProjectStatus } from '@/lib/types';
-
-const SELECTION_WINDOW_MS = 3 * 60 * 1000;
 
 function deriveOwnerPhase(project: Project, biddingHasEnded: boolean): ProjectPhase {
   if (project.status === 'completed' || project.status === 'cancelled') return 'done';

@@ -16,6 +16,7 @@ import { FORM_CONTINUE_BTN, FORM_SECTION_CARD, FORM_SHELL_CARD } from '@/compone
 import { FieldError, useScrollToFirstInvalid } from '@/components/owner/wizard/fieldValidation';
 import { ReviewSummaryList, WizardStepper } from '@/components/owner/wizard/ReviewSummary';
 import { StepGuidanceNotes } from '@/components/owner/wizard/StepGuidanceNotes';
+import { BIDDING_DURATION_HELPER, SELECTION_WINDOW_REVIEW } from '@/lib/auction/selectionWindow';
 import { laborOnlyMaterialsNote } from '@/lib/laborMaterialsNote';
 import { BuildingTypeSelector } from '@/components/construction/BuildingTypeSelector';
 import {
@@ -432,7 +433,7 @@ export function DrawingDesignProjectWizard() {
                 </Select>
                 <FieldError message={step1ValidationAttempted ? step1Errors.bidding : undefined} />
                 <p className="text-[11px] font-medium text-brand">
-                  After bidding closes you have 3 minutes to select a designer.
+                  {BIDDING_DURATION_HELPER}
                 </p>
               </div>
 
@@ -575,7 +576,7 @@ export function DrawingDesignProjectWizard() {
                         ? '3 minutes from launch'
                         : '24 hours from launch',
                   },
-                  { label: 'Selection Window', value: '3 minutes after bids close' },
+                  { label: 'Selection Window', value: SELECTION_WINDOW_REVIEW },
                 ]}
               />
 
