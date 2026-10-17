@@ -126,9 +126,46 @@ interface DashboardProjectRecord {
   budget_range_max: number | null;
   created_at: string;
   updated_at: string;
+  description?: string | null;
+  plot_area_sqft?: number | null;
+  floor_area_sqft?: number | null;
+  mistri_details?: unknown;
+  trade_details?: unknown;
   builder_selected_at?: string | null;
   call_verification_status?: CallVerificationStatus;
   owner_callback_phone?: string | null;
+}
+
+function positiveAmount(value: unknown): number | null {
+  const amount = typeof value === 'number' ? value : typeof value === 'string' ? Number(value) : NaN;
+  return Number.isFinite(amount) && amount > 0 ? amount : null;
+}
+
+function readPlinthArea(project: DashboardProjectRecord): number | null {
+  const direct = positiveAmount(project.floor_area_sqft) ?? positiveAmount(project.plot_area_sqft);
+  if (direct) return direct;
+  for (const source of [project.mistri_details, project.trade_details]) {
+    if (!source || typeof source !== 'object') continue;
+    const record = source as Record<string, unknown>;
+    const nested =
+      positiveAmount(record.approximateAreaSqft) ??
+      positiveAmount(record.approxBuiltUpAreaSqft) ??
+      positiveAmount(record.approxAreaSqft) ??
+      positiveAmount(record.plinthAreaSqft);
+    if (nested) return nested;
+  }
+  return null;
+}
+
+function readProjectNotes(project: DashboardProjectRecord): string | null {
+  const description = typeof project.description === 'string' ? project.description.trim() : '';
+  if (description) return description;
+  for (const source of [project.mistri_details, project.trade_details]) {
+    if (!source || typeof source !== 'object') continue;
+    const extra = (source as Record<string, unknown>).additionalRequirements;
+    if (typeof extra === 'string' && extra.trim()) return extra.trim();
+  }
+  return null;
 }
 
 type ProjectQueryResult = {
@@ -171,6 +208,12 @@ export interface AdminAgreementRow {
   projectTitle: string;
   clientName: string;
   mistriName: string;
+  mistriPhone: string | null;
+  serviceType: string | null;
+  location: string;
+  plinthAreaSqft: number | null;
+  approximateCost: number | null;
+  projectNotes: string | null;
   rateSummary: string;
   executionDate: string;
   district: string;
@@ -261,6 +304,83 @@ export function formatSupervisorAdminId(userId: string): string {
   return formatBuilbidPublicId(userId).replace(/^BB-/, 'SUP-');
 }
 
+/** Fills the Mistri column from the awarded worker, including phone, via the service role. */
+async function attachSelectedWorkers(rows: AdminAgreementRow[]): Promise<void> {
+  if (rows.length === 0) return;
+  try {
+    const admin = createAdminClient();
+    const ids = rows.map((row) => row.projectId);
+    const [{ data: projectRows }, { data: bidRows }] = await Promise.all([
+      admin.from('projects').select('id, selected_builder_id').in('id', ids),
+      admin
+        .from('bids')
+        .select('project_id, builder_id, is_withdrawn, total_sum_metric')
+        .in('project_id', ids)
+        .limit(5000),
+    ]);
+
+    const selectedByProject = new Map<string, string | null>();
+    for (const row of (projectRows ?? []) as Array<{ id: string; selected_builder_id: string | null }>) {
+      selectedByProject.set(row.id, row.selected_builder_id);
+    }
+
+    const bidsByProject = new Map<string, Array<{ builder_id: string; withdrawn: boolean; amount: number }>>();
+    for (const bid of (bidRows ?? []) as Array<{
+      project_id: string;
+      builder_id: string | null;
+      is_withdrawn: boolean | null;
+      total_sum_metric: number | string | null;
+    }>) {
+      if (!bid.builder_id) continue;
+      const list = bidsByProject.get(bid.project_id) ?? [];
+      list.push({
+        builder_id: bid.builder_id,
+        withdrawn: bid.is_withdrawn === true,
+        amount: Number(bid.total_sum_metric) || 0,
+      });
+      bidsByProject.set(bid.project_id, list);
+    }
+
+    function workerIdFor(projectId: string): string | null {
+      const selected = selectedByProject.get(projectId)?.trim();
+      if (selected) return selected;
+      const bids = bidsByProject.get(projectId) ?? [];
+      const active = bids.filter((bid) => !bid.withdrawn);
+      const pool = active.length > 0 ? active : bids;
+      pool.sort((a, b) => a.amount - b.amount);
+      return pool[0]?.builder_id ?? null;
+    }
+
+    const workerIds = [...new Set(rows.map((row) => workerIdFor(row.projectId)).filter(Boolean))] as string[];
+    if (workerIds.length === 0) return;
+
+    const { data: profiles } = await admin
+      .from('profiles')
+      .select('id, full_name, company_name, mobile')
+      .in('id', workerIds);
+    const profileById = new Map(
+      ((profiles ?? []) as Array<{
+        id: string;
+        full_name: string | null;
+        company_name: string | null;
+        mobile: string | null;
+      }>).map((profile) => [profile.id, profile]),
+    );
+
+    for (const row of rows) {
+      const workerId = workerIdFor(row.projectId);
+      const profile = workerId ? profileById.get(workerId) : undefined;
+      if (!profile) continue;
+      const name = profile.company_name?.trim() || profile.full_name?.trim() || '';
+      if (name) row.mistriName = name;
+      const phone = profile.mobile?.trim() || '';
+      if (phone) row.mistriPhone = phone;
+    }
+  } catch (err) {
+    console.error('[admin dashboard] selected worker lookup failed (non-fatal):', err);
+  }
+}
+
 export async function loadAdminDashboardData(
   options: {
     /**
@@ -298,6 +418,7 @@ export async function loadAdminDashboardData(
     'id, numeric_id, title, district, state, pincode, status, bidding_ends_at, selection_ends_at, owner_id, selected_builder_id, service_type, budget_range_min, budget_range_max, created_at, updated_at';
   const callProjectColumns = `${baseProjectColumns}, call_verification_status, owner_callback_phone`;
   const stampedProjectColumns = `${callProjectColumns}, builder_selected_at`;
+  const detailProjectColumns = `${stampedProjectColumns}, description, plot_area_sqft, floor_area_sqft, mistri_details, trade_details`;
 
   async function fetchProjects(columns: string): Promise<ProjectQueryResult> {
     const base = supabase.from('projects').select(columns);
@@ -311,7 +432,13 @@ export async function loadAdminDashboardData(
     };
   }
 
-  let projectsResult = await fetchProjects(stampedProjectColumns);
+  let projectsResult = await fetchProjects(detailProjectColumns);
+  if (
+    projectsResult.error &&
+    /description|plot_area_sqft|floor_area_sqft|mistri_details|trade_details/i.test(projectsResult.error.message)
+  ) {
+    projectsResult = await fetchProjects(stampedProjectColumns);
+  }
   if (projectsResult.error && /builder_selected_at/i.test(projectsResult.error.message)) {
     projectsResult = await fetchProjects(callProjectColumns);
   }
@@ -502,6 +629,8 @@ export async function loadAdminDashboardData(
       const awardeeId = p.selected_builder_id ?? lowestBidByProject.get(p.id)?.builder_id ?? null;
       const mistri = awardeeId ? profileById.get(awardeeId) : undefined;
       const win = bids.find((b) => b.project_id === p.id && b.builder_id === awardeeId);
+      const bidAmount = win != null ? positiveAmount(win.total_sum_metric) : null;
+      const location = [p.district, p.state, p.pincode].filter(Boolean).join(', ') || '—';
       return {
         provisional,
         projectId: p.id,
@@ -509,9 +638,15 @@ export async function loadAdminDashboardData(
         projectTitle: p.title,
         clientName: owner?.full_name ?? '—',
         mistriName: mistri?.company_name || mistri?.full_name || '—',
+        mistriPhone: mistri?.mobile?.trim() || null,
+        serviceType: p.service_type,
+        location,
+        plinthAreaSqft: readPlinthArea(p),
+        approximateCost: bidAmount ?? positiveAmount(p.budget_range_max) ?? positiveAmount(p.budget_range_min),
+        projectNotes: readProjectNotes(p),
         rateSummary:
-          win != null
-            ? `₹${Number(win.total_sum_metric).toLocaleString('en-IN')}`
+          bidAmount != null
+            ? `₹${bidAmount.toLocaleString('en-IN')}`
             : '—',
         executionDate: p.updated_at || p.created_at,
         district: p.district,
@@ -519,6 +654,8 @@ export async function loadAdminDashboardData(
         postedAt: p.created_at,
       };
     });
+
+  await attachSelectedWorkers(agreements);
 
   const pendingApprovals = workers.filter((w) => !w.isVerified).length;
 

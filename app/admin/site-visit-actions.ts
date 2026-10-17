@@ -22,6 +22,7 @@ import type { BidRates } from '@/lib/types';
 import { finalizeApprovedAgreement } from '@/lib/admin/agreementPackage';
 import { projectTerritoryError } from '@/lib/admin/territory';
 import { PROTOTYPE_AUTO_AGREEMENT } from '@/lib/admin/prototype';
+import { ensureProjectWorkerId } from '@/lib/admin/resolveProjectWorker';
 import { findProjectByAnyId } from '@/lib/contract/resolveProjectId';
 import type { DigitalContractRecord } from '@/lib/contract/renderDigitalContract';
 
@@ -39,55 +40,12 @@ async function resolveAssignedProject(projectRef: string, session: { userId: str
   if (!project) return { error: 'Project not found.' as const };
   const territoryError = await projectTerritoryError(admin, session, project.id);
   if (territoryError) return { error: territoryError as string };
-  if (!project.selected_builder_id) {
-    // Prototype testing: a closed project with bids is auto-awarded to its lowest bidder
-    // the first time the supervisor works on it (no separate accept / company step).
-    const awarded = PROTOTYPE_AUTO_AGREEMENT
-      ? await awardLowestBidder(admin, project.id, project.status)
-      : null;
-    if (!awarded || 'error' in awarded) {
-      return {
-        error:
-          (awarded && 'error' in awarded ? awarded.error : null) ??
-          ('A site visit can be recorded only after a Mistri / contractor is finalized for this project.' as const),
-      };
-    }
-    return { admin, project: { ...project, selected_builder_id: awarded.builderId } };
-  }
-  return { admin, project };
-}
+  if (project.status === 'cancelled') return { error: 'This project was cancelled.' as const };
 
-/** Awards the lowest active bid. Guarded so a concurrent owner award is never overwritten. */
-async function awardLowestBidder(
-  admin: ReturnType<typeof createAdminClient>,
-  projectId: string,
-  status: string,
-): Promise<{ builderId: string } | { error: string }> {
-  if (status === 'cancelled') return { error: 'This project was cancelled.' };
-  const { data: bid } = await admin
-    .from('bids')
-    .select('builder_id')
-    .eq('project_id', projectId)
-    .eq('is_withdrawn', false)
-    .order('total_sum_metric', { ascending: true })
-    .limit(1)
-    .maybeSingle();
-  if (!bid?.builder_id) return { error: 'This project has no active bids to award.' };
-
-  const { error } = await admin
-    .from('projects')
-    .update({ selected_builder_id: bid.builder_id, updated_at: new Date().toISOString() })
-    .eq('id', projectId)
-    .is('selected_builder_id', null);
-  if (error) return { error: error.message };
-
-  // Re-read in case an owner award won the race.
-  const { data: fresh } = await admin
-    .from('projects')
-    .select('selected_builder_id')
-    .eq('id', projectId)
-    .maybeSingle();
-  return { builderId: (fresh?.selected_builder_id as string | null) ?? bid.builder_id };
+  // An owner award opens the checklist immediately. If the award was not stored,
+  // attach the selected or lowest bid without blocking the inspection form.
+  const workerId = await ensureProjectWorkerId(admin, project.id, project.selected_builder_id);
+  return { admin, project: { ...project, selected_builder_id: workerId } };
 }
 
 async function isAlreadyApproved(
@@ -114,15 +72,15 @@ async function loadMeasurementTemplate(
   const { data: project } = await admin.from('projects').select('*').eq('id', projectId).maybeSingle();
   let rates: BidRates | null = null;
   if (builderId) {
-    const { data: bid } = await admin
+    const { data: bidRows } = await admin
       .from('bids')
-      .select('rates')
+      .select('rates, is_withdrawn')
       .eq('project_id', projectId)
       .eq('builder_id', builderId)
-      .eq('is_withdrawn', false)
-      .limit(1)
-      .maybeSingle();
-    rates = (bid?.rates as BidRates | null | undefined) ?? null;
+      .limit(5);
+    const rows = (bidRows ?? []) as Array<{ rates: BidRates | null; is_withdrawn: boolean | null }>;
+    const active = rows.find((bid) => bid.is_withdrawn !== true && bid.rates);
+    rates = (active ?? rows.find((bid) => bid.rates))?.rates ?? null;
   }
   const floors = Number(project?.total_floors);
   return {

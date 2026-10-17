@@ -25,6 +25,7 @@ import {
   type DigitalContractRecord,
 } from '@/lib/contract/renderDigitalContract';
 import { sendDigitalContractDraftEmails } from '@/lib/email/sendDigitalContract';
+import { shareAgreementCopyAction } from '@/app/admin/agreement-share-actions';
 import { parseIndianDateToIso } from '@/lib/projectStartTime';
 import {
   extractProjectIdFromRecord,
@@ -343,17 +344,22 @@ export async function verifyEmbeddedAgreementOtpAction(
   }
 
   const result = await finalizeApprovedAgreement(updated as DigitalContractRecord);
+  const shared = await publishVerifiedAgreement(draft.project.id, draft);
   if (!result.approved) {
     return {
       ok: true,
       bothSigned: true,
-      message: `Both OTPs are verified, but final approval is pending: ${result.warning ?? 'dispatch failed'}.`,
+      message: shared.error
+        ? `Both OTPs are verified, but sharing is pending: ${shared.error}`
+        : `Both OTPs are verified, but final approval is pending: ${result.warning ?? 'dispatch failed'}.`,
     };
   }
   return {
     ok: true,
     bothSigned: true,
-    message: 'Both Aadhaar OTPs are verified. The agreement is Approved / Active.',
+    message: shared.error
+      ? `Both Aadhaar OTPs are verified. Sharing to the dashboards is pending: ${shared.error}`
+      : 'Both Aadhaar OTPs are verified. The agreement is on the Homeowner and Worker dashboards.',
   };
 }
 
@@ -529,11 +535,31 @@ export async function verifyPrototypeEsignAction(input: {
     if (forceError) return { error: forceError.message };
   }
 
+  const shared = await publishVerifiedAgreement(draft.project.id, draft);
   revalidatePath('/admin/dashboard');
   revalidatePath(`/admin/agreement/${draft.project.id}`);
   return {
     ok: true,
     bothSigned: true,
-    message: 'Verified. The agreement is Approved / Active.',
+    message: shared.error
+      ? `Verified. Sharing to the dashboards is pending: ${shared.error}`
+      : 'Verified. The agreement is on the Homeowner and Worker dashboards.',
   };
+}
+
+async function publishVerifiedAgreement(
+  projectId: string,
+  draft: { client: { accountId: string }; contractor: { platformId: string }; defaults: { startDate: string; completionDate: string } },
+): Promise<{ error?: string }> {
+  const shared = await shareAgreementCopyAction(projectId, {
+    startDate: draft.defaults.startDate,
+    completionDate: draft.defaults.completionDate,
+    partyA: draft.client.accountId,
+    partyB: draft.contractor.platformId,
+  });
+  revalidatePath('/dashboard/owner');
+  revalidatePath('/dashboard/builder');
+  revalidatePath('/dashboard/worker');
+  revalidatePath('/dashboard/profile');
+  return shared.error ? { error: shared.error } : {};
 }

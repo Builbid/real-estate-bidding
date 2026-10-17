@@ -6,6 +6,7 @@ import type { DigitalContractRecord } from '@/lib/contract/renderDigitalContract
 import { formatBuilbidPublicId } from '@/lib/contract/agreementPdf';
 import { agreementFittingLabel, agreementSiteAddress } from '@/lib/admin/fittingLabel';
 import { isMistriCivilService } from '@/lib/contract/mistriAgreement';
+import { ensureProjectWorkerId } from '@/lib/admin/resolveProjectWorker';
 
 export interface AgreementDraft {
   project: {
@@ -73,9 +74,11 @@ export async function loadAgreementDraft(
     'id, numeric_id, title, district, state, pincode, owner_id, selected_builder_id, service_type, budget_range_max, trade_details',
   );
   if (!project) return { error: 'Project not found.' };
-  if (!project.selected_builder_id) {
-    return { error: 'No Mistri / contractor has been finalized for this project yet.' };
+  const workerId = await ensureProjectWorkerId(admin, project.id, project.selected_builder_id);
+  if (!workerId) {
+    return { error: 'No Worker has been selected for this project yet.' };
   }
+  project.selected_builder_id = workerId;
 
   const [{ data: owner }, { data: builder }, { data: bid }, visit, contractRes, commissionRes] =
     await Promise.all([

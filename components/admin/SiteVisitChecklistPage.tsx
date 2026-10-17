@@ -438,8 +438,12 @@ export function SiteVisitChecklistPage({ projectId }: { projectId: string }) {
         return;
       }
       writeDraft(formRef.current);
-      setSavedNotice(true);
-      toast.success('Checklist saved.');
+      const result = await goToAgreementAction(projectId);
+      if (result.href) {
+        router.push(result.href);
+        return;
+      }
+      setError(result.error ?? 'Could not open the agreement.');
     });
   }
 
@@ -784,7 +788,7 @@ export function SiteVisitChecklistPage({ projectId }: { projectId: string }) {
                 disabled={saving || opening}
               >
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                {saving ? 'Saving…' : 'Save Checklist'}
+                {saving ? 'Submitting…' : 'Submit checklist'}
               </Button>
               <Button
                 type="button"

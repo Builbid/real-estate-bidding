@@ -54,6 +54,13 @@ import {
 import { formatMobileDisplay } from '@/lib/validation/mobile';
 import { CreateContractAgreementModal } from '@/components/admin/CreateContractAgreementModal';
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
   settleSupervisorMonthAction,
   updateSupervisorPincodesAction,
 } from '@/app/admin/supervisor-actions';
@@ -419,6 +426,7 @@ export function AdminDashboardClient({
     title: string;
     clientName: string;
   } | null>(null);
+  const [detailAgreement, setDetailAgreement] = useState<AdminAgreementRow | null>(null);
 
   function openContractModal(row: {
     id?: string | null;
@@ -496,7 +504,8 @@ export function AdminDashboardClient({
           (a) =>
             a.projectTitle.toLowerCase().includes(q) ||
             a.clientName.toLowerCase().includes(q) ||
-            a.mistriName.toLowerCase().includes(q),
+            a.mistriName.toLowerCase().includes(q) ||
+            (a.mistriPhone ?? '').includes(q),
         );
     return sortByTimestampDesc(rows, (row) => row.postedAt);
   }, [agreementRows, query]);
@@ -1113,12 +1122,24 @@ export function AdminDashboardClient({
                             <p className="mt-0.5 text-xs font-semibold text-slate-800 dark:text-slate-100">
                               {a.district} · ID: {displayProjectId(a.publicId, a.projectId)}
                             </p>
+                            <button
+                              type="button"
+                              onClick={() => setDetailAgreement(a)}
+                              className="mt-2 inline-flex items-center rounded-md border border-slate-300 bg-slate-900 px-2 py-0.5 text-[11px] font-medium text-slate-100 transition-transform hover:scale-105 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+                            >
+                              View Details
+                            </button>
                           </td>
                           <td className={cn(TD, 'text-sm font-semibold text-slate-950 dark:text-white')}>
                             {a.clientName}
                           </td>
                           <td className={cn(TD, 'text-sm font-semibold text-slate-950 dark:text-white')}>
-                            {a.mistriName}
+                            <p>{a.mistriName}</p>
+                            {a.mistriPhone ? (
+                              <p className="mt-0.5 text-xs font-medium text-slate-500 dark:text-slate-300">
+                                {formatMobileDisplay(a.mistriPhone)}
+                              </p>
+                            ) : null}
                           </td>
                           <td className={cn(TD, 'text-xs text-slate-500')}>
                             {formatDate(a.executionDate)}
@@ -1128,7 +1149,7 @@ export function AdminDashboardClient({
                               {supervisorPortal ? (
                                 <Link
                                   href={`/admin/dashboard/checklist/${a.projectId}`}
-                                  className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 shadow-xs transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200"
+                                  className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 shadow-xs transition-transform hover:scale-105 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-800"
                                 >
                                   <ClipboardCheck className="h-3 w-3" />
                                   Site Visit Checklist
@@ -1187,6 +1208,39 @@ export function AdminDashboardClient({
           ) : null}
         </main>
       </div>
+      <Dialog open={Boolean(detailAgreement)} onOpenChange={(open) => { if (!open) setDetailAgreement(null); }}>
+        <DialogContent className="dark border-slate-700 bg-slate-950 text-slate-100">
+          <DialogHeader>
+            <DialogTitle>{detailAgreement?.projectTitle ?? 'Project details'}</DialogTitle>
+            <DialogDescription>
+              {detailAgreement
+                ? `${detailAgreement.district} · ID: ${displayProjectId(detailAgreement.publicId, detailAgreement.projectId)}`
+                : ''}
+            </DialogDescription>
+          </DialogHeader>
+          {detailAgreement ? (
+            <dl className="space-y-3 text-sm">
+              {[
+                ['Service Type', resolveAdminTradeBadge(detailAgreement.serviceType).label],
+                ['Location', detailAgreement.location || '—'],
+                [
+                  'Plinth Area (Sq. Ft.)',
+                  detailAgreement.plinthAreaSqft != null
+                    ? detailAgreement.plinthAreaSqft.toLocaleString('en-IN')
+                    : '—',
+                ],
+                ['Approximate Cost', formatMoney(detailAgreement.approximateCost)],
+                ['Project Notes', detailAgreement.projectNotes || '—'],
+              ].map(([label, value]) => (
+                <div key={label}>
+                  <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{label}</dt>
+                  <dd className="mt-0.5 whitespace-pre-wrap text-slate-100">{value}</dd>
+                </div>
+              ))}
+            </dl>
+          ) : null}
+        </DialogContent>
+      </Dialog>
       <CreateContractAgreementModal
         key={contractProject?.id ?? 'closed'}
         open={Boolean(contractProject)}
