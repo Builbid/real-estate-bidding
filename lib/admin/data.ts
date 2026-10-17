@@ -310,8 +310,15 @@ async function attachSelectedWorkers(rows: AdminAgreementRow[]): Promise<void> {
   try {
     const admin = createAdminClient();
     const ids = rows.map((row) => row.projectId);
-    const [{ data: projectRows }, { data: bidRows }] = await Promise.all([
-      admin.from('projects').select('id, selected_builder_id').in('id', ids),
+    const stampedProjects = await admin
+      .from('projects')
+      .select('id, selected_builder_id, owner_id, builder_selected_at')
+      .in('id', ids);
+    const projectLookup = stampedProjects.error
+      ? await admin.from('projects').select('id, selected_builder_id, owner_id').in('id', ids)
+      : stampedProjects;
+
+    const [{ data: bidRows }] = await Promise.all([
       admin
         .from('bids')
         .select('project_id, builder_id, is_withdrawn, total_sum_metric')
@@ -320,8 +327,17 @@ async function attachSelectedWorkers(rows: AdminAgreementRow[]): Promise<void> {
     ]);
 
     const selectedByProject = new Map<string, string | null>();
-    for (const row of (projectRows ?? []) as Array<{ id: string; selected_builder_id: string | null }>) {
+    const ownerByProject = new Map<string, string | null>();
+    const awardedAtByProject = new Map<string, string | null>();
+    for (const row of (projectLookup.data ?? []) as Array<{
+      id: string;
+      selected_builder_id: string | null;
+      owner_id?: string | null;
+      builder_selected_at?: string | null;
+    }>) {
       selectedByProject.set(row.id, row.selected_builder_id);
+      ownerByProject.set(row.id, row.owner_id ?? null);
+      awardedAtByProject.set(row.id, row.builder_selected_at ?? null);
     }
 
     const bidsByProject = new Map<string, Array<{ builder_id: string; withdrawn: boolean; amount: number }>>();
@@ -352,12 +368,14 @@ async function attachSelectedWorkers(rows: AdminAgreementRow[]): Promise<void> {
     }
 
     const workerIds = [...new Set(rows.map((row) => workerIdFor(row.projectId)).filter(Boolean))] as string[];
-    if (workerIds.length === 0) return;
+    const ownerIds = [...new Set([...ownerByProject.values()].filter(Boolean))] as string[];
+    const profileIds = [...new Set([...workerIds, ...ownerIds])];
+    if (profileIds.length === 0) return;
 
     const { data: profiles } = await admin
       .from('profiles')
       .select('id, full_name, company_name, mobile')
-      .in('id', workerIds);
+      .in('id', profileIds);
     const profileById = new Map(
       ((profiles ?? []) as Array<{
         id: string;
@@ -368,6 +386,14 @@ async function attachSelectedWorkers(rows: AdminAgreementRow[]): Promise<void> {
     );
 
     for (const row of rows) {
+      const awardedAt = awardedAtByProject.get(row.projectId);
+      if (awardedAt) row.executionDate = awardedAt;
+
+      const owner = ownerByProject.get(row.projectId);
+      const ownerProfile = owner ? profileById.get(owner) : undefined;
+      const ownerName = ownerProfile?.full_name?.trim() || '';
+      if (ownerName) row.clientName = ownerName;
+
       const workerId = workerIdFor(row.projectId);
       const profile = workerId ? profileById.get(workerId) : undefined;
       if (!profile) continue;
@@ -573,8 +599,9 @@ export async function loadAdminDashboardData(
       createdAt: p.created_at,
     }));
 
-  // When live bidding ends, the project leaves Projects and becomes an agreement.
-  // The lowest bidder fills the Mistri column until a formal award is stored.
+  // An awarded project enters Agreements the moment the owner selects a worker,
+  // including during live or quick bidding. Unawarded projects still wait until
+  // bidding ends. The lowest bidder fills Mistri only until a formal award exists.
   const lowestBidByProject = new Map<string, { builder_id: string; total_sum_metric: number }>();
   for (const bid of bids) {
     const current = lowestBidByProject.get(bid.project_id);
@@ -614,13 +641,15 @@ export async function loadAdminDashboardData(
   const supervisorView = options.supervisorView ?? false;
   const resetMs = Date.parse(PROTOTYPE_RESET_AT);
 
-  // Agreements: bidding has ended, and both parties have not yet finished Aadhaar eSign.
+  // Agreements: the owner has awarded a worker, or bidding has ended without an award.
+  // A selection during live or quick bidding is enough; do not wait for the timer.
   // Supervisor view still hides auctions that ended before the prototype reset.
   const agreements: AdminAgreementRow[] = projects
     .filter((p) => {
-      if (p.status === 'cancelled' || p.status === 'expired' || isApprovedActive(p.id) || !biddingHasEnded(p)) return false;
+      if (p.status === 'cancelled' || p.status === 'expired' || isApprovedActive(p.id)) return false;
       if (staleUnsignedIds.has(p.id)) return false;
-      if (awaitingCompanyCall(p.id)) return false;
+      const awarded = Boolean(p.selected_builder_id);
+      if (!awarded && (!biddingHasEnded(p) || awaitingCompanyCall(p.id))) return false;
       if (supervisorView && new Date(p.bidding_ends_at).getTime() < resetMs) return false;
       return true;
     })
@@ -649,7 +678,7 @@ export async function loadAdminDashboardData(
           bidAmount != null
             ? `₹${bidAmount.toLocaleString('en-IN')}`
             : '—',
-        executionDate: p.updated_at || p.created_at,
+        executionDate: p.builder_selected_at || p.updated_at || p.created_at,
         district: p.district,
         workflow: workflowByProject.get(p.id) ?? NO_WORKFLOW,
         postedAt: p.created_at,
