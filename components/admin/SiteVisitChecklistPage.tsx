@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import { ArrowRight, Calendar, ClipboardCheck, Loader2, Save } from 'lucide-react';
 import { toast, Toaster } from 'sonner';
 import { BuilBidLogo } from '@/components/shared/BuilBidLogo';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { formatIndianDateInput, isoToIndianDate, parseIndianDateToIso } from '@/lib/projectStartTime';
 import {
@@ -24,7 +23,6 @@ import {
 } from '@/lib/admin/siteVisit';
 import {
   computeMeasuredCost,
-  effectiveUnitRate,
   groupMeasurementLines,
   lineAmount,
   type MeasurementLine,
@@ -122,19 +120,8 @@ function inr(value: number): string {
   return `₹${value.toLocaleString('en-IN')}`;
 }
 
-function lineFloorSteps(line: MeasurementLine): number {
-  if (line.floorSteps != null) return line.floorSteps;
-  if (line.rateMultiplier && line.rateMultiplier > 1) {
-    return Math.max(0, Math.round((line.rateMultiplier - 1) / 0.05));
-  }
-  return 0;
-}
-
 function rateCaption(line: MeasurementLine): string {
-  const steps = lineFloorSteps(line);
-  const amount = `${inr(effectiveUnitRate(line))} / ${line.unit}`;
-  if (steps <= 0) return `Base rate ${amount}`;
-  return `+${steps * 5}% Surcharge = ${amount}`;
+  return `Base rate ${inr(line.rate)} / ${line.unit}`;
 }
 
 function measuredAmount(line: MeasurementLine, raw: string): number {
@@ -256,7 +243,6 @@ export function SiteVisitChecklistPage({ projectId }: { projectId: string }) {
   }));
   const [template, setTemplate] = useState<MeasurementTemplate | null>(null);
   const [project, setProject] = useState<ChecklistProjectSummary | null>(null);
-  const [plinthTouched, setPlinthTouched] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -323,7 +309,6 @@ export function SiteVisitChecklistPage({ projectId }: { projectId: string }) {
             ...(draft?.measurements ?? {}),
           },
         });
-        setPlinthTouched((draft?.plinthAreaSqft ?? saved?.plinthAreaSqft ?? '').trim() !== '');
         readyRef.current = true;
       })
       .finally(() => {
@@ -367,11 +352,6 @@ export function SiteVisitChecklistPage({ projectId }: { projectId: string }) {
     setSavedNotice(false);
     setForm((prev) => {
       const merged = { ...prev, ...next, visitDate: todayIstIso() };
-      if (!plinthTouched && ('plotLengthFt' in next || 'plotWidthFt' in next)) {
-        const length = Number(merged.plotLengthFt);
-        const width = Number(merged.plotWidthFt);
-        merged.plinthAreaSqft = length > 0 && width > 0 ? String(Math.round(length * width)) : '';
-      }
       writeDraft(merged);
       return merged;
     });
@@ -406,7 +386,6 @@ export function SiteVisitChecklistPage({ projectId }: { projectId: string }) {
   const lines = useMemo(() => template?.lines ?? [], [template]);
   const cost = useMemo(() => computeMeasuredCost(lines, form.measurements), [lines, form.measurements]);
   const groups = useMemo(() => groupMeasurementLines(lines), [lines]);
-  const needsPlot = template?.needsPlotDimensions ?? false;
 
   const floorSubtotals = useMemo(
     () =>
@@ -470,14 +449,14 @@ export function SiteVisitChecklistPage({ projectId }: { projectId: string }) {
             <BuilBidLogo size="sm" />
           </Link>
           <Link
-            href="/admin/dashboard?tab=agreements"
+            href="/admin/dashboard"
             onClick={() => {
               writeDraft(formRef.current);
               persistToServer(formRef.current);
             }}
             className="text-sm font-medium text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
           >
-            Dashboard
+            Back
           </Link>
         </div>
       </header>
@@ -581,85 +560,17 @@ export function SiteVisitChecklistPage({ projectId }: { projectId: string }) {
               </div>
             </SectionCard>
 
-            <SectionCard
-              title="Agreed timelines"
-              hint="Type DD/MM/YYYY or open the calendar. These dates fill Section 4 of the agreement."
-            >
-              <div className="grid gap-3 sm:grid-cols-2">
-                <CompactChecklistDateField
-                  label="Agreed Start Date"
-                  value={form.agreedStartDate}
-                  onChange={(value) => patch({ agreedStartDate: value })}
-                />
-                <CompactChecklistDateField
-                  label="Target Completion Date"
-                  value={form.targetCompletionDate}
-                  onChange={(value) => patch({ targetCompletionDate: value })}
-                  minIso={form.agreedStartDate || undefined}
-                />
-              </div>
-            </SectionCard>
-
-            {needsPlot ? (
-              <SectionCard
-                title="Plot & plinth measurements"
-                hint="Civil / Mistri work: the plinth area auto-fills from length × width until you edit it."
-              >
-                <div className="grid gap-3 sm:grid-cols-3">
-                  <Input
-                    label="Plinth Length (ft)"
-                    accentLabel={false}
-                    type="number"
-                    min={0}
-                    inputMode="decimal"
-                    placeholder="PLINTH LENGTH"
-                    value={form.plotLengthFt}
-                    onChange={(e) => patch({ plotLengthFt: e.target.value })}
-                  />
-                  <Input
-                    label="Plinth Width (ft)"
-                    accentLabel={false}
-                    type="number"
-                    min={0}
-                    inputMode="decimal"
-                    placeholder="PLINTH WIDTH"
-                    value={form.plotWidthFt}
-                    onChange={(e) => patch({ plotWidthFt: e.target.value })}
-                  />
-                  <Input
-                    label="Measured Plinth Area (sq. ft.)"
-                    accentLabel={false}
-                    type="number"
-                    min={0}
-                    inputMode="decimal"
-                    placeholder="e.g. 1000"
-                    value={form.plinthAreaSqft}
-                    onChange={(e) => {
-                      setPlinthTouched(true);
-                      patch({ plinthAreaSqft: e.target.value });
-                    }}
-                  />
-                </div>
-              </SectionCard>
-            ) : null}
-
             {groups.length > 0 ? (
               <>
                 <p className="text-xs leading-relaxed text-slate-500">
-                  Items and base rates come from the accepted bid and stay locked. Enter only the quantity measured on site. Blank quantities count as zero. Upper floors add +5% on the 1st floor and +10% on the 2nd.
+                  Items and base rates come from the accepted bid and stay locked. Enter the measured plinth area for each floor. Blank quantities count as zero.
                 </p>
                 {groups.map((group) => {
                   const subtotal = floorSubtotals.find((row) => row.group === group.group)?.subtotal ?? 0;
-                  const surchargeSteps = Math.max(0, ...group.lines.map(lineFloorSteps));
                   return (
                     <SectionCard
                       key={group.group}
                       title={group.group}
-                      hint={
-                        surchargeSteps > 0
-                          ? `+${surchargeSteps * 5}% floor surcharge is applied to the locked base rate`
-                          : undefined
-                      }
                     >
                       <div className="space-y-2.5">
                         {group.lines.map((line) => {
@@ -700,7 +611,7 @@ export function SiteVisitChecklistPage({ projectId }: { projectId: string }) {
                                   min={0}
                                   step="any"
                                   inputMode="decimal"
-                                  placeholder="0"
+                                  placeholder=""
                                   aria-label={`${line.label} measured quantity (${line.unit})`}
                                   className={QTY_INPUT_CLASS}
                                   value={raw}
@@ -770,6 +681,25 @@ export function SiteVisitChecklistPage({ projectId }: { projectId: string }) {
                 value={form.siteNotes}
                 onChange={(e) => patch({ siteNotes: e.target.value })}
               />
+            </SectionCard>
+
+            <SectionCard
+              title="Agreed timelines"
+              hint="Type DD/MM/YYYY or open the calendar. These dates fill Section 4 of the agreement."
+            >
+              <div className="grid gap-3 sm:grid-cols-2">
+                <CompactChecklistDateField
+                  label="Agreed Start Date"
+                  value={form.agreedStartDate}
+                  onChange={(value) => patch({ agreedStartDate: value })}
+                />
+                <CompactChecklistDateField
+                  label="Target Completion Date"
+                  value={form.targetCompletionDate}
+                  onChange={(value) => patch({ targetCompletionDate: value })}
+                  minIso={form.agreedStartDate || undefined}
+                />
+              </div>
             </SectionCard>
 
             {error ? <p className="text-xs text-red-600 dark:text-red-400">{error}</p> : null}

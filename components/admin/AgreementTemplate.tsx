@@ -9,10 +9,12 @@ import {
   graceExtensionLabel,
 } from '@/lib/contract/agreementTerms';
 
-function floorSubtotalLabel(group: string, lines: MeasuredLineItem[]): string {
-  const multiplier = Math.max(...lines.map((line) => (line.rateMultiplier && line.rateMultiplier > 0 ? line.rateMultiplier : 1)));
-  const percent = Math.round((multiplier - 1) * 100);
-  return percent > 0 ? `${group} Subtotal (+${percent}% Floor Surcharge applied)` : `${group} Subtotal`;
+function settledLineAmount(item: MeasuredLineItem): number {
+  return Math.round((item.quantity > 0 ? item.quantity : 0) * effectiveUnitRate(item));
+}
+
+function floorSubtotalLabel(group: string): string {
+  return `${group} Subtotal`;
 }
 
 type DocCopy = {
@@ -255,7 +257,7 @@ export function AgreementTemplate({
   const datesReady = Boolean(startDate && completionDate);
   const districtPincode = [project.district, project.pincode].filter(Boolean).join(' / ') || '—';
   const groups = groupMeasurementLines(lineItems);
-  const grandTotal = lineItems.reduce((sum, item) => sum + item.amount, 0);
+  const grandTotal = lineItems.reduce((sum, item) => sum + settledLineAmount(item), 0);
   const graceDays = graceDaysForService(project.serviceType, project.isMistriCivil);
   const specRows = [...checklistRows];
   if (
@@ -356,16 +358,16 @@ export function AgreementTemplate({
                               {inr(effectiveUnitRate(item))}
                             </td>
                             <td className="px-3 py-1.5 text-right font-semibold tabular-nums text-slate-50">
-                              {inr(item.amount)}
+                              {inr(settledLineAmount(item))}
                             </td>
                           </tr>
                         ))}
                         <tr className="border-t border-teal-800 bg-slate-900">
                           <td className="px-3 py-2 font-bold text-teal-200" colSpan={3}>
-                            {floorSubtotalLabel(group.group, group.lines)}
+                            {floorSubtotalLabel(group.group)}
                           </td>
                           <td className="px-3 py-2 text-right font-bold tabular-nums text-teal-100">
-                            {inr(group.lines.reduce((sum, item) => sum + item.amount, 0))}
+                            {inr(group.lines.reduce((sum, item) => sum + settledLineAmount(item), 0))}
                           </td>
                         </tr>
                       </tbody>

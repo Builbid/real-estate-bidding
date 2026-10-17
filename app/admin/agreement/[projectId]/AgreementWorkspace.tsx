@@ -146,11 +146,11 @@ export function AgreementWorkspace(props: AgreementWorkspaceProps) {
     <main className="mx-auto w-full max-w-5xl space-y-5 p-4 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Link
-          href="/admin/dashboard?tab=agreements"
+          href={`/admin/dashboard/checklist/${project.id}`}
           className="inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-300 hover:text-emerald-200"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to dashboard
+          Back
         </Link>
         {approved ? (
           <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-800/50 bg-emerald-950/40 px-3 py-1 text-xs font-bold text-emerald-200">

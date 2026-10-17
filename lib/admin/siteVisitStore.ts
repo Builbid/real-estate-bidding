@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { soilLabel, type SiteVisitRecord, type SoilType } from '@/lib/admin/siteVisit';
-import type { MeasuredLineItem, MeasurementTradeKey } from '@/lib/admin/siteMeasurements';
+import { effectiveUnitRate, type MeasuredLineItem, type MeasurementTradeKey } from '@/lib/admin/siteMeasurements';
 
 export const SITE_VISIT_TABLE_MISSING_MESSAGE =
   'Database tables missing. Run supabase/migrations/061_site_visit_trade_measurements_and_shared_agreements.sql (self-contained, includes the 058 tables) in the Supabase SQL Editor, then retry.';
@@ -147,10 +147,10 @@ export function siteVisitSummary(visit: SiteVisitRecord | null): Record<string, 
     rows['Target Completion Date'] = visit.targetCompletionDate.split('-').reverse().join('/');
   }
   for (const item of visit.lineItems) {
+    const rate = effectiveUnitRate(item);
+    const amount = Math.round((item.quantity > 0 ? item.quantity : 0) * rate);
     rows[`${item.group} — ${item.label}`] =
-      `${item.quantity.toLocaleString('en-IN')} ${item.unit} × ${inrText(item.rate)}${
-        item.rateMultiplier ? ` × ${item.rateMultiplier}` : ''
-      } = ${inrText(item.amount)}`;
+      `${item.quantity.toLocaleString('en-IN')} ${item.unit} × ${inrText(rate)} = ${inrText(amount)}`;
   }
   if (visit.totalAccurateCost != null) {
     rows['Total Accurate Cost (measured)'] = inrText(visit.totalAccurateCost);

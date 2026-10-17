@@ -450,7 +450,7 @@ export function buildMeasurementTemplate(
   return {
     tradeKey: trade.key,
     tradeLabel: trade.label,
-    needsPlotDimensions: trade.key === 'civil',
+    needsPlotDimensions: false,
     lines,
     ownerSpecs: (requirements?.blocks ?? [])
       .filter((block) => block.value?.trim())
@@ -460,10 +460,19 @@ export function buildMeasurementTemplate(
   };
 }
 
-/** Locked bid rate after the floor surcharge. Ground stays at the accepted rate; 1st floor is +5%, 2nd is +10%. */
+/** +5% per storey (1.05, 1.10, …). Wall both-sides (×2) is not this surcharge. */
+function isFloorHeightSurcharge(multiplier: number): boolean {
+  if (!(multiplier > 1)) return false;
+  const steps = Math.round((multiplier - 1) / 0.05);
+  if (steps < 1 || steps > 12) return false;
+  return Math.abs(multiplier - (1 + steps * 0.05)) < 0.001;
+}
+
+/** Accepted bid rate. The +5% / +10% floor allowance is not applied on the checklist or agreement. */
 export function effectiveUnitRate(line: Pick<MeasurementLine, 'rate' | 'rateMultiplier'>): number {
   if (!(line.rate > 0)) return 0;
   const multiplier = line.rateMultiplier && line.rateMultiplier > 0 ? line.rateMultiplier : 1;
+  if (isFloorHeightSurcharge(multiplier)) return Math.round(line.rate);
   return Math.round(line.rate * multiplier);
 }
 

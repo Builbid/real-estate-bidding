@@ -30,10 +30,10 @@ export default async function AdminAgreementPage({
           {draft.error}
         </p>
         <Link
-          href="/admin/dashboard?tab=projects"
+          href={`/admin/dashboard/checklist/${decodeURIComponent(projectId)}`}
           className="mt-4 inline-block text-sm font-semibold text-emerald-700"
         >
-          ← Back to dashboard
+          ← Back
         </Link>
       </main>
     );
@@ -48,10 +48,10 @@ export default async function AdminAgreementPage({
           {territoryError}
         </p>
         <Link
-          href="/admin/dashboard?tab=projects"
+          href={`/admin/dashboard/checklist/${decodeURIComponent(projectId)}`}
           className="mt-4 inline-block text-sm font-semibold text-emerald-700"
         >
-          ← Back to dashboard
+          ← Back
         </Link>
       </main>
     );

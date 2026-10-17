@@ -3,6 +3,7 @@ import { jsPDF } from 'jspdf';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { findProjectByAnyId } from '@/lib/contract/resolveProjectId';
 import { checklistAgreementRows, type SiteVisitRecord } from '@/lib/admin/siteVisit';
+import { effectiveUnitRate } from '@/lib/admin/siteMeasurements';
 import { loadSiteVisit, siteVisitSummary } from '@/lib/admin/siteVisitStore';
 import { isoToIndianDate } from '@/lib/projectStartTime';
 import { graceDaysForService, graceExtensionLabel } from '@/lib/contract/agreementTerms';
@@ -589,13 +590,14 @@ export function isMissingDigitalContractTable(error: { message?: string; code?: 
 
 function measuredScheduleFromVisit(visit: SiteVisitRecord | null): MeasuredScheduleLine[] {
   if (!visit?.lineItems.length) return [];
-  return visit.lineItems.map((item) => ({
-    group: item.group,
-    item: item.label,
-    measured: `${item.quantity.toLocaleString('en-IN')} ${item.unit}`,
-    rate: formatInrAmount(
-      Math.round(item.rate * (item.rateMultiplier && item.rateMultiplier > 0 ? item.rateMultiplier : 1)),
-    ),
-    amount: formatInrAmount(item.amount),
-  }));
+  return visit.lineItems.map((item) => {
+    const rate = effectiveUnitRate(item);
+    return {
+      group: item.group,
+      item: item.label,
+      measured: `${item.quantity.toLocaleString('en-IN')} ${item.unit}`,
+      rate: formatInrAmount(rate),
+      amount: formatInrAmount(Math.round((item.quantity > 0 ? item.quantity : 0) * rate)),
+    };
+  });
 }
