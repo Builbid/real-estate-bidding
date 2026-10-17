@@ -8,7 +8,7 @@ import { ShowcaseProjectCard } from '@/components/home/ShowcaseProjectCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { loadActiveProjectsPage } from '@/app/actions/projects';
-import { sortShowcaseProjectsByLatest, type ShowcaseProject } from '@/lib/projectShowcase';
+import { isProjectBiddingLive, sortShowcaseProjectsByLatest, type ShowcaseProject } from '@/lib/projectShowcase';
 import { HistoryBackButton } from '@/components/shared/HistoryBackButton';
 import { cn } from '@/lib/utils';
 import { ProjectServiceFilterPills } from '@/components/projects/ProjectServiceFilterPills';
@@ -94,7 +94,8 @@ export function AllProjectsPageContent({
       sortShowcaseProjectsByLatest(
         projects.filter(
           (project) =>
-            serviceFilter === 'all' || getProjectServiceType(project) === serviceFilter,
+            isProjectBiddingLive(project) &&
+            (serviceFilter === 'all' || getProjectServiceType(project) === serviceFilter),
         ),
       ),
     [projects, serviceFilter],
@@ -153,7 +154,6 @@ export function AllProjectsPageContent({
                 project={project}
                 role={role}
                 onExpire={handleExpire}
-                hideWhenExpired={false}
               />
             ))}
           </div>

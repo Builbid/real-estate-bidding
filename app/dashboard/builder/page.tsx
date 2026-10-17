@@ -15,6 +15,7 @@ import { PortfolioManager } from './PortfolioManager';
 import { CompletedProjectsPreview } from '@/components/dashboard/CompletedProjectsPreview';
 import { DashboardStatTiles } from '@/components/dashboard/DashboardStatTiles';
 import { fetchWorkerCompletedPreview, isCancelledStatus } from '@/lib/dashboard/completedProjects';
+import { isProjectBiddingLive } from '@/lib/projectShowcase';
 import { sortByCreatedAtDesc } from '@/lib/utils';
 import type { Project, Bid } from '@/lib/types';
 
@@ -29,11 +30,13 @@ async function getData() {
   // Transition any expired active projects to frozen_24h
   await supabase.rpc('expire_active_projects');
 
-  // Get all open (still biddable) projects
+  // Open auctions are only projects still inside the 24-hour live bidding window.
+  const now = new Date().toISOString();
   const { data: projects } = await supabase
     .from('projects')
     .select('*')
     .eq('status', 'active_24h')
+    .gt('bidding_ends_at', now)
     .order('created_at', { ascending: false });
 
   // Get builder's own bids
@@ -81,7 +84,7 @@ export default async function BuilderDashboard() {
 
   // Unified Worker Account: every non-firm category is open to every Worker.
   const activeProjects = sortByCreatedAtDesc(
-    projects.filter((p) => p.status === 'active_24h' && !isFirmProject(p)),
+    projects.filter((p) => isProjectBiddingLive(p) && !isFirmProject(p)),
   );
   const myBidMap       = new Map(myBids.map((b) => [b.project_id, b]));
   const bidsPlaced     = myBids.filter((b) => !b.is_withdrawn);

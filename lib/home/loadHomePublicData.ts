@@ -2,7 +2,7 @@ import { unstable_cache } from 'next/cache';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import { getFeaturedPartners } from '@/lib/featured/getFeaturedPartners';
-import { isProjectBiddingLive, sortByCreatedAtDesc, type ShowcaseProject } from '@/lib/projectShowcase';
+import { isProjectBiddingLive, type ShowcaseProject } from '@/lib/projectShowcase';
 import {
   HOME_PUBLIC_CACHE_TAG,
   PUBLIC_STATS_NEW_AFTER_ISO,
@@ -15,7 +15,6 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 
 /** Homepage grid shows 6 cards; fetch extra so client search still has nearby matches. */
 export const HOME_SHOWCASE_LIMIT = 12;
-export const HOME_FROZEN_LIMIT = 6;
 export const HOME_DATA_REVALIDATE_SECONDS = 60;
 
 const HOME_PROJECT_SELECT =
@@ -113,7 +112,6 @@ async function loadHomePublicDataWithClient(client: SupabaseClient): Promise<Hom
 
   const [
     showcaseResult,
-    frozenResult,
     newProjectsCount,
     liveCount,
     frozenCount,
@@ -127,12 +125,6 @@ async function loadHomePublicDataWithClient(client: SupabaseClient): Promise<Hom
       .gt('bidding_ends_at', now)
       .order('created_at', { ascending: false })
       .limit(HOME_SHOWCASE_LIMIT),
-    client
-      .from('projects')
-      .select(HOME_PROJECT_SELECT)
-      .eq('status', 'frozen_24h')
-      .order('created_at', { ascending: false })
-      .limit(HOME_FROZEN_LIMIT),
     countNewProjectsInDb(client),
     client
       .from('projects')
@@ -148,13 +140,7 @@ async function loadHomePublicDataWithClient(client: SupabaseClient): Promise<Hom
   ]);
 
   const showcaseRows = (showcaseResult.data ?? []) as unknown as ProjectRow[];
-  const frozenRows = (frozenResult.data ?? []) as unknown as ProjectRow[];
-  const mergedRows = sortByCreatedAtDesc(
-    [...showcaseRows, ...frozenRows].filter(
-      (row, index, rows) => rows.findIndex((item) => item.id === row.id) === index,
-    ),
-  );
-  const showcaseProjects = await attachLowestRates(client, mergedRows);
+  const showcaseProjects = await attachLowestRates(client, showcaseRows);
 
   const { totalProjects: publicTotal, approvedProjects: publicApproved } =
     computePublicProjectCounts(newProjectsCount, approvedCount);
@@ -173,7 +159,7 @@ async function loadHomePublicDataWithClient(client: SupabaseClient): Promise<Hom
 
 const getCachedHomePublicData = unstable_cache(
   async () => loadHomePublicDataWithClient(createAdminClient()),
-  ['home-public-v10'],
+  ['home-public-v11'],
   { revalidate: HOME_DATA_REVALIDATE_SECONDS, tags: [HOME_PUBLIC_CACHE_TAG] },
 );
 

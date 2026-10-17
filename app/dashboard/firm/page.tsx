@@ -12,6 +12,7 @@ import { formatPackageRateRange } from '@/lib/firm/bidDisplay';
 import { CompletedProjectsPreview } from '@/components/dashboard/CompletedProjectsPreview';
 import { DashboardStatTiles } from '@/components/dashboard/DashboardStatTiles';
 import { fetchWorkerCompletedPreview, isCancelledStatus } from '@/lib/dashboard/completedProjects';
+import { isProjectBiddingLive } from '@/lib/projectShowcase';
 import { sortByCreatedAtDesc } from '@/lib/utils';
 import type { Project, Bid } from '@/lib/types';
 
@@ -30,11 +31,13 @@ async function getData() {
 
   await supabase.rpc('expire_active_projects');
 
+  const now = new Date().toISOString();
   const { data: projects } = await supabase
     .from('projects')
     .select('*')
     .eq('service_type', 'construction_firm')
     .eq('status', 'active_24h')
+    .gt('bidding_ends_at', now)
     .order('created_at', { ascending: false });
 
   const { data: myBids } = await supabase
@@ -116,7 +119,7 @@ export default async function FirmDashboardPage() {
   const portfolio = await getFirmPortfolioAction();
   const showBanner = !profile.logo_url || portfolio.items.length === 0;
 
-  const activeProjects = sortByCreatedAtDesc(projects.filter((p) => p.status === 'active_24h'));
+  const activeProjects = sortByCreatedAtDesc(projects.filter((p) => isProjectBiddingLive(p)));
   const myBidMap = new Map(myBids.map((b) => [b.project_id, b]));
   const bidsPlaced = myBids.filter((b) => !b.is_withdrawn);
 

@@ -147,6 +147,9 @@ async function getData() {
     sortByTimestampDesc(bundles, (bundle) => bundle.project.created_at);
 
   const agreementPending = byNewest(liveBundles.filter((b) => isAwaitingAgreement(b.project)));
+  // Selection Window and Bidding Frozen stay on this private dashboard for the
+  // second 24 hours so the owner can review bids and award a worker. Those
+  // projects are excluded from the public homepage and browse feeds.
   const openBundles = liveBundles.filter(
     (b) => !isAwaitingAgreement(b.project) && !isOwnerListingClosed(b.project, b.bids.length),
   );

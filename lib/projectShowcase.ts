@@ -142,11 +142,14 @@ export function isProjectSelectionWindow(
   return true;
 }
 
-/** Open bidding or selection-window projects shown on the homepage Live Auctions grid. */
+/**
+ * Public homepage and browse feeds show only the first 24-hour live bidding window.
+ * Selection Window and Bidding Frozen projects stay on the owner's dashboard.
+ */
 export function isHomeAuctionProject(
-  project: Pick<Project, 'status' | 'bidding_ends_at' | 'selection_ends_at'>,
+  project: Pick<Project, 'status' | 'bidding_ends_at'>,
 ): boolean {
-  return isProjectBiddingLive(project) || isProjectSelectionWindow(project);
+  return isProjectBiddingLive(project);
 }
 
 export { sortByCreatedAtDesc, sortByTimestampDesc, timestampMillis } from './utils';

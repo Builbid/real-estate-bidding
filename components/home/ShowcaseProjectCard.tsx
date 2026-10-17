@@ -204,10 +204,8 @@ export function ShowcaseProjectCard({
       const next = formatShowcaseRemaining(project.bidding_ends_at);
       setRemaining(next);
 
-      const selectionEnded = project.selection_ends_at
-        ? new Date(project.selection_ends_at).getTime() <= Date.now()
-        : false;
-      const leaveGrid = next.isExpired && selectionEnded;
+      // Public feeds drop the card as soon as live bidding ends.
+      const leaveGrid = next.isExpired;
 
       if (leaveGrid && !expiredRef.current) {
         expiredRef.current = true;
@@ -223,12 +221,9 @@ export function ShowcaseProjectCard({
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [project.bidding_ends_at, project.selection_ends_at, project.id, onExpire, hideWhenExpired]);
+  }, [project.bidding_ends_at, project.id, onExpire, hideWhenExpired]);
 
-  const selectionEnded = project.selection_ends_at
-    ? new Date(project.selection_ends_at).getTime() <= Date.now()
-    : false;
-  if (hideWhenExpired && remaining.isExpired && selectionEnded) return null;
+  if (hideWhenExpired && remaining.isExpired) return null;
 
   const isFirm = isFirmProject(project);
   const serviceType = getProjectServiceType(project);

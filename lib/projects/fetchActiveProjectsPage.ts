@@ -82,12 +82,14 @@ export async function fetchActiveProjectsPage(options: {
     expireStaleProjects(supabase);
   }
 
+  const now = new Date().toISOString();
   let query = supabase
     .from('projects')
     .select('*, owner:profiles_public!owner_id(id, full_name), bids(count)', {
       count: 'exact',
     })
     .eq('status', 'active_24h')
+    .gt('bidding_ends_at', now)
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1);
 
