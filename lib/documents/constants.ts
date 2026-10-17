@@ -6,12 +6,17 @@ export const PROJECT_DOCUMENT_TYPES = [
   'ai_design',
   'quality_control',
   'site_checklist',
+  'civil_material_estimate',
 ] as const;
 
 export type ProjectDocumentType = (typeof PROJECT_DOCUMENT_TYPES)[number];
 
 /** Files routed onto a profile from the account's BuilBid ID. */
-export const PROFILE_ROUTED_DOCUMENT_TYPES = ['agreement', 'quality_control'] as const;
+export const PROFILE_ROUTED_DOCUMENT_TYPES = [
+  'agreement',
+  'quality_control',
+  'civil_material_estimate',
+] as const;
 
 export type ProfileRoutedDocumentType = (typeof PROFILE_ROUTED_DOCUMENT_TYPES)[number];
 
@@ -42,6 +47,7 @@ export const PROJECT_DOCUMENT_TYPE_LABEL: Record<ProjectDocumentType, string> = 
   ai_design: 'AI Design',
   quality_control: 'Quality Control',
   site_checklist: 'Site Checklist',
+  civil_material_estimate: 'Civil Material Estimate',
 };
 
 /** Public project ID: 4 letters + 4 digits, interleaved (e.g. K7M2Q9P1). */
@@ -67,6 +73,7 @@ export function documentFileName(
   if (type === 'estimate') return `Cost-Estimate-${id}.${ext}`;
   if (type === 'quality_control') return `Quality-Control.${ext}`;
   if (type === 'site_checklist') return `Site-Checklist-${id}.${ext}`;
+  if (type === 'civil_material_estimate') return `BuilBid-Official-Civil-Material-Requirement-Estimate.${ext}`;
   return `AI-Design-${id}.${ext}`;
 }
 
@@ -83,6 +90,7 @@ export function documentStoragePath(
 export function presentedDocumentFileName(type: string | null | undefined, storedName?: string | null): string {
   if (type === 'agreement') return 'Agreement-Copy.pdf';
   if (type === 'quality_control') return 'Quality-Control.pdf';
+  if (type === 'civil_material_estimate') return 'BuilBid-Official-Civil-Material-Requirement-Estimate.pdf';
   const stored = storedName?.trim();
   return stored || 'document.pdf';
 }

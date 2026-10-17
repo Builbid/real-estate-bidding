@@ -13,6 +13,7 @@ import { parseIndianDateToIso } from '@/lib/projectStartTime';
 import { generateProjectDocumentPdfBytes } from '@/lib/documents/pdf';
 import { publishAgreementPackage } from '@/lib/documents/publishAgreementPackage';
 import { generateQualityControlPdfBytes } from '@/lib/contract/qualityControlPdf';
+import { civilMaterialEstimatePdfBytes } from '@/lib/civil/materialEstimatePdf';
 import { graceDaysForService, graceExtensionLabel } from '@/lib/contract/agreementTerms';
 import { generateDigitalContractPdf, overlayFromRecord } from '@/lib/contract/renderDigitalContract';
 import { formatBuilbidPublicId } from '@/lib/contract/agreementPdf';
@@ -177,6 +178,18 @@ export async function shareAgreementCopyAction(
     agreementBytes,
     qualityControlBytes,
     checklistBytes: siteChecklistPdf(draft),
+    materialEstimateBytes:
+      draft.visit?.tradeKey === 'civil'
+        ? civilMaterialEstimatePdfBytes({
+            tradeKey: 'civil',
+            declaredStoreys: draft.visit.floors,
+            lines: draft.visit.lineItems ?? [],
+            projectName: draft.project.title,
+            numericProjectId: draft.project.publicId,
+            ownerName: draft.client.name,
+            workerName: draft.contractor.name,
+          })
+        : null,
   });
   if (published.error) return { error: published.error };
 

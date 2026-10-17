@@ -10,11 +10,12 @@ import type { ProjectDocument } from '@/lib/types';
 
 type Branch = 'agreements' | 'invoices';
 
-const AGREEMENT_FILE_ORDER = ['agreement', 'quality_control'] as const;
+const AGREEMENT_FILE_ORDER = ['agreement', 'quality_control', 'civil_material_estimate'] as const;
 
 const AGREEMENT_FILE_LABEL: Record<(typeof AGREEMENT_FILE_ORDER)[number], string> = {
   agreement: 'Agreement Copy',
   quality_control: 'Quality Control Form',
+  civil_material_estimate: 'Civil Material Requirement Estimate',
 };
 
 const INVOICE_FILE_LABEL: Record<(typeof INVOICE_DOCUMENT_TYPES)[number], string> = {
@@ -96,7 +97,9 @@ function buildFolders(documents: ProjectDocument[], branch: Branch): ProjectFold
   const folders: ProjectFolder[] = [];
   for (const [key, docs] of byProject) {
     const sample = docs[0];
-    const civil = isCivilProject(sample.project_name, sample.service_type);
+    const civil =
+      isCivilProject(sample.project_name, sample.service_type) ||
+      docs.some((doc) => doc.document_type === 'civil_material_estimate');
     const files = branch === 'agreements' ? agreementFiles(docs, civil) : invoiceFiles(docs);
     if (files.length === 0) continue;
     folders.push({

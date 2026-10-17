@@ -180,7 +180,13 @@ export interface SubConfiguration {
   customFloors?: number[];
 }
 
-export type ProjectDocumentType = 'agreement' | 'estimate' | 'ai_design' | 'quality_control' | 'site_checklist';
+export type ProjectDocumentType =
+  | 'agreement'
+  | 'estimate'
+  | 'ai_design'
+  | 'quality_control'
+  | 'site_checklist'
+  | 'civil_material_estimate';
 
 export interface ProjectDocument {
   id: string;

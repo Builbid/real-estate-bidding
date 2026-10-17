@@ -23,6 +23,8 @@ import { finalizeApprovedAgreement } from '@/lib/admin/agreementPackage';
 import { projectTerritoryError } from '@/lib/admin/territory';
 import { PROTOTYPE_AUTO_AGREEMENT } from '@/lib/admin/prototype';
 import { ensureProjectWorkerId } from '@/lib/admin/resolveProjectWorker';
+import { civilMaterialEstimatePdfBytes } from '@/lib/civil/materialEstimatePdf';
+import { publishCivilMaterialEstimatePdf } from '@/lib/documents/publishAgreementPackage';
 import { findProjectByAnyId } from '@/lib/contract/resolveProjectId';
 import type { DigitalContractRecord } from '@/lib/contract/renderDigitalContract';
 
@@ -205,10 +207,67 @@ export async function saveSiteVisitChecklistAction(
     return { error: error.message };
   }
 
+  if (template.tradeKey === 'civil') {
+    await publishCivilMaterialEstimate(admin, project.id, template, cost.items);
+  }
+
   revalidatePath('/admin/dashboard');
   revalidatePath(`/admin/dashboard/checklist/${project.id}`);
   revalidatePath(`/admin/agreement/${project.id}`);
   return { ok: true, plinthAreaSqft: v.plinthAreaSqft, totalAccurateCost };
+}
+
+/** Files the civil quantity PDF on both dashboards. A delivery failure does not undo the checklist. */
+async function publishCivilMaterialEstimate(
+  admin: ReturnType<typeof createAdminClient>,
+  projectId: string,
+  template: MeasurementTemplate,
+  lines: Array<{ id: string; group: string; unit: string; quantity: number }>,
+): Promise<void> {
+  try {
+    const { data: meta } = await admin
+      .from('projects')
+      .select('owner_id, title, numeric_id, total_floors, selected_builder_id')
+      .eq('id', projectId)
+      .maybeSingle();
+    const ownerId = typeof meta?.owner_id === 'string' ? meta.owner_id : '';
+    const workerId = typeof meta?.selected_builder_id === 'string' ? meta.selected_builder_id : '';
+    if (!ownerId || !workerId) return;
+    const [{ data: owner }, { data: worker }] = await Promise.all([
+      admin.from('profiles').select('full_name').eq('id', ownerId).maybeSingle(),
+      admin.from('profiles').select('full_name, company_name').eq('id', workerId).maybeSingle(),
+    ]);
+    const declaredFloors = Number(meta?.total_floors);
+    const bytes = civilMaterialEstimatePdfBytes({
+      tradeKey: template.tradeKey,
+      declaredStoreys: Number.isFinite(declaredFloors) && declaredFloors > 0 ? declaredFloors : null,
+      lines,
+      projectName: typeof meta?.title === 'string' ? meta.title : 'Project',
+      numericProjectId: typeof meta?.numeric_id === 'string' ? meta.numeric_id : projectId,
+      ownerName: owner?.full_name?.trim() || 'Homeowner',
+      workerName: worker?.company_name?.trim() || worker?.full_name?.trim() || 'Mistri',
+    });
+    if (!bytes) return;
+    const published = await publishCivilMaterialEstimatePdf({
+      admin,
+      projectId,
+      numericId: typeof meta?.numeric_id === 'string' ? meta.numeric_id : '',
+      projectName: typeof meta?.title === 'string' ? meta.title : 'Project',
+      ownerId,
+      workerId,
+      bytes,
+    });
+    if (published.error) {
+      console.error('[civil material estimate] could not store PDF:', published.error);
+      return;
+    }
+    revalidatePath('/dashboard/owner');
+    revalidatePath('/dashboard/builder');
+    revalidatePath('/dashboard/firm');
+    revalidatePath('/dashboard/profile');
+  } catch (err) {
+    console.error('[civil material estimate] generation failed (non-fatal):', err);
+  }
 }
 
 /**

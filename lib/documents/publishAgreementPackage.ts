@@ -75,6 +75,20 @@ async function storePdf(options: {
   return { error: saved.error };
 }
 
+/** Stores only the civil material estimate on both party document lists. */
+export async function publishCivilMaterialEstimatePdf(options: {
+  admin: SupabaseClient;
+  projectId: string;
+  numericId: string;
+  projectName: string;
+  ownerId: string;
+  workerId: string;
+  bytes: Uint8Array;
+}): Promise<{ error?: string }> {
+  const saved = await storePdf({ ...options, type: 'civil_material_estimate', bytes: options.bytes });
+  return saved.error ? { error: saved.error } : {};
+}
+
 /** Puts the agreement PDF and the project QC form into both parties' document sections. */
 export async function publishAgreementPackage(options: {
   admin: SupabaseClient;
@@ -88,6 +102,8 @@ export async function publishAgreementPackage(options: {
   qualityControlBytes: Uint8Array | null;
   /** Site visit checklist PDF, stored when a checklist exists for this project. */
   checklistBytes?: Uint8Array | null;
+  /** Civil / Mistri quantity PDF. Omitted for plumbing, electrical, and painting. */
+  materialEstimateBytes?: Uint8Array | null;
 }): Promise<{ error?: string; fallbackDocuments?: ProjectDocument[] }> {
   const fallbackDocuments: ProjectDocument[] = [];
   const agreement = await storePdf({ ...options, type: 'agreement', bytes: options.agreementBytes });
@@ -101,6 +117,15 @@ export async function publishAgreementPackage(options: {
     });
     if (qualityControl.error) return qualityControl;
     if (qualityControl.fallback) fallbackDocuments.push(qualityControl.fallback);
+  }
+  if (options.materialEstimateBytes) {
+    const estimate = await storePdf({
+      ...options,
+      type: 'civil_material_estimate',
+      bytes: options.materialEstimateBytes,
+    });
+    if (estimate.error) return estimate;
+    if (estimate.fallback) fallbackDocuments.push(estimate.fallback);
   }
   if (!options.checklistBytes) {
     return fallbackDocuments.length > 0 ? { fallbackDocuments } : {};
