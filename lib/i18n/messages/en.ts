@@ -31,6 +31,7 @@ export const en = {
     frozen_24h: 'Frozen',
     completed: 'Completed',
     cancelled: 'Cancelled',
+    expired: 'Expired',
   },
   track: {
     RCC: 'RCC Construction',

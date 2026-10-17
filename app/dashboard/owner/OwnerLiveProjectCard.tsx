@@ -23,6 +23,7 @@ import {
 import { getProjectWorkRequirementBlocks, isFloorFixtureRequirementLabel } from '@/lib/project/workRequirements';
 import { formatNumericProjectId } from '@/lib/project/numericId';
 import { isAwaitingAgreement } from '@/lib/dashboard/completedProjects';
+import { isOwnerListingClosed, selectionDeadlineMs } from '@/lib/auction/selectionWindow';
 import { FloorScopeBadges } from '@/components/project/FloorScopeBadges';
 import { CheckLocationLink } from '@/components/project/ProjectLocationWithMapsLink';
 import { earthworkCardLocation } from '@/lib/validation/earthworkLocation';
@@ -113,6 +114,8 @@ function OwnerLiveProjectCardBody({
 }: OwnerLiveProjectCardProps) {
   const { project, phase, canSelect } = useOwnerProjectPhaseContext();
   const awaitingAgreement = isAwaitingAgreement(project);
+  if (!awaitingAgreement && isOwnerListingClosed(project, Math.min(bidCount, initialBids.length))) return null;
+  const selectionEndsAt = new Date(selectionDeadlineMs(project)).toISOString();
   const isFirm = isFirmProject(project);
   const serviceBadge = getProjectServiceBadgeLabel(project);
   const postedAt = formatProjectPostedAt(project.created_at);
@@ -260,12 +263,12 @@ function OwnerLiveProjectCardBody({
               <AuctionCountdown targetDateISO={project.bidding_ends_at} projectId={project.id} compact />
             </div>
           )}
-          {canSelect && !awaitingAgreement && project.selection_ends_at && (
+          {canSelect && !awaitingAgreement && (
             <div className="flex flex-col items-end gap-0.5">
               <span className="text-[10px] text-red-400 uppercase tracking-wider font-semibold animate-pulse">
                 Select now
               </span>
-              <AuctionCountdown targetDateISO={project.selection_ends_at} projectId={project.id} compact />
+              <AuctionCountdown targetDateISO={selectionEndsAt} projectId={project.id} compact />
             </div>
           )}
           <DeleteProjectButton projectId={project.id} projectTitle={project.title} />

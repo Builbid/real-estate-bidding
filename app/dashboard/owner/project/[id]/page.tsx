@@ -20,7 +20,7 @@ import { isPlumberService, buildPlumberAgreementPayload } from '@/lib/contract/p
 import { isElectricianService, buildElectricianAgreementPayload } from '@/lib/contract/electricianAgreement';
 import { isPainterService, buildPainterAgreementPayload } from '@/lib/contract/painterAgreement';
 import { AgreementForm } from '@/components/contract/AgreementForm';
-import { SELECTION_WINDOW_MS } from '@/lib/auction/selectionWindow';
+import { expireProjectWindows } from '@/lib/auction/expireProjects';
 interface BuilderInfo {
   id: string;
   full_name: string;
@@ -42,34 +42,10 @@ async function getData(id: string) {
   if (!rawProject) notFound();
   if (rawProject.owner_id !== userId) redirect('/dashboard/owner');
 
-  const now = new Date();
-  let project = rawProject as Project;
+  await expireProjectWindows(supabase, id);
 
-  // Inline transition for this project — reliable even if bulk RPC lags
-  if (project.status === 'active_24h' && new Date(project.bidding_ends_at) <= now) {
-    await supabase
-      .from('projects')
-      .update({
-        status: 'frozen_24h',
-        selection_ends_at: new Date(Date.now() + SELECTION_WINDOW_MS).toISOString(),
-      })
-      .eq('id', id)
-      .eq('status', 'active_24h');
-
-    const { data: refreshed } = await supabase.from('projects').select('*').eq('id', id).single();
-    if (refreshed) project = refreshed as Project;
-  }
-
-  if (
-    project.status === 'frozen_24h' &&
-    project.selection_ends_at &&
-    new Date(project.selection_ends_at) <= now &&
-    !project.selected_builder_id
-  ) {
-    await supabase.from('projects').update({ status: 'cancelled' }).eq('id', id);
-    const { data: refreshed } = await supabase.from('projects').select('*').eq('id', id).single();
-    if (refreshed) project = refreshed as Project;
-  }
+  const { data: refreshedProject } = await supabase.from('projects').select('*').eq('id', id).single();
+  const project = (refreshedProject ?? rawProject) as Project;
 
   const { data: bids } = await supabase
     .from('bids')

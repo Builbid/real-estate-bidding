@@ -62,7 +62,7 @@ export interface FirmConstructionPackage {
   exclusions: string;
 }
 export type TrackType = 'RCC' | 'AssamType';
-export type ProjectStatus = 'active_24h' | 'frozen_24h' | 'completed' | 'cancelled';
+export type ProjectStatus = 'active_24h' | 'frozen_24h' | 'completed' | 'cancelled' | 'expired';
 
 export type RCCConfig =
   | 'ground_only'

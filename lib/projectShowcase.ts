@@ -133,7 +133,7 @@ export function isProjectBiddingLive(project: Pick<Project, 'status' | 'bidding_
 export function isProjectSelectionWindow(
   project: Pick<Project, 'status' | 'bidding_ends_at' | 'selection_ends_at'>,
 ): boolean {
-  if (project.status === 'completed' || project.status === 'cancelled') return false;
+  if (project.status === 'completed' || project.status === 'cancelled' || project.status === 'expired') return false;
   if (isProjectBiddingLive(project)) return false;
   if (project.status !== 'active_24h' && project.status !== 'frozen_24h') return false;
   if (project.selection_ends_at && new Date(project.selection_ends_at) <= new Date()) {

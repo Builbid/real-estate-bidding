@@ -40,7 +40,9 @@ async function resolveAssignedProject(projectRef: string, session: { userId: str
   if (!project) return { error: 'Project not found.' as const };
   const territoryError = await projectTerritoryError(admin, session, project.id);
   if (territoryError) return { error: territoryError as string };
-  if (project.status === 'cancelled') return { error: 'This project was cancelled.' as const };
+  if (project.status === 'cancelled' || project.status === 'expired') {
+    return { error: 'This project was cancelled.' as const };
+  }
 
   // An owner award opens the checklist immediately. If the award was not stored,
   // attach the selected or lowest bid without blocking the inspection form.

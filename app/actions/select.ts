@@ -95,8 +95,8 @@ export async function selectBuilderAction(
   }
 
   const status = String(existing.status ?? '')
-  if (status === 'cancelled') {
-    return { error: 'This project was cancelled and cannot be awarded.' }
+  if (status === 'cancelled' || status === 'expired') {
+    return { error: 'This project has expired and cannot be awarded.' }
   }
   if (status && !isAwardableStatus(status)) {
     return { error: 'This project is no longer available to award.' }

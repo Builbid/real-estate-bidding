@@ -33,6 +33,7 @@ export const as: Messages = {
     frozen_24h: 'Bidding বন্ধ',
     completed: 'Completed',
     cancelled: 'Cancelled',
+    expired: 'Expired',
   },
   track: {
     RCC: 'RCC Construction',

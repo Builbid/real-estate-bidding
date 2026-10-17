@@ -3,7 +3,7 @@
 import { createClient }      from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { archiveUnsignedAgreements } from '@/lib/dashboard/archiveUnsignedAgreements'
-import { SELECTION_WINDOW_MS } from '@/lib/auction/selectionWindow'
+import { expireProjectWindows } from '@/lib/auction/expireProjects'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 /** Returns admin client if the service-role key is available, otherwise the
@@ -18,28 +18,12 @@ async function getBestClient(): Promise<SupabaseClient> {
 
 /**
  * Runs on every owner page load.
- * active_24h → frozen_24h  when bidding_ends_at has passed
- * frozen_24h → cancelled   when selection_ends_at has passed and no builder chosen
+ * Bidding lasts 24 hours. Selection lasts 24 hours after that, and never past
+ * 48 hours from posting. Zero-bid projects expire when bidding ends.
  */
 export async function processAuctionTransitions(): Promise<{ archivedAgreementIds: string[] }> {
   const client = await getBestClient()
-  const now    = new Date().toISOString()
-
-  await client
-    .from('projects')
-    .update({
-      status:            'frozen_24h',
-      selection_ends_at: new Date(Date.now() + SELECTION_WINDOW_MS).toISOString(),
-    })
-    .eq('status', 'active_24h')
-    .lt('bidding_ends_at', now)
-
-  await client
-    .from('projects')
-    .update({ status: 'cancelled' })
-    .eq('status', 'frozen_24h')
-    .lt('selection_ends_at', now)
-    .is('selected_builder_id', null)
+  await expireProjectWindows(client)
 
   let archivedAgreementIds: string[] = []
   try {
@@ -62,38 +46,5 @@ export async function processAuctionTransitions(): Promise<{ archivedAgreementId
  */
 export async function triggerProjectTransition(projectId: string) {
   const client = await getBestClient()
-  const now    = new Date()
-
-  const { data: project } = await client
-    .from('projects')
-    .select('status, bidding_ends_at, selection_ends_at, selected_builder_id')
-    .eq('id', projectId)
-    .single()
-
-  if (!project) return
-
-  if (
-    project.status === 'active_24h' &&
-    new Date(project.bidding_ends_at) <= now
-  ) {
-    await client
-      .from('projects')
-      .update({
-        status:            'frozen_24h',
-        selection_ends_at: new Date(Date.now() + SELECTION_WINDOW_MS).toISOString(),
-      })
-      .eq('id', projectId)
-  }
-
-  if (
-    project.status === 'frozen_24h' &&
-    project.selection_ends_at &&
-    new Date(project.selection_ends_at) <= now &&
-    !project.selected_builder_id
-  ) {
-    await client
-      .from('projects')
-      .update({ status: 'cancelled' })
-      .eq('id', projectId)
-  }
+  await expireProjectWindows(client, projectId)
 }

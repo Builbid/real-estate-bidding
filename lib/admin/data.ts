@@ -584,6 +584,7 @@ export async function loadAdminDashboardData(
   }
   const biddingHasEnded = (p: (typeof projects)[number]) =>
     p.status === 'cancelled' ||
+    p.status === 'expired' ||
     p.status !== 'active_24h' ||
     new Date(p.bidding_ends_at).getTime() <= nowMs;
   const isApprovedActive = (projectId: string) =>
@@ -617,7 +618,7 @@ export async function loadAdminDashboardData(
   // Supervisor view still hides auctions that ended before the prototype reset.
   const agreements: AdminAgreementRow[] = projects
     .filter((p) => {
-      if (p.status === 'cancelled' || isApprovedActive(p.id) || !biddingHasEnded(p)) return false;
+      if (p.status === 'cancelled' || p.status === 'expired' || isApprovedActive(p.id) || !biddingHasEnded(p)) return false;
       if (staleUnsignedIds.has(p.id)) return false;
       if (awaitingCompanyCall(p.id)) return false;
       if (supervisorView && new Date(p.bidding_ends_at).getTime() < resetMs) return false;
@@ -699,6 +700,7 @@ export async function loadAdminDashboardData(
         (p) =>
           p.callVerificationStatus === 'pending' &&
           p.status !== 'cancelled' &&
+          p.status !== 'expired' &&
           !staleUnsignedIds.has(p.id),
       );
 
@@ -716,7 +718,7 @@ export async function loadAdminDashboardData(
   // recorded before the prototype reset.
   const completedWorks: CompletedWorkRow[] = projects
     .filter((p) => {
-      if (p.status === 'cancelled' || !isApprovedActive(p.id)) return false;
+      if (p.status === 'cancelled' || p.status === 'expired' || !isApprovedActive(p.id)) return false;
       if (awaitingCompanyCall(p.id)) return false;
       if (!supervisorView) return true;
       const approvedAt = workflowByProject.get(p.id)?.approvedAt;

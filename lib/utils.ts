@@ -128,6 +128,7 @@ export const STATUS_CONFIG = {
   frozen_24h:  { label: 'Frozen',        color: 'indigo',  badge: 'bg-indigo-500/15 text-indigo-700 border-indigo-500/30 dark:text-indigo-400' },
   completed:   { label: 'Completed',     color: 'slate',   badge: 'bg-secondary text-secondary-foreground border-border' },
   cancelled:   { label: 'Cancelled',     color: 'red',     badge: 'bg-red-500/15 text-red-700 border-red-500/30 dark:text-red-400' },
+  expired:     { label: 'Expired',       color: 'red',     badge: 'bg-red-500/15 text-red-700 border-red-500/30 dark:text-red-400' },
 } as const;
 
 export function formatRelativeTime(dateISO: string | null | undefined): string {

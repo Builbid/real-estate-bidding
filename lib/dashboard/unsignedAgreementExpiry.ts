@@ -30,7 +30,7 @@ export function isStaleUnsignedAgreement(
   nowMs = Date.now(),
 ): boolean {
   if (!project.selected_builder_id) return false;
-  if (project.status === 'cancelled') return false;
+  if (project.status === 'cancelled' || project.status === 'expired') return false;
   if (project.agreement_completed === true) return false;
   if (isAgreementComplete(project)) return false;
   if (progress.checklistCompleted) return false;

@@ -8,7 +8,7 @@ export const COMPLETED_HISTORY_PAGE_SIZE = 20;
 export type CompletedProjectWithBids = Project & { bids?: [{ count: number }] };
 
 export function isCancelledStatus(status: string | null | undefined): boolean {
-  return status === 'cancelled';
+  return status === 'cancelled' || status === 'expired';
 }
 
 type AgreementSignals = {

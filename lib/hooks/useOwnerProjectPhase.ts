@@ -5,11 +5,11 @@ import { createClient } from '@/lib/supabase/client';
 import { useCountdown } from '@/lib/hooks/useCountdown';
 import { triggerProjectTransition } from '@/app/actions/auction';
 import { getProjectPhase, type ProjectPhase } from '@/lib/utils';
-import { SELECTION_WINDOW_MS } from '@/lib/auction/selectionWindow';
+import { selectionDeadlineMs } from '@/lib/auction/selectionWindow';
 import type { Project, ProjectStatus } from '@/lib/types';
 
 function deriveOwnerPhase(project: Project, biddingHasEnded: boolean): ProjectPhase {
-  if (project.status === 'completed' || project.status === 'cancelled') return 'done';
+  if (project.status === 'completed' || project.status === 'cancelled' || project.status === 'expired') return 'done';
   if (project.status === 'frozen_24h') return 'select';
   if (project.status === 'active_24h') {
     return biddingHasEnded ? 'select' : 'live';
@@ -42,7 +42,9 @@ export function useOwnerProjectPhase(initialProject: Project) {
       biddingHasEnded &&
       !project.selected_builder_id &&
       project.status !== 'completed' &&
-      project.status !== 'cancelled',
+      project.status !== 'cancelled' &&
+      project.status !== 'expired' &&
+      selectionDeadlineMs(project) > Date.now(),
     [biddingHasEnded, project],
   );
 
@@ -59,8 +61,9 @@ export function useOwnerProjectPhase(initialProject: Project) {
       return {
         ...prev,
         status: 'frozen_24h' as ProjectStatus,
-        selection_ends_at:
-          prev.selection_ends_at ?? new Date(Date.now() + SELECTION_WINDOW_MS).toISOString(),
+        selection_ends_at: new Date(
+          selectionDeadlineMs({ ...prev, selection_ends_at: null }),
+        ).toISOString(),
       };
     });
 

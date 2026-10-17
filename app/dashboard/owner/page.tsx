@@ -13,6 +13,7 @@ import { DashboardWorkSection } from '@/components/dashboard/DashboardWorkSectio
 import { Button } from '@/components/ui/button';
 import { HistoryBackButton } from '@/components/shared/HistoryBackButton';
 import { isAgreementComplete, isAwaitingAgreement } from '@/lib/dashboard/completedProjects';
+import { isOwnerListingClosed } from '@/lib/auction/selectionWindow';
 import { getProjectPhase, isInteractiveProjectPhase, sortByCreatedAtDesc, sortByTimestampDesc, type ProjectPhase } from '@/lib/utils';
 import type { Project, Bid } from '@/lib/types';
 import type { SupabaseClient } from '@supabase/supabase-js';
@@ -127,7 +128,7 @@ async function getData() {
 
   const allProjects = sortByCreatedAtDesc(
     ((projects ?? []).filter(
-      (p) => p.status !== 'cancelled' && !hiddenAgreementIds.has(p.id),
+      (p) => p.status !== 'cancelled' && p.status !== 'expired' && !hiddenAgreementIds.has(p.id),
     ) as ProjectWithBidCount[]),
   );
 
@@ -146,7 +147,9 @@ async function getData() {
     sortByTimestampDesc(bundles, (bundle) => bundle.project.created_at);
 
   const agreementPending = byNewest(liveBundles.filter((b) => isAwaitingAgreement(b.project)));
-  const openBundles = liveBundles.filter((b) => !isAwaitingAgreement(b.project));
+  const openBundles = liveBundles.filter(
+    (b) => !isAwaitingAgreement(b.project) && !isOwnerListingClosed(b.project, b.bids.length),
+  );
   const selectionRequired = byNewest(
     openBundles.filter(
       (b) => b.phase === 'select' || b.phase === 'transitioning' || b.biddingHasEnded,
