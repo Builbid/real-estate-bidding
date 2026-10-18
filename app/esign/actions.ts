@@ -173,6 +173,7 @@ export async function verifyDigitalContractOtpAction(
     const signed = updated as DigitalContractRecord;
     const result = await finalizeApprovedAgreement(signed);
     revalidatePath('/admin/dashboard');
+    revalidatePath('/admin/dashboard/accounts');
     revalidatePath(`/admin/agreement/${signed.project_id}`);
     if (!result.approved) {
       return {

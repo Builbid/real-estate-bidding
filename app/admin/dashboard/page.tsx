@@ -15,6 +15,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { AdminDashboardClient } from './AdminDashboardClient';
 
 export const dynamic = 'force-dynamic';
+export const fetchCache = 'force-no-store';
 
 const ADMIN_TABS: AdminTab[] = ['projects', 'workers', 'clients', 'agreements', 'completed', 'supervisors'];
 const SUPERVISOR_TABS: AdminTab[] = ['projects', 'agreements', 'completed'];
@@ -35,13 +36,14 @@ export default async function AdminDashboardPage({
   const territory = BYPASS_PINCODE_RESTRICTION ? null : assignedPincodes;
 
   const data = await loadAdminDashboardData({ territory, supervisorView: supervisorPortal });
+  const earningWorks = BYPASS_PINCODE_RESTRICTION
+    ? data.completedWorks
+    : worksInTerritory(data.completedWorks, assignedPincodes ?? []);
   const account = supervisorPortal
     ? await loadSupervisorAccount(
         session.userId,
         session.email,
-        // Visibility is open for testing, but the supervisor's own commission estimate still
-        // only counts completed works inside their assigned pin codes.
-        worksInTerritory(data.completedWorks, assignedPincodes ?? []),
+        earningWorks,
         assignedPincodes?.length ?? 0,
       )
     : null;

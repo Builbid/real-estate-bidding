@@ -35,12 +35,31 @@ async function isSupervisorAccount(
   return data.role === 'field_supervisor' || data.role === 'supervisor';
 }
 
+function revalidateSupervisorSurfaces(): void {
+  try {
+    revalidatePath('/admin/dashboard');
+    revalidatePath('/admin/dashboard/accounts');
+    revalidatePath('/dashboard/owner');
+    revalidatePath('/dashboard/owner/projects/completed');
+  } catch {
+    // revalidatePath is only available inside a request.
+  }
+}
+
 /** Credits the 0.2% commission once per project (unique project_id makes retries safe). */
 async function creditSupervisorCommission(
   admin: SupabaseClient,
   contract: DigitalContractRecord,
+  actingSupervisorId?: string | null,
 ): Promise<{ amount: number | null; credited: boolean; warning?: string }> {
-  if (!(await isSupervisorAccount(admin, contract.created_by))) {
+  const createdByIsSupervisor = await isSupervisorAccount(admin, contract.created_by);
+  const actingIsSupervisor = await isSupervisorAccount(admin, actingSupervisorId);
+  const supervisorId = createdByIsSupervisor
+    ? contract.created_by
+    : actingIsSupervisor
+      ? actingSupervisorId
+      : null;
+  if (!supervisorId) {
     return { amount: null, credited: false };
   }
   const projectValue = Number(contract.total_agreed_cost);
@@ -49,7 +68,7 @@ async function creditSupervisorCommission(
   const { error } = await admin.from('supervisor_commissions').upsert(
     {
       project_id: contract.project_id,
-      supervisor_id: contract.created_by,
+      supervisor_id: supervisorId,
       project_value: projectValue,
       commission_bps: SUPERVISOR_PAYOUT_BPS,
       amount,
@@ -98,12 +117,7 @@ export async function markProjectAgreementComplete(
   for (const patch of attempts) {
     const { error } = await admin.from('projects').update(patch).eq('id', projectId);
     if (!error) {
-      try {
-        revalidatePath('/dashboard/owner');
-        revalidatePath('/dashboard/owner/projects/completed');
-      } catch {
-        // revalidatePath is only available inside a request.
-      }
+      revalidateSupervisorSurfaces();
       return;
     }
     const message = error.message ?? '';
@@ -116,33 +130,39 @@ export async function markProjectAgreementComplete(
 
 /**
  * Runs when both parties have signed:
- *  1. emails the signed two-party agreement PDF to the Home Owner and the Worker,
- *  2. marks the project completed so it leaves the owner's active list,
- *  3. credits the supervisor's 0.2% commission.
- * Idempotent: a repeat call never emails twice nor credits twice.
+ *  1. marks the project completed and credits the supervisor's 0.2% commission immediately,
+ *  2. then emails the signed PDF. A mail failure does not undo the completion or the balance.
+ * Idempotent: a repeat call never credits twice.
  */
 export async function finalizeApprovedAgreement(
   signed: DigitalContractRecord,
+  actingSupervisorId?: string | null,
 ): Promise<FinalizeResult> {
   const admin = createAdminClient();
   let contract = signed;
+  const nowIso = new Date().toISOString();
   await markProjectAgreementComplete(admin, contract.project_id);
 
   if (!contract.approved_at) {
-    let pdf: Awaited<ReturnType<typeof generateDigitalContractPdf>>;
-    try {
-      pdf = await generateDigitalContractPdf(contract.project_id, overlayFromRecord(contract, 'signed'));
-    } catch (err) {
-      return {
-        approved: false,
-        dispatched: false,
-        commissionAmount: null,
-        commissionCredited: false,
-        warning: err instanceof Error ? err.message : 'Could not generate the signed PDF.',
-      };
-    }
+    const { data: updated, error: updateError } = await admin
+      .from('project_digital_contracts')
+      .update({ approved_at: nowIso, status: 'signed', signed_at: contract.signed_at ?? nowIso, updated_at: nowIso })
+      .eq('id', contract.id)
+      .is('approved_at', null)
+      .select('*')
+      .maybeSingle();
+    if (!updateError && updated) contract = updated as DigitalContractRecord;
+    await markProjectAgreementComplete(admin, contract.project_id);
+  }
 
+  const commission = await creditSupervisorCommission(admin, contract, actingSupervisorId);
+  revalidateSupervisorSurfaces();
+
+  let dispatched = Boolean(contract.dispatched_at);
+  let warning = commission.warning;
+  if (!contract.dispatched_at) {
     try {
+      const pdf = await generateDigitalContractPdf(contract.project_id, overlayFromRecord(contract, 'signed'));
       await sendSignedDigitalContractPdf({
         clientEmail: contract.client_email,
         contractorEmail: contract.contractor_email,
@@ -152,44 +172,22 @@ export async function finalizeApprovedAgreement(
         pdfBytes: pdf.bytes,
         filename: pdf.filename,
       });
+      dispatched = true;
+      await admin
+        .from('project_digital_contracts')
+        .update({ dispatched_at: nowIso, updated_at: nowIso })
+        .eq('id', contract.id);
     } catch (err) {
-      return {
-        approved: false,
-        dispatched: false,
-        commissionAmount: null,
-        commissionCredited: false,
-        warning: `Signed PDF email failed: ${err instanceof Error ? err.message : 'unknown error'}`,
-      };
+      const mailWarning = `Signed PDF email failed: ${err instanceof Error ? err.message : 'unknown error'}`;
+      warning = warning ? `${warning} ${mailWarning}` : mailWarning;
     }
-
-    const nowIso = new Date().toISOString();
-    const { data: updated, error: updateError } = await admin
-      .from('project_digital_contracts')
-      .update({ dispatched_at: nowIso, approved_at: nowIso, updated_at: nowIso })
-      .eq('id', contract.id)
-      .is('approved_at', null)
-      .select('*')
-      .maybeSingle();
-
-    if (updateError) {
-      return {
-        approved: false,
-        dispatched: true,
-        commissionAmount: null,
-        commissionCredited: false,
-        warning: `PDFs were emailed, but approval could not be saved: ${updateError.message}`,
-      };
-    }
-    if (updated) contract = updated as DigitalContractRecord;
-    await markProjectAgreementComplete(admin, contract.project_id);
   }
 
-  const commission = await creditSupervisorCommission(admin, contract);
   return {
     approved: true,
-    dispatched: true,
+    dispatched,
     commissionAmount: commission.amount,
     commissionCredited: commission.credited,
-    warning: commission.warning,
+    warning,
   };
 }

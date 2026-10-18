@@ -213,6 +213,7 @@ export async function saveSiteVisitChecklistAction(
   }
 
   revalidatePath('/admin/dashboard');
+  revalidatePath('/admin/dashboard/accounts');
   revalidatePath(`/admin/dashboard/checklist/${project.id}`);
   revalidatePath(`/admin/agreement/${project.id}`);
   return { ok: true, plinthAreaSqft: v.plinthAreaSqft, totalAccurateCost };
@@ -322,8 +323,9 @@ export async function retryApprovalDispatchAction(
     return { error: 'Both parties must complete Aadhaar OTP eSign before final approval.' };
   }
 
-  const result = await finalizeApprovedAgreement(contract);
+  const result = await finalizeApprovedAgreement(contract, session.userId);
   revalidatePath('/admin/dashboard');
+  revalidatePath('/admin/dashboard/accounts');
   revalidatePath(`/admin/agreement/${project.id}`);
   if (!result.approved) {
     return { error: result.warning ?? 'Final dispatch failed. Please retry.' };

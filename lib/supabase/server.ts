@@ -38,6 +38,9 @@ export async function createClient(portal?: Portal) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookieOptions: portalCookieOptions(resolved),
+      global: {
+        fetch: (input, init) => fetch(input, { ...init, cache: 'no-store' }),
+      },
       cookies: {
         getAll() {
           return cookieStore.getAll();

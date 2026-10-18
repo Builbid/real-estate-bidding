@@ -2,6 +2,7 @@ import { calculateSupervisorCommission, SUPERVISOR_PAYOUT_LABEL } from '@/lib/ad
 import {
   currentMonthStartInstant,
   currentMonthStartIst,
+  ensureSupervisorCommissions,
   loadCompletedValues,
   monthLabel,
   pendingBalanceFor,
@@ -34,8 +35,10 @@ export interface CompletedWorkRow {
   clientName: string;
   finalBudget: number | null;
   supervisorPayout: number;
-  /** Project creation time. Lists render newest first. */
+  /** Project creation time. */
   postedAt: string;
+  /** When the agreement was approved, else the project update time. Lists render newest first. */
+  completedAt: string;
 }
 
 /**
@@ -64,10 +67,20 @@ export type AgreementState = 'none' | 'pending_esign' | 'partially_signed' | 'si
 export interface ProjectWorkflowState {
   siteVisitDone: boolean;
   agreementState: AgreementState;
-  /** Both parties signed via Aadhaar OTP and the PDFs were dispatched. */
+  /** Both homeowner and worker Aadhaar checks are saved, even before the PDF email. */
+  bothPartiesVerified: boolean;
+  /** Both parties signed via Aadhaar OTP and the agreement was approved. */
   approved: boolean;
   /** When the agreement was fully signed and approved (null until then). */
   approvedAt: string | null;
+}
+
+/** Checklist saved and the agreement verified, or an agreement already approved. */
+export function isSupervisorWorkComplete(workflow: ProjectWorkflowState): boolean {
+  const agreementVerified =
+    workflow.approved || workflow.agreementState === 'signed' || workflow.bothPartiesVerified;
+  if (!agreementVerified) return false;
+  return workflow.siteVisitDone || workflow.approved;
 }
 
 export interface AdminKpis {
@@ -247,6 +260,7 @@ export function estimateSupervisorPayout(finalBudget: number | null): number {
 const NO_WORKFLOW: ProjectWorkflowState = {
   siteVisitDone: false,
   agreementState: 'none',
+  bothPartiesVerified: false,
   approved: false,
   approvedAt: null,
 };
@@ -262,15 +276,18 @@ async function loadWorkflowStates(): Promise<{
   const map = new Map<string, ProjectWorkflowState>();
   try {
     const admin = createAdminClient();
-    const [visits, contractsWithApproval] = await Promise.all([
+    const [visits, contractsWithVerification] = await Promise.all([
       admin.from('project_site_visits').select('project_id').limit(5000),
       admin
         .from('project_digital_contracts')
-        .select('project_id, status, approved_at')
+        .select('project_id, status, approved_at, client_verified_at, contractor_verified_at')
         .limit(5000),
     ]);
     if (visits.error) return { map, reliable: false };
-    // Before migration 058 the approved_at column does not exist: fall back to status only.
+    // Older databases may not have the approval or verification columns yet.
+    const contractsWithApproval = contractsWithVerification.error
+      ? await admin.from('project_digital_contracts').select('project_id, status, approved_at').limit(5000)
+      : contractsWithVerification;
     const contracts = contractsWithApproval.error
       ? await admin.from('project_digital_contracts').select('project_id, status').limit(5000)
       : contractsWithApproval;
@@ -282,11 +299,15 @@ async function loadWorkflowStates(): Promise<{
       project_id: string;
       status: AgreementState;
       approved_at?: string | null;
+      client_verified_at?: string | null;
+      contractor_verified_at?: string | null;
     }>) {
       const prev = map.get(row.project_id) ?? NO_WORKFLOW;
+      const bothPartiesVerified = Boolean(row.client_verified_at && row.contractor_verified_at);
       map.set(row.project_id, {
         ...prev,
         agreementState: row.status,
+        bothPartiesVerified: bothPartiesVerified || row.status === 'signed',
         approved: Boolean(row.approved_at),
         approvedAt: row.approved_at ?? null,
       });
@@ -458,20 +479,24 @@ export async function loadAdminDashboardData(
     };
   }
 
+  let projectColumns = detailProjectColumns;
   let projectsResult = await fetchProjects(detailProjectColumns);
   if (
     projectsResult.error &&
     /description|plot_area_sqft|floor_area_sqft|mistri_details|trade_details/i.test(projectsResult.error.message)
   ) {
+    projectColumns = stampedProjectColumns;
     projectsResult = await fetchProjects(stampedProjectColumns);
   }
   if (projectsResult.error && /builder_selected_at/i.test(projectsResult.error.message)) {
+    projectColumns = callProjectColumns;
     projectsResult = await fetchProjects(callProjectColumns);
   }
   if (
     projectsResult.error &&
     /call_verification_status|owner_callback_phone/i.test(projectsResult.error.message)
   ) {
+    projectColumns = baseProjectColumns;
     projectsResult = await fetchProjects(baseProjectColumns);
   }
 
@@ -498,7 +523,23 @@ export async function loadAdminDashboardData(
   const { map: workflowByProject, reliable: workflowReliable } = await loadWorkflowStates();
 
   const projectsRaw = projectsResult.data;
-  const projects = sortByCreatedAtDesc(readDashboardProjects(projectsRaw ?? []));
+  let projects = sortByCreatedAtDesc(readDashboardProjects(projectsRaw ?? []));
+  const loadedIds = new Set(projects.map((project) => project.id));
+  const missingFinishedIds = [...workflowByProject.entries()]
+    .filter(([projectId, workflow]) => !loadedIds.has(projectId) && isSupervisorWorkComplete(workflow))
+    .map(([projectId]) => projectId);
+  if (missingFinishedIds.length > 0) {
+    try {
+      const admin = createAdminClient();
+      const extra = await admin.from('projects').select(projectColumns).in('id', missingFinishedIds.slice(0, 200));
+      if (!extra.error && Array.isArray(extra.data)) {
+        const extras = readDashboardProjects(extra.data).filter((project) => !loadedIds.has(project.id));
+        projects = sortByCreatedAtDesc([...projects, ...extras]);
+      }
+    } catch {
+      // The first page of projects still renders when the service role is unavailable.
+    }
+  }
 
   const profiles = (profilesRaw ?? []) as Array<
     Profile & { is_admin?: boolean; physical_address?: string | null }
@@ -615,7 +656,7 @@ export async function loadAdminDashboardData(
     p.status !== 'active_24h' ||
     new Date(p.bidding_ends_at).getTime() <= nowMs;
   const isApprovedActive = (projectId: string) =>
-    Boolean(workflowByProject.get(projectId)?.approved);
+    isSupervisorWorkComplete(workflowByProject.get(projectId) ?? NO_WORKFLOW);
 
   const awaitingCompanyCall = (projectId: string) =>
     projects.find((item) => item.id === projectId)?.call_verification_status === 'pending';
@@ -751,11 +792,17 @@ export async function loadAdminDashboardData(
       if (awaitingCompanyCall(p.id)) return false;
       if (!supervisorView) return true;
       const approvedAt = workflowByProject.get(p.id)?.approvedAt;
-      return approvedAt ? Date.parse(approvedAt) >= resetMs : false;
+      if (!approvedAt) return true;
+      return Date.parse(approvedAt) >= resetMs;
     })
     .map((p) => {
       const row = projectRows.find((item) => item.id === p.id);
-      const finalBudget = agreedCostByProject.get(p.id) ?? null;
+      const finalBudget =
+        agreedCostByProject.get(p.id) ??
+        row?.winningBid ??
+        positiveAmount(p.budget_range_max) ??
+        positiveAmount(p.budget_range_min);
+      const workflow = workflowByProject.get(p.id);
       return {
         projectId: p.id,
         publicId: row?.publicId ?? (p.numeric_id ?? '').trim().toUpperCase(),
@@ -766,6 +813,7 @@ export async function loadAdminDashboardData(
         finalBudget,
         supervisorPayout: calculateSupervisorCommission(finalBudget),
         postedAt: p.created_at,
+        completedAt: workflow?.approvedAt || p.updated_at || p.created_at,
       };
     });
 
@@ -775,7 +823,7 @@ export async function loadAdminDashboardData(
     workers,
     clients,
     agreements: sortByTimestampDesc(agreements, (row) => row.postedAt),
-    completedWorks: sortByTimestampDesc(completedWorks, (row) => row.postedAt),
+    completedWorks: sortByTimestampDesc(completedWorks, (row) => row.completedAt),
     pendingCallProjects: sortByTimestampDesc(pendingCallProjects, (row) => row.createdAt),
   };
 }
@@ -909,6 +957,11 @@ export async function loadSupervisorAccount(
   const excludedFromPending = new Set<string>();
   try {
     const admin = createAdminClient();
+    await ensureSupervisorCommissions(
+      admin,
+      userId,
+      completedWorks.map((row) => ({ projectId: row.projectId, projectValue: row.finalBudget })),
+    );
     const { data: rows } = await admin
       .from('supervisor_commissions')
       .select('project_id, supervisor_id, amount, status, paid_at')

@@ -337,13 +337,14 @@ export async function verifyEmbeddedAgreementOtpAction(
   if (updateError || !updated) return { error: updateError?.message || 'Could not save this eSign.' };
 
   revalidatePath('/admin/dashboard');
+  revalidatePath('/admin/dashboard/accounts');
   revalidatePath(`/admin/agreement/${draft.project.id}`);
 
   if (!bothSigned) {
     return { ok: true, bothSigned: false, message: 'OTP verified. Waiting for the other party.' };
   }
 
-  const result = await finalizeApprovedAgreement(updated as DigitalContractRecord);
+  const result = await finalizeApprovedAgreement(updated as DigitalContractRecord, session.userId);
   const shared = await publishVerifiedAgreement(draft.project.id, draft);
   if (!result.approved) {
     return {
@@ -519,13 +520,14 @@ export async function verifyPrototypeEsignAction(input: {
   }
 
   revalidatePath('/admin/dashboard');
+  revalidatePath('/admin/dashboard/accounts');
   revalidatePath(`/admin/agreement/${draft.project.id}`);
 
   if (!bothSigned) {
     return { ok: true, bothSigned: false, message: 'Verified. Waiting for the other party.' };
   }
 
-  const finalized = await finalizeApprovedAgreement(savedResult.data as DigitalContractRecord);
+  const finalized = await finalizeApprovedAgreement(savedResult.data as DigitalContractRecord, session.userId);
   if (!finalized.approved) {
     const { error: forceError } = await admin
       .from('project_digital_contracts')

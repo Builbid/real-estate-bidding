@@ -125,6 +125,40 @@ export async function loadCompletedValues(admin: SupabaseClient): Promise<Comple
   }));
 }
 
+/**
+ * Writes the clamped 0.2% earning for completed works that have no commission row yet.
+ * Existing rows are left untouched, so a payment slip or another supervisor's credit is never overwritten.
+ */
+export async function ensureSupervisorCommissions(
+  admin: SupabaseClient,
+  supervisorId: string,
+  works: Array<{ projectId: string; projectValue: number | null }>,
+): Promise<void> {
+  const payable = works.filter((work) => calculateSupervisorCommission(work.projectValue) > 0);
+  if (payable.length === 0) return;
+  const { data: existing, error: existingError } = await admin
+    .from('supervisor_commissions')
+    .select('project_id')
+    .limit(5000);
+  if (existingError) return;
+  const taken = new Set(((existing ?? []) as Array<{ project_id: string }>).map((row) => row.project_id));
+  const missing = payable.filter((work) => !taken.has(work.projectId));
+  if (missing.length === 0) return;
+  const now = new Date().toISOString();
+  await admin.from('supervisor_commissions').upsert(
+    missing.map((work) => ({
+      project_id: work.projectId,
+      supervisor_id: supervisorId,
+      project_value: work.projectValue,
+      commission_bps: SUPERVISOR_PAYOUT_BPS,
+      amount: calculateSupervisorCommission(work.projectValue),
+      status: 'credited',
+      credited_at: now,
+    })),
+    { onConflict: 'project_id', ignoreDuplicates: true },
+  );
+}
+
 /** Pending = clamped earning on credited-but-unpaid commissions + the same earning on in-territory completed works not yet credited. */
 export async function pendingBalanceFor(
   admin: SupabaseClient,
