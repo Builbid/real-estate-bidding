@@ -113,7 +113,7 @@ export function ServiceTypeSelector({ value, onChange, onContinue }: ServiceType
 
       {value && (
         <div className="fixed inset-x-0 bottom-0 z-50 border-t border-border/70 bg-background/95 px-4 py-3 shadow-[0_-8px_30px_rgba(0,0,0,0.14)] backdrop-blur-md pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-          <div className="mx-auto max-w-6xl space-y-1.5">
+          <div className="mx-auto max-w-3xl space-y-1.5">
             <p className="text-center text-[11px] text-muted-foreground">
               Selected: <span className="font-semibold text-foreground">{selectedLabel}</span>
             </p>

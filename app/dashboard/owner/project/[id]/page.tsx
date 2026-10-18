@@ -181,7 +181,7 @@ export default async function OwnerProjectPage({ params }: PageProps) {
 
   return (
     <OwnerProjectPhaseProvider initialProject={project}>
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="mx-auto w-full max-w-5xl space-y-5">
         {/* ── Page header ────────────────────────────────────────── */}
         <div className="flex items-center gap-3">
           <NavLink

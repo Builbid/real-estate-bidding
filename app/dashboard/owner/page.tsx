@@ -149,7 +149,7 @@ export default async function OwnerDashboard() {
   const hasAnyProject = activeFeed.length > 0 || selectedCount > 0;
 
   return (
-    <div className="space-y-4 pb-24">
+    <div className="mx-auto w-full max-w-5xl space-y-4 pb-24">
       <div>
         <HistoryBackButton className="mb-3" />
         <div className="flex items-start justify-between gap-4">
