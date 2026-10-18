@@ -1,6 +1,6 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Lock, Users, CalendarDays } from 'lucide-react';
 import { AuctionCountdown } from './AuctionCountdown';
 import { DeleteProjectButton } from './DeleteProjectButton';
@@ -113,7 +113,9 @@ function OwnerLiveProjectCardBody({
   userId,
 }: OwnerLiveProjectCardProps) {
   const { project, phase, canSelect } = useOwnerProjectPhaseContext();
+  const [movedToSelected, setMovedToSelected] = useState(false);
   const awaitingAgreement = isAwaitingAgreement(project);
+  if (movedToSelected) return null;
   if (!awaitingAgreement && isOwnerListingClosed(project, Math.min(bidCount, initialBids.length))) return null;
   const selectionEndsAt = new Date(selectionDeadlineMs(project)).toISOString();
   const isFirm = isFirmProject(project);
@@ -302,6 +304,7 @@ function OwnerLiveProjectCardBody({
           compactEmpty
           initialBids={initialBids}
           initialFirms={initialFirms}
+          onAwarded={() => setMovedToSelected(true)}
         />
       ) : (
         <UnifiedBidRankings
@@ -309,6 +312,7 @@ function OwnerLiveProjectCardBody({
           initialBids={initialBids}
           initialBuilders={initialBuilders}
           userId={userId}
+          onAwarded={() => setMovedToSelected(true)}
         />
       )}
       </div>

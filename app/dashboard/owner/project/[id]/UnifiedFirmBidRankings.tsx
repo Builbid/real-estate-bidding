@@ -18,12 +18,13 @@ interface Props {
   initialBids: Bid[];
   initialFirms: Record<string, PublicFirmProfile>;
   compactEmpty?: boolean;
+  onAwarded?: () => void;
 }
 
 const RANK_MEDAL = ['🥇', '🥈', '🥉'];
 
 export function UnifiedFirmBidRankings({
-  initialBids, initialFirms, compactEmpty = false,
+  initialBids, initialFirms, compactEmpty = false, onAwarded,
 }: Props) {
   const { project, isReveal, isFrozen } = useOwnerProjectPhaseContext();
   const supabase = createClient();
@@ -153,6 +154,7 @@ export function UnifiedFirmBidRankings({
                     firmId={bid.builder_id}
                     companyName={companyName}
                     packageRates={bid.package_rates ?? []}
+                    onAwarded={onAwarded}
                   />
                 )}
 

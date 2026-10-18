@@ -43,10 +43,11 @@ interface Props {
   initialBuilders: Record<string, BuilderInfo>;
   userId: string;
   compactEmpty?: boolean;
+  onAwarded?: () => void;
 }
 
 export function UnifiedBidRankings({
-  initialBids, initialBuilders, userId, compactEmpty = false,
+  initialBids, initialBuilders, userId, compactEmpty = false, onAwarded,
 }: Props) {
   const { project, isFrozen } = useOwnerProjectPhaseContext();
   const supabase = createClient();
@@ -338,6 +339,7 @@ export function UnifiedBidRankings({
                     projectId={project.id}
                     builderId={bid.builder_id}
                     builderName={builder?.full_name}
+                    onAwarded={onAwarded}
                   />
                 )}
 

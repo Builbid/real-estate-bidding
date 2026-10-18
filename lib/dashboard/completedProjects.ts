@@ -59,6 +59,17 @@ export function isAwaitingAgreement(project: AgreementSignals): boolean {
   return Boolean(project.selected_builder_id) && !isAgreementComplete(project);
 }
 
+/** A worker has been selected, or the agreement is already signed. These leave the active feed. */
+export function isOwnerSelectedProject(project: AgreementSignals): boolean {
+  return Boolean(project.selected_builder_id) || isAgreementComplete(project);
+}
+
+export function ownerAgreementStatusLabel(project: AgreementSignals): string {
+  if (isAgreementComplete(project)) return 'Approved / Active';
+  if (project.selected_builder_id) return 'Awaiting agreement';
+  return 'Pending';
+}
+
 export function parseHistoryPage(raw: string | undefined): number {
   const page = Number(raw);
   if (!Number.isFinite(page) || page < 1) return 1;

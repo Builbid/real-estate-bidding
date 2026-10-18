@@ -11,9 +11,10 @@ interface Props {
   projectId: string;
   builderId: string;
   builderName?: string;
+  onAwarded?: () => void;
 }
 
-export function SelectBuilderButton({ projectId, builderId, builderName }: Props) {
+export function SelectBuilderButton({ projectId, builderId, builderName, onAwarded }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -49,9 +50,14 @@ export function SelectBuilderButton({ projectId, builderId, builderName }: Props
         return;
       }
 
-      toast.success('Phone confirmed. BuilBid will call you shortly.');
+      toast.success('Project moved to your Selected Projects folder');
       setOpen(false);
-      router.refresh();
+      onAwarded?.();
+      if (window.location.pathname.includes('/dashboard/owner/project/')) {
+        router.push('/dashboard/owner');
+      } else {
+        router.refresh();
+      }
     } catch {
       const message = 'Could not select this builder. Please try again.';
       setError(message);

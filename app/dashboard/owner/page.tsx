@@ -1,4 +1,5 @@
 export const dynamic = 'force-dynamic';
+export const fetchCache = 'force-no-store';
 
 import { getAuthUser } from '@/lib/supabase/getUser';
 import { processAuctionTransitions } from '@/app/actions/auction';
@@ -7,14 +8,13 @@ import { getDashboardPath } from '@/lib/auth/roles';
 import Link from 'next/link';
 import { Plus, Building } from 'lucide-react';
 import { OwnerLiveProjectCard } from './OwnerLiveProjectCard';
-import { CompletedProjectsPreview } from '@/components/dashboard/CompletedProjectsPreview';
+import { SelectedProjectsFolder } from '@/components/dashboard/SelectedProjectsFolder';
 import { SharedAgreementsPanel } from '@/components/dashboard/SharedAgreementsPanel';
 import { DashboardWorkSection } from '@/components/dashboard/DashboardWorkSection';
 import { Button } from '@/components/ui/button';
 import { HistoryBackButton } from '@/components/shared/HistoryBackButton';
-import { isAgreementComplete, isAwaitingAgreement } from '@/lib/dashboard/completedProjects';
-import { isOwnerListingClosed } from '@/lib/auction/selectionWindow';
-import { getProjectPhase, isInteractiveProjectPhase, sortByCreatedAtDesc, sortByTimestampDesc, type ProjectPhase } from '@/lib/utils';
+import { isOwnerSelectedProject } from '@/lib/dashboard/completedProjects';
+import { getProjectPhase, sortByCreatedAtDesc, sortByTimestampDesc, type ProjectPhase } from '@/lib/utils';
 import type { Project, Bid } from '@/lib/types';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
@@ -132,49 +132,22 @@ async function getData() {
     ) as ProjectWithBidCount[]),
   );
 
-  const activeProjects = allProjects.filter((p) => !isAgreementComplete(p));
-  // Awarded projects stay on this dashboard until a supervisor signs the agreement,
-  // even after the bidding or selection window has ended.
-  const interactiveProjects = activeProjects.filter(
-    (p) => isInteractiveProjectPhase(getProjectPhase(p)) || isAwaitingAgreement(p),
-  );
+  // A selected worker moves the project out of the active feed and into Selected Projects.
+  const selectedProjects = allProjects.filter((project) => isOwnerSelectedProject(project));
+  const pendingProjects = allProjects.filter((project) => !isOwnerSelectedProject(project));
 
-  const liveBundles = await Promise.all(
-    interactiveProjects.map((p) => enrichLiveProject(supabase, p))
+  const pendingBundles = await Promise.all(
+    pendingProjects.map((project) => enrichLiveProject(supabase, project)),
   );
+  const activeFeed = sortByTimestampDesc(pendingBundles, (bundle) => bundle.project.created_at);
 
-  const byNewest = (bundles: LiveProjectBundle[]) =>
-    sortByTimestampDesc(bundles, (bundle) => bundle.project.created_at);
-
-  const agreementPending = byNewest(liveBundles.filter((b) => isAwaitingAgreement(b.project)));
-  // Selection Window and Bidding Frozen stay on this private dashboard for the
-  // second 24 hours so the owner can review bids and award a worker. Those
-  // projects are excluded from the public homepage and browse feeds.
-  const openBundles = liveBundles.filter(
-    (b) => !isAwaitingAgreement(b.project) && !isOwnerListingClosed(b.project, b.bids.length),
-  );
-  const selectionRequired = byNewest(
-    openBundles.filter(
-      (b) => b.phase === 'select' || b.phase === 'transitioning' || b.biddingHasEnded,
-    ),
-  );
-  const liveAuctions = byNewest(
-    openBundles.filter((b) => b.phase === 'live' && !b.biddingHasEnded),
-  );
-
-  const completed = sortByCreatedAtDesc(allProjects.filter((p) => isAgreementComplete(p)));
-
-  return { profile, userId, agreementPending, selectionRequired, liveAuctions, completed };
+  return { profile, userId, activeFeed, selectedCount: selectedProjects.length };
 }
 
 export default async function OwnerDashboard() {
-  const { profile, userId, agreementPending, selectionRequired, liveAuctions, completed } = await getData();
+  const { profile, userId, activeFeed, selectedCount } = await getData();
 
-  const hasAnyProject =
-    agreementPending.length > 0 ||
-    selectionRequired.length > 0 ||
-    liveAuctions.length > 0 ||
-    completed.length > 0;
+  const hasAnyProject = activeFeed.length > 0 || selectedCount > 0;
 
   return (
     <div className="space-y-4 pb-24">
@@ -197,43 +170,15 @@ export default async function OwnerDashboard() {
 
       <SharedAgreementsPanel perspective="owner" />
 
-      {hasAnyProject && (
-      <DashboardWorkSection
-        tone="live"
-        title="Live bidding"
-        count={liveAuctions.length}
-        description="Auctions still receiving bids. Rankings update in real time."
-      >
-        {liveAuctions.length > 0 ? (
-          <div className="space-y-5">
-            {liveAuctions.map((bundle) => (
-              <OwnerLiveProjectCard
-                key={bundle.project.id}
-                project={bundle.project}
-                bidCount={bundle.bidCount}
-                initialBids={bundle.bids}
-                initialBuilders={bundle.builders}
-                userId={userId}
-              />
-            ))}
-          </div>
-        ) : (
-          <p className="py-2 text-sm text-muted-foreground">
-            No live auctions right now.
-          </p>
-        )}
-      </DashboardWorkSection>
-      )}
-
-      {selectionRequired.length > 0 && (
+      {activeFeed.length > 0 && (
         <DashboardWorkSection
-          tone="select"
-          title="Needs your decision"
-          count={selectionRequired.length}
-          description="Bidding has closed. Select a worker to award the contract."
+          tone="live"
+          title="Active projects"
+          count={activeFeed.length}
+          description="Newest posted projects stay at the top. A project leaves this list when you select a worker."
         >
           <div className="space-y-5">
-            {selectionRequired.map((bundle) => (
+            {activeFeed.map((bundle) => (
               <OwnerLiveProjectCard
                 key={bundle.project.id}
                 project={bundle.project}
@@ -241,28 +186,7 @@ export default async function OwnerDashboard() {
                 initialBids={bundle.bids}
                 initialBuilders={bundle.builders}
                 userId={userId}
-                priority
-              />
-            ))}
-          </div>
-        </DashboardWorkSection>
-      )}
-
-      {agreementPending.length > 0 && (
-        <DashboardWorkSection
-          tone="agreement"
-          title="Selected projects"
-          count={agreementPending.length}
-        >
-          <div className="space-y-5">
-            {agreementPending.map((bundle) => (
-              <OwnerLiveProjectCard
-                key={bundle.project.id}
-                project={bundle.project}
-                bidCount={bundle.bidCount}
-                initialBids={bundle.bids}
-                initialBuilders={bundle.builders}
-                userId={userId}
+                priority={bundle.phase !== 'live'}
               />
             ))}
           </div>
@@ -286,11 +210,7 @@ export default async function OwnerDashboard() {
         </div>
       )}
 
-      <CompletedProjectsPreview
-        projects={completed}
-        viewHrefFor={(project) => `/dashboard/owner/project/${project.id}`}
-        showDelete
-      />
+      <SelectedProjectsFolder count={selectedCount} />
     </div>
   );
 }

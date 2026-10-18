@@ -16,9 +16,10 @@ interface Props {
   companyName?: string;
   /** The firm's per-package bid prices — the owner must pick exactly one when awarding. */
   packageRates?: PackageBidPrice[];
+  onAwarded?: () => void;
 }
 
-export function SelectFirmButton({ projectId, firmId, companyName, packageRates = [] }: Props) {
+export function SelectFirmButton({ projectId, firmId, companyName, packageRates = [], onAwarded }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [packageId, setPackageId] = useState<string | null>(
@@ -65,10 +66,15 @@ export function SelectFirmButton({ projectId, firmId, companyName, packageRates 
         return;
       }
 
-      toast.success('Phone confirmed. BuilBid will call you shortly.');
+      toast.success('Project moved to your Selected Projects folder');
       setPhoneOpen(false);
       setOpen(false);
-      router.refresh();
+      onAwarded?.();
+      if (window.location.pathname.includes('/dashboard/owner/project/')) {
+        router.push('/dashboard/owner');
+      } else {
+        router.refresh();
+      }
     } catch {
       const message = 'Could not select this firm. Please try again.';
       setError(message);
