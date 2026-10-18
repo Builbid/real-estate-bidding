@@ -415,13 +415,13 @@ export function cubicMetresFromCuFt(cuFt: number): number {
   return round2(cuFt / CU_M_TO_CU_FT);
 }
 
-/** Primary local metric, with cubic feet kept beside it. */
+/** Cubic metres only. Sand and coarse aggregate are not printed in cubic feet. */
 export function formatVolumeDual(cuFt: number): string {
   const cuM = cubicMetresFromCuFt(cuFt).toLocaleString('en-IN', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
-  return `${cuM} cu. m (CM) / ${cuFt.toLocaleString('en-IN')} cu. ft.`;
+  return `${cuM} cu. m (CM)`;
 }
 
 /** One material per line, for the civil estimate PDF. */
