@@ -55,7 +55,7 @@ function readMeasurements(raw: unknown): Record<string, string> {
   return out;
 }
 
-function readLineItems(raw: unknown): MeasuredLineItem[] {
+export function readLineItems(raw: unknown): MeasuredLineItem[] {
   if (!Array.isArray(raw)) return [];
   return raw.flatMap((entry): MeasuredLineItem[] => {
     if (!entry || typeof entry !== 'object') return [];

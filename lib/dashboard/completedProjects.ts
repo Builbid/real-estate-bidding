@@ -64,10 +64,15 @@ export function isOwnerSelectedProject(project: AgreementSignals): boolean {
   return Boolean(project.selected_builder_id) || isAgreementComplete(project);
 }
 
-export function ownerAgreementStatusLabel(project: AgreementSignals): string {
-  if (isAgreementComplete(project)) return 'Approved / Active';
-  if (project.selected_builder_id) return 'Awaiting agreement';
-  return 'Pending';
+/**
+ * Selected projects stay Approved / Active until the supervisor has saved the site checklist
+ * and the agreement has been verified. Only then does the label become Completed.
+ */
+export function ownerSelectedProjectStatus(
+  checklistSubmitted: boolean,
+  agreementVerified: boolean,
+): 'Approved / Active' | 'Completed' {
+  return checklistSubmitted && agreementVerified ? 'Completed' : 'Approved / Active';
 }
 
 export function parseHistoryPage(raw: string | undefined): number {
