@@ -171,7 +171,7 @@ export default async function OwnerSelectedProjectsPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-5 pb-16">
+    <div className="mx-auto w-full max-w-4xl space-y-5 px-4 pb-16 sm:px-6">
       <div>
         <Link href="/dashboard/owner" className={cn(NAV_BACK_LINK, 'mb-3')}>
           <ArrowLeft className="h-4 w-4" />

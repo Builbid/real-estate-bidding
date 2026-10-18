@@ -11,7 +11,6 @@ import { OwnerLiveProjectCard } from './OwnerLiveProjectCard';
 import { SelectedProjectsFolder } from '@/components/dashboard/SelectedProjectsFolder';
 import { DashboardWorkSection } from '@/components/dashboard/DashboardWorkSection';
 import { Button } from '@/components/ui/button';
-import { HistoryBackButton } from '@/components/shared/HistoryBackButton';
 import { isOwnerSelectedProject } from '@/lib/dashboard/completedProjects';
 import { getProjectPhase, sortByCreatedAtDesc, sortByTimestampDesc, type ProjectPhase } from '@/lib/utils';
 import type { Project, Bid } from '@/lib/types';
@@ -149,22 +148,19 @@ export default async function OwnerDashboard() {
   const hasAnyProject = activeFeed.length > 0 || selectedCount > 0;
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-4 pb-24">
-      <div>
-        <HistoryBackButton className="mb-3" />
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Owner Dashboard</h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Welcome back, <span className="text-foreground font-semibold">{profile.full_name}</span>
-            </p>
-          </div>
-          <Button asChild>
-            <Link href="/#services">
-              <Plus className="w-4 h-4" /> Post New Project
-            </Link>
-          </Button>
+    <div className="mx-auto w-full max-w-4xl space-y-4 px-4 pb-24 sm:px-6">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Owner Dashboard</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Welcome back, <span className="text-foreground font-semibold">{profile.full_name}</span>
+          </p>
         </div>
+        <Button asChild>
+          <Link href="/#services">
+            <Plus className="w-4 h-4" /> Post New Project
+          </Link>
+        </Button>
       </div>
 
       {activeFeed.length > 0 && (
