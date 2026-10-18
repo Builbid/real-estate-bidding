@@ -15,22 +15,25 @@ const WHATSAPP_HREF = `https://wa.me/${BUILBID_MATERIALS_CONTACT.whatsappE164}`;
 
 export default function ContactPage() {
   return (
-    <StaticPageShell
-      title="Contact Us"
-      subtitle="Customer support for project owners and contractors."
-    >
-      <StaticSection title="Customer Support">
-        <p className={COPY}>
-          Questions about posting a project, placing a bid, or your account can be sent to{' '}
-          <a
-            href="mailto:support@builbid.in"
-            className="inline-flex items-center gap-1.5 font-medium text-foreground hover:text-emerald-700 dark:hover:text-emerald-400"
-          >
-            <Mail className="h-4 w-4 text-emerald-600 dark:text-emerald-400" aria-hidden />
-            support@builbid.in
-          </a>
-          .
-        </p>
+    <StaticPageShell className="max-w-4xl px-4 sm:px-6" title="Contact Us">
+      <StaticSection title="Issue & Complaint Guidelines">
+        <div className="rounded-xl border border-border bg-card/60 p-4">
+          <p className={COPY}>
+            <span className="font-medium text-foreground">Account & Login Issues. </span>
+            For account access, email problems, or login help, include the email address registered
+            on BuilBid and a short description of what happens when you try to sign in.{' '}
+            <span className="font-medium text-foreground">
+              Site Workmanship & Quality Control Complaints.{' '}
+            </span>
+            Property owners can report a contractor or worker who skips the site checklist, delivers
+            sub-standard work, or breaks quality control standards. Include the project title and
+            what was found on site.{' '}
+            <span className="font-medium text-foreground">Payment & Billing Support. </span>
+            Property owners and contractors or labour can report payment delays, billing disputes, and
+            payment disputes or transaction issues. Include the project title, the amount, and the
+            date of the payment or invoice.
+          </p>
+        </div>
       </StaticSection>
 
       <StaticSection title="Send a message">
@@ -41,19 +44,22 @@ export default function ContactPage() {
         <ContactForm />
       </StaticSection>
 
-      <StaticSection title="Office">
-        <p className={`inline-flex items-start gap-2 ${COPY}`}>
-          <MapPin className="mt-1 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden />
-          <span>Dispur, Guwahati - 781006, Assam, India</span>
-        </p>
-      </StaticSection>
-
       <StaticSection title="Working Hours">
         <p className={`inline-flex items-start gap-2 ${COPY}`}>
           <Clock className="mt-1 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden />
-          <span>Monday to Saturday: 9:00 AM – 6:00 PM</span>
+          <span>Monday to Saturday: 9:00 AM – 9:00 PM IST</span>
         </p>
-        <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-6">
+      </StaticSection>
+
+      <StaticSection title="Official Contact details">
+        <div className="grid gap-3">
+          <a
+            href="mailto:support@builbid.in"
+            className="inline-flex items-center gap-2 text-sm font-medium text-foreground hover:text-emerald-700 dark:hover:text-emerald-400"
+          >
+            <Mail className="h-4 w-4 text-emerald-600 dark:text-emerald-400" aria-hidden />
+            support@builbid.in
+          </a>
           <a
             href={`tel:${BUILBID_MATERIALS_CONTACT.phoneTel}`}
             className="inline-flex items-center gap-2 text-sm font-medium text-foreground hover:text-emerald-700 dark:hover:text-emerald-400"
@@ -70,25 +76,11 @@ export default function ContactPage() {
             <MessageCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400" aria-hidden />
             WhatsApp {BUILBID_MATERIALS_CONTACT.phoneDisplay}
           </a>
+          <p className={`inline-flex items-start gap-2 ${COPY}`}>
+            <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden />
+            <span>Dispur, Guwahati - 781006, Assam, India</span>
+          </p>
         </div>
-      </StaticSection>
-
-      <StaticSection title="Issue & Complaint Guidelines">
-        <p className={COPY}>
-          <span className="font-medium text-foreground">Account & Login Issues. </span>
-          For account access, email problems, or login help, include the email address registered
-          on BuilBid and a short description of what happens when you try to sign in.{' '}
-          <span className="font-medium text-foreground">
-            Site Workmanship & Quality Control Complaints.{' '}
-          </span>
-          Property owners can report a contractor or worker who skips the site checklist, delivers
-          sub-standard work, or breaks quality control standards. Include the project title and
-          what was found on site.{' '}
-          <span className="font-medium text-foreground">Payment & Billing Support. </span>
-          Property owners and contractors or labour can report payment delays, billing disputes, or
-          escrow and transaction issues. Include the project title, the amount, and the date of the
-          payment or invoice.
-        </p>
       </StaticSection>
     </StaticPageShell>
   );
