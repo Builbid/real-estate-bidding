@@ -410,12 +410,31 @@ export function estimateCivilMaterials(input: {
   };
 }
 
-export function formatMaterialLine(materials: MaterialTotals): string {
+/** Cubic feet back to cubic metres, using the same factor the mix volumes were stored with. */
+export function cubicMetresFromCuFt(cuFt: number): number {
+  return round2(cuFt / CU_M_TO_CU_FT);
+}
+
+/** Primary local metric, with cubic feet kept beside it. */
+export function formatVolumeDual(cuFt: number): string {
+  const cuM = cubicMetresFromCuFt(cuFt).toLocaleString('en-IN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  return `${cuM} cu. m (CM) / ${cuFt.toLocaleString('en-IN')} cu. ft.`;
+}
+
+/** One material per line, for the civil estimate PDF. */
+export function formatMaterialItems(materials: MaterialTotals): string[] {
   return [
-    `Cement ${materials.cementBags.toLocaleString('en-IN')} bags`,
-    `TMT ${materials.steelKg.toLocaleString('en-IN')} kg (${materials.steelTons.toLocaleString('en-IN')} ton)`,
-    `Sand ${materials.sandCuFt.toLocaleString('en-IN')} cu. ft.`,
-    `Coarse aggregate ${materials.aggregateCuFt.toLocaleString('en-IN')} cu. ft.`,
-    `Bricks ${materials.bricks.toLocaleString('en-IN')} nos.`,
-  ].join(' · ');
+    `Cement: ${materials.cementBags.toLocaleString('en-IN')} bags`,
+    `TMT Steel: ${materials.steelKg.toLocaleString('en-IN')} kg (${materials.steelTons.toLocaleString('en-IN')} ton)`,
+    `Sand: ${formatVolumeDual(materials.sandCuFt)}`,
+    `Coarse Aggregate: ${formatVolumeDual(materials.aggregateCuFt)}`,
+    `Bricks: ${materials.bricks.toLocaleString('en-IN')} nos.`,
+  ];
+}
+
+export function formatMaterialLine(materials: MaterialTotals): string {
+  return formatMaterialItems(materials).join(' · ');
 }

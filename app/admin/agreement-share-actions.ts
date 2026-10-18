@@ -188,6 +188,7 @@ export async function shareAgreementCopyAction(
             numericProjectId: draft.project.publicId,
             ownerName: draft.client.name,
             workerName: draft.contractor.name,
+            soilCondition: draft.visit ? soilLabel(draft.visit.soilType) : null,
           })
         : null,
   });

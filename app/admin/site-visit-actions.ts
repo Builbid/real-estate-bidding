@@ -5,6 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { requireOfficialAdmin } from '@/lib/admin/auth';
 import {
   parseSiteVisitInput,
+  soilLabel,
   type SiteVisitInput,
   type SiteVisitRecord,
 } from '@/lib/admin/siteVisit';
@@ -208,7 +209,7 @@ export async function saveSiteVisitChecklistAction(
   }
 
   if (template.tradeKey === 'civil') {
-    await publishCivilMaterialEstimate(admin, project.id, template, cost.items);
+    await publishCivilMaterialEstimate(admin, project.id, template, cost.items, soilLabel(v.soilType));
   }
 
   revalidatePath('/admin/dashboard');
@@ -223,6 +224,7 @@ async function publishCivilMaterialEstimate(
   projectId: string,
   template: MeasurementTemplate,
   lines: Array<{ id: string; group: string; unit: string; quantity: number }>,
+  soilCondition: string,
 ): Promise<void> {
   try {
     const { data: meta } = await admin
@@ -246,6 +248,7 @@ async function publishCivilMaterialEstimate(
       numericProjectId: typeof meta?.numeric_id === 'string' ? meta.numeric_id : projectId,
       ownerName: owner?.full_name?.trim() || 'Homeowner',
       workerName: worker?.company_name?.trim() || worker?.full_name?.trim() || 'Mistri',
+      soilCondition,
     });
     if (!bytes) return;
     const published = await publishCivilMaterialEstimatePdf({

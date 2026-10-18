@@ -4,9 +4,34 @@ function pdfSafe(text: string): string {
   return text.replace(/₹/g, 'Rs.');
 }
 
+function wrappedLines(doc: jsPDF, text: string, width: number): string[] {
+  return doc.splitTextToSize(pdfSafe(text), width) as string[];
+}
+
+function newPageIfNeeded(doc: jsPDF, y: number, needed: number): number {
+  const pageH = doc.internal.pageSize.getHeight();
+  if (y + needed > pageH - 16) {
+    doc.addPage();
+    return 20;
+  }
+  return y;
+}
+
 export interface ProjectDocumentPdfRow {
   label: string;
   value: string;
+}
+
+export interface ProjectDocumentPdfBulletSection {
+  heading: string;
+  intro?: string;
+  lines: string[];
+  note?: string;
+}
+
+export interface ProjectDocumentPdfCallout {
+  title: string;
+  lines: string[];
 }
 
 export interface ProjectDocumentPdfInput {
@@ -16,6 +41,10 @@ export interface ProjectDocumentPdfInput {
   projectName: string;
   rows: ProjectDocumentPdfRow[];
   notice?: string;
+  /** Full-width item list rendered after the metadata rows. */
+  bulletSection?: ProjectDocumentPdfBulletSection;
+  /** Boxed notes rendered after the bullet list. */
+  callout?: ProjectDocumentPdfCallout;
 }
 
 export function generateProjectDocumentPdfBytes(input: ProjectDocumentPdfInput): Uint8Array {
@@ -79,11 +108,15 @@ export function generateProjectDocumentPdfBytes(input: ProjectDocumentPdfInput):
     y += rowH;
   }
 
-  y += 10;
-  if (y > 275) {
-    doc.addPage();
-    y = 20;
+  if (input.bulletSection) {
+    y = drawBulletSection(doc, y, margin, pageW, input.bulletSection);
   }
+  if (input.callout) {
+    y = drawCallout(doc, y, margin, pageW, input.callout);
+  }
+
+  y += 10;
+  y = newPageIfNeeded(doc, y, 12);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7.5);
   doc.setTextColor(100);
@@ -95,4 +128,115 @@ export function generateProjectDocumentPdfBytes(input: ProjectDocumentPdfInput):
   );
 
   return new Uint8Array(doc.output('arraybuffer') as ArrayBuffer);
+}
+
+function drawBulletSection(
+  doc: jsPDF,
+  startY: number,
+  margin: number,
+  pageW: number,
+  section: ProjectDocumentPdfBulletSection,
+): number {
+  let y = startY + 6;
+  const usable = pageW - margin * 2;
+
+  y = newPageIfNeeded(doc, y, 14);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.setTextColor(15, 23, 42);
+  doc.text(pdfSafe(section.heading), margin, y);
+  y += 6;
+
+  if (section.intro) {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(71, 85, 105);
+    const introLines = wrappedLines(doc, section.intro, usable);
+    y = newPageIfNeeded(doc, y, introLines.length * 4.2);
+    doc.text(introLines, margin, y);
+    y += introLines.length * 4.2 + 4;
+  }
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(15, 23, 42);
+  for (const line of section.lines) {
+    const textLines = wrappedLines(doc, line, usable - 8);
+    const blockH = textLines.length * 5 + 2.6;
+    y = newPageIfNeeded(doc, y, blockH);
+    doc.setFillColor(15, 23, 42);
+    doc.circle(margin + 1.6, y - 1.15, 0.65, 'F');
+    doc.text(textLines, margin + 5.5, y);
+    y += blockH;
+  }
+
+  if (section.note) {
+    y += 1.5;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(71, 85, 105);
+    const noteLines = wrappedLines(doc, section.note, usable);
+    y = newPageIfNeeded(doc, y, noteLines.length * 4.2);
+    doc.text(noteLines, margin, y);
+    y += noteLines.length * 4.2;
+  }
+
+  return y;
+}
+
+function drawCallout(
+  doc: jsPDF,
+  startY: number,
+  margin: number,
+  pageW: number,
+  callout: ProjectDocumentPdfCallout,
+): number {
+  const usable = pageW - margin * 2;
+  const padX = 4;
+  const innerW = usable - padX * 2;
+  const lineH = 4.2;
+  const paragraphGap = 1.8;
+  const pageH = doc.internal.pageSize.getHeight();
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  const paragraphs = callout.lines
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
+    .map((line) => wrappedLines(doc, line, innerW));
+
+  const bodyH =
+    paragraphs.reduce((sum, lines) => sum + lines.length * lineH, 0) +
+    Math.max(0, paragraphs.length - 1) * paragraphGap;
+  const topPad = 5;
+  const titleBlock = 6;
+  const bottomPad = 4;
+  const boxH = topPad + titleBlock + bodyH + bottomPad;
+  let y = startY + 8;
+  if (y + boxH > pageH - 16) {
+    doc.addPage();
+    y = 20;
+  }
+
+  doc.setFillColor(248, 250, 252);
+  doc.setDrawColor(203, 213, 225);
+  doc.setLineWidth(0.3);
+  doc.rect(margin, y, usable, boxH, 'FD');
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.setTextColor(15, 23, 42);
+  doc.text(pdfSafe(callout.title), margin + padX, y + topPad + 3.2);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(51, 65, 85);
+  let textY = y + topPad + titleBlock + 3;
+  paragraphs.forEach((lines, index) => {
+    doc.text(lines, margin + padX, textY);
+    textY += lines.length * lineH;
+    if (index < paragraphs.length - 1) textY += paragraphGap;
+  });
+
+  return y + boxH;
 }
