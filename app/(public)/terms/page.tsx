@@ -5,24 +5,39 @@ import { PLATFORM_COPY, StaticPageShell, StaticSection } from '@/components/mark
 export const metadata: Metadata = {
   title: 'Terms of Service',
   description:
-    'BuilBid terms for benchmark estimates, the 24-hour bid window, field visits, e-Sign agreements, quality checklists, and material supply.',
+    'BuilBid terms for benchmark estimates, the 24-hour bidding and selection windows, cashless digital payments, field visits, e-Sign agreements, quality checklists, and material supply.',
 };
 
 export default function TermsPage() {
   return (
     <StaticPageShell
+      className="max-w-4xl mx-auto px-4 sm:px-6"
       title="Terms of Service"
       subtitle="These terms apply to project estimates, contractor bidding selection, site verification protocols, and execution standards on BuilBid."
-      lastUpdated="27 September 2026"
+      lastUpdated="19 October 2026"
     >
-      <StaticSection title="Estimation & 24-Hour Bidding">
+      <StaticSection title="Estimation & Bidding & Selection Window">
         <p className={PLATFORM_COPY}>
           Initial project requirements serve as virtual benchmark estimates. They give property
-          owners a fair basis for comparison. They are not a final fixed quote. When verified
-          contractors and skilled workers submit bids, the property owner has a 24-hour decision
-          window to select the preferred contractor or skilled worker. The rate submitted by the
-          contractor during the 24-hour bidding window remains fixed for the defined requirements
-          and will NOT change during or after the physical site visit.
+          owners a fair basis for comparison. They are not a final fixed quote. Bidding runs for
+          an active duration of 24 hours. Property owners can start selecting their preferred
+          contractor or skilled worker from the moment bidding begins. Once that active 24-hour
+          bidding period ends, the owner receives an extended 24-hour decision window specifically
+          for final selection. If the property owner does not select a bid within this final
+          extended window, the bidding instance automatically expires and is removed and cancelled
+          from the active platform feed. Rates submitted during the active bidding window remain
+          fixed for the defined requirements and will NOT change during or after the physical
+          site visit.
+        </p>
+      </StaticSection>
+
+      <StaticSection title="100% Digital & Cashless Payment Standard">
+        <p className={PLATFORM_COPY}>
+          All financial transactions on BuilBid, including milestone-based payments over the
+          duration of the project, must be processed 100% digitally through integrated online
+          payment gateways or UPI. Cash payments are strictly prohibited on the platform.
+          Workers and contractors are notified that all earnings and milestone payouts are
+          disbursed exclusively via digital online transfers to their registered bank accounts.
         </p>
       </StaticSection>
 
